@@ -1,0 +1,11 @@
+*.pyc
+*.pyo
+*.dat
+*.sublime-workspace
+crossbar/build
+crossbar/dist
+*.egg-info
+*.log
+*.pid
+dropin.cache
+crossbardata

@@ -1,4 +1,3 @@
-crossbar
-========
+# Crossbar.io
 
-Multi-protocol application router
+Multi-protocol application router.
