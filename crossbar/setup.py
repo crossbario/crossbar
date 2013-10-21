@@ -46,12 +46,12 @@ setup (
    url = 'http://crossbar.io/',
    platforms = ('Any'),
    install_requires = ['Twisted>=Twisted-13.1',
-                       'pyOpenSSL>=0.13',
-                       'pycrypto>=2.3',
+                       'pyOpenSSL>=0.13.1',
+                       'pycrypto>=2.6.1',
                        'netaddr==0.7.6',
-                       'isodate>=0.4.8',
-                       'tldextract>=1.1.1',
-                       'Autobahn>=0.6.2'
+                       'isodate>=0.4.9',
+                       'tldextract>=1.2.2',
+                       'Autobahn>=0.6.3'
                        ],
    entry_points = {
       'console_scripts': [
