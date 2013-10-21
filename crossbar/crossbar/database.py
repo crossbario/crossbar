@@ -1503,7 +1503,7 @@ OQIDAQAB
 
           ## Update options
           ##
-          "update-url": Database.WEBMQ_UPDATE_URL,
+          "update-url": Database.CROSSBAR_UPDATE_URL,
           "update-check-interval": 600,
 
           "eula-accepted": None
