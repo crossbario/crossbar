@@ -352,48 +352,48 @@ class AdminWebService(service.Service):
    def startService(self):
       log.msg("Starting %s service ..." % self.SERVICENAME)
 
-      ## WebMQ Dashboard
+      ## Crossbar.io Dashboard
       ##
       try:
-         import webmqdashboard
-         root = File(pkg_resources.resource_filename("webmqdashboard", "web"))
+         import crossbardashboard
+         root = File(pkg_resources.resource_filename("crossbardashboard", "web"))
 
       except ImportError, e:
-         log.msg("WebMQ Dashboard not installed [%s]" % e)
+         log.msg("Crossbar.io Dashboard not installed [%s]" % e)
          root = Resource()
 
       else:
-         log.msg("Found WebMQ Dashboard package v%s" % webmqdashboard.__version__)
+         log.msg("Found Crossbar.io Dashboard package v%s" % crossbardashboard.__version__)
 
-         ## WebMQ ControlCenter
+         ## Crossbar.io ControlCenter
          ##
          try:
-            import webmqcontrolcenter
-            root.putChild("controlcenter", File(pkg_resources.resource_filename("webmqcontrolcenter", "web")))
+            import crossbarcontrolcenter
+            root.putChild("controlcenter", File(pkg_resources.resource_filename("crossbarcontrolcenter", "web")))
          except ImportError, e:
-            log.msg("WebMQ ControlCenter not installed [%s]" % e)
+            log.msg("Crossbar.io ControlCenter not installed [%s]" % e)
          else:
-            log.msg("Found WebMQ ControlCenter package v%s" % webmqcontrolcenter.__version__)
+            log.msg("Found Crossbar.io ControlCenter package v%s" % crossbarcontrolcenter.__version__)
 
-         ## WebMQ CodeLab
+         ## Crossbar.io CodeLab
          ##
          try:
-            import webmqcodelab
-            root.putChild("codelab", File(pkg_resources.resource_filename("webmqcodelab", "web")))
+            import crossbarcodelab
+            root.putChild("codelab", File(pkg_resources.resource_filename("crossbarcodelab", "web")))
          except ImportError, e:
-            log.msg("WebMQ CodeLab not installed [%s]" % e)
+            log.msg("Crossbar.io CodeLab not installed [%s]" % e)
          else:
-            log.msg("Found WebMQ CodeLab package v%s" % webmqcodelab.__version__)
+            log.msg("Found Crossbar.io CodeLab package v%s" % crossbarcodelab.__version__)
 
-         ## WebMQ Manual
+         ## Crossbar.io Manual
          ##
          try:
-            import webmqmanual
-            root.putChild("manual", File(pkg_resources.resource_filename("webmqmanual", "web")))
+            import crossbarmanual
+            root.putChild("manual", File(pkg_resources.resource_filename("crossbarmanual", "web")))
          except ImportError, e:
-            log.msg("WebMQ Manual not installed [%s]" % e)
+            log.msg("Crossbar.io Manual not installed [%s]" % e)
          else:
-            log.msg("Found WebMQ Manual package v%s" % webmqmanual.__version__)
+            log.msg("Found Crossbar.io Manual package v%s" % crossbarmanual.__version__)
 
 
       ## REST interface to get config values
