@@ -144,18 +144,26 @@ class AdminWebSocketProtocol(WampCraServerProtocol):
 
 
    def _isActivated(self, txn):
-      now = utcnow()
-      txn.execute("SELECT license_id, license_type, connection_cap, tls_enabled, valid_from, valid_to FROM license WHERE enabled = 1 AND valid_from <= ? AND valid_to > ?", [now, now])
-      res = txn.fetchone()
-      if res:
-         return {'license-id': res[0],
-                 'type': res[1],
-                 'connected-cap': res[2],
-                 'tls-enabled': True if res[3] != 0 else False,
-                 'valid-from': res[4],
-                 'valid-to': res[5]}
+      if True:
+         return {'license-id': '',
+                 'type': 'BETA',
+                 'connected-cap': 0,
+                 'tls-enabled': True,
+                 'valid-from': '1970-01-01T00:00:00:00Z',
+                 'valid-to': '2020-01-01T00:00:00:00Z'}
       else:
-         return None
+         now = utcnow()
+         txn.execute("SELECT license_id, license_type, connection_cap, tls_enabled, valid_from, valid_to FROM license WHERE enabled = 1 AND valid_from <= ? AND valid_to > ?", [now, now])
+         res = txn.fetchone()
+         if res:
+            return {'license-id': res[0],
+                    'type': res[1],
+                    'connected-cap': res[2],
+                    'tls-enabled': True if res[3] != 0 else False,
+                    'valid-from': res[4],
+                    'valid-to': res[5]}
+         else:
+            return None
 
    @exportRpc("is-activated")
    def isActivated(self):
