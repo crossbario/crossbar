@@ -22,6 +22,14 @@ import tempfile
 from OpenSSL import crypto, SSL
 from twisted.internet.ssl import DefaultOpenSSLContextFactory
 
+# monkey patch missing constants
+# https://bugs.launchpad.net/pyopenssl/+bug/1244201
+SSL.SSL_OP_NO_COMPRESSION = 0x00020000L
+SSL.SSL_OP_CIPHER_SERVER_PREFERENCE = 0x00400000L
+
+# http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+CHIPERS = 'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS'
+
 
 class TlsContextFactory(DefaultOpenSSLContextFactory):
    """
@@ -43,20 +51,32 @@ class TlsContextFactory(DefaultOpenSSLContextFactory):
       the subject's certificate (actual client or server certificate), followed
       by intermediate CA certificates if applicable, and ending at the
       highest level (root) CA.
+
+   Hardening:
+      http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+      https://www.ssllabs.com/ssltest/analyze.html?d=www.example.com
    """
 
    def __init__(self, privateKeyString, certificateString, chainedCertificate = True):
       self.privateKeyString = str(privateKeyString)
       self.certificateString = str(certificateString)
       self.chainedCertificate = chainedCertificate
+
+      ## do a SSLv2-compatible handshake even for TLS
+      ##
       self.sslmethod = SSL.SSLv23_METHOD
+
       self._contextFactory = SSL.Context
       self.cacheContext()
 
    def cacheContext(self):
       if self._context is None:
          ctx = self._contextFactory(self.sslmethod)
-         ctx.set_options(SSL.OP_NO_SSLv2)
+
+         ## SSL hardening
+         ##
+         ctx.set_options(SSL.OP_NO_SSLv2 | SSL.OP_NO_SSLv3 | SSL.OP_NO_COMPRESSION | SSL.OP_CIPHER_SERVER_PREFERENCE)
+         ctx.set_cipher_list(CHIPERS)
 
          ## load certificate (chain) into context
          ##

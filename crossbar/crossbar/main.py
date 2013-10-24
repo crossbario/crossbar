@@ -26,7 +26,9 @@ __builtin__.open = io.open
 
 import os, datetime, sys, time
 
+import OpenSSL
 import twisted
+
 from twisted.python import log, usage
 from twisted.internet import reactor
 from twisted.application import service
@@ -116,6 +118,10 @@ class CrossbarService(MultiService):
       ##
       services["master"] = self
       services["logger"] = self.logger
+
+      ## Log OpenSSL info
+      ##
+      log.msg("Using pyOpenSSL %s on OpenSSL %s" % (OpenSSL.__version__, OpenSSL.SSL.SSLeay_version(OpenSSL.SSL.SSLEAY_VERSION))
 
       ## remember service start time
       ##
