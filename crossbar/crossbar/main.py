@@ -121,7 +121,7 @@ class CrossbarService(MultiService):
 
       ## Log OpenSSL info
       ##
-      log.msg("Using pyOpenSSL %s on OpenSSL %s" % (OpenSSL.__version__, OpenSSL.SSL.SSLeay_version(OpenSSL.SSL.SSLEAY_VERSION))
+      log.msg("Using pyOpenSSL %s on OpenSSL %s") % (OpenSSL.__version__, OpenSSL.SSL.SSLeay_version(OpenSSL.SSL.SSLEAY_VERSION))
 
       ## remember service start time
       ##
