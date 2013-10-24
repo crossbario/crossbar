@@ -24,8 +24,8 @@ from twisted.internet.ssl import DefaultOpenSSLContextFactory
 
 # monkey patch missing constants
 # https://bugs.launchpad.net/pyopenssl/+bug/1244201
-SSL.SSL_OP_NO_COMPRESSION = 0x00020000L
-SSL.SSL_OP_CIPHER_SERVER_PREFERENCE = 0x00400000L
+SSL.OP_NO_COMPRESSION = 0x00020000L
+SSL.OP_CIPHER_SERVER_PREFERENCE = 0x00400000L
 
 # http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
 CHIPERS = 'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS'
