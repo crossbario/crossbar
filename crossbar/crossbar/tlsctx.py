@@ -22,13 +22,46 @@ import tempfile
 from OpenSSL import crypto, SSL
 from twisted.internet.ssl import DefaultOpenSSLContextFactory
 
+from twisted.python import log
+
 # monkey patch missing constants
 # https://bugs.launchpad.net/pyopenssl/+bug/1244201
-SSL.OP_NO_COMPRESSION = 0x00020000L
+SSL.OP_NO_COMPRESSION           = 0x00020000L
 SSL.OP_CIPHER_SERVER_PREFERENCE = 0x00400000L
+SSL.OP_SINGLE_ECDH_USE          = 0x00080000L
+SSL.OP_SINGLE_DH_USE            = 0x00100000L
+
 
 # http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-CHIPERS = 'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS'
+CIPHERS = 'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS'
+
+# SSL.NID_X9_62_prime192v1
+# SSL.NID_X9_62_prime192v2
+# SSL.NID_X9_62_prime192v3
+# SSL.NID_X9_62_prime239v1
+# SSL.NID_X9_62_prime239v2
+# SSL.NID_X9_62_prime239v3
+# SSL.NID_X9_62_prime256v1
+
+SSL.SN_X9_62_prime192v1 = "prime192v1"
+SSL.SN_X9_62_prime192v2 = "prime192v2"
+SSL.SN_X9_62_prime192v3 = "prime192v3"
+SSL.SN_X9_62_prime239v1 = "prime239v1"
+SSL.SN_X9_62_prime239v2 = "prime239v2"
+SSL.SN_X9_62_prime239v3 = "prime239v3"
+SSL.SN_X9_62_prime256v1 = "prime256v1"
+
+ELLIPTIC_CURVES = {
+   SSL.SN_X9_62_prime192v1: SSL.NID_X9_62_prime192v1,
+   SSL.SN_X9_62_prime192v2: SSL.NID_X9_62_prime192v2,
+   SSL.SN_X9_62_prime192v3: SSL.NID_X9_62_prime192v3,
+   SSL.SN_X9_62_prime239v1: SSL.NID_X9_62_prime239v1,
+   SSL.SN_X9_62_prime239v2: SSL.NID_X9_62_prime239v2,
+   SSL.SN_X9_62_prime239v3: SSL.NID_X9_62_prime239v3,
+   SSL.SN_X9_62_prime256v1: SSL.NID_X9_62_prime256v1
+}
+
+ECDH_DEFAULT_CURVE = ELLIPTIC_CURVES["prime256v1"]
 
 
 class TlsContextFactory(DefaultOpenSSLContextFactory):
@@ -57,10 +90,11 @@ class TlsContextFactory(DefaultOpenSSLContextFactory):
       https://www.ssllabs.com/ssltest/analyze.html?d=www.example.com
    """
 
-   def __init__(self, privateKeyString, certificateString, chainedCertificate = True):
+   def __init__(self, privateKeyString, certificateString, chainedCertificate = True, dhParamFilename = None):
       self.privateKeyString = str(privateKeyString)
       self.certificateString = str(certificateString)
       self.chainedCertificate = chainedCertificate
+      self.dhParamFilename = dhParamFilename
 
       ## do a SSLv2-compatible handshake even for TLS
       ##
@@ -75,8 +109,34 @@ class TlsContextFactory(DefaultOpenSSLContextFactory):
 
          ## SSL hardening
          ##
-         ctx.set_options(SSL.OP_NO_SSLv2 | SSL.OP_NO_SSLv3 | SSL.OP_NO_COMPRESSION | SSL.OP_CIPHER_SERVER_PREFERENCE)
-         ctx.set_cipher_list(CHIPERS)
+         ctx.set_options(SSL.OP_NO_SSLv2 | \
+                         SSL.OP_NO_SSLv3 | \
+                         SSL.OP_NO_COMPRESSION | \
+                         SSL.OP_CIPHER_SERVER_PREFERENCE | \
+                         SSL.OP_SINGLE_ECDH_USE | \
+                         SSL.OP_SINGLE_DH_USE)
+
+         ctx.set_cipher_list(CIPHERS)
+
+         ## http://linux.die.net/man/3/ssl_ctx_set_tmp_dh
+         ## http://linux.die.net/man/1/dhparam
+         ##
+         if self.dhParamFilename:
+            try:
+               ctx.load_tmp_dh(self.dhParamFilename)
+            except Exception, e:
+               log.msg("Error: OpenSSL DH modes not active - failed to load DH parameter file [%s]" % e)
+         else:
+            log.msg("Warning: OpenSSL DH modes not active - missing DH param file")
+
+         ## This needs pyOpenSSL with patch applied from
+         ## https://bugs.launchpad.net/pyopenssl/+bug/1233810
+         ##
+         try:
+            ctx.set_tmp_ecdh_by_curve_name(ECDH_DEFAULT_CURVE)
+         except Exception, e:
+            log.msg("Failed to set ECDH default curve [%s]" % e)
+
 
          ## load certificate (chain) into context
          ##

@@ -891,7 +891,8 @@ class AdminWebSocketService(service.Service):
 
       if self.services["config"]["admin-websocket-tls"]:
          contextFactory = TlsContextFactory(self.services["config"]["admin-websocket-tlskey-pem"],
-                                            self.services["config"]["admin-websocket-tlscert-pem"])
+                                            self.services["config"]["admin-websocket-tlscert-pem"],
+                                            dhParamFilename = self.services['master'].dhParamFilename)
 
          uri = "wss://localhost:%d" % self.services["config"]["admin-websocket-port"]
       else:

@@ -119,10 +119,6 @@ class CrossbarService(MultiService):
       services["master"] = self
       services["logger"] = self.logger
 
-      ## Log OpenSSL info
-      ##
-      log.msg("Using pyOpenSSL %s on OpenSSL %s" % (OpenSSL.__version__, OpenSSL.SSL.SSLeay_version(OpenSSL.SSL.SSLEAY_VERSION)))
-
       ## remember service start time
       ##
       self.started = datetime.datetime.utcnow()
@@ -130,6 +126,22 @@ class CrossbarService(MultiService):
       ## make sure we have full absolute path to data dir
       ##
       self.appdata = os.path.abspath(self.appdata)
+
+      ## Log OpenSSL info
+      ##
+      log.msg("Using pyOpenSSL %s on OpenSSL %s" % (OpenSSL.__version__, OpenSSL.SSL.SSLeay_version(OpenSSL.SSL.SSLEAY_VERSION)))
+
+      ## Generate DH param set (primes ..)
+      ##
+      ## http://linux.die.net/man/3/ssl_ctx_set_tmp_dh
+      ## http://linux.die.net/man/1/dhparam
+      ##
+      self.dhParamFilename = os.path.join(self.appdata, 'dh_param.pem')
+      if not os.path.exists(self.dhParamFilename):
+         os.system("openssl dhparam -out %s -2 1024" % self.dhParamFilename)
+         log.msg("Generated DH param file %s" % self.dhParamFilename)
+      else:
+         log.msg("Using existing DH param file %s" % self.dhParamFilename)
 
       ## initialize database
       ##
