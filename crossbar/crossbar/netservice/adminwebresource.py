@@ -429,7 +429,8 @@ class AdminWebService(service.Service):
       port = cfg["admin-web-port"]
       if cfg["admin-web-tls"]:
          contextFactory = TlsContextFactory(cfg["admin-web-tlskey-pem"],
-                                            cfg["admin-web-tlscert-pem"])
+                                            cfg["admin-web-tlscert-pem"],
+                                            dhParamFilename = self.services['master'].dhParamFilename)
          self.listener = reactor.listenSSL(port, factory, contextFactory)
       else:
          self.listener = reactor.listenTCP(port, factory)

@@ -497,7 +497,8 @@ class HubWebSocketService(service.Service):
 
       if issecure:
          contextFactory = TlsContextFactory(self.services["config"]["hub-websocket-tlskey-pem"],
-                                            self.services["config"]["hub-websocket-tlscert-pem"])
+                                            self.services["config"]["hub-websocket-tlscert-pem"],
+                                            dhParamFilename = self.services['master'].dhParamFilename)
 
          uri = "wss://localhost:%d" % port
       else:

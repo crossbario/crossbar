@@ -157,7 +157,8 @@ class EchoWebSocketService(service.Service):
       log.msg("Starting %s service ..." % self.SERVICENAME)
       if self.services["config"]["echo-websocket-tls"]:
          contextFactory = tlsctx.TlsContextFactory(self.services["config"]["echo-websocket-tlskey-pem"],
-                                                   self.services["config"]["echo-websocket-tlscert-pem"])
+                                                   self.services["config"]["echo-websocket-tlscert-pem"],
+                                                   dhParamFilename = self.services['master'].dhParamFilename)
 
          uri = "wss://localhost:%d" % self.services["config"]["echo-websocket-port"]
       else:

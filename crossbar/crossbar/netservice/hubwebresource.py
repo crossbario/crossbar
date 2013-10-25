@@ -292,7 +292,8 @@ class HubWebService(service.Service):
       port = cfg["hub-web-port"]
       if cfg["hub-web-tls"]:
          contextFactory = TlsContextFactory(cfg["hub-web-tlskey-pem"],
-                                            cfg["hub-web-tlscert-pem"])
+                                            cfg["hub-web-tlscert-pem"],
+                                            dhParamFilename = self.services['master'].dhParamFilename)
          self.listener = reactor.listenSSL(port, self.factory, contextFactory)
       else:
          self.listener = reactor.listenTCP(port, self.factory)
