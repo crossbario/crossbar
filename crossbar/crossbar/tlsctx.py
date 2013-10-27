@@ -41,7 +41,6 @@ SSL.OP_NO_TICKET                              = 0x00004000L
 
 SSL_DEFAULT_OPTIONS = SSL.OP_NO_SSLv2 | \
                       SSL.OP_NO_SSLv3 | \
-                      #SSL.OP_NO_TLSv1 | \
                       SSL.OP_NO_COMPRESSION | \
                       SSL.OP_CIPHER_SERVER_PREFERENCE | \
                       SSL.OP_SINGLE_ECDH_USE | \
