@@ -67,6 +67,10 @@ SSL_DEFAULT_OPTIONS = SSL.OP_NO_SSLv2 | \
 ##
 SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA'
 
+## Resorted to prioritize ECDH (hence favor performance over cipher strength) - no gain in practice, that doesn't
+## change the effectively accepted cipher with common browsers/clients
+#SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA'
+
 
 ## Named curves built into OpenSSL .. can be listed using:
 ##
