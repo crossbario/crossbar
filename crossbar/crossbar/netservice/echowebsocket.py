@@ -25,6 +25,8 @@ from autobahn.websocket import WebSocketServerFactory, \
                                WebSocketServerProtocol, \
                                listenWS
 
+from autobahn.compress import *
+
 from crossbar.tlsctx import TlsContextFactory
 from crossbar.adminwebmodule.uris import *
 
@@ -60,8 +62,12 @@ class EchoWebSocketFactory(WebSocketServerFactory):
 
    def __init__(self, url, dbpool, services):
       WebSocketServerFactory.__init__(self, url, debug = False, debugCodePaths = False)
+
       self.dbpool = dbpool
       self.services = services
+
+      ## reset Echo endpoint stats
+      ##
       self.stats = {'wsecho-connections': 0,
                     'wsecho-echos-text-count': 0,
                     'wsecho-echos-text-bytes': 0,
@@ -81,6 +87,10 @@ class EchoWebSocketFactory(WebSocketServerFactory):
       if c.get("ws-allow-version-13"):
          versions.append(13)
 
+      ## FIXME: enforce!!
+      ##
+      self.connectionCap = c.get("ws-max-connections")
+
       self.setProtocolOptions(versions = versions,
                               allowHixie76 = c.get("ws-allow-version-0"),
                               webStatus = c.get("ws-enable-webstatus"),
@@ -96,6 +106,26 @@ class EchoWebSocketFactory(WebSocketServerFactory):
                               openHandshakeTimeout = c.get("ws-open-handshake-timeout"),
                               closeHandshakeTimeout = c.get("ws-close-handshake-timeout"),
                               tcpNoDelay = c.get("ws-tcp-nodelay"))
+
+      ## permessage-compression WS extension
+      ##
+      if c.get("ws-enable-permessage-deflate"):
+
+         windowSize = c.get("ws-permessage-deflate-window-size")
+         windowBits = int(math.log(windowSize, 2)) if windowSize != 0 else 0
+         requireWindowSize = c.get("ws-permessage-deflate-require-window-size")
+
+         def accept(offers):
+            for offer in offers:
+               if isinstance(offer, PerMessageDeflateOffer):
+                  if windowBits != 0 and offer.acceptMaxWindowBits:
+                     return PerMessageDeflateOfferAccept(offer,
+                                                         requestMaxWindowBits = windowBits,
+                                                         windowBits = windowBits)
+                  elif windowBits == 0 or not requireWindowSize:
+                     return PerMessageDeflateOfferAccept(offer)
+
+         self.setProtocolOptions(perMessageCompressionAccept = accept)
 
 
    def startFactory(self):
