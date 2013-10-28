@@ -25,6 +25,7 @@ from autobahn.websocket import WebSocketServerFactory, \
                                WebSocketServerProtocol, \
                                listenWS
 
+from crossbar.tlsctx import TlsContextFactory
 from crossbar.adminwebmodule.uris import *
 
 
@@ -156,9 +157,9 @@ class EchoWebSocketService(service.Service):
    def startService(self):
       log.msg("Starting %s service ..." % self.SERVICENAME)
       if self.services["config"]["echo-websocket-tls"]:
-         contextFactory = tlsctx.TlsContextFactory(self.services["config"]["echo-websocket-tlskey-pem"],
-                                                   self.services["config"]["echo-websocket-tlscert-pem"],
-                                                   dhParamFilename = self.services['master'].dhParamFilename)
+         contextFactory = TlsContextFactory(self.services["config"]["echo-websocket-tlskey-pem"],
+                                            self.services["config"]["echo-websocket-tlscert-pem"],
+                                            dhParamFilename = self.services['master'].dhParamFilename)
 
          uri = "wss://localhost:%d" % self.services["config"]["echo-websocket-port"]
       else:
