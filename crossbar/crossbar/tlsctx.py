@@ -77,23 +77,111 @@ SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECD
 ##
 ## Only some of those are exposed in pyOpenSSL
 ##
-# SSL.NID_X9_62_prime192v1
-# SSL.NID_X9_62_prime192v2
-# SSL.NID_X9_62_prime192v3
-# SSL.NID_X9_62_prime239v1
-# SSL.NID_X9_62_prime239v2
-# SSL.NID_X9_62_prime239v3
-# SSL.NID_X9_62_prime256v1
+## http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
 
-SSL.SN_X9_62_prime192v1 = "prime192v1"
-SSL.SN_X9_62_prime192v2 = "prime192v2"
-SSL.SN_X9_62_prime192v3 = "prime192v3"
-SSL.SN_X9_62_prime239v1 = "prime239v1"
-SSL.SN_X9_62_prime239v2 = "prime239v2"
-SSL.SN_X9_62_prime239v3 = "prime239v3"
-SSL.SN_X9_62_prime256v1 = "prime256v1"
+## curves over binary fields
+##
+SSL.SN_X9_62_c2pnb163v1      = "c2pnb163v1"
+SSL.NID_X9_62_c2pnb163v1     = 684
 
+SSL.SN_X9_62_c2pnb163v2      = "c2pnb163v2"
+SSL.NID_X9_62_c2pnb163v2     = 685
+
+SSL.SN_X9_62_c2pnb163v3      = "c2pnb163v3"
+SSL.NID_X9_62_c2pnb163v3     = 686
+
+SSL.SN_X9_62_c2pnb176v1      = "c2pnb176v1"
+SSL.NID_X9_62_c2pnb176v1     = 687
+
+SSL.SN_X9_62_c2tnb191v1      = "c2tnb191v1"
+SSL.NID_X9_62_c2tnb191v1     = 688
+
+SSL.SN_X9_62_c2tnb191v2      = "c2tnb191v2"
+SSL.NID_X9_62_c2tnb191v2     = 689
+
+SSL.SN_X9_62_c2tnb191v3      = "c2tnb191v3"
+SSL.NID_X9_62_c2tnb191v3     = 690
+
+SSL.SN_X9_62_c2onb191v4      = "c2onb191v4"
+SSL.NID_X9_62_c2onb191v4     = 691
+
+SSL.SN_X9_62_c2onb191v5      = "c2onb191v5"
+SSL.NID_X9_62_c2onb191v5     = 692
+
+SSL.SN_X9_62_c2pnb208w1      = "c2pnb208w1"
+SSL.NID_X9_62_c2pnb208w1     = 693
+
+SSL.SN_X9_62_c2tnb239v1      = "c2tnb239v1"
+SSL.NID_X9_62_c2tnb239v1     = 694
+
+SSL.SN_X9_62_c2tnb239v2      = "c2tnb239v2"
+SSL.NID_X9_62_c2tnb239v2     = 695
+
+SSL.SN_X9_62_c2tnb239v3      = "c2tnb239v3"
+SSL.NID_X9_62_c2tnb239v3     = 696
+
+SSL.SN_X9_62_c2onb239v4      = "c2onb239v4"
+SSL.NID_X9_62_c2onb239v4     = 697
+
+SSL.SN_X9_62_c2onb239v5      = "c2onb239v5"
+SSL.NID_X9_62_c2onb239v5     = 698
+
+SSL.SN_X9_62_c2pnb272w1      = "c2pnb272w1"
+SSL.NID_X9_62_c2pnb272w1     = 699
+
+SSL.SN_X9_62_c2pnb304w1      = "c2pnb304w1"
+SSL.NID_X9_62_c2pnb304w1     = 700
+
+SSL.SN_X9_62_c2tnb359v1      = "c2tnb359v1"
+SSL.NID_X9_62_c2tnb359v1     = 701
+
+SSL.SN_X9_62_c2pnb368w1      = "c2pnb368w1"
+SSL.NID_X9_62_c2pnb368w1     = 702
+
+SSL.SN_X9_62_c2tnb431r1      = "c2tnb431r1"
+SSL.NID_X9_62_c2tnb431r1     = 703
+
+## curves over prime fields
+##
+SSL.SN_X9_62_prime192v1      = "prime192v1"
+SSL.NID_X9_62_prime192v1     = 409
+SSL.SN_X9_62_prime192v2      = "prime192v2"
+SSL.NID_X9_62_prime192v2     = 410
+SSL.SN_X9_62_prime192v3      = "prime192v3"
+SSL.NID_X9_62_prime192v3     = 411
+SSL.SN_X9_62_prime239v1      = "prime239v1"
+SSL.NID_X9_62_prime239v1     = 412
+SSL.SN_X9_62_prime239v2      = "prime239v2"
+SSL.NID_X9_62_prime239v2     = 413
+SSL.SN_X9_62_prime239v3      = "prime239v3"
+SSL.NID_X9_62_prime239v3     = 414
+SSL.SN_X9_62_prime256v1      = "prime256v1"
+SSL.NID_X9_62_prime256v1     = 415
+
+## map of curve name to curve NID
+##
 ELLIPTIC_CURVES = {
+   SSL.SN_X9_62_c2pnb163v1: SSL.NID_X9_62_c2pnb163v1,
+   SSL.SN_X9_62_c2pnb163v2: SSL.NID_X9_62_c2pnb163v2,
+   SSL.SN_X9_62_c2pnb163v3: SSL.NID_X9_62_c2pnb163v3,
+   SSL.SN_X9_62_c2pnb176v1: SSL.NID_X9_62_c2pnb176v1,
+   SSL.SN_X9_62_c2tnb191v1: SSL.NID_X9_62_c2tnb191v1,
+   SSL.SN_X9_62_c2tnb191v2: SSL.NID_X9_62_c2tnb191v2,
+   SSL.SN_X9_62_c2tnb191v3: SSL.NID_X9_62_c2tnb191v3,
+   SSL.SN_X9_62_c2onb191v4: SSL.NID_X9_62_c2onb191v4,
+   SSL.SN_X9_62_c2onb191v5: SSL.NID_X9_62_c2onb191v5,
+   SSL.SN_X9_62_c2pnb208w1: SSL.NID_X9_62_c2pnb208w1,
+   SSL.SN_X9_62_c2tnb239v1: SSL.NID_X9_62_c2tnb239v1,
+   SSL.SN_X9_62_c2tnb239v2: SSL.NID_X9_62_c2tnb239v2,
+   SSL.SN_X9_62_c2tnb239v3: SSL.NID_X9_62_c2tnb239v3,
+   SSL.SN_X9_62_c2onb239v4: SSL.NID_X9_62_c2onb239v4,
+   SSL.SN_X9_62_c2onb239v5: SSL.NID_X9_62_c2onb239v5,
+   SSL.SN_X9_62_c2pnb272w1: SSL.NID_X9_62_c2pnb272w1,
+   SSL.SN_X9_62_c2pnb304w1: SSL.NID_X9_62_c2pnb304w1,
+   SSL.SN_X9_62_c2tnb359v1: SSL.NID_X9_62_c2tnb359v1,
+   SSL.SN_X9_62_c2pnb368w1: SSL.NID_X9_62_c2pnb368w1,
+   SSL.SN_X9_62_c2tnb431r1: SSL.NID_X9_62_c2tnb431r1,
+
    SSL.SN_X9_62_prime192v1: SSL.NID_X9_62_prime192v1,
    SSL.SN_X9_62_prime192v2: SSL.NID_X9_62_prime192v2,
    SSL.SN_X9_62_prime192v3: SSL.NID_X9_62_prime192v3,
