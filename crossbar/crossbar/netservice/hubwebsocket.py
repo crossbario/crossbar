@@ -19,7 +19,7 @@
 
 import math, os
 
-from pprint import pformat
+from pprint import pformat, pprint
 
 from twisted.python import log
 from twisted.internet import reactor
@@ -54,6 +54,9 @@ from portconfigresource import addPortConfigResource
 
 import json
 from crossbar.customjson import CustomJsonEncoder
+
+from autobahn.util import newid, utcnow
+import Cookie
 
 
 class SessionInfo:
@@ -169,11 +172,67 @@ class HubWebSocketProtocol(WampCraServerProtocol):
       return hasattr(self, 'dispatchWiretap') and self.dispatchWiretap is not None
 
 
+   def onConnect(self, connectionRequest):
+      protocol, headers = WampCraServerProtocol.onConnect(self, connectionRequest)
+      #pprint(connectionRequest.headers)
+
+      ua = connectionRequest.headers.get('user-agent', None)
+      origin = connectionRequest.headers.get('origin', None)
+
+      ## Crossbar.io Tracking ID
+      ##
+      cbtid = None
+      if connectionRequest.headers.has_key('cookie'):
+         try:
+            cookie = Cookie.SimpleCookie()
+            cookie.load(str(connectionRequest.headers['cookie']))
+         except Cookie.CookieError:
+            pass
+         else:
+            if cookie.has_key('cbtid'):
+               _cbtid = cookie['cbtid'].value
+               if self.factory.trackingCookies.has_key(_cbtid):
+                  cbtid = _cbtid
+                  #log.msg("Crossbar.io tracking ID already in cookie: %s" % cbtid)
+
+      if cbtid is None:
+
+         cbtid = newid()
+         maxAge = 86400
+
+         cbtData = {'created': utcnow(),
+                    'maxAge': maxAge,
+                    'sessions': []}
+
+         self.factory.trackingCookies[cbtid] = cbtData
+
+         ## do NOT add the "secure" cookie attribute! "secure" refers to the
+         ## scheme of the Web page that triggered the WS, not WS itself!!
+         ##
+         headers['Set-Cookie'] = 'cbtid=%s;max-age=%d' % (cbtid, maxAge)
+         #log.msg("Setting new Crossbar.io tracking ID in cookie: %s" % cbtid)
+
+      self._cbtid = cbtid
+      cbSessionData = {'cbtid': cbtid,
+                       'ua': ua,
+                       'origin': origin,
+                       'connected': utcnow()}
+
+      i = len(self.factory.trackingCookies[cbtid]['sessions'])
+
+      self.factory.trackingCookies[cbtid]['sessions'].append(cbSessionData)
+      self._cbSession = self.factory.trackingCookies[cbtid]['sessions'][i]
+
+      return (protocol, headers)
+
+
    def onSessionOpen(self):
 
       self.includeTraceback = True
       self.setWiretapMode(False)
       self.sessionInfo = SessionInfo(self.session_id)
+
+      self._cbSession['wampSessionId'] = self.session_id
 
       self.dbpool = self.factory.dbpool
       self.authenticatedAs = None
@@ -207,8 +266,9 @@ class HubWebSocketProtocol(WampCraServerProtocol):
       ## we fill in permissions here
       perms = {'permissions': {}}
 
-      if authExtra.has_key('cookies'):
-         perms['cookies'] = authExtra['cookies']
+      for k in ['cookies', 'referrer', 'href']:
+         if authExtra.has_key(k):
+            perms[k] = authExtra[k]
 
       ## PubSub permissions
       ##
@@ -266,6 +326,10 @@ class HubWebSocketProtocol(WampCraServerProtocol):
 
       self.sessionInfo.authenticatedAs = authKey
 
+      self._cbSession['authenticated'] = utcnow()
+      self._cbSession['href'] = perms.get('href', None)
+      self._cbSession['referrer'] = perms.get('referrer', None)
+
       self.registerForPubSubFromPermissions(perms['permissions'])
 
       for remoter, key, method in [("restremoter", "rest", RestRemoter.remoteCall),
@@ -316,6 +380,16 @@ class HubWebSocketProtocol(WampCraServerProtocol):
       WampCraServerProtocol.connectionLost(self, reason)
       self.factory.onConnectionCountChanged()
 
+      self._cbSession['lost'] = utcnow()
+
+      self.factory.dispatch("http://analytics.tavendo.de#sessionEvent", self._cbSession)
+
+      #print
+      #pprint(self._cbSession)
+      #print
+      #pprint(self.factory.trackingCookies)
+      #print
+
       #log.msg("\n\nTraffic stats on closed connection:\n\n" + pformat(self.trafficStats.__json__()) + "\n")
 
 
@@ -336,6 +410,8 @@ class HubWebSocketFactory(WampServerFactory):
                     'ws-dispatched-success': 0,
                     'ws-dispatched-failed': 0}
       self.statsChanged = False
+
+      self.trackingCookies = {}
 
 
    #def _serialize(self, obj):
