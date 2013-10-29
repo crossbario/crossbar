@@ -346,6 +346,8 @@ class HubWebSocketProtocol(WampCraServerProtocol):
                                                 method,
                                                 r[uri])
 
+      self.factory.dispatch("http://analytics.tavendo.de#enter", self._cbSession)
+
 
    @exportRpc("ping")
    def ping(self):
@@ -382,7 +384,7 @@ class HubWebSocketProtocol(WampCraServerProtocol):
 
       self._cbSession['lost'] = utcnow()
 
-      self.factory.dispatch("http://analytics.tavendo.de#sessionEvent", self._cbSession)
+      self.factory.dispatch("http://analytics.tavendo.de#leave", self._cbSession)
 
       #print
       #pprint(self._cbSession)
