@@ -28,7 +28,7 @@ from twisted.internet.defer import gatherResults
 
 from twisted.web.server import Site
 from twisted.web.static import File
-
+from twisted.web.resource import Resource
 
 from autobahn.resource import WebSocketResource, HTTPChannelHixie76Aware
 
@@ -134,8 +134,7 @@ class HubWebSocketProtocol(WampCraServerProtocol):
                                    cbVersion = crossbar.__version__,
                                    wsUri = url))
       except Exception, e:
-         log.msg(e)
-      return
+         log.msg("Error rendering WebSocket status page template: %s" % e)
 
 
    def testDispatch(self, topic, event, options):
@@ -554,7 +553,6 @@ class HubWebSocketFactory(WampServerFactory):
       self.statsChanged = True
 
 
-
 class HubWebSocketService(service.Service):
 
    SERVICENAME = "App WebSocket/Web"
@@ -636,7 +634,20 @@ class HubWebSocketService(service.Service):
          self.wsfactory.startFactory()
          resource = WebSocketResource(self.wsfactory)
          appwebDir = self.services["master"].webdata
+
+         templates = self.templates
+
+         class Resource404(Resource):
+            """
+            Custom error page (404).
+            """
+            def render_GET(self, request):
+               page = templates.get_template('cb_web_404.html')
+               s = page.render(cbVersion = crossbar.__version__)
+               return s.encode('utf8')
+
          root = File(appwebDir)
+         root.childNotFound = Resource404()
          root.putChild(self.services["config"]["ws-websocket-path"], resource)
 
          ## CGI
@@ -653,6 +664,7 @@ class HubWebSocketService(service.Service):
             log.msg("CGI configured on path '%s' using processor '%s'" % (cgipath, cgiprocessor))
          else:
             log.msg("No CGI configured")
+
 
          factory = Site(root)
          factory.log = lambda _: None # disable any logging
