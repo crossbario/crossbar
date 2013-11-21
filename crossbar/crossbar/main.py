@@ -125,23 +125,7 @@ class CrossbarService(MultiService):
 
       ## make sure we have full absolute path to data dir
       ##
-      self.appdata = os.path.abspath(self.appdata)
-
-      ## Log OpenSSL info
-      ##
-      log.msg("Using pyOpenSSL %s on OpenSSL %s" % (OpenSSL.__version__, OpenSSL.SSL.SSLeay_version(OpenSSL.SSL.SSLEAY_VERSION)))
-
-      ## Generate DH param set (primes ..)
-      ##
-      ## http://linux.die.net/man/3/ssl_ctx_set_tmp_dh
-      ## http://linux.die.net/man/1/dhparam
-      ##
-      self.dhParamFilename = os.path.join(self.appdata, 'dh_param.pem')
-      if not os.path.exists(self.dhParamFilename):
-         os.system("openssl dhparam -out %s -2 1024" % self.dhParamFilename)
-         log.msg("Generated DH param file %s" % self.dhParamFilename)
-      else:
-         log.msg("Using existing DH param file %s" % self.dhParamFilename)
+      self.cbdata = os.path.abspath(self.cbdata)
 
       ## initialize database
       ##
@@ -154,6 +138,22 @@ class CrossbarService(MultiService):
       cfg = db.getConfig(includeTls = True)
       dbpool = db.createPool()
 
+      ## Log OpenSSL info
+      ##
+      log.msg("Using pyOpenSSL %s on OpenSSL %s" % (OpenSSL.__version__, OpenSSL.SSL.SSLeay_version(OpenSSL.SSL.SSLEAY_VERSION)))
+
+      ## Generate DH param set (primes ..)
+      ##
+      ## http://linux.die.net/man/3/ssl_ctx_set_tmp_dh
+      ## http://linux.die.net/man/1/dhparam
+      ##
+      self.dhParamFilename = os.path.join(self.cbdata, 'dh_param.pem')
+      if not os.path.exists(self.dhParamFilename):
+         os.system("openssl dhparam -out %s -2 1024" % self.dhParamFilename)
+         log.msg("Generated DH param file %s" % self.dhParamFilename)
+      else:
+         log.msg("Using existing DH param file %s" % self.dhParamFilename)
+
       ## License options
       ##
       self.licenseOptions = db.getLicenseOptions()
@@ -163,7 +163,7 @@ class CrossbarService(MultiService):
       self.installedOptions = db.getInstalledOptions()
 
       if self.webdata is None:
-         self.webdata = os.path.join(self.appdata, db.getConfig('web-dir'))
+         self.webdata = os.path.join(self.cbdata, db.getConfig('web-dir'))
          print "Crossbar.io Web directory unspecified - using %s." % self.webdata
 
       ## Print out core information to log
@@ -246,29 +246,32 @@ class Options(usage.Options):
    longdesc = """Crossbar.io - Multi-protocol application router"""
 
    optFlags = [['debug', 'd', 'Emit debug messages']]
-   optParameters = [["appdata", "a", None, "Crossbar.io service data directory (overrides environment variable CROSSBAR_DATA)."],
-                    ["webdata", "w", None, "Crossbar Web directory (overrides default CROSSBAR_DATA/web)."],
-                    ["licenseserver", "l", None, "Crossbar.io License Activation Server URI [default: %s]." % LICENSE_ACTIVATION_SERVER_DEFAULT_URI]]
+   optParameters = [["cbdata", "c", None, "Crossbar.io data directory (overrides environment variable CROSSBAR_DATA)."],
+                    ["webdata", "w", None, "Crossbar.io static Web directory (overrides default CROSSBAR_DATA/web)."],
+                    ## FIXME: remove the old licensing stuff elsewhere also
+                    #["licenseserver", "l", None, "Crossbar.io license activation server URI [default: %s]." % LICENSE_ACTIVATION_SERVER_DEFAULT_URI],
+                    ]
 
    def postOptions(self):
-      if not self['appdata']:
+      if not self['cbdata']:
          if os.environ.has_key("CROSSBAR_DATA"):
-            self['appdata'] = os.environ["CROSSBAR_DATA"]
-            print "Crossbar.io service data directory %s set from environment variable CROSSBAR_DATA." % self['appdata']
+            self['cbdata'] = os.environ["CROSSBAR_DATA"]
+            print "Crossbar.io service data directory %s set from environment variable CROSSBAR_DATA." % self['cbdata']
          else:
-            self['appdata'] = os.path.join(os.getcwd(), 'appdata')
-            print "Crossbar.io service directory unspecified - using %s." % self['appdata']
+            self['cbdata'] = os.path.join(os.getcwd(), 'cbdata')
+            print "Crossbar.io service directory unspecified - using %s." % self['cbdata']
       else:
-         print "Crossbar.io application data directory %s set via command line option." % self['appdata']
+         print "Crossbar.io application data directory %s set via command line option." % self['cbdata']
 
       if not self['webdata']:
-         if os.environ.has_key("CROSSBAR_WEB"):
-            self['webdata'] = os.environ["CROSSBAR_WEB"]
-            print "Crossbar.io Web directory %s set from environment variable CROSSBAR_WEB." % self['webdata']
+         if os.environ.has_key("CROSSBAR_DATA_WEB"):
+            self['webdata'] = os.environ["CROSSBAR_DATA_WEB"]
+            print "Crossbar.io static Web directory %s set from environment variable CROSSBAR_DATA_WEB." % self['webdata']
       else:
-         print "Crossbar.io Web directory %s set via command line option." % self['webdata']
+         print "Crossbar.io static Web directory %s set via command line option." % self['webdata']
 
-      if not self['licenseserver']:
+      ## FIXME: remove the old licensing stuff elsewhere also
+      if True or not self['licenseserver']:
          self['licenseserver'] = LICENSE_ACTIVATION_SERVER_DEFAULT_URI
 
 
@@ -291,7 +294,7 @@ def makeService(options):
    service.logger = logger
 
    ## store user options set
-   service.appdata = options['appdata']
+   service.cbdata = options['cbdata']
    service.webdata = options['webdata']
    service.debug = True if options['debug'] else False
    service.licenseserver = options['licenseserver']
@@ -313,7 +316,7 @@ def runPlugin():
 
    serviceMaker = ServiceMaker('crossbar',
                                'crossbar.main',
-                               'crossbar.io multi-protocol application router',
+                               'Crossbar.io multi-protocol application router',
                                'crossbar')
 
    plug = serviceMaker

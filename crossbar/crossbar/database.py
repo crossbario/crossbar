@@ -43,7 +43,7 @@ def oldtable(tablename):
 #class Database(service.Service):
 class Database:
    """
-   crossbar.io service database.
+   Crossbar.io service database.
    """
 
    SERVICENAME = "Database"
@@ -206,8 +206,8 @@ OQIDAQAB
       """
       Ctor.
 
-      :param appdata: Application data base directory.
-      :type appdata: str
+      :param services: Crossbar.io services.
+      :type services: dict
       """
 
       self.services = services
@@ -216,9 +216,9 @@ OQIDAQAB
       self.licenseOptions = None
       self.installedOptions = None
 
-      ## application data directory
-      self.appdata = services["master"].appdata
-      self.dbfile = os.path.join(self.appdata, "crossbar.dat")
+      ## Crossbar.io data directory
+      self.cbdata = services["master"].cbdata
+      self.dbfile = os.path.join(self.cbdata, "crossbar.dat")
 
 
    def startService(self):
@@ -226,11 +226,11 @@ OQIDAQAB
 
       ## create application data directory if it does not exist
       ##
-      if not os.path.isdir(self.appdata):
-         log.msg("application data directory %s does not exist - creating" % self.appdata)
-         os.mkdir(self.appdata)
+      if not os.path.isdir(self.cbdata):
+         log.msg("application data directory %s does not exist - creating" % self.cbdata)
+         os.mkdir(self.cbdata)
       else:
-         log.msg("starting application from application data directory %s" % self.appdata)
+         log.msg("starting application from application data directory %s" % self.cbdata)
 
       self.createOrUpgrade()
       self.checkIntegrity()
@@ -474,7 +474,7 @@ OQIDAQAB
                   "ws-accept-queue-size": 5000,
                   "ws-enable-webserver": True,
                   "ws-websocket-path": "ws",
-                  "web-dir": os.path.join(self.appdata, "web")
+                  "web-dir": os.path.join(self.cbdata, "web")
                }
                for k in CONFIG:
                   cur.execute("INSERT INTO config (key, value) VALUES (?, ?)", [k, json_dumps(CONFIG[k])])
@@ -1449,24 +1449,24 @@ OQIDAQAB
           "ftp-passive-public-ip": None,
 
           ## FTP related options
-          "ftp-dir": os.path.join(self.appdata, "ftp"),
+          "ftp-dir": os.path.join(self.cbdata, "ftp"),
 
           ## Logging related options
           ##
-          "log-dir": os.path.join(self.appdata, "log"),
+          "log-dir": os.path.join(self.cbdata, "log"),
           "log-retention-time": 24*3,
           "log-write-interval": 60,
 
           ## export/import directories
           ##
-          "export-dir": os.path.join(self.appdata, "export"),
+          "export-dir": os.path.join(self.cbdata, "export"),
           "export-url": "export",
-          "import-dir": os.path.join(self.appdata, "import"),
+          "import-dir": os.path.join(self.cbdata, "import"),
           "import-url": "import",
 
           ## Web serving directory
           ##
-          "web-dir": os.path.join(self.appdata, "web"), # if ws-enable-webserver == True, we serve file via embedded Web server from here
+          "web-dir": os.path.join(self.cbdata, "web"), # if ws-enable-webserver == True, we serve file via embedded Web server from here
 
           ## WebSocket options
           ##

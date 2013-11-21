@@ -21,6 +21,8 @@ from setuptools import setup, find_packages
 
 LONGDESC = """
 Crossbar.io - multi-protocol application router.
+
+Find out more at http://crossbar.io/ or fork us on GitHub at https://github.com/crossbario/crossbar.
 """
 
 ## See: http://stackoverflow.com/a/7071358/884770
@@ -45,14 +47,16 @@ setup (
    author_email = 'autobahnws@googlegroups.com',
    url = 'http://crossbar.io/',
    platforms = ('Any'),
-   install_requires = ['Twisted>=Twisted-13.1',
+   install_requires = ['setuptools>=1.4',
+                       'Twisted>=Twisted-13.2',
                        'pyOpenSSL>=0.13.1',
-                       'pycrypto>=2.6.1',
-                       'netaddr==0.7.6',
+                       'pycrypto>=2.6.1', # FIXME: get rid of this
+                       'netaddr==0.7.10',
                        'isodate>=0.4.9',
                        'tldextract>=1.2.2',
-                       'Autobahn>=0.6.3'
-                       ],
+                       'Autobahn>=0.6.4',
+                       'jinja2>=2.7.1',
+                       'klein>=0.2.1'],
    entry_points = {
       'console_scripts': [
          'crossbar = crossbar.cli:run'
@@ -80,5 +84,5 @@ setup (
                   "Topic :: Software Development :: Embedded Systems",
                   "Topic :: System :: Distributed Computing",
                   "Topic :: System :: Networking"],
-   keywords = 'autobahn autobahn.ws websocket realtime rfc6455 wamp rpc pubsub oracle postgres postgresql'
+   keywords = 'crossbar router autobahn autobahn.ws websocket realtime rfc6455 wamp rpc pubsub oracle postgres postgresql'
 )

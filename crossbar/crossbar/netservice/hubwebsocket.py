@@ -17,7 +17,7 @@
 ###############################################################################
 
 
-import math, os
+import math, os, socket
 
 from pprint import pformat, pprint
 
@@ -37,6 +37,7 @@ from autobahn.compress import *
 from autobahn.wamp import WampCraServerProtocol, WampServerFactory
 from autobahn.wamp import exportRpc
 
+import crossbar
 from crossbar.tlsctx import TlsContextFactory
 
 from crossbar.adminwebmodule.uris import *
@@ -57,6 +58,9 @@ from crossbar.customjson import CustomJsonEncoder
 
 from autobahn.util import newid, utcnow
 import Cookie
+
+import jinja2
+import pkg_resources
 
 
 class SessionInfo:
@@ -108,6 +112,30 @@ class HubWebSocketProtocol(WampCraServerProtocol):
    RPC_PING = True
 
    TESTEE_API = True
+
+
+   def sendServerStatus(self, redirectUrl = None, redirectAfter = 0):
+      """
+      Used to send out server status/version upon receiving a HTTP/GET without
+      upgrade to WebSocket header (and option serverStatus is True).
+      """
+      config = self.factory.services['config']
+      #port = config.get('hub-websocket-port')
+      #tls = config.get('hub-websocket-tls')
+      url = self.factory.url
+      path = config.get('ws-websocket-path')
+      if path:
+         url += "/" + path
+
+      try:
+         page = self.factory.service.templates.get_template('cb_ws_status.html')
+         self.sendHtml(page.render(redirectUrl = redirectUrl,
+                                   redirectAfter = redirectAfter,
+                                   cbVersion = crossbar.__version__,
+                                   wsUri = url))
+      except Exception, e:
+         log.msg(e)
+      return
 
 
    def testDispatch(self, topic, event, options):
@@ -403,9 +431,10 @@ class HubWebSocketFactory(WampServerFactory):
 
    protocol = HubWebSocketProtocol
 
-   def __init__(self, url, dbpool, services):
+   def __init__(self, url, dbpool, service, services):
       WampServerFactory.__init__(self, url, debug = False, debugWamp = False)
       self.dbpool = dbpool
+      self.service = service
       self.services = services
       self.stats = {'ws-connections': 0,
                     'ws-publications': 0,
@@ -539,6 +568,12 @@ class HubWebSocketService(service.Service):
       self.listener = None
       self.enableAppWeb = False
 
+      ## Jinja2 templates for Web (like WS status page et al)
+      ##
+      templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
+      log.msg("Using Crossbar.io web templates from %s" % templates_dir)
+      self.templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
+
 
    def setOptionsFromConfig(self):
       if self.wsfactory:
@@ -571,6 +606,13 @@ class HubWebSocketService(service.Service):
 
       issecure = self.services["config"]["hub-websocket-tls"]
       port = self.services["config"]["hub-websocket-port"]
+      hostname = socket.getfqdn()
+
+      ## hostname
+      ## externalTls
+      ## externalPort
+      ## externalHostname
+
       acceptqueue = self.services["config"]["ws-accept-queue-size"]
 
       if issecure:
@@ -578,13 +620,13 @@ class HubWebSocketService(service.Service):
                                             self.services["config"]["hub-websocket-tlscert-pem"],
                                             dhParamFilename = self.services['master'].dhParamFilename)
 
-         uri = "wss://localhost:%d" % port
+         uri = "wss://%s:%d" % (hostname, port)
       else:
          contextFactory = None
 
-         uri = "ws://localhost:%d" % port
+         uri = "ws://%s:%d" % (hostname, port)
 
-      self.wsfactory = HubWebSocketFactory(uri, self.dbpool, self.services)
+      self.wsfactory = HubWebSocketFactory(uri, self.dbpool, self, self.services)
       #self.wsfactory.trackTimings = True
 
       self.enableAppWeb = self.services["config"]["service-enable-appweb"]
