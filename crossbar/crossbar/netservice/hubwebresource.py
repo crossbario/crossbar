@@ -142,11 +142,11 @@ class HubWebResource(Resource):
       return "%s\n" % str(reason)
 
 
-   def log(self, user_agent, client_ip, is_secure, topicuri, content_length, postrule_id, receiver_count, requested_count):
+   def log(self, user_agent, client_ip, is_secure, topic, content_length, postrule_id, receiver_count, requested_count):
       """
       Log successful HTTP/POST to WebSockets PubSub event dispatch.
       """
-      logrec = [utcnow(), user_agent, client_ip, is_secure, topicuri, content_length, receiver_count]
+      logrec = [utcnow(), user_agent, client_ip, is_secure, topic, content_length, receiver_count]
       self.dispatch_log.append(logrec)
       self.stats['dispatch-success'] += receiver_count
       error_count = requested_count - receiver_count
@@ -180,9 +180,9 @@ class HubWebResource(Resource):
          if content_length > self._getContentLengthLimit():
             return self.deny(request, 400, "content length (%d) exceeds maximum (%d)" % (content_length, self._getContentLengthLimit()))
 
-         if not args.has_key("topicuri"):
-            return self.deny(request, 400, "missing query parameter 'topicuri'")
-         topicuri = args["topicuri"][0]
+         if not args.has_key("topic"):
+            return self.deny(request, 400, "missing query parameter 'topic'")
+         topic = args["topic"][0]
 
          appkey = args.get("appkey", [False])[0]
          signature = args.get("signature", [False])[0]
@@ -202,13 +202,13 @@ class HubWebResource(Resource):
          else:
             timestamp = None
 
-         if args.has_key('body'):
-            json_str = args['body'][0]
+         if args.has_key('event'):
+            json_str = args['event'][0]
          else:
             json_str = request.content.read()
 
          if appkey:
-            sig = self.services["restpusher"].signature(topicuri, appkey, timestamp_str, json_str)
+            sig = self.services["restpusher"].signature(topic, appkey, timestamp_str, json_str)
             if sig is None:
                return self.deny(request, 400, "unknown application key '%s'" % appkey)
             if sig != signature:
@@ -218,7 +218,7 @@ class HubWebResource(Resource):
          client_ip = request.getClientIP()
          is_secure = request.isSecure()
 
-         auth = self.services["restpusher"].authorize(topicuri, client_ip, appkey)
+         auth = self.services["restpusher"].authorize(topic, client_ip, appkey)
          if auth[0]:
 
             try:
@@ -237,11 +237,11 @@ class HubWebResource(Resource):
                eligible = None
 
             ## dispatch & log event
-            d = self.services["appws"].dispatchHubEvent(topicuri, event, exclude, eligible)
+            d = self.services["appws"].dispatchHubEvent(topic, event, exclude, eligible)
             d.addCallback(lambda res: self.log(user_agent,
                                                client_ip,
                                                is_secure,
-                                               topicuri,
+                                               topic,
                                                content_length,
                                                postrule_id = auth[1],
                                                receiver_count = res[0],

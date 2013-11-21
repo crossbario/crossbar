@@ -1421,13 +1421,13 @@ OQIDAQAB
 
           ## App WS service
           ##
-          "hub-websocket-port": 80,
+          "hub-websocket-port": 8080,
           "hub-websocket-tls": False,
           "hub-websocket-tlskey": None,
 
           ## REST/Push service
           ##
-          "hub-web-port": 8080,
+          "hub-web-port": 8090,
           "hub-web-tls": False,
           "hub-web-tlskey": None,
 
@@ -1506,7 +1506,34 @@ OQIDAQAB
           "update-url": Database.CROSSBAR_UPDATE_URL,
           "update-check-interval": 600,
 
-          "eula-accepted": None
+          "eula-accepted": None,
+
+          ## admin API and UI
+          "service-enable-adminui": True,
+ 
+          ## main application WebSocket/Web network service
+          "service-enable-appws": True,
+          "service-enable-appweb": True,
+ 
+          ## auxiliary network services
+          "service-enable-flashpolicy": False,
+          "service-enable-echows": False,
+          "service-enable-ftp": False,
+ 
+          ## system monitoring services
+          "service-enable-netstat": True,
+          "service-enable-vmstat": True,
+ 
+          ## integration services
+          "service-enable-restpusher": True,
+          "service-enable-restremoter": True,
+          "service-enable-pgpusher": True,
+          "service-enable-pgremoter": True,
+          "service-enable-orapusher": True,
+          "service-enable-oraremoter": True,
+          "service-enable-hanapusher": False,
+          "service-enable-hanaremoter": False,
+          "service-enable-extdirectremoter": False,
           }
 
       if not scratchMode:
@@ -1517,10 +1544,6 @@ OQIDAQAB
       ##
       for k in CONFIG:
          cur.execute("INSERT INTO config (key, value) VALUES (?, ?)", [k, json_dumps(CONFIG[k])])
-      db.commit()
-
-      for k in Database.SERVICES:
-         cur.execute("INSERT INTO config (key, value) VALUES (?, ?)", [k, json_dumps(True)])
       db.commit()
 
       ## default client permission: allow everything for anynonymous

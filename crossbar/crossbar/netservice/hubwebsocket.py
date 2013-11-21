@@ -637,10 +637,19 @@ class HubWebSocketService(service.Service):
 
          templates = self.templates
 
+         config = self.services['config']
+
          wsUri = uri
-         wsPath = self.services['config'].get('ws-websocket-path')
+         wsPath = config.get('ws-websocket-path')
          if wsPath:
             wsUri += "/" + wsPath
+
+         restUri = "dfs"
+         if config.get('service-enable-restpusher'):
+            restUri = ''.join(['https://' if config.get('hub-web-tls') else 'http://',
+                               hostname,
+                               ':',
+                               str(config.get('hub-web-port'))])
 
          class Resource404(Resource):
             """
@@ -648,7 +657,9 @@ class HubWebSocketService(service.Service):
             """
             def render_GET(self, request):
                page = templates.get_template('cb_web_404.html')
-               s = page.render(cbVersion = crossbar.__version__, wsUri = wsUri)
+               s = page.render(cbVersion = crossbar.__version__,
+                               wsUri = wsUri,
+                               restUri = restUri)
                return s.encode('utf8')
 
          root = File(appwebDir)

@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+   <head>
+      <meta charset="utf-8" />
+      <title>Publish &amp; Subscribe</title>
+      <script src="autobahn.min.js"></script>
+      <script>
+
+         var session = null;
+         var mytopic = "http://myapp.com#test1";
+         var mytopicRxCnt = 0;
+         var mytopicTxCnt = 0;
+
+         //ab.debug(true, true);
+
+         // connect to Crossbar.io
+         //
+         ab.launch(
+            // WAMP app configuration
+            {
+               // WebSocket Application Endpoint of Crossbar.io
+               wsuri: 'ws://127.0.0.1:8080/ws'
+            },
+
+            // session open handler
+            //
+            function (newSession) {
+               session = newSession;
+               console.log("Connected to Crossbar.io in session", session.sessionid());
+
+               // subscribe to some topic
+               //
+               session.subscribe(mytopic,
+                  function (topic, event) {
+                     console.log("PubSub event received", topic, event);
+                     mytopicRxCnt += 1;
+                     document.getElementById('received').innerHTML = mytopicRxCnt + ': ' + JSON.stringify(event);
+                  }
+               );
+            },
+
+            // session close handler
+            //
+            function (code, reason, detail) {
+               session = null;
+               console.log("Crossbar.io session lost", reason, detail);
+            }
+         );
+
+         function doPublish() {
+            if (session) {
+               var event = JSON.parse(document.getElementById("payload").value);
+               session.publish(mytopic, event);
+               mytopicTxCnt += 1;
+               console.log("PubSub event sent", mytopicTxCnt, mytopic, event);
+            } else {
+               console.log("Cannot publish when not connected;(");
+            }
+         }
+      </script>
+   </head>
+   <body>
+      <h1>Crossbar.io Test</h1>
+      <h2>PubSub C2C / REST PubSub Bridge</h2>
+      <p>
+         <button onclick="doPublish()">Publish event</button>
+         <input id="payload" type="text" value='[23,"hello", {"foo": 0, "bar": null}]' size="50"></input>
+      </p>
+      <p>
+         Last event received:
+         <pre id="received">-</pre>
+      </p>
+      <p>
+         Publish via Crossbar.io REST bridge:
+         <pre>curl -d 'topic=http://myapp.com#test1&event=[23,"hello", {"foo": 0, "bar": null}]' http://127.0.0.1:8090</pre>
+      </p>
+   </body>
+</html>

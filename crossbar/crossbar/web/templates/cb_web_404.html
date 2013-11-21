@@ -18,12 +18,27 @@
    </center>
    <br>
    <br>
+
    <p>
       Your <b>WebSocket Application Endpoint</b> is running here:
    </p>
    <center>
       <pre>{{ wsUri }}</pre>
    </center>
+
+   {% if restUri %}
+      <p>
+         Your <b>REST Bridge Endpoint</b> is running here:
+      </p>
+      <center>
+         <pre>{{ restUri }}</pre>
+      </center>
+   {% else %}
+      <p>
+         <b>REST Bridge Endpoint</b> is not running.
+      </p>
+   {% endif %}
+
    <br>
    <br>
 
