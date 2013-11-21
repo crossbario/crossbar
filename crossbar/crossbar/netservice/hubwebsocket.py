@@ -122,17 +122,17 @@ class HubWebSocketProtocol(WampCraServerProtocol):
       config = self.factory.services['config']
       #port = config.get('hub-websocket-port')
       #tls = config.get('hub-websocket-tls')
-      url = self.factory.url
-      path = config.get('ws-websocket-path')
-      if path:
-         url += "/" + path
+      wsUri = self.factory.url
+      wsPath = config.get('ws-websocket-path')
+      if wsPath:
+         wsUri += "/" + wsPath
 
       try:
          page = self.factory.service.templates.get_template('cb_ws_status.html')
          self.sendHtml(page.render(redirectUrl = redirectUrl,
                                    redirectAfter = redirectAfter,
                                    cbVersion = crossbar.__version__,
-                                   wsUri = url))
+                                   wsUri = wsUri))
       except Exception, e:
          log.msg("Error rendering WebSocket status page template: %s" % e)
 
@@ -637,13 +637,18 @@ class HubWebSocketService(service.Service):
 
          templates = self.templates
 
+         wsUri = uri
+         wsPath = self.services['config'].get('ws-websocket-path')
+         if wsPath:
+            wsUri += "/" + wsPath
+
          class Resource404(Resource):
             """
             Custom error page (404).
             """
             def render_GET(self, request):
                page = templates.get_template('cb_web_404.html')
-               s = page.render(cbVersion = crossbar.__version__)
+               s = page.render(cbVersion = crossbar.__version__, wsUri = wsUri)
                return s.encode('utf8')
 
          root = File(appwebDir)
