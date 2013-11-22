@@ -25,7 +25,6 @@ from crossbar.txutil import getPage, StringReceiver, StringProducer, getDomain
 
 from twisted.internet import defer
 from twisted.internet.defer import Deferred
-from twisted.web.client import Agent, RedirectAgent
 from twisted.web.http_headers import Headers
 
 from autobahn.wamp import WampProtocol
@@ -34,9 +33,8 @@ from autobahn.wamp import json_loads, json_dumps
 from crossbar.adminwebmodule.uris import URI_ERROR_REMOTING
 from crossbar.adminwebmodule.uris import URI_EVENT, URI_EXTDIRECTREMOTE
 
-from twisted.web.client import HTTPConnectionPool
-
 from remoter import Remoter
+
 
 
 class ExtDirectRemote:
@@ -143,6 +141,9 @@ class ExtDirectRemoter(Remoter):
          self.remotesByAppKey[appkey].append(remote)
          self.remotesById[id] = remote
 
+         ## avoid module level reactor import
+         from twisted.web.client import HTTPConnectionPool
+
          if usePersistentConnections:
             ## setup HTTP Connection Pool for remote
             if not self.httppools.has_key(id) or self.httppools[id] is None:
@@ -198,6 +199,10 @@ class ExtDirectRemoter(Remoter):
       else:
          ## Do HTTP/POST via HTTP connection pool
          ##
+
+         ## avoid module level reactor import
+         from twisted.web.client import Agent, RedirectAgent
+
          agent = Agent(self.reactor,
                        pool = self.httppools[remote.id],
                        connectTimeout = remote.connectionTimeout)

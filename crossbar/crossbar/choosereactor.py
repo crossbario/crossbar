@@ -16,7 +16,6 @@
 ##
 ###############################################################################
 
-print "0000"
 import sys, json
 
 ## Install Twisted reactor. This needs to be done here,

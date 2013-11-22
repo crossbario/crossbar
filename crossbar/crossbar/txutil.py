@@ -18,23 +18,34 @@
 
 
 import re
-from zope.interface import implements
+from urlparse import urlunparse
 
+from zope.interface import implements
 from twisted.python import log
-from twisted.web.client import HTTPClientFactory
+
+## the following does a module level import of reactor
+## http://twistedmatrix.com/trac/browser/tags/releases/twisted-13.2.0/twisted/web/client.py#L31
+## https://twistedmatrix.com/trac/ticket/6849
+##
+# from twisted.web.client import HTTPClientFactory
+
 from twisted.internet.defer import succeed
 from twisted.web.iweb import IBodyProducer
 from twisted.internet.protocol import Protocol
-from twisted.protocols.ftp import FTPFactory, FTP, DTPFactory, ENTERING_PASV_MODE, encodeHostPort
+
+## the following does a module level import of reactor
+## http://twistedmatrix.com/trac/browser/tags/releases/twisted-13.2.0/twisted/protocols/ftp.py#L28
+## https://twistedmatrix.com/trac/ticket/6849
+##
+#from twisted.protocols.ftp import FTPFactory, FTP, DTPFactory, ENTERING_PASV_MODE, encodeHostPort
 
 
 ## Starting from Twisted 13.1, this is removed. We replicate the code here. FIXME.
 ## http://twistedmatrix.com/trac/browser/tags/releases/twisted-13.0.0/twisted/web/client.py?format=txt
 
 #from twisted.web.client import _parse
+#from twisted.web import http
 
-from twisted.web import http
-from urlparse import urlunparse
 
 def _parse(url, defaultPort=None):
     """
@@ -50,7 +61,6 @@ def _parse(url, defaultPort=None):
     @return: A four-tuple of the scheme, host, port, and path of the URL.  All
     of these are C{bytes} instances except for port, which is an C{int}.
     """
-    print "X"*100
     url = url.strip()
     parsed = http.urlparse(url)
     scheme = parsed[0]
@@ -187,7 +197,8 @@ def getPage(url, contextFactory=None, *args, **kwargs):
 
 
 
-class CustomFTP(FTP):
+class CustomFTP(object):
+#class CustomFTP(FTP):
    def ftp_PASV(self):
       # if we have a DTP port set up, lose it.
       if self.dtpFactory is not None:
@@ -212,6 +223,7 @@ class CustomFTP(FTP):
       return self.dtpFactory.deferred.addCallback(lambda ign: None)
 
 
-class CustomFTPFactory(FTPFactory):
+class CustomFTPFactory(object):
+#class CustomFTPFactory(FTPFactory):
    protocol = CustomFTP
    passivePublicIp = None

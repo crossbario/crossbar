@@ -21,7 +21,6 @@ import hmac, hashlib, binascii, random, datetime, re, urlparse, urllib
 
 from twisted.application import service
 from twisted.python import log
-from twisted.web.client import getPage
 from twisted.python.failure import Failure
 
 from autobahn.util import utcnow, parseutc
@@ -859,6 +858,10 @@ class AdminWebSocketFactory(WampServerFactory):
 
 
    def _checkForUpdates(self):
+
+      ## avoid module-level reactor import
+      from twisted.web.client import getPage
+
       update_url = str(self.services["config"].get("update-url"))
       d = getPage(url = update_url,
                   method = 'GET',

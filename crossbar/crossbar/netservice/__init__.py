@@ -17,11 +17,12 @@
 ###############################################################################
 
 
-import portconfigresource
-import cgiresource
-import hubwebresource
-import hubwebsocket
 import adminwebresource
 import adminwebsocket
-import ftpserver
+#import cgiresource # triggers module-level reactor import
+import echowebsocket
 import flashpolicy
+#import ftpserver # triggers module-level reactor import
+import hubwebresource
+import hubwebsocket
+import portconfigresource

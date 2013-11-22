@@ -22,8 +22,6 @@ import pkg_resources, inspect, cgi, json, re, datetime
 from twisted.python import log
 from twisted.application import service
 from twisted.web.resource import Resource
-from twisted.web.server import Site, NOT_DONE_YET
-from twisted.web.static import File
 from twisted.web.util import redirectTo
 
 from autobahn.util import utcnow, parseutc, utcstr
@@ -330,6 +328,9 @@ class Activate(Resource):
          d.addCallback(lambda res: self._onLicenseActivateSuccess(res, request))
          d.addErrback(lambda res: self._onLicenseActivateError(res, request))
 
+         ## avoid module level import of reactor
+         from twisted.web.server import NOT_DONE_YET
+
          return NOT_DONE_YET
 
       except Exception, e:
@@ -355,6 +356,10 @@ class AdminWebService(service.Service):
 
    def startService(self):
       log.msg("Starting %s service ..." % self.SERVICENAME)
+
+      ## avoid module level reactor import
+      from twisted.web.static import File
+      from twisted.web.server import Site
 
       ## Crossbar.io Dashboard
       ##

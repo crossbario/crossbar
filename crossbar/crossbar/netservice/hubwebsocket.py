@@ -25,12 +25,6 @@ from twisted.python import log
 from twisted.application import service
 from twisted.internet.defer import gatherResults
 
-from twisted.web.server import Site
-from twisted.web.static import File
-from twisted.web.resource import Resource
-
-from autobahn.resource import WebSocketResource, HTTPChannelHixie76Aware
-
 from autobahn.compress import *
 
 from autobahn.wamp import WampCraServerProtocol, WampServerFactory
@@ -48,9 +42,6 @@ from crossbar.bridge.hanaremoter import HanaRemoter
 from crossbar.bridge.pgremoter import PgRemoter
 from crossbar.bridge.oraremoter import OraRemoter
 
-from cgiresource import CgiDirectory
-
-from portconfigresource import addPortConfigResource
 
 import json
 from crossbar.customjson import CustomJsonEncoder
@@ -552,6 +543,7 @@ class HubWebSocketFactory(WampServerFactory):
       self.statsChanged = True
 
 
+
 class HubWebSocketService(service.Service):
 
    SERVICENAME = "App WebSocket/Web"
@@ -606,6 +598,16 @@ class HubWebSocketService(service.Service):
    def startService(self):
       log.msg("Starting %s service ..." % self.SERVICENAME)
 
+      ## this is here to avoid module level reactor imports
+      ## https://twistedmatrix.com/trac/ticket/6849
+      ##
+      from twisted.web.server import Site
+      from twisted.web.static import File
+      from twisted.web.resource import Resource
+
+      from cgiresource import CgiDirectory
+      from portconfigresource import addPortConfigResource
+
       issecure = self.services["config"]["hub-websocket-tls"]
       port = self.services["config"]["hub-websocket-port"]
       hostname = socket.getfqdn()
@@ -634,6 +636,10 @@ class HubWebSocketService(service.Service):
       self.enableAppWeb = self.services["config"]["service-enable-appweb"]
 
       if self.enableAppWeb:
+
+         ## avoid module level reactor import
+         from autobahn.resource import WebSocketResource
+
          ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
          self.wsfactory.startFactory()
          resource = WebSocketResource(self.wsfactory)
@@ -685,6 +691,9 @@ class HubWebSocketService(service.Service):
          else:
             log.msg("No CGI configured")
 
+
+         ## void module level reactor import
+         from autobahn.resource import HTTPChannelHixie76Aware
 
          factory = Site(root)
          factory.log = lambda _: None # disable any logging

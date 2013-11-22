@@ -59,7 +59,6 @@ from crossbar.netservice.adminwebsocket import AdminWebSocketService
 
 from crossbar.netservice.echowebsocket import EchoWebSocketService
 from crossbar.netservice.flashpolicy import FlashPolicyService
-from crossbar.netservice.ftpserver import FtpService
 
 from crossbar.platform import PlatformService
 from crossbar.platform import NetstatService
@@ -107,6 +106,9 @@ class CrossbarService(MultiService):
          raise e
 
    def _startService(self):
+
+      ## this is here, since it triggers a reactor import
+      from crossbar.netservice.ftpserver import FtpService
 
       cfg = None
       dbpool = None

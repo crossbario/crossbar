@@ -16,35 +16,23 @@
 ##
 ###############################################################################
 
-print "0900008"
 from _version import __version__
 version = __version__ # backward compat.
 
-## application logger
-#import logger
-
-## network protocols/factories
-#import netservice
-
-## business logic
-#import adminwebmodule
-
-## crypto helpers
+import logger
+import platform
+import netservice
+import adminwebmodule
 import x509util
 import tlsctx
 import txutil
 import cryptoutil
-
-## database core and helpers
-#import database
-#import dbexport
-#import dbimport
-
-## in-memory, caches
+import database
+import dbexport
+import dbimport
 import config
-#import clientfilter
-
-## platform specific stuff
-#import platform
-
-#import cli
+import clientfilter
+import bridge
+import customjson
+import main
+import cli

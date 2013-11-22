@@ -23,7 +23,6 @@ from collections import deque
 from twisted.python import log
 from twisted.application import service
 from twisted.web.resource import Resource
-from twisted.web.server import Site
 
 from autobahn.util import utcnow, parseutc
 from autobahn.wamp import json_loads
@@ -291,6 +290,10 @@ class HubWebService(service.Service):
 
    def startService(self):
       log.msg("Starting %s service ..." % self.SERVICENAME)
+
+      ## avoid module level reactor import
+      from twisted.web.static import File
+      from twisted.web.server import Site
 
       self.root = Resource()
       self.root.putChild("", HubWebResource(self.dbpool, self.services))

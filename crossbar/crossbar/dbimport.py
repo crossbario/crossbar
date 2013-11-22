@@ -22,7 +22,6 @@ import sys, datetime, os, zipfile, tempfile, re
 from twisted.python import log
 from twisted.internet import protocol, defer
 from twisted.internet.error import ProcessDone, ProcessTerminated
-from twisted.web.server import NOT_DONE_YET
 from twisted.web.resource import Resource
 
 from crossbar.platform import SYSCMD_SQLITE3
@@ -122,6 +121,9 @@ class UploadDatabaseDump(Resource):
       request.write(DUMP_UPLOAD_ERROR_TEMPLATE % {"error": errmsg})
 
    def render_POST(self, request):
+
+      ## avoid module level reactor import
+      from twisted.web.server import NOT_DONE_YET
 
       if request.args.has_key('dbdump'):
 

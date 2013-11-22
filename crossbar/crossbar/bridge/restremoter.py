@@ -25,15 +25,12 @@ from crossbar.txutil import getPage, StringReceiver, StringProducer, getDomain
 
 from twisted.internet import defer
 from twisted.internet.defer import Deferred, succeed
-from twisted.web.client import Agent, RedirectAgent
 from twisted.web.http_headers import Headers
 
 from autobahn.wamp import json_loads, json_dumps
 
 from crossbar.adminwebmodule.uris import URI_ERROR_REMOTING
 from crossbar.adminwebmodule.uris import URI_EVENT, URI_RESTREMOTE
-
-from twisted.web.client import HTTPConnectionPool
 
 from remoter import Remoter
 
@@ -138,6 +135,9 @@ class RestRemoter(Remoter):
                              persistentConnectionTimeout = int(r[10]))
          self.remotesByAppKey[appkey].append(remote)
          self.remotesById[id] = remote
+
+         ## avoid module level reactor import
+         from twisted.web.client import HTTPConnectionPool
 
          if usePersistentConnections:
             ## setup HTTP Connection Pool for remote
@@ -248,6 +248,9 @@ class RestRemoter(Remoter):
          ##
          ## http://twistedmatrix.com/documents/12.1.0/web/howto/client.html
          ##
+
+         ## avoid module level reactor import
+         from twisted.web.client import Agent, RedirectAgent
 
          headers = {'Content-Type': ['application/json'],
                     'User-Agent': [RestRemoter.USER_AGENT]}

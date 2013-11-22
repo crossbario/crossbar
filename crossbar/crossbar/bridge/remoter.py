@@ -16,11 +16,9 @@
 ##
 ###############################################################################
 
-
 from twisted.python import log
 from twisted.application import service
 
-from crossbar.adminwebmodule.uris import URI_ERROR_REMOTING
 
 
 class RemoteStats:
@@ -128,5 +126,3 @@ class Remoter(service.Service):
          self.stats[remoteId] = self._createRemoteStat(remoteId)
       self.stats[None].updateForwards(0, 1)
       raise error
-      #raise Exception(URI_ERROR_REMOTING, str(error.value))
-
