@@ -17,12 +17,11 @@
 ###############################################################################
 
 
-import sys, json
-import pkg_resources
+import sys, json, argparse, pkg_resources
 from pprint import pprint
 
-import twisted
-import autobahn
+#import twisted
+#import autobahn
 
 from twisted.python import log, usage
 from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
@@ -30,8 +29,73 @@ from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
 from autobahn.websocket import connectWS
 from autobahn.wamp import WampClientFactory, WampCraClientProtocol
 
-import crossbar
-from crossbar.main import runDirect
+#import crossbar
+
+
+def run_command_version(options):
+   """
+   Print local Crossbar.io software component types and versions.
+   """
+
+   ## Python
+   ##
+   py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
+
+   ## Twisted / Reactor
+   ##
+   import choosereactor
+   from twisted.internet import reactor
+   tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
+
+   ## Autobahn
+   ##
+   import autobahn
+   ab_ver = pkg_resources.require("autobahn")[0].version
+
+   ## UTF8 Validator
+   ##
+   from autobahn.utf8validator import Utf8Validator
+   s = str(Utf8Validator)
+   if 'wsaccel' in s:
+      utf8_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
+   elif s.startswith('autobahn'):
+      utf8_ver = 'autobahn'
+   else:
+      raise Exception("could not detect UTF8 validator type/version")
+
+   ## XOR Masker
+   ##
+   from autobahn.xormasker import XorMaskerNull
+   s = str(XorMaskerNull)
+   if 'wsaccel' in s:
+      xor_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
+   elif s.startswith('autobahn'):
+      xor_ver = 'autobahn'
+   else:
+      raise Exception("could not detect XOR masker type/version")
+
+   ## JSON Processor
+   ##
+   s = str(autobahn.wamp.json_lib.__name__)
+   if 'ujson' in s:
+      json_ver = 'ujson-%s' % pkg_resources.require('ujson')[0].version
+   elif s.startswith('json'):
+      json_ver = 'python'
+   else:
+      raise Exception("could not detect JSON processor type/version")
+   
+   print
+   print "Crossbar.io local component versions:"
+   print
+   print "Python          : %s" % py_ver
+   print "Twisted         : %s" % tx_ver
+   print "Autobahn        : %s" % ab_ver
+   print "UTF8 Validator  : %s" % utf8_ver
+   print "XOR Masker      : %s" % xor_ver
+   print "JSON Processor  : %s" % json_ver
+   print
+
+
 
 
 class CrossbarCLIOptions(usage.Options):
@@ -468,7 +532,7 @@ class CrossbarCLIFactory(WampClientFactory):
 
 
 
-def runCLI():
+def run_command_client():
 
    o = CrossbarCLIOptions()
    try:
@@ -493,15 +557,106 @@ def runCLI():
    reactor.run()
 
 
-def run():
-   import choosereactor
-   from twisted.internet import reactor  
-   print "Using Twisted reactor class %s on Twisted %s" % (str(reactor.__class__), pkg_resources.require("Twisted")[0].version)
 
-   runDirect(True, False)
+def run_command_server(options):
+   """
+   Start Crossbar.io server.
+   """
+   ## install reactor
+   import choosereactor
+
+   #from crossbar.main import runDirect
+   #runDirect(True, False)
+
+   import twisted
+
+   ## set background thread pool suggested size
+   from twisted.internet import reactor
+   reactor.suggestThreadPoolSize(30)
+
+   from crossbar.main import CrossbarService
+   from crossbar.logger import Logger
+
+   ## install our log observer before anything else is done
+   logger = Logger()
+   twisted.python.log.addObserver(logger)
+
+   ## now actually create our top service and set the logger
+   svc = CrossbarService()
+   svc.logger = logger
+
+   ## store user options set
+   svc.cbdata = options['cbdata']
+   svc.webdata = options['webdata']
+   svc.debug = True if options['debug'] else False
+   svc.licenseserver = options['licenseserver']
+   svc.isExe = False # will be set to true iff Crossbar is running from self-contained EXE
+
+   svc.startService()
+   reactor.run(True)
+
+
+
+def parse_args():
+   """
+   Parse command line args to Crossbar.io tool.
+   """
+   parser = argparse.ArgumentParser(prog = "crossbar",
+                                    description = 'Crossbar.io multi-protocol application router')
+
+   group1dummy = parser.add_argument_group(title = 'Command, one of the following')
+   group1 = group1dummy.add_mutually_exclusive_group(required = True)
+
+   group1.add_argument("--server",
+                       help = "Start Crossbar.io server.",
+                       action = "store_true")
+
+   group1.add_argument("--monitor",
+                       help = "Monitor a Crossbar.io server.",
+                       action = "store_true")
+
+   group1.add_argument("--version",
+                       help = "Show versions of Crossbar.io software components.",
+                       action = "store_true")
+
+   # parser.add_argument('--wsuri', dest = 'wsuri', type = str, default = 'ws://localhost:9000', help = 'The WebSocket URI the server is listening on, e.g. ws://localhost:9000.')
+   # parser.add_argument('--port', dest = 'port', type = int, default = 8080, help = 'Port to listen on for embedded Web server. Set to 0 to disable.')
+   # parser.add_argument('--workers', dest = 'workers', type = int, default = 3, help = 'Number of workers to spawn - should fit the number of (phyisical) CPU cores.')
+   # parser.add_argument('--noaffinity', dest = 'noaffinity', action = "store_true", default = False, help = 'Do not set worker/CPU affinity.')
+   # parser.add_argument('--backlog', dest = 'backlog', type = int, default = 8192, help = 'TCP accept queue depth. You must tune your OS also as this is just advisory!')
+   # parser.add_argument('--silence', dest = 'silence', action = "store_true", default = False, help = 'Silence log output.')
+   # parser.add_argument('--debug', dest = 'debug', action = "store_true", default = False, help = 'Enable WebSocket debug output.')
+   # parser.add_argument('--interval', dest = 'interval', type = int, default = 5, help = 'Worker stats update interval.')
+   # parser.add_argument('--profile', dest = 'profile', action = "store_true", default = False, help = 'Enable profiling.')
+
+   # parser.add_argument('--fd', dest = 'fd', type = int, default = None, help = 'If given, this is a worker which will use provided FD and all other options are ignored.')
+   # parser.add_argument('--cpuid', dest = 'cpuid', type = int, default = None, help = 'If given, this is a worker which will use provided CPU core to set its affinity.')
+
+   options = parser.parse_args()
+
+   return options
+
+
+
+def run():
+   """
+   Entry point of installed Crossbar.io tool.
+   """
+   options = parse_args()
+
+   if options.version:
+      run_command_version(options)
+
+   elif options.server:
+      run_command_server(run_command_server)
+
+   elif options.monitor:
+      raise Exception("not implemented")
+
+   else:
+      raise Exception("logic error")
 
 
 
 if __name__ == '__main__':
-   #runDirect(True, False)
    run()

@@ -77,6 +77,11 @@ class CrossbarService(MultiService):
       http://twistedmatrix.com/documents/current/core/howto/plugin.html
    """
 
+   #def __init__(self, options):
+   #   MultiService.__init__(self)
+   #   self._options = options
+
+
    def startService(self):
       try:
          s = self._startService()
