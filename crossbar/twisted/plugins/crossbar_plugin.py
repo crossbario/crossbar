@@ -20,6 +20,6 @@
 from twisted.application.service import ServiceMaker
 
 serviceMaker = ServiceMaker('crossbar',
-                            'crossbar.main',
+                            'crossbar.servicefactory',
                             'Crossbar.io multi-protocol application router',
                             'crossbar')

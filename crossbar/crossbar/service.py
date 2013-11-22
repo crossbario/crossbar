@@ -80,6 +80,9 @@ class CrossbarService(MultiService):
 
 
    def startService(self):
+      """
+      Main entry point to startup the Crossbar.io service.
+      """
       try:
          s = self._startService()
          return s
@@ -106,6 +109,7 @@ class CrossbarService(MultiService):
          time.sleep(d)
 
          raise e
+
 
    def _startService(self):
 

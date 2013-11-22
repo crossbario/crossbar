@@ -19,10 +19,16 @@
 
 from setuptools import setup, find_packages
 
+## keep in sync with LONGDESC in "crossbar/servicefactory.py"
+##
 LONGDESC = """
-Crossbar.io - multi-protocol application router.
+Crossbar.io - The open-source multi-protocol application router.
+Documentation, community and source-code at http://crossbar.io
 
-Find out more at http://crossbar.io/ or fork us on GitHub at https://github.com/crossbario/crossbar.
+Created by Tavendo GmbH. Get in contact at http://tavendo.com
+
+Open-source licensed under the GNU Affero General Public License version 3
+https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE
 """
 
 ## See: http://stackoverflow.com/a/7071358/884770
@@ -67,7 +73,7 @@ setup (
    packages = find_packages() + ['twisted.plugins'],
    include_package_data = True,
    data_files = [('.', ['LICENSE'])],
-   zip_safe = True,
+   zip_safe = False,
    ## http://pypi.python.org/pypi?%3Aaction=list_classifiers
    ##
    classifiers = ["License :: OSI Approved :: GNU Affero General Public License v3",

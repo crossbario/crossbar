@@ -17,16 +17,32 @@
 ###############################################################################
 
 
+__all__ = ['LONGDESC', 'Options', 'makeService']
+
+
 import os
 from twisted.python import log
 from twisted.python import usage
+
+
+## keep in sync with LONGDESC in "setup.py"
+##
+LONGDESC = """
+Crossbar.io - The open-source multi-protocol application router.
+Documentation, community and source-code at http://crossbar.io
+
+Created by Tavendo GmbH. Get in contact at http://tavendo.com
+
+Open-source licensed under the GNU Affero General Public License version 3
+https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE
+"""
 
 
 class Options(usage.Options):
    """
    Crossbar.io command line options when run from twistd as plugin.
    """
-   longdesc = "Crossbar.io multi-protocol application router"
+   longdesc = LONGDESC
 
    optFlags = [['debug', 'd', 'Emit debug messages']]
    optParameters = [["cbdata", "c", None, "Crossbar.io data directory (overrides environment variable CROSSBAR_DATA)."],

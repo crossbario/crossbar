@@ -42,9 +42,8 @@ elif sys.platform.startswith('linux'):
 else:
 
    ## Fake Platform
-
 #   raise ImportError("my module doesn't support this system")
-   print "Using FakeOS platform module!"
+#   print "Using FakeOS platform module!"
    from fakeos.platform import PlatformService
    from fakeos.vmstat import VmstatService
    from fakeos.netstat import NetstatService

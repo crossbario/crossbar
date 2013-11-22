@@ -35,5 +35,5 @@ import clientfilter
 import bridge
 import customjson
 import service
-import main
+import servicefactory
 import cli
