@@ -564,36 +564,48 @@ def run_command_server(options):
    """
    ## install reactor
    import choosereactor
+   from twisted.internet import reactor
+
+   from twisted.python import log
+   log.startLogging(sys.stdout)
+
+   from crossbar.main import makeService
+
+   svc = makeService(vars(options))
+   svc.startService()
+
+   installSignalHandlers = True
+   reactor.run(installSignalHandlers)
 
    #from crossbar.main import runDirect
    #runDirect(True, False)
 
-   import twisted
+   # import twisted
 
-   ## set background thread pool suggested size
-   from twisted.internet import reactor
-   reactor.suggestThreadPoolSize(30)
+   # ## set background thread pool suggested size
+   # from twisted.internet import reactor
+   # reactor.suggestThreadPoolSize(30)
 
-   from crossbar.main import CrossbarService
-   from crossbar.logger import Logger
+   # from crossbar.main import CrossbarService
+   # from crossbar.logger import Logger
 
-   ## install our log observer before anything else is done
-   logger = Logger()
-   twisted.python.log.addObserver(logger)
+   # ## install our log observer before anything else is done
+   # logger = Logger()
+   # twisted.python.log.addObserver(logger)
 
-   ## now actually create our top service and set the logger
-   svc = CrossbarService()
-   svc.logger = logger
+   # ## now actually create our top service and set the logger
+   # svc = CrossbarService()
+   # svc.logger = logger
 
-   ## store user options set
-   svc.cbdata = options['cbdata']
-   svc.webdata = options['webdata']
-   svc.debug = True if options['debug'] else False
-   svc.licenseserver = options['licenseserver']
-   svc.isExe = False # will be set to true iff Crossbar is running from self-contained EXE
+   # ## store user options set
+   # svc.cbdata = options['cbdata']
+   # svc.webdata = options['webdata']
+   # svc.debug = True if options['debug'] else False
+   # svc.licenseserver = options['licenseserver']
+   # svc.isExe = False # will be set to true iff Crossbar is running from self-contained EXE
 
-   svc.startService()
-   reactor.run(True)
+   # svc.startService()
+   # reactor.run(True)
 
 
 
