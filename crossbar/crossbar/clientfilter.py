@@ -20,7 +20,6 @@
 import hmac, hashlib, base64, binascii, json
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.application import service
 from twisted.enterprise import adbapi
 
@@ -52,7 +51,12 @@ class ClientFilter(service.Service):
    SERVICENAME = "Client authentication"
 
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False

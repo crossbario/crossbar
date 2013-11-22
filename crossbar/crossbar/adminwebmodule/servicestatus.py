@@ -19,8 +19,6 @@
 
 import datetime
 
-from twisted.internet import reactor
-
 import autobahn
 from autobahn.wamp import exportRpc
 from autobahn.util import utcstr, utcnow, parseutc, newid
@@ -47,7 +45,7 @@ class ServiceStatus:
    def publishSystemStatus(self):
       e = self.getSystemStatus()
       self.proto.dispatch(URI_EVENT + "on-system-status", e, [])
-      reactor.callLater(1, self.publishSystemStatus)
+      self.proto.factory.reactor.callLater(1, self.publishSystemStatus)
 
 
    @exportRpc("get-restart-required")

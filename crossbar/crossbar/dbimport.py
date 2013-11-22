@@ -20,7 +20,7 @@
 import sys, datetime, os, zipfile, tempfile, re
 
 from twisted.python import log
-from twisted.internet import reactor, protocol, defer
+from twisted.internet import protocol, defer
 from twisted.internet.error import ProcessDone, ProcessTerminated
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.resource import Resource
@@ -43,6 +43,7 @@ class DbImportProtocol(protocol.ProcessProtocol):
 
    def run(self):
       self._removeIfExists(self.outfile)
+      from twisted.internet import reactor
       reactor.spawnProcess(self,
                            SYSCMD_SQLITE3,
                            ['sqlite3',

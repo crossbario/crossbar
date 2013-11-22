@@ -17,7 +17,6 @@
 ###############################################################################
 
 
-from twisted.internet import reactor
 from twisted.python import log
 
 from autobahn.wamp import json_loads
@@ -413,14 +412,14 @@ class OraPushClient(DbPushClient):
                   ## let the events be dispatched on the reactor thread
                   ##
                   if processed_status == 0:
-                     reactor.callFromThread(self.pusher.push,
-                                            id,
-                                            self.connect.id,
-                                            pushedBy,
-                                            topic,
-                                            payload,
-                                            exclude,
-                                            eligible)
+                     self.reactor.callFromThread(self.pusher.push,
+                                                id,
+                                                self.connect.id,
+                                                pushedBy,
+                                                topic,
+                                                payload,
+                                                exclude,
+                                                eligible)
 
                   ## purge or mark processed event
                   ##

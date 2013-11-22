@@ -21,7 +21,6 @@ import re
 from zope.interface import implements
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.web.client import HTTPClientFactory
 from twisted.internet.defer import succeed
 from twisted.web.iweb import IBodyProducer
@@ -158,6 +157,9 @@ def _makeGetterFactory(url, factoryFactory, contextFactory=None,
        del kwargs['connectionTimeout']
 
     factory = factoryFactory(url, *args, **kwargs)
+
+    from twisted.internet import reactor
+
     if scheme == 'https':
         from twisted.internet import ssl
         if contextFactory is None:

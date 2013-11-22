@@ -21,8 +21,6 @@ import types
 
 from netaddr import IPAddress
 
-from twisted.internet import reactor
-
 from autobahn.wamp import exportRpc, json_loads, json_dumps
 
 from crossbar.adminwebmodule.uris import *
@@ -278,6 +276,7 @@ class ServiceConfig:
                delta[t] = self.proto.shrink(delta[t])
 
          if restartRequired and not dryRun:
+            from twisted.internet import reactor
             reactor.callLater(1, self.proto.serviceControl.restartHub)
 
       else:

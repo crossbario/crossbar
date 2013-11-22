@@ -22,7 +22,6 @@ import uuid, binascii, socket, types
 from twisted.python import log
 from twisted.python.failure import Failure
 
-from twisted.internet import reactor
 from twisted.internet.threads import deferToThread
 from twisted.internet.defer import Deferred, returnValue, inlineCallbacks, CancelledError, succeed
 

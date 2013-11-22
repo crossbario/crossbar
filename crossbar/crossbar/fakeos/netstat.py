@@ -20,7 +20,7 @@
 import random
 
 from twisted.python import log
-from twisted.internet import reactor, protocol
+from twisted.internet import protocol
 from twisted.application import service
 
 from autobahn.util import utcnow
@@ -32,7 +32,12 @@ class NetstatService(service.Service):
 
    SERVICENAME = "Network monitoring"
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.interval = 1
@@ -65,7 +70,7 @@ class NetstatService(service.Service):
                          random.randint(0, 1000),
                          random.randint(0, 100000))
       if self.isRunning:
-         reactor.callLater(self.interval, self.emitFake)
+         self.reactor.callLater(self.interval, self.emitFake)
 
    def processRecord(self, inPackets, inBytes, outPackets, outBytes):
 

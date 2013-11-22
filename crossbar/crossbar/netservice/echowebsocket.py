@@ -20,7 +20,6 @@
 import math
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.application import service
 
 from autobahn.websocket import WebSocketServerFactory, \
@@ -62,8 +61,8 @@ class EchoWebSocketFactory(WebSocketServerFactory):
 
    protocol = EchoWebSocketProtocol
 
-   def __init__(self, url, dbpool, services):
-      WebSocketServerFactory.__init__(self, url, debug = False, debugCodePaths = False)
+   def __init__(self, url, dbpool, services, reactor = None):
+      WebSocketServerFactory.__init__(self, url, debug = False, debugCodePaths = False, reactor = reactor)
 
       self.dbpool = dbpool
       self.services = services
@@ -145,7 +144,7 @@ class EchoWebSocketFactory(WebSocketServerFactory):
       if self.statsChanged:
          self.services["adminws"].dispatchAdminEvent(URI_EVENT + "on-wsechostat", self.stats)
          self.statsChanged = False
-      reactor.callLater(0.2, self.publishStats)
+      self.reactor.callLater(0.2, self.publishStats)
 
 
    def onConnectionCountChanged(self):
@@ -168,7 +167,12 @@ class EchoWebSocketService(service.Service):
 
    SERVICENAME = "Echo WebSocket"
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False
@@ -199,7 +203,7 @@ class EchoWebSocketService(service.Service):
 
          uri = "ws://localhost:%d" % self.services["config"]["echo-websocket-port"]
 
-      self.factory = EchoWebSocketFactory(uri, self.dbpool, self.services)
+      self.factory = EchoWebSocketFactory(uri, self.dbpool, self.services, self.reactor)
       self.listener = listenWS(self.factory,
                                contextFactory,
                                backlog = self.services["config"]["ws-accept-queue-size"])

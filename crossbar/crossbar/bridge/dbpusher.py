@@ -18,11 +18,10 @@
 
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.application import service
 
 from twisted.python import log
-from twisted.internet import reactor, threads
+from twisted.internet import threads
 from twisted.application import service
 from twisted.enterprise import adbapi
 from twisted.internet.defer import Deferred, \
@@ -81,7 +80,12 @@ class DbPushClient:
    Database Push Client. Base class for specific pushers.
    """
 
-   def __init__(self, pusher, connect, purge = True):
+   def __init__(self, pusher, connect, purge = True, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.pusher = pusher
       self.connect = connect
       self.stopped = False
@@ -200,8 +204,8 @@ class DbPusher(Pusher):
    Database pusher service. Base class for specific pusher services.
    """
 
-   def __init__(self, dbpool, services):
-      Pusher.__init__(self, dbpool, services)
+   def __init__(self, dbpool, services, reactor = None):
+      Pusher.__init__(self, dbpool, services, reactor)
 
 
    def publishPusherStateChange(self, connectId, isConnected, shouldBeConnected, lastErrMessage = None):
@@ -246,7 +250,7 @@ class DbPusher(Pusher):
                res.append(v)
          if len(res) > 0:
             self.services["adminws"].dispatchAdminEvent(self.STATS_EVENT_URI, res)
-         reactor.callLater(0.2, self.publishPusherStats)
+         self.reactor.callLater(0.2, self.publishPusherStats)
 
 
    def push(self, eventId, connectId, pushedBy, topicUri, payload, exclude = [], eligible = None):
@@ -427,7 +431,7 @@ class DbPusher(Pusher):
                         else:
                            log.msg("%s pushclient : database connection timeout skipped, since already connected [connect ID %s]" % (self.LOGID, id))
 
-                     dbc.cancelCall = reactor.callLater(dbc.connectionTimeout, cancelIfNotConnected)
+                     dbc.cancelCall = self.reactor.callLater(dbc.connectionTimeout, cancelIfNotConnected)
 
                   def onstop(_):
                      if dbc and dbc.cancelCall:
@@ -456,7 +460,7 @@ class DbPusher(Pusher):
                      if dbc.pushclient and not dbc.pushclient.isRunning and dbc.pushclient.autoReconnect:
                         dbc.retries += 1
                         self.publishPusherStateChange(id, dbc.pushclient.isConnected, True, m)
-                        reactor.callLater(2, connectPushClient)
+                        self.reactor.callLater(2, connectPushClient)
 
                   d.addCallbacks(onstop, onerror)
 

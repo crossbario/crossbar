@@ -22,7 +22,6 @@ import math, os, socket
 from pprint import pformat, pprint
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.application import service
 from twisted.internet.defer import gatherResults
 
@@ -545,7 +544,7 @@ class HubWebSocketFactory(WampServerFactory):
       if self.statsChanged:
          self.services["adminws"].dispatchAdminEvent(URI_EVENT + "on-wsstat", self.stats)
          self.statsChanged = False
-      reactor.callLater(0.2, self.publishStats)
+      self.reactor.callLater(0.2, self.publishStats)
 
 
    def onConnectionCountChanged(self):
@@ -557,7 +556,12 @@ class HubWebSocketService(service.Service):
 
    SERVICENAME = "App WebSocket/Web"
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False
@@ -696,9 +700,9 @@ class HubWebSocketService(service.Service):
       self.factory = factory
 
       if issecure:
-         self.listener = reactor.listenSSL(port, factory, contextFactory, backlog = acceptqueue)
+         self.listener = self.reactor.listenSSL(port, factory, contextFactory, backlog = acceptqueue)
       else:
-         self.listener = reactor.listenTCP(port, factory, backlog = acceptqueue)
+         self.listener = self.reactor.listenTCP(port, factory, backlog = acceptqueue)
 
       self.isRunning = True
 

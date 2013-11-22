@@ -21,7 +21,6 @@ import datetime, os
 from collections import deque
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.application import service
 from twisted.web.resource import Resource
 from twisted.web.server import Site
@@ -39,8 +38,14 @@ class HubWebResource(Resource):
    dispatches to subscribed WebSockets clients.
    """
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
       Resource.__init__(self)
+
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
 
@@ -68,7 +73,7 @@ class HubWebResource(Resource):
 
       ## the config is not yet load at this point
       #self.writeLog()
-      reactor.callLater(10, self.writeLog)
+      self.reactor.callLater(10, self.writeLog)
 
       self.publishStats()
 
@@ -81,7 +86,7 @@ class HubWebResource(Resource):
       if self.statsChanged:
          self.services["adminws"].dispatchAdminEvent(URI_EVENT + "on-restpusherstat", [self.stats])
          self.statsChanged = False
-      reactor.callLater(0.2, self.publishStats)
+      self.reactor.callLater(0.2, self.publishStats)
 
 
    def writeLog(self):
@@ -114,7 +119,7 @@ class HubWebResource(Resource):
          self.dispatch_log_file.flush()
          log.msg("%d buffered records written to dispatch log" % n)
 
-      reactor.callLater(self.services["config"].get("log-write-interval", 60), self.writeLog)
+      self.reactor.callLater(self.services["config"].get("log-write-interval", 60), self.writeLog)
 
 
    def _getContentLengthLimit(self):
@@ -260,11 +265,17 @@ class HubWebResource(Resource):
          return self.deny(request, 500, "internal server error ('%s')" % str(e))
 
 
+
 class HubWebService(service.Service):
 
    SERVICENAME = "Hub Web"
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False
@@ -294,9 +305,9 @@ class HubWebService(service.Service):
          contextFactory = TlsContextFactory(cfg["hub-web-tlskey-pem"],
                                             cfg["hub-web-tlscert-pem"],
                                             dhParamFilename = self.services['master'].dhParamFilename)
-         self.listener = reactor.listenSSL(port, self.factory, contextFactory)
+         self.listener = self.reactor.listenSSL(port, self.factory, contextFactory)
       else:
-         self.listener = reactor.listenTCP(port, self.factory)
+         self.listener = self.reactor.listenTCP(port, self.factory)
 
       self.isRunning = True
 

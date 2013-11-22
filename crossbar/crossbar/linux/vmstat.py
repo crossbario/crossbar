@@ -20,7 +20,7 @@
 import os
 
 from twisted.python import log
-from twisted.internet import reactor, protocol
+from twisted.internet import protocol
 from twisted.application import service
 
 from autobahn.util import utcnow
@@ -95,7 +95,12 @@ class VmstatService(service.Service):
 
    SERVICENAME = "Memory monitoring"
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.interval = 1
@@ -104,7 +109,7 @@ class VmstatService(service.Service):
    def startService(self):
       log.msg("Starting %s service .." % self.SERVICENAME)
       self.vmstat = VmstatProtocol(self)
-      reactor.spawnProcess(self.vmstat, 'vmstat', ['vmstat', '-n', str(self.interval)])
+      self.reactor.spawnProcess(self.vmstat, 'vmstat', ['vmstat', '-n', str(self.interval)])
       self.isRunning = True
 
    def stopService(self):

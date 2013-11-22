@@ -19,7 +19,6 @@
 
 import hmac, hashlib, binascii, random, datetime, re, urlparse, urllib
 
-from twisted.internet import reactor
 from twisted.application import service
 from twisted.python import log
 from twisted.web.client import getPage
@@ -823,7 +822,7 @@ class AdminWebSocketFactory(WampServerFactory):
          else:
             log.msg("update check: ok, no updates found.")
       if delay > 0:
-         reactor.callLater(delay, self.autocheckForUpdates)
+         self.reactor.callLater(delay, self.autocheckForUpdates)
       return self.updateAvailable
 
 

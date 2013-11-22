@@ -23,7 +23,7 @@ import os, hmac, hashlib, base64, sys, crypt, getpass, pwd, \
 from distutils.sysconfig import get_python_lib # for site-packages directory
 
 from twisted.python import log
-from twisted.internet import reactor, utils
+from twisted.internet import utils
 from twisted.application import service
 
 from autobahn.wamp import json_loads, json_dumps
@@ -35,7 +35,12 @@ class PlatformService(service.Service):
 
    SERVICENAME = "Platform"
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False
@@ -280,7 +285,7 @@ class PlatformService(service.Service):
       if cmd == "restart":
          ## for restarting, we just stop the reactor, exit and rely on being
          ## automatically restarted. this is most robust/clean way!
-         reactor.stop()
+         self.reactor.stop()
          sys.exit(0)
       elif cmd == "update":
          cmd = '/home/crossbar/app/bin/easy_install'

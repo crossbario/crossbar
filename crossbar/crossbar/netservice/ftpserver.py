@@ -20,7 +20,7 @@
 from zope.interface import implements
 
 from twisted.python import failure, log
-from twisted.internet import reactor, defer
+from twisted.internet import defer
 from twisted.application import service
 from twisted.protocols.ftp import FTPFactory, FTPRealm
 
@@ -79,7 +79,12 @@ class FtpService(service.Service):
 
    SERVICENAME = "FTP"
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False
@@ -100,7 +105,7 @@ class FtpService(service.Service):
       f.passivePortRange = xrange(self.passivePortStart, self.passivePortEnd + 1)
       f.welcomeMessage = "crossbar.io FTP at your service."
       f.passivePublicIp = self.passivePublicIp
-      self.listener = reactor.listenTCP(self.port, f)
+      self.listener = self.reactor.listenTCP(self.port, f)
       self.isRunning = True
       log.msg("embedded FTP server running on port %d (passive FTP ports %d - %d, homedir %s)" % (self.port, self.passivePortStart, self.passivePortEnd, self.homedir))
 

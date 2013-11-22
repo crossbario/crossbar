@@ -19,7 +19,7 @@
 
 import sys, datetime, os, re
 
-from twisted.internet import utils, reactor, protocol, defer
+from twisted.internet import utils, protocol, defer
 from twisted.python import log
 from twisted.internet.error import ProcessDone, ProcessTerminated
 
@@ -49,6 +49,7 @@ class DbExportZipperProtocol(protocol.ProcessProtocol):
          if os.path.exists(e):
             cmd.append(e)
       log.msg("%s %s %s", (SYSCMD_ZIP, cmd, self.outdir))
+      from twisted.internet import reactor
       reactor.spawnProcess(self,
                            SYSCMD_ZIP,
                            cmd,
@@ -156,6 +157,7 @@ class DbExportProtocol(protocol.ProcessProtocol):
 
 
    def run(self):
+      from twisted.internet import reactor
       reactor.spawnProcess(self,
                            SYSCMD_SQLITE3,
                            ['sqlite3',

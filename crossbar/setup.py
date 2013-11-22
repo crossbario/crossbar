@@ -54,7 +54,7 @@ setup (
                        'netaddr==0.7.10',
                        'isodate>=0.4.9',
                        'tldextract>=1.2.2',
-                       'Autobahn>=0.6.4',
+                       'Autobahn>=0.6.5',
                        'jinja2>=2.7.1'],
    extras_require = {
       'oracle': ["cx_Oracle>=5.1.2"],

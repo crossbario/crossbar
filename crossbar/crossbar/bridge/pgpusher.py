@@ -17,7 +17,6 @@
 ###############################################################################
 
 
-from twisted.internet import reactor
 from twisted.python import log
 
 from crossbar.adminwebmodule.uris import URI_EVENT, URI_PGCONNECT

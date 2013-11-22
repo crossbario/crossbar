@@ -19,7 +19,6 @@
 
 import urlparse
 
-from twisted.internet import reactor
 from twisted.python import log
 #from twisted.web.client import getPage
 from crossbar.txutil import getPage, StringReceiver, StringProducer, getDomain
@@ -147,7 +146,7 @@ class ExtDirectRemoter(Remoter):
          if usePersistentConnections:
             ## setup HTTP Connection Pool for remote
             if not self.httppools.has_key(id) or self.httppools[id] is None:
-               self.httppools[id] = HTTPConnectionPool(reactor, persistent = True)
+               self.httppools[id] = HTTPConnectionPool(self.reactor, persistent = True)
             self.httppools[id].maxPersistentPerHost = remote.maxPersistentConnections
             self.httppools[id].cachedConnectionTimeout = remote.persistentConnectionTimeout
             self.httppools[id].retryAutomatically = False
@@ -199,7 +198,7 @@ class ExtDirectRemoter(Remoter):
       else:
          ## Do HTTP/POST via HTTP connection pool
          ##
-         agent = Agent(reactor,
+         agent = Agent(self.reactor,
                        pool = self.httppools[remote.id],
                        connectTimeout = remote.connectionTimeout)
 
@@ -346,7 +345,7 @@ class ExtDirectRemoter(Remoter):
          if cookie:
             headers['Cookie'] = [cookie]
 
-         agent = Agent(reactor,
+         agent = Agent(self.reactor,
                        pool = self.httppools[remote.id],
                        connectTimeout = remote.connectionTimeout)
 

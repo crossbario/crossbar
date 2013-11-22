@@ -18,7 +18,6 @@
 
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.application import service
 
 from crossbar.adminwebmodule.uris import URI_ERROR_REMOTING
@@ -65,7 +64,12 @@ class RemoteStats:
 
 class Remoter(service.Service):
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False
@@ -109,7 +113,7 @@ class Remoter(service.Service):
                res.append(v)
          if len(res) > 0:
             self.services["adminws"].dispatchAdminEvent(self.STATS_EVENT_URI, res)
-         reactor.callLater(0.2, self.publishRemoterStats)
+         self.reactor.callLater(0.2, self.publishRemoterStats)
 
 
    def onAfterRemoteCallSuccess(self, result, remoteId):

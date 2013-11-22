@@ -20,7 +20,6 @@
 import pkg_resources, inspect, cgi, json, re, datetime
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.application import service
 from twisted.web.resource import Resource
 from twisted.web.server import Site, NOT_DONE_YET
@@ -342,7 +341,12 @@ class AdminWebService(service.Service):
 
    SERVICENAME = "Admin Web"
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False
@@ -431,9 +435,9 @@ class AdminWebService(service.Service):
          contextFactory = TlsContextFactory(cfg["admin-web-tlskey-pem"],
                                             cfg["admin-web-tlscert-pem"],
                                             dhParamFilename = self.services['master'].dhParamFilename)
-         self.listener = reactor.listenSSL(port, factory, contextFactory)
+         self.listener = self.reactor.listenSSL(port, factory, contextFactory)
       else:
-         self.listener = reactor.listenTCP(port, factory)
+         self.listener = self.reactor.listenTCP(port, factory)
 
       self.isRunning = True
 

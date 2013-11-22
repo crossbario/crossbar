@@ -20,7 +20,6 @@
 import sys, os
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.web.server import Site
 from twisted.web.resource import Resource
 from twisted.web.static import File
@@ -37,6 +36,7 @@ class CgiScript(CGIScript):
 
    def runProcess(self, env, request, qargs = []):
       p = CGIProcessProtocol(request)
+      from twisted.internet import reactor
       reactor.spawnProcess(p, self.filter, [self.filter, self.filename], env, os.path.dirname(self.filename))
 
 

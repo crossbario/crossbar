@@ -20,7 +20,6 @@
 import urlparse
 
 from twisted.python import log
-from twisted.internet import reactor
 from twisted.application import service
 
 
@@ -55,7 +54,12 @@ def validateUri(uri, allowEmptyNetworkLocation = False):
 
 class Pusher(service.Service):
 
-   def __init__(self, dbpool, services):
+   def __init__(self, dbpool, services, reactor = None):
+      ## lazy import to avoid reactor install upon module import
+      if reactor is None:
+         from twisted.internet import reactor
+      self.reactor = reactor
+
       self.dbpool = dbpool
       self.services = services
       self.isRunning = False

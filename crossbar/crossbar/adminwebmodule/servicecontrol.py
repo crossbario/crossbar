@@ -19,7 +19,7 @@
 
 import json, re
 
-from twisted.internet import reactor, defer
+from twisted.internet import defer
 from twisted.python.failure import Failure
 from twisted.python import log
 from twisted.web.client import getPage
