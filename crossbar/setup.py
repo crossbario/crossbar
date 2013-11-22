@@ -50,13 +50,16 @@ setup (
    install_requires = ['setuptools>=1.4',
                        'Twisted>=Twisted-13.2',
                        'pyOpenSSL>=0.13.1',
-                       'pycrypto>=2.6.1', # FIXME: get rid of this
+                       'pycrypto>=2.6', # FIXME: get rid of this
                        'netaddr==0.7.10',
                        'isodate>=0.4.9',
                        'tldextract>=1.2.2',
                        'Autobahn>=0.6.4',
-                       'jinja2>=2.7.1',
-                       'klein>=0.2.1'],
+                       'jinja2>=2.7.1'],
+   extras_require = {
+      'oracle': ["cx_Oracle>=5.1.2"],
+      'postgres': ["psycopg2>=2.5.1"]
+   },
    entry_points = {
       'console_scripts': [
          'crossbar = crossbar.cli:run'

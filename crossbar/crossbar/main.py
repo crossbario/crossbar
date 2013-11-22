@@ -30,9 +30,7 @@ import OpenSSL
 import twisted
 
 from twisted.python import log, usage
-from twisted.internet import reactor
-from twisted.application import service
-from twisted.application.service import Application, MultiService
+from twisted.application.service import MultiService
 
 from crossbar.logger import Logger
 from crossbar.database import Database
@@ -290,17 +288,17 @@ def makeService(options):
    reactor.suggestThreadPoolSize(30)
 
    ## now actually create our top service and set the logger
-   service = CrossbarService()
-   service.logger = logger
+   svc = CrossbarService()
+   svc.logger = logger
 
    ## store user options set
-   service.cbdata = options['cbdata']
-   service.webdata = options['webdata']
-   service.debug = True if options['debug'] else False
-   service.licenseserver = options['licenseserver']
-   service.isExe = False # will be set to true iff Crossbar is running from self-contained EXE
+   svc.cbdata = options['cbdata']
+   svc.webdata = options['webdata']
+   svc.debug = True if options['debug'] else False
+   svc.licenseserver = options['licenseserver']
+   svc.isExe = False # will be set to true iff Crossbar is running from self-contained EXE
 
-   return service
+   return svc
 
 
 def runPlugin():
@@ -357,11 +355,10 @@ def runPlugin():
    run()
 
 
-def runDirect(installSignalHandlers = False):
+def runDirect(installSignalHandlers = False, isExe = True):
    """
    Start Crossbar.io when running from EXE bundled with Pyinstaller.
    """
-   import sys
    from twisted.internet import reactor
    from twisted.python import usage, log
 
@@ -375,9 +372,9 @@ def runDirect(installSignalHandlers = False):
       print 'Try %s --help for usage details' % sys.argv[0]
       sys.exit(1)
 
-   service = makeService(o)
-   service.isExe = True # we are running from self-contained EXE
-   service.startService()
+   svc = makeService(o)
+   svc.isExe = isExe # we are running from self-contained EXE
+   svc.startService()
    reactor.run(installSignalHandlers)
 
 

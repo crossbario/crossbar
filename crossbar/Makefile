@@ -22,6 +22,9 @@ clean:
 test:
 	twistd.py -n crossbar
 
+test_cli:
+	python -m crossbar.cli
+
 publish: clean
 	python setup.py register
 	python setup.py sdist upload
