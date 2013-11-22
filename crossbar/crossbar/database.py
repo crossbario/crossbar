@@ -280,6 +280,7 @@ OQIDAQAB
             import webmqdemo
             log.msg("Found WebMQDemo package v%s" % webmqdemo.__version__)
          except ImportError:
+            os.mkdir(dst)
             log.msg("skipping web directory init: WebMQDemo package not installed")
          else:
             try:
