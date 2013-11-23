@@ -181,15 +181,15 @@ def run_command_version(options):
 class CrossbarCLIProtocol(WampCraClientProtocol):
 
    def connectionMade(self):
-      if not self.factory.options.json:
-         print "connected."
+      if self.factory.options.verbose:
+         sys.stdout.write(" .. (1) connected ..")
 
       WampCraClientProtocol.connectionMade(self)
 
 
    def onSessionOpen(self):
-      if not self.factory.options.json:
-         print "session opened."
+      if self.factory.options.verbose:
+         sys.stdout.write(" (2) session opened ..")
 
       d = self.authenticate(authKey = self.factory.options.user,
                             authSecret = self.factory.options.password)
@@ -204,9 +204,8 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
 
 
    def onAuthSuccess(self, permissions):
-      if not self.factory.options.json:
-         print "authenticated."
-         print
+      if self.factory.options.verbose:
+         sys.stdout.write(" (3) authenticated. Ok.\n\n")
 
       self.prefix("api", "http://crossbar.io/api#");
       self.prefix("error", "http://crossbar.io/error#");
@@ -227,13 +226,16 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
       if CMDS.has_key(self.factory.options.command):
          CMDS[self.factory.options.command]()
       else:
+         self.factory.done = True
          raise Exception("unknown command '%s'" % self.factory.options.command)
 
 
    def onAuthError(self, e):
       uri, desc, details = e.value.args
       if not self.factory.options.json:
-         print "Authentication Error!", uri, desc, details
+         print
+         print "Error: authentication failed [%s]" % desc
+      self.factory.done = True
       self.sendClose()
 
 
@@ -254,6 +256,7 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
                     'hanapusherstat': 'hana',
                     'restpusherstat': 'rest'}
 
+
    def _onremoterstat(self, topic, event):
       z = topic.split('-')[-1]
       for e in event:
@@ -261,12 +264,14 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
             m = CrossbarCLIProtocol.BRIDGENAME[CrossbarCLIProtocol.REMOTERSTATMAP[z]] + " Remoter"
             print m.ljust(20), e
 
+
    def _onpusherstat(self, topic, event):
       z = topic.split('-')[-1]
       for e in event:
          if e['uri'] is None:
             m = CrossbarCLIProtocol.BRIDGENAME[CrossbarCLIProtocol.PUSHERSTATMAP[z]] + " Pusher"
             print m.ljust(20), e
+
 
    def cmd_watch(self):
       for k in CrossbarCLIProtocol.REMOTERSTATMAP:
@@ -297,10 +302,12 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
       if self.factory.options.json:
          print json.dumps(res)
       else:
-         print "Crossbar Pusher and Remoter Statistics"
-         print
 
          LINELENGTH = 118
+
+         print
+         print tabify(['Crossbar.io Status'], ['c97'], LINELENGTH)
+         print
 
          cnames = {'ora': 'Oracle', 'rest': 'REST', 'pg': 'PostgreSQL', 'hana': 'SAP HANA'}
 
@@ -342,7 +349,8 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
          for i in xrange(8):
             LINEFORMAT.append('r8')
 
-         for s in ['rest', 'pg', 'ora', 'hana']:
+         for s in ['rest', 'ora', 'pg']:
+#         for s in ['rest', 'pg', 'ora', 'hana']:
             dp = res['pusher'][s]
             dr = res['remoter'][s]
             print tabify([cnames[s],
@@ -356,7 +364,9 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
                          dr['forward-failed'],
                          ], LINEFORMAT, LINELENGTH)
          print tabify(None, LINEFORMAT, LINELENGTH)
+         print
 
+      self.factory.done = True
       self.sendClose()
 
 
@@ -365,7 +375,7 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
       'connect' command.
       """
       print "Crossbar is alive!"
-      self.factory.reconnect = False
+      self.factory.done = True
       self.sendClose()
 
 
@@ -402,6 +412,7 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
          print json.dumps(res)
 
       if not restart:
+         self.factory.done = True
          self.sendClose()
 
 
@@ -425,6 +436,7 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
       else:
          print json.dumps(res)
 
+      self.factory.done = True
       self.sendClose()
 
 
@@ -507,6 +519,7 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
 
       pprint(res)
 
+      self.factory.done = True
       self.sendClose()
 
 
@@ -617,6 +630,7 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
             print "Oracle remote created:"
             pprint(r)
 
+      self.factory.done = True
       self.sendClose()
 
 
@@ -627,46 +641,51 @@ class CrossbarCLIFactory(WampClientFactory):
 
    def __init__(self, options, reactor):
       self.options = options
- 
-      if self.options.command == 'connect':
-         self.reconnect = True
-      else:
-         self.reconnect = False
-
+      self.done = False
       WampClientFactory.__init__(self,
-                                 self.options.uri,
+                                 self.options.server,
                                  debugWamp = self.options.debug)
 
 
    def startedConnecting(self, connector):
-      if not self.options.json:
-         print 'connecting ..'
+      if self.options.verbose:
+         print
+         print "Connecting to Crossbar.io instance as '%s' at %s .." % (self.options.user, self.options.server)
+
+
+   def _maybeReconnect(self, phase, connector, reason):
+      plog = self.options.verbose or phase == 'failed' or not self.done
+
+      if plog:
+         print 'Connection %s [%s]' % (phase, reason.value)
+
+      if self.done:
+         if plog:
+            print "Done"
+         try:
+            self.reactor.stop()
+         except:
+            pass
+      else:
+         if self.options.reconnect > 0:
+            if plog:
+               print "Retrying in %s seconds" % self.options.reconnect
+            self.reactor.callLater(self.options.reconnect, connector.connect)
+         else:
+            if plog:
+               print "Giving up"
+            try:
+               self.reactor.stop()
+            except:
+               pass
 
 
    def clientConnectionLost(self, connector, reason):
-      if not self.options.json:
-         print
-         print 'lost connection [%s]' % reason.value
-      if self.reconnect:
-         connector.connect()
-      else:
-         try:
-            self.reactor.stop()
-         except:
-            pass
+      self._maybeReconnect('lost', connector, reason)
 
 
    def clientConnectionFailed(self, connector, reason):
-      if not self.options.json:
-         print
-         print 'connection failed [%s]' % reason.value
-      if self.reconnect:
-         connector.connect()
-      else:
-         try:
-            self.reactor.stop()
-         except:
-            pass
+      self._maybeReconnect('failed', connector, reason)
 
 
 
@@ -725,12 +744,10 @@ def run():
                        action = 'store_true',
                        help = 'Debug on.')
 
-   parser.add_argument('-r',
-                       '--reactor',
+   parser.add_argument('--reactor',
                        default = None,
                        choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
                        help = 'Explicit Twisted reactor selection')
-
 
    ## output format
    ##
@@ -785,8 +802,13 @@ def run():
                               help = "Server log level (overrides default 'info')")
 
    def add_common_admin_command_arguments(_parser):
-      _parser.add_argument('-a',
-                           '--uri',
+      _parser.add_argument('--reconnect',
+                           default = 0,
+                           type = int,
+                           help = 'Reconnect interval in seconds or 0.')
+
+      _parser.add_argument('-s',
+                           '--server',
                            type = str,
                            default = 'ws://localhost:9000',
                            help = 'Administration endpoint WebSocket URI.')

@@ -83,7 +83,6 @@ class CrossbarService(MultiService):
       """
       Main entry point to startup the Crossbar.io service.
       """
-      print "*"*100, log.theLogPublisher.observers
       try:
          s = self._startService()
          return s

@@ -675,11 +675,21 @@ class HubWebSocketService(service.Service):
                                restUri = restUri)
                return s.encode('utf8')
 
+         ## Web directory static file serving
+         ##
          root = File(appwebDir)
+
+         ## render 404 page on any concrete path not found
          root.childNotFound = Resource404()
+
+         ## disable directory listing and render 404
+         root.directoryListing = lambda: root.childNotFound
+
+         ## WebSocket/WAMP resource
+         ##
          root.putChild(self.services["config"]["ws-websocket-path"], resource)
 
-         ## CGI
+         ## CGI resource
          ##
          cgienable = self.services["config"]["appweb-cgi-enable"]
          cgipath = self.services["config"]["appweb-cgi-path"]

@@ -68,7 +68,7 @@ def makeService(options = {}):
    from crossbar.logger import Logger
    logger = Logger()
    log.addObserver(logger)
-   print "*"*100, log.theLogPublisher.observers
+   #print "Log observers", log.theLogPublisher.observers
 
    ## suggest a background thread pool size
    ##
@@ -103,8 +103,8 @@ def makeService(options = {}):
    from crossbar.service import CrossbarService
    svc = CrossbarService(logger, options['cbdata'], options['webdata'], options['debug'])
 
-   from twisted.python.log import ILogObserver, FileLogObserver
-   from twisted.python.logfile import DailyLogFile
+   #from twisted.python.log import ILogObserver, FileLogObserver
+   #from twisted.python.logfile import DailyLogFile
 
    #application = Application("myapp")
    #logfile = DailyLogFile("my.log", "/tmp")
