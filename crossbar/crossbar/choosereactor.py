@@ -16,57 +16,95 @@
 ##
 ###############################################################################
 
-import sys, json
+__all__ = ['install_optimal_reactor','install_reactor']
 
-## Install Twisted reactor. This needs to be done here,
-## before importing any other Twisted/Autobahn stuff!
-##
-if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
-   try:
-      v = sys.version_info
-      if v[0] == 1 or (v[0] == 2 and v[1] < 6) or (v[0] == 2 and v[1] == 6 and v[2] < 5):
-         raise Exception("Python version too old (%s)" % sys.version)
-      from twisted.internet import kqreactor
-      kqreactor.install()
-   except Exception, e:
-      print """
-WARNING: Running on BSD or Darwin, but cannot use kqueue Twisted reactor.
 
- => %s
+def install_optimal_reactor():
+   """
+   Try to install the optimal Twisted reactor for platform.
+   """
+   import sys
 
-To use the kqueue Twisted reactor, you will need:
+   if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
+      try:
+         v = sys.version_info
+         if v[0] == 1 or (v[0] == 2 and v[1] < 6) or (v[0] == 2 and v[1] == 6 and v[2] < 5):
+            raise Exception("Python version too old (%s)" % sys.version)
+         from twisted.internet import kqreactor
+         kqreactor.install()
+      except Exception, e:
+         print """
+   WARNING: Running on BSD or Darwin, but cannot use kqueue Twisted reactor.
 
-  1. Python >= 2.6.5 or PyPy > 1.8
-  2. Twisted > 12.0
+    => %s
 
-Note the use of >= and >.
+   To use the kqueue Twisted reactor, you will need:
 
-Will let Twisted choose a default reactor (potential performance degradation).
-""" % str(e)
-      pass
+     1. Python >= 2.6.5 or PyPy > 1.8
+     2. Twisted > 12.0
 
-if sys.platform in ['win32']:
-   try:
+   Note the use of >= and >.
+
+   Will let Twisted choose a default reactor (potential performance degradation).
+   """ % str(e)
+         pass
+
+   if sys.platform in ['win32']:
+      try:
+         from twisted.application.reactors import installReactor
+         installReactor("iocp")
+      except Exception, e:
+         print """
+   WARNING: Running on Windows, but cannot use IOCP Twisted reactor.
+
+    => %s
+
+   Will let Twisted choose a default reactor (potential performance degradation).
+   """ % str(e)
+
+   if sys.platform.startswith('linux'):
+      try:
+         from twisted.internet import epollreactor
+         epollreactor.install()
+      except Exception, e:
+         print """
+   WARNING: Running on Linux, but cannot use Epoll Twisted reactor.
+
+    => %s
+
+   Will let Twisted choose a default reactor (potential performance degradation).
+   """ % str(e)
+
+
+
+def install_reactor(_reactor = None, verbose = False):
+   """
+   Install Twisted reactor. This is used from CLI.
+   """
+   import sys
+
+   if _reactor:
+      ## install explicitly given reactor
+      ##
       from twisted.application.reactors import installReactor
-      installReactor("iocp")
-   except Exception, e:
-      print """
-WARNING: Running on Windows, but cannot use IOCP Twisted reactor.
+      print "Trying to install explicitly specified Twisted reactor '%s'" % _reactor
+      try:
+         installReactor(_reactor)
+      except Exception, e:
+         print "Could not install Twisted reactor %s%s" % (_reactor, ' ["%s"]' % e if verbose else '')
+         sys.exit(1)
+   else:
+      ## automatically choose optimal reactor
+      ##
+      if verbose:
+         print "Automatically choosing optimal Twisted reactor"
+      install_optimal_reactor()
 
- => %s
+   ## now the reactor is installed, import it
+   from twisted.internet import reactor
 
-Will let Twisted choose a default reactor (potential performance degradation).
-""" % str(e)
+   if verbose:
+      from twisted.python.reflect import qual
+      print "Running Twisted reactor %s" % qual(reactor.__class__)
 
-if sys.platform.startswith('linux'):
-   try:
-      from twisted.internet import epollreactor
-      epollreactor.install()
-   except Exception, e:
-      print """
-WARNING: Running on Linux, but cannot use Epoll Twisted reactor.
-
- => %s
-
-Will let Twisted choose a default reactor (potential performance degradation).
-""" % str(e)
+   return reactor

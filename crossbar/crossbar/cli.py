@@ -16,41 +16,115 @@
 ##
 ###############################################################################
 
+__all__ = ['run']
 
-import sys, json, argparse, pkg_resources
+
+import sys, json, argparse, pkg_resources, logging
 from pprint import pprint
 
-#import twisted
-#import autobahn
-
-from twisted.python import log, usage
+from twisted.python import log
 from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
 
 from autobahn.websocket import connectWS
 from autobahn.wamp import WampClientFactory, WampCraClientProtocol
 
-#import crossbar
+
+
+def tabify(fields, formats, truncate = 120, filler = ['-', '+']):
+   """
+   Tabified output formatting.
+   """
+
+   ## compute total length of all fields
+   ##
+   totalLen = 0
+   flexIndicators = 0
+   flexIndicatorIndex = None
+   for i in xrange(len(formats)):
+      ffmt = formats[i][1:]
+      if ffmt != "*":
+         totalLen += int(ffmt)
+      else:
+         flexIndicators += 1
+         flexIndicatorIndex = i
+
+   if flexIndicators > 1:
+      raise Exception("more than 1 flex field indicator")
+
+   ## reserve space for column separators (" | " or " + ")
+   ##
+   totalLen += 3 * (len(formats) - 1)
+
+   if totalLen > truncate:
+      raise Exception("cannot fit content in truncate length %d" % truncate)
+
+   r = []
+   for i in xrange(len(formats)):
+
+      if i == flexIndicatorIndex:
+         N = truncate - totalLen
+      else:
+         N = int(formats[i][1:]) 
+
+      if fields:
+         s = str(fields[i])
+         if len(s) > N:
+            s = s[:N-2] + ".."
+         l = N - len(s)
+         m = formats[i][0]
+      else:
+         s = ''
+         l = N
+         m = '+'
+
+      if m == 'l':
+         r.append(s + ' ' * l)
+      elif m == 'r':
+         r.append(' ' * l + s)
+      elif m == 'c':
+         c1 = l / 2
+         c2 = l - c1
+         r.append(' ' * c1 + s + ' ' * c2)
+      elif m == '+':
+         r.append(filler[0] * l)
+      else:
+         raise Exception("invalid field format")
+
+   if m == '+':
+      return (filler[0] + filler[1] + filler[0]).join(r)
+   else:
+      return ' | '.join(r)
+
 
 
 def run_command_version(options):
    """
    Print local Crossbar.io software component types and versions.
    """
+   from choosereactor import install_reactor
+   reactor = install_reactor(options.reactor, options.verbose)
+
+   from twisted.python.reflect import qual
 
    ## Python
    ##
    py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
+   if options.verbose:
+      py_ver += " [%s]" % sys.version.replace('\n', ' ')
 
    ## Twisted / Reactor
    ##
-   import choosereactor
-   from twisted.internet import reactor
    tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
+   if options.verbose:
+      tx_ver += " [%s]" % qual(reactor.__class__)
 
    ## Autobahn
    ##
    import autobahn
+   from autobahn.websocket import WebSocketProtocol
    ab_ver = pkg_resources.require("autobahn")[0].version
+   if options.verbose:
+      ab_ver += " [%s]" % qual(WebSocketProtocol)
 
    ## UTF8 Validator
    ##
@@ -62,6 +136,8 @@ def run_command_version(options):
       utf8_ver = 'autobahn'
    else:
       raise Exception("could not detect UTF8 validator type/version")
+   if options.verbose:
+      utf8_ver += " [%s]" % qual(Utf8Validator)
 
    ## XOR Masker
    ##
@@ -73,12 +149,17 @@ def run_command_version(options):
       xor_ver = 'autobahn'
    else:
       raise Exception("could not detect XOR masker type/version")
+   if options.verbose:
+      xor_ver += " [%s]" % qual(XorMaskerNull)
 
    ## JSON Processor
    ##
    s = str(autobahn.wamp.json_lib.__name__)
    if 'ujson' in s:
       json_ver = 'ujson-%s' % pkg_resources.require('ujson')[0].version
+      import ujson
+      if options.verbose:
+         json_ver += " [%s]" % qual(ujson.dumps)
    elif s.startswith('json'):
       json_ver = 'python'
    else:
@@ -97,80 +178,33 @@ def run_command_version(options):
 
 
 
-
-class CrossbarCLIOptions(usage.Options):
-
-   COMMANDS = ['connect',
-               'config',
-               'restart',
-               'log',
-               'status',
-               'watch',
-               'scratchdb',
-               'scratchweb',
-               'wiretap']
-
-   optParameters = [
-      ['command', 'c', None, 'Command, one of: %s [required]' % ', '.join(COMMANDS)],
-      ['wsuri', 'w', None, 'Crossbar Admin WebSocket URI, i.e. "ws://192.168.1.128:9000".'],
-      ['password', 'p', None, 'Crossbar Admin password.'],
-      ['limit', 'l', 0, 'Limit number of log lines or records returned.'],
-      ['spec', 's', None, 'Command/config spec file.'],
-      ['ident', 'i', None, 'WAMP session ID, i.e. for wiretap mode.'],
-   ]
-
-   optFlags = [
-      ['json', 'j', 'Output everything in JSON.'],
-      ['debug', 'd', 'Enable debug output.']
-   ]
-
-   def postOptions(self):
-
-      if not self['command']:
-         raise usage.UsageError, "A command must be specified to run!"
-
-      if not self['wsuri']:
-         raise usage.UsageError, "Crossbar Admin WebSocket URI required!"
-      if not self['password']:
-         raise usage.UsageError, "Crossbar Admin password required!"
-
-      if self['command'] in ['wiretap']:
-         if not self['ident']:
-            raise usage.UsageError, "WAMP session ID required for command '%s'." % self['command']
-
-      if self['command'] in ['config']:
-         if not self['spec']:
-            raise usage.UsageError, "Command/config spec file required for command '%s'." % self['command']
-
-
-
 class CrossbarCLIProtocol(WampCraClientProtocol):
 
    def connectionMade(self):
-      if not self.factory.options['json']:
+      if not self.factory.options.json:
          print "connected."
 
       WampCraClientProtocol.connectionMade(self)
 
 
    def onSessionOpen(self):
-      if not self.factory.options['json']:
+      if not self.factory.options.json:
          print "session opened."
 
-      d = self.authenticate(authKey = self.factory.user,
-                            authSecret = self.factory.password)
+      d = self.authenticate(authKey = self.factory.options.user,
+                            authSecret = self.factory.options.password)
       d.addCallbacks(self.onAuthSuccess, self.onAuthError)
 
 
    def onClose(self, wasClean, code, reason):
       try:
-         reactor.stop()
+         self.factory.reactor.stop()
       except:
          pass
 
 
    def onAuthSuccess(self, permissions):
-      if not self.factory.options['json']:
+      if not self.factory.options.json:
          print "authenticated."
          print
 
@@ -184,26 +218,24 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
               'status': self.cmd_status,
               'watch': self.cmd_watch,
               'config': self.cmd_config,
+              'modify': self.cmd_modify,
               'scratchdb': self.cmd_scratchdb,
               'scratchweb': self.cmd_scratchweb,
               'connect': self.cmd_connect,
               'wiretap': self.cmd_wiretap}
 
-      if CMDS.has_key(self.factory.command):
-         CMDS[self.factory.command]()
+      if CMDS.has_key(self.factory.options.command):
+         CMDS[self.factory.options.command]()
       else:
-         raise Exception("unknown command '%s'" % self.factory.command)
+         raise Exception("unknown command '%s'" % self.factory.options.command)
 
 
    def onAuthError(self, e):
       uri, desc, details = e.value.args
-      if not self.factory.options['json']:
+      if not self.factory.options.json:
          print "Authentication Error!", uri, desc, details
       self.sendClose()
 
-
-   ## WATCH Command
-   ##
 
    BRIDGENAME = {'ora': 'Oracle',
                  'pg': 'PostgreSQL',
@@ -243,11 +275,11 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
          self.subscribe("event:on-%s" % k, self._onpusherstat)
 
 
-   ## STATUS Command
-   ##
-
    @inlineCallbacks
    def cmd_status(self):
+      """
+      'status' command.
+      """
       res = {}
       for t in ['remoter', 'pusher']:
          res[t] = {}
@@ -262,189 +294,299 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
                            res[t][s][k] = r[k]
             except Exception, e:
                pass
-      if self.factory.options['json']:
+      if self.factory.options.json:
          print json.dumps(res)
       else:
          print "Crossbar Pusher and Remoter Statistics"
-         print "-" * 80
          print
-         pprint(res)
+
+         LINELENGTH = 118
+
+         cnames = {'ora': 'Oracle', 'rest': 'REST', 'pg': 'PostgreSQL', 'hana': 'SAP HANA'}
+
+         LINEFORMAT = ['l15', 'c41', 'c41']
+         print tabify(None, LINEFORMAT, LINELENGTH)
+         print tabify(['',
+                       'PubSub',
+                       'RPC',
+                       ], LINEFORMAT, LINELENGTH)
+
+         LINEFORMAT = ['l15', 'c19', 'c19', 'c19', 'c19']
+         print tabify(None, LINEFORMAT, LINELENGTH)
+
+         print tabify(['',
+                       'Publish',
+                       'Dispatch',
+                       'Call',
+                       'Forward',
+                       ], LINEFORMAT, LINELENGTH)
+
+         LINEFORMAT = ['l15']
+         for i in xrange(8):
+            LINEFORMAT.append('c8')
+         print tabify(None, LINEFORMAT, LINELENGTH)
+
+         print tabify(['',
+                       'allowed',
+                       'denied',
+                       'success',
+                       'failed',
+                       'allowed',
+                       'denied',
+                       'success',
+                       'failed',
+                       ], LINEFORMAT, LINELENGTH)
+         print tabify(None, LINEFORMAT, LINELENGTH)
+
+         LINEFORMAT = ['l15']
+         for i in xrange(8):
+            LINEFORMAT.append('r8')
+
+         for s in ['rest', 'pg', 'ora', 'hana']:
+            dp = res['pusher'][s]
+            dr = res['remoter'][s]
+            print tabify([cnames[s],
+                         dp['publish-allowed'],
+                         dp['publish-denied'],
+                         dp['dispatch-success'],
+                         dp['dispatch-failed'],
+                         dr['call-allowed'],
+                         dr['call-denied'],
+                         dr['forward-success'],
+                         dr['forward-failed'],
+                         ], LINEFORMAT, LINELENGTH)
+         print tabify(None, LINEFORMAT, LINELENGTH)
+
       self.sendClose()
 
 
-   ## CONNECT Command
-   ##
-
    def cmd_connect(self):
+      """
+      'connect' command.
+      """
       print "Crossbar is alive!"
       self.factory.reconnect = False
       self.sendClose()
 
 
-   ## RESTART Command
-   ##
-
    @inlineCallbacks
    def cmd_restart(self):
-      if not self.factory.options['json']:
-         print "restarting Crossbar .."
+      """
+      'restart' command.
+      """
+      if not self.factory.options.json:
+         print "Restarting Crossbar.io .."
 
       res = yield self.call("api:restart")
 
 
-   ## SCRATCHDB Command
-   ##
-
    @inlineCallbacks
-   def cmd_scratchdb(self, dorestart = False):
-      if not self.factory.options['json']:
-         if dorestart:
-            print "scratching Crossbar service database and immediate restart .."
+   def cmd_scratchdb(self):
+      """
+      'scratchdb' command.
+      """
+      restart = self.factory.options.restart
+      if not self.factory.options.json:
+         if restart:
+            print "Scratching service database and immediate restarting .."
          else:
-            print "scratching Crossbar service database .."
+            print "Scratching service database .."
 
-      res = yield self.call("api:scratch-database", dorestart)
+      res = yield self.call("api:scratch-database", restart)
 
-      print "scratched service database"
-      if not dorestart:
+      if not self.factory.options.json:
+         print "Service database initialized to factory default."
+         if not restart:
+            print "You must restart Crossbar.io for settings to become effective."
+      else:
+         print json.dumps(res)
+
+      if not restart:
          self.sendClose()
 
 
-   ## SCRATCHWEB Command
-   ##
-
    @inlineCallbacks
-   def cmd_scratchweb(self, doinit = True):
-      if not self.factory.options['json']:
-         print "scratching Crossbar Web directory .."
+   def cmd_scratchweb(self):
+      """
+      'scratchweb' command.
+      """
+      demoinit = self.factory.options.demoinit
 
-      res = yield self.call("api:scratch-webdir", doinit)
-      if doinit:
-         print "scratched Web directory and copied %d files (%d bytes)" % (res[0], res[1])
+      if not self.factory.options.json:
+         print "Scratching Web directory .."
+
+      res = yield self.call("api:scratch-webdir", demoinit)
+
+      if not self.factory.options.json:
+         if demoinit:
+            print "Scratched Web directory and copied %d files (%d bytes)." % (res[0], res[1])
+         else:
+            print "Scratched Web directory."
       else:
-         print "scratched Web directory"
+         print json.dumps(res)
 
       self.sendClose()
 
 
-   ## LOG Command
-   ##
-
-   def _printlog(self, logobj):
-      if self.factory.options['json']:
-         print json.dumps(logobj)
-      else:
-         lineno, timestamp, logclass, logmodule, message = logobj
-         print str(lineno).zfill(6), timestamp, logclass.ljust(7), (logmodule + ": " if logmodule.strip() != "-" else "") + message
-
-
-   def _onlog(self, topic, event):
-      self._printlog(event)
-
-
    @inlineCallbacks
    def cmd_log(self):
+      """
+      'log' command.
+      """
+      def _printlog(self, logobj):
+         if self.factory.options['json']:
+            print json.dumps(logobj)
+         else:
+            lineno, timestamp, logclass, logmodule, message = logobj
+            print str(lineno).zfill(6), timestamp, logclass.ljust(7), (logmodule + ": " if logmodule.strip() != "-" else "") + message
+
+      def _onlog(self, topic, event):
+         _printlog(event)
+
       try:
          limit = int(self.factory.options['limit'])
       except:
          limit = 0
-      self.subscribe("event:on-log", self._onlog)
+      self.subscribe("event:on-log", _onlog)
       res = yield self.call("api:get-log", limit)
       for l in res:
-         self._printlog(l)
-
-
-   ## WIRETAP Command
-   ##
-
-   def _onwiretap(self, topic, event):
-      print topic, event
+         _printlog(l)
 
 
    @inlineCallbacks
    def cmd_wiretap(self):
-      sessionid = self.factory.options['ident']
+      """
+      'wiretap' command.
+
+      session.call("http://api.wamp.ws/procedure#echo", "hello").then(ab.log, ab.log);
+      """
+
+      def _onwiretap(topic, event):
+         print topic, event
+
+      sessionid = self.factory.options.sessionid
       topic = "wiretap:%s" % sessionid
-      self.subscribe(topic, self._onwiretap)
+      self.subscribe(topic, _onwiretap)
       r = yield self.call("api:set-wiretap-mode", sessionid, True)
       print "listening on", topic
 
 
-   ## CONFIG Command
-   ##
-
    @inlineCallbacks
    def cmd_config(self):
+      """
+      'config' command
+      """
+      ctype = self.factory.options.type
 
-      if self.factory.config.has_key('settings'):
-         r = yield self.call("api:modify-config", self.factory.config['settings'])
+      if ctype == 'settings':
+         res = yield self.call("api:get-config")
+
+      elif ctype == 'appcreds':
+         res = yield self.call("api:get-appcreds")
+
+      elif ctype == 'clientperms':
+         res = yield self.call("api:get-clientperms")
+
+      elif ctype == 'postrules':
+         res = yield self.call("api:get-postrules")
+
+      elif ctype == 'extdirectremotes':
+         res = yield self.call("api:get-extdirectremotes")
+
+      elif ctype == 'oraconnects':
+         res = yield self.call("api:get-oraconnects")
+
+      elif ctype == 'orapushrules':
+         res = yield self.call("api:get-orapushrules")
+
+      elif ctype == 'oraremotes':
+         res = yield self.call("api:get-oraremotes")
+
+      else:
+         raise Exception("logic error")
+
+      pprint(res)
+
+      self.sendClose()
+
+
+   @inlineCallbacks
+   def cmd_modify(self):
+      """
+      'modify' command
+      """
+      config = json.loads(open(self.factory.options.config).read())
+      restart = self.factory.options.restart
+
+      if config.has_key('settings'):
+         r = yield self.call("api:modify-config", config['settings'])
          pprint(r)
 
-      if self.factory.config.has_key('appcreds'):
+      if config.has_key('appcreds'):
          appcreds = yield self.call("api:get-appcreds")
          for ac in appcreds:
             print "dropping application credential", ac['uri']
             r = yield self.call("api:delete-appcred", ac['uri'], True)
-         for id, ac in self.factory.config['appcreds'].items():
+         for id, ac in config['appcreds'].items():
             r = yield self.call("api:create-appcred", ac)
-            self.factory.config['appcreds'][id] = r
+            config['appcreds'][id] = r
             print "application credential created:"
             pprint(r)
 
-      if self.factory.config.has_key('clientperms'):
+      if config.has_key('clientperms'):
          clientperms = yield self.call("api:get-clientperms")
          for cp in clientperms:
             print "dropping client permission ", cp['uri']
             r = yield self.call("api:delete-clientperm", cp['uri'])
-         for id, cp in self.factory.config['clientperms'].items():
+         for id, cp in config['clientperms'].items():
             if cp["require-appcred-uri"] is not None:
                k = cp["require-appcred-uri"]
-               cp["require-appcred-uri"] = self.factory.config['appcreds'][k]['uri']
+               cp["require-appcred-uri"] = config['appcreds'][k]['uri']
             r = yield self.call("api:create-clientperm", cp)
-            self.factory.config['clientperms'][id] = r
+            config['clientperms'][id] = r
             print "client permission created:"
             pprint(r)
 
-      if self.factory.config.has_key('postrules'):
+      if config.has_key('postrules'):
          postrules = yield self.call("api:get-postrules")
          for pr in postrules:
             print "dropping post rule", pr['uri']
             r = yield self.call("api:delete-postrule", pr['uri'])
-         for id, pr in self.factory.config['postrules'].items():
+         for id, pr in config['postrules'].items():
             if pr["require-appcred-uri"] is not None:
                k = pr["require-appcred-uri"]
-               pr["require-appcred-uri"] = self.factory.config['appcreds'][k]['uri']
+               pr["require-appcred-uri"] = config['appcreds'][k]['uri']
             r = yield self.call("api:create-postrule", pr)
-            self.factory.config['postrules'][id] = r
+            config['postrules'][id] = r
             print "post rule created:"
             pprint(r)
 
-      if self.factory.config.has_key('extdirectremotes'):
+      if config.has_key('extdirectremotes'):
          extdirectremotes = yield self.call("api:get-extdirectremotes")
          for er in extdirectremotes:
             print "dropping ext.direct remote", er['uri']
             r = yield self.call("api:delete-extdirectremote", er['uri'])
-         for id, er in self.factory.config['extdirectremotes'].items():
+         for id, er in config['extdirectremotes'].items():
             if er["require-appcred-uri"] is not None:
                k = er["require-appcred-uri"]
-               er["require-appcred-uri"] = self.factory.config['appcreds'][k]['uri']
+               er["require-appcred-uri"] = config['appcreds'][k]['uri']
             r = yield self.call("api:create-extdirectremote", er)
-            self.factory.config['extdirectremotes'][id] = r
+            config['extdirectremotes'][id] = r
             print "ext.direct remote created:"
             pprint(r)
 
-      if self.factory.config.has_key('oraconnects'):
+      if config.has_key('oraconnects'):
          oraconnects = yield self.call("api:get-oraconnects")
          for oc in oraconnects:
             print "dropping Oracle connect", oc['uri']
             r = yield self.call("api:delete-oraconnect", oc['uri'], True)
-         for id, oc in self.factory.config['oraconnects'].items():
+         for id, oc in config['oraconnects'].items():
             r = yield self.call("api:create-oraconnect", oc)
-            self.factory.config['oraconnects'][id] = r
+            config['oraconnects'][id] = r
             print "Oracle connect created:"
             pprint(r)
 
-      if self.factory.config.has_key('orapushrules'):
+      if config.has_key('orapushrules'):
          orapushrules = yield self.call("api:get-orapushrules")
          for op in orapushrules:
             print "dropping Oracle publication rule", op['uri']
@@ -452,26 +594,26 @@ class CrossbarCLIProtocol(WampCraClientProtocol):
          for id, op in self.factory.config['orapushrules'].items():
             if op["oraconnect-uri"] is not None:
                k = op["oraconnect-uri"]
-               op["oraconnect-uri"] = self.factory.config['oraconnects'][k]['uri']
+               op["oraconnect-uri"] = config['oraconnects'][k]['uri']
             r = yield self.call("api:create-orapushrule", op)
-            self.factory.config['orapushrules'][id] = r
+            config['orapushrules'][id] = r
             print "Oracle publication rule created:"
             pprint(r)
 
-      if self.factory.config.has_key('oraremotes'):
+      if config.has_key('oraremotes'):
          oraremotes = yield self.call("api:get-oraremotes")
          for om in oraremotes:
             print "dropping Oracle remote", om['uri']
             r = yield self.call("api:delete-oraremote", om['uri'])
-         for id, om in self.factory.config['oraremotes'].items():
+         for id, om in config['oraremotes'].items():
             if om["oraconnect-uri"] is not None:
                k = om["oraconnect-uri"]
-               om["oraconnect-uri"] = self.factory.config['oraconnects'][k]['uri']
+               om["oraconnect-uri"] = config['oraconnects'][k]['uri']
             if om["require-appcred-uri"] is not None:
                k = om["require-appcred-uri"]
-               om["require-appcred-uri"] = self.factory.config['appcreds'][k]['uri']
+               om["require-appcred-uri"] = config['appcreds'][k]['uri']
             r = yield self.call("api:create-oraremote", om)
-            self.factory.config['oraremotes'][id] = r
+            config['oraremotes'][id] = r
             print "Oracle remote created:"
             pprint(r)
 
@@ -483,92 +625,70 @@ class CrossbarCLIFactory(WampClientFactory):
 
    protocol = CrossbarCLIProtocol
 
-   def __init__(self, options, debug):
+   def __init__(self, options, reactor):
       self.options = options
-      self.user = "admin"
-      self.password = options["password"]
-      self.command = options["command"]
-      if self.command == 'connect':
+ 
+      if self.options.command == 'connect':
          self.reconnect = True
       else:
          self.reconnect = False
-      if options["spec"]:
-         self.config = json.loads(open(options["spec"]).read())
-      else:
-         self.config = None
-      WampClientFactory.__init__(self, options["wsuri"], debugWamp = debug)
+
+      WampClientFactory.__init__(self,
+                                 self.options.uri,
+                                 debugWamp = self.options.debug)
+
 
    def startedConnecting(self, connector):
-      if not self.options['json']:
+      if not self.options.json:
          print 'connecting ..'
 
-   #def buildProtocol(self, addr):
-   #    print 'Connected.'
-   #    return CrossbarCLIProtocol()
 
    def clientConnectionLost(self, connector, reason):
-      if not self.options['json']:
+      if not self.options.json:
          print
          print 'lost connection [%s]' % reason.value
       if self.reconnect:
          connector.connect()
       else:
          try:
-            reactor.stop()
+            self.reactor.stop()
          except:
             pass
 
+
    def clientConnectionFailed(self, connector, reason):
-      if not self.options['json']:
+      if not self.options.json:
          print
          print 'connection failed [%s]' % reason.value
       if self.reconnect:
          connector.connect()
       else:
          try:
-            reactor.stop()
+            self.reactor.stop()
          except:
             pass
 
 
 
-def run_command_client():
+def run_admin_command(options):
+   """
+   Monitor a Crossbar.io server.
+   """
+   from choosereactor import install_reactor
+   reactor = install_reactor(options.reactor, options.verbose)
 
-   o = CrossbarCLIOptions()
-   try:
-      o.parseOptions()
-   except usage.UsageError, errortext:
-      print '%s %s\n' % (sys.argv[0], errortext)
-      print 'Try %s --help for usage details\n' % sys.argv[0]
-      print
-      print "Twisted %s" % twisted.__version__
-      print "AutobahnPython %s" % autobahn.version
-      sys.exit(1)
-
-   debug = o.opts['debug']
-   if debug:
-      log.startLogging(sys.stdout)
-
-   if not o['json']:
-      print "Using Twisted reactor class %s" % str(reactor.__class__)
-
-   factory = CrossbarCLIFactory(o, debug)
+   factory = CrossbarCLIFactory(options, reactor)
    connectWS(factory)
    reactor.run()
 
-import logging
 
-#from autobahn.utf8validator import Utf8Validator
-#from twisted.python.reflect import qual
-#qual(Utf8Validator)
 
-def run_command_server(options):
+def run_command_start(options):
    """
    Start Crossbar.io server.
    """
-   ## install reactor
-   import choosereactor
-   from twisted.internet import reactor
+   from choosereactor import install_reactor
+   reactor = install_reactor(options.reactor, options.verbose)
 
    import twisted
    from crossbar import logger
@@ -579,19 +699,6 @@ def run_command_server(options):
       flo = logger.LevelFileLogObserver(sys.stdout, level = logging.DEBUG)
       twisted.python.log.startLoggingWithObserver(flo.emit)
 
-   #log.msg("HELLO")
-   #log.msg("HELLO INFO", level = logging.INFO)
-   #log.msg("HELLO ERROR", level = logging.ERROR)
-   #log.msg("HELLO DEBUG", level = logging.DEBUG)
-   logger.debug("HELLO DEBUG 2")
-   try:
-      x = 1/0
-   except:
-      logger.error()
-      #twisted.python.log.err()
-#   except Exception, e:
-#      logger.error(e)
-
    from crossbar.servicefactory import makeService
 
    svc = makeService(vars(options))
@@ -600,171 +707,219 @@ def run_command_server(options):
    installSignalHandlers = True
    reactor.run(installSignalHandlers)
 
-   #from crossbar.main import runDirect
-   #runDirect(True, False)
-
-   # import twisted
-
-   # ## set background thread pool suggested size
-   # from twisted.internet import reactor
-   # reactor.suggestThreadPoolSize(30)
-
-   # from crossbar.main import CrossbarService
-   # from crossbar.logger import Logger
-
-   # ## install our log observer before anything else is done
-   # logger = Logger()
-   # twisted.python.log.addObserver(logger)
-
-   # ## now actually create our top service and set the logger
-   # svc = CrossbarService()
-   # svc.logger = logger
-
-   # ## store user options set
-   # svc.cbdata = options['cbdata']
-   # svc.webdata = options['webdata']
-   # svc.debug = True if options['debug'] else False
-   # svc.licenseserver = options['licenseserver']
-   # svc.isExe = False # will be set to true iff Crossbar is running from self-contained EXE
-
-   # svc.startService()
-   # reactor.run(True)
-
-
-
-def parse_args():
-   """
-   Parse command line args to Crossbar.io tool.
-   """
-   parser = argparse.ArgumentParser(prog = "crossbar",
-                                    description = 'Crossbar.io multi-protocol application router')
-
-   group1dummy = parser.add_argument_group(title = 'Command, one of the following')
-   group1 = group1dummy.add_mutually_exclusive_group(required = True)
-
-   group1.add_argument("--server",
-                       help = "Start Crossbar.io server.",
-                       action = "store_true")
-
-   group1.add_argument("--monitor",
-                       help = "Monitor a Crossbar.io server.",
-                       action = "store_true")
-
-   group1.add_argument("--version",
-                       help = "Show versions of Crossbar.io software components.",
-                       action = "store_true")
-
-   # parser.add_argument('--wsuri', dest = 'wsuri', type = str, default = 'ws://localhost:9000', help = 'The WebSocket URI the server is listening on, e.g. ws://localhost:9000.')
-   # parser.add_argument('--port', dest = 'port', type = int, default = 8080, help = 'Port to listen on for embedded Web server. Set to 0 to disable.')
-   # parser.add_argument('--workers', dest = 'workers', type = int, default = 3, help = 'Number of workers to spawn - should fit the number of (phyisical) CPU cores.')
-   # parser.add_argument('--noaffinity', dest = 'noaffinity', action = "store_true", default = False, help = 'Do not set worker/CPU affinity.')
-   # parser.add_argument('--backlog', dest = 'backlog', type = int, default = 8192, help = 'TCP accept queue depth. You must tune your OS also as this is just advisory!')
-   # parser.add_argument('--silence', dest = 'silence', action = "store_true", default = False, help = 'Silence log output.')
-   # parser.add_argument('--debug', dest = 'debug', action = "store_true", default = False, help = 'Enable WebSocket debug output.')
-   # parser.add_argument('--interval', dest = 'interval', type = int, default = 5, help = 'Worker stats update interval.')
-   # parser.add_argument('--profile', dest = 'profile', action = "store_true", default = False, help = 'Enable profiling.')
-
-   # parser.add_argument('--fd', dest = 'fd', type = int, default = None, help = 'If given, this is a worker which will use provided FD and all other options are ignored.')
-   # parser.add_argument('--cpuid', dest = 'cpuid', type = int, default = None, help = 'If given, this is a worker which will use provided CPU core to set its affinity.')
-
-   options = parser.parse_args()
-
-   return options
-
 
 
 def run():
    """
    Entry point of installed Crossbar.io tool.
    """
-   options = parse_args()
+   ## create the top-level parser
+   ##
+   parser = argparse.ArgumentParser(prog = 'crossbar',
+                                    description = "Crossbar.io multi-protocol application router")
 
-   if options.version:
-      run_command_version(options)
+   ## top-level options
+   ##
+   parser.add_argument('-d',
+                       '--debug',
+                       action = 'store_true',
+                       help = 'Debug on.')
 
-   elif options.server:
-      run_command_server(run_command_server)
+   parser.add_argument('-r',
+                       '--reactor',
+                       default = None,
+                       choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
+                       help = 'Explicit Twisted reactor selection')
 
-   elif options.monitor:
-      raise Exception("not implemented")
 
-   else:
-      raise Exception("logic error")
+   ## output format
+   ##
+   output_format_dummy = parser.add_argument_group(title = 'Output format control')
+   output_format = output_format_dummy.add_mutually_exclusive_group(required = False)
+
+   output_format.add_argument('-v',
+                              '--verbose',
+                              action = 'store_true',
+                              help = 'Verbose (human) output on.')
+
+   output_format.add_argument('-j',
+                              '--json',
+                              action = 'store_true',
+                              help = 'Turn JSON output on.')
+
+   ## create subcommand parser
+   ##
+   subparsers = parser.add_subparsers(dest = 'command',
+                                      title = 'commands',
+                                      help = 'Crossbar.io command to run')
+
+   ## "version" command
+   ##
+   parser_version = subparsers.add_parser('version',
+                                          help = 'Print software component versions.')
+
+   parser_version.set_defaults(func = run_command_version)
+
+
+   ## "start" command
+   ##
+   parser_start = subparsers.add_parser('start',
+                                        help = 'Start a new server process.')
+
+   parser_start.set_defaults(func = run_command_start)
+
+   parser_start.add_argument('--cbdata',
+                             type = str,
+                             default = None,
+                             help = "Data directory (overrides ${CROSSBAR_DATA} and default ./cbdata)")
+
+   parser_start.add_argument('--cbdataweb',
+                             type = str,
+                             default = None,
+                             help = "Web directory (overrides ${CROSSBAR_DATA_WEB} and default CBDATA/web)")
+
+   parser_start.add_argument('--loglevel',
+                              type = str,
+                              default = 'info',
+                              choices = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'],
+                              help = "Server log level (overrides default 'info')")
+
+   def add_common_admin_command_arguments(_parser):
+      _parser.add_argument('-a',
+                           '--uri',
+                           type = str,
+                           default = 'ws://localhost:9000',
+                           help = 'Administration endpoint WebSocket URI.')
+
+      _parser.add_argument('-u',
+                           '--user',
+                           type = str,
+                           default = 'admin',
+                           help = 'User name.')
+
+      _parser.add_argument('-p',
+                           '--password',
+                           type = str,
+                           help = 'Password.')
+
+   ## "status" command
+   ##
+   parser_status = subparsers.add_parser('status',
+                                         help = 'Get server status.')
+
+   add_common_admin_command_arguments(parser_status)
+   parser_status.set_defaults(func = run_admin_command)
+
+
+   ## "watch" command
+   ##
+   parser_watch = subparsers.add_parser('watch',
+                                        help = 'Watch a server.')
+
+   add_common_admin_command_arguments(parser_watch)
+   parser_watch.set_defaults(func = run_admin_command)
+
+
+   ## "restart" command
+   ##
+   parser_restart = subparsers.add_parser('restart',
+                                          help = 'Restart a server.')
+
+   add_common_admin_command_arguments(parser_restart)
+   parser_restart.set_defaults(func = run_admin_command)
+
+
+   ## "scratchdb" command
+   ##
+   parser_scratchdb = subparsers.add_parser('scratchdb',
+                                            help = 'Scratch service database.')
+
+   add_common_admin_command_arguments(parser_scratchdb)
+
+   parser_scratchdb.add_argument('--restart',
+                                 action = 'store_true',
+                                 help = 'Immediately perform a restart.')
+
+   parser_scratchdb.set_defaults(func = run_admin_command)
+
+
+   ## "scratchweb" command
+   ##
+   parser_scratchweb = subparsers.add_parser('scratchweb',
+                                             help = 'Scratch Web directory.')
+
+   add_common_admin_command_arguments(parser_scratchweb)
+
+   parser_scratchweb.add_argument('--demoinit',
+                                  action = 'store_true',
+                                  help = 'Initialize Web directory with demo content.')
+
+   parser_scratchweb.set_defaults(func = run_admin_command)
+
+
+   ## "wiretap" command
+   ##
+   parser_wiretap = subparsers.add_parser('wiretap',
+                                          help = 'Wiretap a WAMP session.')
+
+   add_common_admin_command_arguments(parser_wiretap)
+
+   parser_wiretap.add_argument('--sessionid',
+                               type = str,
+                               help = 'WAMP session ID.')
+
+   parser_wiretap.set_defaults(func = run_admin_command)
+
+
+   ## "config" command
+   ##
+   parser_config = subparsers.add_parser('config',
+                                         help = 'Get service configuration.')
+
+   parser_config.add_argument('--type',
+                              required = True,
+                              choices = ['settings',
+                                         'appcreds',
+                                         'clientperms',
+                                         'postrules',
+                                         'oraconnects',
+                                         'oraremotes',
+                                         'orapushrules'],
+                              help = 'Configuration type to retrieve.')
+
+   add_common_admin_command_arguments(parser_config)
+
+   parser_config.set_defaults(func = run_admin_command)
+
+
+   ## "modify" command
+   ##
+   parser_modify = subparsers.add_parser('modify',
+                                         help = 'Change service configuration.')
+
+   add_common_admin_command_arguments(parser_modify)
+
+   parser_modify.add_argument('--config',
+                              type = str,
+                              help = 'Service configuration filename.')
+
+   parser_modify.add_argument('--restart',
+                              action = 'store_true',
+                              help = 'Immediately perform a restart.')
+
+   parser_modify.set_defaults(func = run_admin_command)
+
+
+   ## parse cmd line args
+   ##
+   options = parser.parse_args()
+
+
+   ## run the subcommand selected
+   ##
+   options.func(options)
 
 
 
 if __name__ == '__main__':
    run()
-
-
-import argparse
-
-# http://bugs.python.org/issue13879
-# https://gist.github.com/sampsyo/471779
-
-class AliasedSubParsersAction(argparse._SubParsersAction):
-
-    class _AliasedPseudoAction(argparse.Action):
-        def __init__(self, name, aliases, help):
-            dest = name
-            if aliases:
-                dest += ' (%s)' % ','.join(aliases)
-            sup = super(AliasedSubParsersAction._AliasedPseudoAction, self)
-            sup.__init__(option_strings=[], dest=dest, help=help) 
-
-    def add_parser(self, name, **kwargs):
-        if 'aliases' in kwargs:
-            aliases = kwargs['aliases']
-            del kwargs['aliases']
-        else:
-            aliases = []
-
-        parser = super(AliasedSubParsersAction, self).add_parser(name, **kwargs)
-
-        # Make the aliases work.
-        for alias in aliases:
-            self._name_parser_map[alias] = parser
-        # Make the help text reflect them, first removing old help entry.
-        if 'help' in kwargs:
-            help = kwargs.pop('help')
-            self._choices_actions.pop()
-            pseudo_action = self._AliasedPseudoAction(name, aliases, help)
-            self._choices_actions.append(pseudo_action)
-
-        return parser
-
-
-# create the top-level parser
-parser = argparse.ArgumentParser(prog = 'crossbar', description = "Crossbar.io multi-protocol application router")
-#parser.register('action', 'parsers', AliasedSubParsersAction)
-parser.add_argument('-d', '--debug', action = 'store_true', help = 'Debug on.')
-
-subparsers = parser.add_subparsers(title = 'commands',
-                                   help = 'Crossbar.io command to run')
-
-# create the parser for the "a" command
-parser_a = subparsers.add_parser('startserver',
-                                 #aliases = ['ss'],
-                                 help = 'Start a new server process.')
-parser_a.add_argument('--cbdata', type = str, default = None, help = "Data directory (overrides ${CROSSBAR_DATA} and default ./cbdata)")
-parser_a.add_argument('--cbdataweb', type = str, default = None, help = "Web directory (overrides ${CROSSBAR_DATA_WEB} and default CBDATA/web)")
-parser_a.add_argument('--loglevel', type = str, default = 'info', choices = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'], help = "Server log level (overrides default 'info')")
-
-# create the parser for the "b" command
-parser_b = subparsers.add_parser('monitorserver',
-                                  #aliases = ['ms'],
-                                  help = 'Connect to and monitor a server.')
-parser_b.add_argument('-a', '--uri', type = str, default = 'ws://localhost/ws', help = 'Administration endpoint WebSocket URI.')
-parser_b.add_argument('-u', '--user', type = str, default = 'admin', help = 'User name.')
-parser_b.add_argument('-p', '--password', type = str, help = 'Password.')
-
-# parse some argument lists
-print parser.parse_args()
-
-# http://docs.jboss.org/process-guide/en/html/logging.html
-# FATAL - Use the FATAL level priority for events that indicate a critical service failure. If a service issues a FATAL error it is completely unable to service requests of any kind.
-# ERROR - Use the ERROR level priority for events that indicate a disruption in a request or the ability to service a request. A service should have some capacity to continue to service requests in the presence of ERRORs.
-# WARN - Use the WARN level priority for events that may indicate a non-critical service error. Resumable errors, or minor breaches in request expectations fall into this category. The distinction between WARN and ERROR may be hard to discern and so its up to the developer to judge. The simplest criterion is would this failure result in a user support call. If it would use ERROR. If it would not use WARN.
-# INFO - Use the INFO level priority for service life-cycle events and other crucial related information. Looking at the INFO messages for a given service category should tell you exactly what state the service is in.
-# DEBUG - Use the DEBUG level priority for log messages that convey extra information regarding life-cycle events. Developer or in depth information required for support is the basis for this priority. The important point is that when the DEBUG level priority is enabled, the JBoss server log should not grow proportionally with the number of server requests. Looking at the DEBUG and INFO messages for a given service category should tell you exactly what state the service is in, as well as what server resources it is using: ports, interfaces, log files, etc.
-# TRACE - Use TRACE the level priority for log messages that are directly associated with activity that corresponds requests. Further, such messages should not be submitted to a Logger unless the Logger category priority threshold indicates that the message will be rendered. Use the Logger.isTraceEnabled() method to determine if the category priority threshold is enabled. The point of the TRACE priority is to allow for deep probing of the JBoss server behavior when necessary. When the TRACE level priority is enabled, you can expect the number of messages in the JBoss server log to grow at least a x N, where N is the number of requests received by the server, a some constant. The server log may well grow as power of N depending on the request-handling layer being traced. 

@@ -150,6 +150,9 @@ class HubWebSocketProtocol(WampCraServerProtocol):
 
 
    def formatWiretapTimings(self, call, tdef):
+      print call, tdef
+      print call.timings
+      print self.trackedTimings
       s = " %s | " % call.callid
       for t in tdef:
          s += t[0]
@@ -178,11 +181,11 @@ class HubWebSocketProtocol(WampCraServerProtocol):
             self.factory.services["adminws"].dispatchAdminEvent(URI_WIRETAP_EVENT + self.session_id, event)
          self.dispatchWiretap = dispatchWiretap
          self.setTrackTimings(True)
-         #log.msg("Wiretap mode enabled on session %s" % self.session_id)
+         log.msg("Wiretap mode enabled on session %s" % self.session_id)
       else:
          self.dispatchWiretap = None
          self.setTrackTimings(False)
-         #log.msg("Wiretap mode disabled on session %s" % self.session_id)
+         log.msg("Wiretap mode disabled on session %s" % self.session_id)
 
 
    def getWiretapMode(self):

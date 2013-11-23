@@ -173,7 +173,7 @@ class PlatformService(service.Service):
 
    def applianceControl(self, cmd):
       if cmd == "restart":
-         reactor.stop()
+         self.reactor.stop()
          sys.exit(0)
       elif cmd == "update":
          log.msg("ApplianceControl [FAKE]: update triggered .. will do nothing on FAKE platform")

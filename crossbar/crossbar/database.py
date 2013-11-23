@@ -1539,7 +1539,7 @@ OQIDAQAB
 
       if not scratchMode:
          CONFIG.update({"database-created": created,
-                        "admin-password": None})
+                        "admin-password": "secret"})
 
       ## default global configuration
       ##
