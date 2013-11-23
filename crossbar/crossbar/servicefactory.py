@@ -62,11 +62,13 @@ def makeService(options = {}):
    import io, __builtin__
    __builtin__.open = io.open
 
+
    ## install our log observer before anything else is done
    ##
    from crossbar.logger import Logger
    logger = Logger()
    log.addObserver(logger)
+   print "*"*100, log.theLogPublisher.observers
 
    ## suggest a background thread pool size
    ##
@@ -78,21 +80,21 @@ def makeService(options = {}):
    if not options.has_key('cbdata') or not options['cbdata']:
       if os.environ.has_key("CROSSBAR_DATA"):
          options['cbdata'] = os.environ["CROSSBAR_DATA"]
-         print "Crossbar.io service data directory %s set from environment variable CROSSBAR_DATA." % options['cbdata']
+         log.msg("Crossbar.io service data directory %s set from environment variable CROSSBAR_DATA." % options['cbdata'])
       else:
          options['cbdata'] = os.path.join(os.getcwd(), 'cbdata')
-         print "Crossbar.io service directory unspecified - using %s." % options['cbdata']
+         log.msg("Crossbar.io service directory unspecified - using %s." % options['cbdata'])
    else:
-      print "Crossbar.io application data directory %s set via command line option." % options['cbdata']
+      log.msg("Crossbar.io application data directory %s set via command line option." % options['cbdata'])
 
    if not options.has_key('webdata') or not options['webdata']:
       if os.environ.has_key("CROSSBAR_DATA_WEB"):
          options['webdata'] = os.environ["CROSSBAR_DATA_WEB"]
-         print "Crossbar.io static Web directory %s set from environment variable CROSSBAR_DATA_WEB." % options['webdata']
+         log.msg("Crossbar.io static Web directory %s set from environment variable CROSSBAR_DATA_WEB." % options['webdata'])
       else:
          options['webdata'] = None
    else:
-      print "Crossbar.io static Web directory %s set via command line option." % options['webdata']
+      log.msg("Crossbar.io static Web directory %s set via command line option." % options['webdata'])
 
    options['debug'] = True if options.get('debug') else False
 
@@ -100,5 +102,14 @@ def makeService(options = {}):
    ##
    from crossbar.service import CrossbarService
    svc = CrossbarService(logger, options['cbdata'], options['webdata'], options['debug'])
+
+   from twisted.python.log import ILogObserver, FileLogObserver
+   from twisted.python.logfile import DailyLogFile
+
+   #application = Application("myapp")
+   #logfile = DailyLogFile("my.log", "/tmp")
+   #application.setComponent(ILogObserver, FileLogObserver(logfile).emit)
+   #svc.setComponent(ILogObserver, None)
+
 
    return svc

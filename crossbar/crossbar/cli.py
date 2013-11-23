@@ -556,7 +556,11 @@ def run_command_client():
    connectWS(factory)
    reactor.run()
 
+import logging
 
+#from autobahn.utf8validator import Utf8Validator
+#from twisted.python.reflect import qual
+#qual(Utf8Validator)
 
 def run_command_server(options):
    """
@@ -566,10 +570,29 @@ def run_command_server(options):
    import choosereactor
    from twisted.internet import reactor
 
-   from twisted.python import log
-   log.startLogging(sys.stdout)
+   import twisted
+   from crossbar import logger
 
-   from crossbar.main import makeService
+   if False:
+      twisted.python.log.startLogging(sys.stdout)
+   else:
+      flo = logger.LevelFileLogObserver(sys.stdout, level = logging.DEBUG)
+      twisted.python.log.startLoggingWithObserver(flo.emit)
+
+   #log.msg("HELLO")
+   #log.msg("HELLO INFO", level = logging.INFO)
+   #log.msg("HELLO ERROR", level = logging.ERROR)
+   #log.msg("HELLO DEBUG", level = logging.DEBUG)
+   logger.debug("HELLO DEBUG 2")
+   try:
+      x = 1/0
+   except:
+      logger.error()
+      #twisted.python.log.err()
+#   except Exception, e:
+#      logger.error(e)
+
+   from crossbar.servicefactory import makeService
 
    svc = makeService(vars(options))
    svc.startService()
@@ -672,3 +695,76 @@ def run():
 
 if __name__ == '__main__':
    run()
+
+
+import argparse
+
+# http://bugs.python.org/issue13879
+# https://gist.github.com/sampsyo/471779
+
+class AliasedSubParsersAction(argparse._SubParsersAction):
+
+    class _AliasedPseudoAction(argparse.Action):
+        def __init__(self, name, aliases, help):
+            dest = name
+            if aliases:
+                dest += ' (%s)' % ','.join(aliases)
+            sup = super(AliasedSubParsersAction._AliasedPseudoAction, self)
+            sup.__init__(option_strings=[], dest=dest, help=help) 
+
+    def add_parser(self, name, **kwargs):
+        if 'aliases' in kwargs:
+            aliases = kwargs['aliases']
+            del kwargs['aliases']
+        else:
+            aliases = []
+
+        parser = super(AliasedSubParsersAction, self).add_parser(name, **kwargs)
+
+        # Make the aliases work.
+        for alias in aliases:
+            self._name_parser_map[alias] = parser
+        # Make the help text reflect them, first removing old help entry.
+        if 'help' in kwargs:
+            help = kwargs.pop('help')
+            self._choices_actions.pop()
+            pseudo_action = self._AliasedPseudoAction(name, aliases, help)
+            self._choices_actions.append(pseudo_action)
+
+        return parser
+
+
+# create the top-level parser
+parser = argparse.ArgumentParser(prog = 'crossbar', description = "Crossbar.io multi-protocol application router")
+#parser.register('action', 'parsers', AliasedSubParsersAction)
+parser.add_argument('-d', '--debug', action = 'store_true', help = 'Debug on.')
+
+subparsers = parser.add_subparsers(title = 'commands',
+                                   help = 'Crossbar.io command to run')
+
+# create the parser for the "a" command
+parser_a = subparsers.add_parser('startserver',
+                                 #aliases = ['ss'],
+                                 help = 'Start a new server process.')
+parser_a.add_argument('--cbdata', type = str, default = None, help = "Data directory (overrides ${CROSSBAR_DATA} and default ./cbdata)")
+parser_a.add_argument('--cbdataweb', type = str, default = None, help = "Web directory (overrides ${CROSSBAR_DATA_WEB} and default CBDATA/web)")
+parser_a.add_argument('--loglevel', type = str, default = 'info', choices = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'], help = "Server log level (overrides default 'info')")
+
+# create the parser for the "b" command
+parser_b = subparsers.add_parser('monitorserver',
+                                  #aliases = ['ms'],
+                                  help = 'Connect to and monitor a server.')
+parser_b.add_argument('-a', '--uri', type = str, default = 'ws://localhost/ws', help = 'Administration endpoint WebSocket URI.')
+parser_b.add_argument('-u', '--user', type = str, default = 'admin', help = 'User name.')
+parser_b.add_argument('-p', '--password', type = str, help = 'Password.')
+
+# parse some argument lists
+print parser.parse_args()
+
+# http://docs.jboss.org/process-guide/en/html/logging.html
+# FATAL - Use the FATAL level priority for events that indicate a critical service failure. If a service issues a FATAL error it is completely unable to service requests of any kind.
+# ERROR - Use the ERROR level priority for events that indicate a disruption in a request or the ability to service a request. A service should have some capacity to continue to service requests in the presence of ERRORs.
+# WARN - Use the WARN level priority for events that may indicate a non-critical service error. Resumable errors, or minor breaches in request expectations fall into this category. The distinction between WARN and ERROR may be hard to discern and so its up to the developer to judge. The simplest criterion is would this failure result in a user support call. If it would use ERROR. If it would not use WARN.
+# INFO - Use the INFO level priority for service life-cycle events and other crucial related information. Looking at the INFO messages for a given service category should tell you exactly what state the service is in.
+# DEBUG - Use the DEBUG level priority for log messages that convey extra information regarding life-cycle events. Developer or in depth information required for support is the basis for this priority. The important point is that when the DEBUG level priority is enabled, the JBoss server log should not grow proportionally with the number of server requests. Looking at the DEBUG and INFO messages for a given service category should tell you exactly what state the service is in, as well as what server resources it is using: ports, interfaces, log files, etc.
+# TRACE - Use TRACE the level priority for log messages that are directly associated with activity that corresponds requests. Further, such messages should not be submitted to a Logger unless the Logger category priority threshold indicates that the message will be rendered. Use the Logger.isTraceEnabled() method to determine if the category priority threshold is enabled. The point of the TRACE priority is to allow for deep probing of the JBoss server behavior when necessary. When the TRACE level priority is enabled, you can expect the number of messages in the JBoss server log to grow at least a x N, where N is the number of requests received by the server, a some constant. The server log may well grow as power of N depending on the request-handling layer being traced. 
