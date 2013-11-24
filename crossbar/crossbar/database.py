@@ -277,14 +277,14 @@ OQIDAQAB
 
       if init:
          try:
-            import webmqdemo
-            log.msg("Found WebMQDemo package v%s" % webmqdemo.__version__)
+            import crossbardemo
+            log.msg("Found crossbardemo package v%s" % crossbardemo.__version__)
          except ImportError:
             os.mkdir(dst)
-            log.msg("skipping web directory init: WebMQDemo package not installed")
+            log.msg("Skipping web directory init (crossbardemo package not installed)")
          else:
             try:
-               src = os.path.abspath(pkg_resources.resource_filename("webmqdemo", "web"))
+               src = os.path.abspath(pkg_resources.resource_filename("crossbardemo", "web"))
                shutil.copytree(src, dst)
             except Exception, e:
                raise Exception(URI_ERROR + "execution-error", "Could not init web directory [%s]." % str(e))
