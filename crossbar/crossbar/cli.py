@@ -810,7 +810,7 @@ def run():
       _parser.add_argument('-s',
                            '--server',
                            type = str,
-                           default = 'ws://localhost:9000',
+                           default = 'ws://127.0.0.1:9000',
                            help = 'Administration endpoint WebSocket URI.')
 
       _parser.add_argument('-u',
