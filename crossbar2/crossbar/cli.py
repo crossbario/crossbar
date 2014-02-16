@@ -19,14 +19,14 @@
 __all__ = ['run']
 
 
-import sys, json, argparse, pkg_resources, logging
+import os, sys, json, argparse, pkg_resources, logging
 from pprint import pprint
 
 from twisted.python import log
 from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
 
-from autobahn.websocket import connectWS
-from autobahn.wamp import WampClientFactory, WampCraClientProtocol
+# from autobahn.websocket import connectWS
+# from autobahn.wamp import WampClientFactory, WampCraClientProtocol
 
 
 
@@ -34,7 +34,7 @@ def run_command_version(options):
    """
    Print local Crossbar.io software component types and versions.
    """
-   from choosereactor import install_reactor
+   from autobahn.twisted.choosereactor import install_reactor
    reactor = install_reactor(options.reactor, options.verbose)
 
    from twisted.python.reflect import qual
@@ -54,14 +54,14 @@ def run_command_version(options):
    ## Autobahn
    ##
    import autobahn
-   from autobahn.websocket import WebSocketProtocol
+   from autobahn.websocket.protocol import WebSocketProtocol
    ab_ver = pkg_resources.require("autobahn")[0].version
    if options.verbose:
       ab_ver += " [%s]" % qual(WebSocketProtocol)
 
    ## UTF8 Validator
    ##
-   from autobahn.utf8validator import Utf8Validator
+   from autobahn.websocket.utf8validator import Utf8Validator
    s = str(Utf8Validator)
    if 'wsaccel' in s:
       utf8_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
@@ -74,7 +74,7 @@ def run_command_version(options):
 
    ## XOR Masker
    ##
-   from autobahn.xormasker import XorMaskerNull
+   from autobahn.websocket.xormasker import XorMaskerNull
    s = str(XorMaskerNull)
    if 'wsaccel' in s:
       xor_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
@@ -85,19 +85,6 @@ def run_command_version(options):
    if options.verbose:
       xor_ver += " [%s]" % qual(XorMaskerNull)
 
-   ## JSON Processor
-   ##
-   s = str(autobahn.wamp.json_lib.__name__)
-   if 'ujson' in s:
-      json_ver = 'ujson-%s' % pkg_resources.require('ujson')[0].version
-      import ujson
-      if options.verbose:
-         json_ver += " [%s]" % qual(ujson.dumps)
-   elif s.startswith('json'):
-      json_ver = 'python'
-   else:
-      raise Exception("could not detect JSON processor type/version")
-   
    print
    print "Crossbar.io local component versions:"
    print
@@ -106,35 +93,57 @@ def run_command_version(options):
    print "Autobahn        : %s" % ab_ver
    print "UTF8 Validator  : %s" % utf8_ver
    print "XOR Masker      : %s" % xor_ver
-   print "JSON Processor  : %s" % json_ver
    print
 
 
 
+# def run_command_start(options):
+#    """
+#    Start Crossbar.io server.
+#    """
+#    from choosereactor import install_reactor
+#    reactor = install_reactor(options.reactor, options.verbose)
+
+#    import twisted
+#    from crossbar import logger
+
+#    if False:
+#       twisted.python.log.startLogging(sys.stdout)
+#    else:
+#       flo = logger.LevelFileLogObserver(sys.stdout, level = logging.DEBUG)
+#       twisted.python.log.startLoggingWithObserver(flo.emit)
+
+#    from crossbar.servicefactory import makeService
+
+#    svc = makeService(vars(options))
+#    svc.startService()
+
+#    installSignalHandlers = True
+#    reactor.run(installSignalHandlers)
+
+
+#def run_command_version(options):
+#  pass
+
+def run_command_init(options):
+   if not options.cbdata:
+      if os.environ.has_key("CBDATA"):
+         options.cbdata = os.environ['CBDATA']
+      else:
+         options.cbdata = '.cbdata'
+   if os.path.exists(options.cbdata):
+      raise Exception("Path '{}' for Crossbar.io data directory already exists".format(options.cbdata))
+
+   try:
+      os.mkdir(options.cbdata)
+   except Exception as e:
+      raise Exception("Could not create Crossbar.io data directory '{}' [{}]".format(options.cbdata, e))
+
+   print "xxx", options.cbdata
+
+
 def run_command_start(options):
-   """
-   Start Crossbar.io server.
-   """
-   from choosereactor import install_reactor
-   reactor = install_reactor(options.reactor, options.verbose)
-
-   import twisted
-   from crossbar import logger
-
-   if False:
-      twisted.python.log.startLogging(sys.stdout)
-   else:
-      flo = logger.LevelFileLogObserver(sys.stdout, level = logging.DEBUG)
-      twisted.python.log.startLoggingWithObserver(flo.emit)
-
-   from crossbar.servicefactory import makeService
-
-   svc = makeService(vars(options))
-   svc.startService()
-
-   installSignalHandlers = True
-   reactor.run(installSignalHandlers)
-
+  pass
 
 
 def run():
@@ -158,6 +167,21 @@ def run():
                        choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
                        help = 'Explicit Twisted reactor selection')
 
+   ## output format
+   ##
+   output_format_dummy = parser.add_argument_group(title = 'Output format control')
+   output_format = output_format_dummy.add_mutually_exclusive_group(required = False)
+
+   output_format.add_argument('-v',
+                              '--verbose',
+                              action = 'store_true',
+                              help = 'Verbose (human) output on.')
+
+   output_format.add_argument('-j',
+                              '--json',
+                              action = 'store_true',
+                              help = 'Turn JSON output on.')
+
    ## create subcommand parser
    ##
    subparsers = parser.add_subparsers(dest = 'command',
@@ -171,6 +195,18 @@ def run():
 
    parser_version.set_defaults(func = run_command_version)
 
+
+   ## "init" command
+   ##
+   parser_init = subparsers.add_parser('init',
+                                        help = 'Initialize a new Crossbar.io node.')
+
+   parser_init.set_defaults(func = run_command_init)
+
+   parser_init.add_argument('--cbdata',
+                             type = str,
+                             default = None,
+                             help = "Data directory (overrides ${CROSSBAR_DATA} and default ./cbdata)")
 
    ## "start" command
    ##
