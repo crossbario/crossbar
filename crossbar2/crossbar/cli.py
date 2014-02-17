@@ -196,10 +196,22 @@ class TimeServiceFrontend(ApplicationSession):
             if True:
                res = yield self.call('crossbar.node.module.{}.router.start'.format(pid), {})
                print res
-               res = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), {'type': 'websocket', 'url': 'ws://localhost:9000', 'endpoint': 'tcp:9000'})
+
+               tid1 = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), {'type': 'websocket', 'url': 'ws://localhost:9000', 'endpoint': 'tcp:9000'})
+               print tid1
+
+               tid2 = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), {'type': 'websocket', 'url': 'ws://localhost:9001', 'endpoint': 'tcp:9001'})
+               print tid2
+
+               res = yield self.call('crossbar.node.module.{}.router.list_transports'.format(pid))
                print res
-               res = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), {'type': 'websocket', 'url': 'ws://localhost:9001', 'endpoint': 'tcp:9001'})
+
+               res = yield self.call('crossbar.node.module.{}.router.stop_transport'.format(pid), tid2)
                print res
+
+               res = yield self.call('crossbar.node.module.{}.router.list_transports'.format(pid))
+               print res
+
          except Exception as e:
             print e.error, e.args
 

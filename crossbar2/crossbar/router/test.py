@@ -67,6 +67,15 @@ from autobahn.twisted.wamp import RouterSessionFactory
 from autobahn.twisted.websocket import WampWebSocketServerFactory
 from twisted.internet.endpoints import serverFromString
 
+
+class RouterTransport:
+   def __init__(self, id, config, port):
+      self.id = id
+      self.config = config
+      self.port = port
+
+
+
 class RouterModule:
    def __init__(self, session, pid):
       self._session = session
@@ -74,12 +83,15 @@ class RouterModule:
       self._router_factory = None
       self._router_session_factory = None
       self._router_transports = {}
-      self._router_transport_no = 1
+      self._router_transport_no = 0
 
       session.register(self.start,           'crossbar.node.module.{}.router.start'.format(pid))
       session.register(self.stop,            'crossbar.node.module.{}.router.stop'.format(pid))
+
       session.register(self.startTransport,  'crossbar.node.module.{}.router.start_transport'.format(pid))
       session.register(self.stopTransport,   'crossbar.node.module.{}.router.stop_transport'.format(pid))
+      session.register(self.listTransports,  'crossbar.node.module.{}.router.list_transports'.format(pid))
+
       session.register(self.startLink,       'crossbar.node.module.{}.router.start_link'.format(pid))
       session.register(self.stopLink,        'crossbar.node.module.{}.router.stop_link'.format(pid))
 
@@ -97,22 +109,28 @@ class RouterModule:
       print "Stopping router module", self._pid
 
 
+   def listTransports(self):
+      return self._router_transports.keys()
+
+
    def startTransport(self, config):
       print "Starting router transport", self._pid, config
+
+      self._router_transport_no += 1
 
       if config['type'] == 'websocket':
          transport_factory = WampWebSocketServerFactory(self._router_session_factory, config['url'], debug = False)
          transport_factory.setProtocolOptions(failByDrop = False)
 
-         no = self._router_transport_no
+         id = self._router_transport_no
 
          # IListeningPort or an CannotListenError
          server = serverFromString(reactor, config['endpoint'])
          d = server.listen(transport_factory)
 
          def ok(port):
-            self._router_transports[no] = port
-            return "Ok, listening"
+            self._router_transports[id] = RouterTransport(id, config, port)
+            return id
 
          def fail(err):
             raise ApplicationError("crossbar.error.cannotlisten", str(err.value))
@@ -120,11 +138,28 @@ class RouterModule:
          d.addCallbacks(ok, fail)
          return d
 
-      self._router_transport_no += 1
 
 
    def stopTransport(self, id):
       print "Stopping router transport", self._pid, id
+      if id in self._router_transports:
+         try:
+            d = self._router_transports[id].port.stopListening()
+
+            def ok(_):
+               del self._router_transports[id]
+
+            def fail(err):
+               raise ApplicationError("crossbar.error.cannotstop", str(err.value))
+
+            d.addCallbacks(ok, fail)
+            return d
+
+         except Exception as e:
+            print "eee", e
+      else:
+         raise ApplicationError("crossbar.error.no_such_transport")
+
 
 
    def startLink(self, config):
