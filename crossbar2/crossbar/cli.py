@@ -16,6 +16,8 @@
 ##
 ###############################################################################
 
+from __future__ import absolute_import
+
 __all__ = ['run']
 
 
@@ -24,6 +26,8 @@ from pprint import pprint
 
 from twisted.python import log
 from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
+
+from crossbar.template import TEMPLATES
 
 # from autobahn.websocket import connectWS
 # from autobahn.wamp import WampClientFactory, WampCraClientProtocol
@@ -126,6 +130,15 @@ def run_command_version(options):
 #  pass
 
 def run_command_init(options):
+   if options.template:
+      if not TEMPLATES.has_key(options.template):
+         raise Exception("No such Crossbar.io node template {}".format(options.template))
+      else:
+         template = TEMPLATES[options.template]
+         config = json.dumps(template, indent = 3, ensure_ascii = False, sort_keys = False)
+   else:
+      raise Exception("Missing template to instantiate Crossbar.io node")
+
    if not options.cbdata:
       if os.environ.has_key("CBDATA"):
          options.cbdata = os.environ['CBDATA']
@@ -139,11 +152,122 @@ def run_command_init(options):
    except Exception as e:
       raise Exception("Could not create Crossbar.io data directory '{}' [{}]".format(options.cbdata, e))
 
-   print "xxx", options.cbdata
+   with open(os.path.join(options.cbdata, 'config.json'), 'wb') as outfile:
+      outfile.write(config)
+
+
+
+from sys import argv, executable
+#from twisted.internet import reactor
+
+
+
+import datetime
+
+#from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+
+from autobahn.twisted.wamp import ApplicationSession
+
+from autobahn.twisted.util import sleep
+
+
+class TimeServiceFrontend(ApplicationSession):
+   """
+   An application component using the time service.
+   """
+
+   def onConnect(self):
+      self.join("realm1")
+
+
+   @inlineCallbacks
+   def onJoin(self, details):
+      while True:
+         try:
+            #now = yield self.call('com.timeservice.now')
+            now = yield self.call('crossbar.node.component.get_cpu_affinity')
+         except Exception as e:
+            print("Error: {}".format(e))
+         else:
+            print("Current time from time service: {}".format(now))
+         yield sleep(1)
+
+
+
+from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
 
 
 def run_command_start(options):
-  pass
+
+   ## we use an Autobahn utility to import the "best" available Twisted reactor
+   ##
+   from autobahn.twisted.choosereactor import install_reactor
+   reactor = install_reactor()
+   if options.debug:
+      print("Running on reactor {}".format(reactor))
+
+   ## load Crossbar.io node configuration
+   ##
+   with open(os.path.join(options.cbdata, 'config.json'), 'rb') as infile:
+      config = json.load(infile)
+   for cname in config:
+      component = config[cname]
+      if component['type'] == 'router':
+         print "YES"
+
+
+   ## create a WAMP router factory
+   ##
+   from autobahn.wamp.router import RouterFactory
+   router_factory = RouterFactory()
+
+
+   ## create a WAMP router session factory
+   ##
+   from autobahn.twisted.wamp import RouterSessionFactory
+   session_factory = RouterSessionFactory(router_factory)
+   session_factory.add(TimeServiceFrontend())
+
+
+   ## create a WAMP application session factory
+   ##
+#   from autobahn.twisted.wamp import ApplicationSessionFactory
+#   session_factory = ApplicationSessionFactory()
+#   session_factory.session = TimeServiceFrontend
+
+   ## create a WAMP-over-WebSocket transport client factory
+   ##
+   from autobahn.twisted.websocket import WampWebSocketClientFactory
+   transport_factory = WampWebSocketClientFactory(session_factory, "ws://localhost", debug = False)
+   transport_factory.setProtocolOptions(failByDrop = False)
+
+
+   from twisted.python import log
+   log.startLogging(sys.stderr)
+
+
+   args = [executable, "-u", "crossbar/router/test.py"]
+
+   ep = ProcessEndpoint(reactor, executable, args, childFDs = {0: 'w', 1: 'r', 2: 2}, errFlag = StandardErrorBehavior.LOG, env = os.environ)
+   d = ep.connect(transport_factory)
+
+   def onconnect(res):
+      log.msg("Node component forked with PID {}".format(res.transport.pid))
+
+   d.addCallback(onconnect)
+
+#   reactor.spawnProcess(
+#      transport_factory, executable, args,
+#      childFDs = {0: 0, 1: 1, 2: 2},
+#      env = os.environ)
+
+   reactor.run()
+
+
+   print executable
+   print __file__
+
 
 
 def run():
@@ -202,6 +326,11 @@ def run():
                                         help = 'Initialize a new Crossbar.io node.')
 
    parser_init.set_defaults(func = run_command_init)
+
+   parser_init.add_argument('--template',
+                             type = str,
+                             default = 'devrouter',
+                             help = "Template for initialization")
 
    parser_init.add_argument('--cbdata',
                              type = str,

@@ -54,7 +54,7 @@ config = {
       'transports': [
          {'type': 'websocket', 'endpoint': 'tcp:localhost:9000'},
          {'type': 'websocket', 'endpoint': 'unix:/tmp/mywebsocket'},
-         {'type': 'longpoll': 'endpoint': 'tcp:localhost:9001'}
+         {'type': 'longpoll', 'endpoint': 'tcp:localhost:9001'}
       ],
 
       'realms': {
@@ -63,7 +63,7 @@ config = {
 
          }
       },
-   }
+   },
 
    'restbridge': {
       'endpoint': 'tcp:localhost:9002',
@@ -72,7 +72,7 @@ config = {
 
    'postgresbridge': {
       'dbconnect': '',
-      'router'
+      'router': ''
    }
 }
 
@@ -87,10 +87,10 @@ config = {
          }
       },
       'transports': [
-         'websocket': 'tcp:localhost:80',
-         'websocket': 'ssl:port=443:privateKey=/etc/ssl/server.pem',
-         'longpoll': 'tcp:localhost:8080',
-         'raw': 'tcp:localhost:5000'
+         {'type': 'websocket', 'endpoint': 'tcp:localhost:80'},
+         {'type': 'websocket', 'endpoint': 'ssl:port=443:privateKey=/etc/ssl/server.pem'},
+         {'type': 'longpoll', 'endpoint': 'tcp:localhost:8080'},
+         {'type': 'raw', 'endpoint': 'tcp:localhost:5000'}
       ],
       'workers': 4
    }
@@ -368,12 +368,12 @@ config = {
       'forwards': [{
             'type': 'event',
             'uri': 'com.myapp.foobar',
-            'match': 'prefix'
+            'match': 'prefix',
             'forward': 'http://someserver.com/somepath3'
          }, {
             'type': 'call',
             'uri': 'com.myapp3..procs',
-            'match': 'wildcard'
+            'match': 'wildcard',
             'forward': 'http://otherserver.com/proc'
          }
       ],
@@ -387,7 +387,7 @@ config = {
 
 config = {
    'router1': {
-      'type': 'router'
+      'type': 'router',
       'realms': {
       }
    },
@@ -399,12 +399,10 @@ config = {
          '/': {
             'type': 'static',
             'path': './web1'
-         }
+         },
          '/rest': {
-
          },
          '/cgi': {
-
          },
          '/ws': {
             'type': 'websocket',
@@ -437,4 +435,25 @@ config = {
          }
       }
    }
+}
+
+
+devrouter = {
+   'myrouter1': {
+      'type': 'router',
+      'realms': {
+         'myrealm1': {
+         }
+      },
+      'transports': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:localhost:8080'
+         }
+      ]
+   }
+}
+
+TEMPLATES = {
+   'devrouter': devrouter
 }

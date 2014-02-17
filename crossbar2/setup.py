@@ -63,7 +63,9 @@ setup (
    install_requires = ['twisted>=twisted-13.2',
                        'autobahn[twisted]>=0.8.1',
                        'cryptography>=0.2.dev1',
-                       'pyOpenSSL>=0.14a4'],
+                       'pyOpenSSL>=0.14a4',
+                       'psutil>=1.2.1',
+                       'msgpack-python>=0.4.0'],
    extras_require = {
       'oracle': ["cx_Oracle>=5.1.2"],
       'postgres': ["psycopg2>=2.5.1"]
