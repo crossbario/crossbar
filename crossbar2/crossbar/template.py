@@ -126,6 +126,10 @@ config = {
             'endpoint': 'tcp:localhost:9090'
          },
          {
+            'type': 'websocket',
+            'endpoint': 'unix:$PID-socket'
+         },
+         {
             'type': 'longpoll',
             'endpoint': 'tcp:localhost:8080'
          },
@@ -135,6 +139,177 @@ config = {
          }
       ],
       'workers': 4
+   }
+}
+
+
+config = {
+   'myrouter1': {
+      'type': 'router',
+      'realms': {
+         'myrealm1': {
+         }
+      },
+      'transports': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:localhost:80'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter1'
+         }
+      ],
+      'links': [
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter2'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter3'
+         }
+      ]
+   },
+   'myrouter2': {
+      'type': 'router',
+      'realms': {
+         'myrealm1': {
+         }
+      },
+      'transports': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:localhost:80'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter2'
+         }
+      ],
+      'links': [
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter1'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter3'
+         }
+      ]
+   },
+   'myrouter3': {
+      'type': 'router',
+      'realms': {
+         'myrealm1': {
+         }
+      },
+      'transports': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:localhost:80'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter3'
+         }
+      ],
+      'links': [
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter1'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter2'
+         }
+      ]
+   }
+}
+
+
+
+config = {
+   'myrouter1': {
+      'type': 'router',
+      'realms': {
+         'myrealm1': {
+         }
+      },
+      'transports': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:localhost:80'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter1'
+         }
+      ],
+      'links': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:somehost.net:80'
+         }
+      ]
+   },
+   'myrouter2': {
+      'type': 'router',
+      'realms': {
+         'myrealm1': {
+         }
+      },
+      'transports': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:localhost:80'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter2'
+         }
+      ],
+      'links': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:somehost.net:80'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter1'
+         }
+      ]
+   },
+   'myrouter3': {
+      'type': 'router',
+      'realms': {
+         'myrealm1': {
+         }
+      },
+      'transports': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:localhost:80'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter3'
+         }
+      ],
+      'links': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:somehost.net:80'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter1'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/myrouter2'
+         }
+      ]
    }
 }
 
