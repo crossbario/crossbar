@@ -139,11 +139,6 @@ def run_command_init(options):
    else:
       raise Exception("Missing template to instantiate Crossbar.io node")
 
-   if not options.cbdata:
-      if os.environ.has_key("CBDATA"):
-         options.cbdata = os.environ['CBDATA']
-      else:
-         options.cbdata = '.cbdata'
    if os.path.exists(options.cbdata):
       raise Exception("Path '{}' for Crossbar.io data directory already exists".format(options.cbdata))
 
@@ -178,20 +173,37 @@ class TimeServiceFrontend(ApplicationSession):
    """
 
    def onConnect(self):
-      self.join("realm1")
+      self.join("crossbar")
 
 
    @inlineCallbacks
    def onJoin(self, details):
-      while True:
+
+      @inlineCallbacks
+      def on_node_component_start(evt):
+         pid = evt['pid']
+         print("Node component started: {}".format(evt))
+
+         affinities = yield self.call('crossbar.node.component.{}.get_cpu_affinity'.format(pid))
+         print("CPU affinity: {}".format(affinities))
+
          try:
-            #now = yield self.call('com.timeservice.now')
-            now = yield self.call('crossbar.node.component.get_cpu_affinity')
+            if False:
+               config = {'url': 'ws://localhost:9000', 'endpoint': 'tcp:9000'}
+               res = yield self.call('crossbar.node.component.{}.start'.format(pid), config)
+               print res
+
+            if True:
+               res = yield self.call('crossbar.node.module.{}.router.start'.format(pid), {})
+               print res
+               res = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), {'type': 'websocket', 'url': 'ws://localhost:9000', 'endpoint': 'tcp:9000'})
+               print res
+               res = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), {'type': 'websocket', 'url': 'ws://localhost:9001', 'endpoint': 'tcp:9001'})
+               print res
          except Exception as e:
-            print("Error: {}".format(e))
-         else:
-            print("Current time from time service: {}".format(now))
-         yield sleep(1)
+            print e.error, e.args
+
+      yield self.subscribe(on_node_component_start, 'crossbar.node.component.on_start')
 
 
 
@@ -249,13 +261,15 @@ def run_command_start(options):
 
    args = [executable, "-u", "crossbar/router/test.py"]
 
-   ep = ProcessEndpoint(reactor, executable, args, childFDs = {0: 'w', 1: 'r', 2: 2}, errFlag = StandardErrorBehavior.LOG, env = os.environ)
-   d = ep.connect(transport_factory)
+   for i in range(1):
 
-   def onconnect(res):
-      log.msg("Node component forked with PID {}".format(res.transport.pid))
+      ep = ProcessEndpoint(reactor, executable, args, childFDs = {0: 'w', 1: 'r', 2: 2}, errFlag = StandardErrorBehavior.LOG, env = os.environ)
+      d = ep.connect(transport_factory)
 
-   d.addCallback(onconnect)
+      def onconnect(res):
+         log.msg("Node component forked with PID {}".format(res.transport.pid))
+
+      d.addCallback(onconnect)
 
 #   reactor.spawnProcess(
 #      transport_factory, executable, args,
@@ -365,6 +379,15 @@ def run():
    ## parse cmd line args
    ##
    options = parser.parse_args()
+
+
+   ## default for CBDATA
+   ##
+   if not options.cbdata:
+      if os.environ.has_key("CBDATA"):
+         options.cbdata = os.environ['CBDATA']
+      else:
+         options.cbdata = '.cbdata'
 
 
    ## run the subcommand selected
