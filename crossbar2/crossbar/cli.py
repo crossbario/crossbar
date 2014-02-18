@@ -194,6 +194,8 @@ class TimeServiceFrontend(ApplicationSession):
                print res
 
             if True:
+#               res = yield self.call('crossbar.{}.{}.{}.start'.format(hostname, pid, 'router1'), {})
+#               res = yield self.call('crossbar.node.{}.process.{}.module.{}.start'.format(hostname, pid, 'router1'), {})
                res = yield self.call('crossbar.node.module.{}.router.start'.format(pid), {})
                print res
 
