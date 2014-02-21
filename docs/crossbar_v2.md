@@ -38,31 +38,45 @@ The instance will log it's pairing
 
 When a Crossbar.io node is initially started, no modules run
 
+<center style="width: 580px; margin: auto;">
 ![alt text](figures/gen/crossbar_deployment_01.png "Application Code")
+</center>
 
 Crossbar.io allows to start worker processes on nodes and run modules inside worker processes. For example, here is a Crossbar.io node with one running worker process that acts as a WAMP router over one or more WAMP transports like WebSocket:
 
+<center style="width: 580px; margin: auto;">
 ![alt text](figures/gen/crossbar_deployment_02.png "Application Code")
+</center>
 
 The WAMP router module of Crossbar.io allows to leverage multiple core by starting multiple worker processes for the routing core:
 
+<center style="width: 680px; margin: auto;">
 ![alt text](figures/gen/crossbar_deployment_03.png "Application Code")
+</center>
 
 A node may also host a WAMP bridge:
 
+<center style="width: 580px; margin: auto;">
 ![alt text](figures/gen/crossbar_deployment_04.png "Application Code")
+</center>
 
 A node can combine router and bridge modules:
 
+<center style="width: 680px; margin: auto;">
 ![alt text](figures/gen/crossbar_deployment_05.png "Application Code")
+</center>
 
 A node can host application components:
 
+<center style="width: 580px; margin: auto;">
 ![alt text](figures/gen/crossbar_deployment_06.png "Application Code")
+</center>
 
 A node can combine router and application modules:
 
+<center style="width: 680px; margin: auto;">
 ![alt text](figures/gen/crossbar_deployment_07.png "Application Code")
+</center>
 
 
 # Instance Types
