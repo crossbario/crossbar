@@ -44,11 +44,9 @@ When a Crossbar.io node is initially started, no modules run
 
 ## Running a WAMP Router
 
-Crossbar.io allows to start worker processes on nodes and run modules inside worker processes. For example, here is a Crossbar.io node with one running worker process that acts as a WAMP router over one or more WAMP transports like WebSocket:
+Crossbar.io allows to start worker processes on nodes and run modules inside worker processes.
 
-<center style="width: 580px; margin: auto;">
-![alt text](figures/gen/crossbar_deployment_02.png "Application Code")
-</center>
+For example, here is the configuration for a Crossbar.io node with one running worker process that acts as a WAMP router over a WebSocket transport:
 
 ```javascript
 {
@@ -67,6 +65,12 @@ Crossbar.io allows to start worker processes on nodes and run modules inside wor
    }
 }
 ```
+
+
+<center style="width: 580px; margin: auto;">
+![alt text](figures/gen/crossbar_deployment_02.png "Application Code")
+</center>
+
 
 
 ## Multi-core and Multi-node
