@@ -9,3 +9,4 @@ crossbar/dist
 *.pid
 dropin.cache
 crossbardata
+.sconsign.dblite
