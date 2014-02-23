@@ -506,6 +506,101 @@ ORACLE_BRIDGE = {
 }
 
 
+## development router
+##
+DEV_ROUTER = {
+   'myrouter1': {
+      'type': 'router',
+      'realms': {
+         'myrealm1': {
+            'auth': {
+               'create': {
+                  'allow': 'any'
+               },
+               'join': {
+                  'allow': 'any'
+               }
+            }
+            'permissions': {
+               ## application
+               'com.myapp1': {
+                  ## application.role
+                  'developer': {
+                     ## application.role.resource
+                     'com.myapp1.monitor.*': {
+                        ## application.role.resource.permission
+                        'publish': True,
+                        'subscribe': True,
+                        'call': True,
+                        'register': False
+                     }
+                  }
+               }
+            },
+         }
+      },
+      'transports': [
+         {
+            'type': 'websocket',
+            'endpoint': 'tcp:localhost:8080'
+         },
+         {
+            'type': 'websocket',
+            'endpoint': 'unix:/tmp/sock3'
+         }
+      ]
+   }
+}
+
+
+
+DEV_ROUTER = {
+   'processes': [
+      {
+         'type': 'router',
+         'realms': {
+            'myrealm1': {
+               'auth': {
+                  'create': {
+                     'allow': 'any'
+                  },
+                  'join': {
+                     'allow': 'any'
+                  }
+               }
+               'permissions': {
+                  ## application
+                  'com.myapp1': {
+                     ## application.role
+                     'developer': {
+                        ## application.role.resource
+                        'com.myapp1.monitor.*': {
+                           ## application.role.resource.permission
+                           'publish': True,
+                           'subscribe': True,
+                           'call': True,
+                           'register': False
+                        }
+                     }
+                  }
+               },
+            }
+         },
+         'transports': [
+            {
+               'type': 'websocket',
+               'endpoint': 'tcp:localhost:8080'
+            },
+            {
+               'type': 'websocket',
+               'endpoint': 'unix:/tmp/sock3'
+            }
+         ]
+      }
+   ]
+}
+
+
 TEMPLATES = {
    'router-dev': DEV_ROUTER,
    'router-smp4': SMP4_ROUTER,
