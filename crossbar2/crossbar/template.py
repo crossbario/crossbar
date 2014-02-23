@@ -40,39 +40,39 @@
 
 config = {
 
-   'web': {
-      'endpoint': 'tcp:localhost:80',
-      'services': {
-         'ws': {'type': 'websocket'},
-         'rest': {'type': 'restbridge'}
+   "web": {
+      "endpoint": "tcp:localhost:80",
+      "services": {
+         "ws": {"type": "websocket"},
+         "rest": {"type": "restbridge"}
       }
 
    },
 
-   'router': {
+   "router": {
 
-      'transports': [
-         {'type': 'websocket', 'endpoint': 'tcp:localhost:9000'},
-         {'type': 'websocket', 'endpoint': 'unix:/tmp/mywebsocket'},
-         {'type': 'longpoll', 'endpoint': 'tcp:localhost:9001'}
+      "transports": [
+         {"type": "websocket", "endpoint": "tcp:localhost:9000"},
+         {"type": "websocket", "endpoint": "unix:/tmp/mywebsocket"},
+         {"type": "longpoll", "endpoint": "tcp:localhost:9001"}
       ],
 
-      'realms': {
-         'myrealm1': {
+      "realms": {
+         "myrealm1": {
             
 
          }
       },
    },
 
-   'restbridge': {
-      'endpoint': 'tcp:localhost:9002',
-      'router': 'unix:/tmp/mywebsocket'
+   "restbridge": {
+      "endpoint": "tcp:localhost:9002",
+      "router": "unix:/tmp/mywebsocket"
    },
 
-   'postgresbridge': {
-      'dbconnect': '',
-      'router': ''
+   "postgresbridge": {
+      "dbconnect": "",
+      "router": ""
    }
 }
 
@@ -80,148 +80,148 @@ config = {
 ## standalone router
 ##
 config = {
-   'myrouter1': {
-      'type': 'router',
-      'realms': {
-         'myrealm1': {
+   "myrouter1": {
+      "type": "router",
+      "realms": {
+         "myrealm1": {
          }
       },
-      'transports': [
-         {'type': 'websocket', 'endpoint': 'tcp:localhost:80'},
-         {'type': 'websocket', 'endpoint': 'ssl:port=443:privateKey=/etc/ssl/server.pem'},
-         {'type': 'longpoll', 'endpoint': 'tcp:localhost:8080'},
-         {'type': 'raw', 'endpoint': 'tcp:localhost:5000'}
+      "transports": [
+         {"type": "websocket", "endpoint": "tcp:localhost:80"},
+         {"type": "websocket", "endpoint": "ssl:port=443:privateKey=/etc/ssl/server.pem"},
+         {"type": "longpoll", "endpoint": "tcp:localhost:8080"},
+         {"type": "raw", "endpoint": "tcp:localhost:5000"}
       ],
-      'workers': 4
+      "workers": 4
    }
 }
 
 
 config = {
-   'myrouter1': {
-      'type': 'router',
-      'realms': {
-         'myrealm1': {
+   "myrouter1": {
+      "type": "router",
+      "realms": {
+         "myrealm1": {
          }
       },
-      'transports': [
+      "transports": [
          {
-            'type': 'web',
-            'endpoint': 'ssl:port=443:privateKey=/etc/ssl/server.pem',
-            'paths': {
-               '/': {
-                  'type': 'static',
-                  'directory': './web1'
+            "type": "web",
+            "endpoint": "ssl:port=443:privateKey=/etc/ssl/server.pem",
+            "paths": {
+               "/": {
+                  "type": "static",
+                  "directory": "./web1"
                },
-               '/ws': {
-                  'type': 'websocket'
+               "/ws": {
+                  "type": "websocket"
                },
-               '/longpoll': {
-                  'type': 'longpoll'
+               "/longpoll": {
+                  "type": "longpoll"
                }
             }
          },
          {
-            'type': 'websocket',
-            'endpoint': 'tcp:localhost:9090'
+            "type": "websocket",
+            "endpoint": "tcp:localhost:9090"
          },
          {
-            'type': 'websocket',
-            'endpoint': 'unix:$PID-socket'
+            "type": "websocket",
+            "endpoint": "unix:$PID-socket"
          },
          {
-            'type': 'longpoll',
-            'endpoint': 'tcp:localhost:8080'
+            "type": "longpoll",
+            "endpoint": "tcp:localhost:8080"
          },
          {
-            'type': 'raw',
-            'endpoint': 'tcp:localhost:5000'
+            "type": "raw",
+            "endpoint": "tcp:localhost:5000"
          }
       ],
-      'workers': 4
+      "workers": 4
    }
 }
 
 
 config = {
-   'myrouter1': {
-      'type': 'router',
-      'realms': {
-         'myrealm1': {
+   "myrouter1": {
+      "type": "router",
+      "realms": {
+         "myrealm1": {
          }
       },
-      'transports': [
+      "transports": [
          {
-            'type': 'websocket',
-            'endpoint': 'tcp:localhost:80'
+            "type": "websocket",
+            "endpoint": "tcp:localhost:80"
          },
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter1'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter1"
          }
       ],
-      'links': [
+      "links": [
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter2'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter2"
          },
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter3'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter3"
          }
       ]
    },
-   'myrouter2': {
-      'type': 'router',
-      'realms': {
-         'myrealm1': {
+   "myrouter2": {
+      "type": "router",
+      "realms": {
+         "myrealm1": {
          }
       },
-      'transports': [
+      "transports": [
          {
-            'type': 'websocket',
-            'endpoint': 'tcp:localhost:80'
+            "type": "websocket",
+            "endpoint": "tcp:localhost:80"
          },
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter2'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter2"
          }
       ],
-      'links': [
+      "links": [
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter1'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter1"
          },
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter3'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter3"
          }
       ]
    },
-   'myrouter3': {
-      'type': 'router',
-      'realms': {
-         'myrealm1': {
+   "myrouter3": {
+      "type": "router",
+      "realms": {
+         "myrealm1": {
          }
       },
-      'transports': [
+      "transports": [
          {
-            'type': 'websocket',
-            'endpoint': 'tcp:localhost:80'
+            "type": "websocket",
+            "endpoint": "tcp:localhost:80"
          },
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter3'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter3"
          }
       ],
-      'links': [
+      "links": [
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter1'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter1"
          },
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/myrouter2'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/myrouter2"
          }
       ]
    }
@@ -229,52 +229,52 @@ config = {
 
 
 config = {
-   'router1': {
-      'type': 'router',
-      'realms': {
+   "router1": {
+      "type": "router",
+      "realms": {
       }
    },
 
-   'myweb1': {
-      'type': 'web',
-      'endpoint': 'tcp:localhost:9090',
-      'paths': {
-         '/': {
-            'type': 'static',
-            'path': './web1'
+   "myweb1": {
+      "type": "web",
+      "endpoint": "tcp:localhost:9090",
+      "paths": {
+         "/": {
+            "type": "static",
+            "path": "./web1"
          },
-         '/rest': {
+         "/rest": {
          },
-         '/cgi': {
+         "/cgi": {
          },
-         '/ws': {
-            'type': 'websocket',
-            'router': 'router1'
+         "/ws": {
+            "type": "websocket",
+            "router": "router1"
          }
       }
    },
 
-   'mybridge01': {
-      'type': 'oraclebridge',
-      'database': {
-         'host': 'db1',
-         'user': 'crossbar',
-         'password': '98$jmF'
+   "mybridge01": {
+      "type": "oraclebridge",
+      "database": {
+         "host": "db1",
+         "user": "crossbar",
+         "password": "98$jmF"
       },
-      'router': 'router1'
+      "router": "router1"
    }
 }
 
 
 config = {
-   'router1': {
-      'type': 'router',
-      'transport': 'crossbar@db1:1521',
+   "router1": {
+      "type": "router",
+      "transport": "crossbar@db1:1521",
 
-      'embedded': {
-         'bridge1': {
-            'type': 'oraclebridge',
-            'database': 'crossbar@db1:1521'
+      "embedded": {
+         "bridge1": {
+            "type": "oraclebridge",
+            "database": "crossbar@db1:1521"
          }
       }
    }
@@ -284,16 +284,16 @@ config = {
 ## development router
 ##
 DEV_ROUTER = {
-   'myrouter1': {
-      'type': 'router',
-      'realms': {
-         'myrealm1': {
+   "myrouter1": {
+      "type": "router",
+      "realms": {
+         "myrealm1": {
          }
       },
-      'transports': [
+      "transports": [
          {
-            'type': 'websocket',
-            'endpoint': 'tcp:localhost:8080'
+            "type": "websocket",
+            "endpoint": "tcp:localhost:8080"
          }
       ]
    }
@@ -302,129 +302,129 @@ DEV_ROUTER = {
 ## 4-core optimized router
 ##
 SMP4_ROUTER = {
-   'name': 'mynode1',
-   'modules': {
-      'myrouter1': {
-         'type': 'router',
-         'realms': {
-            'myrealm1': {
+   "name": "mynode1",
+   "modules": {
+      "myrouter1": {
+         "type": "router",
+         "realms": {
+            "myrealm1": {
             }
          },
-         'transports': [
+         "transports": [
             {
-               'type': 'websocket',
-               'endpoint': 'tcp:localhost:80'
+               "type": "websocket",
+               "endpoint": "tcp:localhost:80"
             },
             {
-               'type': 'websocket',
-               'endpoint': 'unix:/tmp/myrouter1'
+               "type": "websocket",
+               "endpoint": "unix:/tmp/myrouter1"
             }
          ],
-         'links': [
+         "links": [
             {
-               'type': 'websocket',
-               'endpoint': 'tcp:somehost.net:80'
+               "type": "websocket",
+               "endpoint": "tcp:somehost.net:80"
             }
          ],
-         'options': {
-            'cpu_affinity': [3]
+         "options": {
+            "cpu_affinity": [3]
          }
       },
-      'myrouter2': {
-         'type': 'router',
-         'realms': {
-            'myrealm1': {
+      "myrouter2": {
+         "type": "router",
+         "realms": {
+            "myrealm1": {
             }
          },
-         'transports': [
+         "transports": [
             {
-               'type': 'websocket',
-               'endpoint': 'tcp:localhost:80'
+               "type": "websocket",
+               "endpoint": "tcp:localhost:80"
             },
             {
-               'type': 'websocket',
-               'endpoint': 'unix:/tmp/myrouter2'
+               "type": "websocket",
+               "endpoint": "unix:/tmp/myrouter2"
             }
          ],
-         'links': [
+         "links": [
             {
-               'type': 'websocket',
-               'endpoint': 'tcp:somehost.net:80'
+               "type": "websocket",
+               "endpoint": "tcp:somehost.net:80"
             },
             {
-               'type': 'websocket',
-               'endpoint': 'unix:/tmp/myrouter1'
+               "type": "websocket",
+               "endpoint": "unix:/tmp/myrouter1"
             }
          ]
       },
-      'myrouter3': {
-         'type': 'router',
-         'realms': {
-            'myrealm1': {
+      "myrouter3": {
+         "type": "router",
+         "realms": {
+            "myrealm1": {
             }
          },
-         'transports': [
+         "transports": [
             {
-               'type': 'websocket',
-               'extensions': {
-                  'permessage-deflate': {
-                     'max-window-bits': 10
+               "type": "websocket",
+               "extensions": {
+                  "permessage-deflate": {
+                     "max-window-bits": 10
                   }
                },
-               'options': {
-                  'opening-timeout': 800
+               "options": {
+                  "opening-timeout": 800
                },
-               'authentication': {
-                  'challenge_response': 'myplugin1.start'
+               "authentication": {
+                  "challenge_response": "myplugin1.start"
                }
-               'endpoint': 'tcp:localhost:80'
+               "endpoint": "tcp:localhost:80"
             },
             {
-               'type': 'websocket',
-               'endpoint': 'unix:/tmp/myrouter3'
+               "type": "websocket",
+               "endpoint": "unix:/tmp/myrouter3"
             },
             {
-               'type': 'web',
-               'endpoint': 'tcp:80:shared',
-               'paths': {
-                  '/': {
-                     'type': 'static',
-                     'directory': '~/.docroot'
+               "type": "web",
+               "endpoint": "tcp:80:shared",
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": "~/.docroot"
                   },
-                  '/ws': {
-                     'type': 'websocket',
-                     'serializer': ['msgpack', 'json']
+                  "/ws": {
+                     "type": "websocket",
+                     "serializer": ["msgpack", "json"]
                   },
-                  '/cgi': {
-                     'type': 'cgi',
-                     'directory': '~/.cgi'
+                  "/cgi": {
+                     "type": "cgi",
+                     "directory": "~/.cgi"
                   },
-                  '/longpoll': {
-                     'type': 'longpoll',
-                     'session_timeout': 2000
+                  "/longpoll": {
+                     "type": "longpoll",
+                     "session_timeout": 2000
                   }
                }
             }
          ],
-         'links': [
+         "links": [
             {
-               'type': 'websocket',
-               'endpoint': 'tcp:somehost.net:80'
-               'authentication': {
-                  'tls_cacert': 'keys/myca1.cert',
-                  'tls_mykey': 'keys/mykey1.key'
+               "type": "websocket",
+               "endpoint": "tcp:somehost.net:80"
+               "authentication": {
+                  "tls_cacert": "keys/myca1.cert",
+                  "tls_mykey": "keys/mykey1.key"
                },
-               'realms': ['myrealm01', 'myrealm02']
+               "realms": ["myrealm01", "myrealm02"]
             },
             {
-               'type': 'websocket',
-               'endpoint': 'unix:/tmp/myrouter1',
-               'realms': 'all'
+               "type": "websocket",
+               "endpoint": "unix:/tmp/myrouter1",
+               "realms": "all"
             },
             {
-               'type': 'websocket',
-               'endpoint': 'unix:/tmp/myrouter2',
-               'realms': 'all'
+               "type": "websocket",
+               "endpoint": "unix:/tmp/myrouter2",
+               "realms": "all"
             }
          ]
       }
@@ -434,15 +434,15 @@ SMP4_ROUTER = {
 ## standalone SRDP bridge
 ##
 SRDP_BRIDGE = {
-   'mybridge2': {
-      'type': 'srdpbridge',
-      'serial': {
-         'port': '/dev/tty3',
-         'rate': 115200
+   "mybridge2": {
+      "type": "srdpbridge",
+      "serial": {
+         "port": "/dev/tty3",
+         "rate": 115200
       },
-      'router': {
-         'endpoint': 'tcp:cb7.tavendo.de:80',
-         'realm': 'myrealm01'
+      "router": {
+         "endpoint": "tcp:cb7.tavendo.de:80",
+         "realm": "myrealm01"
       }
    }
 }
@@ -450,26 +450,26 @@ SRDP_BRIDGE = {
 ## standalone REST bridge
 ##
 REST_BRIDGE = {
-   'mybridge3': {
-      'type': 'restbridge',
-      'rest': {
-         'endpoint': 'tcp:localhost:8080'
+   "mybridge3": {
+      "type": "restbridge",
+      "rest": {
+         "endpoint": "tcp:localhost:8080"
       },
-      'forwards': [{
-            'type': 'event',
-            'uri': 'com.myapp.foobar',
-            'match': 'prefix',
-            'forward': 'http://someserver.com/somepath3'
+      "forwards": [{
+            "type": "event",
+            "uri": "com.myapp.foobar",
+            "match": "prefix",
+            "forward": "http://someserver.com/somepath3"
          }, {
-            'type': 'call',
-            'uri': 'com.myapp3..procs',
-            'match': 'wildcard',
-            'forward': 'http://otherserver.com/proc'
+            "type": "call",
+            "uri": "com.myapp3..procs",
+            "match": "wildcard",
+            "forward": "http://otherserver.com/proc"
          }
       ],
-      'router': {
-         'endpoint': 'tcp:cb7.tavendo.de:80',
-         'realm': 'myrealm01'
+      "router": {
+         "endpoint": "tcp:cb7.tavendo.de:80",
+         "realm": "myrealm01"
       }
    }
 }
@@ -477,16 +477,16 @@ REST_BRIDGE = {
 ## standalone Postgres bridge
 ##
 POSTGRES_BRIDGE = {
-   'mybridge01': {
-      'type': 'postgresbridge',
-      'database': {
-         'host': 'db1',
-         'user': 'crossbar',
-         'password': '98$jmF'
+   "mybridge01": {
+      "type": "postgresbridge",
+      "database": {
+         "host": "db1",
+         "user": "crossbar",
+         "password": "98$jmF"
       },
-      'router': {
-         'endpoint': 'tcp:cb7.tavendo.de:80',
-         'realm': 'myrealm01'
+      "router": {
+         "endpoint": "tcp:cb7.tavendo.de:80",
+         "realm": "myrealm01"
       }
    }
 }
@@ -494,16 +494,16 @@ POSTGRES_BRIDGE = {
 ## standalone Oracle bridge
 ##
 ORACLE_BRIDGE = {
-   'mybridge01': {
-      'type': 'oraclebridge',
-      'database': {
-         'host': 'db1',
-         'user': 'crossbar',
-         'password': '98$jmF'
+   "mybridge01": {
+      "type": "oraclebridge",
+      "database": {
+         "host": "db1",
+         "user": "crossbar",
+         "password": "98$jmF"
       },
-      'router': {
-         'endpoint': 'tcp:cb7.tavendo.de:80',
-         'realm': 'myrealm01'
+      "router": {
+         "endpoint": "tcp:cb7.tavendo.de:80",
+         "realm": "myrealm01"
       }
    }
 }
@@ -512,44 +512,44 @@ ORACLE_BRIDGE = {
 ## development router
 ##
 DEV_ROUTER = {
-   'myrouter1': {
-      'type': 'router',
-      'realms': {
-         'myrealm1': {
-            'auth': {
-               'create': {
-                  'allow': 'any'
+   "myrouter1": {
+      "type": "router",
+      "realms": {
+         "myrealm1": {
+            "auth": {
+               "create": {
+                  "allow": "any"
                },
-               'join': {
-                  'allow': 'any'
+               "join": {
+                  "allow": "any"
                }
             }
-            'permissions': {
+            "permissions": {
                ## application
-               'com.myapp1': {
+               "com.myapp1": {
                   ## application.role
-                  'developer': {
+                  "developer": {
                      ## application.role.resource
-                     'com.myapp1.monitor.*': {
+                     "com.myapp1.monitor.*": {
                         ## application.role.resource.permission
-                        'publish': True,
-                        'subscribe': True,
-                        'call': True,
-                        'register': False
+                        "publish": True,
+                        "subscribe": True,
+                        "call": True,
+                        "register": False
                      }
                   }
                }
             },
          }
       },
-      'transports': [
+      "transports": [
          {
-            'type': 'websocket',
-            'endpoint': 'tcp:localhost:8080'
+            "type": "websocket",
+            "endpoint": "tcp:localhost:8080"
          },
          {
-            'type': 'websocket',
-            'endpoint': 'unix:/tmp/sock3'
+            "type": "websocket",
+            "endpoint": "unix:/tmp/sock3"
          }
       ]
    }
@@ -558,45 +558,45 @@ DEV_ROUTER = {
 
 
 DEV_ROUTER = {
-   'processes': [
+   "processes": [
       {
-         'type': 'router',
-         'realms': {
-            'myrealm1': {
-               'auth': {
-                  'create': {
-                     'allow': 'any'
+         "type": "router",
+         "realms": {
+            "myrealm1": {
+               "auth": {
+                  "create": {
+                     "allow": "any"
                   },
-                  'join': {
-                     'allow': 'any'
+                  "join": {
+                     "allow": "any"
                   }
                }
-               'permissions': {
+               "permissions": {
                   ## application
-                  'com.myapp1': {
+                  "com.myapp1": {
                      ## application.role
-                     'developer': {
+                     "developer": {
                         ## application.role.resource
-                        'com.myapp1.monitor.*': {
+                        "com.myapp1.monitor.*": {
                            ## application.role.resource.permission
-                           'publish': True,
-                           'subscribe': True,
-                           'call': True,
-                           'register': False
+                           "publish": True,
+                           "subscribe": True,
+                           "call": True,
+                           "register": False
                         }
                      }
                   }
                },
             }
          },
-         'transports': [
+         "transports": [
             {
-               'type': 'websocket',
-               'endpoint': 'tcp:localhost:8080'
+               "type": "websocket",
+               "endpoint": "tcp:localhost:8080"
             },
             {
-               'type': 'websocket',
-               'endpoint': 'unix:/tmp/sock3'
+               "type": "websocket",
+               "endpoint": "unix:/tmp/sock3"
             }
          ]
       }
@@ -605,14 +605,14 @@ DEV_ROUTER = {
 
 
 TEMPLATES = {
-   'router-dev': DEV_ROUTER,
-   'router-smp4': SMP4_ROUTER,
-   'bridge-rest': REST_BRIDGE,
-   'bridge-srdp': SRDP_BRIDGE,
-   'bridge-postgres': POSTGRES_BRIDGE,
-   'bridge-oracle': ORACLE_BRIDGE,
-   'yun': ARDUINO_YUN,
-   'pi': RASPBERRY_PI
+   "router-dev": DEV_ROUTER,
+   "router-smp4": SMP4_ROUTER,
+   "bridge-rest": REST_BRIDGE,
+   "bridge-srdp": SRDP_BRIDGE,
+   "bridge-postgres": POSTGRES_BRIDGE,
+   "bridge-oracle": ORACLE_BRIDGE,
+   "yun": ARDUINO_YUN,
+   "pi": RASPBERRY_PI
 }
 
 ## crossbar init --template pi --data ~/.cbdata

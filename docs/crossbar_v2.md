@@ -147,6 +147,88 @@ A node can combine router and application modules:
 ![alt text](figures/gen/crossbar_deployment_07.png "Application Code")
 </center>
 
+# Configuration
+
+## Transports
+
+A WebSocket transport listening on TCP port 8080 is configured 
+
+	{
+		"type": "websocket",
+		"endpoint": "tcp:8080",
+        "url": "ws://localhost:8080"
+	}
+
+WebSocket options can be set like this
+
+	{
+		"type": "websocket",
+		"endpoint": "tcp:8080",
+        "url": "ws://localhost:8080",
+		"options": {
+			"opening_timeout": 2000,
+			"enable_compression": true
+        }
+	}
+
+A WebSocket transport listening on a Unix domain socket is configured
+
+	{
+		"type": "websocket",
+		"endpoint": "unix:/tmp/sock3",
+        "url": "ws://localhost:8080"
+	}
+
+## Links
+
+
+*Realms* is a top level attribute of a *Router* module:
+
+	{
+	   "processes": [
+	      {
+	         "type": "router",
+	         "realms": {}
+          }
+       ]
+	}
+
+which is a dictionary of named entries
+
+	"realms": {
+		"myrealm01": {
+		},
+		"myrealm02": {
+		}
+	}
+
+Each entry must contain authentication
+
+	"auth": {
+		"create": {
+			 "allow": "any"
+		},
+		"join": {
+			 "allow": "any"
+		}
+	}
+
+and permissions
+
+	"permissions": {
+		"com.myapp1": {
+			"developer": {
+				"com.myapp1.monitor.*": {
+				   "publish": True,
+				   "subscribe": True,
+				   "call": True,
+				   "register": False
+				}
+			}
+		}
+   	},
+
+
 
 # Instance Types
 
