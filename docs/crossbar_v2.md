@@ -179,8 +179,24 @@ A WebSocket transport listening on a Unix domain socket is configured
         "url": "ws://localhost:8080"
 	}
 
+A secure WebSocket transport is configured
+
+	{
+		"type": "websocket",
+		"endpoint": "tcp:443",
+        "url": "wss://somehost.com",
+        "tls": {
+            "ca": "keys/ca.pub",
+			"key": "keys/somehost.key",
+			"cert": "keys/somehost.crt"
+        }
+	}
+
 ## Links
 
+
+
+## Realms
 
 *Realms* is a top level attribute of a *Router* module:
 
@@ -202,31 +218,39 @@ which is a dictionary of named entries
 		}
 	}
 
-Each entry must contain authentication
+### Realm Authentication
 
-	"auth": {
-		"create": {
-			 "allow": "any"
-		},
-		"join": {
-			 "allow": "any"
+Each realm entry must contains authentication
+
+	"myrealm01": {
+		"auth": {
+			"create": {
+				 "allow": "any"
+			},
+			"join": {
+				 "allow": "any"
+			}
 		}
 	}
 
-and permissions
+### Realm Permissions
 
-	"permissions": {
-		"com.myapp1": {
-			"developer": {
-				"com.myapp1.monitor.*": {
-				   "publish": True,
-				   "subscribe": True,
-				   "call": True,
-				   "register": False
+Each realm entry contains permissions
+
+	"myrealm01": {
+		"permissions": {
+			"com.myapp1": {
+				"developer": {
+					"com.myapp1.monitor.*": {
+					   "publish": True,
+					   "subscribe": True,
+					   "call": True,
+					   "register": False
+					}
 				}
 			}
-		}
-   	},
+	   	}
+	}
 
 
 
