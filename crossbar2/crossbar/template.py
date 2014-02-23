@@ -411,17 +411,20 @@ SMP4_ROUTER = {
                'type': 'websocket',
                'endpoint': 'tcp:somehost.net:80'
                'authentication': {
-                  'tls_cacert': 'myca1.cert',
-                  'tls_mykey': 'mykey1.key'
-               }
+                  'tls_cacert': 'keys/myca1.cert',
+                  'tls_mykey': 'keys/mykey1.key'
+               },
+               'realms': ['myrealm01', 'myrealm02']
             },
             {
                'type': 'websocket',
-               'endpoint': 'unix:/tmp/myrouter1'
+               'endpoint': 'unix:/tmp/myrouter1',
+               'realms': 'all'
             },
             {
                'type': 'websocket',
-               'endpoint': 'unix:/tmp/myrouter2'
+               'endpoint': 'unix:/tmp/myrouter2',
+               'realms': 'all'
             }
          ]
       }

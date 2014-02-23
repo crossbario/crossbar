@@ -50,19 +50,55 @@ For example, here is the configuration for a Crossbar.io node with one running w
 
 ```javascript
 {
-   'myrouter1': {
-      'type': 'router',
-      'realms': {
-         'myrealm1': {
-         }
-      },
-      'transports': [
-         {
-            'type': 'websocket',
-            'endpoint': 'tcp:localhost:8080'
-         }
-      ]
-   }
+   'processes': [
+      {
+         'type': 'router',
+         'realms': {
+            'myrealm1': {
+               'auth': {
+                  'create': {
+                     'allow': 'any'
+                  },
+                  'join': {
+                     'allow': 'any'
+                  }
+               }
+               'permissions': {
+                  ## application
+                  'com.myapp1': {
+                     ## application.role
+                     'developer': {
+                        ## application.role.resource
+                        'com.myapp1.monitor.*': {
+                           ## application.role.resource.permission
+                           'publish': True,
+                           'subscribe': True,
+                           'call': True,
+                           'register': False
+                        },
+                        'com.myapp1.custom.*': {
+                           'publish': True,
+                           'subscribe': True,
+                           'call': True,
+                           'register': 'single'
+                        }
+                     }
+                  }
+               },
+            }
+         },
+         'transports': [
+            {
+               'type': 'websocket',
+               'endpoint': 'tcp:localhost:8080'
+            },
+            {
+               'type': 'websocket',
+               'endpoint': 'unix:/tmp/sock3'
+            }
+         ]
+      }
+   ]
 }
 ```
 
