@@ -151,6 +151,19 @@ A node can combine router and application modules:
 
 ## Transports
 
+*Transports* is a top level attribute of a *Router* module:
+
+	{
+	   	"processes": [
+			{
+				"type": "router",
+		
+				// transports provided by this router process
+	         	"transports": []
+          	}
+       	]
+	}
+
 A WebSocket transport listening on TCP port 8080 is configured 
 
 	{
@@ -194,6 +207,57 @@ A secure WebSocket transport is configured
 
 ## Links
 
+*Links* is a top level attribute of a *Router* module:
+
+	{
+	   	"processes": [
+			{
+				"type": "router",
+		
+				// links to other routers this router connects to
+	         	"links": []
+          	}
+       	]
+	}
+
+where a WebSocket link is configured
+
+    {
+       "type": "websocket",
+       "endpoint": "tcp:somehost.net:8080"
+       "realms": ["myrealm01", "corp20"]
+    }
+
+The router will connect to the router specified in the link definition. It will setup routing for all of the realms listed.
+
+Using the special value `all` for realms will setup routing for any realm
+
+    {
+       "type": "websocket",
+       "endpoint": "tcp:somehost.net:8080"
+       "realms": "any"
+    }
+
+A Unix domain socket link is configured
+
+
+    {
+       "type": "websocket",
+       "endpoint": "unix:/tmp/myrouter1"
+       "realms": "any"
+    }
+
+Client certificate based authentication
+
+    {
+       "type": "websocket",
+       "endpoint": "tcp:somehost.net:8080"
+       "realms": "any",
+	   "tls": {
+          "key": "keys/my.key",
+          "cert": "keys/my.crt"
+       }
+    }
 
 
 ## Realms
@@ -201,19 +265,24 @@ A secure WebSocket transport is configured
 *Realms* is a top level attribute of a *Router* module:
 
 	{
-	   "processes": [
-	      {
-	         "type": "router",
-	         "realms": {}
-          }
-       ]
+	   	"processes": [
+			{
+				"type": "router",
+		
+				// realms hosted by this router process
+	         	"realms": {}
+          	}
+       	]
 	}
 
 which is a dictionary of named entries
 
 	"realms": {
+		// a first realm definition
 		"myrealm01": {
 		},
+
+		// a second realm definition
 		"myrealm02": {
 		}
 	}
@@ -224,9 +293,13 @@ Each realm entry must contains authentication
 
 	"myrealm01": {
 		"auth": {
+
+			// any session is allowed to create the realm
 			"create": {
 				 "allow": "any"
 			},
+
+			// any session may join the realm
 			"join": {
 				 "allow": "any"
 			}
@@ -239,13 +312,21 @@ Each realm entry contains permissions
 
 	"myrealm01": {
 		"permissions": {
+
+			// application
 			"com.myapp1": {
+
+				// application.role
 				"developer": {
+
+					// application.role.resource
 					"com.myapp1.monitor.*": {
-					   "publish": True,
-					   "subscribe": True,
-					   "call": True,
-					   "register": False
+
+						// permissions granted on URI pattern
+					   	"publish": True,
+					   	"subscribe": True,
+					   	"call": True,
+					   	"register": False
 					}
 				}
 			}
