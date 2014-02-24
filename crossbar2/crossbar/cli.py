@@ -32,6 +32,25 @@ from crossbar.template import TEMPLATES
 # from autobahn.websocket import connectWS
 # from autobahn.wamp import WampClientFactory, WampCraClientProtocol
 
+from crossbar.processproxy import ProcessProxy
+from sys import argv, executable
+#from twisted.internet import reactor
+
+
+
+import datetime
+
+#from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+
+from autobahn.twisted.wamp import ApplicationSession
+
+from autobahn.twisted.util import sleep
+
+
+from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
+
+
 
 
 def run_command_version(options):
@@ -101,34 +120,6 @@ def run_command_version(options):
 
 
 
-# def run_command_start(options):
-#    """
-#    Start Crossbar.io server.
-#    """
-#    from choosereactor import install_reactor
-#    reactor = install_reactor(options.reactor, options.verbose)
-
-#    import twisted
-#    from crossbar import logger
-
-#    if False:
-#       twisted.python.log.startLogging(sys.stdout)
-#    else:
-#       flo = logger.LevelFileLogObserver(sys.stdout, level = logging.DEBUG)
-#       twisted.python.log.startLoggingWithObserver(flo.emit)
-
-#    from crossbar.servicefactory import makeService
-
-#    svc = makeService(vars(options))
-#    svc.startService()
-
-#    installSignalHandlers = True
-#    reactor.run(installSignalHandlers)
-
-
-#def run_command_version(options):
-#  pass
-
 def run_command_init(options):
    if options.template:
       if not TEMPLATES.has_key(options.template):
@@ -152,79 +143,10 @@ def run_command_init(options):
 
 
 
-from sys import argv, executable
-#from twisted.internet import reactor
-
-
-
-import datetime
-
-#from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
-
-from autobahn.twisted.wamp import ApplicationSession
-
-from autobahn.twisted.util import sleep
-
-
-class TimeServiceFrontend(ApplicationSession):
-   """
-   An application component using the time service.
-   """
-
-   def onConnect(self):
-      self.join("crossbar")
-
-
-   @inlineCallbacks
-   def onJoin(self, details):
-
-      @inlineCallbacks
-      def on_node_component_start(evt):
-         pid = evt['pid']
-         print("Node component started: {}".format(evt))
-
-         affinities = yield self.call('crossbar.node.component.{}.get_cpu_affinity'.format(pid))
-         print("CPU affinity: {}".format(affinities))
-
-         try:
-            if False:
-               config = {'url': 'ws://localhost:9000', 'endpoint': 'tcp:9000'}
-               res = yield self.call('crossbar.node.component.{}.start'.format(pid), config)
-               print res
-
-            if True:
-#               res = yield self.call('crossbar.{}.{}.{}.start'.format(hostname, pid, 'router1'), {})
-#               res = yield self.call('crossbar.node.{}.process.{}.module.{}.start'.format(hostname, pid, 'router1'), {})
-               res = yield self.call('crossbar.node.module.{}.router.start'.format(pid), {})
-               print res
-
-               tid1 = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), {'type': 'websocket', 'url': 'ws://localhost:9000', 'endpoint': 'tcp:9000'})
-               print tid1
-
-               tid2 = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), {'type': 'websocket', 'url': 'ws://localhost:9001', 'endpoint': 'tcp:9001'})
-               print tid2
-
-               res = yield self.call('crossbar.node.module.{}.router.list_transports'.format(pid))
-               print res
-
-               res = yield self.call('crossbar.node.module.{}.router.stop_transport'.format(pid), tid2)
-               print res
-
-               res = yield self.call('crossbar.node.module.{}.router.list_transports'.format(pid))
-               print res
-
-         except Exception as e:
-            print e.error, e.args
-
-      yield self.subscribe(on_node_component_start, 'crossbar.node.component.on_start')
-
-
-
-from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
-
-
 def run_command_start(options):
+
+   from twisted.python import log
+   log.startLogging(sys.stderr)
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
@@ -232,18 +154,6 @@ def run_command_start(options):
    reactor = install_reactor()
    if options.debug:
       print("Running on reactor {}".format(reactor))
-
-   ## load Crossbar.io node configuration
-   ##
-   with open(os.path.join(options.cbdata, 'config.json'), 'rb') as infile:
-      config = json.load(infile)
-
-   if 'processes' in config:
-      for process in config['processes']:
-         if process['type'] == 'router':
-            print "found router", process
-
-#   return
 
 
    ## create a WAMP router factory
@@ -256,14 +166,7 @@ def run_command_start(options):
    ##
    from autobahn.twisted.wamp import RouterSessionFactory
    session_factory = RouterSessionFactory(router_factory)
-   session_factory.add(TimeServiceFrontend())
 
-
-   ## create a WAMP application session factory
-   ##
-#   from autobahn.twisted.wamp import ApplicationSessionFactory
-#   session_factory = ApplicationSessionFactory()
-#   session_factory.session = TimeServiceFrontend
 
    ## create a WAMP-over-WebSocket transport client factory
    ##
@@ -272,37 +175,33 @@ def run_command_start(options):
    transport_factory.setProtocolOptions(failByDrop = False)
 
 
-   from twisted.python import log
-   log.startLogging(sys.stderr)
+   ## load Crossbar.io node configuration
+   ##
+   with open(os.path.join(options.cbdata, 'config.json'), 'rb') as infile:
+      config = json.load(infile)
 
+   if 'processes' in config:
+      for process in config['processes']:
+         if process['type'] == 'router':
+            print "found router", process
 
-   args = [executable, "-u", "crossbar/router/test.py"]
+            args = [executable, "-u", "crossbar/router/test.py"]
 
-   for i in range(1):
+            ep = ProcessEndpoint(reactor, executable, args, childFDs = {0: 'w', 1: 'r', 2: 2}, errFlag = StandardErrorBehavior.LOG, env = os.environ)
+            d = ep.connect(transport_factory)
 
-      print "**"
+            def onconnect(res):
+               log.msg("node component forked with PID {}".format(res.transport.pid))
+               session_factory.add(ProcessProxy(res.transport.pid, process))
 
-      ep = ProcessEndpoint(reactor, executable, args, childFDs = {0: 'w', 1: 'r', 2: 2}, errFlag = StandardErrorBehavior.LOG, env = os.environ)
-      d = ep.connect(transport_factory)
+            def onerror(err):
+               log.msg("could not fork node component: {}".format(err.value))
 
-      def onconnect(res):
-         log.msg("Node component forked with PID {}".format(res.transport.pid))
-
-      def onerror(err):
-         log.msg("ERR"*10 + err)
-
-      d.addCallback(onconnect)
-
-#   reactor.spawnProcess(
-#      transport_factory, executable, args,
-#      childFDs = {0: 0, 1: 1, 2: 2},
-#      env = os.environ)
+            d.addCallback(onconnect)
+         else:
+            raise Exception("unknown process type {}".format(process['type']))
 
    reactor.run()
-
-
-   print executable
-   print __file__
 
 
 

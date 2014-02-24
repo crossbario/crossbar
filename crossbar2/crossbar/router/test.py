@@ -66,7 +66,7 @@ from autobahn.wamp.router import RouterFactory
 from autobahn.twisted.wamp import RouterSessionFactory
 from autobahn.twisted.websocket import WampWebSocketServerFactory
 from twisted.internet.endpoints import serverFromString
-
+from twisted.internet import reactor
 
 class RouterTransport:
    def __init__(self, id, config, port):
@@ -87,6 +87,9 @@ class RouterModule:
 
       session.register(self.start,           'crossbar.node.module.{}.router.start'.format(pid))
       session.register(self.stop,            'crossbar.node.module.{}.router.stop'.format(pid))
+
+      session.register(self.startRealm,      'crossbar.node.module.{}.router.start_realm'.format(pid))
+      #session.register(self.stopRealm,       'crossbar.node.module.{}.router.stop_realm'.format(pid))
 
       session.register(self.startTransport,  'crossbar.node.module.{}.router.start_transport'.format(pid))
       session.register(self.stopTransport,   'crossbar.node.module.{}.router.stop_transport'.format(pid))
@@ -109,6 +112,10 @@ class RouterModule:
       print "Stopping router module", self._pid
 
 
+   def startRealm(self, name, config):
+      print "Realm started", config
+
+
    def listTransports(self):
       return self._router_transports.keys()
 
@@ -125,7 +132,7 @@ class RouterModule:
          id = self._router_transport_no
 
          # IListeningPort or an CannotListenError
-         server = serverFromString(reactor, config['endpoint'])
+         server = serverFromString(reactor, str(config['endpoint']))
          d = server.listen(transport_factory)
 
          def ok(port):
@@ -137,7 +144,6 @@ class RouterModule:
 
          d.addCallbacks(ok, fail)
          return d
-
 
 
    def stopTransport(self, id):
@@ -228,11 +234,12 @@ class NodeProcess(ApplicationSession):
             transport_factory = WampWebSocketServerFactory(session_factory, config['url'], debug = False)
             transport_factory.setProtocolOptions(failByDrop = False)
 
-            if False:
+            if True:
                ## start the WebSocket server from an endpoint
                ##
                from twisted.internet.endpoints import serverFromString
-               server = serverFromString(reactor, config['endpoint'])
+               from twisted.internet import reactor
+               server = serverFromString(reactor, str(config['endpoint']))
 
                # IListeningPort or an CannotListenError
                d = server.listen(transport_factory)
@@ -281,7 +288,7 @@ class NodeProcess(ApplicationSession):
 
 
 
-if __name__ == '__main__':
+def run(Component):
 
    ## Command line args:
    ## debug: true / false
@@ -308,7 +315,7 @@ if __name__ == '__main__':
       ##
       from autobahn.twisted.wamp import ApplicationSessionFactory
       session_factory = ApplicationSessionFactory()
-      session_factory.session = NodeProcess
+      session_factory.session = Component
 
       ## create a WAMP-over-WebSocket transport server factory
       ##
@@ -329,3 +336,7 @@ if __name__ == '__main__':
 
    except Exception as e:
       log.msg("Unhandled exception in node component: {}".format(e))
+
+
+if __name__ == '__main__':
+   run(NodeProcess)
