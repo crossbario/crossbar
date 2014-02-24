@@ -237,10 +237,13 @@ def run_command_start(options):
    ##
    with open(os.path.join(options.cbdata, 'config.json'), 'rb') as infile:
       config = json.load(infile)
-   for cname in config:
-      component = config[cname]
-      if component['type'] == 'router':
-         print "YES"
+
+   if 'processes' in config:
+      for process in config['processes']:
+         if process['type'] == 'router':
+            print "found router", process
+
+#   return
 
 
    ## create a WAMP router factory
@@ -277,11 +280,16 @@ def run_command_start(options):
 
    for i in range(1):
 
+      print "**"
+
       ep = ProcessEndpoint(reactor, executable, args, childFDs = {0: 'w', 1: 'r', 2: 2}, errFlag = StandardErrorBehavior.LOG, env = os.environ)
       d = ep.connect(transport_factory)
 
       def onconnect(res):
          log.msg("Node component forked with PID {}".format(res.transport.pid))
+
+      def onerror(err):
+         log.msg("ERR"*10 + err)
 
       d.addCallback(onconnect)
 
@@ -357,7 +365,7 @@ def run():
 
    parser_init.add_argument('--template',
                              type = str,
-                             default = 'devrouter',
+                             default = 'router',
                              help = "Template for initialization")
 
    parser_init.add_argument('--cbdata',

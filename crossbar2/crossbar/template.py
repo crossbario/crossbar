@@ -376,7 +376,7 @@ SMP4_ROUTER = {
                },
                "authentication": {
                   "challenge_response": "myplugin1.start"
-               }
+               },
                "endpoint": "tcp:localhost:80"
             },
             {
@@ -409,7 +409,7 @@ SMP4_ROUTER = {
          "links": [
             {
                "type": "websocket",
-               "endpoint": "tcp:somehost.net:80"
+               "endpoint": "tcp:somehost.net:80",
                "authentication": {
                   "tls_cacert": "keys/myca1.cert",
                   "tls_mykey": "keys/mykey1.key"
@@ -523,7 +523,7 @@ DEV_ROUTER = {
                "join": {
                   "allow": "any"
                }
-            }
+            },
             "permissions": {
                ## application
                "com.myapp1": {
@@ -570,7 +570,7 @@ DEV_ROUTER = {
                   "join": {
                      "allow": "any"
                   }
-               }
+               },
                "permissions": {
                   ## application
                   "com.myapp1": {
@@ -592,11 +592,45 @@ DEV_ROUTER = {
          "transports": [
             {
                "type": "websocket",
-               "endpoint": "tcp:localhost:8080"
-            },
+               "endpoint": "tcp:8080",
+               "url": "ws://localhost:8080"
+            }
+         ]
+      }
+   ]
+}
+
+
+DEV_ROUTER = {
+   "processes": [
+      {
+         "type": "router",
+         "realms": {
+            "com.example.realm1": {
+               "roles": {
+                  "com.example.anonymous": {
+                     "authentication": None,
+                     "grants": {                  
+                        "create": True,
+                        "join": True,
+                        "access": {
+                           "*": {
+                              "publish": True,
+                              "subscribe": True,
+                              "call": True,
+                              "register": True
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+         },
+         "transports": [
             {
                "type": "websocket",
-               "endpoint": "unix:/tmp/sock3"
+               "endpoint": "tcp:8080",
+               "url": "ws://localhost:8080"
             }
          ]
       }
@@ -605,14 +639,14 @@ DEV_ROUTER = {
 
 
 TEMPLATES = {
-   "router-dev": DEV_ROUTER,
+   "router": DEV_ROUTER,
    "router-smp4": SMP4_ROUTER,
    "bridge-rest": REST_BRIDGE,
    "bridge-srdp": SRDP_BRIDGE,
    "bridge-postgres": POSTGRES_BRIDGE,
    "bridge-oracle": ORACLE_BRIDGE,
-   "yun": ARDUINO_YUN,
-   "pi": RASPBERRY_PI
+   #"yun": ARDUINO_YUN,
+   #"pi": RASPBERRY_PI
 }
 
 ## crossbar init --template pi --data ~/.cbdata
