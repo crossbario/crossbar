@@ -88,6 +88,8 @@ class RouterModule:
       session.register(self.start,           'crossbar.node.module.{}.router.start'.format(pid))
       session.register(self.stop,            'crossbar.node.module.{}.router.stop'.format(pid))
 
+      session.register(self.startClass,      'crossbar.node.module.{}.router.start_class'.format(pid))
+
       session.register(self.startRealm,      'crossbar.node.module.{}.router.start_realm'.format(pid))
       #session.register(self.stopRealm,       'crossbar.node.module.{}.router.stop_realm'.format(pid))
 
@@ -110,6 +112,24 @@ class RouterModule:
 
    def stop(self):
       print "Stopping router module", self._pid
+
+
+   def startClass(self, klassname):
+      ## dynamically load the application component ..
+      ##
+      try:
+         import importlib
+         c = klassname.split('.')
+         mod, klass = '.'.join(c[:-1]), c[-1]
+         app = importlib.import_module(mod)
+         SessionKlass = getattr(app, klass)
+
+         ## .. and create and add an WAMP application session to
+         ## run next to the router
+         ##
+         self._router_session_factory.add(SessionKlass())
+      except Exception as e:
+         print "EERR", e
 
 
    def startRealm(self, name, config):

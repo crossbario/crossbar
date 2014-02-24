@@ -623,7 +623,10 @@ DEV_ROUTER = {
                         }
                      }
                   }
-               }
+               },
+               "classes": [
+                  "crossbar.component.timeservice.TimeService"
+               ]
             }
          },
          "transports": [
@@ -631,8 +634,35 @@ DEV_ROUTER = {
                "type": "websocket",
                "endpoint": "tcp:8080",
                "url": "ws://localhost:8080"
+            },
+            {
+               "type": "websocket",
+               "endpoint": "unix:/tmp/mysocket",
+               "url": "ws://localhost"
             }
          ]
+      },
+      {
+         "type": "component.python",
+         "classes": [
+            "crossbar.component.mathservice.MathService"
+         ],
+         "router": {
+            "type": "websocket",
+            "endpoint": "unix:/tmp/mysocket",
+            "url": "ws://localhost",
+            "realm": "com.example.realm1"
+         }
+      },
+      {
+         "type": "component.program",
+         "command": "/usr/bin/node myapp.js",
+         "router": {
+            "type": "websocket",
+            "endpoint": "tcp:localhost:8080",
+            "url": "ws://localhost:8080",
+            "realm": "com.example.realm1"
+         }
       }
    ]
 }
