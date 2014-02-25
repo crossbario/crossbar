@@ -37,7 +37,6 @@ class ProcessProxy(ApplicationSession):
    def __init__(self, pid = None, config = None):
       ApplicationSession.__init__(self)
       self._pid = pid
-      #print "88"*10, config
       self._config = config
 
 
@@ -47,8 +46,6 @@ class ProcessProxy(ApplicationSession):
 
    @inlineCallbacks
    def onJoin(self, details):
-
-      #print "99"*10, self._config
 
       @inlineCallbacks
       def startup():
@@ -62,23 +59,19 @@ class ProcessProxy(ApplicationSession):
 
          try:
 
-            #print self._config
-
             if self._config['type'] == 'router':
 
                res = yield self.call('crossbar.node.module.{}.router.start'.format(self._pid), options)
-               #print "Router started", res
+               log.msg("Worker {}: Router started.".format(self._pid))
 
                for realm_name in self._config['realms']:
-                  #print "Realm", realm_name
                   realm = self._config['realms'][realm_name]
                   res = yield self.call('crossbar.node.module.{}.router.start_realm'.format(self._pid), realm_name, realm)
-                  #print "Realm started", res
 
                   try:
                      for klassname in realm.get('classes', []):
                         id = yield self.call('crossbar.node.module.{}.router.start_class'.format(self._pid), klassname, realm_name)
-                        log.msg("Worker {}: class {} ({}) started in realm '{}'".format(self._pid, id, klassname, realm_name))
+                        log.msg("Worker {}: Class '{}' ({}) started in realm '{}'".format(self._pid, klassname, id, realm_name))
                         #res = yield self.call('crossbar.node.module.{}.router.stop_class'.format(self._pid), res)
                         #print "Class stopped", res
                   except Exception as e:
@@ -86,20 +79,20 @@ class ProcessProxy(ApplicationSession):
 
                for transport in self._config['transports']:
                   id = yield self.call('crossbar.node.module.{}.router.start_transport'.format(self._pid), transport)
-                  log.msg("Worker {}: transport {} ({} on {}) started".format(self._pid, id, transport['type'], transport['endpoint']))
+                  log.msg("Worker {}: Transport {}/{} ({}) started".format(self._pid, transport['type'], transport['endpoint'], id))
 
             elif self._config['type'] == 'component.python':
-               print ";"*100, self._config['type']
-
-               yield self.call('crossbar.node.module.{}.component.start'.format(self._pid), self._config['router'], self._config['class'], self._config['router']['realm'])
 
 
+               klassname, realm_name = self._config['class'], self._config['router']['realm']
+
+               yield self.call('crossbar.node.module.{}.component.start'.format(self._pid), self._config['router'], klassname, realm_name)
+               log.msg("Worker {}: Component container started.".format(self._pid))
+               log.msg("Worker {}: Class '{}' started in realm '{}'".format(self._pid, klassname, realm_name))
 
             else:
 
-               #raise Exception("unknown type")
-               pass
-
+               raise Exception("unknown type")
 
          except Exception as e:
             print e, e.error, e.args

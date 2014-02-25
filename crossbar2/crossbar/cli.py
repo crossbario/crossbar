@@ -22,6 +22,7 @@ __all__ = ['run']
 
 
 import os, sys, json, argparse, pkg_resources, logging
+import pkg_resources
 
 from twisted.python import log
 
@@ -43,20 +44,20 @@ def run_command_version(options):
    Print local Crossbar.io software component types and versions.
    """
    from autobahn.twisted.choosereactor import install_reactor
-   reactor = install_reactor(options.reactor, options.verbose)
+   reactor = install_reactor(options.reactor, options.debug)
 
    from twisted.python.reflect import qual
 
    ## Python
    ##
    py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
-   if options.verbose:
+   if options.debug:
       py_ver += " [%s]" % sys.version.replace('\n', ' ')
 
    ## Twisted / Reactor
    ##
    tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
-   if options.verbose:
+   if options.debug:
       tx_ver += " [%s]" % qual(reactor.__class__)
 
    ## Autobahn
@@ -64,7 +65,7 @@ def run_command_version(options):
    import autobahn
    from autobahn.websocket.protocol import WebSocketProtocol
    ab_ver = pkg_resources.require("autobahn")[0].version
-   if options.verbose:
+   if options.debug:
       ab_ver += " [%s]" % qual(WebSocketProtocol)
 
    ## UTF8 Validator
@@ -77,7 +78,7 @@ def run_command_version(options):
       utf8_ver = 'autobahn'
    else:
       raise Exception("could not detect UTF8 validator type/version")
-   if options.verbose:
+   if options.debug:
       utf8_ver += " [%s]" % qual(Utf8Validator)
 
    ## XOR Masker
@@ -90,17 +91,20 @@ def run_command_version(options):
       xor_ver = 'autobahn'
    else:
       raise Exception("could not detect XOR masker type/version")
-   if options.verbose:
+   if options.debug:
       xor_ver += " [%s]" % qual(XorMaskerNull)
 
+   import crossbar
+
    print
-   print "Crossbar.io local component versions:"
+   print "Crossbar.io software versions:"
    print
-   print "Python          : %s" % py_ver
-   print "Twisted         : %s" % tx_ver
+   print "Crossbar.io     : %s" % crossbar.__version__
    print "Autobahn        : %s" % ab_ver
-   print "UTF8 Validator  : %s" % utf8_ver
-   print "XOR Masker      : %s" % xor_ver
+   print "Twisted         : %s" % tx_ver
+   print "Python          : %s" % py_ver
+#   print "UTF8 Validator  : %s" % utf8_ver
+#   print "XOR Masker      : %s" % xor_ver
    print
 
 
@@ -126,6 +130,8 @@ def run_command_init(options):
    with open(os.path.join(options.cbdata, 'config.json'), 'wb') as outfile:
       outfile.write(config)
 
+   print("Crossbar.io node initialized at {}".format(os.path.abspath(options.cbdata)))
+
 
 
 def run_command_start(options):
@@ -136,7 +142,7 @@ def run_command_start(options):
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
    from autobahn.twisted.choosereactor import install_reactor
-   reactor = install_reactor(options.reactor, options.verbose)
+   reactor = install_reactor(options.reactor, options.debug)
 
    if options.debug:
       print("Running on reactor {}".format(reactor))
@@ -169,9 +175,10 @@ def run_command_start(options):
    from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
    from crossbar.processproxy import ProcessProxy
 
+
    WORKER_MAP = {
-      "router": "crossbar/router/worker.py",
-      "component.python": "crossbar/router/worker.py"
+      "router": "router/worker.py",
+      "component.python": "router/worker.py"
    }
 
    if 'processes' in config:
@@ -183,7 +190,7 @@ def run_command_start(options):
 
          else:
 
-            filename = WORKER_MAP[process['type']]
+            filename = pkg_resources.resource_filename('crossbar', WORKER_MAP[process['type']])
 
             args = [executable, "-u", filename]
 
@@ -220,7 +227,7 @@ def run():
    ## create the top-level parser
    ##
    parser = argparse.ArgumentParser(prog = 'crossbar',
-                                    description = "Crossbar.io polyglot application router")
+                                    description = "Crossbar.io - Polyglot application router - http://crossbar.io")
 
    ## top-level options
    ##
@@ -236,18 +243,18 @@ def run():
 
    ## output format
    ##
-   output_format_dummy = parser.add_argument_group(title = 'Output format control')
-   output_format = output_format_dummy.add_mutually_exclusive_group(required = False)
+   # output_format_dummy = parser.add_argument_group(title = 'Output format control')
+   # output_format = output_format_dummy.add_mutually_exclusive_group(required = False)
 
-   output_format.add_argument('-v',
-                              '--verbose',
-                              action = 'store_true',
-                              help = 'Verbose (human) output on.')
+   # output_format.add_argument('-v',
+   #                            '--verbose',
+   #                            action = 'store_true',
+   #                            help = 'Verbose (human) output on.')
 
-   output_format.add_argument('-j',
-                              '--json',
-                              action = 'store_true',
-                              help = 'Turn JSON output on.')
+   # output_format.add_argument('-j',
+   #                            '--json',
+   #                            action = 'store_true',
+   #                            help = 'Turn JSON output on.')
 
    ## create subcommand parser
    ##
@@ -258,7 +265,7 @@ def run():
    ## "version" command
    ##
    parser_version = subparsers.add_parser('version',
-                                          help = 'Print software component versions.')
+                                          help = 'Print software versions.')
 
    parser_version.set_defaults(func = run_command_version)
 
@@ -283,7 +290,7 @@ def run():
    ## "start" command
    ##
    parser_start = subparsers.add_parser('start',
-                                        help = 'Start a new server process.')
+                                        help = 'Start a Crossbar.io node.')
 
    parser_start.set_defaults(func = run_command_start)
 
@@ -312,7 +319,7 @@ def run():
 
    ## default for CBDATA
    ##
-   if not options.cbdata:
+   if hasattr(options, 'cbdata') and not options.cbdata:
       if os.environ.has_key("CBDATA"):
          options.cbdata = os.environ['CBDATA']
       else:

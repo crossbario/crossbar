@@ -629,7 +629,6 @@ DEV_ROUTER = {
                },
                "classes": [
                   "rpc.timeservice.backend.Component",
-                  "rpc.arguments.backend.Component",
                   "rpc.progress.backend.Component"
                ]
             }
@@ -646,6 +645,19 @@ DEV_ROUTER = {
                "url": "ws://localhost"
             }
          ]
+      },
+      {
+         "type": "component.python",
+         "options": {
+            "classpaths": [".", "/home/oberstet/scm/tavendo/autobahn/AutobahnPython/examples/twisted/wamp/basic"]
+         },
+         "class": "rpc.arguments.backend.Component",
+         "router": {
+            "type": "websocket",
+            "endpoint": "unix:/tmp/mysocket",
+            "url": "ws://localhost",
+            "realm": "realm1"
+         }
       },
       # {
       #    "type": "component.python",

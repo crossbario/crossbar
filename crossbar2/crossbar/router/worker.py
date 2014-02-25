@@ -293,7 +293,7 @@ class ComponentModule:
       ## dynamically load the application component ..
       ##
       try:
-         if True or self.debug:
+         if self.debug:
             log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
 
          import importlib
@@ -385,8 +385,8 @@ class WorkerProcess(ApplicationSession):
       self._componentModule = ComponentModule(self, self._pid)
 
 
-      if True or self.debug:
-         log.msg("Procedures registered.")
+      if self.debug:
+         log.msg("Worker {}: Procedures registered.".format(self._pid))
 
       self.publish('crossbar.node.component.{}.on_start'.format(self._pid), {'pid': self._pid, 'cmd': [sys.executable] + sys.argv})
 
@@ -400,7 +400,6 @@ class WorkerProcess(ApplicationSession):
 class RouterProcess(WorkerProcess):
 
    def startComponent(self):
-      print "2"*100
 
       def start_component(config):
          ## create a WAMP router factory
@@ -508,7 +507,7 @@ def run():
 
    ##
    from twisted.python.reflect import qual
-   log.msg("Worker {}: starting component on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
+   log.msg("Worker {}: starting on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
 
    try:
 
@@ -534,11 +533,11 @@ def run():
       ## now start reactor loop
       ##
       if options.verbose:
-         log.msg("Worker {}: starting reactor".format(os.getpid()))
+         log.msg("Worker {}: Starting reactor".format(os.getpid()))
       reactor.run()
 
    except Exception as e:
-      log.msg("Worker {}: unhandled exception - {}".format(os.getpid(), e))
+      log.msg("Worker {}: Unhandled exception - {}".format(os.getpid(), e))
       sys.exit(1)
 
 
