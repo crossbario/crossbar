@@ -629,7 +629,8 @@ DEV_ROUTER = {
                },
                "classes": [
                   "rpc.timeservice.backend.Component",
-                  "rpc.arguments.backend.Component"
+                  "rpc.arguments.backend.Component",
+                  "rpc.progress.backend.Component"
                ]
             }
          },

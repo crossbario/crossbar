@@ -37,6 +37,7 @@ class ProcessProxy(ApplicationSession):
    def __init__(self, pid = None, config = None):
       ApplicationSession.__init__(self)
       self._pid = pid
+      #print "88"*10, config
       self._config = config
 
 
@@ -46,6 +47,8 @@ class ProcessProxy(ApplicationSession):
 
    @inlineCallbacks
    def onJoin(self, details):
+
+      #print "99"*10, self._config
 
       @inlineCallbacks
       def startup():
@@ -59,8 +62,9 @@ class ProcessProxy(ApplicationSession):
 
          try:
 
-            if self._config['type'] == 'router':
+            #print self._config
 
+            if self._config['type'] == 'router':
 
                res = yield self.call('crossbar.node.module.{}.router.start'.format(self._pid), options)
                #print "Router started", res
@@ -83,6 +87,18 @@ class ProcessProxy(ApplicationSession):
                for transport in self._config['transports']:
                   id = yield self.call('crossbar.node.module.{}.router.start_transport'.format(self._pid), transport)
                   log.msg("Worker {}: transport {} ({} on {}) started".format(self._pid, id, transport['type'], transport['endpoint']))
+
+            elif self._config['type'] == 'component.python':
+               print ";"*100, self._config['type']
+
+               yield self.call('crossbar.node.module.{}.component.start'.format(self._pid), self._config['router'], self._config['class'], self._config['router']['realm'])
+
+
+
+            else:
+
+               #raise Exception("unknown type")
+               pass
 
 
          except Exception as e:
@@ -134,4 +150,4 @@ class ProcessProxy(ApplicationSession):
             print e.error, e.args
 
       #yield on_node_component_start({'pid': self._pid})
-      yield self.subscribe(on_node_component_start, 'crossbar.node.component.on_start')
+      yield self.subscribe(on_node_component_start, 'crossbar.node.component.{}.on_start'.format(self._pid))

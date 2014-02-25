@@ -169,11 +169,23 @@ def run_command_start(options):
    from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
    from crossbar.processproxy import ProcessProxy
 
+   WORKER_MAP = {
+      "router": "crossbar/router/worker.py",
+      "component.python": "crossbar/router/worker.py"
+   }
+
    if 'processes' in config:
       for process in config['processes']:
-         if process['type'] == 'router':
 
-            args = [executable, "-u", "crossbar/router/test.py"]
+         if not process['type'] in WORKER_MAP:
+            #raise Exception("Illegal worker type '{}'".format(process['type']))
+            pass
+
+         else:
+
+            filename = WORKER_MAP[process['type']]
+
+            args = [executable, "-u", filename]
 
             ep = ProcessEndpoint(reactor,
                                  executable,
@@ -181,19 +193,21 @@ def run_command_start(options):
                                  childFDs = {0: 'w', 1: 'r', 2: 2},
                                  errFlag = StandardErrorBehavior.LOG,
                                  env = os.environ)
+
             d = ep.connect(transport_factory)
 
             def onconnect(res):
-               log.msg("Node component forked with PID {}".format(res.transport.pid))
+               log.msg("Worker forked with PID {}".format(res.transport.pid))
+               #print process
                session_factory.add(ProcessProxy(res.transport.pid, process))
 
             def onerror(err):
-               log.msg("Could not fork node component: {}".format(err.value))
+               log.msg("Could not fork worker: {}".format(err.value))
 
             d.addCallback(onconnect)
-         else:
-            #raise Exception("unknown process type {}".format(process['type']))
-            pass
+
+   else:
+      raise Exception("no processes configured")
 
    reactor.run()
 

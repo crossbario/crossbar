@@ -270,7 +270,66 @@ class RouterModule:
 
 
 
-class NodeProcess(ApplicationSession):
+class ComponentModule:
+   """
+   """
+
+   def __init__(self, session, pid):
+      self._session = session
+      self._pid = pid
+      self._client = None
+
+      self.debug = self._session.factory.options.debug
+      self.verbose = self._session.factory.options.verbose
+
+      session.register(self.start,           'crossbar.node.module.{}.component.start'.format(pid))
+
+
+   def start(self, transport, klassname, realm):
+      """
+      Dynamically start an application component to run next to the router in "embedded mode".
+      """
+
+      ## dynamically load the application component ..
+      ##
+      try:
+         if True or self.debug:
+            log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
+
+         import importlib
+         c = klassname.split('.')
+         mod, klass = '.'.join(c[:-1]), c[-1]
+         app = importlib.import_module(mod)
+         SessionKlass = getattr(app, klass)
+
+      except Exception as e:
+         if self.debug:
+            log.msg("Worker {}: failed to import class - {}".format(e))
+         raise ApplicationError("crossbar.error.class_import_failed", str(e))
+
+      else:
+         ## create a WAMP application session factory
+         ##
+         from autobahn.twisted.wamp import ApplicationSessionFactory
+         session_factory = ApplicationSessionFactory()
+         session_factory.session = SessionKlass
+
+         ## create a WAMP-over-WebSocket transport client factory
+         ##
+         from autobahn.twisted.websocket import WampWebSocketClientFactory
+         transport_factory = WampWebSocketClientFactory(session_factory, transport['url'], debug = False)
+         transport_factory.setProtocolOptions(failByDrop = False)
+
+         ## start a WebSocket client from an endpoint
+         ##
+         from twisted.internet import reactor
+         from twisted.internet.endpoints import clientFromString
+         self._client = clientFromString(reactor, transport['endpoint'])
+         self._client.connect(transport_factory)
+
+
+
+class WorkerProcess(ApplicationSession):
 
    def onConnect(self):
       self.debug = self.factory.options.debug
@@ -285,40 +344,63 @@ class NodeProcess(ApplicationSession):
       if self.debug:
          log.msg("Realm joined.")
 
-      pid = os.getpid()
+      self._pid = os.getpid()
 
       def get_cpu_affinity():
-         p = psutil.Process(os.getpid())
+         p = psutil.Process(self._pid)
          return p.get_cpu_affinity()
 
-      self.register(get_cpu_affinity, 'crossbar.node.component.{}.get_cpu_affinity'.format(pid))
+      self.register(get_cpu_affinity, 'crossbar.node.component.{}.get_cpu_affinity'.format(self._pid))
 
 
       def set_cpu_affinity(cpus):
-         p = psutil.Process(os.getpid())
+         p = psutil.Process(self._pid)
          p.set_cpu_affinity(cpus)
 
-      self.register(set_cpu_affinity, 'crossbar.node.component.{}.set_cpu_affinity'.format(pid))
+      self.register(set_cpu_affinity, 'crossbar.node.component.{}.set_cpu_affinity'.format(self._pid))
 
 
       def utcnow():
          now = datetime.datetime.utcnow()
          return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-      self.register(utcnow, 'crossbar.node.component.{}.now'.format(pid))
+      self.register(utcnow, 'crossbar.node.component.{}.now'.format(self._pid))
 
 
       def get_classpaths():
          return sys.path
 
-      self.register(get_classpaths, 'crossbar.node.component.{}.get_classpaths'.format(pid))
+      self.register(get_classpaths, 'crossbar.node.component.{}.get_classpaths'.format(self._pid))
 
 
       def add_classpaths(paths, prepend = True):
          sys.path = paths + sys.path
 
-      self.register(add_classpaths, 'crossbar.node.component.{}.add_classpaths'.format(pid))
+      self.register(add_classpaths, 'crossbar.node.component.{}.add_classpaths'.format(self._pid))
 
+
+      ## Modules
+      ##
+      self._routerModule = RouterModule(self, self._pid)
+      self._componentModule = ComponentModule(self, self._pid)
+
+
+      if True or self.debug:
+         log.msg("Procedures registered.")
+
+      self.publish('crossbar.node.component.{}.on_start'.format(self._pid), {'pid': self._pid, 'cmd': [sys.executable] + sys.argv})
+
+
+   def startComponent(self):
+      pass
+
+
+
+
+class RouterProcess(WorkerProcess):
+
+   def startComponent(self):
+      print "2"*100
 
       def start_component(config):
          ## create a WAMP router factory
@@ -379,24 +461,13 @@ class NodeProcess(ApplicationSession):
 
 
 
-      self.register(start_component, 'crossbar.node.component.{}.start'.format(pid))
-
-
-      self._routerModule = RouterModule(self, pid)
+      #self.register(start_component, 'crossbar.node.component.{}.start'.format(self._pid))
+      self._routerModule = RouterModule(self, self._pid)
       #self.register(start_component, 'crossbar.node.component.{}.start'.format(pid))
 
 
-      if self.debug:
-         log.msg("Procedures registered.")
 
-      self.publish('crossbar.node.component.on_start', {'pid': os.getpid(), 'cmd': [sys.executable] + sys.argv})
-
-
-
-
-def run(Component):
-
-
+def run():
    ## create the top-level parser
    ##
    parser = argparse.ArgumentParser(prog = 'crossbar',
@@ -437,7 +508,7 @@ def run(Component):
 
    ##
    from twisted.python.reflect import qual
-   log.msg("Worker {}: starting Python component on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
+   log.msg("Worker {}: starting component on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
 
    try:
 
@@ -446,7 +517,7 @@ def run(Component):
       from autobahn.twisted.wamp import ApplicationSessionFactory
       session_factory = ApplicationSessionFactory()
       session_factory.options = options
-      session_factory.session = Component
+      session_factory.session = WorkerProcess
 
       ## create a WAMP-over-WebSocket transport server factory
       ##
@@ -473,4 +544,4 @@ def run(Component):
 
 
 if __name__ == '__main__':
-   run(NodeProcess)
+   run()
