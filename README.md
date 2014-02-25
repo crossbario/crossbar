@@ -59,94 +59,134 @@ It's fully asynchronous, high-performance with critical code paths accelerated i
 
 **Crossbar.io** can scale up on a 2 core/4GB Ram virtual machine to (at least == tested) 180k concurrently active connections. A scale out / cluster / federation architecture is currently under design.
 
+## Sneak Preview
 
-oberstet@corei7ub1310:~/tmp$ ~/python1/bin/crossbar start
-2014-02-25 18:45:46+0100 [-] Log opened.
-2014-02-25 18:45:46+0100 [-] Worker forked with PID 9053
-2014-02-25 18:45:46+0100 [-] Worker forked with PID 9054
-2014-02-25 18:45:46+0100 [-] Log opened.
-2014-02-25 18:45:46+0100 [-] Log opened.
-2014-02-25 18:45:47+0100 [-] Worker 9053: starting on EPollReactor ..
-2014-02-25 18:45:47+0100 [-] Worker 9054: starting on EPollReactor ..
-2014-02-25 18:45:47+0100 [-] Worker 9053: Router started.
-2014-02-25 18:45:47+0100 [-] Worker 9053: Class 'crossbar.demo.TimeService' (1) started in realm 'realm1'
-2014-02-25 18:45:47+0100 [-] WampWebSocketServerFactory starting on 9000
-2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketServerFactory instance at 0x3036d88>
-2014-02-25 18:45:47+0100 [-] Worker 9053: Transport websocket/tcp:9000 (1) started
-2014-02-25 18:45:47+0100 [-] WampWebSocketServerFactory starting on '/tmp/mysocket'
-2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketServerFactory instance at 0x3037908>
-2014-02-25 18:45:47+0100 [-] Worker 9053: Transport websocket/unix:/tmp/mysocket (2) started
-2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketClientFactory instance at 0x3485bd8>
-2014-02-25 18:45:47+0100 [-] Worker 9054: Component container started.
-2014-02-25 18:45:47+0100 [-] Worker 9054: Class 'crossbar.demo.TickService' started in realm 'realm1'
+> Caution: As mentioned above, **Crossbar**.io is currently under major refactoring, migrating to WAMP v2. Functionality is only partially migrated (eg database connectors are still missing), and **Crossbar**.io is currently only tested on Linux.
+> 
 
+To install **Crossbar**.io:
 
-oberstet@corei7ub1310:~/tmp$ cat .cbdata/config.json 
-{
-   "processes": [
-      {
-         "type": "router",
-         "options": {
-            "classpaths": ["."]
-         },
-         "realms": {
-            "realm1": {
-               "roles": {
-                  "com.example.anonymous": {
-                     "authentication": null,
-                     "grants": {
-                        "create": true,
-                        "join": true,
-                        "access": {
-                           "*": {
-                              "publish": true,
-                              "subscribe": true,
-                              "call": true,
-                              "register": true
-                           }
-                        }
-                     }
-                  }
-               },
-               "classes": [
-                  "crossbar.demo.TimeService"
-               ]
-            }
-         },
-         "transports": [
-            {
-               "type": "websocket",
-               "endpoint": "tcp:9000",
-               "url": "ws://localhost:9000"
-            },
-            {
-               "type": "websocket",
-               "endpoint": "unix:/tmp/mysocket",
-               "url": "ws://localhost"
-            }
-         ]
-      },
-      {
-         "type": "component.python",
-         "options": {
-            "classpaths": ["."]
-         },
-         "class": "crossbar.demo.TickService",
-         "router": {
-            "type": "websocket",
-            "endpoint": "unix:/tmp/mysocket",
-            "url": "ws://localhost",
-            "realm": "realm1"
-         }
-      }
-   ]
-}
-oberstet@corei7ub1310:~/tmp$ 
+	pip install crossbar
 
+This will install the `crossbar` command. To get help on **Crossbar**.io, type:
 
-oberstet@corei7ub1310:~/scm/tavendo/autobahn/AutobahnPython/examples/twisted/wamp/basic$ make client_rpc_timeservice_frontend
-PYTHONPATH=../../../../autobahn python client.py --component "rpc.timeservice.frontend.Component"
-/usr/lib/python2.7/dist-packages/zope/__init__.py:3: UserWarning: Module twisted was already imported from /usr/lib/python2.7/dist-packages/twisted/__init__.pyc, but /home/oberstet/scm/tavendo/autobahn/AutobahnPython/autobahn is being added to sys.path
-  import pkg_resources
-Current time from time service: 2014-02-25T17:29:18Z
+	crossbar --help
+ 
+**Crossbar**.io runs from a node data directory, which you can initialize
 
+	crossbar init --cbdata ./test1
+
+This will create a `test1` data directory, together with a configuration file `test1/config.json` (see below).
+
+To start your **Crossbar**.io node:
+
+	crossbar start --cbdata ./test1
+
+**Crossbar**.io will log starting of the node:
+
+	oberstet@corei7ub1310:~/tmp$ crossbar start --cbdata ./test1
+	2014-02-25 18:45:46+0100 [-] Log opened.
+	2014-02-25 18:45:46+0100 [-] Worker forked with PID 9053
+	2014-02-25 18:45:46+0100 [-] Worker forked with PID 9054
+	2014-02-25 18:45:46+0100 [-] Log opened.
+	2014-02-25 18:45:46+0100 [-] Log opened.
+	2014-02-25 18:45:47+0100 [-] Worker 9053: starting on EPollReactor ..
+	2014-02-25 18:45:47+0100 [-] Worker 9054: starting on EPollReactor ..
+	2014-02-25 18:45:47+0100 [-] Worker 9053: Router started.
+	2014-02-25 18:45:47+0100 [-] Worker 9053: Class 'crossbar.demo.TimeService' (1) started in realm 'realm1'
+	2014-02-25 18:45:47+0100 [-] WampWebSocketServerFactory starting on 9000
+	2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketServerFactory instance at 0x3036d88>
+	2014-02-25 18:45:47+0100 [-] Worker 9053: Transport websocket/tcp:9000 (1) started
+	2014-02-25 18:45:47+0100 [-] WampWebSocketServerFactory starting on '/tmp/mysocket'
+	2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketServerFactory instance at 0x3037908>
+	2014-02-25 18:45:47+0100 [-] Worker 9053: Transport websocket/unix:/tmp/mysocket (2) started
+	2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketClientFactory instance at 0x3485bd8>
+	2014-02-25 18:45:47+0100 [-] Worker 9054: Component container started.
+	2014-02-25 18:45:47+0100 [-] Worker 9054: Class 'crossbar.demo.TickService' started in realm 'realm1'
+	...
+
+The demo configuration of **Crossbar**.io will automatically start two demo application components, which you can test from the JavaScript frontends:
+
+  * [Timeservice Frontend](https://github.com/tavendo/AutobahnPython/blob/master/examples/twisted/wamp/basic/rpc/timeservice/frontend.html)
+  * [Ticker Frontend](https://github.com/tavendo/AutobahnPython/blob/master/examples/twisted/wamp/basic/pubsub/basic/frontend.html)
+
+The demo configuration file `test1/config.json` created looks like this:
+
+	{
+	   "processes": [
+	      {
+	         "type": "router",
+	         "options": {
+	            "classpaths": ["."]
+	         },
+	         "realms": {
+	            "realm1": {
+	               "roles": {
+	                  "com.example.anonymous": {
+	                     "authentication": null,
+	                     "grants": {
+	                        "create": true,
+	                        "join": true,
+	                        "access": {
+	                           "*": {
+	                              "publish": true,
+	                              "subscribe": true,
+	                              "call": true,
+	                              "register": true
+	                           }
+	                        }
+	                     }
+	                  }
+	               },
+	               "classes": [
+	                  "crossbar.demo.TimeService"
+	               ]
+	            }
+	         },
+	         "transports": [
+	            {
+	               "type": "websocket",
+	               "endpoint": "tcp:9000",
+	               "url": "ws://localhost:9000"
+	            },
+	            {
+	               "type": "websocket",
+	               "endpoint": "unix:/tmp/mysocket",
+	               "url": "ws://localhost"
+	            }
+	         ]
+	      },
+	      {
+	         "type": "component.python",
+	         "options": {
+	            "classpaths": ["."]
+	         },
+	         "class": "crossbar.demo.TickService",
+	         "router": {
+	            "type": "websocket",
+	            "endpoint": "unix:/tmp/mysocket",
+	            "url": "ws://localhost",
+	            "realm": "realm1"
+	         }
+	      }
+	   ]
+	}
+
+This configuration starts a WAMP router with 2 transports (TCP + Unix domain sockets).
+
+It will also start the `crossbar.demo.TimeService` application component embedded in the router, and start the `crossbar.demo.TickService` application component in a separate worker, connected to the router via Unix domain sockets.
+
+You can run any of the application components from [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp/basic).
+
+If the application component isn't installed as a Python package, you need to provide a class path:
+
+     "options": {
+        "classpaths": [".", "/home/oberstet/scm/tavendo/autobahn/AutobahnPython/examples/twisted/wamp/basic"]
+     },
+
+and then the respective application components
+	
+	"classes": [
+		"rpc.progress.backend.Component",
+		"rpc.pubsub.backend.Component"
+	]
