@@ -61,7 +61,7 @@ It's fully asynchronous, high-performance with critical code paths accelerated i
 
 ## Sneak Preview
 
-> Caution: As mentioned above, **Crossbar**.io is currently under major refactoring, migrating to WAMP v2. Functionality is only partially migrated (eg database connectors are still missing), and **Crossbar**.io is currently only tested on Linux.
+> Caution: **Crossbar**.io is currently under major refactoring, migrating to [WAMP v2](https://github.com/tavendo/WAMP/tree/master/spec). Functionality is only partially migrated (e.g. database connectors are still missing), and **Crossbar**.io is currently only tested on Linux.
 > 
 
 To install **Crossbar**.io:
