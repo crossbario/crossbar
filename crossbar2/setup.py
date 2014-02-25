@@ -54,18 +54,18 @@ else:
 setup (
    name = 'crossbar',
    version = verstr,
-   description = 'Crossbar.io - polyglot application router',
+   description = 'Crossbar.io - Polyglot application router',
    long_description = docstr,
    author = 'Tavendo GmbH',
    author_email = 'autobahnws@googlegroups.com',
    url = 'http://crossbar.io/',
    platforms = ('Any'),
    install_requires = ['twisted>=twisted-13.2',
-                       'autobahn[twisted]>=0.8.1',
-                       'cryptography>=0.2.dev1',
-                       'pyOpenSSL>=0.14a4',
+                       'autobahn[twisted]>=0.8.3',
+                       'cryptography>=0.2.1',
+                       'pyOpenSSL>=0.14',
                        'psutil>=1.2.1',
-                       'msgpack-python>=0.4.0'],
+                       'msgpack-python>=0.4.1'],
    extras_require = {
       'oracle': ["cx_Oracle>=5.1.2"],
       'postgres': ["psycopg2>=2.5.1"]
@@ -82,7 +82,7 @@ setup (
    ## http://pypi.python.org/pypi?%3Aaction=list_classifiers
    ##
    classifiers = ["License :: OSI Approved :: GNU Affero General Public License v3",
-                  "Development Status :: 4 - Beta",
+                  "Development Status :: 3 - Alpha",
                   "Environment :: Console",
                   "Framework :: Twisted",
                   "Intended Audience :: Developers",
