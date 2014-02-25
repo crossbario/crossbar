@@ -136,18 +136,9 @@ class RouterModule:
          ## .. and create and add an WAMP application session to
          ## run next to the router
          ##
-         print "999"
-         s = SessionKlass(realm)
-         print "llll", s
-         #self._router_session_factory.add(s)
-         o = RouterApplicationSession(s, self._router_session_factory._routerFactory)
-         print "kkkk"
-         self._router_session_factory._app_sessions.append(o)
+         self._router_session_factory.add(SessionKlass(realm))
       except Exception as e:
          print "EERR", e
-         #import traceback
-         #traceback.print_stack()
-         #raise e
 
 
    def startRealm(self, name, config):

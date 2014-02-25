@@ -29,21 +29,21 @@ class TimeService(ApplicationSession):
    def __init__(self, realm = None):
       ApplicationSession.__init__(self)
       self._realm = realm
-      print "666"
 
 
    def onConnect(self):
-      print "555"
-      print self._realm
       self.join(self._realm)
-      print "oioio"
 
 
    def onJoin(self, details):
-      print "4555"
 
       def utcnow():
          now = datetime.datetime.utcnow()
          return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-      self.register(utcnow, 'com.timeservice.now')
+      def ok(_):
+         print("TimeService: procedures registered.")
+
+      d = self.register(utcnow, 'com.timeservice.now')
+      d.addCallback(ok)
+
