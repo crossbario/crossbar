@@ -83,6 +83,7 @@ class RouterModule:
    def __init__(self, session, pid):
       self._session = session
       self._pid = pid
+
       self._router_factory = None
       self._router_session_factory = None
       self._router_transports = {}

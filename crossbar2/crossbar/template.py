@@ -59,7 +59,7 @@ config = {
 
       "realms": {
          "myrealm1": {
-            
+
 
          }
       },
@@ -610,7 +610,7 @@ DEV_ROUTER = {
                "roles": {
                   "com.example.anonymous": {
                      "authentication": None,
-                     "grants": {                  
+                     "grants": {
                         "create": True,
                         "join": True,
                         "access": {
@@ -625,15 +625,15 @@ DEV_ROUTER = {
                   }
                },
                "classes": [
-                  "crossbar.component.timeservice.TimeService"
+                  "timeservice.TimeService"
                ]
             }
          },
          "transports": [
             {
                "type": "websocket",
-               "endpoint": "tcp:8080",
-               "url": "ws://localhost:8080"
+               "endpoint": "tcp:9000",
+               "url": "ws://localhost:9000"
             },
             {
                "type": "websocket",
@@ -642,28 +642,28 @@ DEV_ROUTER = {
             }
          ]
       },
-      {
-         "type": "component.python",
-         "classes": [
-            "crossbar.component.mathservice.MathService"
-         ],
-         "router": {
-            "type": "websocket",
-            "endpoint": "unix:/tmp/mysocket",
-            "url": "ws://localhost",
-            "realm": "com.example.realm1"
-         }
-      },
-      {
-         "type": "component.program",
-         "command": "/usr/bin/node myapp.js",
-         "router": {
-            "type": "websocket",
-            "endpoint": "tcp:localhost:8080",
-            "url": "ws://localhost:8080",
-            "realm": "com.example.realm1"
-         }
-      }
+      # {
+      #    "type": "component.python",
+      #    "classes": [
+      #       "crossbar.component.mathservice.MathService"
+      #    ],
+      #    "router": {
+      #       "type": "websocket",
+      #       "endpoint": "unix:/tmp/mysocket",
+      #       "url": "ws://localhost",
+      #       "realm": "com.example.realm1"
+      #    }
+      # },
+      # {
+      #    "type": "component.program",
+      #    "command": "/usr/bin/node myapp.js",
+      #    "router": {
+      #       "type": "websocket",
+      #       "endpoint": "tcp:localhost:8080",
+      #       "url": "ws://localhost:8080",
+      #       "realm": "com.example.realm1"
+      #    }
+      # }
    ]
 }
 
