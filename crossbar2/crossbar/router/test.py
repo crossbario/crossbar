@@ -35,7 +35,6 @@ from autobahn.wamp.router import RouterFactory
 from autobahn.twisted.wamp import RouterSessionFactory
 from autobahn.twisted.websocket import WampWebSocketServerFactory
 from twisted.internet.endpoints import serverFromString
-from twisted.internet import reactor
 
 from autobahn.wamp.protocol import RouterApplicationSession
 
@@ -100,7 +99,8 @@ class RouterModule:
 
    def start(self, config):
       if not self._router_factory:
-         print "Starting router module", self._pid, config
+         if self.debug:
+            log.msg("Worker {}: starting router module".format(self._pid))
          self._router_factory = RouterFactory()
          self._router_session_factory = RouterSessionFactory(self._router_factory)
       else:
@@ -108,11 +108,13 @@ class RouterModule:
 
 
    def stop(self):
-      print "Stopping router module", self._pid
+      if self.debug:
+         log.msg("Worker {}: stopping router module".format(self._pid))
 
 
    def startRealm(self, name, config):
-      print "Realm started", config
+      if self.debug:
+         log.msg("Worker {}: realm started".format(self._pid))
 
 
 
@@ -131,7 +133,8 @@ class RouterModule:
       ## dynamically load the application component ..
       ##
       try:
-         log.msg("Node process {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
+         if self.debug:
+            log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
 
          import importlib
          c = klassname.split('.')
@@ -140,7 +143,8 @@ class RouterModule:
          SessionKlass = getattr(app, klass)
 
       except Exception as e:
-         log.msg("Node process {}: failed to import class - {}".format(e))
+         if self.debug:
+            log.msg("Worker {}: failed to import class - {}".format(e))
          raise ApplicationError("crossbar.error.class_import_failed", str(e))
 
       else:
@@ -160,7 +164,8 @@ class RouterModule:
       Stop a application component on this router.
       """
       if id in self._component_sessions:
-         log.msg("Node process {}: stopping component {}".format(self._pid, id))
+         if self.debug:
+            log.msg("Worker {}: stopping component {}".format(self._pid, id))
 
          try:
             #self._component_sessions[id].disconnect()
@@ -183,7 +188,8 @@ class RouterModule:
       """
       Start a transport on this router module.
       """
-      log.msg("Node process {}: starting transport on router module.".format(self._pid))
+      if self.debug:
+         log.msg("Worker {}: starting transport on router module.".format(self._pid))
 
       self._router_transport_no += 1
 
@@ -194,6 +200,7 @@ class RouterModule:
          id = self._router_transport_no
 
          # IListeningPort or an CannotListenError
+         from twisted.internet import reactor
          server = serverFromString(reactor, str(config['endpoint']))
          d = server.listen(transport_factory)
 
@@ -216,7 +223,8 @@ class RouterModule:
       Stop a transport on this router module.
       """
       if id in self._router_transports:
-         log.msg("Node process {}: stopping transport {}".format(self._pid, id))
+         if self.debug:
+            log.msg("Worker {}: stopping transport {}".format(self._pid, id))
 
          try:
             d = self._router_transports[id].port.stopListening()
@@ -248,14 +256,16 @@ class RouterModule:
       """
       Start a link on this router.
       """
-      print "Starting router link", self._pid, config
+      if self.debug:
+         log.msg("Worker {}: starting router link".format(self._pid))
 
 
    def stopLink(self, id):
       """
       Stop a link on this router.
       """
-      print "Stopping router link", self._pid, id
+      if self.debug:
+         log.msg("Worker {}: stopping router link {}".format(self._pid, id))
 
 
 
@@ -263,13 +273,17 @@ class RouterModule:
 class NodeProcess(ApplicationSession):
 
    def onConnect(self):
-      log.msg("Connected to node.")
+      self.debug = self.factory.options.debug
+      if self.debug:
+         log.msg("Connected to node.")
+
       self._component = None
       self.join("crossbar")
 
 
    def onJoin(self, details):
-      log.msg("Realm joined.")
+      if self.debug:
+         log.msg("Realm joined.")
 
       pid = os.getpid()
 
@@ -309,9 +323,6 @@ class NodeProcess(ApplicationSession):
       def start_component(config):
          ## create a WAMP router factory
          ##
-         log.msg("Starting component")
-         log.msg(config)
-
          try:
 
             from autobahn.wamp.router import RouterFactory
@@ -366,7 +377,6 @@ class NodeProcess(ApplicationSession):
          except Exception as e:
             log.msg("Fuck {}".format(e))
 
-         log.msg("Router started")
 
 
       self.register(start_component, 'crossbar.node.component.{}.start'.format(pid))
@@ -376,7 +386,8 @@ class NodeProcess(ApplicationSession):
       #self.register(start_component, 'crossbar.node.component.{}.start'.format(pid))
 
 
-      log.msg("Procedures registered.")
+      if self.debug:
+         log.msg("Procedures registered.")
 
       self.publish('crossbar.node.component.on_start', {'pid': os.getpid(), 'cmd': [sys.executable] + sys.argv})
 
@@ -426,7 +437,7 @@ def run(Component):
 
    ##
    from twisted.python.reflect import qual
-   log.msg("Node process {}: starting Python component on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
+   log.msg("Worker {}: starting Python component on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
 
    try:
 
@@ -452,11 +463,11 @@ def run(Component):
       ## now start reactor loop
       ##
       if options.verbose:
-         log.msg("Node process {}: starting reactor".format(os.getpid()))
+         log.msg("Worker {}: starting reactor".format(os.getpid()))
       reactor.run()
 
    except Exception as e:
-      log.msg("Node process {}: unhandled exception - {}".format(os.getpid(), e))
+      log.msg("Worker {}: unhandled exception - {}".format(os.getpid(), e))
       sys.exit(1)
 
 

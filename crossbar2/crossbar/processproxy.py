@@ -50,7 +50,7 @@ class ProcessProxy(ApplicationSession):
       @inlineCallbacks
       def startup():
 
-         print("Node component started: {}".format(self._config))
+         #print("Node component started: {}".format(self._config))
 
          options = self._config.get('options', {})
          if 'classpaths' in options:
@@ -63,28 +63,26 @@ class ProcessProxy(ApplicationSession):
 
 
                res = yield self.call('crossbar.node.module.{}.router.start'.format(self._pid), options)
-               print "Router started", res
+               #print "Router started", res
 
                for realm_name in self._config['realms']:
-                  print "Realm", realm_name
+                  #print "Realm", realm_name
                   realm = self._config['realms'][realm_name]
                   res = yield self.call('crossbar.node.module.{}.router.start_realm'.format(self._pid), realm_name, realm)
-                  print "Realm started", res
+                  #print "Realm started", res
 
                   try:
-                     print "----"
                      for klassname in realm.get('classes', []):
-                        print ".."
-                        res = yield self.call('crossbar.node.module.{}.router.start_class'.format(self._pid), klassname, realm_name)
-                        print "Class started", res
+                        id = yield self.call('crossbar.node.module.{}.router.start_class'.format(self._pid), klassname, realm_name)
+                        log.msg("Worker {}: class {} ({}) started in realm '{}'".format(self._pid, id, klassname, realm_name))
                         #res = yield self.call('crossbar.node.module.{}.router.stop_class'.format(self._pid), res)
                         #print "Class stopped", res
                   except Exception as e:
                      print e, e.args
 
                for transport in self._config['transports']:
-                  res = yield self.call('crossbar.node.module.{}.router.start_transport'.format(self._pid), transport)
-                  print "Transport started", res
+                  id = yield self.call('crossbar.node.module.{}.router.start_transport'.format(self._pid), transport)
+                  log.msg("Worker {}: transport {} ({} on {}) started".format(self._pid, id, transport['type'], transport['endpoint']))
 
 
          except Exception as e:
@@ -93,15 +91,14 @@ class ProcessProxy(ApplicationSession):
 
       @inlineCallbacks
       def on_node_component_start(evt):
-         print "9"*10
          yield startup()
 
 
       @inlineCallbacks
       def on_node_component_start2(evt):
          pid = evt['pid']
-         print("Node component started: {}".format(evt))
-         print(self._config)
+         #print("Node component started: {}".format(evt))
+         #print(self._config)
 
          affinities = yield self.call('crossbar.node.component.{}.get_cpu_affinity'.format(pid))
          print("CPU affinity: {}".format(affinities))

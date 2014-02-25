@@ -22,33 +22,18 @@ __all__ = ['run']
 
 
 import os, sys, json, argparse, pkg_resources, logging
-from pprint import pprint
 
 from twisted.python import log
-from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
 
 from crossbar.template import TEMPLATES
 
 # from autobahn.websocket import connectWS
 # from autobahn.wamp import WampClientFactory, WampCraClientProtocol
 
-from crossbar.processproxy import ProcessProxy
 from sys import argv, executable
 #from twisted.internet import reactor
 
 
-
-import datetime
-
-#from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
-
-from autobahn.twisted.wamp import ApplicationSession
-
-from autobahn.twisted.util import sleep
-
-
-from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
 
 
 
@@ -151,7 +136,8 @@ def run_command_start(options):
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
    from autobahn.twisted.choosereactor import install_reactor
-   reactor = install_reactor()
+   reactor = install_reactor(options.reactor, options.verbose)
+
    if options.debug:
       print("Running on reactor {}".format(reactor))
 
@@ -180,14 +166,14 @@ def run_command_start(options):
    with open(os.path.join(options.cbdata, 'config.json'), 'rb') as infile:
       config = json.load(infile)
 
+   from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
+   from crossbar.processproxy import ProcessProxy
+
    if 'processes' in config:
       for process in config['processes']:
          if process['type'] == 'router':
-            print "found router", process
 
             args = [executable, "-u", "crossbar/router/test.py"]
-
-            print "***", os.environ['PYTHONPATH']
 
             ep = ProcessEndpoint(reactor,
                                  executable,
@@ -198,11 +184,11 @@ def run_command_start(options):
             d = ep.connect(transport_factory)
 
             def onconnect(res):
-               log.msg("node component forked with PID {}".format(res.transport.pid))
+               log.msg("Node component forked with PID {}".format(res.transport.pid))
                session_factory.add(ProcessProxy(res.transport.pid, process))
 
             def onerror(err):
-               log.msg("could not fork node component: {}".format(err.value))
+               log.msg("Could not fork node component: {}".format(err.value))
 
             d.addCallback(onconnect)
          else:
