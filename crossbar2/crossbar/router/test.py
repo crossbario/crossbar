@@ -19,6 +19,7 @@
 import sys
 import os
 import datetime
+import argparse
 
 import psutil
 
@@ -27,38 +28,6 @@ from twisted.python import log
 
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
-
-
-import socket
-from twisted.internet import tcp
-
-class CustomPort(tcp.Port):
-
-   def __init__(self, port, factory, backlog = 50, interface = '', reactor = None, reuse = False):
-      tcp.Port.__init__(self, port, factory, backlog, interface, reactor)
-      self._reuse = reuse
-
-
-   def createInternetSocket(self):
-      s = tcp.Port.createInternetSocket(self)
-      if self._reuse:
-         ##
-         ## reuse IP Port
-         ##
-         if 'bsd' in sys.platform or \
-             sys.platform.startswith('linux') or \
-             sys.platform.startswith('darwin'):
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-
-         elif sys.platform == 'win32':
-            ## on Windows, REUSEADDR already implies REUSEPORT
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-         else:
-            raise Exception("don't know how to set SO_RESUSEPORT on platform {}".format(sys.platform))
-
-      return s
 
 
 
@@ -71,6 +40,8 @@ from twisted.internet import reactor
 from autobahn.wamp.protocol import RouterApplicationSession
 
 
+
+
 class RouterTransport:
    def __init__(self, id, config, port):
       self.id = id
@@ -78,11 +49,32 @@ class RouterTransport:
       self.port = port
 
 
+class RouterClass:
+   def __init__(self, id, klassname, realm):
+      self.id = id
+      self.klassname = klassname
+      self.realm = realm
+
+
 
 class RouterModule:
+   """
+   Entities:
+      - Realms
+      - Transports
+      - Links
+      - Classes
+   """
+
    def __init__(self, session, pid):
       self._session = session
       self._pid = pid
+
+      self.debug = self._session.factory.options.debug
+      self.verbose = self._session.factory.options.verbose
+
+      self._component_sessions = {}
+      self._component_no = 0
 
       self._router_factory = None
       self._router_session_factory = None
@@ -93,6 +85,7 @@ class RouterModule:
       session.register(self.stop,            'crossbar.node.module.{}.router.stop'.format(pid))
 
       session.register(self.startClass,      'crossbar.node.module.{}.router.start_class'.format(pid))
+      session.register(self.stopClass,       'crossbar.node.module.{}.router.stop_class'.format(pid))
 
       session.register(self.startRealm,      'crossbar.node.module.{}.router.start_realm'.format(pid))
       #session.register(self.stopRealm,       'crossbar.node.module.{}.router.stop_realm'.format(pid))
@@ -118,40 +111,79 @@ class RouterModule:
       print "Stopping router module", self._pid
 
 
-   def startClass(self, klassname, realm):
-      ## dynamically load the application component ..
-      ##
-      print klassname, realm
-      try:
-         import sys
-
-         #sys.path.append("/home/oberstet/scm/crossbar/crossbar2")
-         #print sys.path
-         import importlib
-         c = klassname.split('.')
-         mod, klass = '.'.join(c[:-1]), c[-1]
-         print mod, klass
-         app = importlib.import_module(mod)
-         SessionKlass = getattr(app, klass)
-
-         ## .. and create and add an WAMP application session to
-         ## run next to the router
-         ##
-         self._router_session_factory.add(SessionKlass(realm))
-      except Exception as e:
-         print "EERR", e
-
-
    def startRealm(self, name, config):
       print "Realm started", config
 
 
+
+   def listClasses(self):
+      """
+      List currently running application components.
+      """
+      return sorted(self._component_sessions.keys())
+
+
+   def startClass(self, klassname, realm):
+      """
+      Dynamically start an application component to run next to the router in "embedded mode".
+      """
+
+      ## dynamically load the application component ..
+      ##
+      try:
+         log.msg("Node process {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
+
+         import importlib
+         c = klassname.split('.')
+         mod, klass = '.'.join(c[:-1]), c[-1]
+         app = importlib.import_module(mod)
+         SessionKlass = getattr(app, klass)
+
+      except Exception as e:
+         log.msg("Node process {}: failed to import class - {}".format(e))
+         raise ApplicationError("crossbar.error.class_import_failed", str(e))
+
+      else:
+         ## .. and create and add an WAMP application session to
+         ## run the component next to the router
+         ##
+         comp = SessionKlass(realm)
+         self._router_session_factory.add(comp)
+         
+         self._component_no += 1
+         self._component_sessions[self._component_no] = comp
+         return self._component_no
+
+
+   def stopClass(self, id):
+      """
+      Stop a application component on this router.
+      """
+      if id in self._component_sessions:
+         log.msg("Node process {}: stopping component {}".format(self._pid, id))
+
+         try:
+            #self._component_sessions[id].disconnect()
+            self._router_session_factory.remove(self._component_sessions[id])
+            del self._component_sessions[id]
+         except Exception as e:
+            raise ApplicationError("crossbar.error.component.cannot_stop", "Failed to stop component {}: {}".format(id, e))
+      else:
+         raise ApplicationError("crossbar.error.no_such_component", "No component {}".format(id))
+
+
    def listTransports(self):
-      return self._router_transports.keys()
+      """
+      List currently running transports.
+      """
+      return sorted(self._router_transports.keys())
 
 
    def startTransport(self, config):
-      print "Starting router transport", self._pid, config
+      """
+      Start a transport on this router module.
+      """
+      log.msg("Node process {}: starting transport on router module.".format(self._pid))
 
       self._router_transport_no += 1
 
@@ -174,11 +206,18 @@ class RouterModule:
 
          d.addCallbacks(ok, fail)
          return d
+      else:
+         raise ApplicationError("crossbar.error.invalid_transport", "Unknown transport type '{}'".format(config['type']))
+
 
 
    def stopTransport(self, id):
-      print "Stopping router transport", self._pid, id
+      """
+      Stop a transport on this router module.
+      """
       if id in self._router_transports:
+         log.msg("Node process {}: stopping transport {}".format(self._pid, id))
+
          try:
             d = self._router_transports[id].port.stopListening()
 
@@ -186,24 +225,38 @@ class RouterModule:
                del self._router_transports[id]
 
             def fail(err):
-               raise ApplicationError("crossbar.error.cannotstop", str(err.value))
+               raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, str(err.value)))
 
             d.addCallbacks(ok, fail)
             return d
 
          except Exception as e:
-            print "eee", e
+            raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, e))
       else:
-         raise ApplicationError("crossbar.error.no_such_transport")
+         raise ApplicationError("crossbar.error.no_such_transport", "No transport {}".format(id))
 
+
+
+   def listLinks(self):
+      """
+      List currently running links.
+      """
+      return []
 
 
    def startLink(self, config):
+      """
+      Start a link on this router.
+      """
       print "Starting router link", self._pid, config
 
 
    def stopLink(self, id):
+      """
+      Stop a link on this router.
+      """
       print "Stopping router link", self._pid, id
+
 
 
 
@@ -240,6 +293,17 @@ class NodeProcess(ApplicationSession):
 
       self.register(utcnow, 'crossbar.node.component.{}.now'.format(pid))
 
+
+      def get_classpaths():
+         return sys.path
+
+      self.register(get_classpaths, 'crossbar.node.component.{}.get_classpaths'.format(pid))
+
+
+      def add_classpaths(paths, prepend = True):
+         sys.path = paths + sys.path
+
+      self.register(add_classpaths, 'crossbar.node.component.{}.add_classpaths'.format(pid))
 
 
       def start_component(config):
@@ -318,26 +382,51 @@ class NodeProcess(ApplicationSession):
 
 
 
+
 def run(Component):
 
-   ## Command line args:
-   ## debug: true / false
-   ## log: file / stderr / none
-   ## loglevel
+
+   ## create the top-level parser
+   ##
+   parser = argparse.ArgumentParser(prog = 'crossbar',
+                                    description = "Crossbar.io polyglot application router")
+
+   ## top-level options
+   ##
+   parser.add_argument('-d',
+                       '--debug',
+                       action = 'store_true',
+                       help = 'Debug on.')
+
+   parser.add_argument('-v',
+                       '--verbose',
+                       action = 'store_true',
+                       help = 'Verbose (human) output on.')
+
+   parser.add_argument('--reactor',
+                       default = None,
+                       choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
+                       help = 'Explicit Twisted reactor selection')
+
+   ## parse cmd line args
+   ##
+   options = parser.parse_args()
+
 
    ## make sure logging to something else than stdio
    ## is setup _first_
    log.startLogging(sys.stderr)
    #log.startLogging(open('test.log', 'w'))
 
-   log.msg("Node component starting with PID {} ..".format(os.getpid()))
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
    from autobahn.twisted.choosereactor import install_reactor
-   reactor = install_reactor()
+   reactor = install_reactor(options.reactor, options.verbose)
+
+   ##
    from twisted.python.reflect import qual
-   log.msg("Running on reactor {}".format(qual(reactor.__class__)))
+   log.msg("Node process {}: starting Python component on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
 
    try:
 
@@ -345,6 +434,7 @@ def run(Component):
       ##
       from autobahn.twisted.wamp import ApplicationSessionFactory
       session_factory = ApplicationSessionFactory()
+      session_factory.options = options
       session_factory.session = Component
 
       ## create a WAMP-over-WebSocket transport server factory
@@ -361,11 +451,14 @@ def run(Component):
 
       ## now start reactor loop
       ##
-      log.msg("Starting reactor ..")
+      if options.verbose:
+         log.msg("Node process {}: starting reactor".format(os.getpid()))
       reactor.run()
 
    except Exception as e:
-      log.msg("Unhandled exception in node component: {}".format(e))
+      log.msg("Node process {}: unhandled exception - {}".format(os.getpid(), e))
+      sys.exit(1)
+
 
 
 if __name__ == '__main__':

@@ -187,7 +187,14 @@ def run_command_start(options):
 
             args = [executable, "-u", "crossbar/router/test.py"]
 
-            ep = ProcessEndpoint(reactor, executable, args, childFDs = {0: 'w', 1: 'r', 2: 2}, errFlag = StandardErrorBehavior.LOG, env = os.environ)
+            print "***", os.environ['PYTHONPATH']
+
+            ep = ProcessEndpoint(reactor,
+                                 executable,
+                                 args,
+                                 childFDs = {0: 'w', 1: 'r', 2: 2},
+                                 errFlag = StandardErrorBehavior.LOG,
+                                 env = os.environ)
             d = ep.connect(transport_factory)
 
             def onconnect(res):

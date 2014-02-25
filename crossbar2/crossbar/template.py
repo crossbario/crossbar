@@ -605,6 +605,9 @@ DEV_ROUTER = {
    "processes": [
       {
          "type": "router",
+         "options": {
+            "classpaths": [".", "/home/oberstet/scm/tavendo/autobahn/AutobahnPython/examples/twisted/wamp/basic"]
+         },
          "realms": {
             "com.example.realm1": {
                "roles": {
@@ -625,7 +628,8 @@ DEV_ROUTER = {
                   }
                },
                "classes": [
-                  "timeservice.TimeService"
+                  "rpc.timeservice.backend.Component",
+                  "rpc.arguments.backend.Component"
                ]
             }
          },

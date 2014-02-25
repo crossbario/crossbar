@@ -26,6 +26,7 @@ from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
 
+import os
 
 
 class ProcessProxy(ApplicationSession):
@@ -51,11 +52,17 @@ class ProcessProxy(ApplicationSession):
 
          print("Node component started: {}".format(self._config))
 
+         options = self._config.get('options', {})
+         if 'classpaths' in options:
+            yield self.call('crossbar.node.component.{}.add_classpaths'.format(self._pid), options['classpaths'])
+#         yield self.call('crossbar.node.component.{}.add_classpaths'.format(self._pid), [os.getcwd()])
+
          try:
 
             if self._config['type'] == 'router':
 
-               res = yield self.call('crossbar.node.module.{}.router.start'.format(self._pid), {})
+
+               res = yield self.call('crossbar.node.module.{}.router.start'.format(self._pid), options)
                print "Router started", res
 
                for realm_name in self._config['realms']:
@@ -70,6 +77,8 @@ class ProcessProxy(ApplicationSession):
                         print ".."
                         res = yield self.call('crossbar.node.module.{}.router.start_class'.format(self._pid), klassname, realm_name)
                         print "Class started", res
+                        #res = yield self.call('crossbar.node.module.{}.router.stop_class'.format(self._pid), res)
+                        #print "Class stopped", res
                   except Exception as e:
                      print e, e.args
 
