@@ -685,13 +685,75 @@ DEV_ROUTER = {
 }
 
 
+
+DEV_ROUTER = """{
+   "processes": [
+      {
+         "type": "router",
+         "options": {
+            "classpaths": ["."]
+         },
+         "realms": {
+            "realm1": {
+               "roles": {
+                  "com.example.anonymous": {
+                     "authentication": null,
+                     "grants": {
+                        "create": true,
+                        "join": true,
+                        "access": {
+                           "*": {
+                              "publish": true,
+                              "subscribe": true,
+                              "call": true,
+                              "register": true
+                           }
+                        }
+                     }
+                  }
+               },
+               "classes": [
+                  "crossbar.demo.TimeService"
+               ]
+            }
+         },
+         "transports": [
+            {
+               "type": "websocket",
+               "endpoint": "tcp:9000",
+               "url": "ws://localhost:9000"
+            },
+            {
+               "type": "websocket",
+               "endpoint": "unix:/tmp/mysocket",
+               "url": "ws://localhost"
+            }
+         ]
+      },
+      {
+         "type": "component.python",
+         "options": {
+            "classpaths": ["."]
+         },
+         "class": "crossbar.demo.TickService",
+         "router": {
+            "type": "websocket",
+            "endpoint": "unix:/tmp/mysocket",
+            "url": "ws://localhost",
+            "realm": "realm1"
+         }
+      }
+   ]
+}
+"""
+
 TEMPLATES = {
    "router": DEV_ROUTER,
-   "router-smp4": SMP4_ROUTER,
-   "bridge-rest": REST_BRIDGE,
-   "bridge-srdp": SRDP_BRIDGE,
-   "bridge-postgres": POSTGRES_BRIDGE,
-   "bridge-oracle": ORACLE_BRIDGE,
+   #"router-smp4": SMP4_ROUTER,
+   #"bridge-rest": REST_BRIDGE,
+   #"bridge-srdp": SRDP_BRIDGE,
+   #"bridge-postgres": POSTGRES_BRIDGE,
+   #"bridge-oracle": ORACLE_BRIDGE,
    #"yun": ARDUINO_YUN,
    #"pi": RASPBERRY_PI
 }

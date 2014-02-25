@@ -36,9 +36,6 @@ from sys import argv, executable
 
 
 
-
-
-
 def run_command_version(options):
    """
    Print local Crossbar.io software component types and versions.
@@ -115,7 +112,8 @@ def run_command_init(options):
          raise Exception("No such Crossbar.io node template {}".format(options.template))
       else:
          template = TEMPLATES[options.template]
-         config = json.dumps(template, indent = 3, ensure_ascii = False, sort_keys = False)
+         #config = json.dumps(template, indent = 3, ensure_ascii = False, sort_keys = False)
+         config = template
    else:
       raise Exception("Missing template to instantiate Crossbar.io node")
 
@@ -169,7 +167,8 @@ def run_command_start(options):
 
    ## load Crossbar.io node configuration
    ##
-   with open(os.path.join(options.cbdata, 'config.json'), 'rb') as infile:
+   cf = os.path.join(options.cbdata, 'config.json')
+   with open(cf, 'rb') as infile:
       config = json.load(infile)
 
    from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
