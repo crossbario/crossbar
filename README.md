@@ -58,3 +58,95 @@ It's fully asynchronous, high-performance with critical code paths accelerated i
 > As a first *indication*, you might have a look at the performance test section 9 in the reports [here](http://autobahn.ws/testsuite/reports/servers/index.html). The testing details are [here](https://github.com/tavendo/AutobahnTestSuite/tree/master/examples/publicreports). The usual caveats wrt any performance testing and benchmarking apply.
 
 **Crossbar.io** can scale up on a 2 core/4GB Ram virtual machine to (at least == tested) 180k concurrently active connections. A scale out / cluster / federation architecture is currently under design.
+
+
+oberstet@corei7ub1310:~/tmp$ ~/python1/bin/crossbar start
+2014-02-25 18:45:46+0100 [-] Log opened.
+2014-02-25 18:45:46+0100 [-] Worker forked with PID 9053
+2014-02-25 18:45:46+0100 [-] Worker forked with PID 9054
+2014-02-25 18:45:46+0100 [-] Log opened.
+2014-02-25 18:45:46+0100 [-] Log opened.
+2014-02-25 18:45:47+0100 [-] Worker 9053: starting on EPollReactor ..
+2014-02-25 18:45:47+0100 [-] Worker 9054: starting on EPollReactor ..
+2014-02-25 18:45:47+0100 [-] Worker 9053: Router started.
+2014-02-25 18:45:47+0100 [-] Worker 9053: Class 'crossbar.demo.TimeService' (1) started in realm 'realm1'
+2014-02-25 18:45:47+0100 [-] WampWebSocketServerFactory starting on 9000
+2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketServerFactory instance at 0x3036d88>
+2014-02-25 18:45:47+0100 [-] Worker 9053: Transport websocket/tcp:9000 (1) started
+2014-02-25 18:45:47+0100 [-] WampWebSocketServerFactory starting on '/tmp/mysocket'
+2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketServerFactory instance at 0x3037908>
+2014-02-25 18:45:47+0100 [-] Worker 9053: Transport websocket/unix:/tmp/mysocket (2) started
+2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketClientFactory instance at 0x3485bd8>
+2014-02-25 18:45:47+0100 [-] Worker 9054: Component container started.
+2014-02-25 18:45:47+0100 [-] Worker 9054: Class 'crossbar.demo.TickService' started in realm 'realm1'
+
+
+oberstet@corei7ub1310:~/tmp$ cat .cbdata/config.json 
+{
+   "processes": [
+      {
+         "type": "router",
+         "options": {
+            "classpaths": ["."]
+         },
+         "realms": {
+            "realm1": {
+               "roles": {
+                  "com.example.anonymous": {
+                     "authentication": null,
+                     "grants": {
+                        "create": true,
+                        "join": true,
+                        "access": {
+                           "*": {
+                              "publish": true,
+                              "subscribe": true,
+                              "call": true,
+                              "register": true
+                           }
+                        }
+                     }
+                  }
+               },
+               "classes": [
+                  "crossbar.demo.TimeService"
+               ]
+            }
+         },
+         "transports": [
+            {
+               "type": "websocket",
+               "endpoint": "tcp:9000",
+               "url": "ws://localhost:9000"
+            },
+            {
+               "type": "websocket",
+               "endpoint": "unix:/tmp/mysocket",
+               "url": "ws://localhost"
+            }
+         ]
+      },
+      {
+         "type": "component.python",
+         "options": {
+            "classpaths": ["."]
+         },
+         "class": "crossbar.demo.TickService",
+         "router": {
+            "type": "websocket",
+            "endpoint": "unix:/tmp/mysocket",
+            "url": "ws://localhost",
+            "realm": "realm1"
+         }
+      }
+   ]
+}
+oberstet@corei7ub1310:~/tmp$ 
+
+
+oberstet@corei7ub1310:~/scm/tavendo/autobahn/AutobahnPython/examples/twisted/wamp/basic$ make client_rpc_timeservice_frontend
+PYTHONPATH=../../../../autobahn python client.py --component "rpc.timeservice.frontend.Component"
+/usr/lib/python2.7/dist-packages/zope/__init__.py:3: UserWarning: Module twisted was already imported from /usr/lib/python2.7/dist-packages/twisted/__init__.pyc, but /home/oberstet/scm/tavendo/autobahn/AutobahnPython/autobahn is being added to sys.path
+  import pkg_resources
+Current time from time service: 2014-02-25T17:29:18Z
+
