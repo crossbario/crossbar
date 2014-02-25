@@ -64,9 +64,19 @@ class ProcessProxy(ApplicationSession):
                   res = yield self.call('crossbar.node.module.{}.router.start_realm'.format(self._pid), realm_name, realm)
                   print "Realm started", res
 
+                  try:
+                     print "----"
+                     for klassname in realm.get('classes', []):
+                        print ".."
+                        res = yield self.call('crossbar.node.module.{}.router.start_class'.format(self._pid), klassname, realm_name)
+                        print "Class started", res
+                  except Exception as e:
+                     print e, e.args
+
                for transport in self._config['transports']:
                   res = yield self.call('crossbar.node.module.{}.router.start_transport'.format(self._pid), transport)
                   print "Transport started", res
+
 
          except Exception as e:
             print e, e.error, e.args

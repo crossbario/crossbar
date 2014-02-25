@@ -29,14 +29,18 @@ class TimeService(ApplicationSession):
    def __init__(self, realm = None):
       ApplicationSession.__init__(self)
       self._realm = realm
+      print "666"
 
 
    def onConnect(self):
-      print "88888"
+      print "555"
+      print self._realm
       self.join(self._realm)
+      print "oioio"
 
 
    def onJoin(self, details):
+      print "4555"
 
       def utcnow():
          now = datetime.datetime.utcnow()

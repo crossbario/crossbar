@@ -199,7 +199,8 @@ def run_command_start(options):
 
             d.addCallback(onconnect)
          else:
-            raise Exception("unknown process type {}".format(process['type']))
+            #raise Exception("unknown process type {}".format(process['type']))
+            pass
 
    reactor.run()
 

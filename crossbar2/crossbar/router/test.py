@@ -68,6 +68,9 @@ from autobahn.twisted.websocket import WampWebSocketServerFactory
 from twisted.internet.endpoints import serverFromString
 from twisted.internet import reactor
 
+from autobahn.wamp.protocol import RouterApplicationSession
+
+
 class RouterTransport:
    def __init__(self, id, config, port):
       self.id = id
@@ -114,22 +117,37 @@ class RouterModule:
       print "Stopping router module", self._pid
 
 
-   def startClass(self, klassname):
+   def startClass(self, klassname, realm):
       ## dynamically load the application component ..
       ##
+      print klassname, realm
       try:
+         import sys
+
+         #sys.path.append("/home/oberstet/scm/crossbar/crossbar2")
+         #print sys.path
          import importlib
          c = klassname.split('.')
          mod, klass = '.'.join(c[:-1]), c[-1]
+         print mod, klass
          app = importlib.import_module(mod)
          SessionKlass = getattr(app, klass)
 
          ## .. and create and add an WAMP application session to
          ## run next to the router
          ##
-         self._router_session_factory.add(SessionKlass())
+         print "999"
+         s = SessionKlass(realm)
+         print "llll", s
+         #self._router_session_factory.add(s)
+         o = RouterApplicationSession(s, self._router_session_factory._routerFactory)
+         print "kkkk"
+         self._router_session_factory._app_sessions.append(o)
       except Exception as e:
          print "EERR", e
+         #import traceback
+         #traceback.print_stack()
+         #raise e
 
 
    def startRealm(self, name, config):
