@@ -112,65 +112,67 @@ The demo configuration of **Crossbar**.io will automatically start two demo appl
 
 The demo configuration file `test1/config.json` created looks like this:
 
-	{
-	   "processes": [
-	      {
-	         "type": "router",
-	         "options": {
-	            "classpaths": ["."]
-	         },
-	         "realms": {
-	            "realm1": {
-	               "roles": {
-	                  "com.example.anonymous": {
-	                     "authentication": null,
-	                     "grants": {
-	                        "create": true,
-	                        "join": true,
-	                        "access": {
-	                           "*": {
-	                              "publish": true,
-	                              "subscribe": true,
-	                              "call": true,
-	                              "register": true
-	                           }
-	                        }
-	                     }
-	                  }
-	               },
-	               "classes": [
-	                  "crossbar.demo.TimeService"
-	               ]
-	            }
-	         },
-	         "transports": [
-	            {
-	               "type": "websocket",
-	               "endpoint": "tcp:9000",
-	               "url": "ws://localhost:9000"
-	            },
-	            {
-	               "type": "websocket",
-	               "endpoint": "unix:/tmp/mysocket",
-	               "url": "ws://localhost"
-	            }
-	         ]
-	      },
-	      {
-	         "type": "component.python",
-	         "options": {
-	            "classpaths": ["."]
-	         },
-	         "class": "crossbar.demo.TickService",
-	         "router": {
-	            "type": "websocket",
-	            "endpoint": "unix:/tmp/mysocket",
-	            "url": "ws://localhost",
-	            "realm": "realm1"
-	         }
-	      }
-	   ]
-	}
+```javascript
+{
+   "processes": [
+      {
+         "type": "router",
+         "options": {
+            "classpaths": ["."]
+         },
+         "realms": {
+            "realm1": {
+               "roles": {
+                  "com.example.anonymous": {
+                     "authentication": null,
+                     "grants": {
+                        "create": true,
+                        "join": true,
+                        "access": {
+                           "*": {
+                              "publish": true,
+                              "subscribe": true,
+                              "call": true,
+                              "register": true
+                           }
+                        }
+                     }
+                  }
+               },
+               "classes": [
+                  "crossbar.demo.TimeService"
+               ]
+            }
+         },
+         "transports": [
+            {
+               "type": "websocket",
+               "endpoint": "tcp:9000",
+               "url": "ws://localhost:9000"
+            },
+            {
+               "type": "websocket",
+               "endpoint": "unix:/tmp/mysocket",
+               "url": "ws://localhost"
+            }
+         ]
+      },
+      {
+         "type": "component.python",
+         "options": {
+            "classpaths": ["."]
+         },
+         "class": "crossbar.demo.TickService",
+         "router": {
+            "type": "websocket",
+            "endpoint": "unix:/tmp/mysocket",
+            "url": "ws://localhost",
+            "realm": "realm1"
+         }
+      }
+   ]
+}
+```
 
 This configuration starts a WAMP router with 2 transports (TCP + Unix domain sockets).
 
