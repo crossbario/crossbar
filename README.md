@@ -97,71 +97,7 @@ The demo configuration of **Crossbar**.io will automatically start two demo appl
   * [Timeservice Frontend](https://github.com/tavendo/AutobahnPython/blob/master/examples/twisted/wamp/basic/rpc/timeservice/frontend.html)
   * [Ticker Frontend](https://github.com/tavendo/AutobahnPython/blob/master/examples/twisted/wamp/basic/pubsub/basic/frontend.html)
 
-The demo configuration file `test1/config.json` created looks like this:
-
-```javascript
-{
-   "processes": [
-      {
-         "type": "router",
-         "options": {
-            "classpaths": ["."]
-         },
-         "realms": {
-            "realm1": {
-               "roles": {
-                  "com.example.anonymous": {
-                     "authentication": null,
-                     "grants": {
-                        "create": true,
-                        "join": true,
-                        "access": {
-                           "*": {
-                              "publish": true,
-                              "subscribe": true,
-                              "call": true,
-                              "register": true
-                           }
-                        }
-                     }
-                  }
-               },
-               "classes": [
-                  "crossbar.demo.TimeService"
-               ]
-            }
-         },
-         "transports": [
-            {
-               "type": "websocket",
-               "endpoint": "tcp:9000",
-               "url": "ws://localhost:9000"
-            },
-            {
-               "type": "websocket",
-               "endpoint": "unix:/tmp/mysocket",
-               "url": "ws://localhost"
-            }
-         ]
-      },
-      {
-         "type": "component.python",
-         "options": {
-            "classpaths": ["."]
-         },
-         "class": "crossbar.demo.TickService",
-         "router": {
-            "type": "websocket",
-            "endpoint": "unix:/tmp/mysocket",
-            "url": "ws://localhost",
-            "realm": "realm1"
-         }
-      }
-   ]
-}
-```
-
-This configuration starts a WAMP router with 2 transports (TCP + Unix domain sockets).
+The demo configuration file `test1/config.json` created starts a WAMP router with two transports (TCP + Unix domain sockets).
 
 It will also start the `crossbar.demo.TimeService` application component embedded in the router, and start the `crossbar.demo.TickService` application component in a separate worker, connected to the router via Unix domain sockets.
 
@@ -179,3 +115,8 @@ and then the respective application components
 		"rpc.progress.backend.Component",
 		"rpc.pubsub.backend.Component"
 	]
+
+
+## Where to go
+
+The [Wiki](/wiki).
