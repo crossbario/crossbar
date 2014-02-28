@@ -74,6 +74,8 @@ class NodeControllerSession(ApplicationSession):
                print "Node activated", node_id, certificate
                reg.unregister()
 
+               self.publish('crossbar.node.onactivate', node_id)
+
                log.msg("Restarting node in 5 seconds ...")
                reactor.callLater(5, self.factory.node_session.restart_node)
 
@@ -91,8 +93,9 @@ class NodeControllerSession(ApplicationSession):
 class NodeSession(ApplicationSession):
    """
    """
-   def __init__(self):
+   def __init__(self, node):
       ApplicationSession.__init__(self)
+      self._node = node
       self._controller_session = None
 
    def restart_node(self):
@@ -113,7 +116,7 @@ class NodeSession(ApplicationSession):
       #self.publish('com.myapp.topic1', os.getpid())
 
    def get_node_processes(self):
-      return 666
+      return sorted(self._node._processes.keys())
 
 
 
@@ -129,15 +132,18 @@ from sys import argv, executable
 from autobahn.twisted.wamp import ApplicationSessionFactory
 from twisted.internet.endpoints import clientFromString
 
+
+
 class Node:
 
    def __init__(self, reactor, config):
       self._reactor = reactor
       self._config = config
+      self._processes = {}
 
 
    def start(self):
-      node_session = NodeSession()
+      node_session = NodeSession(self)
 
       session_factory = ApplicationSessionFactory()
       session_factory.session = NodeControllerSession
@@ -186,9 +192,11 @@ class Node:
                d = ep.connect(transport_factory)
 
                def onconnect(res):
-                  log.msg("Worker forked with PID {}".format(res.transport.pid))
-                  #print process
-                  session_factory.add(ProcessProxy(res.transport.pid, process))
+                  pid = res.transport.pid
+                  log.msg("Worker forked with PID {}".format(pid))
+                  proxy = ProcessProxy(pid, process)
+                  session_factory.add(proxy)
+                  self._processes[pid] = proxy
 
                def onerror(err):
                   log.msg("Could not fork worker: {}".format(err.value))
