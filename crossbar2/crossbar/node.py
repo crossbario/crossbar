@@ -29,11 +29,78 @@ from autobahn.twisted.wamp import ApplicationSession
 import os
 
 
+
+class NodeControllerSession(ApplicationSession):
+   """
+   """
+   def __init__(self):
+      ApplicationSession.__init__(self)
+
+
+   def onConnect(self):
+      self.join("crossbar.cloud")
+
+
+   def is_paired(self):
+      return False
+
+
+   @inlineCallbacks
+   def onJoin(self, details):
+      log.msg("Connected to Crossbar.io Management Cloud.")
+
+      from twisted.internet import reactor
+
+      self.factory.node_session.setControllerSession(self)
+
+      if not self.is_paired():
+         try:
+            node_info = {}
+            node_publickey = "public key"
+            activation_code = yield self.call('crossbar.cloud.get_activation_code', node_info, node_publickey)
+         except Exception as e:
+            print e
+         else:
+            log.msg("Log into https://console.crossbar.io to configure your instance using the activation code: {}".format(activation_code))
+
+            reg = None
+
+            def activate(node_id, certificate):
+               ## check if certificate was issued by Tavendo
+               ## check if certificate matches node key
+               ## persist node_id
+               ## persist certificate
+               ## restart node
+               print "Node activated", node_id, certificate
+               reg.unregister()
+
+               log.msg("Restarting node in 5 seconds ...")
+               reactor.callLater(5, self.factory.node_session.restart_node)
+
+            reg = yield self.register(activate, 'crossbar.node.activate.{}'.format(activation_code))
+      else:
+         pass
+
+      res = yield self.register(self.factory.node_session.get_node_processes, 'crossbar.node.get_node_processes')
+      print "register", res
+
+      self.publish('com.myapp.topic1', os.getpid())
+
+
+
 class NodeSession(ApplicationSession):
    """
    """
    def __init__(self):
       ApplicationSession.__init__(self)
+      self._controller_session = None
+
+   def restart_node(self):
+      print "restarting node .."
+
+
+   def setControllerSession(self, session):
+      self._controller_session = session
 
 
    def onConnect(self):
@@ -42,6 +109,11 @@ class NodeSession(ApplicationSession):
 
    def onJoin(self, details):
       print "JOINED"
+      #print self.factory.session
+      #self.publish('com.myapp.topic1', os.getpid())
+
+   def get_node_processes(self):
+      return 666
 
 
 
@@ -54,7 +126,8 @@ from crossbar.processproxy import ProcessProxy
 import pkg_resources
 from sys import argv, executable
 
-
+from autobahn.twisted.wamp import ApplicationSessionFactory
+from twisted.internet.endpoints import clientFromString
 
 class Node:
 
@@ -64,10 +137,21 @@ class Node:
 
 
    def start(self):
+      node_session = NodeSession()
+
+      session_factory = ApplicationSessionFactory()
+      session_factory.session = NodeControllerSession
+      session_factory.node_session = node_session
+      transport_factory = WampWebSocketClientFactory(session_factory, "ws://127.0.0.1:7000")
+      transport_factory.setProtocolOptions(failByDrop = False)
+      client = clientFromString(self._reactor, "tcp:127.0.0.1:7000")
+      client.connect(transport_factory)
+      print "3"*10
+
       router_factory = RouterFactory()
 
       session_factory = RouterSessionFactory(router_factory)
-      session_factory.add(NodeSession())
+      session_factory.add(node_session)
 
       transport_factory = WampWebSocketClientFactory(session_factory, "ws://localhost", debug = False)
       transport_factory.setProtocolOptions(failByDrop = False)
