@@ -119,4 +119,4 @@ and then the respective application components
 
 ## Where to go
 
-The [Wiki](/wiki).
+The [Wiki](https://github.com/crossbario/crossbar/wiki).
