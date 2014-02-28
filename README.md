@@ -4,6 +4,9 @@
 
 *Remote Procedure Calls* and *Publish & Subscribe* for distributed applications, direct-to-database messaging and no application server needed.
 
+> Please also see the [Wiki](https://github.com/crossbario/crossbar/wiki) for more information.
+
+
 
 ## What is that?
 
@@ -39,13 +42,18 @@ For example, **Crossbar**.io allows you to
 
 ## How does it work?
 
-**Crossbar**.io provides routing services according to [The Web Application Messaging Protocol (WAMP)](http://wamp.ws/).
+**Crossbar**.io provides routing services according to [The Web Application Messaging Protocol (WAMP)](http://wamp.ws/) and supports direct integration of databases into WAMP based architectures. PostgreSQL and Oracle connectors under development.
 
 **Crossbar.io** is written in Python, and builds on [Twisted](http://twistedmatrix.com/) and [Autobahn](http://autobahn.ws/). It's fully asynchronous, high-performance with critical code paths accelerated in native code, and also able to run on [PyPy](http://pypy.org/), a [JITting](http://en.wikipedia.org/wiki/Just-in-time_compilation) Python implementation.
-
-**Crossbar**.io supports direct integration of databases into WAMP based architectures. PostgreSQL and Oracle connectors under development.
 
 
 # Where to go
 
 For further information including a getting started, please checkout the [Wiki](https://github.com/crossbario/crossbar/wiki).
+
+
+----------
+
+
+
+Copyright (c) 2014 [Tavendo GmbH](http://www.tavendo.com). Licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.
