@@ -20,30 +20,26 @@ from __future__ import absolute_import
 
 __all__ = ['run']
 
-
-import os, sys, json, argparse, pkg_resources, logging
+import os
+import sys
+import json
+import argparse
 import pkg_resources
 
 from twisted.python import log
+from twisted.python.reflect import qual
 
-from crossbar.template import TEMPLATES
+from autobahn.twisted.choosereactor import install_reactor
 
-# from autobahn.websocket import connectWS
-# from autobahn.wamp import WampClientFactory, WampCraClientProtocol
-
-from sys import argv, executable
-#from twisted.internet import reactor
+from crossbar.node import Node
 
 
 
 def run_command_version(options):
    """
-   Print local Crossbar.io software component types and versions.
+   Subcommand "crossbar version".
    """
-   from autobahn.twisted.choosereactor import install_reactor
    reactor = install_reactor(options.reactor, options.debug)
-
-   from twisted.python.reflect import qual
 
    ## Python
    ##
@@ -100,13 +96,16 @@ def run_command_version(options):
    print "Autobahn        : %s" % ab_ver
    print "Twisted         : %s" % tx_ver
    print "Python          : %s" % py_ver
-#   print "UTF8 Validator  : %s" % utf8_ver
-#   print "XOR Masker      : %s" % xor_ver
+   print "UTF8 Validator  : %s" % utf8_ver
+   print "XOR Masker      : %s" % xor_ver
    print
 
 
 
 def run_command_init(options):
+   """
+   Subcommand "crossbar init".
+   """
    if options.template:
       if not TEMPLATES.has_key(options.template):
          raise Exception("No such Crossbar.io node template {}".format(options.template))
@@ -133,37 +132,19 @@ def run_command_init(options):
 
 
 def run_command_start(options):
-
-   from twisted.python import log
+   """
+   Subcommand "crossbar start".
+   """
+   ## start Twisted logging
+   ##
    log.startLogging(sys.stderr)
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
-   from autobahn.twisted.choosereactor import install_reactor
    reactor = install_reactor(options.reactor, options.debug)
 
    if options.debug:
       print("Running on reactor {}".format(reactor))
-
-
-   ## create a WAMP router factory
-   ##
-   from autobahn.wamp.router import RouterFactory
-   router_factory = RouterFactory()
-
-
-   ## create a WAMP router session factory
-   ##
-   from autobahn.twisted.wamp import RouterSessionFactory
-   session_factory = RouterSessionFactory(router_factory)
-
-
-   ## create a WAMP-over-WebSocket transport client factory
-   ##
-   from autobahn.twisted.websocket import WampWebSocketClientFactory
-   transport_factory = WampWebSocketClientFactory(session_factory, "ws://localhost", debug = False)
-   transport_factory.setProtocolOptions(failByDrop = False)
-
 
    ## load Crossbar.io node configuration
    ##
@@ -171,57 +152,20 @@ def run_command_start(options):
    with open(cf, 'rb') as infile:
       config = json.load(infile)
 
-   from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
-   from crossbar.processproxy import ProcessProxy
+   ## create and start Crossbar.io node
+   ##
+   node = Node(reactor, config)
+   node.start()
 
-
-   WORKER_MAP = {
-      "router": "router/worker.py",
-      "component.python": "router/worker.py"
-   }
-
-   if 'processes' in config:
-      for process in config['processes']:
-
-         if not process['type'] in WORKER_MAP:
-            #raise Exception("Illegal worker type '{}'".format(process['type']))
-            pass
-
-         else:
-
-            filename = pkg_resources.resource_filename('crossbar', WORKER_MAP[process['type']])
-
-            args = [executable, "-u", filename]
-
-            ep = ProcessEndpoint(reactor,
-                                 executable,
-                                 args,
-                                 childFDs = {0: 'w', 1: 'r', 2: 2},
-                                 errFlag = StandardErrorBehavior.LOG,
-                                 env = os.environ)
-
-            d = ep.connect(transport_factory)
-
-            def onconnect(res):
-               log.msg("Worker forked with PID {}".format(res.transport.pid))
-               #print process
-               session_factory.add(ProcessProxy(res.transport.pid, process))
-
-            def onerror(err):
-               log.msg("Could not fork worker: {}".format(err.value))
-
-            d.addCallback(onconnect)
-
-   else:
-      raise Exception("no processes configured")
-
+   ## enter event loop
+   ##
    reactor.run()
 
 
 
 def run():
    """
-   Entry point of installed Crossbar.io tool.
+   Entry point of Crossbar.io.
    """
    ## create the top-level parser
    ##
@@ -239,21 +183,6 @@ def run():
                        default = None,
                        choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
                        help = 'Explicit Twisted reactor selection')
-
-   ## output format
-   ##
-   # output_format_dummy = parser.add_argument_group(title = 'Output format control')
-   # output_format = output_format_dummy.add_mutually_exclusive_group(required = False)
-
-   # output_format.add_argument('-v',
-   #                            '--verbose',
-   #                            action = 'store_true',
-   #                            help = 'Verbose (human) output on.')
-
-   # output_format.add_argument('-j',
-   #                            '--json',
-   #                            action = 'store_true',
-   #                            help = 'Turn JSON output on.')
 
    ## create subcommand parser
    ##
@@ -308,7 +237,6 @@ def run():
                               default = 'info',
                               choices = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'],
                               help = "Server log level (overrides default 'info')")
-
 
 
    ## parse cmd line args
