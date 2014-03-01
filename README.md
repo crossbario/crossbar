@@ -1,22 +1,23 @@
 # Crossbar.io
 
-Open-source multi-protocol application router:
+**Open-source polyglot application router**
 
- * RPC and PubSub for distributed applications
- * Direct-to-database messaging
- * No application server needed
+*Remote Procedure Calls* and *Publish & Subscribe* for distributed applications, direct-to-database messaging and no application server needed.
+
+> Please also see the [Wiki](https://github.com/crossbario/crossbar/wiki) for more information.
+
 
 
 ## What is that?
 
-**Crossbar.io** is an application _router_: it can route remote procedure calls to endpoints and at the same time can act as a message broker to dispatch events in (soft) real-time to subscribers.
+[**Crossbar**.io](http://crossbar.io) is an application _router_: it can route remote procedure calls to endpoints and at the same time can act as a message broker to dispatch events in (soft) real-time to subscribers.
 
-It provides application _infrastructure_ services to application components running in a distributed system and does so using two well-known, powerful messaging patterns:
+It provides application infrastructure services to application components running in a distributed system and does so using two well-known, powerful messaging patterns:
 
- * **Remote Procedure Calls** where **Crossbar.io** acts as a *dealer* mediating between *callers* and *callees*
- * **Publish & Subscribe**, where **Crossbar.io** acts as a *broker* mediating between *publishers* and *subscribers*
+ * *Remote Procedure Calls*
+ * *Publish & Subscribe*
 
-For example, **Crossbar.io** allows you to
+For example, **Crossbar**.io allows you to
 
   * Call database stored procedures from JavaScript
   * Subscribe to topics and receive events in JavaScript
@@ -41,154 +42,18 @@ For example, **Crossbar.io** allows you to
 
 ## How does it work?
 
-**Crossbar.io** is _multi-protocol_ - it speaks:
+**Crossbar**.io provides routing services according to [The Web Application Messaging Protocol (WAMP)](http://wamp.ws/) and supports direct integration of databases into WAMP based architectures. PostgreSQL and Oracle connectors under development.
 
-  * [The WebSocket Protocol](http://tools.ietf.org/html/rfc6455)
-  * [The WebSocket Application Messaging Protocol (WAMP)](http://wamp.ws/)
-  * Oracle database protocol
-  * PostgreSQL database protocol
-  * HTTP, FTP
+**Crossbar.io** is written in Python, and builds on [Twisted](http://twistedmatrix.com/) and [Autobahn](http://autobahn.ws/). It's fully asynchronous, high-performance with critical code paths accelerated in native code, and also able to run on [PyPy](http://pypy.org/), a [JITting](http://en.wikipedia.org/wiki/Just-in-time_compilation) Python implementation.
 
-**Crossbar.io** support *Oracle* today, with support for *PostgreSQL* upcoming.
 
-**Crossbar.io** is written in Python, and builds on [Twisted](http://twistedmatrix.com/) and [Autobahn](http://autobahn.ws/).
+# Where to go
 
-It's fully asynchronous, high-performance with critical code paths accelerated in native code, and also able to run on [PyPy](http://pypy.org/), a [JITting](http://en.wikipedia.org/wiki/Just-in-time_compilation) Python implementation and competitive with e.g. NodeJS and Java based servers.
+For further information including a getting started, please checkout the [Wiki](https://github.com/crossbario/crossbar/wiki).
 
-> As a first *indication*, you might have a look at the performance test section 9 in the reports [here](http://autobahn.ws/testsuite/reports/servers/index.html). The testing details are [here](https://github.com/tavendo/AutobahnTestSuite/tree/master/examples/publicreports). The usual caveats wrt any performance testing and benchmarking apply.
 
-**Crossbar.io** can scale up on a 2 core/4GB Ram virtual machine to (at least == tested) 180k concurrently active connections. A scale out / cluster / federation architecture is currently under design.
+----------
 
-## Sneak Preview
 
-> Caution: **Crossbar**.io is currently under major refactoring, migrating to [WAMP v2](https://github.com/tavendo/WAMP/tree/master/spec). Functionality is only partially migrated (e.g. database connectors are still missing), and **Crossbar**.io is currently only tested on Linux.
-> 
 
-To install **Crossbar**.io:
-
-	pip install crossbar
-
-This will install the `crossbar` command. To get help on **Crossbar**.io, type:
-
-	crossbar --help
- 
-**Crossbar**.io runs from a node data directory, which you can initialize
-
-	crossbar init --cbdata ./test1
-
-This will create a `test1` data directory, together with a configuration file `test1/config.json` (see below).
-
-To start your **Crossbar**.io node:
-
-	crossbar start --cbdata ./test1
-
-**Crossbar**.io will log starting of the node:
-
-	oberstet@corei7ub1310:~/tmp$ crossbar start --cbdata ./test1
-	2014-02-25 18:45:46+0100 [-] Log opened.
-	2014-02-25 18:45:46+0100 [-] Worker forked with PID 9053
-	2014-02-25 18:45:46+0100 [-] Worker forked with PID 9054
-	2014-02-25 18:45:46+0100 [-] Log opened.
-	2014-02-25 18:45:46+0100 [-] Log opened.
-	2014-02-25 18:45:47+0100 [-] Worker 9053: starting on EPollReactor ..
-	2014-02-25 18:45:47+0100 [-] Worker 9054: starting on EPollReactor ..
-	2014-02-25 18:45:47+0100 [-] Worker 9053: Router started.
-	2014-02-25 18:45:47+0100 [-] Worker 9053: Class 'crossbar.demo.TimeService' (1) started in realm 'realm1'
-	2014-02-25 18:45:47+0100 [-] WampWebSocketServerFactory starting on 9000
-	2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketServerFactory instance at 0x3036d88>
-	2014-02-25 18:45:47+0100 [-] Worker 9053: Transport websocket/tcp:9000 (1) started
-	2014-02-25 18:45:47+0100 [-] WampWebSocketServerFactory starting on '/tmp/mysocket'
-	2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketServerFactory instance at 0x3037908>
-	2014-02-25 18:45:47+0100 [-] Worker 9053: Transport websocket/unix:/tmp/mysocket (2) started
-	2014-02-25 18:45:47+0100 [-] Starting factory <autobahn.twisted.websocket.WampWebSocketClientFactory instance at 0x3485bd8>
-	2014-02-25 18:45:47+0100 [-] Worker 9054: Component container started.
-	2014-02-25 18:45:47+0100 [-] Worker 9054: Class 'crossbar.demo.TickService' started in realm 'realm1'
-	...
-
-The demo configuration of **Crossbar**.io will automatically start two demo application components, which you can test from the JavaScript frontends:
-
-  * [Timeservice Frontend](https://github.com/tavendo/AutobahnPython/blob/master/examples/twisted/wamp/basic/rpc/timeservice/frontend.html)
-  * [Ticker Frontend](https://github.com/tavendo/AutobahnPython/blob/master/examples/twisted/wamp/basic/pubsub/basic/frontend.html)
-
-The demo configuration file `test1/config.json` created looks like this:
-
-```javascript
-{
-   "processes": [
-      {
-         "type": "router",
-         "options": {
-            "classpaths": ["."]
-         },
-         "realms": {
-            "realm1": {
-               "roles": {
-                  "com.example.anonymous": {
-                     "authentication": null,
-                     "grants": {
-                        "create": true,
-                        "join": true,
-                        "access": {
-                           "*": {
-                              "publish": true,
-                              "subscribe": true,
-                              "call": true,
-                              "register": true
-                           }
-                        }
-                     }
-                  }
-               },
-               "classes": [
-                  "crossbar.demo.TimeService"
-               ]
-            }
-         },
-         "transports": [
-            {
-               "type": "websocket",
-               "endpoint": "tcp:9000",
-               "url": "ws://localhost:9000"
-            },
-            {
-               "type": "websocket",
-               "endpoint": "unix:/tmp/mysocket",
-               "url": "ws://localhost"
-            }
-         ]
-      },
-      {
-         "type": "component.python",
-         "options": {
-            "classpaths": ["."]
-         },
-         "class": "crossbar.demo.TickService",
-         "router": {
-            "type": "websocket",
-            "endpoint": "unix:/tmp/mysocket",
-            "url": "ws://localhost",
-            "realm": "realm1"
-         }
-      }
-   ]
-}
-```
-
-This configuration starts a WAMP router with 2 transports (TCP + Unix domain sockets).
-
-It will also start the `crossbar.demo.TimeService` application component embedded in the router, and start the `crossbar.demo.TickService` application component in a separate worker, connected to the router via Unix domain sockets.
-
-You can run any of the application components from [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp/basic).
-
-If the application component isn't installed as a Python package, you need to provide a class path:
-
-     "options": {
-        "classpaths": [".", "/home/oberstet/scm/tavendo/autobahn/AutobahnPython/examples/twisted/wamp/basic"]
-     },
-
-and then the respective application components
-	
-	"classes": [
-		"rpc.progress.backend.Component",
-		"rpc.pubsub.backend.Component"
-	]
+Copyright (c) 2014 [Tavendo GmbH](http://www.tavendo.com). Licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.
