@@ -747,6 +747,64 @@ DEV_ROUTER = """{
 }
 """
 
+
+
+DEV_ROUTER = """{
+   "processes": [
+      {
+         "type": "router",
+         "options": {
+            "classpaths": ["."]
+         },
+         "realms": {
+            "realm1": {
+               "roles": {
+                  "com.example.anonymous": {
+                     "authentication": null,
+                     "grants": {
+                        "create": true,
+                        "join": true,
+                        "access": {
+                           "*": {
+                              "publish": true,
+                              "subscribe": true,
+                              "call": true,
+                              "register": true
+                           }
+                        }
+                     }
+                  }
+               },
+               "classes": [
+                  "crossbar.demo.TimeService"
+               ]
+            }
+         },
+         "transports": [
+            {
+               "type": "websocket",
+               "endpoint": "tcp:9000",
+               "url": "ws://localhost:9000"
+            }
+         ]
+      },
+      {
+         "type": "component.python",
+         "options": {
+            "classpaths": ["."]
+         },
+         "class": "crossbar.demo.TickService",
+         "router": {
+            "type": "websocket",
+            "endpoint": "tcp:localhost:9000",
+            "url": "ws://localhost:9000",
+            "realm": "realm1"
+         }
+      }
+   ]
+}
+"""
+
 TEMPLATES = {
    "router": DEV_ROUTER,
    #"router-smp4": SMP4_ROUTER,

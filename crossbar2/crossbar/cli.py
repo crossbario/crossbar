@@ -196,8 +196,9 @@ def run_command_start(options):
             ep = ProcessEndpoint(reactor,
                                  executable,
                                  args,
-                                 childFDs = {0: 'w', 1: 'r', 2: 2},
-                                 errFlag = StandardErrorBehavior.LOG,
+                                 #childFDs = {0: 'w', 1: 'r', 2: 2},
+                                 errFlag = StandardErrorBehavior.DROP,
+#                                 errFlag = StandardErrorBehavior.LOG,
                                  env = os.environ)
 
             d = ep.connect(transport_factory)
