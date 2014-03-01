@@ -106,6 +106,8 @@ def run_command_init(options):
    """
    Subcommand "crossbar init".
    """
+   from crossbar.template import TEMPLATES
+   
    if options.template:
       if not TEMPLATES.has_key(options.template):
          raise Exception("No such Crossbar.io node template {}".format(options.template))

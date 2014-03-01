@@ -111,9 +111,9 @@ class NodeSession(ApplicationSession):
 
 
    def onJoin(self, details):
-      print "JOINED"
       #print self.factory.session
       #self.publish('com.myapp.topic1', os.getpid())
+      pass
 
    def get_node_processes(self):
       return sorted(self._node._processes.keys())
@@ -145,14 +145,14 @@ class Node:
    def start(self):
       node_session = NodeSession(self)
 
-      session_factory = ApplicationSessionFactory()
-      session_factory.session = NodeControllerSession
-      session_factory.node_session = node_session
-      transport_factory = WampWebSocketClientFactory(session_factory, "ws://127.0.0.1:7000")
-      transport_factory.setProtocolOptions(failByDrop = False)
-      client = clientFromString(self._reactor, "tcp:127.0.0.1:7000")
-      client.connect(transport_factory)
-      print "3"*10
+      if False:
+         session_factory = ApplicationSessionFactory()
+         session_factory.session = NodeControllerSession
+         session_factory.node_session = node_session
+         transport_factory = WampWebSocketClientFactory(session_factory, "ws://127.0.0.1:7000")
+         transport_factory.setProtocolOptions(failByDrop = False)
+         client = clientFromString(self._reactor, "tcp:127.0.0.1:7000")
+         client.connect(transport_factory)
 
       router_factory = RouterFactory()
 
