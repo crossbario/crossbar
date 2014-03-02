@@ -118,6 +118,8 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
 
 
+from autobahn.websocket.compress import *
+
 
 class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
@@ -141,6 +143,37 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
          self._cookies = {}
 
       self.setProtocolOptions(failByDrop = False)
+
+
+      options = config.get('options', {})
+
+      if 'compression' in options:
+         if 'deflate' in options['compression']:
+
+            log.msg("enabling WebSocket compression (permessage-deflate)")
+
+            params = options['compression']['deflate']
+
+            requestNoContextTakeover   = params.get('request_no_context_takeover', False)
+            requestMaxWindowBits       = params.get('request_max_window_bits', 0)
+            noContextTakeover          = params.get('no_context_takeover', None)
+            windowBits                 = params.get('max_window_bits', None)
+            memLevel                   = params.get('memory_level', None)
+
+            def accept(offers):
+               for offer in offers:
+                  if isinstance(offer, PerMessageDeflateOffer):
+                     if (requestMaxWindowBits == 0 or offer.acceptMaxWindowBits) and \
+                        (not requestNoContextTakeover or offer.acceptNoContextTakeover):
+                        return PerMessageDeflateOfferAccept(offer,
+                                                            requestMaxWindowBits = requestMaxWindowBits,
+                                                            requestNoContextTakeover = requestNoContextTakeover,
+                                                            noContextTakeover = noContextTakeover,
+                                                            windowBits = windowBits,
+                                                            memLevel = memLevel)
+
+            self.setProtocolOptions(perMessageCompressionAccept = accept)
+
 
 
 
