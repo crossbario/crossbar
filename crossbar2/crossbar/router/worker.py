@@ -198,8 +198,48 @@ class RouterModule:
 
       self._router_transport_no += 1
 
-      if config['type'] == 'websocket':
-         transport_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, config)
+      if config['type'] in ['websocket', 'web']:
+
+         if config['type'] == 'websocket':
+
+            transport_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, config)
+
+         elif config['type'] == 'web':
+
+            ## this is here to avoid module level reactor imports
+            ## https://twistedmatrix.com/trac/ticket/6849
+            ##
+            from twisted.web.server import Site
+            from twisted.web.static import File
+            from twisted.web.resource import Resource
+            from autobahn.twisted.resource import WebSocketResource
+
+            ## Web directory static file serving
+            ##
+            root_dir = os.path.abspath(config['directory'])
+            print "Starting Web service at root directory {}".format(root_dir)
+            root = File(root_dir)
+
+            for path in sorted(config.get('paths', [])):
+
+               path_config = config['paths'][path]
+
+               if path_config['type'] == 'websocket':
+                  ws_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, path_config)
+
+                  ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
+                  ws_factory.startFactory()
+
+                  resource = WebSocketResource(ws_factory)
+                  root.putChild(path, resource)
+               else:
+                  print "unknown path type"
+
+            transport_factory = Site(root)
+
+         else:
+            raise Exception("logic error")
+
 
          id = self._router_transport_no
 

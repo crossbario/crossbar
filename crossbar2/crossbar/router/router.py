@@ -153,10 +153,6 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
       if 'cookie' in config:
          self._cookies = {}
 
-      self.setOptions(options)
-
-
-   def setOptions(self, options):
       c = options
 
       versions = []
@@ -190,15 +186,15 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
       ## WebSocket compression
       ##
       self.setProtocolOptions(perMessageCompressionAccept = lambda _: None)
-      if 'compression' in options:
+      if 'compression' in c:
 
          ## permessage-deflate
          ##
-         if 'deflate' in options['compression']:
+         if 'deflate' in c['compression']:
 
             log.msg("enabling WebSocket compression (permessage-deflate)")
 
-            params = options['compression']['deflate']
+            params = c['compression']['deflate']
 
             requestNoContextTakeover   = params.get('request_no_context_takeover', False)
             requestMaxWindowBits       = params.get('request_max_window_bits', 0)
