@@ -55,6 +55,8 @@ class RouterClass:
       self.realm = realm
 
 
+from crossbar.router import router
+
 
 class RouterModule:
    """
@@ -101,8 +103,8 @@ class RouterModule:
       if not self._router_factory:
          if self.debug:
             log.msg("Worker {}: starting router module".format(self._pid))
-         self._router_factory = RouterFactory()
-         self._router_session_factory = RouterSessionFactory(self._router_factory)
+         self._router_factory = router.CrossbarRouterFactory()
+         self._router_session_factory = router.CrossbarRouterSessionFactory(self._router_factory)
       else:
          raise ApplicationError("crossbar.error.module_already_started")
 
@@ -194,8 +196,7 @@ class RouterModule:
       self._router_transport_no += 1
 
       if config['type'] == 'websocket':
-         transport_factory = WampWebSocketServerFactory(self._router_session_factory, config['url'], debug = False)
-         transport_factory.setProtocolOptions(failByDrop = False)
+         transport_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, config['url'], debug = False)
 
          id = self._router_transport_no
 
