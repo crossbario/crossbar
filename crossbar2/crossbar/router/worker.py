@@ -16,6 +16,8 @@
 ##
 ###############################################################################
 
+from __future__ import absolute_import
+
 import sys
 import os
 import datetime
@@ -155,7 +157,7 @@ class RouterModule:
          ##
          comp = SessionKlass(realm)
          self._router_session_factory.add(comp)
-         
+
          self._component_no += 1
          self._component_sessions[self._component_no] = comp
          return self._component_no

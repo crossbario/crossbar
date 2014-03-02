@@ -16,6 +16,8 @@
 ##
 ###############################################################################
 
+from __future__ import absolute_import
+
 import datetime
 
 from autobahn.twisted.wamp import ApplicationSession
@@ -178,7 +180,7 @@ class CrossbarRouterSession(RouterSession):
                dres.callback(types.Accept(authid = res['email']))
             else:
                log.msg("Authentication failed!")
-               dres.callback(types.Deny(reason = "wamp.error.authorization_failed", message = json.dumps(res))
+               dres.callback(types.Deny(reason = "wamp.error.authorization_failed", message = json.dumps(res)))
          except Exception as e:
             print "ERRR", e
 
