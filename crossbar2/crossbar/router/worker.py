@@ -192,13 +192,14 @@ class RouterModule:
       """
       Start a transport on this router module.
       """
+      print "starting transport", config
       if self.debug:
          log.msg("Worker {}: starting transport on router module.".format(self._pid))
 
       self._router_transport_no += 1
 
       if config['type'] == 'websocket':
-         transport_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, config['url'], debug = False)
+         transport_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, config)
 
          id = self._router_transport_no
 
@@ -492,6 +493,11 @@ def run():
                        choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
                        help = 'Explicit Twisted reactor selection')
 
+   parser.add_argument('-l',
+                       '--logfile',
+                       default = None,
+                       help = 'Log to log file instead of stderr.')
+
    ## parse cmd line args
    ##
    options = parser.parse_args()
@@ -499,9 +505,12 @@ def run():
 
    ## make sure logging to something else than stdio
    ## is setup _first_
-   log.startLogging(sys.stderr)
-   #log.startLogging(open('test.log', 'w'))
+   if options.logfile:
+      log.startLogging(open(options.logfile, 'a'))
+   else:
+      log.startLogging(sys.stderr)
 
+   log.msg("Debug is {}".format(options.debug))
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##

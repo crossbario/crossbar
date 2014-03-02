@@ -45,49 +45,72 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
    ## authid -> cookie -> set(connection)
 
    def onConnect(self, request):
+
       protocol, headers = WampWebSocketServerProtocol.onConnect(self, request)
+
+      self._origin = request.origin
+
+      ## indicates if this transport has been authenticated
+      self._authid = None
 
       ## our cookie tracking ID
       self._cbtid = None
 
-      ## see if there already is a cookie set ..
-      if request.headers.has_key('cookie'):
-         try:
-            cookie = Cookie.SimpleCookie()
-            cookie.load(str(request.headers['cookie']))
-         except Cookie.CookieError:
-            pass
-         else:
-            if cookie.has_key('cbtid'):
-               cbtid = cookie['cbtid'].value
-               if self.factory._cookies.has_key(cbtid):
-                  self._cbtid = cbtid
-                  log.msg("Cookie already set: %s" % self._cbtid)
+      if 'cookie' in self.factory._config:
 
-      ## if no cookie is set, create a new one ..
-      if self._cbtid is None:
+         cookie_config = self.factory._config['cookie']
+         cookie_id_field = cookie_config.get('name', 'cbtid')
+         cookie_id_field_length = int(cookie_config.get('length', 24))
 
-         self._cbtid = newid()
-         maxAge = 86400
+         ## see if there already is a cookie set ..
+         if request.headers.has_key('cookie'):
+            try:
+               cookie = Cookie.SimpleCookie()
+               cookie.load(str(request.headers['cookie']))
+            except Cookie.CookieError:
+               pass
+            else:
+               if cookie.has_key(cookie_id_field):
+                  cbtid = cookie[cookie_id_field].value
+                  if self.factory._cookies.has_key(cbtid):
+                     self._cbtid = cbtid
+                     log.msg("Cookie already set: %s" % self._cbtid)
 
-         cbtData = {'created': utcnow(),
-                    'authenticated': None,
-                    'maxAge': maxAge,
-                    'connections': set()}
+         ## if no cookie is set, create a new one ..
+         if self._cbtid is None:
 
-         self.factory._cookies[self._cbtid] = cbtData
+            self._cbtid = newid(cookie_id_field_length)
 
-         ## do NOT add the "secure" cookie attribute! "secure" refers to the
-         ## scheme of the Web page that triggered the WS, not WS itself!!
-         ##
-         headers['Set-Cookie'] = 'cbtid=%s;max-age=%d' % (self._cbtid, maxAge)
-         log.msg("Setting new cookie: %s" % self._cbtid)
+            ## http://tools.ietf.org/html/rfc6265#page-20
+            ## 0: delete cookie
+            ## -1: preserve cookie until browser is closed
 
-      ## add this WebSocket connection to the set of connections
-      ## associated with the same cookie
-      self.factory._cookies[self._cbtid]['connections'].add(self)
+            max_age = cookie_config.get('max_age', 86400 * 30 * 12)
 
-      self._authenticated = self.factory._cookies[self._cbtid]['authenticated']
+            cbtData = {'created': utcnow(),
+                       'authid': None,
+                       'max_age': max_age,
+                       'connections': set()}
+
+            self.factory._cookies[self._cbtid] = cbtData
+
+            ## do NOT add the "secure" cookie attribute! "secure" refers to the
+            ## scheme of the Web page that triggered the WS, not WS itself!!
+            ##
+            headers['Set-Cookie'] = '%s=%s;max-age=%d' % (cookie_id_field, self._cbtid, max_age)
+            log.msg("Setting new cookie: %s" % headers['Set-Cookie'])
+
+         ## add this WebSocket connection to the set of connections
+         ## associated with the same cookie
+         self.factory._cookies[self._cbtid]['connections'].add(self)
+
+         self._authid = self.factory._cookies[self._cbtid]['authid']
+
+         log.msg("Cookie tracking enabled on WebSocket connection {}".format(self))
+
+      else:
+
+         log.msg("Cookie tracking disabled on WebSocket connection {}".format(self))
 
       ## accept the WebSocket connection, speaking subprotocol `protocol`
       ## and setting HTTP headers `headers`
@@ -100,96 +123,144 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
    protocol = CrossbarWampWebSocketServerProtocol
 
-   def __init__(self, *args, **kwargs):
-      WampWebSocketServerFactory.__init__(self, *args, **kwargs)
-      self._cookies = {}
+   def __init__(self, factory, config):
+      """
+      Ctor.
+
+      :param factory: WAMP session factory.
+      :type factory: An instance of ..
+      :param config: Crossbar transport configuration.
+      :type config: dict 
+      """
+      WampWebSocketServerFactory.__init__(self, factory, url = config['url'])
+
+      ## transport configuration
+      self._config = config
+
+      if 'cookie' in config:
+         self._cookies = {}
+
       self.setProtocolOptions(failByDrop = False)
 
+
+
+class PendingAuth:
+   pass
+
+class PendingAuthPersona(PendingAuth):
+   def __init__(self, provider, audience):
+      self.provider = provider
+      self.audience = audience
 
 
 class CrossbarRouterSession(RouterSession):
 
    def onOpen(self, transport):
       RouterSession.onOpen(self, transport)
-      print "transport authenticated: {}".format(self._transport._authenticated)
+
+      if hasattr(self._transport.factory, '_config'):
+         self._transport_config = self._transport.factory._config
+      else:
+         self._transport_config = {}
+
+      print "0000000000000", self._transport
+      print "transport authenticated: {}".format(self._transport._authid)
+
+      self._pending_auth = None
 
 
    def onHello(self, realm, details):
       print "onHello: {} {}".format(realm, details)
-      if self._transport._authenticated is not None:
-         return types.Accept(authid = self._transport._authenticated)
+      if self._transport._authid is not None:
+         return types.Accept(authid = self._transport._authid)
       else:
-         return types.Challenge("mozilla-persona")
-      return accept
-
-
-   def onLeave(self, details):
-      if details.reason == "wamp.close.logout":
-         cookie = self._transport.factory._cookies[self._transport._cbtid]
-         cookie['authenticated'] = None
-         for proto in cookie['connections']:
-            proto.sendClose()
+         if "auth" in self._transport_config:
+            if "mozilla_persona" in self._transport_config["auth"]:
+               audience = self._transport_config['auth']['mozilla_persona'].get('audience', self._transport._origin)
+               provider = self._transport_config['auth']['mozilla_persona'].get('provider', "https://verifier.login.persona.org/verify")
+               self._pending_auth = PendingAuthPersona(provider, audience)
+               return types.Challenge("mozilla-persona")
 
 
    def onAuthenticate(self, signature, extra):
       print "onAuthenticate: {} {}".format(signature, extra)
 
-      dres = Deferred()
+      if isinstance(self._pending_auth, PendingAuthPersona):
 
-      ## The client did it's Mozilla Persona authentication thing
-      ## and now wants to verify the authentication and login.
-      assertion = signature
-      audience = 'http://localhost:8080/'
-      #audience = 'http://192.168.1.130:8080/'
+         dres = Deferred()
 
-      ## To verify the authentication, we need to send a HTTP/POST
-      ## to Mozilla Persona. When successful, Persona will send us
-      ## back something like:
+         ## The client did it's Mozilla Persona authentication thing
+         ## and now wants to verify the authentication and login.
+         assertion = signature
+         audience = str(self._pending_auth.audience) # eg "http://192.168.1.130:8080/"
+         provider = str(self._pending_auth.provider) # eg "https://verifier.login.persona.org/verify"
 
-      # {
-      #    "audience": "http://192.168.1.130:8080/",
-      #    "expires": 1393681951257,
-      #    "issuer": "gmail.login.persona.org",
-      #    "email": "tobias.oberstein@gmail.com",
-      #    "status": "okay"
-      # }
+         ## To verify the authentication, we need to send a HTTP/POST
+         ## to Mozilla Persona. When successful, Persona will send us
+         ## back something like:
 
-      headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-      body = urllib.urlencode({'audience': audience, 'assertion': assertion})
+         # {
+         #    "audience": "http://192.168.1.130:8080/",
+         #    "expires": 1393681951257,
+         #    "issuer": "gmail.login.persona.org",
+         #    "email": "tobias.oberstein@gmail.com",
+         #    "status": "okay"
+         # }
 
-      from twisted.web.client import getPage
-      d = getPage(url = "https://verifier.login.persona.org/verify",
-                  method = 'POST',
-                  postdata = body,
-                  headers = headers)
+         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+         body = urllib.urlencode({'audience': audience, 'assertion': assertion})
 
-      log.msg("Authentication request sent.")
+         from twisted.web.client import getPage
+         d = getPage(url = provider,
+                     method = 'POST',
+                     postdata = body,
+                     headers = headers)
 
-      def done(res):
-         res = json.loads(res)
-         try:
-            if res['status'] == 'okay':
-               ## Mozilla Persona successfully authenticated the user
+         log.msg("Authentication request sent.")
 
-               ## remember the user's email address. this marks the cookie as
-               ## authenticated
-               self._transport.factory._cookies[self._transport._cbtid]['authenticated'] = res['email']
+         def done(res):
+            res = json.loads(res)
+            try:
+               if res['status'] == 'okay':
+                  ## Mozilla Persona successfully authenticated the user
 
-               log.msg("Authenticated user {}".format(res['email']))
-               dres.callback(types.Accept(authid = res['email']))
-            else:
-               log.msg("Authentication failed!")
-               dres.callback(types.Deny(reason = "wamp.error.authorization_failed", message = json.dumps(res)))
-         except Exception as e:
-            print "ERRR", e
+                  self._transport._authid = res['email']
 
-      def error(err):
-         log.msg("Authentication request failed: {}".format(err.value))
-         dres.callback(types.Deny(reason = "wamp.error.authorization_request_failed", message = str(err.value)))
+                  ## remember the user's email address. this marks the cookie as authenticated
+                  if self._transport._cbtid:
+                     self._transport.factory._cookies[self._transport._cbtid]['authid'] = res['email']
 
-      d.addCallbacks(done, error)
+                  log.msg("Authenticated user {}".format(res['email']))
+                  dres.callback(types.Accept(authid = res['email']))
+               else:
+                  log.msg("Authentication failed!")
+                  log.msg(res)
+                  dres.callback(types.Deny(reason = "wamp.error.authorization_failed", message = res.get("reason", None)))
+            except Exception as e:
+               print "ERRR", e
 
-      return dres
+         def error(err):
+            log.msg("Authentication request failed: {}".format(err.value))
+            dres.callback(types.Deny(reason = "wamp.error.authorization_request_failed", message = str(err.value)))
+
+         d.addCallbacks(done, error)
+
+         return dres
+
+      else:
+
+         log.msg("don't know how to authenticate")
+
+         return types.Deny()
+
+
+   def onLeave(self, details):
+      if details.reason == "wamp.close.logout":
+         if self._transport._cbtid:
+            cookie = self._transport.factory._cookies[self._transport._cbtid]
+            cookie['authid'] = None
+            for proto in cookie['connections']:
+               proto.sendClose()
 
 
 

@@ -182,7 +182,11 @@ class Node:
 
                args = [executable, "-u", filename]
 
+               if process.get('debug', False):
+                  args.append('--debug')
+
                if sys.platform == 'win32':
+                  args.extend(['--logfile', 'test.log'])
                   ep = ProcessEndpoint(self._reactor,
                                        executable,
                                        args,
