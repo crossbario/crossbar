@@ -186,14 +186,14 @@ class Node:
                   ep = ProcessEndpoint(self._reactor,
                                        executable,
                                        args,
-                                       childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
-                                       errFlag = StandardErrorBehavior.LOG,
+                                       errFlag = StandardErrorBehavior.DROP,
                                        env = os.environ)
                else:
                   ep = ProcessEndpoint(self._reactor,
                                        executable,
                                        args,
-                                       errFlag = StandardErrorBehavior.DROP,
+                                       childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
+                                       errFlag = StandardErrorBehavior.LOG,
                                        env = os.environ)
 
                d = ep.connect(transport_factory)
