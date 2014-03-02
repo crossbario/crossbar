@@ -39,6 +39,8 @@ from autobahn.twisted.wamp import RouterSessionFactory
 from autobahn.wamp.protocol import RouterSession
 from autobahn.wamp import types
 
+import crossbar
+
 
 
 class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
@@ -134,7 +136,16 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
       :param config: Crossbar transport configuration.
       :type config: dict 
       """
-      WampWebSocketServerFactory.__init__(self, factory, url = config['url'])
+      options = config.get('options', {})
+
+      server = "Crossbar/{}".format(crossbar.__version__)
+      externalPort = options.get('external_port', None)
+
+      WampWebSocketServerFactory.__init__(self,
+                                          factory,
+                                          url = config['url'],
+                                          server = server,
+                                          externalPort = externalPort)
 
       ## transport configuration
       self._config = config
@@ -142,13 +153,43 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
       if 'cookie' in config:
          self._cookies = {}
 
-      self.setProtocolOptions(failByDrop = False)
+      self.setOptions(options)
 
 
-      options = config.get('options', {})
+   def setOptions(self, options):
+      c = options
+
+      versions = []
+      if c.get("enable_hixie76", True):
+         versions.append(0)
+      if c.get("enable_hybi10", True):
+         versions.append(8)
+      if c.get("enable_rfc6455", True):
+         versions.append(13)
+
+      ## FIXME: enforce!!
+      ##
+      self.connectionCap = c.get("max_connections")
+
+      self.setProtocolOptions(versions = versions,
+                              allowHixie76 = c.get("enable_hixie76", True),
+                              webStatus = c.get("enable_webstatus"),
+                              utf8validateIncoming = c.get("validate_utf8"),
+                              maskServerFrames = c.get("mask_server_frames"),
+                              requireMaskedClientFrames = c.get("require_masked_client_frames"),
+                              applyMask = c.get("apply_mask"),
+                              maxFramePayloadSize = c.get("max_frame_size"),
+                              maxMessagePayloadSize = c.get("max_message_size"),
+                              autoFragmentSize = c.get("auto_fragment_size"),
+                              failByDrop = c.get("fail_by_drop"),
+                              echoCloseCodeReason = c.get("echo_close_codereason"),
+                              openHandshakeTimeout = c.get("open_handshake_timeout"),
+                              closeHandshakeTimeout = c.get("close_handshake_timeout"),
+                              tcpNoDelay = c.get("tcp_nodelay"))
 
       ## WebSocket compression
       ##
+      self.setProtocolOptions(perMessageCompressionAccept = lambda _: None)
       if 'compression' in options:
 
          ## permessage-deflate
@@ -178,7 +219,6 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
                                                             memLevel = memLevel)
 
             self.setProtocolOptions(perMessageCompressionAccept = accept)
-
 
 
 
