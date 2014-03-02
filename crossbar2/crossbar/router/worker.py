@@ -40,6 +40,8 @@ from twisted.internet.endpoints import serverFromString
 
 from autobahn.wamp.protocol import RouterApplicationSession
 
+from crossbar.router.resource import JsonResource
+
 
 
 
@@ -224,6 +226,12 @@ class RouterModule:
 
                path_config = config['paths'][path]
 
+               ## websocket_echo
+               ## websocket_testee
+               ## s3mirror
+               ## websocket_stdio
+               ##
+
                if path_config['type'] == 'websocket':
                   ws_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, path_config)
 
@@ -232,8 +240,21 @@ class RouterModule:
 
                   resource = WebSocketResource(ws_factory)
                   root.putChild(path, resource)
+
+               elif path_config['type'] == 'static':
+                  static_dir = os.path.abspath(path_config['directory'])
+                  
+                  resource = File(static_dir)
+                  root.putChild(path, resource)
+
+               elif path_config['type'] == 'json':
+                  value = path_config['value']
+                  
+                  resource = JsonResource(value)
+                  root.putChild(path, resource)
+
                else:
-                  print "unknown path type"
+                  print "Web path type '{}' not implemented.".format(path_config['type'])
 
             transport_factory = Site(root)
 
@@ -562,6 +583,7 @@ def run():
    log.msg("Worker {}: starting on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
 
    try:
+      #from crossbar.router.cgi import CgiScript
 
       ## create a WAMP application session factory
       ##
@@ -590,6 +612,7 @@ def run():
 
    except Exception as e:
       log.msg("Worker {}: Unhandled exception - {}".format(os.getpid(), e))
+      raise e
       sys.exit(1)
 
 
