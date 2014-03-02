@@ -32,6 +32,7 @@ import Cookie
 
 from autobahn.util import newid, utcnow
 from autobahn.websocket import http
+from autobahn.websocket.compress import *
 
 from autobahn.wamp.router import RouterFactory
 from autobahn.twisted.wamp import RouterSessionFactory
@@ -118,7 +119,6 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
 
 
-from autobahn.websocket.compress import *
 
 
 class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
@@ -147,7 +147,12 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
       options = config.get('options', {})
 
+      ## WebSocket compression
+      ##
       if 'compression' in options:
+
+         ## permessage-deflate
+         ##
          if 'deflate' in options['compression']:
 
             log.msg("enabling WebSocket compression (permessage-deflate)")
@@ -180,10 +185,13 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 class PendingAuth:
    pass
 
+
+
 class PendingAuthPersona(PendingAuth):
    def __init__(self, provider, audience):
       self.provider = provider
       self.audience = audience
+
 
 
 class CrossbarRouterSession(RouterSession):
@@ -196,7 +204,6 @@ class CrossbarRouterSession(RouterSession):
       else:
          self._transport_config = {}
 
-      print "0000000000000", self._transport
       print "transport authenticated: {}".format(self._transport._authid)
 
       self._pending_auth = None
