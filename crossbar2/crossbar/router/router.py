@@ -132,7 +132,6 @@ class CrossbarRouterSession(RouterSession):
 
 
    def onAuthenticate(self, signature, extra):
-      return types.Deny(error = "wamp.error.special", message = "hlleoo")
       print "onAuthenticate: {} {}".format(signature, extra)
 
       dres = Deferred()
