@@ -15,7 +15,10 @@ clean:
 	rm -rf ./crossbar.egg-info
 	find . -name "*.pyc" -exec rm -f {} \;
 
-test:
+init:
+	PYTHONPATH=. python -m crossbar.cli -d init
+
+start:
 	PYTHONPATH=. python -m crossbar.cli -d start
 
 publish: clean
