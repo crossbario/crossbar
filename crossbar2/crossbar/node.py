@@ -27,6 +27,7 @@ from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
 from autobahn.twisted.wamp import ApplicationSession
 
 import os, sys
+import json
 
 
 
@@ -136,10 +137,16 @@ from twisted.internet.endpoints import clientFromString
 
 class Node:
 
-   def __init__(self, reactor, config):
+   def __init__(self, reactor, cbdir):
       self._reactor = reactor
-      self._config = config
+      self._cbdir = cbdir
       self._processes = {}
+
+      ## load Crossbar.io node configuration
+      ##
+      cf = os.path.join(self._cbdir, 'config.json')
+      with open(cf, 'rb') as infile:
+         self._config = json.load(infile)
 
 
    def start(self):

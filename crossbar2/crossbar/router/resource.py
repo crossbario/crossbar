@@ -20,6 +20,8 @@ import json
 
 from twisted.web.resource import Resource
 
+import crossbar
+
 
 class JsonResource(Resource):
    """
@@ -32,3 +34,19 @@ class JsonResource(Resource):
 
    def render_GET(self, request):
       return self._data
+
+
+
+class Resource404(Resource):
+   """
+   Custom error page (404).
+   """
+   def __init__(self, templates, directory):
+      Resource.__init__(self)
+      self._page = templates.get_template('cb_web_404.html')
+      self._directory = directory
+
+   def render_GET(self, request):
+      s = self._page.render(cbVersion = crossbar.__version__,
+                            directory = self._directory)
+      return s.encode('utf8')

@@ -40,8 +40,12 @@ from twisted.internet.endpoints import serverFromString
 
 from autobahn.wamp.protocol import RouterApplicationSession
 
-from crossbar.router.resource import JsonResource
-
+#from crossbar.router.resource import JsonResource
+#from crossbar.router import router
+from resource import JsonResource, Resource404
+from router import CrossbarRouterFactory, \
+                   CrossbarRouterSessionFactory, \
+                   CrossbarWampWebSocketServerFactory
 
 
 
@@ -58,9 +62,8 @@ class RouterClass:
       self.klassname = klassname
       self.realm = realm
 
-
-from crossbar.router import router
-
+import jinja2
+import pkg_resources
 
 class RouterModule:
    """
@@ -71,12 +74,20 @@ class RouterModule:
       - Classes
    """
 
-   def __init__(self, session, pid):
+   def __init__(self, session, pid, cbdir):
       self._session = session
       self._pid = pid
+      self._cbdir = cbdir
 
       self.debug = self._session.factory.options.debug
       self.verbose = self._session.factory.options.verbose
+
+      ## Jinja2 templates for Web (like WS status page et al)
+      ##
+      templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
+      if self.verbose:
+         log.msg("Worker {}: Using Crossbar.io web templates from {}".format(self._pid, templates_dir))
+      self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
 
       self._component_sessions = {}
       self._component_no = 0
@@ -107,8 +118,8 @@ class RouterModule:
       if not self._router_factory:
          if self.debug:
             log.msg("Worker {}: starting router module".format(self._pid))
-         self._router_factory = router.CrossbarRouterFactory()
-         self._router_session_factory = router.CrossbarRouterSessionFactory(self._router_factory)
+         self._router_factory = CrossbarRouterFactory()
+         self._router_session_factory = CrossbarRouterSessionFactory(self._router_factory)
       else:
          raise ApplicationError("crossbar.error.module_already_started")
 
@@ -204,9 +215,11 @@ class RouterModule:
 
          if config['type'] == 'websocket':
 
-            transport_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, config)
+            transport_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, config, self._templates)
 
          elif config['type'] == 'web':
+
+            options = config.get('options', {})
 
             ## this is here to avoid module level reactor imports
             ## https://twistedmatrix.com/trac/ticket/6849
@@ -217,10 +230,20 @@ class RouterModule:
             from autobahn.twisted.resource import WebSocketResource
 
             ## Web directory static file serving
-            ##
-            root_dir = os.path.abspath(config['directory'])
+            ##            
+            root_dir = os.path.abspath(os.path.join(self._cbdir, config['directory']))
+            root_dir = root_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
             print "Starting Web service at root directory {}".format(root_dir)
             root = File(root_dir)
+
+            ## render 404 page on any concrete path not found
+            ##
+            root.childNotFound = Resource404(self._templates, root_dir)
+
+            ## disable directory listing and render 404
+            ##
+            if not options.get('enable_directory_listing', False):
+               root.directoryListing = lambda: root.childNotFound
 
             for path in sorted(config.get('paths', [])):
 
@@ -233,30 +256,46 @@ class RouterModule:
                ##
 
                if path_config['type'] == 'websocket':
-                  ws_factory = router.CrossbarWampWebSocketServerFactory(self._router_session_factory, path_config)
+                  ws_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, path_config, self._templates)
 
                   ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
                   ws_factory.startFactory()
 
-                  resource = WebSocketResource(ws_factory)
-                  root.putChild(path, resource)
+                  ws_resource = WebSocketResource(ws_factory)
+                  root.putChild(path, ws_resource)
 
                elif path_config['type'] == 'static':
-                  static_dir = os.path.abspath(path_config['directory'])
+
+                  path_options = path_config.get('options', {})
                   
-                  resource = File(static_dir)
-                  root.putChild(path, resource)
+                  static_dir = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
+                  static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
+                  
+                  static_resource = File(static_dir)
+
+                  ## render 404 page on any concrete path not found
+                  ##
+                  static_resource.childNotFound = Resource404(self._templates, static_dir)
+
+                  ## disable directory listing and render 404
+                  ##
+                  if not path_options.get('enable_directory_listing', False):
+                     static_resource.directoryListing = lambda: static_resource.childNotFound
+
+                  root.putChild(path, static_resource)
 
                elif path_config['type'] == 'json':
                   value = path_config['value']
                   
-                  resource = JsonResource(value)
-                  root.putChild(path, resource)
+                  json_resource = JsonResource(value)
+                  root.putChild(path, json_resource)
 
                else:
                   print "Web path type '{}' not implemented.".format(path_config['type'])
 
             transport_factory = Site(root)
+            transport_factory.log = lambda _: None # disable any logging
+            #transport_factory.protocol = HTTPChannelHixie76Aware # needed if Hixie76 is to be supported
 
          else:
             raise Exception("logic error")
@@ -446,7 +485,7 @@ class WorkerProcess(ApplicationSession):
 
       ## Modules
       ##
-      self._routerModule = RouterModule(self, self._pid)
+      self._routerModule = RouterModule(self, self._pid, self.factory.options.cbdir)
       self._componentModule = ComponentModule(self, self._pid)
 
 
@@ -554,6 +593,10 @@ def run():
                        choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
                        help = 'Explicit Twisted reactor selection')
 
+   parser.add_argument('--cbdir',
+                       type = str,
+                       default = None,
+                       help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
    parser.add_argument('-l',
                        '--logfile',
                        default = None,
@@ -564,14 +607,25 @@ def run():
    options = parser.parse_args()
 
 
-   ## make sure logging to something else than stdio
-   ## is setup _first_
+   ## make sure logging to something else than stdio is setup _first_
    if options.logfile:
       log.startLogging(open(options.logfile, 'a'))
    else:
       log.startLogging(sys.stderr)
 
-   log.msg("Debug is {}".format(options.debug))
+
+   pid = os.getpid()
+
+   ## Crossbar.io node directory
+   ##
+   if hasattr(options, 'cbdir') and not options.cbdir:
+      if os.environ.has_key("CROSSBAR_DIR"):
+         options.cbdir = os.environ['CROSSBAR_DIR']
+      else:
+         options.cbdir = '.crossbar'
+
+   options.cbdir = os.path.abspath(options.cbdir)
+
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
@@ -580,7 +634,7 @@ def run():
 
    ##
    from twisted.python.reflect import qual
-   log.msg("Worker {}: starting on {} ..".format(os.getpid(), qual(reactor.__class__).split('.')[-1]))
+   log.msg("Worker {}: starting at node directory {} on {} ..".format(pid, options.cbdir, qual(reactor.__class__).split('.')[-1]))
 
    try:
       #from crossbar.router.cgi import CgiScript
@@ -607,11 +661,11 @@ def run():
       ## now start reactor loop
       ##
       if options.verbose:
-         log.msg("Worker {}: Starting reactor".format(os.getpid()))
+         log.msg("Worker {}: Starting reactor".format(pid))
       reactor.run()
 
    except Exception as e:
-      log.msg("Worker {}: Unhandled exception - {}".format(os.getpid(), e))
+      log.msg("Worker {}: Unhandled exception - {}".format(pid, e))
       raise e
       sys.exit(1)
 

@@ -118,18 +118,18 @@ def run_command_init(options):
    else:
       raise Exception("Missing template to instantiate Crossbar.io node")
 
-   if os.path.exists(options.cbdata):
-      raise Exception("Path '{}' for Crossbar.io data directory already exists".format(options.cbdata))
+   if os.path.exists(options.cbdir):
+      raise Exception("Path '{}' for Crossbar.io node directory already exists".format(options.cbdir))
 
    try:
-      os.mkdir(options.cbdata)
+      os.mkdir(options.cbdir)
    except Exception as e:
-      raise Exception("Could not create Crossbar.io data directory '{}' [{}]".format(options.cbdata, e))
+      raise Exception("Could not create Crossbar.io node directory '{}' [{}]".format(options.cbdir, e))
 
-   with open(os.path.join(options.cbdata, 'config.json'), 'wb') as outfile:
+   with open(os.path.join(options.cbdir, 'config.json'), 'wb') as outfile:
       outfile.write(config)
 
-   print("Crossbar.io node initialized at {}".format(os.path.abspath(options.cbdata)))
+   print("Crossbar.io node initialized at {}".format(os.path.abspath(options.cbdir)))
 
 
 
@@ -148,15 +148,9 @@ def run_command_start(options):
    if options.debug:
       print("Running on reactor {}".format(reactor))
 
-   ## load Crossbar.io node configuration
-   ##
-   cf = os.path.join(options.cbdata, 'config.json')
-   with open(cf, 'rb') as infile:
-      config = json.load(infile)
-
    ## create and start Crossbar.io node
    ##
-   node = Node(reactor, config)
+   node = Node(reactor, options.cbdir)
    node.start()
 
    ## enter event loop
@@ -212,10 +206,10 @@ def run():
                              default = 'router',
                              help = "Template for initialization")
 
-   parser_init.add_argument('--cbdata',
+   parser_init.add_argument('--cbdir',
                              type = str,
                              default = None,
-                             help = "Data directory (overrides ${CROSSBAR_DATA} and default ./cbdata)")
+                             help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
    ## "start" command
    ##
@@ -224,15 +218,10 @@ def run():
 
    parser_start.set_defaults(func = run_command_start)
 
-   parser_start.add_argument('--cbdata',
+   parser_start.add_argument('--cbdir',
                              type = str,
                              default = None,
-                             help = "Data directory (overrides ${CROSSBAR_DATA} and default ./cbdata)")
-
-   parser_start.add_argument('--cbdataweb',
-                             type = str,
-                             default = None,
-                             help = "Web directory (overrides ${CROSSBAR_DATA_WEB} and default CBDATA/web)")
+                             help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
    parser_start.add_argument('--loglevel',
                               type = str,
@@ -246,13 +235,13 @@ def run():
    options = parser.parse_args()
 
 
-   ## default for CBDATA
+   ## Crossbar.io node directory
    ##
-   if hasattr(options, 'cbdata') and not options.cbdata:
-      if os.environ.has_key("CBDATA"):
-         options.cbdata = os.environ['CBDATA']
+   if hasattr(options, 'cbdir') and not options.cbdir:
+      if os.environ.has_key("CROSSBAR_DIR"):
+         options.cbdir = os.environ['CROSSBAR_DIR']
       else:
-         options.cbdata = '.cbdata'
+         options.cbdir = '.crossbar'
 
 
    ## run the subcommand selected

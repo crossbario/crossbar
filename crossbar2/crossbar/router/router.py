@@ -120,6 +120,19 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
       return (protocol, headers)
 
 
+   def sendServerStatus(self, redirectUrl = None, redirectAfter = 0):
+      """
+      Used to send out server status/version upon receiving a HTTP/GET without
+      upgrade to WebSocket header (and option serverStatus is True).
+      """
+      try:
+         page = self.factory._templates.get_template('cb_ws_status.html')
+         self.sendHtml(page.render(redirectUrl = redirectUrl,
+                                   redirectAfter = redirectAfter,
+                                   cbVersion = crossbar.__version__,
+                                   wsUri = self.factory.url))
+      except Exception as e:         
+         log.msg("Error rendering WebSocket status page template: %s" % e)
 
 
 
@@ -127,7 +140,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
    protocol = CrossbarWampWebSocketServerProtocol
 
-   def __init__(self, factory, config):
+   def __init__(self, factory, config, templates):
       """
       Ctor.
 
@@ -149,6 +162,8 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
       ## transport configuration
       self._config = config
+
+      self._templates = templates
 
       if 'cookie' in config:
          self._cookies = {}
