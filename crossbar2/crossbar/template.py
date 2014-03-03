@@ -847,7 +847,7 @@ DEV_ROUTER = """{
                "paths": {
                   "ws": {
                      "type": "websocket",
-                     "url": "ws://localhost:8080"
+                     "url": "ws://localhost:8080/ws"
                   }
                }
             }
