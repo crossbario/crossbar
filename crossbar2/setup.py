@@ -65,7 +65,8 @@ setup (
                        'cryptography>=0.2.1',
                        'pyOpenSSL>=0.14',
                        'psutil>=1.2.1',
-                       'msgpack-python>=0.4.1'],
+                       'msgpack-python>=0.4.1',
+                       'jinja2>=2.7.2'],
    extras_require = {
       'oracle': ["cx_Oracle>=5.1.2"],
       'postgres': ["psycopg2>=2.5.1"]

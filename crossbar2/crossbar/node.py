@@ -187,6 +187,8 @@ class Node:
 
                filename = pkg_resources.resource_filename('crossbar', WORKER_MAP[process['type']])
 
+               print filename
+
                args = [executable, "-u", filename]
 
                if process.get('debug', False):

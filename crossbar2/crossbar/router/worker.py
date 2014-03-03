@@ -40,12 +40,10 @@ from twisted.internet.endpoints import serverFromString
 
 from autobahn.wamp.protocol import RouterApplicationSession
 
-#from crossbar.router.resource import JsonResource
-#from crossbar.router import router
-from resource import JsonResource, Resource404
-from router import CrossbarRouterFactory, \
-                   CrossbarRouterSessionFactory, \
-                   CrossbarWampWebSocketServerFactory
+from crossbar.router.resource import JsonResource, Resource404
+from crossbar.router.router import CrossbarRouterFactory, \
+                                   CrossbarRouterSessionFactory, \
+                                   CrossbarWampWebSocketServerFactory
 
 
 
