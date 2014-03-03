@@ -13,6 +13,7 @@ clean:
 	rm -rf ./build
 	rm -rf ./dist
 	rm -rf ./crossbar.egg-info
+	rm -rf ./.crossbar
 	find . -name "*.pyc" -exec rm -f {} \;
 
 init:
