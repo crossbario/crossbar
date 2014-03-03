@@ -159,7 +159,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
                                           url = config['url'],
                                           server = server,
                                           externalPort = externalPort,
-                                          debug = True)
+                                          debug = False)
 
       ## transport configuration
       self._config = config

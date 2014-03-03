@@ -61,7 +61,7 @@ setup (
    url = 'http://crossbar.io/',
    platforms = ('Any'),
    install_requires = ['twisted>=twisted-13.2',
-                       'autobahn[twisted]>=0.8.4',
+                       'autobahn[twisted]>=0.8.4-2',
                        'cryptography>=0.2.1',
                        'pyOpenSSL>=0.14',
                        'psutil>=1.2.1',
