@@ -158,7 +158,8 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
                                           factory,
                                           url = config['url'],
                                           server = server,
-                                          externalPort = externalPort)
+                                          externalPort = externalPort,
+                                          debug = True)
 
       ## transport configuration
       self._config = config
@@ -265,13 +266,13 @@ class CrossbarRouterSession(RouterSession):
       else:
          self._transport_config = {}
 
-      print "transport authenticated: {}".format(self._transport._authid)
+      #print "transport authenticated: {}".format(self._transport._authid)
 
       self._pending_auth = None
 
 
    def onHello(self, realm, details):
-      print "onHello: {} {}".format(realm, details)
+      #print "onHello: {} {}".format(realm, details)
       if self._transport._authid is not None:
          return types.Accept(authid = self._transport._authid)
       else:
@@ -281,10 +282,13 @@ class CrossbarRouterSession(RouterSession):
                provider = self._transport_config['auth']['mozilla_persona'].get('provider', "https://verifier.login.persona.org/verify")
                self._pending_auth = PendingAuthPersona(provider, audience)
                return types.Challenge("mozilla-persona")
+         else:
+            ## if not "auth" key present, allow anyone
+            return types.Accept(authid = "anonymous")
 
 
    def onAuthenticate(self, signature, extra):
-      print "onAuthenticate: {} {}".format(signature, extra)
+      #print "onAuthenticate: {} {}".format(signature, extra)
 
       if isinstance(self._pending_auth, PendingAuthPersona):
 
