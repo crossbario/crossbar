@@ -40,7 +40,6 @@ from twisted.internet.endpoints import serverFromString
 
 from autobahn.wamp.protocol import RouterApplicationSession
 
-from crossbar.router.resource import JsonResource, Resource404
 from crossbar.router.router import CrossbarRouterFactory, \
                                    CrossbarRouterSessionFactory, \
                                    CrossbarWampWebSocketServerFactory
@@ -225,7 +224,10 @@ class RouterModule:
             from twisted.web.server import Site
             from twisted.web.static import File
             from twisted.web.resource import Resource
+
             from autobahn.twisted.resource import WebSocketResource
+            from crossbar.router.resource import JsonResource, Resource404, CgiDirectory
+
 
             ## Web directory static file serving
             ##            
@@ -264,7 +266,7 @@ class RouterModule:
 
                elif path_config['type'] == 'static':
 
-                  path_options = path_config.get('options', {})
+                  static_options = path_config.get('options', {})
                   
                   static_dir = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
                   static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
@@ -277,7 +279,7 @@ class RouterModule:
 
                   ## disable directory listing and render 404
                   ##
-                  if not path_options.get('enable_directory_listing', False):
+                  if not static_options.get('enable_directory_listing', False):
                      static_resource.directoryListing = lambda: static_resource.childNotFound
 
                   root.putChild(path, static_resource)
@@ -287,6 +289,20 @@ class RouterModule:
                   
                   json_resource = JsonResource(value)
                   root.putChild(path, json_resource)
+
+               elif path_config['type'] == 'cgi':
+
+                  cgi_processor = path_config['processor']
+                  cgi_directory = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
+                  cgi_directory = cgi_directory.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
+
+                  cgi_resource = CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
+
+                  root.putChild(path, cgi_resource)
+
+               elif path_config['type'] == 'longpoll':
+
+                  log.msg("Web path type 'longpoll' not implemented")
 
                else:
                   print "Web path type '{}' not implemented.".format(path_config['type'])

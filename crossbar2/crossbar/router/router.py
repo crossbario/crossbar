@@ -180,23 +180,33 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
       ## FIXME: enforce!!
       ##
-      self.connectionCap = c.get("max_connections")
+      #self.connectionCap = c.get("max_connections")
+
+      ## convert to seconds
+      ##
+      openHandshakeTimeout = c.get("open_handshake_timeout", 0)
+      if openHandshakeTimeout:
+         openHandshakeTimeout = float(openHandshakeTimeout) / 1000.
+
+      closeHandshakeTimeout = c.get("close_handshake_timeout", 0)
+      if closeHandshakeTimeout:
+         closeHandshakeTimeout = float(closeHandshakeTimeout) / 1000.
 
       self.setProtocolOptions(versions = versions,
                               allowHixie76 = c.get("enable_hixie76", True),
-                              webStatus = c.get("enable_webstatus"),
-                              utf8validateIncoming = c.get("validate_utf8"),
-                              maskServerFrames = c.get("mask_server_frames"),
-                              requireMaskedClientFrames = c.get("require_masked_client_frames"),
-                              applyMask = c.get("apply_mask"),
-                              maxFramePayloadSize = c.get("max_frame_size"),
-                              maxMessagePayloadSize = c.get("max_message_size"),
-                              autoFragmentSize = c.get("auto_fragment_size"),
-                              failByDrop = c.get("fail_by_drop"),
-                              echoCloseCodeReason = c.get("echo_close_codereason"),
-                              openHandshakeTimeout = c.get("open_handshake_timeout"),
-                              closeHandshakeTimeout = c.get("close_handshake_timeout"),
-                              tcpNoDelay = c.get("tcp_nodelay"))
+                              webStatus = c.get("enable_webstatus", True),
+                              utf8validateIncoming = c.get("validate_utf8", True),
+                              maskServerFrames = c.get("mask_server_frames", False),
+                              requireMaskedClientFrames = c.get("require_masked_client_frames", True),
+                              applyMask = c.get("apply_mask", True),
+                              maxFramePayloadSize = c.get("max_frame_size", 0),
+                              maxMessagePayloadSize = c.get("max_message_size", 0),
+                              autoFragmentSize = c.get("auto_fragment_size", 0),
+                              failByDrop = c.get("fail_by_drop", False),
+                              echoCloseCodeReason = c.get("echo_close_codereason", False),
+                              openHandshakeTimeout = openHandshakeTimeout,
+                              closeHandshakeTimeout = closeHandshakeTimeout,
+                              tcpNoDelay = c.get("tcp_nodelay", True))
 
       ## WebSocket compression
       ##
