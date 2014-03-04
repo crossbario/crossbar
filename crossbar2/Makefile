@@ -17,10 +17,10 @@ clean:
 	find . -name "*.pyc" -exec rm -f {} \;
 
 init:
-	PYTHONPATH=. python -m crossbar.cli -d init
+	PYTHONPATH=. python -m crossbar.cli init
 
 start:
-	PYTHONPATH=. python -m crossbar.cli -d start
+	PYTHONPATH=. python -m crossbar.cli start
 
 publish: clean
 	python setup.py register

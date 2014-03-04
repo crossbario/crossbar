@@ -480,6 +480,7 @@ class WorkerProcess(ApplicationSession):
 
 
    def onJoin(self, details):
+      print "99"
       if self.debug:
          log.msg("Realm joined.")
 

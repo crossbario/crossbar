@@ -133,6 +133,8 @@ def run_command_init(options):
 
 
 
+import crossbar
+
 def run_command_start(options):
    """
    Subcommand "crossbar start".
@@ -140,6 +142,8 @@ def run_command_start(options):
    ## start Twisted logging
    ##
    log.startLogging(sys.stderr)
+
+   log.msg("Crossbar.io {} node starting".format(crossbar.__version__))
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##

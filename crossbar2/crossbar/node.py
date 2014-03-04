@@ -213,9 +213,7 @@ class Node:
                   pid = res.transport.pid
                   log.msg("Worker forked with PID {}".format(pid))
                   proxy = ProcessProxy(pid, process)
-                  print "1"
                   session_factory.add(proxy)
-                  print "2"
                   self._processes[pid] = proxy
 
                def onerror(err):

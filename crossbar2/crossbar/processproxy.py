@@ -49,7 +49,6 @@ class ProcessProxy(ApplicationSession):
 
       @inlineCallbacks
       def startup():
-
          #print("Node component started: {}".format(self._config))
 
          options = self._config.get('options', {})
@@ -62,7 +61,7 @@ class ProcessProxy(ApplicationSession):
             if self._config['type'] == 'router':
 
                res = yield self.call('crossbar.node.module.{}.router.start'.format(self._pid), options)
-               log.msg("Worker {}: Router started.".format(self._pid))
+               log.msg("Worker {}: Router started".format(self._pid))
 
                for realm_name in self._config['realms']:
                   realm = self._config['realms'][realm_name]
