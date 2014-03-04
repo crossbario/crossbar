@@ -408,6 +408,18 @@ class RouterModule:
 
 
 
+class ComponentSessionFactory:
+
+   session = None
+
+   def __init__(self, realm):
+      self._realm = realm
+
+   def __call__(self):
+      session = self.session(self._realm)
+      session.factory = self
+      return session
+
 
 class ComponentModule:
    """
@@ -449,14 +461,15 @@ class ComponentModule:
       else:
          ## create a WAMP application session factory
          ##
-         from autobahn.twisted.wamp import ApplicationSessionFactory
-         session_factory = ApplicationSessionFactory()
+         #from autobahn.twisted.wamp import ApplicationSessionFactory
+         #session_factory = ApplicationSessionFactory()
+         session_factory = ComponentSessionFactory(realm)
          session_factory.session = SessionKlass
 
          ## create a WAMP-over-WebSocket transport client factory
          ##
          from autobahn.twisted.websocket import WampWebSocketClientFactory
-         transport_factory = WampWebSocketClientFactory(session_factory, transport['url'], debug = False)
+         transport_factory = WampWebSocketClientFactory(session_factory, transport['url'], debug = self.debug)
          transport_factory.setProtocolOptions(failByDrop = False)
 
          ## start a WebSocket client from an endpoint
@@ -464,7 +477,31 @@ class ComponentModule:
          from twisted.internet import reactor
          from twisted.internet.endpoints import clientFromString
          self._client = clientFromString(reactor, transport['endpoint'])
-         self._client.connect(transport_factory)
+
+         from twisted.internet import reactor
+
+         retry = True
+         retryDelay = 1000
+
+         def try_connect():
+            print "Trying to connect .."
+            d = self._client.connect(transport_factory)
+
+            def success(res):
+               if True or self.debug:
+                  log.msg("Worker {}: client connected to router".format(self._pid))
+
+            def error(err):
+               log.msg("Worker {}: client failed to connect to router - {}".format(self._pid, err))
+               if retry:
+                  log.msg("Worker {}: retrying in {} ms".format(self._pid, retryDelay))
+                  reactor.callLater(float(retryDelay) / 1000., try_connect)
+               else:
+                  log.msg("Worker {}: giving up.".format(seld._pid))
+
+            d.addCallbacks(success, error)
+
+         try_connect()
 
 
 
@@ -480,7 +517,6 @@ class WorkerProcess(ApplicationSession):
 
 
    def onJoin(self, details):
-      print "99"
       if self.debug:
          log.msg("Realm joined.")
 
