@@ -816,19 +816,16 @@ DEV_ROUTER = """{
          },
          "realms": {
             "realm1": {
-               "roles": {
-                  "com.example.anonymous": {
-                     "authentication": null,
-                     "grants": {
-                        "create": true,
-                        "join": true,
-                        "access": {
-                           "*": {
-                              "publish": true,
-                              "subscribe": true,
-                              "call": true,
-                              "register": true
-                           }
+               "permissions": {
+                  "anonymous": {
+                     "create": true,
+                     "join": true,
+                     "access": {
+                        "*": {
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
                         }
                      }
                   }
@@ -843,8 +840,11 @@ DEV_ROUTER = """{
             {
                "type": "web",
                "endpoint": "tcp:8080",
-               "directory": "..",
                "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
                   "ws": {
                      "type": "websocket",
                      "url": "ws://localhost:8080/ws"

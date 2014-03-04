@@ -145,8 +145,8 @@ def run_command_start(options):
    ##
    reactor = install_reactor(options.reactor, options.debug)
 
-   if options.debug:
-      print("Running on reactor {}".format(reactor))
+   #if options.debug:
+   #   print("Running on reactor {}".format(reactor))
 
    ## create and start Crossbar.io node
    ##

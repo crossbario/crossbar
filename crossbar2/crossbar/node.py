@@ -187,8 +187,6 @@ class Node:
 
                filename = pkg_resources.resource_filename('crossbar', WORKER_MAP[process['type']])
 
-               print filename
-
                args = [executable, "-u", filename]
 
                if process.get('debug', False):
@@ -215,7 +213,9 @@ class Node:
                   pid = res.transport.pid
                   log.msg("Worker forked with PID {}".format(pid))
                   proxy = ProcessProxy(pid, process)
+                  print "1"
                   session_factory.add(proxy)
+                  print "2"
                   self._processes[pid] = proxy
 
                def onerror(err):

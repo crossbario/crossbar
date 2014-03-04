@@ -202,7 +202,7 @@ class RouterModule:
       """
       Start a transport on this router module.
       """
-      print "starting transport", config
+      print "Starting {} transport".format(config['type'])
       if self.debug:
          log.msg("Worker {}: starting transport on router module.".format(self._pid))
 
@@ -421,7 +421,7 @@ class ComponentModule:
       self.debug = self._session.factory.options.debug
       self.verbose = self._session.factory.options.verbose
 
-      session.register(self.start,           'crossbar.node.module.{}.component.start'.format(pid))
+      session.register(self.start, 'crossbar.node.module.{}.component.start'.format(pid))
 
 
    def start(self, transport, klassname, realm):
