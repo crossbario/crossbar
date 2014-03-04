@@ -226,86 +226,107 @@ class RouterModule:
             from twisted.web.resource import Resource
 
             from autobahn.twisted.resource import WebSocketResource
-            from crossbar.router.resource import JsonResource, Resource404, CgiDirectory
+            from crossbar.router.resource import JsonResource, Resource404, CgiDirectory, RedirectResource
 
 
             ## Web directory static file serving
-            ##            
-            root_dir = os.path.abspath(os.path.join(self._cbdir, config['directory']))
-            root_dir = root_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
-            print "Starting Web service at root directory {}".format(root_dir)
-            root = File(root_dir)
-
-            ## render 404 page on any concrete path not found
             ##
-            root.childNotFound = Resource404(self._templates, root_dir)
+            root_type = config['paths']['/']['type']
 
-            ## disable directory listing and render 404
-            ##
-            if not options.get('enable_directory_listing', False):
-               root.directoryListing = lambda: root.childNotFound
+            if root_type == 'static':
+
+               rd = config['paths']['/']['directory']
+               root_dir = os.path.abspath(os.path.join(self._cbdir, rd))
+               root_dir = root_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
+               print "Starting Web service at root directory {}".format(root_dir)
+               root = File(root_dir)
+
+               ## render 404 page on any concrete path not found
+               ##
+               root.childNotFound = Resource404(self._templates, root_dir)
+
+               ## disable directory listing and render 404
+               ##
+               if not options.get('enable_directory_listing', False):
+                  root.directoryListing = lambda: root.childNotFound
+
+            elif root_type == 'redirect':
+
+               redirect_url = config['paths']['/']['url'].encode('ascii', 'ignore')
+               root = RedirectResource(redirect_url)
+
+            else:
+               print "invalid type for root path", root_type
+
 
             for path in sorted(config.get('paths', [])):
 
-               path_config = config['paths'][path]
+               if path != "/":
 
-               ## websocket_echo
-               ## websocket_testee
-               ## s3mirror
-               ## websocket_stdio
-               ##
+                  path_config = config['paths'][path]
 
-               if path_config['type'] == 'websocket':
-                  ws_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, path_config, self._templates)
-
-                  ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
-                  ws_factory.startFactory()
-
-                  ws_resource = WebSocketResource(ws_factory)
-                  root.putChild(path, ws_resource)
-
-               elif path_config['type'] == 'static':
-
-                  static_options = path_config.get('options', {})
-                  
-                  static_dir = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
-                  static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
-                  
-                  static_resource = File(static_dir)
-
-                  ## render 404 page on any concrete path not found
+                  ## websocket_echo
+                  ## websocket_testee
+                  ## s3mirror
+                  ## websocket_stdio
                   ##
-                  static_resource.childNotFound = Resource404(self._templates, static_dir)
 
-                  ## disable directory listing and render 404
-                  ##
-                  if not static_options.get('enable_directory_listing', False):
-                     static_resource.directoryListing = lambda: static_resource.childNotFound
+                  if path_config['type'] == 'websocket':
+                     ws_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, path_config, self._templates)
 
-                  root.putChild(path, static_resource)
+                     ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
+                     ws_factory.startFactory()
 
-               elif path_config['type'] == 'json':
-                  value = path_config['value']
-                  
-                  json_resource = JsonResource(value)
-                  root.putChild(path, json_resource)
+                     ws_resource = WebSocketResource(ws_factory)
+                     root.putChild(path, ws_resource)
 
-               elif path_config['type'] == 'cgi':
+                  elif path_config['type'] == 'static':
 
-                  cgi_processor = path_config['processor']
-                  cgi_directory = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
-                  cgi_directory = cgi_directory.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
+                     static_options = path_config.get('options', {})
+                     
+                     static_dir = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
+                     static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
+                     
+                     static_resource = File(static_dir)
 
-                  cgi_resource = CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
+                     ## render 404 page on any concrete path not found
+                     ##
+                     static_resource.childNotFound = Resource404(self._templates, static_dir)
 
-                  root.putChild(path, cgi_resource)
+                     ## disable directory listing and render 404
+                     ##
+                     if not static_options.get('enable_directory_listing', False):
+                        static_resource.directoryListing = lambda: static_resource.childNotFound
 
-               elif path_config['type'] == 'longpoll':
+                     root.putChild(path, static_resource)
 
-                  log.msg("Web path type 'longpoll' not implemented")
+                  elif path_config['type'] == 'redirect':
+                     redirect_url = path_config['url'].encode('ascii', 'ignore')
+                     redirect_resource = RedirectResource(redirect_url)
+                     root.putChild(path, redirect_resource)
 
-               else:
-                  print "Web path type '{}' not implemented.".format(path_config['type'])
+                  elif path_config['type'] == 'json':
+                     value = path_config['value']
+                     
+                     json_resource = JsonResource(value)
+                     root.putChild(path, json_resource)
+
+                  elif path_config['type'] == 'cgi':
+
+                     cgi_processor = path_config['processor']
+                     cgi_directory = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
+                     cgi_directory = cgi_directory.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
+
+                     cgi_resource = CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
+
+                     root.putChild(path, cgi_resource)
+
+                  elif path_config['type'] == 'longpoll':
+
+                     log.msg("Web path type 'longpoll' not implemented")
+
+                  else:
+                     print "Web path type '{}' not implemented.".format(path_config['type'])
 
             transport_factory = Site(root)
             transport_factory.log = lambda _: None # disable any logging

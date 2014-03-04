@@ -106,3 +106,20 @@ class CgiDirectory(Resource, FilePath):
 
    def render(self, request):
       return self.childNotFound.render(request)
+
+
+
+from twisted.web import server
+
+class RedirectResource(Resource):
+
+   isLeaf = True
+
+   def __init__(self, redirect_url):
+      Resource.__init__(self)
+      self._redirect_url = redirect_url
+
+   def render_GET(self, request):
+      request.redirect(self._redirect_url)
+      request.finish()
+      return server.NOT_DONE_YET
