@@ -136,8 +136,24 @@ from twisted.internet.endpoints import clientFromString
 
 
 class Node:
+   """
+   A Crossbar.io node is the running a controller process
+   and one or multiple worker processes.
+
+   A single Crossbar.io node runs exactly one instance of
+   this class, hence this class can be considered a system
+   singleton.
+   """
 
    def __init__(self, reactor, cbdir):
+      """
+      Ctor.
+
+      :param reactor: Reactor to run on.
+      :type reactor: obj
+      :param cbdir: Crossbar.io node directory to run from.
+      :type cbdir: str
+      """
       self._reactor = reactor
       self._cbdir = cbdir
       self._processes = {}
@@ -150,6 +166,14 @@ class Node:
 
 
    def start(self):
+      """
+      Starts this node. This will start a node controller
+      and then spawn new worker processes as needed.
+
+      The node controller will watch spawned processes,
+      communicate via stdio with the worker, and start
+      and restart the worker processes as needed.
+      """
       node_session = NodeSession(self)
 
       if False:
@@ -161,12 +185,18 @@ class Node:
          client = clientFromString(self._reactor, "tcp:127.0.0.1:7000")
          client.connect(transport_factory)
 
+      ## router and factory that creates router sessions
+      ##
       router_factory = RouterFactory()
+      router_session_factory = RouterSessionFactory(router_factory)
 
-      session_factory = RouterSessionFactory(router_factory)
-      session_factory.add(node_session)
+      ## 
+      router_session_factory.add(node_session)
 
-      transport_factory = WampWebSocketClientFactory(session_factory, "ws://localhost", debug = False)
+      ## factory that creates router session transports. these are for clients
+      ## that talk WAMP-WebSocket over pipes with spawned worker processes
+      ##
+      transport_factory = WampWebSocketClientFactory(router_session_factory, "ws://localhost", debug = False)
       transport_factory.setProtocolOptions(failByDrop = False)
 
       WORKER_MAP = {
@@ -174,10 +204,10 @@ class Node:
          "component.python": "router/worker.py"
       }
 
-      config = self._config
-
-      if 'processes' in config:
-         for process in config['processes']:
+      ## for each "process" in the node configuration, spawn a new worker process
+      ##
+      if 'processes' in self._config:
+         for process in self._config['processes']:
 
             if not process['type'] in WORKER_MAP:
                #raise Exception("Illegal worker type '{}'".format(process['type']))
@@ -213,7 +243,7 @@ class Node:
                   pid = res.transport.pid
                   log.msg("Worker forked with PID {}".format(pid))
                   proxy = ProcessProxy(pid, process)
-                  session_factory.add(proxy)
+                  router_session_factory.add(proxy)
                   self._processes[pid] = proxy
 
                def onerror(err):

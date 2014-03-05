@@ -22,28 +22,26 @@ import sys
 import os
 import datetime
 import argparse
-
+import jinja2
+import pkg_resources
 import psutil
 
 import twisted
 from twisted.python import log
-
-from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.exception import ApplicationError
-
-
-
-from autobahn.wamp.router import RouterFactory
-from autobahn.twisted.wamp import RouterSessionFactory
-from autobahn.twisted.websocket import WampWebSocketServerFactory
+from twisted.internet.defer import DeferredList
 from twisted.internet.endpoints import serverFromString
 
+from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.router import RouterFactory
 from autobahn.wamp.protocol import RouterApplicationSession
+
+from autobahn.twisted.websocket import WampWebSocketServerFactory
+from autobahn.twisted.wamp import RouterSessionFactory
+from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import CrossbarRouterFactory, \
                                    CrossbarRouterSessionFactory, \
                                    CrossbarWampWebSocketServerFactory
-
 
 
 class RouterTransport:
@@ -53,14 +51,14 @@ class RouterTransport:
       self.port = port
 
 
+
 class RouterClass:
    def __init__(self, id, klassname, realm):
       self.id = id
       self.klassname = klassname
       self.realm = realm
 
-import jinja2
-import pkg_resources
+
 
 class RouterModule:
    """
@@ -77,12 +75,11 @@ class RouterModule:
       self._cbdir = cbdir
 
       self.debug = self._session.factory.options.debug
-      self.verbose = self._session.factory.options.verbose
 
       ## Jinja2 templates for Web (like WS status page et al)
       ##
       templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
-      if self.verbose:
+      if self.debug:
          log.msg("Worker {}: Using Crossbar.io web templates from {}".format(self._pid, templates_dir))
       self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
 
@@ -94,21 +91,25 @@ class RouterModule:
       self._router_transports = {}
       self._router_transport_no = 0
 
-      session.register(self.start,           'crossbar.node.module.{}.router.start'.format(pid))
-      session.register(self.stop,            'crossbar.node.module.{}.router.stop'.format(pid))
+      dl = []
 
-      session.register(self.startClass,      'crossbar.node.module.{}.router.start_class'.format(pid))
-      session.register(self.stopClass,       'crossbar.node.module.{}.router.stop_class'.format(pid))
+      dl.append(session.register(self.start,           'crossbar.node.module.{}.router.start'.format(pid)))
+      dl.append(session.register(self.stop,            'crossbar.node.module.{}.router.stop'.format(pid)))
 
-      session.register(self.startRealm,      'crossbar.node.module.{}.router.start_realm'.format(pid))
-      #session.register(self.stopRealm,       'crossbar.node.module.{}.router.stop_realm'.format(pid))
+      dl.append(session.register(self.startClass,      'crossbar.node.module.{}.router.start_class'.format(pid)))
+      dl.append(session.register(self.stopClass,       'crossbar.node.module.{}.router.stop_class'.format(pid)))
 
-      session.register(self.startTransport,  'crossbar.node.module.{}.router.start_transport'.format(pid))
-      session.register(self.stopTransport,   'crossbar.node.module.{}.router.stop_transport'.format(pid))
-      session.register(self.listTransports,  'crossbar.node.module.{}.router.list_transports'.format(pid))
+      dl.append(session.register(self.startRealm,      'crossbar.node.module.{}.router.start_realm'.format(pid)))
+      #dl.append(session.register(self.stopRealm,       'crossbar.node.module.{}.router.stop_realm'.format(pid)))
 
-      session.register(self.startLink,       'crossbar.node.module.{}.router.start_link'.format(pid))
-      session.register(self.stopLink,        'crossbar.node.module.{}.router.stop_link'.format(pid))
+      dl.append(session.register(self.startTransport,  'crossbar.node.module.{}.router.start_transport'.format(pid)))
+      dl.append(session.register(self.stopTransport,   'crossbar.node.module.{}.router.stop_transport'.format(pid)))
+      dl.append(session.register(self.listTransports,  'crossbar.node.module.{}.router.list_transports'.format(pid)))
+
+      dl.append(session.register(self.startLink,       'crossbar.node.module.{}.router.start_link'.format(pid)))
+      dl.append(session.register(self.stopLink,        'crossbar.node.module.{}.router.stop_link'.format(pid)))
+
+      d = DeferredList(dl)
 
 
    def start(self, config):
@@ -335,23 +336,40 @@ class RouterModule:
          else:
             raise Exception("logic error")
 
-
          id = self._router_transport_no
 
-         # IListeningPort or an CannotListenError
-         from twisted.internet import reactor
-         server = serverFromString(reactor, str(config['endpoint']))
-         d = server.listen(transport_factory)
+         if True:
+            from twisted.internet import reactor
 
-         def ok(port):
-            self._router_transports[id] = RouterTransport(id, config, port)
-            return id
+            # IListeningPort or an CannotListenError
+            server = serverFromString(reactor, str(config['endpoint']))
+            d = server.listen(transport_factory)
 
-         def fail(err):
-            raise ApplicationError("crossbar.error.cannotlisten", str(err.value))
+            def ok(port):
+               self._router_transports[id] = RouterTransport(id, config, port)
+               return id
 
-         d.addCallbacks(ok, fail)
-         return d
+            def fail(err):
+               raise ApplicationError("crossbar.error.cannotlisten", str(err.value))
+
+            d.addCallbacks(ok, fail)
+            return d
+
+         else:        
+            # http://stackoverflow.com/questions/12542700/setsockopt-before-connect-for-reactor-connecttcp
+            # http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
+            # http://stackoverflow.com/questions/10077745/twistedweb-on-multicore-multiprocessor
+
+            ## start the WebSocket server from a custom port that share TCP ports
+            ##
+            port = CustomPort(9000, transport_factory, reuse = True)
+            try:
+               port.startListening()
+            except twisted.internet.error.CannotListenError as e:
+               raise ApplicationError("crossbar.error.cannotlisten", str(e))
+            else:
+               self._router_transports[id] = RouterTransport(id, config, port)
+               return id
       else:
          raise ApplicationError("crossbar.error.invalid_transport", "Unknown transport type '{}'".format(config['type']))
 
@@ -421,6 +439,7 @@ class ComponentSessionFactory:
       return session
 
 
+
 class ComponentModule:
    """
    """
@@ -431,7 +450,6 @@ class ComponentModule:
       self._client = None
 
       self.debug = self._session.factory.options.debug
-      self.verbose = self._session.factory.options.verbose
 
       session.register(self.start, 'crossbar.node.module.{}.component.start'.format(pid))
 
@@ -509,6 +527,7 @@ class WorkerProcess(ApplicationSession):
 
    def onConnect(self):
       self.debug = self.factory.options.debug
+      self.debug = True
       if self.debug:
          log.msg("Connected to node.")
 
@@ -572,93 +591,19 @@ class WorkerProcess(ApplicationSession):
 
 
 
-
-class RouterProcess(WorkerProcess):
-
-   def startComponent(self):
-
-      def start_component(config):
-         ## create a WAMP router factory
-         ##
-         try:
-
-            from autobahn.wamp.router import RouterFactory
-            router_factory = RouterFactory()
-
-            ## create a WAMP router session factory
-            ##
-            from autobahn.twisted.wamp import RouterSessionFactory
-            session_factory = RouterSessionFactory(router_factory)
-
-            ## create a WAMP-over-WebSocket transport server factory
-            ##
-            from autobahn.twisted.websocket import WampWebSocketServerFactory
-            transport_factory = WampWebSocketServerFactory(session_factory, config['url'], debug = False)
-            transport_factory.setProtocolOptions(failByDrop = False)
-
-            if True:
-               ## start the WebSocket server from an endpoint
-               ##
-               from twisted.internet.endpoints import serverFromString
-               from twisted.internet import reactor
-               server = serverFromString(reactor, str(config['endpoint']))
-
-               # IListeningPort or an CannotListenError
-               d = server.listen(transport_factory)
-
-               def ok(port):
-                  return "Ok, listening"
-
-               def fail(err):
-                  raise ApplicationError("crossbar.error.cannotlisten", str(err.value))
-
-               d.addCallbacks(ok, fail)
-               return d
-
-            else:
-               # http://stackoverflow.com/questions/12542700/setsockopt-before-connect-for-reactor-connecttcp
-               # http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
-               # http://stackoverflow.com/questions/10077745/twistedweb-on-multicore-multiprocessor
-
-               ## start the WebSocket server from a custom port that share TCP ports
-               ##
-               p = CustomPort(9000, transport_factory, reuse = True)
-               try:
-                  p.startListening()
-               except twisted.internet.error.CannotListenError as e:
-                  raise ApplicationError("crossbar.error.cannotlisten", str(e))
-               else:
-                  return "Ok, listening"
-
-
-         except Exception as e:
-            log.msg("Fuck {}".format(e))
-
-
-
-      #self.register(start_component, 'crossbar.node.component.{}.start'.format(self._pid))
-      self._routerModule = RouterModule(self, self._pid)
-      #self.register(start_component, 'crossbar.node.component.{}.start'.format(pid))
-
-
-
 def run():
+   """
+   Entry point into background worker process. This wires up stuff such that
+   a WorkerProcess instance is talking WAMP over stdio to the node controller.
+   """
    ## create the top-level parser
    ##
-   parser = argparse.ArgumentParser(prog = 'crossbar',
-                                    description = "Crossbar.io polyglot application router")
+   parser = argparse.ArgumentParser()
 
-   ## top-level options
-   ##
    parser.add_argument('-d',
                        '--debug',
                        action = 'store_true',
                        help = 'Debug on.')
-
-   parser.add_argument('-v',
-                       '--verbose',
-                       action = 'store_true',
-                       help = 'Verbose (human) output on.')
 
    parser.add_argument('--reactor',
                        default = None,
@@ -669,17 +614,16 @@ def run():
                        type = str,
                        default = None,
                        help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
    parser.add_argument('-l',
                        '--logfile',
                        default = None,
                        help = 'Log to log file instead of stderr.')
 
-   ## parse cmd line args
-   ##
    options = parser.parse_args()
 
-
    ## make sure logging to something else than stdio is setup _first_
+   ##
    if options.logfile:
       log.startLogging(open(options.logfile, 'a'))
    else:
@@ -702,15 +646,13 @@ def run():
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
    from autobahn.twisted.choosereactor import install_reactor
-   reactor = install_reactor(options.reactor, options.verbose)
+   reactor = install_reactor(options.reactor)
 
    ##
    from twisted.python.reflect import qual
    log.msg("Worker {}: starting at node directory {} on {} ..".format(pid, options.cbdir, qual(reactor.__class__).split('.')[-1]))
 
    try:
-      #from crossbar.router.cgi import CgiScript
-
       ## create a WAMP application session factory
       ##
       from autobahn.twisted.wamp import ApplicationSessionFactory
@@ -732,8 +674,7 @@ def run():
 
       ## now start reactor loop
       ##
-      if options.verbose:
-         log.msg("Worker {}: Starting reactor".format(pid))
+      log.msg("Worker {}: entering event loop ..".format(pid))
       reactor.run()
 
    except Exception as e:
