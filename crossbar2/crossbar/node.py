@@ -127,6 +127,7 @@ class NodeControllerSession(ApplicationSession):
       ApplicationSession.__init__(self)
       self.debug = False
       self._node = node
+      self._node_name = node._node_name
       self._management_session = None
 
       self._processes = {}
@@ -150,36 +151,37 @@ class NodeControllerSession(ApplicationSession):
             pid = yield self.start_process({'type': 'worker'})
 
             if 'classpaths' in options:
-               yield self.call('crossbar.node.component.{}.add_classpaths'.format(pid), options['classpaths'])
+               yield self.call('crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, pid), options['classpaths'])
 
             if process['type'] == 'router':
 
-               res = yield self.call('crossbar.node.module.{}.router.start'.format(pid), options)
-               log.msg("Worker {}: Router started".format(pid))
+               router_index = yield self.call('crossbar.node.{}.process.{}.start_router'.format(self._node_name, pid))
+               log.msg("Worker {}: Router started ({})".format(pid, router_index))
 
                for realm_name in process['realms']:
-                  realm = process['realms'][realm_name]
-                  res = yield self.call('crossbar.node.module.{}.router.start_realm'.format(pid), realm_name, realm)
+                  realm_config = process['realms'][realm_name]
+                  realm_index = yield self.call('crossbar.node.{}.process.{}.router.{}.start_realm'.format(self._node_name, pid, router_index), realm_name, realm_config)
+                  log.msg("Worker {}: Realm started on router {} ({})".format(pid, router_index, realm_index))
 
                   try:
-                     for klassname in realm.get('classes', []):
-                        id = yield self.call('crossbar.node.module.{}.router.start_class'.format(pid), klassname, realm_name)
-                        log.msg("Worker {}: Class '{}' ({}) started in realm '{}'".format(pid, klassname, id, realm_name))
+                     for klassname in realm_config.get('classes', []):
+                        id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_class'.format(self._node_name, pid, router_index), klassname, realm_name)
+                        log.msg("Worker {}: Class '{}' ({}) started in realm '{}' on router {}".format(pid, klassname, id, realm_name, router_index))
                         #res = yield self.call('crossbar.node.module.{}.router.stop_class'.format(pid), res)
                         #print "Class stopped", res
                   except Exception as e:
                      print e, e.args
 
                for transport in process['transports']:
-                  id = yield self.call('crossbar.node.module.{}.router.start_transport'.format(pid), transport)
-                  log.msg("Worker {}: Transport {}/{} ({}) started".format(pid, transport['type'], transport['endpoint'], id))
+                  id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_transport'.format(self._node_name, pid, router_index), transport)
+                  log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint'], id, router_index))
 
             elif process['type'] == 'component.python':
 
                klassname, realm_name = process['class'], process['router']['realm']
 
                yield self.call('crossbar.node.module.{}.component.start'.format(pid), process['router'], klassname, realm_name)
-               log.msg("Worker {}: Component container started.".format(pid))
+               log.msg("Worker {}: Component container started ().".format(pid))
                log.msg("Worker {}: Class '{}' started in realm '{}'".format(pid, klassname, realm_name))
 
             else:
@@ -273,10 +275,10 @@ class NodeControllerSession(ApplicationSession):
             r.ready = None
 
       dl = []
-      dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._name)))
+      dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._node_name)))
 
-      dl.append(self.register(self.start_process, 'crossbar.node.{}.start_process'.format(self._node._name)))
-      dl.append(self.register(self.get_node_processes, 'crossbar.node.{}.get_node_processes'.format(self._node._name)))
+      dl.append(self.register(self.start_process, 'crossbar.node.{}.start_process'.format(self._node._node_name)))
+      dl.append(self.register(self.get_node_processes, 'crossbar.node.{}.get_node_processes'.format(self._node._node_name)))
 
 
    def get_node_processes(self):
@@ -317,9 +319,9 @@ class Node:
       self._worker_processes = {}
 
       ## node name: FIXME
-      self._name = "{}-{}".format(socket.getfqdn(), os.getpid())
-      self._name.replace('-', '_')
-      self._name = '918234'
+      self._node_name = "{}-{}".format(socket.getfqdn(), os.getpid())
+      self._node_name.replace('-', '_')
+      self._node_name = '918234'
 
       ## node management
       self._management_url = "ws://127.0.0.1:7000"

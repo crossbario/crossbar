@@ -69,9 +69,11 @@ class RouterModule:
       - Classes
    """
 
-   def __init__(self, session, pid, cbdir):
+   def __init__(self, session, index, cbdir):
       self._session = session
-      self._pid = pid
+      self._index = index
+      self._pid = session._pid
+      self._node_name = session._node_name
       self._cbdir = cbdir
 
       self.debug = self._session.factory.options.debug
@@ -87,39 +89,44 @@ class RouterModule:
       self._component_no = 0
 
       self._router_factory = None
-      self._router_session_factory = None
+
+
+   def start(self):
+
+      print "QQQ2"
+
+      assert(self._router_factory is None)
+
+      self._router_factory = CrossbarRouterFactory()
+      self._router_session_factory = CrossbarRouterSessionFactory(self._router_factory)
+
+      print "QQQ2"
       self._router_transports = {}
       self._router_transport_no = 0
 
       dl = []
 
-      dl.append(session.register(self.start,           'crossbar.node.module.{}.router.start'.format(pid)))
-      dl.append(session.register(self.stop,            'crossbar.node.module.{}.router.stop'.format(pid)))
+#      dl.append(self._session.register(self.start,           'crossbar.node.{}.process.{}.router.{}.start'.format(self._node_name, self._pid, self._index)))
+      uri = 'crossbar.node.{}.process.{}.router.{}.stop'.format(self._node_name, self._pid, self._index)
+      print "QQQQ", uri
+      dl.append(self._session.register(self.stop, uri))
 
-      dl.append(session.register(self.startClass,      'crossbar.node.module.{}.router.start_class'.format(pid)))
-      dl.append(session.register(self.stopClass,       'crossbar.node.module.{}.router.stop_class'.format(pid)))
+      dl.append(self._session.register(self.startClass,      'crossbar.node.{}.process.{}.router.{}.start_class'.format(self._node_name, self._pid, self._index)))
+      dl.append(self._session.register(self.stopClass,       'crossbar.node.{}.process.{}.router.{}.stop_class'.format(self._node_name, self._pid, self._index)))
 
-      dl.append(session.register(self.startRealm,      'crossbar.node.module.{}.router.start_realm'.format(pid)))
-      #dl.append(session.register(self.stopRealm,       'crossbar.node.module.{}.router.stop_realm'.format(pid)))
+      dl.append(self._session.register(self.startRealm,      'crossbar.node.{}.process.{}.router.{}.start_realm'.format(self._node_name, self._pid, self._index)))
+      #dl.append(self._session.register(self.stopRealm,       'crossbar.node.{}.module.{}.router.stop_realm'.format(self._node_name, self._pid, self._index)))
 
-      dl.append(session.register(self.startTransport,  'crossbar.node.module.{}.router.start_transport'.format(pid)))
-      dl.append(session.register(self.stopTransport,   'crossbar.node.module.{}.router.stop_transport'.format(pid)))
-      dl.append(session.register(self.listTransports,  'crossbar.node.module.{}.router.list_transports'.format(pid)))
+      dl.append(self._session.register(self.startTransport,  'crossbar.node.{}.process.{}.router.{}.start_transport'.format(self._node_name, self._pid, self._index)))
+      dl.append(self._session.register(self.stopTransport,   'crossbar.node.{}.process.{}.router.{}.stop_transport'.format(self._node_name, self._pid, self._index)))
+      dl.append(self._session.register(self.listTransports,  'crossbar.node.{}.process.{}.router.{}.list_transports'.format(self._node_name, self._pid, self._index)))
 
-      dl.append(session.register(self.startLink,       'crossbar.node.module.{}.router.start_link'.format(pid)))
-      dl.append(session.register(self.stopLink,        'crossbar.node.module.{}.router.stop_link'.format(pid)))
+      dl.append(self._session.register(self.startLink,       'crossbar.node.{}.process.{}.router.{}.start_link'.format(self._node_name, self._pid, self._index)))
+      dl.append(self._session.register(self.stopLink,        'crossbar.node.{}.process.{}.router.{}.stop_link'.format(self._node_name, self._pid, self._index)))
 
       d = DeferredList(dl)
 
-
-   def start(self, config):
-      if not self._router_factory:
-         if self.debug:
-            log.msg("Worker {}: starting router module".format(self._pid))
-         self._router_factory = CrossbarRouterFactory()
-         self._router_session_factory = CrossbarRouterSessionFactory(self._router_factory)
-      else:
-         raise ApplicationError("crossbar.error.module_already_started")
+      return d
 
 
    def stop(self):
@@ -451,7 +458,7 @@ class ComponentModule:
 
       self.debug = self._session.factory.options.debug
 
-      session.register(self.start, 'crossbar.node.module.{}.component.start'.format(pid))
+      session.register(self.start, 'crossbar.node.module.{}.component.start'.format(self._pid))
 
 
    def start(self, transport, klassname, realm):
@@ -532,6 +539,10 @@ class WorkerProcess(ApplicationSession):
          log.msg("Connected to node.")
 
       self._component = None
+
+      self._routers = {}
+      self._router_seq = 100
+
       self.join("crossbar")
 
 
@@ -575,16 +586,34 @@ class WorkerProcess(ApplicationSession):
       self.register(add_classpaths, 'crossbar.node.component.{}.add_classpaths'.format(self._pid))
 
 
+      def start_router():
+         self._router_seq += 1
+         index = self._router_seq
+
+         self._routers[index] = RouterModule(self, index, self.factory.options.cbdir)
+         d = self._routers[index].start()
+
+         def onstart(res):
+            return index
+
+         d.addCallback(onstart)
+         return d
+
+      self.register(start_router, 'crossbar.node.{}.process.{}.start_router'.format(self._node_name, self._pid))
+
       ## Modules
       ##
-      self._routerModule = RouterModule(self, self._pid, self.factory.options.cbdir)
+      #self._routerModule = RouterModule(self, self.factory.options.cbdir)
       self._componentModule = ComponentModule(self, self._pid)
 
 
       if self.debug:
          log.msg("Worker {}: Procedures registered.".format(self._pid))
 
-      self.publish('crossbar.node.component.{}.on_start'.format(self._pid), {'pid': self._pid, 'cmd': [sys.executable] + sys.argv})
+      ## signal that this worker is ready for setup. the actual setup procedure
+      ## will either be sequenced from the local node configuration file or remotely
+      ## from a management service
+      ##
       self.publish('crossbar.node.{}.on_worker_ready'.format(self._node_name), {'pid': self._pid, 'cmd': [sys.executable] + sys.argv})
 
 
