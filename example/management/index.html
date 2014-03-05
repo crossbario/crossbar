@@ -7,8 +7,6 @@
       <h1>Authenticated WAMP with Mozilla Persona</h1>
       <p>Open JavaScript console to watch output.</p>
 
-      <h2>RPC Result</h2>
-      <div id="result">No result yet.</div>
 
       <script src="autobahn.min.js"></script>
 
@@ -18,21 +16,28 @@
             realm: 'crossbar'
          });
 
-         var result = document.getElementById('result');
-
          connection.onopen = function (session, details) {
 
             console.log(session, details);
 
-            session.call('crossbar.node.918234.get_node_processes').then(
+            var node_name = '918234';
+
+            session.call('crossbar.node.' + node_name + '.get_node_processes').then(
 //            session.call('crossbar.node.918234.start_process', [{type: 'worker'}]).then(
-               function (now) {
-                  console.log(now);
-                  result.innerHTML = JSON.stringify(now);
+               function (processes) {
+                  for (var i = 0; i < processes.length; ++i) {
+                     var pid = processes[i].pid;
+                     (function (pid) {
+                        session.call('crossbar.node.' + node_name + '.process.' + pid + '.get_cpu_affinity').then(
+                           function (affinity) {
+                              console.log(pid, affinity);
+                           }
+                        );
+                     })(pid);
+                  }
                },
                function (error) {
                   console.log(error);
-                  result.innerHTML = "Error.";
                }
             );
          };

@@ -546,7 +546,7 @@ class WorkerProcess(ApplicationSession):
          p = psutil.Process(self._pid)
          return p.get_cpu_affinity()
 
-      self.register(get_cpu_affinity, 'crossbar.node.component.{}.get_cpu_affinity'.format(self._pid))
+      self.register(get_cpu_affinity, 'crossbar.node.{}.process.{}.get_cpu_affinity'.format(self._node_name, self._pid))
 
 
       def set_cpu_affinity(cpus):
