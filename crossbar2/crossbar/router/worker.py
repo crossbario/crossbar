@@ -540,6 +540,7 @@ class WorkerProcess(ApplicationSession):
          log.msg("Realm joined.")
 
       self._pid = os.getpid()
+      self._node_name = '918234'
 
       def get_cpu_affinity():
          p = psutil.Process(self._pid)
@@ -584,6 +585,7 @@ class WorkerProcess(ApplicationSession):
          log.msg("Worker {}: Procedures registered.".format(self._pid))
 
       self.publish('crossbar.node.component.{}.on_start'.format(self._pid), {'pid': self._pid, 'cmd': [sys.executable] + sys.argv})
+      self.publish('crossbar.node.{}.on_worker_ready'.format(self._node_name), {'pid': self._pid, 'cmd': [sys.executable] + sys.argv})
 
 
    def startComponent(self):
