@@ -189,7 +189,7 @@ class NodeControllerSession(ApplicationSession):
             else:
                raise Exception("logic error")
 
-         elif process['type'] == 'program':
+         elif process['type'] == 'component.program':
 
             pid = yield self.start_process(process)
 
@@ -248,62 +248,135 @@ class NodeControllerSession(ApplicationSession):
 
          return ready
 
-      elif config['type'] == 'program':
+      elif config['type'] == 'component.program':
 
          ##
          ## start a program process
          ##
+         from twisted.internet import protocol
+         from twisted.internet import reactor
+         from twisted.internet.error import ProcessDone, ProcessTerminated
+         import re, json
+
+         class MyPP(protocol.ProcessProtocol):
+
+            def __init__(self):
+               self._pid = None
+
+            def connectionMade(self):
+               if 'stdin' in config and config['stdin'] == 'config' and 'config' in config:
+                  ## write process config from configuration to stdin
+                  ## of the forked process and close stdin
+                  self.transport.write(json.dumps(config['config']))
+                  self.transport.closeStdin()
+
+            def outReceived(self, data):
+               if 'stdout' in config and config['stdout'] == 'log':
+                  try:
+                     data = str(data).strip()
+                  except:
+                     data = "{} bytes".format(len(data))
+                  log.msg("Worker {} (stdout): {}".format(self._pid, data))
+
+            def errReceived(self, data):
+               if 'stderr' in config and config['stderr'] == 'log':
+                  try:
+                     data = str(data).strip()
+                  except:
+                     data = "{} bytes".format(len(data))
+                  log.msg("Worker {} (stderr): {}".format(self._pid, data))
+
+            def inConnectionLost(self):
+               pass
+
+            def outConnectionLost(self):
+               pass
+
+            def errConnectionLost(self):
+               pass
+
+            def processExited(self, reason):
+               pass
+
+            def processEnded(self, reason):
+               if isinstance(reason.value,  ProcessDone):
+                  log.msg("Worker {}: Ended cleanly.".format(self._pid))
+               elif isinstance(reason.value, ProcessTerminated):
+                  log.msg("Worker {}: Ended with error {}".format(self._pid, reason.value.exitCode))
+               else:
+                  ## should not arrive here
+                  pass
+
          exe = config['executable']
 
          args = [exe]
          args.extend(config.get('arguments', []))
 
-         if sys.platform == 'win32':
-            ep = ProcessEndpoint(self._node._reactor,
-                                 exe,
-                                 args,
-                                 errFlag = StandardErrorBehavior.LOG,
-                                 env = os.environ)
-         else:
-            ep = ProcessEndpoint(self._node._reactor,
-                                 exe,
-                                 args,
-                                 childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
-                                 errFlag = StandardErrorBehavior.LOG,
-                                 env = os.environ)
+         workdir = self._node._cbdir
+         if 'workdir' in config:
+            workdir = os.path.join(workdir, config['workdir'])
+         workdir = os.path.abspath(workdir)
 
          ready = Deferred()
 
-         from twisted.internet import protocol
-         from twisted.internet import reactor
-         import re
+         if False:
 
-         class MyPP(protocol.ProcessProtocol):
-            def dataReceived(self, data):
-               log.msg(data)
+            class MyPP(protocol.ProcessProtocol):
+               def dataReceived(self, data):
+                  print "dataReceived"
+                  log.msg(data)
 
-            def outReceived(self, data):
-               log.msg(data)
+               def outReceived(self, data):
+                  print "outReceived"
+                  log.msg(data)
 
-            def errReceived(self, data):
-               log.msg(data)
+               def errReceived(self, data):
+                  print "errReceived"
+                  log.msg(data)
 
-         f = protocol.Factory()
-         f.protocol = MyPP
+            if sys.platform == 'win32':
+               ep = ProcessEndpoint(self._node._reactor,
+                                    exe,
+                                    args,
+                                    path = workdir,
+                                    errFlag = StandardErrorBehavior.LOG,
+                                    env = os.environ)
+            else:
+               ep = ProcessEndpoint(self._node._reactor,
+                                    exe,
+                                    args,
+                                    apth = workdir,
+                                    childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
+                                    errFlag = StandardErrorBehavior.LOG,
+                                    env = os.environ)
 
-         d = ep.connect(f)
-#         d = ep.connect(self._node._router_client_transport_factory)
+            f = protocol.Factory()
+            f.protocol = MyPP
 
-         def onconnect(res):
-            pid = res.transport.pid
-            self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready)
-            print "333", res.transport.pid
+            d = ep.connect(f)
 
-         def onerror(err):
-            print err
-            ready.errback(err)
+            def onconnect(res):
+               pid = res.transport.pid
+               self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready)
+               print "333", pid
 
-         d.addCallbacks(onconnect, onerror)
+            def onerror(err):
+               print err
+               ready.errback(err)
+
+            d.addCallbacks(onconnect, onerror)
+
+         else:
+            p = MyPP()
+            try:
+               trnsp = reactor.spawnProcess(p, exe, args, path = workdir, env = os.environ)
+            except Exception as e:
+               log.msg(e)
+            else:
+               pid = trnsp.pid
+               p._pid = pid
+               self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready)
+               log.msg("Worker {}: Program started.".format(pid))
 
          return ready
 
