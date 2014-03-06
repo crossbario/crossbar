@@ -148,8 +148,10 @@ class NodeControllerSession(ApplicationSession):
 
          if process['type'] in ['router', 'component.python']:
 
-            pid = yield self.start_process({'type': 'worker'})
+            ## start a new worker process ..
+            pid = yield self.start_process(process)
 
+            ## .. and orchestrate the startup of the worker
             if 'classpaths' in options:
                yield self.call('crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, pid), options['classpaths'])
 
@@ -187,6 +189,10 @@ class NodeControllerSession(ApplicationSession):
             else:
                raise Exception("logic error")
 
+         elif process['type'] == 'program':
+
+            pid = yield self.start_process(process)
+
          else:
             raise ApplicationError("wamp.error.invalid_argument", "Invalid process type '{}'".format(process['type']))
 
@@ -200,12 +206,11 @@ class NodeControllerSession(ApplicationSession):
 
       :returns: int -- The PID of the new process.
       """
-      print "start_process", config
+      if config['type'] in ['router', 'component.python']:
 
-      if config['type'] == 'worker':
-
+         ##
          ## start a Crossbar.io worker process
-
+         ##
          filename = pkg_resources.resource_filename('crossbar', 'router/worker.py')
 
          args = [executable, "-u", filename]
@@ -239,13 +244,68 @@ class NodeControllerSession(ApplicationSession):
          def onerror(err):
             ready.errback(err)
 
-         d.addCallback(onconnect)
+         d.addCallbacks(onconnect, onerror)
 
          return ready
 
       elif config['type'] == 'program':
 
-         pass # FIXME
+         ##
+         ## start a program process
+         ##
+         exe = config['executable']
+
+         args = [exe]
+         args.extend(config.get('arguments', []))
+
+         if sys.platform == 'win32':
+            ep = ProcessEndpoint(self._node._reactor,
+                                 exe,
+                                 args,
+                                 errFlag = StandardErrorBehavior.LOG,
+                                 env = os.environ)
+         else:
+            ep = ProcessEndpoint(self._node._reactor,
+                                 exe,
+                                 args,
+                                 childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
+                                 errFlag = StandardErrorBehavior.LOG,
+                                 env = os.environ)
+
+         ready = Deferred()
+
+         from twisted.internet import protocol
+         from twisted.internet import reactor
+         import re
+
+         class MyPP(protocol.ProcessProtocol):
+            def dataReceived(self, data):
+               log.msg(data)
+
+            def outReceived(self, data):
+               log.msg(data)
+
+            def errReceived(self, data):
+               log.msg(data)
+
+         f = protocol.Factory()
+         f.protocol = MyPP
+
+         d = ep.connect(f)
+#         d = ep.connect(self._node._router_client_transport_factory)
+
+         def onconnect(res):
+            pid = res.transport.pid
+            self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready)
+            print "333", res.transport.pid
+
+         def onerror(err):
+            print err
+            ready.errback(err)
+
+         d.addCallbacks(onconnect, onerror)
+
+         return ready
 
       else:
 

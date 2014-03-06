@@ -93,24 +93,17 @@ class RouterModule:
 
    def start(self):
 
-      print "QQQ2"
-
       assert(self._router_factory is None)
 
       self._router_factory = CrossbarRouterFactory()
       self._router_session_factory = CrossbarRouterSessionFactory(self._router_factory)
 
-      print "QQQ2"
       self._router_transports = {}
       self._router_transport_no = 0
 
       dl = []
 
-#      dl.append(self._session.register(self.start,           'crossbar.node.{}.process.{}.router.{}.start'.format(self._node_name, self._pid, self._index)))
-      uri = 'crossbar.node.{}.process.{}.router.{}.stop'.format(self._node_name, self._pid, self._index)
-      print "QQQQ", uri
-      dl.append(self._session.register(self.stop, uri))
-
+      dl.append(self._session.register(self.stop,            'crossbar.node.{}.process.{}.router.{}.stop'.format(self._node_name, self._pid, self._index)))
       dl.append(self._session.register(self.startClass,      'crossbar.node.{}.process.{}.router.{}.start_class'.format(self._node_name, self._pid, self._index)))
       dl.append(self._session.register(self.stopClass,       'crossbar.node.{}.process.{}.router.{}.stop_class'.format(self._node_name, self._pid, self._index)))
 
@@ -531,27 +524,31 @@ class ComponentModule:
 
 
 class WorkerProcess(ApplicationSession):
+   """
+   A Crossbar.io worker process connects back to the node router
+   via WAMP-over-stdio.
+   """
 
    def onConnect(self):
       self.debug = self.factory.options.debug
       self.debug = True
-      if self.debug:
-         log.msg("Connected to node.")
 
-      self._component = None
+      self._pid = os.getpid()
+      self._node_name = '918234'
+
+      if self.debug:
+         log.msg("Worker {}: Connected to node router.".format(self._pid))
 
       self._routers = {}
       self._router_seq = 100
+
+      self._class_hosts = {}
+      self._class_host_seq = 100
 
       self.join("crossbar")
 
 
    def onJoin(self, details):
-      if self.debug:
-         log.msg("Realm joined.")
-
-      self._pid = os.getpid()
-      self._node_name = '918234'
 
       def get_cpu_affinity():
          p = psutil.Process(self._pid)
@@ -564,28 +561,33 @@ class WorkerProcess(ApplicationSession):
          p = psutil.Process(self._pid)
          p.set_cpu_affinity(cpus)
 
-      self.register(set_cpu_affinity, 'crossbar.node.component.{}.set_cpu_affinity'.format(self._pid))
+      self.register(set_cpu_affinity, 'crossbar.node.{}.process.{}.set_cpu_affinity'.format(self._node_name, self._pid))
 
 
       def utcnow():
          now = datetime.datetime.utcnow()
          return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-      self.register(utcnow, 'crossbar.node.component.{}.now'.format(self._pid))
+      self.register(utcnow, 'crossbar.node.{}.process.{}.now'.format(self._node_name, self._pid))
 
 
       def get_classpaths():
          return sys.path
 
-      self.register(get_classpaths, 'crossbar.node.component.{}.get_classpaths'.format(self._pid))
+      self.register(get_classpaths, 'crossbar.node.{}.process.{}.get_classpaths'.format(self._node_name, self._pid))
 
 
       def add_classpaths(paths, prepend = True):
-         sys.path = paths + sys.path
+         if prepend:
+            sys.path = paths + sys.path
+         else:
+            sys.path.extend(paths)
 
-      self.register(add_classpaths, 'crossbar.node.component.{}.add_classpaths'.format(self._pid))
+      self.register(add_classpaths, 'crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, self._pid))
 
 
+      ## Modules
+      ##
       def start_router():
          self._router_seq += 1
          index = self._router_seq
@@ -601,9 +603,7 @@ class WorkerProcess(ApplicationSession):
 
       self.register(start_router, 'crossbar.node.{}.process.{}.start_router'.format(self._node_name, self._pid))
 
-      ## Modules
-      ##
-      #self._routerModule = RouterModule(self, self.factory.options.cbdir)
+      ## FIXME
       self._componentModule = ComponentModule(self, self._pid)
 
 
