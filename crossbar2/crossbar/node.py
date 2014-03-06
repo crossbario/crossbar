@@ -234,7 +234,7 @@ class NodeControllerSession(ApplicationSession):
          ##
          ## start a Crossbar.io worker process
          ##
-         filename = pkg_resources.resource_filename('crossbar', 'router/worker.py')
+         filename = pkg_resources.resource_filename('crossbar', 'worker.py')
 
          args = [executable, "-u", filename]
 
