@@ -258,7 +258,7 @@ class NodeControllerSession(ApplicationSession):
          from twisted.internet.error import ProcessDone, ProcessTerminated
          import re, json
 
-         class MyPP(protocol.ProcessProtocol):
+         class ProgramWorkerProcess(protocol.ProcessProtocol):
 
             def __init__(self):
                self._pid = None
@@ -319,64 +319,18 @@ class NodeControllerSession(ApplicationSession):
 
          ready = Deferred()
 
-         if False:
-
-            class MyPP(protocol.ProcessProtocol):
-               def dataReceived(self, data):
-                  print "dataReceived"
-                  log.msg(data)
-
-               def outReceived(self, data):
-                  print "outReceived"
-                  log.msg(data)
-
-               def errReceived(self, data):
-                  print "errReceived"
-                  log.msg(data)
-
-            if sys.platform == 'win32':
-               ep = ProcessEndpoint(self._node._reactor,
-                                    exe,
-                                    args,
-                                    path = workdir,
-                                    errFlag = StandardErrorBehavior.LOG,
-                                    env = os.environ)
-            else:
-               ep = ProcessEndpoint(self._node._reactor,
-                                    exe,
-                                    args,
-                                    apth = workdir,
-                                    childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
-                                    errFlag = StandardErrorBehavior.LOG,
-                                    env = os.environ)
-
-            f = protocol.Factory()
-            f.protocol = MyPP
-
-            d = ep.connect(f)
-
-            def onconnect(res):
-               pid = res.transport.pid
-               self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready)
-               print "333", pid
-
-            def onerror(err):
-               print err
-               ready.errback(err)
-
-            d.addCallbacks(onconnect, onerror)
-
+         proto = ProgramWorkerProcess()
+         try:
+            trnsp = reactor.spawnProcess(proto, exe, args, path = workdir, env = os.environ)
+         except Exception as e:
+            log.msg("Worker: Program could not be started - {}".format(e))
+            ready.errback(e)
          else:
-            p = MyPP()
-            try:
-               trnsp = reactor.spawnProcess(p, exe, args, path = workdir, env = os.environ)
-            except Exception as e:
-               log.msg(e)
-            else:
-               pid = trnsp.pid
-               p._pid = pid
-               self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready)
-               log.msg("Worker {}: Program started.".format(pid))
+            pid = trnsp.pid
+            proto._pid = pid
+            self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready)
+            log.msg("Worker {}: Program started.".format(pid))
+            ready.callback(pid)
 
          return ready
 
