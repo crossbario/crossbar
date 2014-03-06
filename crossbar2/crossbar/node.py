@@ -123,17 +123,40 @@ class NodeControllerSession(ApplicationSession):
          self.ready = ready
          self.created = utcnow()
 
+
    def __init__(self, node):
       ApplicationSession.__init__(self)
       self.debug = False
       self._node = node
       self._node_name = node._node_name
       self._management_session = None
-
       self._processes = {}
+
+
+   def onConnect(self):
+      self.join("crossbar")
+
+
+   def onJoin(self, details):
+
+      def on_worker_ready(res):
+         ## fire the Deferred previously stored for signaling "worker ready"
+         pid = res['pid']
+         r = self._processes.get(pid, None)
+         if r and r.ready:
+            r.ready.callback(pid)
+            r.ready = None
+
+      dl = []
+      dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._node_name)))
+
+      dl.append(self.register(self.start_process, 'crossbar.node.{}.start_process'.format(self._node._node_name)))
+      dl.append(self.register(self.get_processes, 'crossbar.node.{}.get_processes'.format(self._node._node_name)))
+
 
    def stop_node(self):
       pass
+
 
    def restart_node(self):
       print "restarting node .."
@@ -343,32 +366,7 @@ class NodeControllerSession(ApplicationSession):
       pass
 
 
-   def setManagementSession(self, session):
-      self._management_session = session
-
-
-   def onConnect(self):
-      self.join("crossbar")
-
-
-   def onJoin(self, details):
-
-      def on_worker_ready(res):
-         ## fire the Deferred previously stored for signaling "worker ready"
-         pid = res['pid']
-         r = self._processes.get(pid, None)
-         if r and r.ready:
-            r.ready.callback(pid)
-            r.ready = None
-
-      dl = []
-      dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._node_name)))
-
-      dl.append(self.register(self.start_process, 'crossbar.node.{}.start_process'.format(self._node._node_name)))
-      dl.append(self.register(self.get_node_processes, 'crossbar.node.{}.get_node_processes'.format(self._node._node_name)))
-
-
-   def get_node_processes(self):
+   def get_processes(self):
       """
       Returns a list of PIDs of worker processes.
       """
