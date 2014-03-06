@@ -169,14 +169,18 @@ class NodeControllerSession(ApplicationSession):
 
       for process in config['processes']:
 
+         process_options = process.get('options', {})
+
          if process['type'] in ['router', 'component.python']:
 
             ## start a new worker process ..
             pid = yield self.start_process(process)
 
             ## .. and orchestrate the startup of the worker
-            if 'classpaths' in options:
-               yield self.call('crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, pid), options['classpaths'])
+            if 'classpaths' in process_options:
+               yield self.call('crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, pid), process_options['classpaths'])
+               #res = yield self.call('crossbar.node.{}.process.{}.get_classpaths'.format(self._node_name, pid))
+               #print "classpaths", res
 
             if process['type'] == 'router':
 

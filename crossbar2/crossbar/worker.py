@@ -86,6 +86,9 @@ class WorkerProcess(ApplicationSession):
 
 
       def add_classpaths(paths, prepend = True):
+         ## transform all paths (relative to cbdir) into absolute paths.
+         cbdir = self.factory.options.cbdir
+         paths = [os.path.abspath(os.path.join(cbdir, p)) for p in paths]
          if prepend:
             sys.path = paths + sys.path
          else:
