@@ -8,7 +8,7 @@
          "realms": {
             "realm1": {
                "permissions": {
-                  "anonymous": {
+                  "com.myapp.user": {
                      "create": true,
                      "join": true,
                      "access": {
