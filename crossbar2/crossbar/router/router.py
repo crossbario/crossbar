@@ -55,6 +55,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
       ## indicates if this transport has been authenticated
       self._authid = None
+      self._authrole = None
 
       ## our cookie tracking ID
       self._cbtid = None
@@ -92,6 +93,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
             cbtData = {'created': utcnow(),
                        'authid': None,
+                       'authrole': None,
                        'max_age': max_age,
                        'connections': set()}
 
@@ -108,6 +110,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
          self.factory._cookies[self._cbtid]['connections'].add(self)
 
          self._authid = self.factory._cookies[self._cbtid]['authid']
+         self._authrole = self.factory._cookies[self._cbtid]['authrole']
 
          log.msg("Cookie tracking enabled on WebSocket connection {}".format(self))
 
@@ -250,9 +253,10 @@ class PendingAuth:
 
 
 class PendingAuthPersona(PendingAuth):
-   def __init__(self, provider, audience):
+   def __init__(self, provider, audience, role = None):
       self.provider = provider
       self.audience = audience
+      self.role = role
 
 
 
@@ -274,17 +278,29 @@ class CrossbarRouterSession(RouterSession):
    def onHello(self, realm, details):
       #print "onHello: {} {}".format(realm, details)
       if self._transport._authid is not None:
-         return types.Accept(authid = self._transport._authid)
+         return types.Accept(authid = self._transport._authid, authrole = self._transport._authrole)
       else:
          if "auth" in self._transport_config:
             if "mozilla_persona" in self._transport_config["auth"]:
-               audience = self._transport_config['auth']['mozilla_persona'].get('audience', self._transport._origin)
-               provider = self._transport_config['auth']['mozilla_persona'].get('provider', "https://verifier.login.persona.org/verify")
-               self._pending_auth = PendingAuthPersona(provider, audience)
+               cfg = self._transport_config['auth']['mozilla_persona']
+               audience = cfg.get('audience', self._transport._origin)
+               provider = cfg.get('provider', "https://verifier.login.persona.org/verify")
+
+               ## role mapping
+               ##
+               role = None
+               try:
+                  if 'role' in cfg:
+                     if cfg['role']['type'] == 'static':
+                        role = cfg['role']['value']
+               except Exception as e:
+                  log.msg("error processing 'role' part of 'auth' config: {}".format(e))
+
+               self._pending_auth = PendingAuthPersona(provider, audience, role)
                return types.Challenge("mozilla-persona")
          else:
             ## if not "auth" key present, allow anyone
-            return types.Accept(authid = "anonymous")
+            return types.Accept(authid = "anonymous", authrole = "anonymous")
 
 
    def onAuthenticate(self, signature, extra):
@@ -330,13 +346,15 @@ class CrossbarRouterSession(RouterSession):
                   ## Mozilla Persona successfully authenticated the user
 
                   self._transport._authid = res['email']
+                  self._transport._authrole = self._pending_auth.role
 
                   ## remember the user's email address. this marks the cookie as authenticated
                   if self._transport._cbtid:
-                     self._transport.factory._cookies[self._transport._cbtid]['authid'] = res['email']
+                     self._transport.factory._cookies[self._transport._cbtid]['authid'] = self._transport._authid
+                     self._transport.factory._cookies[self._transport._cbtid]['authrole'] = self._transport._authrole
 
-                  log.msg("Authenticated user {}".format(res['email']))
-                  dres.callback(types.Accept(authid = res['email']))
+                  log.msg("Authenticated user {} with role {}".format(self._transport._authid, self._transport._authrole))
+                  dres.callback(types.Accept(authid = self._transport._authid, authrole = self._transport._authrole))
                else:
                   log.msg("Authentication failed!")
                   log.msg(res)
