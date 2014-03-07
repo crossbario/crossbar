@@ -1,11 +1,7 @@
 Authentication with Mozilla Persona
 ===================================
 
-This example shows how to authenticate WAMP connections on **Crossbar**.io using [Mozilla Persona](http://www.mozilla.org/en-US/persona/) and [**Autobahn**|JS](https://github.com/tavendo/AutobahnJS/).
-
-The code works with purely static Web pages and WebSocket only.
-
-Follow the recipe for [configuring Persona](https://github.com/crossbario/crossbar/wiki/Authentication-Methods#wiki-mozilla-persona) in **Crossbar**.io.
+This example shows how to authenticate WAMP connections on **Crossbar**.io using [Mozilla Persona](http://www.mozilla.org/en-US/persona/) and [**Autobahn**|JS](https://github.com/tavendo/AutobahnJS/). The code works with purely static Web pages and WebSocket only.
 
 Start Crossbar.io from this directory
 
@@ -55,7 +51,7 @@ self.register(utcnow, 'com.timeservice.now',
 
 References:
 
-* [Crossbar.io Authentication](https://github.com/crossbario/crossbar/wiki/Authentication)
+* [Crossbar.io Authentication](https://github.com/crossbario/crossbar/wiki/Authentication-Methods#wiki-mozilla-persona)
 * [Mozilla Persona Developer Site](https://developer.mozilla.org/en-US/Persona)
 
 
