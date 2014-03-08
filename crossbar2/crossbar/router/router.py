@@ -30,7 +30,7 @@ import json
 import urllib
 import Cookie
 
-from autobahn.util import newid, utcnow
+from autobahn import util
 from autobahn.websocket import http
 from autobahn.websocket.compress import *
 
@@ -85,7 +85,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
          ## if no cookie is set, create a new one ..
          if self._cbtid is None:
 
-            self._cbtid = newid(cookie_id_field_length)
+            self._cbtid = util.newid(cookie_id_field_length)
 
             ## http://tools.ietf.org/html/rfc6265#page-20
             ## 0: delete cookie
@@ -93,7 +93,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
             max_age = cookie_config.get('max_age', 86400 * 30 * 12)
 
-            cbtData = {'created': utcnow(),
+            cbtData = {'created': util.utcnow(),
                        'authid': None,
                        'authrole': None,
                        'authmethod': None,
@@ -304,37 +304,57 @@ class CrossbarRouterSession(RouterSession):
                   ##
                   if authmethod == "mozilla_persona":
                      cfg = self._transport_config['auth']['mozilla_persona']
+
                      audience = cfg.get('audience', self._transport._origin)
                      provider = cfg.get('provider', "https://verifier.login.persona.org/verify")
 
-                     ## role mapping
+                     ## authrole mapping
                      ##
-                     role = None
+                     authrole = None
                      try:
                         if 'role' in cfg:
                            if cfg['role']['type'] == 'static':
-                              role = cfg['role']['value']
+                              authrole = cfg['role']['value']
                      except Exception as e:
                         log.msg("error processing 'role' part of 'auth' config: {}".format(e))
 
-                     self._pending_auth = PendingAuthPersona(provider, audience, role)
+                     self._pending_auth = PendingAuthPersona(provider, audience, authrole)
                      return types.Challenge("mozilla-persona")
 
                   ## Anonymous
                   ##
                   elif authmethod == "anonymous":
+                     cfg = self._transport_config['auth']['anonymous']
 
-                     self._transport._authid = "anonymous"
-                     self._transport._authrole = "anonymous"
+                     ## authrole mapping
+                     ##
+                     authrole = "anonymous"
+                     try:
+                        if 'role' in cfg:
+                           if cfg['role']['type'] == 'static':
+                              authrole = cfg['role']['value']
+                     except Exception as e:
+                        log.msg("error processing 'role' part of 'auth' config: {}".format(e))
+
+                     ## authid generation
+                     ##
+                     if self._transport._cbtid:
+                        ## set authid to cookie value
+                        authid = self._transport._cbtid
+                     else:
+                        authid = util.newid(24)
+
+                     self._transport._authid = authid
+                     self._transport._authrole = authrole
                      self._transport._authmethod = "anonymous"
 
-                     ## remember the user's auth info (this marks the cookie as authenticated)
+                     # # remember the user's auth info (this marks the cookie as authenticated)
                      # if self._transport._cbtid:
                      #    self._transport.factory._cookies[self._transport._cbtid]['authid'] = "anonymous"
                      #    self._transport.factory._cookies[self._transport._cbtid]['authrole'] = "anonymous"
                      #    self._transport.factory._cookies[self._transport._cbtid]['authmethod'] = "anonymous"
 
-                     return types.Accept(authid = "anonymous", authrole = "anonymous", authmethod = "anonymous")
+                     return types.Accept(authid = authid, authrole = authrole, authmethod = self._transport._authmethod)
 
                   else:
                      log.msg("unknown authmethod '{}'".format(authmethod))
