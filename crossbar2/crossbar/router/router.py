@@ -38,6 +38,7 @@ from autobahn.wamp.router import RouterFactory
 from autobahn.twisted.wamp import RouterSessionFactory
 from autobahn.wamp.protocol import RouterSession
 from autobahn.wamp import types
+from autobahn.wamp import message
 
 import crossbar
 
@@ -280,6 +281,7 @@ class CrossbarRouterSession(RouterSession):
          self._transport_config = {}
 
       self._pending_auth = None
+      self._session_details = None
 
 
    def onHello(self, realm, details):
@@ -440,7 +442,33 @@ class CrossbarRouterSession(RouterSession):
          return types.Deny()
 
 
+   def onJoin(self, details):
+
+      self._session_details = {
+         'authid': details.authid,
+         'authrole': details.authrole,
+         'authmethod': details.authmethod,
+         'realm': details.realm,
+         'session': details.session
+      }
+
+      ## FIXME: dispatch metaevent
+      #self.publish('wamp.metaevent.session.on_join', evt)
+
+      msg = message.Publish(0, 'wamp.metaevent.session.on_join', [self._session_details])
+      self._router.process(self, msg)
+
+
    def onLeave(self, details):
+
+      ## FIXME: dispatch metaevent
+      #self.publish('wamp.metaevent.session.on_join', evt)
+
+      msg = message.Publish(0, 'wamp.metaevent.session.on_leave', [self._session_details])
+      self._router.process(self, msg)
+      self._session_details = None
+
+
       if details.reason == "wamp.close.logout":
          if self._transport._cbtid:
             cookie = self._transport.factory._cookies[self._transport._cbtid]
