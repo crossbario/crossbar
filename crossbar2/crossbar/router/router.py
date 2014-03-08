@@ -53,13 +53,15 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
       self._origin = request.origin
 
-      ## indicates if this transport has been authenticated
+      ## transport authentication
+      ##
       self._authid = None
       self._authrole = None
+      self._authmethod = None
 
-      ## our cookie tracking ID
+      ## cookie tracking
+      ##
       self._cbtid = None
-
       if 'cookie' in self.factory._config:
 
          cookie_config = self.factory._config['cookie']
@@ -94,6 +96,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
             cbtData = {'created': utcnow(),
                        'authid': None,
                        'authrole': None,
+                       'authmethod': None,
                        'max_age': max_age,
                        'connections': set()}
 
@@ -109,14 +112,20 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
          ## associated with the same cookie
          self.factory._cookies[self._cbtid]['connections'].add(self)
 
-         self._authid = self.factory._cookies[self._cbtid]['authid']
-         self._authrole = self.factory._cookies[self._cbtid]['authrole']
+         if self.debug:
+            log.msg("Cookie tracking enabled on WebSocket connection {}".format(self))
 
-         log.msg("Cookie tracking enabled on WebSocket connection {}".format(self))
+         ## if cookie-based authentication is enabled, set auth info from cookie store
+         ##
+         if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
+            self._authid = self.factory._cookies[self._cbtid]['authid']
+            self._authrole = self.factory._cookies[self._cbtid]['authrole']
+            self._authmethod = "cookie.{}".format(self.factory._cookies[self._cbtid]['authmethod'])
 
       else:
 
-         log.msg("Cookie tracking disabled on WebSocket connection {}".format(self))
+         if self.debug:
+            log.msg("Cookie tracking disabled on WebSocket connection {}".format(self))
 
       ## accept the WebSocket connection, speaking subprotocol `protocol`
       ## and setting HTTP headers `headers`
@@ -270,37 +279,69 @@ class CrossbarRouterSession(RouterSession):
       else:
          self._transport_config = {}
 
-      #print "transport authenticated: {}".format(self._transport._authid)
-
       self._pending_auth = None
 
 
    def onHello(self, realm, details):
-      #print "onHello: {} {}".format(realm, details)
+
+      print "onHello: {} {}".format(realm, details)
+
       if self._transport._authid is not None:
-         return types.Accept(authid = self._transport._authid, authrole = self._transport._authrole)
+         ## already authenticated ..
+         ##
+         return types.Accept(authid = self._transport._authid,
+                             authrole = self._transport._authrole,
+                             authmethod = self._transport._authmethod)
       else:
          if "auth" in self._transport_config:
-            if "mozilla_persona" in self._transport_config["auth"]:
-               cfg = self._transport_config['auth']['mozilla_persona']
-               audience = cfg.get('audience', self._transport._origin)
-               provider = cfg.get('provider', "https://verifier.login.persona.org/verify")
+            ## iterate over authentication methods announced by client
+            ##
+            for authmethod in details.authmethods:
 
-               ## role mapping
-               ##
-               role = None
-               try:
-                  if 'role' in cfg:
-                     if cfg['role']['type'] == 'static':
-                        role = cfg['role']['value']
-               except Exception as e:
-                  log.msg("error processing 'role' part of 'auth' config: {}".format(e))
+               if authmethod in self._transport_config["auth"]:
 
-               self._pending_auth = PendingAuthPersona(provider, audience, role)
-               return types.Challenge("mozilla-persona")
+                  ## Mozilla Persona
+                  ##
+                  if authmethod == "mozilla_persona":
+                     cfg = self._transport_config['auth']['mozilla_persona']
+                     audience = cfg.get('audience', self._transport._origin)
+                     provider = cfg.get('provider', "https://verifier.login.persona.org/verify")
+
+                     ## role mapping
+                     ##
+                     role = None
+                     try:
+                        if 'role' in cfg:
+                           if cfg['role']['type'] == 'static':
+                              role = cfg['role']['value']
+                     except Exception as e:
+                        log.msg("error processing 'role' part of 'auth' config: {}".format(e))
+
+                     self._pending_auth = PendingAuthPersona(provider, audience, role)
+                     return types.Challenge("mozilla-persona")
+
+                  ## Anonymous
+                  ##
+                  elif authmethod == "anonymous":
+
+                     self._transport._authid = "anonymous"
+                     self._transport._authrole = "anonymous"
+                     self._transport._authmethod = "anonymous"
+
+                     ## remember the user's auth info (this marks the cookie as authenticated)
+                     # if self._transport._cbtid:
+                     #    self._transport.factory._cookies[self._transport._cbtid]['authid'] = "anonymous"
+                     #    self._transport.factory._cookies[self._transport._cbtid]['authrole'] = "anonymous"
+                     #    self._transport.factory._cookies[self._transport._cbtid]['authmethod'] = "anonymous"
+
+                     return types.Accept(authid = "anonymous", authrole = "anonymous", authmethod = "anonymous")
+
+                  else:
+                     log.msg("unknown authmethod '{}'".format(authmethod))
+
          else:
-            ## if not "auth" key present, allow anyone
-            return types.Accept(authid = "anonymous", authrole = "anonymous")
+            ## FIXME: if not "auth" key present, allow anyone
+            return types.Accept(authid = "anonymous", authrole = "anonymous", authmethod = "anonymous")
 
 
    def onAuthenticate(self, signature, extra):
@@ -343,18 +384,20 @@ class CrossbarRouterSession(RouterSession):
             res = json.loads(res)
             try:
                if res['status'] == 'okay':
-                  ## Mozilla Persona successfully authenticated the user
 
+                  ## awesome: Mozilla Persona successfully authenticated the user
                   self._transport._authid = res['email']
                   self._transport._authrole = self._pending_auth.role
+                  self._transport._authmethod = 'mozilla_persona'
 
-                  ## remember the user's email address. this marks the cookie as authenticated
+                  ## remember the user's auth info (this marks the cookie as authenticated)
                   if self._transport._cbtid:
                      self._transport.factory._cookies[self._transport._cbtid]['authid'] = self._transport._authid
                      self._transport.factory._cookies[self._transport._cbtid]['authrole'] = self._transport._authrole
+                     self._transport.factory._cookies[self._transport._cbtid]['authmethod'] = self._transport._authmethod
 
                   log.msg("Authenticated user {} with role {}".format(self._transport._authid, self._transport._authrole))
-                  dres.callback(types.Accept(authid = self._transport._authid, authrole = self._transport._authrole))
+                  dres.callback(types.Accept(authid = self._transport._authid, authrole = self._transport._authrole, authmethod = self._transport._authmethod))
                else:
                   log.msg("Authentication failed!")
                   log.msg(res)
@@ -382,6 +425,8 @@ class CrossbarRouterSession(RouterSession):
          if self._transport._cbtid:
             cookie = self._transport.factory._cookies[self._transport._cbtid]
             cookie['authid'] = None
+            cookie['authrole'] = None
+            cookie['authmethod'] = None
             for proto in cookie['connections']:
                proto.sendClose()
 
