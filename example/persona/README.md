@@ -51,7 +51,7 @@ self.register(utcnow, 'com.timeservice.now',
 
 References:
 
-* [Crossbar.io Authentication](https://github.com/crossbario/crossbar/wiki/Authentication-Methods#wiki-mozilla-persona)
+* [Crossbar.io Authentication](https://github.com/crossbario/crossbar/wiki/Authentication)
 * [Mozilla Persona Developer Site](https://developer.mozilla.org/en-US/Persona)
 
 
