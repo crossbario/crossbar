@@ -203,7 +203,7 @@ class NodeControllerSession(ApplicationSession):
 
                for transport in process['transports']:
                   id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_transport'.format(self._node_name, pid, router_index), transport)
-                  log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint'], id, router_index))
+                  log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint']['type'], id, router_index))
 
             elif process['type'] == 'component.python':
 

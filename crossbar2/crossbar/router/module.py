@@ -329,9 +329,89 @@ class RouterModule:
 
          if True:
             from twisted.internet import reactor
+            from twisted.internet.endpoints import TCP4ServerEndpoint, SSL4ServerEndpoint, UNIXServerEndpoint
+            from tlsctx import TlsContextFactory
 
-            # IListeningPort or an CannotListenError
-            server = serverFromString(reactor, str(config['endpoint']))
+#            server = serverFromString(reactor, "ssl:8080:privateKey=.crossbar/server.key:certKey=.crossbar/server.crt")
+
+            try:
+               endpoint_config = config.get('endpoint')
+
+               ## a TCP4 endpoint
+               ##
+               if endpoint_config['type'] == 'tcp':
+
+                  ## the listening port
+                  ##
+                  port = int(endpoint_config['port'])
+
+                  ## the listening interface
+                  ##
+                  interface = endpoint_config.get('interface', '').strip()
+
+                  ## the TCP accept queue depth
+                  ##
+                  backlog = int(endpoint_config.get('backlog', 50))
+
+                  if 'tls' in endpoint_config:
+
+                     key_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['key']))
+                     cert_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['certificate']))
+
+                     with open(key_filepath) as key_file:
+                        with open(cert_filepath) as cert_file:
+
+                           if 'dhparam' in endpoint_config['tls']:
+                              dhparam_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['dhparam']))
+                           else:
+                              dhparam_filepath = None
+
+                           ## create a TLS context factory
+                           ##
+                           key = key_file.read()
+                           cert = cert_file.read()
+                           ciphers = endpoint_config['tls'].get('ciphers')
+                           ctx = TlsContextFactory(key, cert, ciphers = ciphers, dhParamFilename = dhparam_filepath)
+
+                     ## create a TLS server endpoint
+                     ##
+                     server = SSL4ServerEndpoint(reactor,
+                                                 port,
+                                                 ctx,
+                                                 backlog = backlog,
+                                                 interface = interface)
+                  else:
+                     ## create a non-TLS server endpoint
+                     ##
+                     server = TCP4ServerEndpoint(reactor,
+                                                 port,
+                                                 backlog = backlog,
+                                                 interface = interface)
+
+               ## a Unix Domain Socket endpoint
+               ##
+               elif endpoint_config['type'] == 'unix':
+
+                  ## the accept queue depth
+                  ##
+                  backlog = int(endpoint_config.get('backlog', 50))
+
+                  ## the path
+                  ##
+                  path = str(endpoint_config['path'])
+
+                  ## create the endpoint
+                  ##
+                  server = UNIXServerEndpoint(reactor, path, backlog = backlog)
+
+               else:
+                  raise ApplicationError("crossbar.error.invalid_configuration", "invalid endpoint type '{}'".format(endpoint_config['type']))
+
+            except Exception as e:
+               log.msg("endpoint creation failed: {}".format(e))
+               raise e
+
+
             d = server.listen(transport_factory)
 
             def ok(port):
@@ -339,6 +419,7 @@ class RouterModule:
                return id
 
             def fail(err):
+               log.msg("cannot listen on endpoint: {}".format(err.value))
                raise ApplicationError("crossbar.error.cannotlisten", str(err.value))
 
             d.addCallbacks(ok, fail)

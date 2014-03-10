@@ -839,7 +839,10 @@ DEV_ROUTER = """{
          "transports": [
             {
                "type": "web",
-               "endpoint": "tcp:8080",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
                "paths": {
                   "/": {
                      "type": "static",
