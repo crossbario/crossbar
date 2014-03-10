@@ -23,7 +23,11 @@ import datetime
 from autobahn.twisted.wamp import ApplicationSession
 
 from twisted.python import log
-from autobahn.twisted.websocket import WampWebSocketServerProtocol, WampWebSocketServerFactory
+from autobahn.twisted.websocket import WampWebSocketServerProtocol, \
+                                       WampWebSocketServerFactory, \
+                                       WampWebSocketClientProtocol, \
+                                       WampWebSocketClientFactory
+
 from twisted.internet.defer import Deferred
 
 import json
@@ -285,8 +289,6 @@ class CrossbarRouterSession(RouterSession):
 
 
    def onHello(self, realm, details):
-
-      print "onHello: {} {}".format(realm, details)
 
       if self._transport._authid is not None:
          ## already authenticated ..

@@ -208,7 +208,7 @@ ELLIPTIC_CURVES = {
 ECDH_DEFAULT_CURVE = ELLIPTIC_CURVES["prime256v1"]
 
 
-class TlsContextFactory(DefaultOpenSSLContextFactory):
+class TlsServerContextFactory(DefaultOpenSSLContextFactory):
    """
    TLS context factory for use with Twisted.
 
@@ -321,3 +321,10 @@ class TlsContextFactory(DefaultOpenSSLContextFactory):
          ## set cached context
          ##
          self._context = ctx
+
+
+
+from twisted.internet.ssl import ClientContextFactory
+
+class TlsClientContextFactory(ClientContextFactory):
+   pass

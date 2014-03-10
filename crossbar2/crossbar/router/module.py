@@ -330,7 +330,8 @@ class RouterModule:
          if True:
             from twisted.internet import reactor
             from twisted.internet.endpoints import TCP4ServerEndpoint, SSL4ServerEndpoint, UNIXServerEndpoint
-            from tlsctx import TlsContextFactory
+            from twisted.internet.endpoints import serverFromString
+            from tlsctx import TlsServerContextFactory
 
 #            server = serverFromString(reactor, "ssl:8080:privateKey=.crossbar/server.key:certKey=.crossbar/server.crt")
 
@@ -371,7 +372,7 @@ class RouterModule:
                            key = key_file.read()
                            cert = cert_file.read()
                            ciphers = endpoint_config['tls'].get('ciphers')
-                           ctx = TlsContextFactory(key, cert, ciphers = ciphers, dhParamFilename = dhparam_filepath)
+                           ctx = TlsServerContextFactory(key, cert, ciphers = ciphers, dhParamFilename = dhparam_filepath)
 
                      ## create a TLS server endpoint
                      ##

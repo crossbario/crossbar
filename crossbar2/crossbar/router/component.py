@@ -20,6 +20,8 @@ from __future__ import absolute_import
 
 from autobahn.wamp.exception import ApplicationError
 
+from twisted.python import log
+
 
 
 class ComponentSessionFactory:
@@ -89,10 +91,75 @@ class ComponentModule:
          ## start a WebSocket client from an endpoint
          ##
          from twisted.internet import reactor
+         from twisted.internet.endpoints import TCP4ClientEndpoint, SSL4ClientEndpoint, UNIXClientEndpoint
          from twisted.internet.endpoints import clientFromString
-         self._client = clientFromString(reactor, transport['endpoint'])
+         from tlsctx import TlsClientContextFactory
 
-         from twisted.internet import reactor
+
+         if False:
+            self._client = clientFromString(reactor, transport['endpoint'])
+         else:
+            try:
+               endpoint_config = transport.get('endpoint')
+
+               ## a TCP4 endpoint
+               ##
+               if endpoint_config['type'] == 'tcp':
+
+                  ## the host to connect ot
+                  ##
+                  host = str(endpoint_config['host'])
+
+                  ## the port to connect to
+                  ##
+                  port = int(endpoint_config['port'])
+
+                  ## connection timeout in seconds
+                  ##
+                  timeout = int(endpoint_config.get('timeout', 10))
+
+                  if 'tls' in endpoint_config:
+
+                     ctx = TlsClientContextFactory()
+
+                     ## create a TLS client endpoint
+                     ##
+                     self._client = SSL4ClientEndpoint(reactor,
+                                                       host,
+                                                       port,
+                                                       ctx,
+                                                       timeout = timeout)
+                  else:
+                     ## create a non-TLS client endpoint
+                     ##
+                     self._client = TCP4ClientEndpoint(reactor,
+                                                       host,
+                                                       port,
+                                                       timeout = timeout)
+
+               ## a Unix Domain Socket endpoint
+               ##
+               elif endpoint_config['type'] == 'unix':
+
+                  ## the path
+                  ##
+                  path = str(endpoint_config['path'])
+
+                  ## connection timeout in seconds
+                  ##
+                  timeout = int(endpoint_config['type'].get('timeout', 10))
+
+                  ## create the endpoint
+                  ##
+                  self._client = UNIXClientEndpoint(reactor, path, timeout = timeout)
+
+               else:
+                  raise ApplicationError("crossbar.error.invalid_configuration", "invalid endpoint type '{}'".format(endpoint_config['type']))
+
+            except Exception as e:
+               log.msg("endpoint creation failed: {}".format(e))
+               raise e
+
 
          retry = True
          retryDelay = 1000
