@@ -243,8 +243,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
       self._privateKeyString = str(privateKeyString)
       self._certificateString = str(certificateString)
       self._chainedCertificate = chainedCertificate
-      self._dhParamFilename = str(dhParamFilename)
-      self._ciphers = ciphers
+      self._dhParamFilename = str(dhParamFilename) if dhParamFilename else None
+      self._ciphers = str(ciphers) if ciphers else None
 
       ## do a SSLv2-compatible handshake even for TLS
       ##
