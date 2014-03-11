@@ -489,4 +489,6 @@ class CrossbarRouterSessionFactory(RouterSessionFactory):
 
 
 class CrossbarRouterFactory(RouterFactory):
-   pass
+   def __init__(self, options = None, debug = False):
+      options = types.RouterOptions(uri_check = types.RouterOptions.URI_CHECK_LOOSE)
+      RouterFactory.__init__(self, options, debug)
