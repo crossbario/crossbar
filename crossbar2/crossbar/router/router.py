@@ -369,7 +369,6 @@ class CrossbarRouterSession(RouterSession):
 
 
    def onAuthenticate(self, signature, extra):
-      #print "onAuthenticate: {} {}".format(signature, extra)
 
       if isinstance(self._pending_auth, PendingAuthPersona):
 
@@ -427,7 +426,8 @@ class CrossbarRouterSession(RouterSession):
                   log.msg(res)
                   dres.callback(types.Deny(reason = "wamp.error.authorization_failed", message = res.get("reason", None)))
             except Exception as e:
-               print "ERRR", e
+               log.msg("internal error during authentication verification: {}".format(e))
+               dres.callback(types.Deny(reason = "wamp.error.internal_error", message = str(e)))
 
          def error(err):
             log.msg("Authentication request failed: {}".format(err.value))

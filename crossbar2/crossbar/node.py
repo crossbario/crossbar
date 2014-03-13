@@ -78,7 +78,7 @@ class NodeManagementSession(ApplicationSession):
             node_publickey = "public key"
             activation_code = yield self.call('crossbar.cloud.get_activation_code', node_info, node_publickey)
          except Exception as e:
-            print e
+            log.msg("internal error: {}".format(e))
          else:
             log.msg("Log into https://console.crossbar.io to configure your instance using the activation code: {}".format(activation_code))
 
@@ -90,7 +90,6 @@ class NodeManagementSession(ApplicationSession):
                ## persist node_id
                ## persist certificate
                ## restart node
-               print "Node activated", node_id, certificate
                reg.unregister()
 
                self.publish('crossbar.node.onactivate', node_id)
@@ -103,7 +102,6 @@ class NodeManagementSession(ApplicationSession):
          pass
 
       res = yield self.register(self.factory.node_controller_session.get_node_worker_processes, 'crossbar.node.get_node_worker_processes')
-      print "register", res
 
       self.publish('com.myapp.topic1', os.getpid())
 
@@ -159,7 +157,7 @@ class NodeControllerSession(ApplicationSession):
 
 
    def restart_node(self):
-      print "restarting node .."
+      log.msg("restarting node ..")
 
 
    @inlineCallbacks
@@ -179,8 +177,6 @@ class NodeControllerSession(ApplicationSession):
             ## .. and orchestrate the startup of the worker
             if 'classpaths' in process_options:
                yield self.call('crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, pid), process_options['classpaths'])
-               #res = yield self.call('crossbar.node.{}.process.{}.get_classpaths'.format(self._node_name, pid))
-               #print "classpaths", res
 
             if process['type'] == 'router':
 
@@ -196,10 +192,8 @@ class NodeControllerSession(ApplicationSession):
                      for klassname in realm_config.get('classes', []):
                         id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_class'.format(self._node_name, pid, router_index), klassname, realm_name)
                         log.msg("Worker {}: Class '{}' ({}) started in realm '{}' on router {}".format(pid, klassname, id, realm_name, router_index))
-                        #res = yield self.call('crossbar.node.module.{}.router.stop_class'.format(pid), res)
-                        #print "Class stopped", res
                   except Exception as e:
-                     print e, e.args
+                     log.msg("internal error: {} {}".format(e, e.args))
 
                for transport in process['transports']:
                   id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_transport'.format(self._node_name, pid, router_index), transport)

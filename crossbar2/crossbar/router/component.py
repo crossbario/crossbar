@@ -165,11 +165,13 @@ class ComponentModule:
          retryDelay = 1000
 
          def try_connect():
-            print "Trying to connect .."
+            if self.debug:
+               log.msg("Worker {}: connecting to router ..".format(self._pid))
+
             d = self._client.connect(transport_factory)
 
             def success(res):
-               if True or self.debug:
+               if self.debug:
                   log.msg("Worker {}: client connected to router".format(self._pid))
 
             def error(err):

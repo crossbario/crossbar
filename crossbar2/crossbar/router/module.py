@@ -192,9 +192,8 @@ class RouterModule:
       """
       Start a transport on this router module.
       """
-      print "Starting {} transport".format(config['type'])
       if self.debug:
-         log.msg("Worker {}: starting transport on router module.".format(self._pid))
+         log.msg("Worker {}: starting '{}' transport on router module.".format(config['type'], self._pid))
 
       self._router_transport_no += 1
 
@@ -228,7 +227,8 @@ class RouterModule:
                rd = config['paths']['/']['directory']
                root_dir = os.path.abspath(os.path.join(self._cbdir, rd))
                root_dir = root_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
-               print "Starting Web service at root directory {}".format(root_dir)
+               if self.debug:
+                  log.msg("Starting Web service at root directory {}".format(root_dir))
                root = File(root_dir)
 
                ## render 404 page on any concrete path not found
@@ -246,7 +246,7 @@ class RouterModule:
                root = RedirectResource(redirect_url)
 
             else:
-               print "invalid type for root path", root_type
+               raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web root path type '{}'".format(root_type))
 
 
             for path in sorted(config.get('paths', [])):
@@ -316,7 +316,7 @@ class RouterModule:
                      log.msg("Web path type 'longpoll' not implemented")
 
                   else:
-                     print "Web path type '{}' not implemented.".format(path_config['type'])
+                     raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web path type '{}'".format(path_config['type']))
 
             transport_factory = Site(root)
             transport_factory.log = lambda _: None # disable any logging
