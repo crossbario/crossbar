@@ -860,8 +860,66 @@ DEV_ROUTER = """{
 }
 """
 
+
+
+DEV_ROUTER_WITH_DEMOS = """{
+   "processes": [
+      {
+         "type": "router",
+         "options": {
+            "classpaths": ["."]
+         },
+         "realms": {
+            "realm1": {
+               "permissions": {
+                  "anonymous": {
+                     "create": true,
+                     "join": true,
+                     "access": {
+                        "*": {
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     }
+                  }
+               },
+               "classes": [
+                  "crossbar.demo.TimeService",
+                  "crossbar.demo.TickService"
+               ]
+            }
+         },
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "package": "crossbardemo",
+                     "resource": "web"
+                  },
+                  "ws": {
+                     "type": "websocket",
+                     "url": "ws://localhost:8080/ws"
+                  }
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+
+
 TEMPLATES = {
    "router": DEV_ROUTER,
+   "demo": DEV_ROUTER_WITH_DEMOS,
    #"router-smp4": SMP4_ROUTER,
    #"bridge-rest": REST_BRIDGE,
    #"bridge-srdp": SRDP_BRIDGE,

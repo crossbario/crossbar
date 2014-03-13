@@ -224,11 +224,36 @@ class RouterModule:
 
             if root_type == 'static':
 
-               rd = config['paths']['/']['directory']
-               root_dir = os.path.abspath(os.path.join(self._cbdir, rd))
+               root_config = config['paths']['/']
+
+               if 'directory' in root_config:
+
+                  root_dir = os.path.abspath(os.path.join(self._cbdir, root_config['directory']))
+
+               elif 'package' in root_config:
+                  if not 'resource' in root_config:
+                     raise ApplicationError("crossbar.error.invalid_configuration", "missing package")
+
+                  import importlib
+                  import pkg_resources
+
+                  try:
+                     pkg = importlib.import_module(root_config['package'])
+                  except ImportError:
+                     raise ApplicationError("crossbar.error.invalid_configuration", "package import failed")
+                  else:
+                     try:
+                        root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['package'], root_config['resource']))
+                     except Exception, e:
+                        raise ApplicationError("crossbar.error.invalid_configuration", str(e))
+
+               else:
+                  raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
+
                root_dir = root_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
                if self.debug:
                   log.msg("Starting Web service at root directory {}".format(root_dir))
+
                root = File(root_dir)
 
                ## render 404 page on any concrete path not found
