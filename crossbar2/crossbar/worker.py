@@ -27,8 +27,6 @@ from twisted.python import log
 
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar.router.component import ComponentModule
-from crossbar.router.module import RouterModule
 
 
 class WorkerProcess(ApplicationSession):
@@ -100,6 +98,9 @@ class WorkerProcess(ApplicationSession):
       ## Modules
       ##
       def start_router():
+
+         from crossbar.router.module import RouterModule
+
          self._router_seq += 1
          index = self._router_seq
 
@@ -115,6 +116,8 @@ class WorkerProcess(ApplicationSession):
       self.register(start_router, 'crossbar.node.{}.process.{}.start_router'.format(self._node_name, self._pid))
 
       ## FIXME
+      from crossbar.router.component import ComponentModule
+
       self._componentModule = ComponentModule(self, self._pid)
 
 
@@ -130,6 +133,7 @@ class WorkerProcess(ApplicationSession):
 
    def startComponent(self):
       pass
+
 
 
 

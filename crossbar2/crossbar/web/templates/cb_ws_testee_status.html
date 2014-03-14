@@ -1,0 +1,19 @@
+{% extends "cb_base.html" %}
+
+{% block content %}
+
+   <p>
+      This is a <b>WebSocket Testee Endpoint</b> of your <a href="http://crossbar.io">Crossbar.io</a> server.
+      Clients talk to me speaking <a href="http://tools.ietf.org/html/rfc6455">WebSocket</a> by connecting to:
+   </p>
+   <br>
+   <center>
+      <pre>{{ wsUri }}</pre>
+   </center>
+   <br>
+   <p>
+      If you are a human, this is likely not what you want to do;) Try <a href="/">here</a> instead.
+   </p>
+   <br>
+
+{% endblock %}

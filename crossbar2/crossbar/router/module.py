@@ -32,6 +32,9 @@ from crossbar.router.router import CrossbarRouterFactory, \
                                    CrossbarRouterSessionFactory, \
                                    CrossbarWampWebSocketServerFactory
 
+from crossbar.router.testee import TesteeServerFactory
+
+
 
 class RouterTransport:
    def __init__(self, id, config, port):
@@ -198,11 +201,15 @@ class RouterModule:
 
       self._router_transport_no += 1
 
-      if config['type'] in ['websocket', 'web']:
+      if config['type'] in ['websocket', 'websocket.testee', 'web']:
 
          if config['type'] == 'websocket':
 
             transport_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, config, self._templates)
+
+         elif config['type'] == 'websocket.testee':
+
+            transport_factory = TesteeServerFactory(config, self._templates)
 
          elif config['type'] == 'web':
 

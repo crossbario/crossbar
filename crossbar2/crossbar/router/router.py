@@ -153,6 +153,92 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
 
 
+def set_websocket_options(factory, options):
+   """
+   Set WebSocket options on a WebSocket or WAMP-WebSocket factory.
+
+   :param factory: The WebSocket or WAMP-WebSocket factory to set options on.
+   :type factory:  Instance of :class:`autobahn.twisted.websocket.WampWebSocketServerFactory`
+                   or :class:`autobahn.twisted.websocket.WebSocketServerFactory`.
+   :param options: Options from Crossbar.io transport configuration.
+   :type options: dict
+   """
+   c = options
+
+   versions = []
+   if c.get("enable_hixie76", True):
+      versions.append(0)
+   if c.get("enable_hybi10", True):
+      versions.append(8)
+   if c.get("enable_rfc6455", True):
+      versions.append(13)
+
+   ## FIXME: enforce!!
+   ##
+   #self.connectionCap = c.get("max_connections")
+
+   ## convert to seconds
+   ##
+   openHandshakeTimeout = float(c.get("open_handshake_timeout", 0))
+   if openHandshakeTimeout:
+      openHandshakeTimeout = openHandshakeTimeout / 1000.
+
+   closeHandshakeTimeout = float(c.get("close_handshake_timeout", 0))
+   if closeHandshakeTimeout:
+      closeHandshakeTimeout = closeHandshakeTimeout / 1000.
+
+   factory.setProtocolOptions(versions = versions,
+                              allowHixie76 = c.get("enable_hixie76", True),
+                              webStatus = c.get("enable_webstatus", True),
+                              utf8validateIncoming = c.get("validate_utf8", True),
+                              maskServerFrames = c.get("mask_server_frames", False),
+                              requireMaskedClientFrames = c.get("require_masked_client_frames", True),
+                              applyMask = c.get("apply_mask", True),
+                              maxFramePayloadSize = c.get("max_frame_size", 0),
+                              maxMessagePayloadSize = c.get("max_message_size", 0),
+                              autoFragmentSize = c.get("auto_fragment_size", 0),
+                              failByDrop = c.get("fail_by_drop", False),
+                              echoCloseCodeReason = c.get("echo_close_codereason", False),
+                              openHandshakeTimeout = openHandshakeTimeout,
+                              closeHandshakeTimeout = closeHandshakeTimeout,
+                              tcpNoDelay = c.get("tcp_nodelay", True))
+
+   ## WebSocket compression
+   ##
+   factory.setProtocolOptions(perMessageCompressionAccept = lambda _: None)
+   if 'compression' in c:
+
+      ## permessage-deflate
+      ##
+      if 'deflate' in c['compression']:
+
+         log.msg("enabling WebSocket compression (permessage-deflate)")
+
+         params = c['compression']['deflate']
+
+         requestNoContextTakeover   = params.get('request_no_context_takeover', False)
+         requestMaxWindowBits       = params.get('request_max_window_bits', 0)
+         noContextTakeover          = params.get('no_context_takeover', None)
+         windowBits                 = params.get('max_window_bits', None)
+         memLevel                   = params.get('memory_level', None)
+
+         def accept(offers):
+            for offer in offers:
+               if isinstance(offer, PerMessageDeflateOffer):
+                  if (requestMaxWindowBits == 0 or offer.acceptMaxWindowBits) and \
+                     (not requestNoContextTakeover or offer.acceptNoContextTakeover):
+                     return PerMessageDeflateOfferAccept(offer,
+                                                         requestMaxWindowBits = requestMaxWindowBits,
+                                                         requestNoContextTakeover = requestNoContextTakeover,
+                                                         noContextTakeover = noContextTakeover,
+                                                         windowBits = windowBits,
+                                                         memLevel = memLevel)
+
+         factory.setProtocolOptions(perMessageCompressionAccept = accept)
+
+
+
+
 class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
    protocol = CrossbarWampWebSocketServerProtocol
@@ -176,88 +262,21 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
                                           url = config['url'],
                                           server = server,
                                           externalPort = externalPort,
-                                          debug = False)
+                                          debug = config.get('debug', False))
 
       ## transport configuration
       self._config = config
 
+      ## Jinja2 templates for 404 etc
       self._templates = templates
 
+      ## cookie tracking
       if 'cookie' in config:
          self._cookies = {}
 
-      c = options
+      ## set WebSocket options
+      set_websocket_options(self, options)
 
-      versions = []
-      if c.get("enable_hixie76", True):
-         versions.append(0)
-      if c.get("enable_hybi10", True):
-         versions.append(8)
-      if c.get("enable_rfc6455", True):
-         versions.append(13)
-
-      ## FIXME: enforce!!
-      ##
-      #self.connectionCap = c.get("max_connections")
-
-      ## convert to seconds
-      ##
-      openHandshakeTimeout = c.get("open_handshake_timeout", 0)
-      if openHandshakeTimeout:
-         openHandshakeTimeout = float(openHandshakeTimeout) / 1000.
-
-      closeHandshakeTimeout = c.get("close_handshake_timeout", 0)
-      if closeHandshakeTimeout:
-         closeHandshakeTimeout = float(closeHandshakeTimeout) / 1000.
-
-      self.setProtocolOptions(versions = versions,
-                              allowHixie76 = c.get("enable_hixie76", True),
-                              webStatus = c.get("enable_webstatus", True),
-                              utf8validateIncoming = c.get("validate_utf8", True),
-                              maskServerFrames = c.get("mask_server_frames", False),
-                              requireMaskedClientFrames = c.get("require_masked_client_frames", True),
-                              applyMask = c.get("apply_mask", True),
-                              maxFramePayloadSize = c.get("max_frame_size", 0),
-                              maxMessagePayloadSize = c.get("max_message_size", 0),
-                              autoFragmentSize = c.get("auto_fragment_size", 0),
-                              failByDrop = c.get("fail_by_drop", False),
-                              echoCloseCodeReason = c.get("echo_close_codereason", False),
-                              openHandshakeTimeout = openHandshakeTimeout,
-                              closeHandshakeTimeout = closeHandshakeTimeout,
-                              tcpNoDelay = c.get("tcp_nodelay", True))
-
-      ## WebSocket compression
-      ##
-      self.setProtocolOptions(perMessageCompressionAccept = lambda _: None)
-      if 'compression' in c:
-
-         ## permessage-deflate
-         ##
-         if 'deflate' in c['compression']:
-
-            log.msg("enabling WebSocket compression (permessage-deflate)")
-
-            params = c['compression']['deflate']
-
-            requestNoContextTakeover   = params.get('request_no_context_takeover', False)
-            requestMaxWindowBits       = params.get('request_max_window_bits', 0)
-            noContextTakeover          = params.get('no_context_takeover', None)
-            windowBits                 = params.get('max_window_bits', None)
-            memLevel                   = params.get('memory_level', None)
-
-            def accept(offers):
-               for offer in offers:
-                  if isinstance(offer, PerMessageDeflateOffer):
-                     if (requestMaxWindowBits == 0 or offer.acceptMaxWindowBits) and \
-                        (not requestNoContextTakeover or offer.acceptNoContextTakeover):
-                        return PerMessageDeflateOfferAccept(offer,
-                                                            requestMaxWindowBits = requestMaxWindowBits,
-                                                            requestNoContextTakeover = requestNoContextTakeover,
-                                                            noContextTakeover = noContextTakeover,
-                                                            windowBits = windowBits,
-                                                            memLevel = memLevel)
-
-            self.setProtocolOptions(perMessageCompressionAccept = accept)
 
 
 
