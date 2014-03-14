@@ -300,8 +300,30 @@ class RouterModule:
                   elif path_config['type'] == 'static':
 
                      static_options = path_config.get('options', {})
+
+                     if 'directory' in path_config:
                      
-                     static_dir = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
+                        static_dir = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
+
+                     elif 'package' in path_config:
+
+                        if not 'resource' in path_config:
+                           raise ApplicationError("crossbar.error.invalid_configuration", "missing package")
+
+                        try:
+                           pkg = importlib.import_module(path_config['package'])
+                        except ImportError:
+                           raise ApplicationError("crossbar.error.invalid_configuration", "package import failed")
+                        else:
+                           try:
+                              static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
+                           except Exception, e:
+                              raise ApplicationError("crossbar.error.invalid_configuration", str(e))
+
+                     else:
+
+                        raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
+
                      static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
                      
                      ## create resource for file system hierarchy
