@@ -917,6 +917,78 @@ DEV_ROUTER_WITH_DEMOS = """{
 """
 
 
+TESTEE = """{
+   "processes": [
+      {
+         "type": "router",
+         "options": {
+            "classpaths": ["."]
+         },
+         "realms": {
+            "realm1": {
+               "permissions": {
+                  "anonymous": {
+                     "create": true,
+                     "join": true,
+                     "access": {
+                        "*": {
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     }
+                  }
+               },
+               "classes": [
+                  "crossbar.demo.TimeService",
+                  "crossbar.demo.TickService"
+               ]
+            }
+         },
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "demo": {
+                     "type": "static",
+                     "package": "crossbardemo",
+                     "resource": "web"
+                  },
+                  "ws": {
+                     "type": "websocket",
+                     "url": "ws://localhost:8080/ws"
+                  }
+               }
+            },
+            {
+               "type": "websocket.testee",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 9001
+               },
+               "url": "ws://localhost:9001",
+               "options": {
+                  "compression": {
+                     "deflate": {
+                     }
+                  }
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+
 TEMPLATES = {
    "router": DEV_ROUTER,
    "demo": DEV_ROUTER_WITH_DEMOS,
