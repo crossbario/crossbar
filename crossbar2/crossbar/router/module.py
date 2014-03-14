@@ -49,6 +49,7 @@ class RouterClass:
 
 
 
+
 class RouterModule:
    """
    Entities:
@@ -207,6 +208,9 @@ class RouterModule:
 
             options = config.get('options', {})
 
+            import importlib
+            import pkg_resources
+
             ## this is here to avoid module level reactor imports
             ## https://twistedmatrix.com/trac/ticket/6849
             ##
@@ -215,8 +219,7 @@ class RouterModule:
             from twisted.web.resource import Resource
 
             from autobahn.twisted.resource import WebSocketResource
-            from crossbar.router.resource import JsonResource, Resource404, CgiDirectory, RedirectResource
-
+            from crossbar.router.resource import FileNoListing, JsonResource, Resource404, CgiDirectory, RedirectResource
 
             ## Web directory static file serving
             ##
@@ -233,9 +236,6 @@ class RouterModule:
                elif 'package' in root_config:
                   if not 'resource' in root_config:
                      raise ApplicationError("crossbar.error.invalid_configuration", "missing package")
-
-                  import importlib
-                  import pkg_resources
 
                   try:
                      pkg = importlib.import_module(root_config['package'])
@@ -254,16 +254,18 @@ class RouterModule:
                if self.debug:
                   log.msg("Starting Web service at root directory {}".format(root_dir))
 
-               root = File(root_dir)
+
+               ## create resource for file system hierarchy
+               ##
+               if options.get('enable_directory_listing', False):
+                  root = File(root_dir)
+               else:
+                  root = FileNoListing(root_dir)
 
                ## render 404 page on any concrete path not found
                ##
                root.childNotFound = Resource404(self._templates, root_dir)
 
-               ## disable directory listing and render 404
-               ##
-               if not options.get('enable_directory_listing', False):
-                  root.directoryListing = lambda: root.childNotFound
 
             elif root_type == 'redirect':
 
@@ -302,16 +304,16 @@ class RouterModule:
                      static_dir = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
                      static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
                      
-                     static_resource = File(static_dir)
+                     ## create resource for file system hierarchy
+                     ##
+                     if static_options.get('enable_directory_listing', False):
+                        static_resource = File(static_dir)
+                     else:
+                        static_resource = FileNoListing(static_dir)
 
                      ## render 404 page on any concrete path not found
                      ##
                      static_resource.childNotFound = Resource404(self._templates, static_dir)
-
-                     ## disable directory listing and render 404
-                     ##
-                     if not static_options.get('enable_directory_listing', False):
-                        static_resource.directoryListing = lambda: static_resource.childNotFound
 
                      root.putChild(path, static_resource)
 

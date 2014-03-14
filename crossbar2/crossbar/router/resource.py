@@ -19,6 +19,7 @@
 import json
 
 from twisted.web.resource import Resource
+from twisted.web.static import File
 
 import crossbar
 
@@ -51,6 +52,13 @@ class Resource404(Resource):
                             directory = self._directory)
       return s.encode('utf8')
 
+
+class FileNoListing(File):
+   """
+   A file hierarchy resource with directory listing disabled.
+   """
+   def directoryListing(self):
+      return self.childNotFound
 
 
 import os
