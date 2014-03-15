@@ -991,7 +991,7 @@ TESTEE = """{
 
 TEMPLATES = {
    "router": DEV_ROUTER,
-   "demo": DEV_ROUTER_WITH_DEMOS,
+   "demos": DEV_ROUTER_WITH_DEMOS,
    #"router-smp4": SMP4_ROUTER,
    #"bridge-rest": REST_BRIDGE,
    #"bridge-srdp": SRDP_BRIDGE,

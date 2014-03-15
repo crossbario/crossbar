@@ -167,7 +167,13 @@ def run():
                        default = None,
                        help = 'Log to log file instead of stderr.')
 
+   parser.add_argument('-n',
+                       '--name',
+                       default = None,
+                       help = 'Optional process name to set.')
+
    options = parser.parse_args()
+
 
    ## make sure logging to something else than stdio is setup _first_
    ##
@@ -177,7 +183,21 @@ def run():
       log.startLogging(sys.stderr)
 
 
+   ## the worker's PID
+   ##
    pid = os.getpid()
+
+
+   ## set process title if requested to
+   ##
+   if options.name:
+      try:
+         import setproctitle
+      except ImportError:
+         log.msg("Worker {}: Warning, could not set process title (Python package setproctitle is missing)".format(pid))
+      else:
+         setproctitle.setproctitle(options.name)
+
 
    ## Crossbar.io node directory
    ##
@@ -197,7 +217,7 @@ def run():
 
    ##
    from twisted.python.reflect import qual
-   log.msg("Worker {}: starting at node directory {} on {} ..".format(pid, options.cbdir, qual(reactor.__class__).split('.')[-1]))
+   log.msg("Worker {}: Starting at node directory {} on {} ..".format(pid, options.cbdir, qual(reactor.__class__).split('.')[-1]))
 
    try:
       ## create a WAMP application session factory
@@ -221,7 +241,9 @@ def run():
 
       ## now start reactor loop
       ##
-      log.msg("Worker {}: entering event loop ..".format(pid))
+      log.msg("Worker {}: Entering event loop ..".format(pid))
+
+      #reactor.callLater(4, reactor.stop)
       reactor.run()
 
    except Exception as e:

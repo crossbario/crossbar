@@ -24,6 +24,14 @@ __all__ = ['NodeSession']
 from twisted.python import log
 from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
 
+from twisted.internet.error import ProcessDone, \
+                                   ProcessTerminated, \
+                                   ConnectionDone, \
+                                   ConnectionClosed, \
+                                   ConnectionLost, \
+                                   ConnectionAborted
+
+
 from autobahn.twisted.wamp import ApplicationSession
 
 import os, sys
@@ -32,7 +40,7 @@ import json
 
 from autobahn.wamp.router import RouterFactory
 from autobahn.twisted.wamp import RouterSessionFactory
-from autobahn.twisted.websocket import WampWebSocketClientFactory
+from autobahn.twisted.websocket import WampWebSocketClientFactory, WampWebSocketClientProtocol
 from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
 
 import pkg_resources
@@ -114,11 +122,20 @@ class NodeControllerSession(ApplicationSession):
    This class exposes the node's management API.
    """
    class NodeProcess:
-      def __init__(self, ptype, pid, ready = None):
+      def __init__(self, ptype, pid, ready = None, exit = None):
+         """
+         Used to track worker processes.
+
+         :param ready: A Deferred that will be fired (upon receiving an event) when the worker is ready.
+         :type ready: :class:`twisted.internet.defer.Deferred`
+         :param exit: A Deferred that will be fired when the worker exits.
+         :type exit: :class:`twisted.internet.defer.Deferred`
+         """
          assert(ptype in ['worker', 'program'])
          self.ptype = ptype
          self.pid = pid
          self.ready = ready
+         self.exit = exit
          self.created = utcnow()
 
 
@@ -172,43 +189,46 @@ class NodeControllerSession(ApplicationSession):
          if process['type'] in ['router', 'component.python']:
 
             ## start a new worker process ..
-            pid = yield self.start_process(process)
-
-            ## .. and orchestrate the startup of the worker
-            if 'classpaths' in process_options:
-               yield self.call('crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, pid), process_options['classpaths'])
-
-            if process['type'] == 'router':
-
-               router_index = yield self.call('crossbar.node.{}.process.{}.start_router'.format(self._node_name, pid))
-               log.msg("Worker {}: Router started ({})".format(pid, router_index))
-
-               for realm_name in process['realms']:
-                  realm_config = process['realms'][realm_name]
-                  realm_index = yield self.call('crossbar.node.{}.process.{}.router.{}.start_realm'.format(self._node_name, pid, router_index), realm_name, realm_config)
-                  log.msg("Worker {}: Realm started on router {} ({})".format(pid, router_index, realm_index))
-
-                  try:
-                     for klassname in realm_config.get('classes', []):
-                        id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_class'.format(self._node_name, pid, router_index), klassname, realm_name)
-                        log.msg("Worker {}: Class '{}' ({}) started in realm '{}' on router {}".format(pid, klassname, id, realm_name, router_index))
-                  except Exception as e:
-                     log.msg("internal error: {} {}".format(e, e.args))
-
-               for transport in process['transports']:
-                  id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_transport'.format(self._node_name, pid, router_index), transport)
-                  log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint']['type'], id, router_index))
-
-            elif process['type'] == 'component.python':
-
-               klassname, realm_name = process['class'], process['router']['realm']
-
-               yield self.call('crossbar.node.module.{}.component.start'.format(pid), process['router'], klassname, realm_name)
-               log.msg("Worker {}: Component container started ().".format(pid))
-               log.msg("Worker {}: Class '{}' started in realm '{}'".format(pid, klassname, realm_name))
-
+            try:
+               pid = yield self.start_process(process)
+            except Exception as e:
+               print "SHHIIIT", e
             else:
-               raise Exception("logic error")
+               ## .. and orchestrate the startup of the worker
+               if 'classpaths' in process_options:
+                  yield self.call('crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, pid), process_options['classpaths'])
+
+               if process['type'] == 'router':
+
+                  router_index = yield self.call('crossbar.node.{}.process.{}.start_router'.format(self._node_name, pid))
+                  log.msg("Worker {}: Router started ({})".format(pid, router_index))
+
+                  for realm_name in process['realms']:
+                     realm_config = process['realms'][realm_name]
+                     realm_index = yield self.call('crossbar.node.{}.process.{}.router.{}.start_realm'.format(self._node_name, pid, router_index), realm_name, realm_config)
+                     log.msg("Worker {}: Realm started on router {} ({})".format(pid, router_index, realm_index))
+
+                     try:
+                        for klassname in realm_config.get('classes', []):
+                           id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_class'.format(self._node_name, pid, router_index), klassname, realm_name)
+                           log.msg("Worker {}: Class '{}' ({}) started in realm '{}' on router {}".format(pid, klassname, id, realm_name, router_index))
+                     except Exception as e:
+                        log.msg("internal error: {} {}".format(e, e.args))
+
+                  for transport in process['transports']:
+                     id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_transport'.format(self._node_name, pid, router_index), transport)
+                     log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint']['type'], id, router_index))
+
+               elif process['type'] == 'component.python':
+
+                  klassname, realm_name = process['class'], process['router']['realm']
+
+                  yield self.call('crossbar.node.module.{}.component.start'.format(pid), process['router'], klassname, realm_name)
+                  log.msg("Worker {}: Component container started ().".format(pid))
+                  log.msg("Worker {}: Class '{}' started in realm '{}'".format(pid, klassname, realm_name))
+
+               else:
+                  raise Exception("logic error")
 
          elif process['type'] == 'component.program':
 
@@ -227,14 +247,17 @@ class NodeControllerSession(ApplicationSession):
 
       :returns: int -- The PID of the new process.
       """
+
+      ##
+      ## start a Crossbar.io worker process
+      ##
       if config['type'] in ['router', 'component.python']:
 
-         ##
-         ## start a Crossbar.io worker process
-         ##
          filename = pkg_resources.resource_filename('crossbar', 'worker.py')
 
          args = [executable, "-u", filename]
+
+         args.extend(['--name', 'heinzelmann'])
 
          if self.debug:
             args.append('--debug')
@@ -254,29 +277,78 @@ class NodeControllerSession(ApplicationSession):
                                  errFlag = StandardErrorBehavior.LOG,
                                  env = os.environ)
 
+         ## this will be fired when the worker is actually ready to receive commands
          ready = Deferred()
+         exit = Deferred()
 
-         d = ep.connect(self._node._router_client_transport_factory)
+
+         class WorkerClientProtocol(WampWebSocketClientProtocol):
+
+            def connectionMade(self):
+               WampWebSocketClientProtocol.connectionMade(self)
+               self._pid = self.transport.pid
+
+
+            def connectionLost(self, reason):
+               WampWebSocketClientProtocol.connectionLost(self, reason)
+
+               log.msg("Worker {}: Process connection gone ({})".format(self._pid, reason.value))
+
+               if isinstance(reason.value, ProcessTerminated):
+                  if not ready.called:
+                     ## the worker was never ready in the first place ..
+                     ready.errback(reason)
+                  else:
+                     ## the worker _did_ run (was ready before), but now exited with error
+                     if not exit.called:
+                        exit.errback(reason)
+                     else:
+                        log.msg("FIXME: unhandled code path (1) in WorkerClientProtocol.connectionLost", reason.value)
+               elif isinstance(reason.value, ProcessDone) or isinstance(reason.value, ConnectionDone):
+                  ## the worker exited cleanly
+                  if not exit.called:
+                     exit.callback()
+                  else:
+                     log.msg("FIXME: unhandled code path (2) in WorkerClientProtocol.connectionLost", reason.value)
+               else:
+                  ## should not arrive here
+                  log.msg("FIXME: unhandled code path (3) in WorkerClientProtocol.connectionLost", reason.value)
+
+
+         ## factory that creates router session transports. these are for clients
+         ## that talk WAMP-WebSocket over pipes with spawned worker processes and
+         ## for any uplink session to a management service
+         ##
+         factory = WampWebSocketClientFactory(self._node._router_session_factory, "ws://localhost", debug = False)
+         factory.protocol = WorkerClientProtocol
+         factory.setProtocolOptions(failByDrop = False)
+
+         d = ep.connect(factory)
 
          def onconnect(res):
             pid = res.transport.pid
-            self._processes[pid] = NodeControllerSession.NodeProcess('worker', pid, ready)
+            log.msg("Worker PID {} process connected".format(pid))
+
+            ## remember the worker process, including "ready" deferred. this will later
+            ## be fired upon the worker publishing to 'crossbar.node.{}.on_worker_ready'
+            self._processes[pid] = NodeControllerSession.NodeProcess('worker', pid, ready, exit)
 
          def onerror(err):
+            log.msg("Could not start worker process with args '{}': {}".format(args, err.value))
             ready.errback(err)
 
          d.addCallbacks(onconnect, onerror)
 
          return ready
 
+
+      ##
+      ## start a program process
+      ##
       elif config['type'] == 'component.program':
 
-         ##
-         ## start a program process
-         ##
          from twisted.internet import protocol
          from twisted.internet import reactor
-         from twisted.internet.error import ProcessDone, ProcessTerminated
          import re, json
 
          class ProgramWorkerProcess(protocol.ProcessProtocol):
@@ -339,6 +411,7 @@ class NodeControllerSession(ApplicationSession):
          workdir = os.path.abspath(workdir)
 
          ready = Deferred()
+         exit = Deferred()
 
          proto = ProgramWorkerProcess()
          try:
@@ -349,7 +422,7 @@ class NodeControllerSession(ApplicationSession):
          else:
             pid = trnsp.pid
             proto._pid = pid
-            self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready)
+            self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready, exit)
             log.msg("Worker {}: Program started.".format(pid))
             ready.callback(pid)
 
@@ -406,6 +479,8 @@ class Node:
       self._node_name.replace('-', '_')
       self._node_name = '918234'
 
+      self._node_controller_session = None
+
       ## node management
       self._management_url = "ws://127.0.0.1:7000"
       #self._management_url = "wss://cloud.crossbar.io"
@@ -455,12 +530,13 @@ class Node:
          self._router_server = serverFromString(self._reactor, "tcp:9000")
          self._router_server.listen(self._router_server_transport_factory)
 
+
       ## factory that creates router session transports. these are for clients
       ## that talk WAMP-WebSocket over pipes with spawned worker processes and
       ## for any uplink session to a management service
       ##
-      self._router_client_transport_factory = WampWebSocketClientFactory(self._router_session_factory, "ws://localhost", debug = False)
-      self._router_client_transport_factory.setProtocolOptions(failByDrop = False)
+      # self._router_client_transport_factory = WampWebSocketClientFactory(self._router_session_factory, "ws://localhost", debug = False)
+      # self._router_client_transport_factory.setProtocolOptions(failByDrop = False)
 
       if False:
          management_session_factory = ApplicationSessionFactory()
