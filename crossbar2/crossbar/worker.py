@@ -208,6 +208,7 @@ def run():
          options.cbdir = '.crossbar'
 
    options.cbdir = os.path.abspath(options.cbdir)
+   log.msg("Worker {}: Starting from node directory {}.".format(pid, options.cbdir))
 
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
@@ -217,7 +218,7 @@ def run():
 
    ##
    from twisted.python.reflect import qual
-   log.msg("Worker {}: Starting at node directory {} on {} ..".format(pid, options.cbdir, qual(reactor.__class__).split('.')[-1]))
+   log.msg("Worker {}: Running on {} reactor.".format(pid, qual(reactor.__class__).split('.')[-1]))
 
    try:
       ## create a WAMP application session factory
