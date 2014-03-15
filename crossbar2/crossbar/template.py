@@ -886,8 +886,6 @@ DEV_ROUTER_WITH_DEMOS = """{
                   }
                },
                "classes": [
-                  "crossbar.demo.TimeService",
-                  "crossbar.demo.TickService"
                ]
             }
          },
@@ -901,7 +899,7 @@ DEV_ROUTER_WITH_DEMOS = """{
                "paths": {
                   "/": {
                      "type": "static",
-                     "package": "crossbardemo",
+                     "module": "crossbardemo",
                      "resource": "web"
                   },
                   "ws": {
@@ -957,11 +955,6 @@ TESTEE = """{
                   "/": {
                      "type": "static",
                      "directory": ".."
-                  },
-                  "demo": {
-                     "type": "static",
-                     "package": "crossbardemo",
-                     "resource": "web"
                   },
                   "ws": {
                      "type": "websocket",
