@@ -321,7 +321,9 @@ class NodeControllerSession(ApplicationSession):
          ##
          factory = WampWebSocketClientFactory(self._node._router_session_factory, "ws://localhost", debug = False)
          factory.protocol = WorkerClientProtocol
-         factory.setProtocolOptions(failByDrop = False)
+         ## we need to increase the opening handshake timeout in particular, since starting up a worker
+         ## on PyPy will take a little (due to JITting)
+         factory.setProtocolOptions(failByDrop = False, openHandshakeTimeout = 30, closeHandshakeTimeout = 5)
 
          d = ep.connect(factory)
 
