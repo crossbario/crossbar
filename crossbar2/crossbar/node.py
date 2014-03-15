@@ -257,7 +257,7 @@ class NodeControllerSession(ApplicationSession):
 
          args = [executable, "-u", filename]
 
-         args.extend(['--name', 'heinzelmann'])
+         #args.extend(['--name', 'Crossbar.io Worker'])
 
          if self.debug:
             args.append('--debug')
@@ -504,6 +504,13 @@ class Node:
       communicate via stdio with the worker, and start
       and restart the worker processes as needed.
       """
+      try:
+         import setproctitle
+      except ImportError:
+         log.msg("Warning, could not set process title (Python package setproctitle is missing)")
+      else:
+         setproctitle.setproctitle("Crossbar.io Node Controller")
+
       ## the node controller singleton WAMP application session
       ##
       self._node_controller_session = NodeControllerSession(self)

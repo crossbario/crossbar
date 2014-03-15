@@ -30,6 +30,21 @@ finally:
    from setuptools import setup, find_packages
 
 
+install_requires = ['setuptools>=2.2',
+                    'twisted>=twisted-13.2',
+                    'autobahn[twisted]>=0.8.5',
+                    'cryptography>=0.2.1',
+                    'pyOpenSSL>=0.14',
+                    'psutil>=1.2.1',
+                    'msgpack-python>=0.4.1',
+                    'jinja2>=2.7.2']
+
+import sys
+if not sys.platform.startswith('win'):
+   install_requires.append('setproctitle>=1.1.8')
+
+
+
 ## Get package version and docstring from crossbar/__init__.py
 ##
 import re

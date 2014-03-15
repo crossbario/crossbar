@@ -188,15 +188,17 @@ def run():
    pid = os.getpid()
 
 
-   ## set process title if requested to
-   ##
-   if options.name:
-      try:
-         import setproctitle
-      except ImportError:
-         log.msg("Worker {}: Warning, could not set process title (Python package setproctitle is missing)".format(pid))
-      else:
+   try:
+      import setproctitle
+   except ImportError:
+      log.msg("Worker {}: Warning, could not set process title (Python package setproctitle is missing)".format(pid))
+   else:
+      ## set process title if requested to
+      ##
+      if options.name:
          setproctitle.setproctitle(options.name)
+      else:
+         setproctitle.setproctitle("Crossbar.io Worker")
 
 
    ## Crossbar.io node directory
