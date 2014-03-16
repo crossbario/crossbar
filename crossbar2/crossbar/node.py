@@ -256,6 +256,7 @@ class NodeControllerSession(ApplicationSession):
          filename = pkg_resources.resource_filename('crossbar', 'worker.py')
 
          args = [executable, "-u", filename]
+         args.extend(["--cbdir", self._node._cbdir])
 
          #args.extend(['--name', 'Crossbar.io Worker'])
 
