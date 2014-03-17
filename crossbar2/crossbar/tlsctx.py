@@ -264,8 +264,10 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
 
          if self._ciphers:
             ctx.set_cipher_list(self._ciphers)
+            log.msg("Using explicit cipher list.")
          else:
             ctx.set_cipher_list(SSL_DEFAULT_CIPHERS)
+            log.msg("Using default cipher list.")
 
 
          ## Activate DH(E)
