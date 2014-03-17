@@ -263,25 +263,22 @@ class NodeControllerSession(ApplicationSession):
          if self.debug:
             args.append('--debug')
 
-         if sys.platform == 'win32':
-            args.extend(['--logfile', 'test.log'])
-            ep = ProcessEndpoint(self._node._reactor,
-                                 executable,
-                                 args,
-                                 errFlag = StandardErrorBehavior.DROP,
-                                 env = os.environ)
-         else:
-            ep = ProcessEndpoint(self._node._reactor,
-                                 executable,
-                                 args,
-                                 childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
-                                 errFlag = StandardErrorBehavior.LOG,
-                                 env = os.environ)
+         from crossbar.process import CustomProcessEndpoint
+
+         ep = CustomProcessEndpoint(self._node._reactor,
+                              executable,
+                              args,
+                              #childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
+                              #errFlag = StandardErrorBehavior.LOG,
+                              #errFlag = StandardErrorBehavior.DROP,
+                              name = "Worker",
+                              env = os.environ)
 
          ## this will be fired when the worker is actually ready to receive commands
          ready = Deferred()
          exit = Deferred()
 
+         from twisted.internet.protocol import ProcessProtocol
 
          class WorkerClientProtocol(WampWebSocketClientProtocol):
 
@@ -508,7 +505,7 @@ class Node:
       try:
          import setproctitle
       except ImportError:
-         log.msg("Warning, could not set process title (Python package setproctitle is missing)")
+         log.msg("Warning, could not set process title (setproctitle not installed)")
       else:
          setproctitle.setproctitle("Crossbar.io Node Controller")
 

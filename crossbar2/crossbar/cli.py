@@ -141,7 +141,17 @@ def run_command_start(options):
    """
    ## start Twisted logging
    ##
-   log.startLogging(sys.stderr)
+   if not options.logdir:
+      logfd = sys.stderr
+   else:
+      from twisted.python.logfile import DailyLogFile
+      logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
+
+   from crossbar.process import DefaultSystemFileLogObserver
+   flo = DefaultSystemFileLogObserver(logfd, system = "Controller {}".format(os.getpid()))
+   log.startLoggingWithObserver(flo.emit)
+
+   log.msg("=" * 30 + " Crossbar.io " + "=" * 30 + "\n")
 
    log.msg("Crossbar.io {} node starting".format(crossbar.__version__))
 
@@ -227,6 +237,11 @@ def run():
                              default = None,
                              help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
+   parser_start.add_argument('--logdir',
+                             type = str,
+                             default = None,
+                             help = "Crossbar.io log directory (default: <Crossbar Node Directory>/log)")
+
    parser_start.add_argument('--loglevel',
                               type = str,
                               default = 'info',
@@ -246,6 +261,18 @@ def run():
          options.cbdir = os.environ['CROSSBAR_DIR']
       else:
          options.cbdir = '.crossbar'
+   options.cbdir = os.path.abspath(options.cbdir)
+
+   ## Log directory
+   ##
+   if options.logdir:
+      options.logdir = os.path.abspath(os.path.join(options.cbdir, options.logdir))
+      if not os.path.isdir(options.logdir):
+         try:
+            os.mkdir(options.logdir)
+         except Exception as e:
+            print("Could not create log directory: {}".format(e))
+            sys.exit(1)
 
 
    ## run the subcommand selected

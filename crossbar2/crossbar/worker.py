@@ -43,7 +43,7 @@ class WorkerProcess(ApplicationSession):
       self._node_name = '918234'
 
       if self.debug:
-         log.msg("Worker {}: Connected to node router.".format(self._pid))
+         log.msg("Connected to node router.")
 
       self._routers = {}
       self._router_seq = 100
@@ -122,7 +122,7 @@ class WorkerProcess(ApplicationSession):
 
 
       if self.debug:
-         log.msg("Worker {}: Procedures registered.".format(self._pid))
+         log.msg("Procedures registered.")
 
       ## signal that this worker is ready for setup. the actual setup procedure
       ## will either be sequenced from the local node configuration file or remotely
@@ -162,11 +162,6 @@ def run():
                        default = None,
                        help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-   parser.add_argument('-l',
-                       '--logfile',
-                       default = None,
-                       help = 'Log to log file instead of stderr.')
-
    parser.add_argument('-n',
                        '--name',
                        default = None,
@@ -177,10 +172,9 @@ def run():
 
    ## make sure logging to something else than stdio is setup _first_
    ##
-   if options.logfile:
-      log.startLogging(open(options.logfile, 'a'))
-   else:
-      log.startLogging(sys.stderr)
+   from crossbar.process import BareFormatFileLogObserver
+   flo = BareFormatFileLogObserver(sys.stderr)
+   log.startLoggingWithObserver(flo.emit)
 
 
    ## the worker's PID
@@ -191,7 +185,7 @@ def run():
    try:
       import setproctitle
    except ImportError:
-      log.msg("Worker {}: Warning, could not set process title (Python package setproctitle is missing)".format(pid))
+      log.msg("Warning, could not set process title (setproctitle not installed)")
    else:
       ## set process title if requested to
       ##
@@ -210,7 +204,7 @@ def run():
          options.cbdir = '.crossbar'
 
    options.cbdir = os.path.abspath(options.cbdir)
-   log.msg("Worker {}: Starting from node directory {}.".format(pid, options.cbdir))
+   log.msg("Starting from node directory {}.".format(options.cbdir))
 
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
@@ -218,9 +212,8 @@ def run():
    from autobahn.twisted.choosereactor import install_reactor
    reactor = install_reactor(options.reactor)
 
-   ##
    from twisted.python.reflect import qual
-   log.msg("Worker {}: Running on {} reactor.".format(pid, qual(reactor.__class__).split('.')[-1]))
+   log.msg("Running on {} reactor.".format(qual(reactor.__class__).split('.')[-1]))
 
 
    from autobahn.twisted.websocket import WampWebSocketServerProtocol
@@ -229,7 +222,7 @@ def run():
 
       def connectionLost(self, reason):
          try:
-            log.msg("Worker {}: Connection to node controller lost.".format(pid))
+            log.msg("Connection to node controller lost.")
             WampWebSocketServerProtocol.connectionLost(self, reason)
          except:
             pass
@@ -265,13 +258,13 @@ def run():
 
       ## now start reactor loop
       ##
-      log.msg("Worker {}: Entering event loop ..".format(pid))
+      log.msg("Entering event loop ..")
 
       #reactor.callLater(4, reactor.stop)
       reactor.run()
 
    except Exception as e:
-      log.msg("Worker {}: Unhandled exception - {}".format(pid, e))
+      log.msg("Unhandled exception - {}".format(e))
       if reactor.running:
          reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
          reactor.stop()
