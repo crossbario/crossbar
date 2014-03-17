@@ -222,6 +222,26 @@ def run():
    from twisted.python.reflect import qual
    log.msg("Worker {}: Running on {} reactor.".format(pid, qual(reactor.__class__).split('.')[-1]))
 
+
+   from autobahn.twisted.websocket import WampWebSocketServerProtocol
+
+   class WorkerServerProtocol(WampWebSocketServerProtocol):
+
+      def connectionLost(self, reason):
+         try:
+            log.msg("Worker {}: Connection to node controller lost.".format(pid))
+            WampWebSocketServerProtocol.connectionLost(self, reason)
+         except:
+            pass
+         finally:
+            ## loosing the connection to the node controller (the pipes) is fatal.
+            ## stop the reactor and exit with error
+            if reactor.running:
+               reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
+               reactor.stop()
+            else:
+               sys.exit(1)
+
    try:
       ## create a WAMP application session factory
       ##
@@ -234,6 +254,7 @@ def run():
       ##
       from autobahn.twisted.websocket import WampWebSocketServerFactory
       transport_factory = WampWebSocketServerFactory(session_factory, "ws://localhost", debug = False)
+      transport_factory.protocol = WorkerServerProtocol
       transport_factory.setProtocolOptions(failByDrop = False)
 
       ## create a protocol instance and wire up to stdio
@@ -251,8 +272,11 @@ def run():
 
    except Exception as e:
       log.msg("Worker {}: Unhandled exception - {}".format(pid, e))
-      raise e
-      sys.exit(1)
+      if reactor.running:
+         reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
+         reactor.stop()
+      else:
+         sys.exit(1)
 
 
 
