@@ -31,9 +31,10 @@ class JsonResource(Resource):
 
    def __init__(self, value):
       Resource.__init__(self)
-      self._data = json.dumps(value)
+      self._data = json.dumps(value, sort_keys = True, indent = 3)
 
    def render_GET(self, request):
+      request.setHeader('content-type', 'application/json; charset=UTF-8')
       return self._data
 
 
