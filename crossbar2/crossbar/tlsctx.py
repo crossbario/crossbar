@@ -282,6 +282,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                ctx.load_tmp_dh(self._dhParamFilename)
             except Exception, e:
                log.msg("Error: OpenSSL DH modes not active - failed to load DH parameter file [%s]" % e)
+            else:
+               log.msg("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
          else:
             log.msg("Warning: OpenSSL DH modes not active - missing DH param file")
 
@@ -297,7 +299,9 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             #print OpenSSL.SSL.ELLIPTIC_CURVE_DESCRIPTIONS
             ctx.set_tmp_ecdh_curve(ECDH_DEFAULT_CURVE_NAME)
          except Exception, e:
-            log.msg("Failed to set ECDH default curve [%s]" % e)
+            log.msg("Warning: OpenSSL failed to set ECDH default curve [%s]" % e)
+         else:
+            log.msg("Ok, OpenSSL is using ECDH elliptic curve {}".format(ECDH_DEFAULT_CURVE_NAME))
 
 
          ## load certificate (chain) into context
