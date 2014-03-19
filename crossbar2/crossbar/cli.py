@@ -256,12 +256,14 @@ def run():
 
    ## Crossbar.io node directory
    ##
-   if hasattr(options, 'cbdir') and not options.cbdir:
-      if os.environ.has_key("CROSSBAR_DIR"):
-         options.cbdir = os.environ['CROSSBAR_DIR']
-      else:
-         options.cbdir = '.crossbar'
-   options.cbdir = os.path.abspath(options.cbdir)
+   if hasattr(options, 'cbdir'):
+      if not options.cbdir:
+         if os.environ.has_key("CROSSBAR_DIR"):
+            options.cbdir = os.environ['CROSSBAR_DIR']
+         else:
+            options.cbdir = '.crossbar'
+      options.cbdir = os.path.abspath(options.cbdir)
+
 
    ## Log directory
    ##
