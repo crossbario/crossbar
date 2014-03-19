@@ -267,14 +267,15 @@ def run():
 
    ## Log directory
    ##
-   if options.logdir:
-      options.logdir = os.path.abspath(os.path.join(options.cbdir, options.logdir))
-      if not os.path.isdir(options.logdir):
-         try:
-            os.mkdir(options.logdir)
-         except Exception as e:
-            print("Could not create log directory: {}".format(e))
-            sys.exit(1)
+   if hasattr(options, 'logdir'):
+      if options.logdir:
+         options.logdir = os.path.abspath(os.path.join(options.cbdir, options.logdir))
+         if not os.path.isdir(options.logdir):
+            try:
+               os.mkdir(options.logdir)
+            except Exception as e:
+               print("Could not create log directory: {}".format(e))
+               sys.exit(1)
 
 
    ## run the subcommand selected
