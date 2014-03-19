@@ -919,9 +919,6 @@ TESTEE = """{
    "processes": [
       {
          "type": "router",
-         "options": {
-            "classpaths": ["."]
-         },
          "realms": {
             "realm1": {
                "permissions": {
@@ -937,31 +934,10 @@ TESTEE = """{
                         }
                      }
                   }
-               },
-               "classes": [
-                  "crossbar.demo.TimeService",
-                  "crossbar.demo.TickService"
-               ]
+               }
             }
          },
          "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket",
-                     "url": "ws://localhost:8080/ws"
-                  }
-               }
-            },
             {
                "type": "websocket.testee",
                "endpoint": {
@@ -985,6 +961,7 @@ TESTEE = """{
 TEMPLATES = {
    "router": DEV_ROUTER,
    "demos": DEV_ROUTER_WITH_DEMOS,
+   "testee": TESTEE,
    #"router-smp4": SMP4_ROUTER,
    #"bridge-rest": REST_BRIDGE,
    #"bridge-srdp": SRDP_BRIDGE,

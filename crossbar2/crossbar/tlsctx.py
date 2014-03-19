@@ -205,7 +205,9 @@ ELLIPTIC_CURVES = {
 ##
 ##   https://twitter.com/hyperelliptic/status/394258454342148096
 ##
-ECDH_DEFAULT_CURVE = ELLIPTIC_CURVES["prime256v1"]
+ECDH_DEFAULT_CURVE_NAME = "prime256v1"
+ECDH_DEFAULT_CURVE = ELLIPTIC_CURVES[ECDH_DEFAULT_CURVE_NAME]
+
 
 
 class TlsServerContextFactory(DefaultOpenSSLContextFactory):
@@ -286,14 +288,14 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
 
          ## Activate ECDH(E)
          ##
-         ## This needs pyOpenSSL with patch applied from
-         ## https://bugs.launchpad.net/pyopenssl/+bug/1233810
+         ## This needs pyOpenSSL 0.14
          ##
          try:
             ## without setting a curve, ECDH won't be available even if listed
             ## in SSL_DEFAULT_CIPHERS!
             ##
-            ctx.set_tmp_ecdh_by_curve_name(ECDH_DEFAULT_CURVE)
+            #print OpenSSL.SSL.ELLIPTIC_CURVE_DESCRIPTIONS
+            ctx.set_tmp_ecdh_curve(ECDH_DEFAULT_CURVE_NAME)
          except Exception, e:
             log.msg("Failed to set ECDH default curve [%s]" % e)
 

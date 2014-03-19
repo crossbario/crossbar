@@ -274,6 +274,9 @@ class RouterModule:
                      root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['module'], root_config['resource']))
                   except Exception, e:
                      raise ApplicationError("crossbar.error.invalid_configuration", str(e))
+                  else:
+                     mod_version = getattr(mod, '__version__', '?.?.?')
+                     log.msg("Loaded static Web resource '{}' from module '{} {}' (filesystem path {})".format(root_config['resource'], root_config['module'], mod_version, root_dir))
 
             else:
                raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
