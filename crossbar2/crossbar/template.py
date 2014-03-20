@@ -754,7 +754,7 @@ DEV_ROUTER = """{
       {
          "type": "router",
          "options": {
-            "classpaths": ["."]
+            "classpaths": [".."]
          },
          "realms": {
             "realm1": {
@@ -812,7 +812,7 @@ DEV_ROUTER = """{
       {
          "type": "router",
          "options": {
-            "classpaths": ["."]
+            "classpaths": [".."]
          },
          "realms": {
             "realm1": {
@@ -867,7 +867,7 @@ DEV_ROUTER_WITH_DEMOS = """{
       {
          "type": "router",
          "options": {
-            "classpaths": ["."]
+            "classpaths": [".."]
          },
          "realms": {
             "realm1": {

@@ -67,6 +67,31 @@ class TickService(ApplicationSession):
    def onJoin(self, details):
       counter = 0
       while True:
-         self.publish('com.myapp.topic1', counter)
+         self.publish('com.tickservice.ontick', counter)         
          counter += 1
          yield sleep(1)
+
+
+
+class MathService(ApplicationSession):
+   """
+   An application component providing math services.
+   """
+
+   def __init__(self, realm = "realm1"):
+      ApplicationSession.__init__(self)
+      self._realm = realm
+
+
+   def onConnect(self):
+      self.join(self._realm)
+
+
+   def onJoin(self, details):
+
+      def square(x):
+         res = x * x
+         self.publish('com.mathservice.onsquare', res)
+         return res
+
+      self.register(square, 'com.mathservice.square')
