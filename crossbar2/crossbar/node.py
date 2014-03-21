@@ -195,17 +195,34 @@ class NodeControllerSession(ApplicationSession):
                log.msg("Failed to start worker process: {}".format(e))
             else:
                log.msg("Worker {}: Started.".format(pid))
-               
-               ## .. and orchestrate the startup of the worker
+
                ##
+               ## .. and now orchestrate the startup of the worker
+               ##
+
                if 'pythonpath' in process_options:
-                  yield self.call('crossbar.node.{}.process.{}.add_pythonpath'.format(self._node_name, pid), process_options['pythonpath'])
+                  try:
+                     yield self.call('crossbar.node.{}.process.{}.add_pythonpath'.format(self._node_name, pid), process_options['pythonpath'])
+                  except Exception as e:
+                     log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(pid, e))
+                  else:
+                     log.msg("Worker {}: PYTHONPATH extended.".format(pid))
 
                if 'cpu_affinity' in process_options:
-                  yield self.call('crossbar.node.{}.process.{}.set_cpu_affinity'.format(self._node_name, pid), process_options['cpu_affinity'])
+                  try:
+                     yield self.call('crossbar.node.{}.process.{}.set_cpu_affinity'.format(self._node_name, pid), process_options['cpu_affinity'])
+                  except Exception as e:
+                     log.msg("Worker {}: Failed to set CPU affinity - {}".format(pid, e))
+                  else:
+                     log.msg("Worker {}: CPU affinity set.".format(pid))
 
-               cpu_affinity = yield self.call('crossbar.node.{}.process.{}.get_cpu_affinity'.format(self._node_name, pid))
-               log.msg("Worker {}: CPU affinity is {}".format(pid, cpu_affinity))
+               try:
+                  cpu_affinity = yield self.call('crossbar.node.{}.process.{}.get_cpu_affinity'.format(self._node_name, pid))
+               except Exception as e:
+                  log.msg("Worker {}: Failed to get CPU affinity - {}".format(pid, e))
+               else:
+                  log.msg("Worker {}: CPU affinity is {}".format(pid, cpu_affinity))
+
 
                if process['type'] == 'router':
 
