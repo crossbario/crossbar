@@ -24,8 +24,10 @@ import psutil
 import datetime
 
 from twisted.python import log
+from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.types import PublishOptions
 
 
 
@@ -54,6 +56,7 @@ class WorkerProcess(ApplicationSession):
       self.join("crossbar")
 
 
+   @inlineCallbacks
    def onJoin(self, details):
 
       def get_cpu_affinity():
@@ -63,7 +66,7 @@ class WorkerProcess(ApplicationSession):
          p = psutil.Process(self._pid)
          return p.get_cpu_affinity()
 
-      self.register(get_cpu_affinity, 'crossbar.node.{}.process.{}.get_cpu_affinity'.format(self._node_name, self._pid))
+      yield self.register(get_cpu_affinity, 'crossbar.node.{}.process.{}.get_cpu_affinity'.format(self._node_name, self._pid))
 
 
       def set_cpu_affinity(cpus):
@@ -73,7 +76,7 @@ class WorkerProcess(ApplicationSession):
          p = psutil.Process(self._pid)
          p.set_cpu_affinity(cpus)
 
-      self.register(set_cpu_affinity, 'crossbar.node.{}.process.{}.set_cpu_affinity'.format(self._node_name, self._pid))
+      yield self.register(set_cpu_affinity, 'crossbar.node.{}.process.{}.set_cpu_affinity'.format(self._node_name, self._pid))
 
 
       def utcnow():
@@ -83,7 +86,7 @@ class WorkerProcess(ApplicationSession):
          now = datetime.datetime.utcnow()
          return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-      self.register(utcnow, 'crossbar.node.{}.process.{}.now'.format(self._node_name, self._pid))
+      yield self.register(utcnow, 'crossbar.node.{}.process.{}.now'.format(self._node_name, self._pid))
 
 
       def get_pythonpath():
@@ -92,7 +95,7 @@ class WorkerProcess(ApplicationSession):
          """
          return sys.path
 
-      self.register(get_pythonpath, 'crossbar.node.{}.process.{}.get_pythonpath'.format(self._node_name, self._pid))
+      yield self.register(get_pythonpath, 'crossbar.node.{}.process.{}.get_pythonpath'.format(self._node_name, self._pid))
 
 
       def add_pythonpath(paths, prepend = True):
@@ -107,7 +110,7 @@ class WorkerProcess(ApplicationSession):
          else:
             sys.path.extend(paths)
 
-      self.register(add_pythonpath, 'crossbar.node.{}.process.{}.add_pythonpath'.format(self._node_name, self._pid))
+      yield self.register(add_pythonpath, 'crossbar.node.{}.process.{}.add_pythonpath'.format(self._node_name, self._pid))
 
 
       ## Modules
@@ -131,7 +134,7 @@ class WorkerProcess(ApplicationSession):
          d.addCallback(onstart)
          return d
 
-      self.register(start_router, 'crossbar.node.{}.process.{}.start_router'.format(self._node_name, self._pid))
+      yield self.register(start_router, 'crossbar.node.{}.process.{}.start_router'.format(self._node_name, self._pid))
 
       ## FIXME
       from crossbar.router.component import ComponentModule
@@ -140,13 +143,18 @@ class WorkerProcess(ApplicationSession):
 
 
       if self.debug:
-         log.msg("Procedures registered.")
+         log.msg("Worker procedures registered.")
 
       ## signal that this worker is ready for setup. the actual setup procedure
       ## will either be sequenced from the local node configuration file or remotely
       ## from a management service
       ##
-      self.publish('crossbar.node.{}.on_worker_ready'.format(self._node_name), {'pid': self._pid, 'cmd': [sys.executable] + sys.argv})
+      pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self._node_name),
+         {'pid': self._pid, 'cmd': [sys.executable] + sys.argv},
+         options = PublishOptions(acknowledge = True))
+
+      if self.debug:
+         log.msg("on_worker_ready published: {}".format(pub))
 
 
    def startComponent(self):
