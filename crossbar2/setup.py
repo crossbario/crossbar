@@ -32,7 +32,7 @@ finally:
 
 install_requires = ['setuptools>=2.2',
                     'twisted>=twisted-13.2',
-                    'autobahn[twisted]>=0.8.5',
+                    'autobahn[twisted]>=0.8.6',
                     'cryptography>=0.2.1',
                     'pyOpenSSL>=0.14',
                     'psutil>=1.2.1',
