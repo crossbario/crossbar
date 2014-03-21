@@ -192,8 +192,10 @@ class NodeControllerSession(ApplicationSession):
             try:
                pid = yield self.start_process(process)
             except Exception as e:
-               print "SHHIIIT", e
+               log.msg("Failed to start worker process: {}".format(e))
             else:
+               log.msg("Worker {}: Started.".format(pid))
+               
                ## .. and orchestrate the startup of the worker
                ##
                if 'pythonpath' in process_options:

@@ -154,7 +154,7 @@ class WorkerProcess(ApplicationSession):
          options = PublishOptions(acknowledge = True))
 
       if self.debug:
-         log.msg("on_worker_ready published: {}".format(pub))
+         log.msg("Worker ready published ({})".format(pub.id))
 
 
    def startComponent(self):
