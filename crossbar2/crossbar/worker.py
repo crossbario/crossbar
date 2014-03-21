@@ -57,6 +57,9 @@ class WorkerProcess(ApplicationSession):
    def onJoin(self, details):
 
       def get_cpu_affinity():
+         """
+         Get CPU affinity of this process.
+         """
          p = psutil.Process(self._pid)
          return p.get_cpu_affinity()
 
@@ -64,6 +67,9 @@ class WorkerProcess(ApplicationSession):
 
 
       def set_cpu_affinity(cpus):
+         """
+         Set CPU affinity of this process.
+         """
          p = psutil.Process(self._pid)
          p.set_cpu_affinity(cpus)
 
@@ -71,19 +77,28 @@ class WorkerProcess(ApplicationSession):
 
 
       def utcnow():
+         """
+         Return current time in this process as UTC.
+         """
          now = datetime.datetime.utcnow()
          return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
       self.register(utcnow, 'crossbar.node.{}.process.{}.now'.format(self._node_name, self._pid))
 
 
-      def get_classpaths():
+      def get_pythonpath():
+         """
+         Returns the current Python module search path.
+         """
          return sys.path
 
-      self.register(get_classpaths, 'crossbar.node.{}.process.{}.get_classpaths'.format(self._node_name, self._pid))
+      self.register(get_pythonpath, 'crossbar.node.{}.process.{}.get_pythonpath'.format(self._node_name, self._pid))
 
 
-      def add_classpaths(paths, prepend = True):
+      def add_pythonpath(paths, prepend = True):
+         """
+         Add paths to Python module search path.
+         """
          ## transform all paths (relative to cbdir) into absolute paths.
          cbdir = self.factory.options.cbdir
          paths = [os.path.abspath(os.path.join(cbdir, p)) for p in paths]
@@ -92,12 +107,15 @@ class WorkerProcess(ApplicationSession):
          else:
             sys.path.extend(paths)
 
-      self.register(add_classpaths, 'crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, self._pid))
+      self.register(add_pythonpath, 'crossbar.node.{}.process.{}.add_pythonpath'.format(self._node_name, self._pid))
 
 
       ## Modules
       ##
       def start_router():
+         """
+         Start a router module in this process.
+         """
 
          from crossbar.router.module import RouterModule
 

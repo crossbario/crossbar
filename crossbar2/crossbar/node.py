@@ -195,8 +195,15 @@ class NodeControllerSession(ApplicationSession):
                print "SHHIIIT", e
             else:
                ## .. and orchestrate the startup of the worker
-               if 'classpaths' in process_options:
-                  yield self.call('crossbar.node.{}.process.{}.add_classpaths'.format(self._node_name, pid), process_options['classpaths'])
+               ##
+               if 'pythonpath' in process_options:
+                  yield self.call('crossbar.node.{}.process.{}.add_pythonpath'.format(self._node_name, pid), process_options['pythonpath'])
+
+               if 'cpu_affinity' in process_options:
+                  yield self.call('crossbar.node.{}.process.{}.set_cpu_affinity'.format(self._node_name, pid), process_options['cpu_affinity'])
+
+               cpu_affinity = yield self.call('crossbar.node.{}.process.{}.get_cpu_affinity'.format(self._node_name, pid))
+               log.msg("Worker {}: CPU affinity is {}".format(pid, cpu_affinity))
 
                if process['type'] == 'router':
 

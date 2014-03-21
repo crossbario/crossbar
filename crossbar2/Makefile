@@ -20,6 +20,9 @@ clean:
 init:
 	PYTHONPATH=. python -m crossbar.cli init
 
+init_demos:
+	PYTHONPATH=. python -m crossbar.cli init --template demos
+
 start:
 	PYTHONPATH=. python -m crossbar.cli start
 
