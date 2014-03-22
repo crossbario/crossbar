@@ -58,6 +58,8 @@ from twisted.web.static import File
 from twisted.web.resource import Resource
 
 from autobahn.twisted.resource import WebSocketResource
+
+from crossbar.router.site import createHSTSRequestFactory
 from crossbar.router.resource import FileNoListing, JsonResource, Resource404, CgiDirectory, RedirectResource
 
 
@@ -496,7 +498,27 @@ class RouterModule:
          ## create the actual transport factory
          ##
          transport_factory = Site(root)
-         transport_factory.log = lambda _: None # disable any logging
+
+         ## Web access logging
+         ##
+         if not options.get('access_log', False):
+            transport_factory.log = lambda _: None
+
+         ## traceback rendering
+         ##
+         if not options.get('display_tracebacks', False):
+            transport_factory.displayTracebacks = False
+
+         ## HSTS
+         ##
+         if options.get('hsts', False):
+            if 'tls' in config['endpoint']:
+               hsts_max_age = int(options.get('hsts_max_age', 31536000))
+               transport_factory.requestFactory = createHSTSRequestFactory(transport_factory.requestFactory, hsts_max_age)
+            else:
+               log.msg("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
+
+         ## FIXME
          #transport_factory.protocol = HTTPChannelHixie76Aware # needed if Hixie76 is to be supported
 
       else:
