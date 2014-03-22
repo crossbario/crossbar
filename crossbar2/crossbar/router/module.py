@@ -47,6 +47,13 @@ import importlib
 import pkg_resources
 
 from twisted.web.server import Site
+
+## monkey patch the Twisted Web server identification
+import twisted
+import crossbar
+twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
+
+
 from twisted.web.static import File
 from twisted.web.resource import Resource
 
