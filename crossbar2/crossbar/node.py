@@ -160,8 +160,8 @@ class NodeControllerSession(ApplicationSession):
       self._management_session = None
       self._processes = {}
 
-      pid = os.getpid()
-      self._processes[pid] = NodeProcess(NodeProcess.TYPE_CONTROLLER, pid)
+      self._pid = os.getpid()
+      self._processes[self._pid] = NodeProcess(NodeProcess.TYPE_CONTROLLER, self._pid)
 
 
    def onConnect(self):
@@ -283,6 +283,7 @@ class NodeControllerSession(ApplicationSession):
 
          else:
             raise ApplicationError("wamp.error.invalid_argument", "Invalid process type '{}'".format(process['type']))
+
 
 
    def start_process(self, config):
@@ -500,6 +501,7 @@ class NodeControllerSession(ApplicationSession):
          raise ApplicationError("wamp.error.invalid_argument", "Invalid process type '{}'".format(config['type']))
 
 
+
    def stop_process(self, pid):
       """
       Stops a worker process.
@@ -528,6 +530,7 @@ class NodeControllerSession(ApplicationSession):
             del self._processes[pid]
       else:
          raise ApplicationError("wamp.error.invalid_argument", "No worker with PID '{}'".format(pid))
+
 
 
    def get_processes(self):
