@@ -259,7 +259,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
       WampWebSocketServerFactory.__init__(self,
                                           factory,
-                                          url = config['url'],
+                                          url = config.get('url', None),
                                           server = server,
                                           externalPort = externalPort,
                                           debug = config.get('debug', False))

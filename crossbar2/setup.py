@@ -31,6 +31,7 @@ finally:
 
 
 install_requires = ['setuptools>=2.2',
+                    'zope.interface>=3.6.0',
                     'twisted>=twisted-13.2',
                     'autobahn[twisted]>=0.8.6',
                     'cryptography>=0.2.1',

@@ -115,29 +115,42 @@ class NodeManagementSession(ApplicationSession):
 
 
 
+class NodeProcess:
+
+   TYPE_CONTROLLER = 'controller'
+   TYPE_WORKER = 'worker'
+   TYPE_PROGRAM = 'program'
+
+   def __init__(self, ptype, pid, ready = None, exit = None, factory = None):
+      """
+      Used to track node processes.
+
+      :param ptype: 'controller', 'worker' or 'program'
+      :type ptype: str
+      :param pid: The OS process ID of this process.
+      :type pid: int
+      :param ready: A Deferred that will be fired (upon receiving an event) when the worker is ready.
+      :type ready: :class:`twisted.internet.defer.Deferred`
+      :param exit: A Deferred that will be fired when the worker exits.
+      :type exit: :class:`twisted.internet.defer.Deferred`
+      """
+      assert(ptype in [NodeProcess.TYPE_CONTROLLER,
+                       NodeProcess.TYPE_WORKER,
+                       NodeProcess.TYPE_PROGRAM])
+      self.ptype = ptype
+      self.pid = pid
+      self.ready = ready
+      self.exit = exit
+      self.factory = factory
+      self.created = utcnow()
+
+
 class NodeControllerSession(ApplicationSession):
    """
    Singleton node WAMP session hooked up to the node router.
 
    This class exposes the node's management API.
    """
-   class NodeProcess:
-      def __init__(self, ptype, pid, ready = None, exit = None):
-         """
-         Used to track worker processes.
-
-         :param ready: A Deferred that will be fired (upon receiving an event) when the worker is ready.
-         :type ready: :class:`twisted.internet.defer.Deferred`
-         :param exit: A Deferred that will be fired when the worker exits.
-         :type exit: :class:`twisted.internet.defer.Deferred`
-         """
-         assert(ptype in ['worker', 'program'])
-         self.ptype = ptype
-         self.pid = pid
-         self.ready = ready
-         self.exit = exit
-         self.created = utcnow()
-
 
    def __init__(self, node):
       ApplicationSession.__init__(self)
@@ -146,6 +159,9 @@ class NodeControllerSession(ApplicationSession):
       self._node_name = node._node_name
       self._management_session = None
       self._processes = {}
+
+      pid = os.getpid()
+      self._processes[pid] = NodeProcess(NodeProcess.TYPE_CONTROLLER, pid)
 
 
    def onConnect(self):
@@ -164,7 +180,7 @@ class NodeControllerSession(ApplicationSession):
 
       dl = []
       dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._node_name)))
-
+      dl.append(self.register(self.stop_process, 'crossbar.node.{}.stop_process'.format(self._node._node_name)))
       dl.append(self.register(self.start_process, 'crossbar.node.{}.start_process'.format(self._node._node_name)))
       dl.append(self.register(self.get_processes, 'crossbar.node.{}.get_processes'.format(self._node._node_name)))
 
@@ -179,6 +195,9 @@ class NodeControllerSession(ApplicationSession):
 
    @inlineCallbacks
    def run_node_config(self, config):
+      """
+      Setup node according to config provided.
+      """
 
       options = config.get('options', {})
 
@@ -245,13 +264,15 @@ class NodeControllerSession(ApplicationSession):
                      id = yield self.call('crossbar.node.{}.process.{}.router.{}.start_transport'.format(self._node_name, pid, router_index), transport)
                      log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint']['type'], id, router_index))
 
+
+               ## Python component host process
+               ##
                elif process['type'] == 'component.python':
 
-                  klassname, realm_name = process['class'], process['router']['realm']
+                  yield self.call('crossbar.node.module.{}.component.start'.format(pid), process['class'], process['router'])
 
-                  yield self.call('crossbar.node.module.{}.component.start'.format(pid), process['router'], klassname, realm_name)
-                  log.msg("Worker {}: Component container started ().".format(pid))
-                  log.msg("Worker {}: Class '{}' started in realm '{}'".format(pid, klassname, realm_name))
+                  log.msg("Worker {}: Component container started.".format(pid))
+                  log.msg("Worker {}: Class '{}' started".format(pid, process['class']))
 
                else:
                   raise Exception("logic error")
@@ -311,10 +332,12 @@ class NodeControllerSession(ApplicationSession):
             def connectionMade(self):
                WampWebSocketClientProtocol.connectionMade(self)
                self._pid = self.transport.pid
+               self.factory.proto = self
 
 
             def connectionLost(self, reason):
                WampWebSocketClientProtocol.connectionLost(self, reason)
+               self.factory.proto = None
 
                log.msg("Worker {}: Process connection gone ({})".format(self._pid, reason.value))
 
@@ -339,12 +362,30 @@ class NodeControllerSession(ApplicationSession):
                   log.msg("FIXME: unhandled code path (3) in WorkerClientProtocol.connectionLost", reason.value)
 
 
+         class WorkerClientFactory(WampWebSocketClientFactory):
+
+            def __init__(self, *args, **kwargs):
+               WampWebSocketClientFactory.__init__(self, *args, **kwargs)
+               self.proto = None
+
+            def buildProtocol(self, addr):
+               proto = WorkerClientProtocol()
+               proto.factory = self
+               return proto
+
+            def stopFactory(self):
+               WampWebSocketClientFactory.stopFactory(self)
+               if self.proto:
+                  self.proto.close()
+                  #self.proto.transport.loseConnection()
+
+
          ## factory that creates router session transports. these are for clients
          ## that talk WAMP-WebSocket over pipes with spawned worker processes and
          ## for any uplink session to a management service
          ##
-         factory = WampWebSocketClientFactory(self._node._router_session_factory, "ws://localhost", debug = False)
-         factory.protocol = WorkerClientProtocol
+         factory = WorkerClientFactory(self._node._router_session_factory, "ws://localhost", debug = self.debug)
+         #factory.protocol = WorkerClientProtocol
          ## we need to increase the opening handshake timeout in particular, since starting up a worker
          ## on PyPy will take a little (due to JITting)
          factory.setProtocolOptions(failByDrop = False, openHandshakeTimeout = 30, closeHandshakeTimeout = 5)
@@ -357,7 +398,7 @@ class NodeControllerSession(ApplicationSession):
 
             ## remember the worker process, including "ready" deferred. this will later
             ## be fired upon the worker publishing to 'crossbar.node.{}.on_worker_ready'
-            self._processes[pid] = NodeControllerSession.NodeProcess('worker', pid, ready, exit)
+            self._processes[pid] = NodeProcess('worker', pid, ready, exit, factory = factory)
 
          def onerror(err):
             log.msg("Could not start worker process with args '{}': {}".format(args, err.value))
@@ -448,7 +489,7 @@ class NodeControllerSession(ApplicationSession):
          else:
             pid = trnsp.pid
             proto._pid = pid
-            self._processes[pid] = NodeControllerSession.NodeProcess('program', pid, ready, exit)
+            self._processes[pid] = NodeProcess('program', pid, ready, exit)
             log.msg("Worker {}: Program started.".format(pid))
             ready.callback(pid)
 
@@ -460,7 +501,33 @@ class NodeControllerSession(ApplicationSession):
 
 
    def stop_process(self, pid):
-      pass
+      """
+      Stops a worker process.
+      """
+      if pid in self._processes:
+
+         ptype = self._processes[pid].ptype
+
+         if ptype == NodeProcess.TYPE_CONTROLLER:
+            raise ApplicationError("wamp.error.invalid_argument", "Node controller with PID {} cannot be stopped".format(pid))
+
+         try:
+            if ptype == NodeProcess.TYPE_WORKER:
+               self._processes[pid].factory.stopFactory()
+
+            elif ptype == NodeProcess.TYPE_PROGRAM:
+               pass
+
+            else:
+               raise Exception("logic error")
+
+         except Exception as e:
+            log.msg("Could not stop worker {}: {}".format(pid, e))
+            raise e
+         else:
+            del self._processes[pid]
+      else:
+         raise ApplicationError("wamp.error.invalid_argument", "No worker with PID '{}'".format(pid))
 
 
    def get_processes(self):
@@ -485,7 +552,7 @@ class Node:
    singleton.
    """
 
-   def __init__(self, reactor, cbdir, debug = False):
+   def __init__(self, reactor, options):
       """
       Ctor.
 
@@ -494,10 +561,10 @@ class Node:
       :param cbdir: Crossbar.io node directory to run from.
       :type cbdir: str
       """
-      self.debug = debug
+      self.debug = options.debug
+      self._cbdir = options.cbdir
 
       self._reactor = reactor
-      self._cbdir = cbdir
       self._worker_processes = {}
 
       ## node name: FIXME
