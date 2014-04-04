@@ -62,6 +62,10 @@ from autobahn.twisted.resource import WebSocketResource
 from crossbar.router.site import createHSTSRequestFactory
 from crossbar.router.resource import FileNoListing, JsonResource, Resource404, CgiDirectory, RedirectResource
 
+from autobahn.wamp.types import ComponentConfig
+from autobahn.twisted.wamp import ApplicationSession
+
+
 
 
 class RouterTransport:
@@ -72,11 +76,32 @@ class RouterTransport:
 
 
 
-class RouterClass:
-   def __init__(self, id, klassname, realm):
+class RouterComponent:
+   def __init__(self, id, realm, config, session):
       self.id = id
-      self.klassname = klassname
       self.realm = realm
+      self.config = config
+      self.session = session
+
+
+
+from twisted.internet.defer import inlineCallbacks
+
+
+
+
+class RouterInstance:
+   def __init__(self, id):
+      self.id = id
+
+      self.factory = CrossbarRouterFactory()
+      self.session_factory = CrossbarRouterSessionFactory(self.factory)
+
+      self.transports = {}
+      self.transport_no = 0
+
+      self.components = {}
+      self.component_no = 0
 
 
 
@@ -87,17 +112,12 @@ class RouterModule:
       - Realms
       - Transports
       - Links
-      - Classes
+      - Components
    """
 
-   def __init__(self, session, index, cbdir):
-      self._session = session
-      self._index = index
-      self._pid = session._pid
-      self._node_name = session._node_name
+   def __init__(self, cbdir, debug = False):
       self._cbdir = cbdir
-
-      self.debug = self._session.factory.options.debug
+      self.debug = debug
 
       ## Jinja2 templates for Web (like WS status page et al)
       ##
@@ -106,124 +126,231 @@ class RouterModule:
          log.msg("Worker {}: Using Crossbar.io web templates from {}".format(self._pid, templates_dir))
       self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
 
-      self._component_sessions = {}
-      self._component_no = 0
+      self._session = None
 
-      self._router_factory = None
+      self._routers = {}
+      self._router_no = 0
 
 
-   def start(self):
+   def connect(self, session):
+      assert(self._session is None)
 
-      assert(self._router_factory is None)
-
-      self._router_factory = CrossbarRouterFactory()
-      self._router_session_factory = CrossbarRouterSessionFactory(self._router_factory)
-
-      self._router_transports = {}
-      self._router_transport_no = 0
+      self._session = session
+      self._pid = session._pid
+      self._node_name = session._node_name
 
       dl = []
+      procs = [
+         'list',
+         'start',
+         'stop',
+         'list_realms',
+         'start_realm',
+         'stop_realm',
+         'list_components',
+         'start_component',
+         'stop_component',
+         'list_transports',
+         'start_transport',
+         'stop_transport',
+         'list_links',
+         'start_link',
+         'stop_link'
+      ]
 
-      dl.append(self._session.register(self.stop,            'crossbar.node.{}.process.{}.router.{}.stop'.format(self._node_name, self._pid, self._index)))
-      dl.append(self._session.register(self.startClass,      'crossbar.node.{}.process.{}.router.{}.start_class'.format(self._node_name, self._pid, self._index)))
-      dl.append(self._session.register(self.stopClass,       'crossbar.node.{}.process.{}.router.{}.stop_class'.format(self._node_name, self._pid, self._index)))
-
-      dl.append(self._session.register(self.startRealm,      'crossbar.node.{}.process.{}.router.{}.start_realm'.format(self._node_name, self._pid, self._index)))
-      #dl.append(self._session.register(self.stopRealm,       'crossbar.node.{}.module.{}.router.stop_realm'.format(self._node_name, self._pid, self._index)))
-
-      dl.append(self._session.register(self.startTransport,  'crossbar.node.{}.process.{}.router.{}.start_transport'.format(self._node_name, self._pid, self._index)))
-      dl.append(self._session.register(self.stopTransport,   'crossbar.node.{}.process.{}.router.{}.stop_transport'.format(self._node_name, self._pid, self._index)))
-      dl.append(self._session.register(self.listTransports,  'crossbar.node.{}.process.{}.router.{}.list_transports'.format(self._node_name, self._pid, self._index)))
-
-      dl.append(self._session.register(self.startLink,       'crossbar.node.{}.process.{}.router.{}.start_link'.format(self._node_name, self._pid, self._index)))
-      dl.append(self._session.register(self.stopLink,        'crossbar.node.{}.process.{}.router.{}.stop_link'.format(self._node_name, self._pid, self._index)))
+      for proc in procs:
+         uri = 'crossbar.node.{}.worker.{}.router.{}'.format(self._node_name, self._pid, proc)
+         dl.append(self._session.register(getattr(self, proc), uri))
 
       d = DeferredList(dl)
-
       return d
 
 
-   def stop(self):
+
+   def list(self):
+      """
+      List currently running router instances.
+      """
+      res = []
+      for router in self._routers.values():
+         r = {
+            'id': router.id,
+            'transports': len(router.transports),
+            'components': len(router.components)
+         }
+         res.append(r)
+      return res
+
+
+   def start(self):
+      """
+      Start a new router instance.
+      """
+      self._router_no += 1
+      self._routers[self._router_no] = RouterInstance(self._router_no)
+      return self._router_no
+
+
+
+   def stop(self, router_index):
       if self.debug:
          log.msg("Worker {}: stopping router module".format(self._pid))
 
 
-   def startRealm(self, name, config):
+
+   def list_realms(self, router_index):
+      ## FIXME
+      return []
+
+
+
+   def start_realm(self, router_index, realm, config):
       if self.debug:
          log.msg("Worker {}: realm started".format(self._pid))
 
 
 
-   def listClasses(self):
+   def stop_realm(self, router_index, realm):
+      ## FIXME
+      pass
+
+
+
+   def list_components(self, router_index):
       """
       List currently running application components.
       """
-      return sorted(self._component_sessions.keys())
+      if not router_index in self._routers:
+         raise ApplicationError("crossbar.error.no_such_router", router_index)
+
+      router = self._routers[router_index]
+
+      res = {}
+      for component in router.components.values():
+         res[component.id] = component.config
+
+      return res
 
 
-   def startClass(self, klassname, realm):
+
+   def start_component(self, router_index, realm, config):
       """
       Dynamically start an application component to run next to the router in "embedded mode".
+
+      :param realm: The realm in which to start the component.
+      :type realm: str
+      :param config: The component configuration.
+      :type config: obj
+
+      :returns int -- The component index assigned.
       """
+      if not router_index in self._routers:
+         raise ApplicationError("crossbar.error.no_such_router", router_index)
 
-      ## dynamically load the application component ..
-      ##
-      try:
-         if self.debug:
-            log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
+      router = self._routers[router_index]
 
-         import importlib
-         c = klassname.split('.')
-         mod, klass = '.'.join(c[:-1]), c[-1]
-         app = importlib.import_module(mod)
-         SessionKlass = getattr(app, klass)
+      cfg = ComponentConfig(realm = realm, extra = config.get('extra', None))
 
-      except Exception as e:
-         if self.debug:
+      if config['type'] == 'class':
+
+         try:
+            klassname = config['name']
+
+            if self.debug:
+               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
+
+            import importlib
+            c = klassname.split('.')
+            mod, klass = '.'.join(c[:-1]), c[-1]
+            app = importlib.import_module(mod)
+            make = getattr(app, klass)
+
+         except Exception as e:
             log.msg("Worker {}: failed to import class - {}".format(e))
-         raise ApplicationError("crossbar.error.class_import_failed", str(e))
+            raise ApplicationError("crossbar.error.class_import_failed", str(e))
+
+      elif config['type'] == 'wamplet':
+
+         try:
+            dist = config['distribution']
+            name = config['entrypoint']
+
+            if self.debug:
+               log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self._pid, dist, name, realm))
+
+            ## make is supposed to make instances of ApplicationSession
+            make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
+
+         except Exception as e:
+            log.msg("Worker {}: failed to import class - {}".format(e))
+            raise ApplicationError("crossbar.error.class_import_failed", str(e))
 
       else:
-         ## .. and create and add an WAMP application session to
-         ## run the component next to the router
-         ##
-         comp = SessionKlass(realm)
-         self._router_session_factory.add(comp)
-
-         self._component_no += 1
-         self._component_sessions[self._component_no] = comp
-         return self._component_no
+         raise ApplicationError("crossbar.error.invalid_configuration", "invalid component type '{}'".format(config['type']))
 
 
-   def stopClass(self, id):
+      ## .. and create and add an WAMP application session to
+      ## run the component next to the router
+      ##
+      try:
+         comp = make(cfg)         
+      except Exception as e:
+         raise ApplicationError("crossbar.error.class_import_failed", str(e))
+
+      if not isinstance(comp, ApplicationSession):
+         raise ApplicationError("crossbar.error.class_import_failed", "session not derived of ApplicationSession")
+
+
+      router.session_factory.add(comp)
+
+      router.component_no += 1
+      router.components[router.component_no] = RouterComponent(router.component_no, realm, config, comp)
+
+      return router.component_no
+
+
+
+   def stop_component(self, router_index, component_index):
       """
-      Stop a application component on this router.
+      Stop an application component on this router.
       """
-      if id in self._component_sessions:
+      if id in self._components:
          if self.debug:
             log.msg("Worker {}: stopping component {}".format(self._pid, id))
 
          try:
-            #self._component_sessions[id].disconnect()
-            self._router_session_factory.remove(self._component_sessions[id])
-            del self._component_sessions[id]
+            #self._components[id].disconnect()
+            self._session_factory.remove(self._components[id])
+            del self._components[id]
          except Exception as e:
             raise ApplicationError("crossbar.error.component.cannot_stop", "Failed to stop component {}: {}".format(id, e))
       else:
          raise ApplicationError("crossbar.error.no_such_component", "No component {}".format(id))
 
 
-   def listTransports(self):
+
+   def list_transports(self, router_index):
       """
       List currently running transports.
       """
-      return sorted(self._router_transports.keys())
+      res = {}
+      for key, transport in self._transports.items():
+         res[key] = transport.config
+      return res
+      #return sorted(self._transports.keys())
 
 
-   def startTransport(self, config):
+
+   def start_transport(self, router_index, config):
       """
       Start a transport on this router module.
       """
+      if not router_index in self._routers:
+         raise ApplicationError("crossbar.error.no_such_router", router_index)
+
+      router = self._routers[router_index]
+
+
       if self.debug:
          log.msg("Worker {}: starting '{}' transport on router module.".format(config['type'], self._pid))
 
@@ -238,7 +365,7 @@ class RouterModule:
       ##
       if config['type'] == 'websocket':
 
-         transport_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, config, self._templates)
+         transport_factory = CrossbarWampWebSocketServerFactory(router.session_factory, config, self._templates)
 
 
       ## standalone WebSocket testee transport
@@ -370,7 +497,7 @@ class RouterModule:
                ## WAMP-WebSocket resource
                ##
                if path_config['type'] == 'websocket':
-                  ws_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, path_config, self._templates)
+                  ws_factory = CrossbarWampWebSocketServerFactory(router.session_factory, path_config, self._templates)
 
                   ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
                   ws_factory.startFactory()
@@ -617,9 +744,9 @@ class RouterModule:
          d = server.listen(transport_factory)
 
          def ok(port):
-            self._router_transport_no += 1
-            self._router_transports[self._router_transport_no] = RouterTransport(self._router_transport_no, config, port)
-            return self._router_transport_no
+            router.transport_no += 1
+            router.transports[router.transport_no] = RouterTransport(router.transport_no, config, port)
+            return router.transport_no
 
          def fail(err):
             log.msg("cannot listen on endpoint: {}".format(err.value))
@@ -641,26 +768,25 @@ class RouterModule:
          except twisted.internet.error.CannotListenError as e:
             raise ApplicationError("crossbar.error.cannotlisten", str(e))
          else:
-            self._router_transport_no += 1
-            self._router_transports[self._router_transport_no] = RouterTransport(self._router_transport_no, config, port)
-            return self._router_transport_no
+            self._transport_no += 1
+            self._transports[self._transport_no] = RouterTransport(self._transport_no, config, port)
+            return self._transport_no
 
 
 
-
-   def stopTransport(self, id):
+   def stop_transport(self, router_index, transport_index):
       """
       Stop a transport on this router module.
       """
-      if id in self._router_transports:
+      if id in self._transports:
          if self.debug:
             log.msg("Worker {}: stopping transport {}".format(self._pid, id))
 
          try:
-            d = self._router_transports[id].port.stopListening()
+            d = self._transports[id].port.stopListening()
 
             def ok(_):
-               del self._router_transports[id]
+               del self._transports[id]
 
             def fail(err):
                raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, str(err.value)))
@@ -675,14 +801,15 @@ class RouterModule:
 
 
 
-   def listLinks(self):
+   def list_links(self, router_index):
       """
       List currently running links.
       """
       return []
 
 
-   def startLink(self, config):
+
+   def start_link(self, router_index, config):
       """
       Start a link on this router.
       """
@@ -690,7 +817,8 @@ class RouterModule:
          log.msg("Worker {}: starting router link".format(self._pid))
 
 
-   def stopLink(self, id):
+
+   def stop_link(self, router_index, link_index):
       """
       Stop a link on this router.
       """

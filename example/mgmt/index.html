@@ -4,6 +4,7 @@
       <h1>PubSub Basic Frontend</h1>
       <p>Open JavaScript console to watch output.</p>
       <button onclick="publish_event()">Publish Event</button>
+      <script>AUTOBAHN_DEBUG = true;</script>
       <script src="https://autobahn.s3.amazonaws.com/autobahnjs/latest/autobahn.min.jgz"></script>
       <script>
          var connection = new autobahn.Connection({
@@ -20,11 +21,34 @@
 
             console.log("connected");
 
+            session.call('crossbar.node.' + nodename + '.get_info').then(session.log, session.log);
+
+            session.call('crossbar.node.' + nodename + '.list_workers').then(
+
+               function (processes) {
+                  console.log("currently " + processes.length + " workers running on node");
+
+                  for (var i = 0; i < processes.length; ++i) {
+
+                     session.call('crossbar.node.' + nodename + '.worker.' + processes[i].pid + '.router.list').then(session.log, session.log);
+
+                  }
+               },
+               session.log
+            );
+
+
+            //session.call('crossbar.node.' + nodename + '.worker.6052.router.list').then(session.log, session.log);
+
+            //session.call('crossbar.node.' + nodename + '.worker.6052.router.list_components', [1]).then(session.log, session.log);
 
             // retrieve list of running node processes
             //
+/*            
             session.call('crossbar.node.' + nodename + '.get_processes').then(session.log, session.log);
 
+            session.call('crossbar.node.' + nodename + '.get_wamplets').then(session.log, session.log);
+*/            
          };
 
          connection.onclose = function () {
@@ -61,7 +85,7 @@
                   console.log("Process started", pid);
                   session.call('crossbar.node.' + nodename + '.get_processes').then(session.log, session.log);
 
-                  session.call('crossbar.node.' + nodename + '.process.' + pid + '.add_pythonpath', [['.']]).then(session.log, session.log);
+                  session.call('crossbar.node.' + nodename + '.worker.' + pid + '.add_pythonpath', [['.']]).then(session.log, session.log);
 
                   session.call('crossbar.node.module.' + pid + '.component.start',
                      [config['class'], config['router']]).then(session.log, session.log);

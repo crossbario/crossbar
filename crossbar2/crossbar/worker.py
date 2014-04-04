@@ -47,11 +47,10 @@ class WorkerProcess(ApplicationSession):
       if self.debug:
          log.msg("Connected to node router.")
 
-      self._routers = {}
-      self._router_seq = 100
+      self._router_module = None
 
       self._class_hosts = {}
-      self._class_host_seq = 100
+      self._class_host_seq = 0
 
       self.join("crossbar")
 
@@ -66,7 +65,7 @@ class WorkerProcess(ApplicationSession):
          p = psutil.Process(self._pid)
          return p.get_cpu_affinity()
 
-      yield self.register(get_cpu_affinity, 'crossbar.node.{}.process.{}.get_cpu_affinity'.format(self._node_name, self._pid))
+      yield self.register(get_cpu_affinity, 'crossbar.node.{}.worker.{}.get_cpu_affinity'.format(self._node_name, self._pid))
 
 
       def set_cpu_affinity(cpus):
@@ -76,7 +75,7 @@ class WorkerProcess(ApplicationSession):
          p = psutil.Process(self._pid)
          p.set_cpu_affinity(cpus)
 
-      yield self.register(set_cpu_affinity, 'crossbar.node.{}.process.{}.set_cpu_affinity'.format(self._node_name, self._pid))
+      yield self.register(set_cpu_affinity, 'crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_name, self._pid))
 
 
       def utcnow():
@@ -86,7 +85,7 @@ class WorkerProcess(ApplicationSession):
          now = datetime.datetime.utcnow()
          return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-      yield self.register(utcnow, 'crossbar.node.{}.process.{}.now'.format(self._node_name, self._pid))
+      yield self.register(utcnow, 'crossbar.node.{}.worker.{}.now'.format(self._node_name, self._pid))
 
 
       def get_pythonpath():
@@ -95,7 +94,7 @@ class WorkerProcess(ApplicationSession):
          """
          return sys.path
 
-      yield self.register(get_pythonpath, 'crossbar.node.{}.process.{}.get_pythonpath'.format(self._node_name, self._pid))
+      yield self.register(get_pythonpath, 'crossbar.node.{}.worker.{}.get_pythonpath'.format(self._node_name, self._pid))
 
 
       def add_pythonpath(paths, prepend = True):
@@ -110,31 +109,40 @@ class WorkerProcess(ApplicationSession):
          else:
             sys.path.extend(paths)
 
-      yield self.register(add_pythonpath, 'crossbar.node.{}.process.{}.add_pythonpath'.format(self._node_name, self._pid))
+      yield self.register(add_pythonpath, 'crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, self._pid))
 
 
-      ## Modules
+      from crossbar.router.module import RouterModule
+      self._router_module = RouterModule(self.factory.options.cbdir)
+
+      yield self._router_module.connect(self)
+
+      # ## Router Module
+      # ##
+      # def start_router():
+      #    """
+      #    Start a router module in this process.
+      #    """
+
+      #    from crossbar.router.module import RouterModule
+
+      #    self._router_seq += 1
+      #    index = self._router_seq
+
+      #    self._routers[index] = RouterModule(index, self.factory.options.cbdir)
+      #    d = self._routers[index].start(self)
+
+      #    def onstart(_):
+      #       return index
+
+      #    d.addCallback(onstart)
+      #    return d
+
+      # yield self.register(start_router, 'crossbar.node.{}.process.{}.router.start'.format(self._node_name, self._pid))
+
+
+      ## Component Module
       ##
-      def start_router():
-         """
-         Start a router module in this process.
-         """
-
-         from crossbar.router.module import RouterModule
-
-         self._router_seq += 1
-         index = self._router_seq
-
-         self._routers[index] = RouterModule(self, index, self.factory.options.cbdir)
-         d = self._routers[index].start()
-
-         def onstart(res):
-            return index
-
-         d.addCallback(onstart)
-         return d
-
-      yield self.register(start_router, 'crossbar.node.{}.process.{}.start_router'.format(self._node_name, self._pid))
 
       ## FIXME
       from crossbar.router.component import ComponentModule
