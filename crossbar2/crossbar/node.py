@@ -548,7 +548,7 @@ class Node:
       ##
       self._router_session_factory.add(self._node_controller_session)
 
-      if True:
+      if False:
          ## create a WAMP-over-WebSocket transport server factory
          ##
          from autobahn.twisted.websocket import WampWebSocketServerFactory
