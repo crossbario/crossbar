@@ -139,7 +139,7 @@ class WorkerProcess(ApplicationSession):
       ## FIXME
       from crossbar.router.component import ComponentModule
 
-      self._componentModule = ComponentModule(self, self._pid)
+      self._componentModule = ComponentModule(self, self._pid, self.factory.options.cbdir)
 
 
       if self.debug:

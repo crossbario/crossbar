@@ -164,7 +164,7 @@ def run_command_start(options):
 
    ## create and start Crossbar.io node
    ##
-   node = Node(reactor, options.cbdir, options.debug)
+   node = Node(reactor, options)
    node.start()
 
    ## enter event loop

@@ -499,15 +499,15 @@ class RouterModule:
          ##
          transport_factory = Site(root)
 
+
          ## Web access logging
          ##
          if not options.get('access_log', False):
             transport_factory.log = lambda _: None
 
-         ## traceback rendering
+         ## Traceback rendering
          ##
-         if not options.get('display_tracebacks', False):
-            transport_factory.displayTracebacks = False
+         transport_factory.displayTracebacks = options.get('display_tracebacks', False)
 
          ## HSTS
          ##
@@ -518,8 +518,10 @@ class RouterModule:
             else:
                log.msg("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
 
-         ## FIXME
-         #transport_factory.protocol = HTTPChannelHixie76Aware # needed if Hixie76 is to be supported
+         ## enable Hixie-76 on Twisted Web
+         ##
+         if options.get('hixie76_aware', False):
+            transport_factory.protocol = HTTPChannelHixie76Aware # needed if Hixie76 is to be supported
 
       else:
          raise Exception("logic error")
@@ -532,7 +534,7 @@ class RouterModule:
          from twisted.internet.endpoints import serverFromString
          from tlsctx import TlsServerContextFactory
 
-#            server = serverFromString(reactor, "ssl:8080:privateKey=.crossbar/server.key:certKey=.crossbar/server.crt")
+         #server = serverFromString(reactor, "ssl:8080:privateKey=.crossbar/server.key:certKey=.crossbar/server.crt")
 
          try:
             endpoint_config = config.get('endpoint')
@@ -547,7 +549,7 @@ class RouterModule:
 
                ## the listening interface
                ##
-               interface = endpoint_config.get('interface', '').strip()
+               interface = str(endpoint_config.get('interface', '').strip())
 
                ## the TCP accept queue depth
                ##
@@ -598,7 +600,7 @@ class RouterModule:
 
                ## the path
                ##
-               path = str(endpoint_config['path'])
+               path = os.path.abspath(os.path.join(self._cbdir, endpoint_config['path']))
 
                ## create the endpoint
                ##

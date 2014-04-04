@@ -42,9 +42,10 @@ class ComponentModule:
    """
    """
 
-   def __init__(self, session, pid):
+   def __init__(self, session, pid, cbdir):
       self._session = session
       self._pid = pid
+      self._cbdir = cbdir
       self._client = None
 
       self.debug = self._session.factory.options.debug
@@ -52,7 +53,7 @@ class ComponentModule:
       session.register(self.start, 'crossbar.node.module.{}.component.start'.format(self._pid))
 
 
-   def start(self, transport, klassname, realm):
+   def start(self, klassname, router):
       """
       Dynamically start an application component to run next to the router in "embedded mode".
       """
@@ -61,7 +62,7 @@ class ComponentModule:
       ##
       try:
          if self.debug:
-            log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
+            log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, router['realm']))
 
          import importlib
          c = klassname.split('.')
@@ -79,13 +80,13 @@ class ComponentModule:
          ##
          #from autobahn.twisted.wamp import ApplicationSessionFactory
          #session_factory = ApplicationSessionFactory()
-         session_factory = ComponentSessionFactory(realm)
+         session_factory = ComponentSessionFactory(router['realm'])
          session_factory.session = SessionKlass
 
          ## create a WAMP-over-WebSocket transport client factory
          ##
          from autobahn.twisted.websocket import WampWebSocketClientFactory
-         transport_factory = WampWebSocketClientFactory(session_factory, transport['url'], debug = self.debug)
+         transport_factory = WampWebSocketClientFactory(session_factory, router['url'], debug = self.debug)
          transport_factory.setProtocolOptions(failByDrop = False)
 
          ## start a WebSocket client from an endpoint
@@ -97,10 +98,10 @@ class ComponentModule:
 
 
          if False:
-            self._client = clientFromString(reactor, transport['endpoint'])
+            self._client = clientFromString(reactor, router['endpoint'])
          else:
             try:
-               endpoint_config = transport.get('endpoint')
+               endpoint_config = router.get('endpoint')
 
                ## a TCP4 endpoint
                ##
@@ -143,7 +144,7 @@ class ComponentModule:
 
                   ## the path
                   ##
-                  path = str(endpoint_config['path'])
+                  path = os.path.abspath(os.path.join(self._cbdir, endpoint_config['path']))
 
                   ## connection timeout in seconds
                   ##
