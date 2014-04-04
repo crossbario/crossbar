@@ -18,7 +18,7 @@
 
 from __future__ import absolute_import
 
-__all__ = ['NodeSession']
+__all__ = ['Node']
 
 
 from twisted.python import log
@@ -56,87 +56,64 @@ from autobahn.util import utcnow
 import socket
 import os
 
+from twisted.internet.protocol import ProcessProtocol
+from crossbar.process import CustomProcessEndpoint
 
+from twisted.internet import protocol
+import re, json
 
-
-class NodeManagementSession(ApplicationSession):
-   """
-   """
-   def __init__(self):
-      ApplicationSession.__init__(self)
-
-
-   def onConnect(self):
-      self.join("crossbar.cloud")
-
-
-   def is_paired(self):
-      return False
-
-
-   @inlineCallbacks
-   def onJoin(self, details):
-      log.msg("Connected to Crossbar.io Management Cloud.")
-
-      from twisted.internet import reactor
-
-      self.factory.node_session.setControllerSession(self)
-
-      if not self.is_paired():
-         try:
-            node_info = {}
-            node_publickey = "public key"
-            activation_code = yield self.call('crossbar.cloud.get_activation_code', node_info, node_publickey)
-         except Exception as e:
-            log.msg("internal error: {}".format(e))
-         else:
-            log.msg("Log into https://console.crossbar.io to configure your instance using the activation code: {}".format(activation_code))
-
-            reg = None
-
-            def activate(node_id, certificate):
-               ## check if certificate was issued by Tavendo
-               ## check if certificate matches node key
-               ## persist node_id
-               ## persist certificate
-               ## restart node
-               reg.unregister()
-
-               self.publish('crossbar.node.onactivate', node_id)
-
-               log.msg("Restarting node in 5 seconds ...")
-               reactor.callLater(5, self.factory.node_controller_session.restart_node)
-
-            reg = yield self.register(activate, 'crossbar.node.activate.{}'.format(activation_code))
-      else:
-         pass
-
-      res = yield self.register(self.factory.node_controller_session.get_node_worker_processes, 'crossbar.node.get_node_worker_processes')
-
-      self.publish('com.myapp.topic1', os.getpid())
 
 
 
 
 class WorkerProcess:
-
+   """
+   Internal run-time representation of a running node worker process.
+   """
    def __init__(self, pid, ready = None, exit = None, factory = None):
+      """
+      Ctor.
+
+      :param pid: The worker process PID.
+      :type pid: int
+      :param ready: A deferred that resolves when the worker is ready.
+      :type ready: instance of Deferred
+      :param exit: A deferred that resolves when the worker has exited.
+      :type exit: instance of Deferred
+      :param factory: The WAMP client factory that connects to the worker.
+      :type factory: instance of WorkerClientFactory
+      """
       self.pid = pid
       self.ready = ready
       self.exit = exit
       self.factory = factory
       self.created = utcnow()
+
 
 
 class GuestProcess:
+   """
+   Internal run-time representation of a running node guest process.
+   """
 
-   def __init__(self, pid, ready = None, exit = None, factory = None):
+   def __init__(self, pid, ready = None, exit = None, proto = None):
+      """
+      Ctor.
+
+      :param pid: The worker process PID.
+      :type pid: int
+      :param ready: A deferred that resolves when the worker is ready.
+      :type ready: instance of Deferred
+      :param exit: A deferred that resolves when the worker has exited.
+      :type exit: instance of Deferred
+      :param proto: The WAMP client protocol that connects to the worker.
+      :type proto: instance of GuestClientProtocol
+      """
       self.pid = pid
       self.ready = ready
       self.exit = exit
-      self.factory = factory
+      self.proto = proto
       self.created = utcnow()
-
 
 
 
@@ -148,26 +125,43 @@ class NodeControllerSession(ApplicationSession):
    """
 
    def __init__(self, node):
+      """
+      :param node: The node singleton for this node controller session.
+      :type node: obj
+      """
       ApplicationSession.__init__(self)
-      self.debug = False
+      self.debug = node.debug
+
+      ## associated node
       self._node = node
       self._node_name = node._node_name
-      self._management_session = None
+      self._node_realm = node._node_realm
 
       self._created = utcnow()
       self._pid = os.getpid()
 
+      ## map of worker processes: PID -> WorkerProcess
       self._workers = {}
+      self._worker_no = 0
+
+      ## map of guest processes: PID -> GuestProcess
       self._guests = {}
 
 
    def onConnect(self):
-      self.join("crossbar")
+      ## join the node's controller realm
+      self.join(self._node_realm)
 
 
    @inlineCallbacks
    def onJoin(self, details):
 
+      dl = []
+
+      ## when a worker process has connected back to the router of
+      ## the node controller, the worker will publish this event
+      ## to signal it's readyness ..
+      ##
       def on_worker_ready(res):
          ## fire the Deferred previously stored for signaling "worker ready"
          pid = res['pid']
@@ -176,16 +170,17 @@ class NodeControllerSession(ApplicationSession):
             r.ready.callback(pid)
             r.ready = None
 
-      dl = []
       dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._node_name)))
 
+      ## node global procedures: 'crossbar.node.<PID>.<PROCEDURE>'
+      ##
       procs = [
          'get_info',
          'stop',
-         'restart',
          'list_workers',
          'start_worker',
          'start_guest',
+         'list_wamplets'
       ]
       for proc in procs:
          uri = 'crossbar.node.{}.{}'.format(self._node._node_name, proc)
@@ -209,25 +204,19 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def stop(self):
+   def stop(self, restart = False):
       """
       Stop this node.
       """
-      log.msg("stopping node.")
+      log.msg("Stopping node (restart = {}) ..".format(restart))
       from twisted.internet import reactor
       reactor.stop()
 
 
 
-   def restart(self):
-      log.msg("restarting node ..")
-      self.stop()
-
-
-
    def list_workers(self):
       """
-      Returns a list of PIDs of worker processes.
+      Returns a list of worker processes currently running on this node.
       """
       res = []
       for k in sorted(self._workers.keys()):
@@ -237,39 +226,47 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def start_worker(self):
+   def start_worker(self, title = None, debug = False):
       """
       Start a new Crossbar.io worker process.
 
-      :returns: int -- The PID of the new process.
+      :param title: Optional process title to set.
+      :type title: str
+      :param debug: Enable debugging on this worker.
+      :type debug: bool
+
+      :returns: int -- The PID of the new worker process.
       """
 
+      ## all worker processes start "generic" (like stem cells) and
+      ## are later configured via WAMP from the node controller session
+      ##
       filename = pkg_resources.resource_filename('crossbar', 'worker.py')
 
       args = [executable, "-u", filename]
       args.extend(["--cbdir", self._node._cbdir])
 
-      #args.extend(['--name', 'Crossbar.io Worker'])
+      if title:
+         args.extend(['--name', title])
 
-      if self.debug:
+      if debug or self.debug:
          args.append('--debug')
 
-      from crossbar.process import CustomProcessEndpoint
+      self._worker_no += 1
 
       ep = CustomProcessEndpoint(self._node._reactor,
-                           executable,
-                           args,
-                           #childFDs = {0: 'w', 1: 'r', 2: 2}, # does not work on Windows
-                           #errFlag = StandardErrorBehavior.LOG,
-                           #errFlag = StandardErrorBehavior.DROP,
-                           name = "Worker",
-                           env = os.environ)
+               executable,
+               args,
+               name = "Worker {}".format(self._worker_no),
+               env = os.environ)
 
-      ## this will be fired when the worker is actually ready to receive commands
+      ## this will be resolved/rejected when the worker is actually
+      ## ready to receive commands
       ready = Deferred()
+
+      ## this will be resolved when the worker exits (after previously connected)
       exit = Deferred()
 
-      from twisted.internet.protocol import ProcessProtocol
 
       class WorkerClientProtocol(WampWebSocketClientProtocol):
 
@@ -313,9 +310,9 @@ class NodeControllerSession(ApplicationSession):
             self.proto = None
 
          def buildProtocol(self, addr):
-            proto = WorkerClientProtocol()
-            proto.factory = self
-            return proto
+            self.proto = WorkerClientProtocol()
+            self.proto.factory = self
+            return self.proto
 
          def stopFactory(self):
             WampWebSocketClientFactory.stopFactory(self)
@@ -329,11 +326,13 @@ class NodeControllerSession(ApplicationSession):
       ## for any uplink session to a management service
       ##
       factory = WorkerClientFactory(self._node._router_session_factory, "ws://localhost", debug = self.debug)
-      #factory.protocol = WorkerClientProtocol
+
       ## we need to increase the opening handshake timeout in particular, since starting up a worker
       ## on PyPy will take a little (due to JITting)
       factory.setProtocolOptions(failByDrop = False, openHandshakeTimeout = 30, closeHandshakeTimeout = 5)
 
+      ## now actually spawn the worker ..
+      ##
       d = ep.connect(factory)
 
       def onconnect(res):
@@ -354,27 +353,13 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def stop_process(self, pid):
+   def stop_worker(self, pid):
       """
       Stops a worker process.
       """
-      if pid in self._processes:
-
-         ptype = self._processes[pid].ptype
-
-         if ptype == NodeProcess.TYPE_CONTROLLER:
-            raise ApplicationError("wamp.error.invalid_argument", "Node controller with PID {} cannot be stopped".format(pid))
-
+      if pid in self._workers:
          try:
-            if ptype == NodeProcess.TYPE_WORKER:
-               self._processes[pid].factory.stopFactory()
-
-            elif ptype == NodeProcess.TYPE_PROGRAM:
-               pass
-
-            else:
-               raise Exception("logic error")
-
+            self._workers[pid].factory.stopFactory()
          except Exception as e:
             log.msg("Could not stop worker {}: {}".format(pid, e))
             raise e
@@ -395,11 +380,7 @@ class NodeControllerSession(ApplicationSession):
       :returns: int -- The PID of the new process.
       """
 
-      from twisted.internet import protocol
-      from twisted.internet import reactor
-      import re, json
-
-      class ProgramWorkerProcess(protocol.ProcessProtocol):
+      class GuestClientProtocol(protocol.ProcessProtocol):
 
          def __init__(self):
             self._pid = None
@@ -461,16 +442,16 @@ class NodeControllerSession(ApplicationSession):
       ready = Deferred()
       exit = Deferred()
 
-      proto = ProgramWorkerProcess()
+      proto = GuestClientProtocol()
       try:
-         trnsp = reactor.spawnProcess(proto, exe, args, path = workdir, env = os.environ)
+         trnsp = self._node.reactor.spawnProcess(proto, exe, args, path = workdir, env = os.environ)
       except Exception as e:
          log.msg("Worker: Program could not be started - {}".format(e))
          ready.errback(e)
       else:
          pid = trnsp.pid
          proto._pid = pid
-         self._guests[pid] = GuestProcess(pid, ready, exit)
+         self._guests[pid] = GuestProcess(pid, ready, exit, proto = proto)
          log.msg("Worker {}: Program started.".format(pid))
          ready.callback(pid)
 
@@ -478,8 +459,30 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def get_wamplets(self):
+   def stop_guest(self, pid):
+      """
+      Stops a guest process.
+      """
+      if pid in self._guests:
+         try:
+            self._guests[pid].proto.transport.loseConnection()
+         except Exception as e:
+            log.msg("Could not stop guest {}: {}".format(pid, e))
+            raise e
+         else:
+            del self._guests[pid]
+      else:
+         raise ApplicationError("wamp.error.invalid_argument", "No guest with PID '{}'".format(pid))
+
+
+
+   def list_wamplets(self):
+      """
+      List installed WAMPlets.
+      """
       res = []
+
+      # pkg_resources.load_entry_point('wamplet1', 'autobahn.twisted.wamplet', 'component1')
 
       for entrypoint in pkg_resources.iter_entry_points('autobahn.twisted.wamplet'):
          e = entrypoint.load()
@@ -503,38 +506,12 @@ class NodeControllerSession(ApplicationSession):
 
       return res
 
-#          print entrypoint
-#          print entrypoint.name
-#          print entrypoint.module_name
-#          print entrypoint.dist
-#          print dir(entrypoint)
-#          res = entrypoint.load()
-#          print res
-#          r = res(None)
-#          print r
-#          print type(r)
-#          print isinstance(r, ApplicationSession)
-#          print isinstance(r, Plugin)
-#          #print res.symbol
-
-#    # pkg_resources.load_entry_point('wamplet1', 'autobahn.twisted.wamplet', 'component1')
-# try:
-#     release = pkg_resources.get_distribution('sandman').version
-# except pkg_resources.DistributionNotFound:
-#     print 'To build the documentation, The distribution information of sandman'
-#     print 'Has to be available.  Either install the package into your'
-#     print 'development environment or run "setup.py develop" to setup the'
-#     print 'metadata.  A virtualenv is recommended!'
-#     sys.exit(1)
-# del pkg_resources
-
 
    @inlineCallbacks
    def run_node_config(self, config):
       """
       Setup node according to config provided.
       """
-
       options = config.get('options', {})
 
       for process in config['processes']:
@@ -633,12 +610,14 @@ class NodeControllerSession(ApplicationSession):
 
                   log.msg("Worker {}: Component container started.".format(pid))
 
-                  if 'class' in process:
-                     yield self.call('crossbar.node.module.{}.component.start_class'.format(pid), process['class'], process['router'])
+                  component_config = process['component']
+
+                  if component_config['type'] == 'class':
+                     yield self.call('crossbar.node.module.{}.component.start_class'.format(pid), component_config, process['router'])
                      log.msg("Worker {}: Class '{}' started".format(pid, process['class']))
 
-                  elif 'wamplet' in process:
-                     yield self.call('crossbar.node.module.{}.component.start_wamplet'.format(pid), process['wamplet'], process['router'])
+                  elif component_config['type'] == 'wamplet':
+                     yield self.call('crossbar.node.module.{}.component.start_wamplet'.format(pid), component_config, process['router'])
 
                else:
                   raise Exception("logic error")
@@ -682,6 +661,7 @@ class Node:
       self._node_name = "{}-{}".format(socket.getfqdn(), os.getpid())
       self._node_name.replace('-', '_')
       self._node_name = '918234'
+      self._node_realm = 'crossbar'
 
       self._node_controller_session = None
 
@@ -690,11 +670,6 @@ class Node:
       #self._management_url = "wss://cloud.crossbar.io"
       self._management_realm = "crossbar.cloud.aliceblue"
 
-      ## load Crossbar.io node configuration
-      ##
-      cf = os.path.join(self._cbdir, 'config.json')
-      with open(cf, 'rb') as infile:
-         self._config = json.load(infile)
 
 
    @inlineCallbacks
@@ -720,8 +695,9 @@ class Node:
 
       ## router and factory that creates router sessions
       ##
-      options = types.RouterOptions(uri_check = types.RouterOptions.URI_CHECK_LOOSE)
-      self._router_factory = RouterFactory(options = options, debug = False)
+      self._router_factory = RouterFactory(
+         options = types.RouterOptions(uri_check = types.RouterOptions.URI_CHECK_LOOSE),
+         debug = False)
       self._router_session_factory = RouterSessionFactory(self._router_factory)
 
       ## add the node controller singleton session to the router
@@ -730,43 +706,58 @@ class Node:
 
       ## Detect WAMPlets
       ##
-      for wpl in self._node_controller_session.get_wamplets():
+      for wpl in self._node_controller_session.list_wamplets():
          log.msg("WAMPlet '{}' in package '{}' detected: \"{}\"".format(wpl['name'], wpl['dist'], wpl['doc']))
 
 
-      if True:
-         ## create a WAMP-over-WebSocket transport server factory
-         ##
-         from autobahn.twisted.websocket import WampWebSocketServerFactory
-         from twisted.internet.endpoints import serverFromString
+      yield self.start_from_local_config(configfile = os.path.join(self._cbdir, 'config.json'))
 
-         self._router_server_transport_factory = WampWebSocketServerFactory(self._router_session_factory, "ws://localhost:9000", debug = False)
-         self._router_server_transport_factory.setProtocolOptions(failByDrop = False)
+      self.start_local_management_transport(endpoint_descriptor = "tcp:9000")
 
 
-         ## start the WebSocket server from an endpoint
-         ##
-         self._router_server = serverFromString(self._reactor, "tcp:9000")
-         self._router_server.listen(self._router_server_transport_factory)
+
+   def start_remote_management_client(self):
+      from crossbar.management import NodeManagementSession
+
+      management_session_factory = ApplicationSessionFactory()
+      management_session_factory.session = NodeManagementSession
+      management_session_factory.node_controller_session = node_controller_session
+      management_transport_factory = WampWebSocketClientFactory(management_session_factory, "ws://127.0.0.1:7000")
+      management_transport_factory.setProtocolOptions(failByDrop = False)
+      management_client = clientFromString(self._reactor, "tcp:127.0.0.1:7000")
+      management_client.connect(management_transport_factory)
 
 
-      ## factory that creates router session transports. these are for clients
-      ## that talk WAMP-WebSocket over pipes with spawned worker processes and
-      ## for any uplink session to a management service
+
+   def start_local_management_transport(self, endpoint_descriptor):
+      ## create a WAMP-over-WebSocket transport server factory
       ##
-      # self._router_client_transport_factory = WampWebSocketClientFactory(self._router_session_factory, "ws://localhost", debug = False)
-      # self._router_client_transport_factory.setProtocolOptions(failByDrop = False)
+      from autobahn.twisted.websocket import WampWebSocketServerFactory
+      from twisted.internet.endpoints import serverFromString
 
-      if False:
-         management_session_factory = ApplicationSessionFactory()
-         management_session_factory.session = NodeManagementSession
-         management_session_factory.node_controller_session = node_controller_session
-         management_transport_factory = WampWebSocketClientFactory(management_session_factory, "ws://127.0.0.1:7000")
-         management_transport_factory.setProtocolOptions(failByDrop = False)
-         management_client = clientFromString(self._reactor, "tcp:127.0.0.1:7000")
-         management_client.connect(management_transport_factory)
+      self._router_server_transport_factory = WampWebSocketServerFactory(self._router_session_factory, debug = self.debug)
+      self._router_server_transport_factory.setProtocolOptions(failByDrop = False)
 
+
+      ## start the WebSocket server from an endpoint
+      ##
+      self._router_server = serverFromString(self._reactor, endpoint_descriptor)
+      self._router_server.listen(self._router_server_transport_factory)
+
+
+
+   @inlineCallbacks
+   def start_from_local_config(self, configfile):
+      ## load Crossbar.io node configuration
+      ##
+      configfile = os.path.abspath(configfile)
+      log.msg("Loading from local config '{}'".format(configfile))
+
+      with open(configfile, 'rb') as infile:
+         config = json.load(infile)
 
       ## startup the node from configuration file
       ##
-      yield self._node_controller_session.run_node_config(self._config)
+      yield self._node_controller_session.run_node_config(config)
+
+      log.msg("Local configuration loaded.")

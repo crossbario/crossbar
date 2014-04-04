@@ -5,7 +5,7 @@
       <p>Open JavaScript console to watch output.</p>
       <button onclick="publish_event()">Publish Event</button>
       <script>AUTOBAHN_DEBUG = true;</script>
-      <script src="https://autobahn.s3.amazonaws.com/autobahnjs/latest/autobahn.min.jgz"></script>
+      <script src="autobahn.min.js"></script>
       <script>
          var connection = new autobahn.Connection({
             url: 'ws://127.0.0.1:9000',
@@ -22,6 +22,8 @@
             console.log("connected");
 
             session.call('crossbar.node.' + nodename + '.get_info').then(session.log, session.log);
+
+            session.call('crossbar.node.' + nodename + '.list_wamplets').then(session.log, session.log);
 
             session.call('crossbar.node.' + nodename + '.list_workers').then(
 

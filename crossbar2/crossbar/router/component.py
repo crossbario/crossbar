@@ -47,8 +47,8 @@ class ComponentModule:
       Starts a WAMPlet in this component container.
       """
       try:
-         dist = wamplet['distribution']
-         name = wamplet['entrypoint']
+         dist = wamplet['dist']
+         name = wamplet['entry']
 
          if self.debug:
             log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self._pid, dist, name, router['realm']))

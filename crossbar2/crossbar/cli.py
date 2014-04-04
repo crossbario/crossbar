@@ -148,7 +148,7 @@ def run_command_start(options):
       logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
 
    from crossbar.process import DefaultSystemFileLogObserver
-   flo = DefaultSystemFileLogObserver(logfd, system = "Controller {}".format(os.getpid()))
+   flo = DefaultSystemFileLogObserver(logfd, system = "{:<10} {:>6}".format("Controller", os.getpid()))
    log.startLoggingWithObserver(flo.emit)
 
    log.msg("=" * 30 + " Crossbar.io " + "=" * 30 + "\n")

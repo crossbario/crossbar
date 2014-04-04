@@ -41,10 +41,8 @@ class _CustomWrapIProtocol(_WrapIProtocol):
          for msg in data.split('\n'):
             msg = msg.strip()
             if msg != "":
-               if self._name:
-                  log.msg(msg, system = "{} {}".format(self._name, self.transport.pid))
-               else:
-                  log.msg(msg, system = "Child {}".format(self.transport.pid))
+               name = self._name or "Child"
+               log.msg(msg, system = "{:<10} {:>6}".format(name, self.transport.pid))
       else:
          _WrapIProtocol.childDataReceived(self, childFD, data)
 
