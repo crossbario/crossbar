@@ -112,7 +112,7 @@ class WorkerProcess(ApplicationSession):
       yield self.register(add_pythonpath, 'crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, self._pid))
 
 
-      from crossbar.router.module import RouterModule
+      from crossbar.worker.router import RouterModule
       self._router_module = RouterModule(self.factory.options.cbdir)
 
       yield self._router_module.connect(self)
@@ -145,7 +145,7 @@ class WorkerProcess(ApplicationSession):
       ##
 
       ## FIXME
-      from crossbar.router.component import ComponentModule
+      from crossbar.worker.component import ComponentModule
 
       self._componentModule = ComponentModule(self, self._pid, self.factory.options.cbdir)
 
@@ -206,7 +206,7 @@ def run():
 
    ## make sure logging to something else than stdio is setup _first_
    ##
-   from crossbar.process import BareFormatFileLogObserver
+   from crossbar.twisted.process import BareFormatFileLogObserver
    flo = BareFormatFileLogObserver(sys.stderr)
    log.startLoggingWithObserver(flo.emit)
 

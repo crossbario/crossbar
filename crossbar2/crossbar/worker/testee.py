@@ -24,7 +24,7 @@ from autobahn.twisted.websocket import WebSocketServerFactory, \
 
 from autobahn.websocket.compress import *
 
-from crossbar.router.router import set_websocket_options
+from crossbar.router.protocol import set_websocket_options
 
 
 class TesteeServerProtocol(WebSocketServerProtocol):

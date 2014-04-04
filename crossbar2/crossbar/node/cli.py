@@ -31,7 +31,7 @@ from twisted.python.reflect import qual
 
 from autobahn.twisted.choosereactor import install_reactor
 
-from crossbar.node import Node
+from crossbar.node.node import Node
 
 
 
@@ -106,7 +106,7 @@ def run_command_init(options):
    """
    Subcommand "crossbar init".
    """
-   from crossbar.template import TEMPLATES
+   from crossbar.node.template import TEMPLATES
    
    if options.template:
       if not TEMPLATES.has_key(options.template):
@@ -147,7 +147,7 @@ def run_command_start(options):
       from twisted.python.logfile import DailyLogFile
       logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
 
-   from crossbar.process import DefaultSystemFileLogObserver
+   from crossbar.twisted.process import DefaultSystemFileLogObserver
    flo = DefaultSystemFileLogObserver(logfd, system = "{:<10} {:>6}".format("Controller", os.getpid()))
    log.startLoggingWithObserver(flo.emit)
 

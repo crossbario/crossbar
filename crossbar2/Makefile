@@ -13,18 +13,18 @@ clean:
 	rm -rf ./build
 	rm -rf ./dist
 	rm -rf ./crossbar.egg-info
-	rm -rf ./.crossbar
+	#rm -rf ./.crossbar
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
 
 init:
-	PYTHONPATH=. python -m crossbar.cli init
+	PYTHONPATH=. python -m crossbar.node.cli init
 
 init_demos:
-	PYTHONPATH=. python -m crossbar.cli init --template demos
+	PYTHONPATH=. python -m crossbar.node.cli init --template demos
 
 start:
-	PYTHONPATH=. python -m crossbar.cli start
+	PYTHONPATH=. python -m crossbar.node.cli start
 
 publish: clean
 	python setup.py register

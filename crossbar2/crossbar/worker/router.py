@@ -30,11 +30,12 @@ from twisted.internet.endpoints import serverFromString
 
 from autobahn.wamp.exception import ApplicationError
 
-from crossbar.router.router import CrossbarRouterFactory, \
-                                   CrossbarRouterSessionFactory, \
-                                   CrossbarWampWebSocketServerFactory
+from crossbar.router.session import CrossbarRouterFactory
 
-from crossbar.router.testee import TesteeServerFactory
+from crossbar.router.protocol import CrossbarRouterSessionFactory, \
+                                     CrossbarWampWebSocketServerFactory
+
+from crossbar.worker.testee import TesteeServerFactory
 
 
 from twisted.web.wsgi import WSGIResource
@@ -59,8 +60,8 @@ from twisted.web.resource import Resource
 
 from autobahn.twisted.resource import WebSocketResource
 
-from crossbar.router.site import createHSTSRequestFactory
-from crossbar.router.resource import FileNoListing, JsonResource, Resource404, CgiDirectory, RedirectResource
+from crossbar.twisted.site import createHSTSRequestFactory
+from crossbar.twisted.resource import FileNoListing, JsonResource, Resource404, CgiDirectory, RedirectResource
 
 from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
@@ -659,7 +660,8 @@ class RouterModule:
       if True:
          from twisted.internet.endpoints import TCP4ServerEndpoint, SSL4ServerEndpoint, UNIXServerEndpoint
          from twisted.internet.endpoints import serverFromString
-         from tlsctx import TlsServerContextFactory
+         
+         from crossbar.twisted.tlsctx import TlsServerContextFactory
 
          #server = serverFromString(reactor, "ssl:8080:privateKey=.crossbar/server.key:certKey=.crossbar/server.crt")
 

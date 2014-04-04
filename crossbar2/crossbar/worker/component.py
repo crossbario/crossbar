@@ -106,7 +106,8 @@ class ComponentModule:
       from twisted.internet import reactor
       from twisted.internet.endpoints import TCP4ClientEndpoint, SSL4ClientEndpoint, UNIXClientEndpoint
       from twisted.internet.endpoints import clientFromString
-      from tlsctx import TlsClientContextFactory
+
+      from crossbar.twisted.tlsctx import TlsClientContextFactory
 
 
       if False:

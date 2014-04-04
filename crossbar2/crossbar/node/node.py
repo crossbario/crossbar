@@ -57,7 +57,7 @@ import socket
 import os
 
 from twisted.internet.protocol import ProcessProtocol
-from crossbar.process import CustomProcessEndpoint
+from crossbar.twisted.process import CustomProcessEndpoint
 
 from twisted.internet import protocol
 import re, json
@@ -241,7 +241,7 @@ class NodeControllerSession(ApplicationSession):
       ## all worker processes start "generic" (like stem cells) and
       ## are later configured via WAMP from the node controller session
       ##
-      filename = pkg_resources.resource_filename('crossbar', 'worker.py')
+      filename = pkg_resources.resource_filename('crossbar', 'worker/process.py')
 
       args = [executable, "-u", filename]
       args.extend(["--cbdir", self._node._cbdir])
