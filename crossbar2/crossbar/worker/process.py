@@ -39,7 +39,6 @@ class WorkerProcess(ApplicationSession):
 
    def onConnect(self):
       self.debug = self.factory.options.debug
-      self.debug = True
 
       self._pid = os.getpid()
       self._node_name = '918234'
@@ -113,7 +112,7 @@ class WorkerProcess(ApplicationSession):
 
 
       from crossbar.worker.router import RouterModule
-      self._router_module = RouterModule(self.factory.options.cbdir)
+      self._router_module = RouterModule(self.factory.options.cbdir, debug = self.debug)
 
       yield self._router_module.connect(self)
 
@@ -145,10 +144,11 @@ class WorkerProcess(ApplicationSession):
       ##
 
       ## FIXME
-      from crossbar.worker.component import ComponentModule
+      from crossbar.worker.container import ContainerModule
 
-      self._componentModule = ComponentModule(self, self._pid, self.factory.options.cbdir)
+      self._container_module = ContainerModule(self.factory.options.cbdir, debug = self.debug)
 
+      yield self._container_module.connect(self)
 
       if self.debug:
          log.msg("Worker procedures registered.")

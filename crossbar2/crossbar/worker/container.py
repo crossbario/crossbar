@@ -18,6 +18,8 @@
 
 from __future__ import absolute_import
 
+from twisted.internet.defer import DeferredList
+
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig
 
@@ -25,21 +27,44 @@ from twisted.python import log
 import pkg_resources
 
 
+class ContainerInstance:
+   def __init__(self, id):
+      self.id = id
 
-class ComponentModule:
+
+class ContainerModule:
    """
+   The ComponentModule creates component hosts in a Worker
+   process. Component hosts can dynamically load, reload and
+   unload Python application classes and components (WAMPlets).
    """
 
-   def __init__(self, session, pid, cbdir):
-      self._session = session
-      self._pid = pid
+   def __init__(self, cbdir, debug = False):
       self._cbdir = cbdir
+      self.debug = debug
       self._client = None
+      self._session = None
 
-      self.debug = self._session.factory.options.debug
 
-      session.register(self.start_class, 'crossbar.node.module.{}.component.start_class'.format(self._pid))
-      session.register(self.start_wamplet, 'crossbar.node.module.{}.component.start_wamplet'.format(self._pid))
+   def connect(self, session):
+      assert(self._session is None)
+
+      self._session = session
+      self._pid = session._pid
+      self._node_name = session._node_name
+
+      dl = []
+      procs = [
+         'start_class',
+         'start_wamplet',
+      ]
+
+      for proc in procs:
+         uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self._node_name, self._pid, proc)
+         dl.append(self._session.register(getattr(self, proc), uri))
+
+      d = DeferredList(dl)
+      return d
 
 
    def start_wamplet(self, wamplet, router):

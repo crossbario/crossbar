@@ -82,16 +82,16 @@
                      "pythonpath": ["."]
                   }
                };
-            session.call('crossbar.node.' + nodename + '.start_process', [config]).then(
+            session.call('crossbar.node.' + nodename + '.start_worker').then(
                function (pid) {
-                  console.log("Process started", pid);
-                  session.call('crossbar.node.' + nodename + '.get_processes').then(session.log, session.log);
+                  console.log("Worker started", pid);
+                  session.call('crossbar.node.' + nodename + '.list_workers').then(session.log, session.log);
 
                   session.call('crossbar.node.' + nodename + '.worker.' + pid + '.add_pythonpath', [['.']]).then(session.log, session.log);
-
+/*
                   session.call('crossbar.node.module.' + pid + '.component.start',
                      [config['class'], config['router']]).then(session.log, session.log);
-
+*/
                },
                session.log
             );
