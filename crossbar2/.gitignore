@@ -4,3 +4,4 @@ build
 cbdata
 .cbdata
 .crossbar
+*.db

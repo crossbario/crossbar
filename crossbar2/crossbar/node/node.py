@@ -518,9 +518,10 @@ class NodeControllerSession(ApplicationSession):
 
          process_options = process.get('options', {})
 
-         if process['type'] in ['router', 'component.python']:
+         if process['type'] in ['router', 'container']:
 
             ## start a new worker process ..
+            ##
             try:
                pid = yield self.start_worker()
             except Exception as e:
@@ -528,13 +529,13 @@ class NodeControllerSession(ApplicationSession):
             else:
                log.msg("Worker {}: Started.".format(pid))
 
+               ## Setup: worker generic stuff
                ##
-               ## .. and now orchestrate the startup of the worker
-               ##
-
                if 'pythonpath' in process_options:
                   try:
-                     yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, pid), process_options['pythonpath'])
+                     yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, pid),
+                        process_options['pythonpath'])
+
                   except Exception as e:
                      log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(pid, e))
                   else:
@@ -542,7 +543,9 @@ class NodeControllerSession(ApplicationSession):
 
                if 'cpu_affinity' in process_options:
                   try:
-                     yield self.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_name, pid), process_options['cpu_affinity'])
+                     yield self.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_name, pid),
+                        process_options['cpu_affinity'])
+
                   except Exception as e:
                      log.msg("Worker {}: Failed to set CPU affinity - {}".format(pid, e))
                   else:
@@ -555,10 +558,11 @@ class NodeControllerSession(ApplicationSession):
                else:
                   log.msg("Worker {}: CPU affinity is {}".format(pid, cpu_affinity))
 
-
+               ## Setup: WAMP router process
+               ##
                if process['type'] == 'router':
 
-                  ## startup a new router
+                  ## start new router
                   ##
                   router_index = yield self.call('crossbar.node.{}.worker.{}.router.start'.format(self._node_name, pid))
                   log.msg("Worker {}: Router started ({})".format(pid, router_index))
@@ -568,7 +572,8 @@ class NodeControllerSession(ApplicationSession):
                   for realm_name in process['realms']:
 
                      realm_config = process['realms'][realm_name]
-                     realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._node_name, pid), router_index, realm_name, realm_config)
+                     realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._node_name, pid),
+                        router_index, realm_name, realm_config)
 
                      log.msg("Worker {}: Realm started on router {} ({})".format(pid, router_index, realm_index))
 
@@ -576,54 +581,42 @@ class NodeControllerSession(ApplicationSession):
                      ##
                      for component_config in realm_config.get('components', []):
 
-                        id = yield self.call('crossbar.node.{}.worker.{}.router.start_component'.format(self._node_name, pid), router_index, realm_name, component_config)
-
-                     #    else:
-                     #       raise ApplicationError("wamp.error.invalid_argument", "Invalid component type '{}'".format(c['type']))
-
-                     # if 'classes' in realm_config:
-                     #    try:
-                     #       for klassname in realm_config.get('classes', []):
-                     #          id = yield self.call('crossbar.node.{}.worker.{}.router.{}.start_class'.format(self._node_name, pid, router_index), klassname, realm_name)
-                     #          log.msg("Worker {}: Class '{}' ({}) started in realm '{}' on router {}".format(pid, klassname, id, realm_name, router_index))
-                     #    except Exception as e:
-                     #       log.msg("internal error: {} {}".format(e, e.args))
-
-                     # elif 'wamplets' in realm_config:
-                     #    try:
-                     #       for wpl in realm_config.get('wamplets', []):
-                     #          id = yield self.call('crossbar.node.{}.worker.{}.router.{}.start_wamplet'.format(self._node_name, pid, router_index), wpl['dist'], wpl['name'], realm_name)
-                     #          log.msg("Worker {}: WAMPlet '{}/{}' ({}) started in realm '{}' on router {}".format(pid, wpl['dist'], wpl['name'], id, realm_name, router_index))
-                     #    except Exception as e:
-                     #       log.msg("internal error: {} {}".format(e, e.args))
+                        id = yield self.call('crossbar.node.{}.worker.{}.router.start_component'.format(self._node_name, pid),
+                           router_index, realm_name, component_config)
 
                   ## start transports on router
                   ##
                   for transport in process['transports']:
-                     id = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._node_name, pid), router_index, transport)
+                     id = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._node_name, pid),
+                        router_index, transport)
+
                      log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint']['type'], id, router_index))
 
-
-               ## Python component host process
+               ## Setup: Python component host process
                ##
-               elif process['type'] == 'component.python':
+               elif process['type'] == 'container':
 
                   log.msg("Worker {}: Component container started.".format(pid))
 
                   yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._node_name, pid),
-                     process['component'],
-                     process['router'])
+                     process['component'], process['router'])
 
                else:
                   raise Exception("logic error")
 
-         elif process['type'] == 'component.program':
+         elif process['type'] == 'program':
 
-            pid = yield self.start_guest(process)
+            ## start a new worker process ..
+            ##
+            try:
+               pid = yield self.start_guest(process)
+            except Exception as e:
+               log.msg("Failed to start guest process: {}".format(e))
+            else:
+               log.msg("Guest {}: Started.".format(pid))
 
          else:
             raise ApplicationError("wamp.error.invalid_argument", "Invalid process type '{}'".format(process['type']))
-
 
 
 
