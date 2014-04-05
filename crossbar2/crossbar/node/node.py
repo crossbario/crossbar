@@ -610,14 +610,9 @@ class NodeControllerSession(ApplicationSession):
 
                   log.msg("Worker {}: Component container started.".format(pid))
 
-                  component_config = process['component']
-
-                  if component_config['type'] == 'class':
-                     yield self.call('crossbar.node.{}.worker.{}.container.start_class'.format(self._node_name, pid), component_config, process['router'])
-                     log.msg("Worker {}: Class '{}' started".format(pid, process['class']))
-
-                  elif component_config['type'] == 'wamplet':
-                     yield self.call('crossbar.node.{}.worker.{}.container.start_wamplet'.format(self._node_name, pid), component_config, process['router'])
+                  yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._node_name, pid),
+                     process['component'],
+                     process['router'])
 
                else:
                   raise Exception("logic error")

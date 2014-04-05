@@ -273,8 +273,8 @@ class RouterModule:
       elif config['type'] == 'wamplet':
 
          try:
-            dist = config['distribution']
-            name = config['entrypoint']
+            dist = config['dist']
+            name = config['entry']
 
             if self.debug:
                log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self._pid, dist, name, realm))

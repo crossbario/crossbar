@@ -55,8 +55,7 @@ class ContainerModule:
 
       dl = []
       procs = [
-         'start_class',
-         'start_wamplet',
+         'start_component',
       ]
 
       for proc in procs:
@@ -67,56 +66,52 @@ class ContainerModule:
       return d
 
 
-   def start_wamplet(self, wamplet, router):
+   def start_component(self, component, router):
       """
-      Starts a WAMPlet in this component container.
+      Starts a Class or WAMPlet in this component container.
       """
-      try:
-         dist = wamplet['dist']
-         name = wamplet['entry']
+      if component['type'] == 'wamplet':
 
-         if self.debug:
-            log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self._pid, dist, name, router['realm']))
+         try:
+            dist = component['dist']
+            name = component['entry']
 
-         ## make is supposed to make instances of ApplicationSession
-         make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
+            if self.debug:
+               log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self._pid, dist, name, router['realm']))
 
-      except Exception as e:
-         log.msg("Worker {}: failed to import class - {}".format(e))
-         raise ApplicationError("crossbar.error.class_import_failed", str(e))
+            ## make is supposed to make instances of ApplicationSession
+            make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
+
+         except Exception as e:
+            log.msg("Worker {}: failed to import class - {}".format(e))
+            raise ApplicationError("crossbar.error.class_import_failed", str(e))
+   
+      elif component['type'] == 'class':
+
+         try:
+            klassname = component['name']
+
+            if self.debug:
+               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, router['realm']))
+
+            import importlib
+            c = klassname.split('.')
+            mod, kls = '.'.join(c[:-1]), c[-1]
+            app = importlib.import_module(mod)
+
+            ## make is supposed to be of class ApplicationSession
+            make = getattr(app, kls)
+
+         except Exception as e:
+            log.msg("Worker {}: failed to import class - {}".format(e))
+            raise ApplicationError("crossbar.error.class_import_failed", str(e))
+
       else:
-         return self._start(make, wamplet.get('extra', None), router)
+         raise ApplicationError("crossbar.error.invalid_configuration", "unknown component type '{}'".format(component['type']))
 
-
-   def start_class(self, klass, router):
-      """
-      Starts a class in this component container.
-      """
-      try:
-         klassname = klass['name']
-
-         if self.debug:
-            log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, router['realm']))
-
-         import importlib
-         c = klassname.split('.')
-         mod, kls = '.'.join(c[:-1]), c[-1]
-         app = importlib.import_module(mod)
-
-         ## make is supposed to be of class ApplicationSession
-         make = getattr(app, kls)
-
-      except Exception as e:
-         log.msg("Worker {}: failed to import class - {}".format(e))
-         raise ApplicationError("crossbar.error.class_import_failed", str(e))
-      else:
-         return self._start(make, klass.get('extra', None), router)
-
-
-   def _start(self, make, extra, router):
 
       def create():
-         cfg = ComponentConfig(realm = router['realm'], extra = extra)
+         cfg = ComponentConfig(realm = router['realm'], extra = component.get('extra', None))
          c = make(cfg)
          return c
 
