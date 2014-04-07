@@ -27,7 +27,9 @@ from pprint import pformat
 
 from autobahn.websocket.protocol import parseWsUrl
 
-from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY
+from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
+                                  _URI_PAT_LOOSE_NON_EMPTY
+
 
 
 def check_dict_args(spec, config, msg):
@@ -46,7 +48,8 @@ def check_dict_args(spec, config, msg):
 def check_or_raise_uri(value, message):
    if type(value) not in [str, unicode]:
       raise Exception("{}: invalid type {} for URI".format(message, type(value)))
-   if not _URI_PAT_LOOSE_NON_EMPTY.match(value):
+   #if not _URI_PAT_LOOSE_NON_EMPTY.match(value):
+   if not _URI_PAT_STRICT_NON_EMPTY.match(value):
       raise Exception("{}: invalid value '{}' for URI".format(message, value))
    return value
 
@@ -173,6 +176,7 @@ def check_websocket_options(options):
          raise Exception("encountered unknown attribute '{}' in WebSocket options".format(k))
 
    ## FIXME: more complete checking ..
+
 
 
 def check_transport_web_path_service_websocket(config):
@@ -379,8 +383,83 @@ def check_transport(transport):
 
 
 
-def check_realm(realm, silence):
-   pass
+def check_component(component):
+   if type(component) != dict:
+      raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
+   if not 'type' in component:
+      raise Exception("missing mandatory attribute 'type' in component")
+
+   ctype = component['type']
+   if ctype not in ['wamplet', 'class']:
+      raise Exception("invalid value '{}' for component type".format(ctype))
+
+   if ctype == 'wamplet':
+      check_dict_args({
+         'type': (True, [str, unicode]),
+         'dist': (True, [str, unicode]),
+         'entry': (True, [str, unicode]),
+         'extra': (False, None),
+         }, component, "invalid component configuration")
+
+   elif ctype == 'class':
+      check_dict_args({
+         'type': (True, [str, unicode]),
+         'name': (True, [str, unicode]),
+         'extra': (False, None),
+         }, component, "invalid component configuration")
+
+   else:
+      raise Exception("logic error")
+
+
+
+def check_realm(realm, silence = False):
+   ## permissions
+   ##
+   if 'permissions' in realm:
+      permissions = realm['permissions']
+      if type(permissions) != dict:
+         raise Exception("'permissions' in 'realm' must be a dictionary ({} encountered)\n\n{}".format(type(components), realm))
+
+      for role in sorted(permissions):
+         check_or_raise_uri(role, "invalid role URI '{}' in realm permissions".format(role))
+         check_dict_args({
+            'create': (False, [bool]),
+            'join': (False, [bool]),
+            'access': (False, [dict]),
+            }, permissions[role], "invalid grant in realm permissions")
+
+         if 'access' in permissions[role]:
+            access = permissions[role]['access']
+            if type(access) != dict:
+               raise Exception("'access' attribute in realm-role permissions must be a dictionary ({} encountered)".format(type(access)))
+
+            for uri in sorted(access.keys()):
+               if uri != '*':
+                  check_or_raise_uri(uri, "invalid role URI '{}' in realm-role access grants".format(uri))
+
+               grants = access[uri]
+
+               check_dict_args({
+                  'publish': (False, [bool]),
+                  'subscribe': (False, [bool]),
+                  'call': (False, [bool]),
+                  'register': (False, [bool]),
+                  }, grants, "invalid grant in realm permissions")
+
+   ## components
+   ##
+   if 'components' in realm:
+      components = realm['components']
+      if type(components) != list:
+         raise Exception("'components' in 'realm' must be a list ({} encountered)\n\n{}".format(type(components), realm))
+
+      i = 1
+      for component in components:
+         if not silence:
+            print("Checking component item {} ..".format(i))
+            check_component(component)
+            i += 1
 
 
 
@@ -448,7 +527,6 @@ def check_module(module, silence = False):
       check_container(module, silence)
    else:
       raise Exception("logic error")
-
 
 
 
