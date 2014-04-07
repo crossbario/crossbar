@@ -18,7 +18,7 @@
 
 from __future__ import absolute_import
 
-__all__ = ['check_config_file']
+__all__ = ['check_config', 'check_config_file']
 
 import os
 import json
@@ -35,7 +35,6 @@ def check_dict_args(spec, config, msg):
       if not k in spec:
          raise Exception("{} - encountered unknown attribute '{}'".format(msg, k))
       if spec[k][1] and type(config[k]) not in spec[k][1]:
-         print ".."
          raise Exception("{} - invalid {} encountered for attribute '{}'".format(msg, type(config[k]), k))
    mandatory_keys = [k for k in spec if spec[k][0]]
    for k in mandatory_keys:
@@ -380,12 +379,12 @@ def check_transport(transport):
 
 
 
-def check_realm(realm):
+def check_realm(realm, silence):
    pass
 
 
 
-def check_router(router):
+def check_router(router, silence = False):
    for k in router:
       if k not in ['type', 'realms', 'transports']:
          raise Exception("encountered unknown attribute '{}' in router configuration".format(k))
@@ -402,9 +401,10 @@ def check_router(router):
 
    i = 1
    for r in sorted(realms.keys()):
-      print("Checking realm item {} ('{}') ..".format(i, r))
+      if not silence:
+         print("Checking realm item {} ('{}') ..".format(i, r))
       check_or_raise_uri(r, "realm keys must be valid WAMP URIs")
-      check_realm(realms[r])
+      check_realm(realms[r], silence)
       i += 1
 
    ## transports
@@ -419,18 +419,19 @@ def check_router(router):
 
    i = 1
    for transport in transports:
-      print("Checking transport item {} ..".format(i))
+      if not silence:
+         print("Checking transport item {} ..".format(i))
       check_transport(transport)
       i += 1
 
 
 
-def check_container(container):
+def check_container(container, silence = False):
    pass
 
 
 
-def check_module(module):
+def check_module(module, silence = False):
    if type(module) != dict:
       raise Exception("'module' items must be dictionaries ({} encountered)\n\n{}".format(type(module), pformat(module)))
 
@@ -442,16 +443,16 @@ def check_module(module):
       raise Exception("invalid attribute value '{}' for attribute 'type' in module item\n\n{}".format(mtype, pformat(module)))
 
    if mtype == 'router':
-      check_router(module)
+      check_router(module, silence)
    elif mtype == 'container':
-      check_container(module)
+      check_container(module, silence)
    else:
       raise Exception("logic error")
 
 
 
 
-def check_worker(worker):
+def check_worker(worker, silence = False):
    for k in worker:
       if k not in ['type', 'options', 'modules']:
          raise Exception("encountered unknown attribute '{}' in worker configuration".format(k))
@@ -492,18 +493,19 @@ def check_worker(worker):
 
    i = 1
    for module in modules:
-      print("Checking module item {} ..".format(i))
-      check_module(module)
+      if not silence:
+         print("Checking module item {} ..".format(i))
+      check_module(module, silence)
       i += 1
 
 
 
-def check_guest(guest):
+def check_guest(guest, silence = False):
    pass
 
 
 
-def check_process(process):
+def check_process(process, silence = False):
    if type(process) != dict:
       raise Exception("process items must be dictionaries ({} encountered)\n\n{}".format(type(process), pformat(process)))
 
@@ -516,23 +518,15 @@ def check_process(process):
       raise Exception("invalid attribute value '{}' for attribute 'type' in process item\n\n{}".format(ptype, pformat(process)))
 
    if ptype == 'worker':
-      check_worker(process)
+      check_worker(process, silence)
    elif ptype == 'guest':
-      check_guest(process)
+      check_guest(process, silence)
    else:
       raise Exception("logic error")
 
 
 
-def check_config_file(configfile):
-   configfile = os.path.abspath(configfile)
-
-   with open(configfile, 'rb') as infile:
-      try:
-         config = json.load(infile)
-      except ValueError as e:
-         raise Exception("configuration file does not seem to be proper JSON ('{}'')".format(e))
-
+def check_config(config, silence = False):
    if type(config) != dict:
       raise Exception("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
 
@@ -550,6 +544,22 @@ def check_config_file(configfile):
 
    i = 1
    for process in processes:
-      print("Checking process item {} ..".format(i))
-      check_process(process)
+      if not silence:
+         print("Checking process item {} ..".format(i))
+      check_process(process, silence)
       i += 1
+
+
+
+def check_config_file(configfile, silence = False):
+   configfile = os.path.abspath(configfile)
+
+   with open(configfile, 'rb') as infile:
+      try:
+         config = json.load(infile)
+      except ValueError as e:
+         raise Exception("configuration file does not seem to be proper JSON ('{}'')".format(e))
+
+   check_config(config, silence)
+
+   return config

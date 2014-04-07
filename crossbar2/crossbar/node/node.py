@@ -62,6 +62,7 @@ from crossbar.twisted.process import CustomProcessEndpoint
 from twisted.internet import protocol
 import re, json
 
+from crossbar.node.config import check_config_file
 
 
 
@@ -512,13 +513,13 @@ class NodeControllerSession(ApplicationSession):
       """
       Setup node according to config provided.
       """
-      options = config.get('options', {})
-
       for process in config['processes']:
 
          process_options = process.get('options', {})
 
-         if process['type'] in ['router', 'container']:
+         ## worker
+         ##
+         if process['type'] == 'worker':
 
             ## start a new worker process ..
             ##
@@ -529,38 +530,44 @@ class NodeControllerSession(ApplicationSession):
             else:
                log.msg("Worker {}: Started.".format(pid))
 
-               ## Setup: worker generic stuff
-               ##
-               if 'pythonpath' in process_options:
-                  try:
-                     yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, pid),
-                        process_options['pythonpath'])
 
-                  except Exception as e:
-                     log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(pid, e))
-                  else:
-                     log.msg("Worker {}: PYTHONPATH extended.".format(pid))
-
-               if 'cpu_affinity' in process_options:
-                  try:
-                     yield self.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_name, pid),
-                        process_options['cpu_affinity'])
-
-                  except Exception as e:
-                     log.msg("Worker {}: Failed to set CPU affinity - {}".format(pid, e))
-                  else:
-                     log.msg("Worker {}: CPU affinity set.".format(pid))
-
+            ## setup worker generic stuff
+            ##
+            if 'pythonpath' in process_options:
                try:
-                  cpu_affinity = yield self.call('crossbar.node.{}.worker.{}.get_cpu_affinity'.format(self._node_name, pid))
+                  yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, pid),
+                     process_options['pythonpath'])
+
                except Exception as e:
-                  log.msg("Worker {}: Failed to get CPU affinity - {}".format(pid, e))
+                  log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(pid, e))
                else:
-                  log.msg("Worker {}: CPU affinity is {}".format(pid, cpu_affinity))
+                  log.msg("Worker {}: PYTHONPATH extended.".format(pid))
+
+            if 'cpu_affinity' in process_options:
+               try:
+                  yield self.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_name, pid),
+                     process_options['cpu_affinity'])
+
+               except Exception as e:
+                  log.msg("Worker {}: Failed to set CPU affinity - {}".format(pid, e))
+               else:
+                  log.msg("Worker {}: CPU affinity set.".format(pid))
+
+            try:
+               cpu_affinity = yield self.call('crossbar.node.{}.worker.{}.get_cpu_affinity'.format(self._node_name, pid))
+            except Exception as e:
+               log.msg("Worker {}: Failed to get CPU affinity - {}".format(pid, e))
+            else:
+               log.msg("Worker {}: CPU affinity is {}".format(pid, cpu_affinity))
+
+
+            ## setup modules
+            ##
+            for module in process['modules']:
 
                ## Setup: WAMP router process
                ##
-               if process['type'] == 'router':
+               if module['type'] == 'router':
 
                   ## start new router
                   ##
@@ -569,9 +576,9 @@ class NodeControllerSession(ApplicationSession):
 
                   ## start realms
                   ##
-                  for realm_name in process['realms']:
+                  for realm_name in module['realms']:
 
-                     realm_config = process['realms'][realm_name]
+                     realm_config = module['realms'][realm_name]
                      realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._node_name, pid),
                         router_index, realm_name, realm_config)
 
@@ -586,7 +593,7 @@ class NodeControllerSession(ApplicationSession):
 
                   ## start transports on router
                   ##
-                  for transport in process['transports']:
+                  for transport in module['transports']:
                      id = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._node_name, pid),
                         router_index, transport)
 
@@ -594,17 +601,18 @@ class NodeControllerSession(ApplicationSession):
 
                ## Setup: Python component host process
                ##
-               elif process['type'] == 'container':
+               elif module['type'] == 'container':
 
                   log.msg("Worker {}: Component container started.".format(pid))
 
                   yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._node_name, pid),
-                     process['component'], process['router'])
+                     module['component'], module['router'])
 
                else:
                   raise Exception("logic error")
 
-         elif process['type'] == 'program':
+
+         elif process['type'] == 'guest':
 
             ## start a new worker process ..
             ##
@@ -616,7 +624,7 @@ class NodeControllerSession(ApplicationSession):
                log.msg("Guest {}: Started.".format(pid))
 
          else:
-            raise ApplicationError("wamp.error.invalid_argument", "Invalid process type '{}'".format(process['type']))
+            raise Exception("unknown process type '{}'".format(process['type']))
 
 
 
@@ -695,8 +703,7 @@ class Node:
       ## Detect WAMPlets
       ##
       for wpl in self._node_controller_session.list_wamplets():
-         log.msg("WAMPlet '{}' in package '{}' detected: \"{}\"".format(wpl['name'], wpl['dist'], wpl['doc']))
-
+         log.msg("WAMPlet detected: {}.{}".format(wpl['dist'], wpl['name']))
 
       yield self.start_from_local_config(configfile = os.path.join(self._cbdir, 'config.json'))
 
@@ -739,10 +746,10 @@ class Node:
       ## load Crossbar.io node configuration
       ##
       configfile = os.path.abspath(configfile)
-      log.msg("Loading from local config '{}'".format(configfile))
 
-      with open(configfile, 'rb') as infile:
-         config = json.load(infile)
+      log.msg("Loading from local config '{}' ..".format(configfile))
+
+      config = check_config_file(configfile, silence = True)
 
       ## startup the node from configuration file
       ##
