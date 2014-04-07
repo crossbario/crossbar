@@ -30,6 +30,20 @@ from autobahn.websocket.protocol import parseWsUrl
 from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY
 
 
+def check_dict_args(spec, config, msg):
+   for k in config:
+      if not k in spec:
+         raise Exception("{} - encountered unknown attribute '{}'".format(msg, k))
+      if spec[k][1] and type(config[k]) not in spec[k][1]:
+         print ".."
+         raise Exception("{} - invalid {} encountered for attribute '{}'".format(msg, type(config[k]), k))
+   mandatory_keys = [k for k in spec if spec[k][0]]
+   for k in mandatory_keys:
+      if not k in config:
+         raise Exception("{} - missing mandatory attribute '{}'".format(msg, k))
+
+
+
 def check_or_raise_uri(value, message):
    if type(value) not in [str, unicode]:
       raise Exception("{}: invalid type {} for URI".format(message, type(value)))
@@ -162,33 +176,80 @@ def check_websocket_options(options):
    ## FIXME: more complete checking ..
 
 
-
 def check_transport_web_path_service_websocket(config):
-   pass
+   if 'options' in config:
+      check_websocket_options(config[options])
+
+   if 'debug' in config:
+      debug = config['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in WebSocket configuration must be boolean ({} encountered)".format(type(debug)))
+
+   if 'url' in config:
+      url = config['url']
+      if type(url) not in [str, unicode]:
+         raise Exception("'url' in WebSocket configuration must be str ({} encountered)".format(type(url)))
+      try:
+         u = parseWsUrl(url)
+      except Exception as e:
+         raise Exception("invalid 'url' in WebSocket configuration : {}".format(e))
+
 
 
 def check_transport_web_path_service_static(config):
-   pass
+   check_dict_args({
+      'type': (True, [str, unicode]),
+      'directory': (False, [str, unicode]),
+      'module': (False, [str, unicode]),
+      'resource': (False, [str, unicode]),
+      'enable_directory_listing': (False, [bool])
+      }, config, "Web transport 'static' path service")
+
+   if 'directory' in config:
+      if 'module' in config or 'resource' in config:
+         raise Exception("Web transport 'static' path service: either 'directory' OR 'module' + 'resource' must be given, not both")
+   else:
+      if not 'module' in config or not 'resource' in config:
+         raise Exception("Web transport 'static' path service: either 'directory' OR 'module' + 'resource' must be given, not both")
+
 
 
 def check_transport_web_path_service_wsgi(config):
-   pass
+   check_dict_args({
+      'type': (True, [str, unicode]),
+      'module': (True, [str, unicode]),
+      'object': (True, [str, unicode])
+      }, config, "Web transport 'wsgi' path service")
+
 
 
 def check_transport_web_path_service_redirect(config):
-   pass
+   check_dict_args({
+      'type': (True, [str, unicode]),
+      'url': (True, [str, unicode])
+      }, config, "Web transport 'redirect' path service")
+
 
 
 def check_transport_web_path_service_json(config):
-   pass
+   check_dict_args({
+      'type': (True, [str, unicode]),
+      'value': (True, None)
+      }, config, "Web transport 'json' path service")
+
 
 
 def check_transport_web_path_service_cgi(config):
-   pass
+   check_dict_args({
+      'type': (True, [str, unicode]),
+      'directory': (True, [str, unicode]),
+      'processor': (True, [str, unicode]),
+      }, config, "Web transport 'cgi' path service")
+
 
 
 def check_transport_web_path_service_longpoll(config):
-   pass
+   raise Exception("Web transport 'longpoll' path service : not yet implemented")
 
 
 
@@ -220,7 +281,7 @@ def check_transport_web_path_service(path, config):
 
 def check_transport_web(transport):
    for k in transport:
-      if k not in ['type', 'endpoint', 'paths']:
+      if k not in ['type', 'endpoint', 'paths', 'options']:
          raise Exception("encountered unknown attribute '{}' in Web transport configuration".format(k))
 
    if not 'endpoint' in transport:
@@ -249,6 +310,28 @@ def check_transport_web(transport):
 
       check_transport_web_path_service(p, paths[p])
 
+   if 'options' in transport:
+      options = transport['options']
+      if type(options) != dict:
+         raise Exception("'options' in Web transport must be dictionary ({} encountered)".format(type(options)))
+
+      if 'access_log' in options:
+         access_log = options['access_log']
+         if type(access_log) != bool:
+            raise Exception("'access_log' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(access_log)))
+
+      if 'hsts' in options:
+         hsts = options['hsts']
+         if type(hsts) != bool:
+            raise Exception("'hsts' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hsts)))
+
+      if 'hsts_max_age' in options:
+         hsts_max_age = options['hsts_max_age']
+         if type(hsts_max_age) not in [int, long]:
+            raise Exception("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
+         if hsts_max_age < 0:
+            raise Exception("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
+
 
 
 def check_transport_websocket(transport):
@@ -260,7 +343,6 @@ def check_transport_websocket(transport):
       raise Exception("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
    check_endpoint_listen(transport['endpoint'])
-
 
    if 'options' in transport:
       check_websocket_options(transport[options])
