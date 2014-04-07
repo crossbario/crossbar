@@ -26,4 +26,4 @@ Open-source licensed under the GNU Affero General Public License version 3
 https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE
 """
 
-__version__ = "0.9.3"
+__version__ = "0.9.4"

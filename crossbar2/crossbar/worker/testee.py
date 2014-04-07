@@ -96,7 +96,7 @@ class TesteeServerFactory(WebSocketServerFactory):
 
 
       WebSocketServerFactory.__init__(self,
-                                      config['url'],
+                                      url = config.get('url', None),
                                       server = server,
                                       externalPort = externalPort,
                                       debug = config.get('debug', False))
