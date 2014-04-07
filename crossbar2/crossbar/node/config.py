@@ -435,8 +435,11 @@ def check_realm(realm, silence = False):
                raise Exception("'access' attribute in realm-role permissions must be a dictionary ({} encountered)".format(type(access)))
 
             for uri in sorted(access.keys()):
-               if uri != '*':
-                  check_or_raise_uri(uri, "invalid role URI '{}' in realm-role access grants".format(uri))
+               if len(uri) > 0 and uri[-1] == '*':
+                  check_uri = uri[:-1]
+               else:
+                  check_uri = uri
+               check_or_raise_uri(check_uri, "invalid role URI '{}' in realm-role access grants".format(uri))
 
                grants = access[uri]
 
@@ -506,7 +509,7 @@ def check_router(router, silence = False):
 
 
 def check_container(container, silence = False):
-   pass
+   print("FIXME: check_container")
 
 
 
