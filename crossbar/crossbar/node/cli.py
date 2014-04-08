@@ -106,13 +106,13 @@ def run_command_init(options):
    """
    Subcommand "crossbar init".
    """
-   from crossbar.node.template import TEMPLATES
+   from crossbar.node.template import CONFIG_TEMPLATES
    
    if options.template:
-      if not TEMPLATES.has_key(options.template):
+      if not CONFIG_TEMPLATES.has_key(options.template):
          raise Exception("No such Crossbar.io node template {}".format(options.template))
       else:
-         template = TEMPLATES[options.template]
+         template = CONFIG_TEMPLATES[options.template]
          #config = json.dumps(template, indent = 3, ensure_ascii = False, sort_keys = False)
          config = template
    else:
@@ -234,7 +234,7 @@ def run():
 
    parser_init.add_argument('--template',
                              type = str,
-                             default = 'router',
+                             default = 'default',
                              help = "Template for initialization")
 
    parser_init.add_argument('--cbdir',

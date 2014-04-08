@@ -14,6 +14,7 @@ clean:
 	rm -rf ./dist
 	rm -rf ./crossbar.egg-info
 	#rm -rf ./.crossbar
+	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
 
@@ -22,6 +23,9 @@ init:
 
 init_demos:
 	PYTHONPATH=. python -m crossbar.node.cli init --template demos
+
+check:
+	PYTHONPATH=. python -m crossbar.node.cli check
 
 start:
 	PYTHONPATH=. python -m crossbar.node.cli start
