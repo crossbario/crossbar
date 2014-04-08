@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2011-2013 Tavendo GmbH
+##  Copyright (C) 2011-2014 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -16,24 +16,14 @@
 ##
 ###############################################################################
 
-from _version import __version__
-version = __version__ # backward compat.
+__doc__ = """
+Crossbar.io - Polyglot application router.
+Documentation, community and source-code at http://crossbar.io
 
-import logger
-import platform
-import netservice
-import adminwebmodule
-import x509util
-import tlsctx
-import txutil
-import cryptoutil
-import database
-import dbexport
-import dbimport
-import config
-import clientfilter
-import bridge
-import customjson
-import service
-import servicefactory
-import cli
+Created by Tavendo GmbH. Get in contact at http://tavendo.com
+
+Open-source licensed under the GNU Affero General Public License version 3
+https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE
+"""
+
+__version__ = "0.9.4"

@@ -1,2 +1,7 @@
-appdata
+dist
+build
+*.egg-info
 cbdata
+.cbdata
+.crossbar
+*.db

@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2011-2014 Tavendo GmbH
+##  Copyright (C) 2011-2013 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -17,83 +17,67 @@
 ###############################################################################
 
 
-from __future__ import absolute_import
+from setuptools import setup, find_packages
 
-from distutils import log
+## keep in sync with LONGDESC in "crossbar/servicefactory.py"
+##
+LONGDESC = """
+Crossbar.io - The open-source multi-protocol application router.
+Documentation, community and source-code at http://crossbar.io
 
-try:
-   from ez_setup import use_setuptools
-   use_setuptools()
-except Exception as e:
-   log.warn("ez_setup failed: {0}".format(e))
-finally:
-   from setuptools import setup, find_packages
+Created by Tavendo GmbH. Get in contact at http://tavendo.com
 
+Open-source licensed under the GNU Affero General Public License version 3
+https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE
+"""
 
-install_requires = ['setuptools>=2.2',
-                    'zope.interface>=3.6.0',
-                    'twisted>=twisted-13.2',
-                    'autobahn[twisted]>=0.8.6',
-                    'cryptography>=0.3',
-                    'pyOpenSSL>=0.14',
-                    'psutil>=1.2.1',
-                    'msgpack-python>=0.4.1',
-                    'jinja2>=2.7.2']
-
-import sys
-if not sys.platform.startswith('win'):
-   install_requires.append('setproctitle>=1.1.8')
-
-
-
-## Get package version and docstring from crossbar/__init__.py
+## See: http://stackoverflow.com/a/7071358/884770
 ##
 import re
-PACKAGE_FILE = "crossbar/__init__.py"
-initfile = open(PACKAGE_FILE, "rt").read()
-
+VERSIONFILE="crossbar/_version.py"
+verstrline = open(VERSIONFILE, "rt").read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, initfile, re.M)
+mo = re.search(VSRE, verstrline, re.M)
 if mo:
    verstr = mo.group(1)
 else:
-   raise RuntimeError("Unable to find version string in {}.".format(PACKAGE_FILE))
-
-DSRE = r"__doc__ = \"\"\"(.*)\"\"\""
-mo = re.search(DSRE, initfile, re.DOTALL)
-if mo:
-   docstr = mo.group(1)
-else:
-   raise RuntimeError("Unable to find doc string in {}.".format(PACKAGE_FILE))
+   raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
 
 setup (
    name = 'crossbar',
    version = verstr,
-   description = 'Crossbar.io - Polyglot application router',
-   long_description = docstr,
+   description = 'Crossbar.io - multi-protocol application router',
+   long_description = LONGDESC,
    author = 'Tavendo GmbH',
    author_email = 'autobahnws@googlegroups.com',
    url = 'http://crossbar.io/',
    platforms = ('Any'),
-   install_requires = install_requires,
+   install_requires = ['setuptools>=1.4',
+                       'Twisted>=Twisted-13.2',
+                       'pyOpenSSL>=0.13.1',
+                       'pycrypto>=2.6', # FIXME: get rid of this
+                       'netaddr==0.7.10',
+                       'isodate>=0.4.9',
+                       'tldextract>=1.2.2',
+                       'Autobahn>=0.6.5',
+                       'jinja2>=2.7.1'],
    extras_require = {
       'oracle': ["cx_Oracle>=5.1.2"],
       'postgres': ["psycopg2>=2.5.1"]
    },
    entry_points = {
       'console_scripts': [
-         'crossbar = crossbar.node.cli:run'
+         'crossbar = crossbar.cli:run'
       ]},
-   #packages = ['crossbar'],
-   packages = find_packages(),
+   packages = find_packages() + ['twisted.plugins'],
    include_package_data = True,
    data_files = [('.', ['LICENSE'])],
    zip_safe = False,
    ## http://pypi.python.org/pypi?%3Aaction=list_classifiers
    ##
    classifiers = ["License :: OSI Approved :: GNU Affero General Public License v3",
-                  "Development Status :: 3 - Alpha",
+                  "Development Status :: 4 - Beta",
                   "Environment :: Console",
                   "Framework :: Twisted",
                   "Intended Audience :: Developers",
