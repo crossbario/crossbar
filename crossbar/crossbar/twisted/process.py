@@ -47,6 +47,7 @@ class _CustomWrapIProtocol(_WrapIProtocol):
          _WrapIProtocol.childDataReceived(self, childFD, data)
 
 
+
 class CustomProcessEndpoint(ProcessEndpoint):
    """
    A custom process endpoint with a settable name which will be used for logging.
@@ -68,7 +69,6 @@ class CustomProcessEndpoint(ProcessEndpoint):
          return defer.fail()
       else:
          return defer.succeed(proto)
-
 
 
 

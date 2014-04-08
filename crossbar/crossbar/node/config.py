@@ -121,8 +121,9 @@ def check_endpoint_listen_unix(endpoint):
    if not 'path' in endpoint:
       raise Exception("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
 
-   if type['path'] not in [str, unicode]:
-      raise Exception("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type['path']))
+   path = endpoint['path']
+   if type(path) not in [str, unicode]:
+      raise Exception("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type(path)))
 
    if 'backlog' in endpoint:
       check_endpoint_backlog(endpoint['backlog'])

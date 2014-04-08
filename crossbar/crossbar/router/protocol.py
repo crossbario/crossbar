@@ -28,8 +28,10 @@ from autobahn.twisted.websocket import WampWebSocketServerProtocol, \
                                        WampWebSocketClientProtocol, \
                                        WampWebSocketClientFactory
 
-from autobahn.twisted.rawsocket import WampRawSocketClientFactory, \
-                                       WampRawSocketServerFactory
+from autobahn.twisted.rawsocket import WampRawSocketServerProtocol, \
+                                       WampRawSocketServerFactory, \
+                                       WampRawSocketClientProtocol, \
+                                       WampRawSocketClientFactory
 
 from twisted.internet.defer import Deferred
 
@@ -552,7 +554,22 @@ class CrossbarRouterFactory(RouterFactory):
 
 
 
+
+class CrossbarWampRawSocketServerProtocol(WampRawSocketServerProtocol):
+
+   def connectionMade(self):
+      WampRawSocketServerProtocol.connectionMade(self)
+      ## transport authentication
+      ##
+      self._authid = None
+      self._authrole = None
+      self._authmethod = None
+
+
+
 class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
+
+   protocol = CrossbarWampRawSocketServerProtocol
 
    def __init__(self, factory, config):
 

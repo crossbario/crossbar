@@ -147,6 +147,7 @@ class NodeControllerSession(ApplicationSession):
 
       ## map of guest processes: PID -> GuestProcess
       self._guests = {}
+      self._guest_no = 0
 
 
    def onConnect(self):
@@ -210,8 +211,7 @@ class NodeControllerSession(ApplicationSession):
       Stop this node.
       """
       log.msg("Stopping node (restart = {}) ..".format(restart))
-      from twisted.internet import reactor
-      reactor.stop()
+      self._node._reactor.stop()
 
 
 
@@ -385,6 +385,13 @@ class NodeControllerSession(ApplicationSession):
 
          def __init__(self):
             self._pid = None
+            self._name = None
+
+         def _log(self, data):
+            for msg in data.split('\n'):
+               msg = msg.strip()
+               if msg != "":
+                  log.msg(msg, system = "{:<10} {:>6}".format(self._name, self._pid))
 
          def connectionMade(self):
             if 'stdin' in config and config['stdin'] == 'config' and 'config' in config:
@@ -395,19 +402,11 @@ class NodeControllerSession(ApplicationSession):
 
          def outReceived(self, data):
             if 'stdout' in config and config['stdout'] == 'log':
-               try:
-                  data = str(data).strip()
-               except:
-                  data = "{} bytes".format(len(data))
-               log.msg("Worker {} (stdout): {}".format(self._pid, data))
+               self._log(data)
 
          def errReceived(self, data):
             if 'stderr' in config and config['stderr'] == 'log':
-               try:
-                  data = str(data).strip()
-               except:
-                  data = "{} bytes".format(len(data))
-               log.msg("Worker {} (stderr): {}".format(self._pid, data))
+               self._log(data)
 
          def inConnectionLost(self):
             pass
@@ -423,12 +422,18 @@ class NodeControllerSession(ApplicationSession):
 
          def processEnded(self, reason):
             if isinstance(reason.value,  ProcessDone):
-               log.msg("Worker {}: Ended cleanly.".format(self._pid))
+               log.msg("Guest {}: Ended cleanly.".format(self._pid))
             elif isinstance(reason.value, ProcessTerminated):
-               log.msg("Worker {}: Ended with error {}".format(self._pid, reason.value.exitCode))
+               log.msg("Guest {}: Ended with error {}".format(self._pid, reason.value.exitCode))
             else:
                ## should not arrive here
                pass
+
+
+      class GuestClientFactory(protocol.Factory):
+
+         protocol = GuestClientProtocol
+
 
       exe = config['executable']
 
@@ -443,18 +448,52 @@ class NodeControllerSession(ApplicationSession):
       ready = Deferred()
       exit = Deferred()
 
-      proto = GuestClientProtocol()
-      try:
-         trnsp = self._node.reactor.spawnProcess(proto, exe, args, path = workdir, env = os.environ)
-      except Exception as e:
-         log.msg("Worker: Program could not be started - {}".format(e))
-         ready.errback(e)
+
+      if False:
+         self._guest_no += 1
+
+         factory = GuestClientFactory()
+
+         ep = CustomProcessEndpoint(self._node._reactor,
+                  exe,
+                  args,
+                  name = "Guest {}".format(self._guest_no),
+                  env = os.environ)
+
+         ## now actually spawn the worker ..
+         ##
+         d = ep.connect(factory)
+
+         def onconnect(proto):
+            pid = proto.transport.pid
+            proto._pid = pid
+            self._guests[pid] = GuestProcess(pid, ready, exit, proto = proto)
+            log.msg("Guest {}: Program started.".format(pid))
+            ready.callback(pid)
+
+         def onerror(err):
+            log.msg("Guest: Program could not be started - {}".format(err.value))
+            ready.errback(err)
+
+         d.addCallbacks(onconnect, onerror)
+
       else:
-         pid = trnsp.pid
-         proto._pid = pid
-         self._guests[pid] = GuestProcess(pid, ready, exit, proto = proto)
-         log.msg("Worker {}: Program started.".format(pid))
-         ready.callback(pid)
+         self._guest_no += 1
+
+         proto = GuestClientProtocol()
+         proto._name = "Guest {}".format(self._guest_no)
+
+         try:
+            trnsp = self._node._reactor.spawnProcess(proto, exe, args, path = workdir, env = os.environ)
+         except Exception as e:
+            log.msg("Guest: Program could not be started - {}".format(e))
+            ready.errback(e)
+         else:
+            pid = trnsp.pid
+            proto._pid = pid
+            self._guests[pid] = GuestProcess(pid, ready, exit, proto = proto)
+            log.msg("Guest {}: Program started.".format(pid))
+            ready.callback(pid)
 
       return ready
 
