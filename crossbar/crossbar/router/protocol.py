@@ -28,6 +28,9 @@ from autobahn.twisted.websocket import WampWebSocketServerProtocol, \
                                        WampWebSocketClientProtocol, \
                                        WampWebSocketClientFactory
 
+from autobahn.twisted.rawsocket import WampRawSocketClientFactory, \
+                                       WampRawSocketServerFactory
+
 from twisted.internet.defer import Deferred
 
 import json
@@ -238,7 +241,6 @@ def set_websocket_options(factory, options):
 
 
 
-
 class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
    protocol = CrossbarWampWebSocketServerProtocol
@@ -312,7 +314,6 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
       ## set WebSocket options
       set_websocket_options(self, options)
-
 
 
 
@@ -547,3 +548,39 @@ class CrossbarRouterFactory(RouterFactory):
    def __init__(self, options = None, debug = False):
       options = types.RouterOptions(uri_check = types.RouterOptions.URI_CHECK_LOOSE)
       RouterFactory.__init__(self, options, debug)
+
+
+
+
+class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
+
+   def __init__(self, factory, config):
+
+      ## transport configuration
+      self._config = config
+
+      ## WAMP serializer
+      ##
+      serid = config.get('serializer', 'msgpack')
+
+      if serid == 'json':
+         ## try JSON WAMP serializer
+         try:
+            from autobahn.wamp.serializer import JsonSerializer
+            serializer = JsonSerializer()
+         except ImportError:
+            raise Exception("could not load WAMP-JSON serializer")
+
+      elif serid == 'msgpack':
+         ## try MsgPack WAMP serializer
+         try:
+            from autobahn.wamp.serializer import MsgPackSerializer
+            serializer = MsgPackSerializer()
+            serializer._serializer.ENABLE_V5 = False ## FIXME
+         except ImportError:
+            raise Exception("could not load WAMP-MsgPack serializer")
+
+      else:
+         raise Exception("invalid WAMP serializer '{}'".format(serid))
+
+      WampRawSocketServerFactory.__init__(self, factory, serializer)

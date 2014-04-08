@@ -371,16 +371,42 @@ def check_transport_websocket(transport):
 
 
 
+def check_transport_rawsocket(transport):
+   for k in transport:
+      if k not in ['type', 'endpoint', 'serializer', 'debug']:
+         raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
+
+   if not 'endpoint' in transport:
+      raise Exception("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
+
+   check_endpoint_listen(transport['endpoint'])
+
+   if not 'serializer' in transport:
+      raise Exception("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
+
+   serializer = transport['serializer']
+   if type(serializer) not in [str, unicode]:
+      raise Exception("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
+
+   if 'debug' in transport:
+      debug = transport['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+
+
 def check_transport(transport):
    if type(transport) != dict:
       raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
 
    ttype = transport['type']
-   if ttype not in ['web', 'websocket', 'websocket.testee']:
+   if ttype not in ['web', 'websocket', 'websocket.testee', 'rawsocket']:
       raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
    if ttype in ['websocket', 'websocket.testee']:
       check_transport_websocket(transport)
+   elif ttype == 'rawsocket':
+      check_transport_rawsocket(transport)
    elif ttype == 'web':
       check_transport_web(transport)
    else:

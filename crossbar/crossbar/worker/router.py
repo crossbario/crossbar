@@ -33,7 +33,8 @@ from autobahn.wamp.exception import ApplicationError
 from crossbar.router.session import CrossbarRouterFactory
 
 from crossbar.router.protocol import CrossbarRouterSessionFactory, \
-                                     CrossbarWampWebSocketServerFactory
+                                     CrossbarWampWebSocketServerFactory, \
+                                     CrossbarWampRawSocketServerFactory
 
 from crossbar.worker.testee import TesteeServerFactory
 
@@ -358,13 +359,20 @@ class RouterModule:
 
       ## check for valid transport type
       ##
-      if not config['type'] in ['websocket', 'websocket.testee', 'web']:
+      if not config['type'] in ['websocket', 'websocket.testee', 'web', 'rawsocket']:
          raise ApplicationError("crossbar.error.invalid_transport", "Unknown transport type '{}'".format(config['type']))
+
+
+      ## standalone WAMP-RawSocket transport
+      ##
+      if config['type'] == 'rawsocket':
+
+         transport_factory = CrossbarWampRawSocketServerFactory(router.session_factory, config)
 
 
       ## standalone WAMP-WebSocket transport
       ##
-      if config['type'] == 'websocket':
+      elif config['type'] == 'websocket':
 
          transport_factory = CrossbarWampWebSocketServerFactory(router.session_factory, config, self._templates)
 
