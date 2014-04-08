@@ -154,7 +154,9 @@ def check_websocket_options(options):
       raise Exception("WebSocket options must be a dictionary ({} encountered)".format(type(options)))
 
    for k in options:
-      if k not in ['external_port',
+      if k not in [
+                   ## WebSocket options
+                   'external_port',
                    'enable_hixie76',
                    'enable_hybi10',
                    'enable_rfc6455',
@@ -172,6 +174,9 @@ def check_websocket_options(options):
                    'echo_close_codereason',
                    'tcp_nodelay',
                    'compression',
+
+                   ## WAMP-WebSocket options
+                   'serializers'
                    ]:
          raise Exception("encountered unknown attribute '{}' in WebSocket options".format(k))
 
@@ -181,7 +186,7 @@ def check_websocket_options(options):
 
 def check_transport_web_path_service_websocket(config):
    if 'options' in config:
-      check_websocket_options(config[options])
+      check_websocket_options(config['options'])
 
    if 'debug' in config:
       debug = config['debug']

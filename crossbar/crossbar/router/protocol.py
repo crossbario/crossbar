@@ -257,8 +257,44 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
       server = "Crossbar/{}".format(crossbar.__version__)
       externalPort = options.get('external_port', None)
 
+      ## explicit list of WAMP serializers
+      ##
+      if 'serializers' in options:
+         serializers = []
+         sers = set(options['serializers'])
+
+         if 'json' in sers:
+            ## try JSON WAMP serializer
+            try:
+               from autobahn.wamp.serializer import JsonSerializer
+               serializers.append(JsonSerializer())
+            except ImportError:
+               print("Warning: could not load WAMP-JSON serializer")
+            else:
+               sers.discard('json')
+
+         if 'msgpack' in sers:
+            ## try MsgPack WAMP serializer
+            try:
+               from autobahn.wamp.serializer import MsgPackSerializer
+               serializers.append(MsgPackSerializer())
+            except ImportError:
+               print("Warning: could not load WAMP-MsgPack serializer")
+            else:
+               sers.discard('msgpack')
+
+         if not serializers:
+            raise Exception("no valid WAMP serializers specified")
+
+         if len(sers) > 0:
+            raise Exception("invalid WAMP serializers specified: {}".format(sers))
+
+      else:
+         serializers = None
+
       WampWebSocketServerFactory.__init__(self,
                                           factory,
+                                          serializers = serializers,
                                           url = config.get('url', None),
                                           server = server,
                                           externalPort = externalPort,
