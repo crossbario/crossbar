@@ -394,18 +394,32 @@ class NodeControllerSession(ApplicationSession):
                   log.msg(msg, system = "{:<10} {:>6}".format(self._name, self._pid))
 
          def connectionMade(self):
-            if 'stdin' in config and config['stdin'] == 'config' and 'config' in config:
-               ## write process config from configuration to stdin
-               ## of the forked process and close stdin
-               self.transport.write(json.dumps(config['config']))
-               self.transport.closeStdin()
+            if 'stdout' in config and config['stdout'] == 'close':
+               self.transport.closeStdout()
+
+            if 'stderr' in config and config['stderr'] == 'close':
+               self.transport.closeStderr()
+
+            if 'stdin' in config:
+               if config['stdin'] == 'close':
+                  self.transport.closeStdin()
+               else:
+                  if config['stdin']['type'] == 'json':
+                     self.transport.write(json.dumps(config['stdin']['value']))
+                  elif config['stdin']['type'] == 'msgpack':
+                     pass ## FIXME
+                  else:
+                     raise Exception("logic error")
+
+                  if config['stdin'].get('close', True):
+                     self.transport.closeStdin()
 
          def outReceived(self, data):
-            if 'stdout' in config and config['stdout'] == 'log':
+            if config.get('stdout', None) == 'log':
                self._log(data)
 
          def errReceived(self, data):
-            if 'stderr' in config and config['stderr'] == 'log':
+            if config.get('stderr', None) == 'log':
                self._log(data)
 
          def inConnectionLost(self):

@@ -614,7 +614,46 @@ def check_worker(worker, silence = False):
 
 
 def check_guest(guest, silence = False):
-   pass
+   for k in guest:
+      if k not in ['type',
+                   'executable',
+                   'stdin',
+                   'stdout',
+                   'stderr',
+                   'arguments',
+                   'workdir']:
+         raise Exception("encountered unknown attribute '{}' in guest process configuration".format(k))
+
+   check_dict_args({
+      'type': (True, [str, unicode]),
+      'executable': (True, [str, unicode]),
+      'stdin': (False, [str, unicode, dict]),
+      'stdout': (False, [str, unicode]),
+      'stderr': (False, [str, unicode]),
+      'arguments': (False, [list]),
+      'workdir': (False, [str, unicode]),
+      }, guest, "Guest process configuration")
+
+   for s in ['stdout', 'stderr']:
+      if s in guest:
+         if guest[s] not in ['close', 'log', 'drop']:
+            raise Exception("invalid value '{}' for '{}' in guest process configuration".format(guest[s], s))
+
+   if 'stdin' in guest:
+      if type(guest['stdin']) == dict:
+         check_dict_args({
+            'type': (True, [str, unicode]),
+            'value': (True, None),
+            'close': (False, [bool]),
+            }, guest['stdin'], "Guest process 'stdin' configuration")
+      else:
+         if guest['stdin'] not in ['close']:
+            raise Exception("invalid value '{}' for 'stdin' in guest process configuration".format(guest['stdin']))
+
+   if 'arguments' in guest:
+      for arg in guest['arguments']:
+         if type(arg) not in [str, unicode]:
+            raise Exception("invalid type {} for argument in 'arguments' in guest process configuration".format(type(arg)))
 
 
 
