@@ -125,7 +125,7 @@ class RouterModule:
       ##
       templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
       if self.debug:
-         log.msg("Worker {}: Using Crossbar.io web templates from {}".format(self._pid, templates_dir))
+         log.msg("Using Crossbar.io web templates from {}".format(templates_dir))
       self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
 
       self._session = None
