@@ -43,11 +43,10 @@ from autobahn import util
 from autobahn.websocket import http
 from autobahn.websocket.compress import *
 
-from autobahn.wamp.router import RouterFactory
-from autobahn.twisted.wamp import RouterSessionFactory
-from autobahn.wamp.protocol import RouterSession
 from autobahn.wamp import types
 from autobahn.wamp import message
+from autobahn.wamp.router import RouterFactory
+from autobahn.twisted.wamp import RouterSession, RouterSessionFactory
 
 import crossbar
 
@@ -247,7 +246,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
    protocol = CrossbarWampWebSocketServerProtocol
 
-   def __init__(self, factory, config, templates):
+   def __init__(self, factory, config, templates, debug = False):
       """
       Ctor.
 
@@ -256,6 +255,8 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
       :param config: Crossbar transport configuration.
       :type config: dict 
       """
+      self.debug = config.get('debug', debug)
+
       options = config.get('options', {})
 
       server = "Crossbar/{}".format(crossbar.__version__)
@@ -302,7 +303,8 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
                                           url = config.get('url', None),
                                           server = server,
                                           externalPort = externalPort,
-                                          debug = config.get('debug', False))
+                                          debug = self.debug,
+                                          debug_wamp = self.debug)
 
       ## transport configuration
       self._config = config
@@ -515,7 +517,7 @@ class CrossbarRouterSession(RouterSession):
       ## FIXME: dispatch metaevent
       #self.publish('wamp.metaevent.session.on_join', evt)
 
-      msg = message.Publish(0, 'wamp.metaevent.session.on_join', [self._session_details])
+      msg = message.Publish(0, u'wamp.metaevent.session.on_join', [self._session_details])
       self._router.process(self, msg)
 
 
@@ -524,12 +526,12 @@ class CrossbarRouterSession(RouterSession):
       ## FIXME: dispatch metaevent
       #self.publish('wamp.metaevent.session.on_join', evt)
 
-      msg = message.Publish(0, 'wamp.metaevent.session.on_leave', [self._session_details])
+      msg = message.Publish(0, u'wamp.metaevent.session.on_leave', [self._session_details])
       self._router.process(self, msg)
       self._session_details = None
 
 
-      if details.reason == "wamp.close.logout":
+      if details.reason == u"wamp.close.logout":
          if self._transport._cbtid:
             cookie = self._transport.factory._cookies[self._transport._cbtid]
             cookie['authid'] = None

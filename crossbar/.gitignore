@@ -3,5 +3,5 @@ build
 *.egg-info
 cbdata
 .cbdata
-.crossbar
+.crossbar*
 *.db
