@@ -240,6 +240,8 @@ def run():
    options.cbdir = os.path.abspath(options.cbdir)
    log.msg("Starting from node directory {}.".format(options.cbdir))
 
+   os.chdir(options.cbdir)
+
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
