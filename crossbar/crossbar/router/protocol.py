@@ -130,6 +130,11 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
             self._authid = self.factory._cookies[self._cbtid]['authid']
             self._authrole = self.factory._cookies[self._cbtid]['authrole']
             self._authmethod = "cookie.{}".format(self.factory._cookies[self._cbtid]['authmethod'])
+            if self.debug:
+               log.msg("Authenticating client via cookie")
+         else:
+            if self.debug:
+               log.msg("Cookie-based authentication disabled")
 
       else:
 
@@ -351,7 +356,7 @@ class CrossbarRouterSession(RouterSession):
    def onHello(self, realm, details):
 
       if self._transport._authid is not None:
-         ## already authenticated ..
+         ## already authenticated .. e.g. via cookie
          ##
          return types.Accept(authid = self._transport._authid,
                              authrole = self._transport._authrole,
