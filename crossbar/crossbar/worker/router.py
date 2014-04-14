@@ -30,10 +30,10 @@ from twisted.internet.endpoints import serverFromString
 
 from autobahn.wamp.exception import ApplicationError
 
-from crossbar.router.session import CrossbarRouterFactory
+from crossbar.router.session import CrossbarRouterSessionFactory, \
+                                    CrossbarRouterFactory
 
-from crossbar.router.protocol import CrossbarRouterSessionFactory, \
-                                     CrossbarWampWebSocketServerFactory, \
+from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
                                      CrossbarWampRawSocketServerFactory
 
 from crossbar.worker.testee import TesteeServerFactory
@@ -68,6 +68,10 @@ from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
 
 
+EXTRA_MIME_TYPES = {
+   '.svg': 'image/svg+xml',
+   '.jgz': 'text/javascript'
+}
 
 
 class RouterTransport:
@@ -438,6 +442,10 @@ class RouterModule:
             else:
                root = FileNoListing(root_dir)
 
+            ## set extra MIME types
+            ##
+            root.contentTypes.update(EXTRA_MIME_TYPES)
+
             ## render 404 page on any concrete path not found
             ##
             root.childNotFound = Resource404(self._templates, root_dir)
@@ -552,6 +560,10 @@ class RouterModule:
                      static_resource = File(static_dir)
                   else:
                      static_resource = FileNoListing(static_dir)
+
+                  ## set extra MIME types
+                  ##
+                  static_resource.contentTypes.update(EXTRA_MIME_TYPES)
 
                   ## render 404 page on any concrete path not found
                   ##
