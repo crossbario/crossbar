@@ -802,10 +802,13 @@ class Node:
 
       log.msg("Loading from local config '{}' ..".format(configfile))
 
-      config = check_config_file(configfile, silence = True)
+      try:
+         config = check_config_file(configfile, silence = True)
+      except Exception as e:
+         log.msg("Invalid configuration: {}".format(e))
+      else:
+         ## startup the node from configuration file
+         ##
+         yield self._node_controller_session.run_node_config(config)
 
-      ## startup the node from configuration file
-      ##
-      yield self._node_controller_session.run_node_config(config)
-
-      log.msg("Local configuration loaded.")
+         log.msg("Local configuration loaded.")

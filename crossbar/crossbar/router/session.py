@@ -85,7 +85,7 @@ class CrossbarRouterSession(RouterSession):
 
             ## iterate over authentication methods announced by client ..
             ##
-            for authmethod in details.authmethods:
+            for authmethod in details.authmethods or ["anonymous"]:
 
                ## .. and if the configuration has an entry for the authmethod
                ## announced, process ..
