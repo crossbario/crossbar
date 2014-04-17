@@ -33,7 +33,7 @@ finally:
 install_requires = ['setuptools>=2.2',
                     'zope.interface>=3.6.0',
                     'twisted>=twisted-13.2',
-                    'autobahn[twisted]>=0.8.7',
+                    'autobahn[twisted]>=0.8.8',
                     'cryptography>=0.3',
                     'pyOpenSSL>=0.14',
                     'psutil>=1.2.1',
