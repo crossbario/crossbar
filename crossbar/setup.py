@@ -34,8 +34,6 @@ install_requires = ['setuptools>=2.2',
                     'zope.interface>=3.6.0',
                     'twisted>=twisted-13.2',
                     'autobahn[twisted]>=0.8.8',
-                    'cryptography>=0.3',
-                    'pyOpenSSL>=0.14',
                     'psutil>=1.2.1',
                     'msgpack-python>=0.4.1',
                     'jinja2>=2.7.2']
@@ -78,6 +76,7 @@ setup (
    platforms = ('Any'),
    install_requires = install_requires,
    extras_require = {
+      'tls': ['cryptography>=0.3', 'pyOpenSSL>=0.14'],
       'oracle': ["cx_Oracle>=5.1.2"],
       'postgres': ["psycopg2>=2.5.1"]
    },

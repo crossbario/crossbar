@@ -678,10 +678,15 @@ class RouterModule:
       ## create transport endpoint / listening port from transport factory
       ##
       if True:
-         from twisted.internet.endpoints import TCP4ServerEndpoint, SSL4ServerEndpoint, UNIXServerEndpoint
+         from twisted.internet.endpoints import TCP4ServerEndpoint, UNIXServerEndpoint
          from twisted.internet.endpoints import serverFromString
          
-         from crossbar.twisted.tlsctx import TlsServerContextFactory
+         try:
+            from twisted.internet.endpoints import SSL4ServerEndpoint
+            from crossbar.twisted.tlsctx import TlsServerContextFactory
+            HAS_TLS = True
+         except:
+            HAS_TLS = False
 
          #server = serverFromString(reactor, "ssl:8080:privateKey=.crossbar/server.key:certKey=.crossbar/server.crt")
 
@@ -705,32 +710,36 @@ class RouterModule:
                backlog = int(endpoint_config.get('backlog', 50))
 
                if 'tls' in endpoint_config:
-
-                  key_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['key']))
-                  cert_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['certificate']))
-
-                  with open(key_filepath) as key_file:
-                     with open(cert_filepath) as cert_file:
-
-                        if 'dhparam' in endpoint_config['tls']:
-                           dhparam_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['dhparam']))
-                        else:
-                           dhparam_filepath = None
-
-                        ## create a TLS context factory
-                        ##
-                        key = key_file.read()
-                        cert = cert_file.read()
-                        ciphers = endpoint_config['tls'].get('ciphers')
-                        ctx = TlsServerContextFactory(key, cert, ciphers = ciphers, dhParamFilename = dhparam_filepath)
-
-                  ## create a TLS server endpoint
-                  ##
-                  server = SSL4ServerEndpoint(reactor,
-                                              port,
-                                              ctx,
-                                              backlog = backlog,
-                                              interface = interface)
+                  
+                  if HAS_TLS:
+                     key_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['key']))
+                     cert_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['certificate']))
+   
+                     with open(key_filepath) as key_file:
+                        with open(cert_filepath) as cert_file:
+   
+                           if 'dhparam' in endpoint_config['tls']:
+                              dhparam_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['dhparam']))
+                           else:
+                              dhparam_filepath = None
+   
+                           ## create a TLS context factory
+                           ##
+                           key = key_file.read()
+                           cert = cert_file.read()
+                           ciphers = endpoint_config['tls'].get('ciphers')
+                           ctx = TlsServerContextFactory(key, cert, ciphers = ciphers, dhParamFilename = dhparam_filepath)
+   
+                     ## create a TLS server endpoint
+                     ##
+                     server = SSL4ServerEndpoint(reactor,
+                                                 port,
+                                                 ctx,
+                                                 backlog = backlog,
+                                                 interface = interface)
+                  else:
+                     raise ApplicationError("crossbar.error.invalid_configuration", "TLS transport requested, but TLS packages not available")
+                     
                else:
                   ## create a non-TLS server endpoint
                   ##

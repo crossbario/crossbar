@@ -124,11 +124,15 @@ class ContainerModule:
       ## start a WebSocket client from an endpoint
       ##
       from twisted.internet import reactor
-      from twisted.internet.endpoints import TCP4ClientEndpoint, SSL4ClientEndpoint, UNIXClientEndpoint
+      from twisted.internet.endpoints import TCP4ClientEndpoint, UNIXClientEndpoint
       from twisted.internet.endpoints import clientFromString
 
-      from crossbar.twisted.tlsctx import TlsClientContextFactory
-
+      try:
+         from twisted.internet.endpoints import SSL4ClientEndpoint
+         from crossbar.twisted.tlsctx import TlsClientContextFactory
+         HAS_TLS = True
+      except:
+         HAS_TLS = False
 
       if False:
          self._client = clientFromString(reactor, router['endpoint'])
