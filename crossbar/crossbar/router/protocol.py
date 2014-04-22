@@ -36,6 +36,11 @@ import json
 import urllib
 import Cookie
 
+import os
+import sqlite3
+from twisted.enterprise import adbapi
+
+
 from autobahn import util
 from autobahn.websocket import http
 from autobahn.websocket.compress import *
@@ -134,6 +139,9 @@ def set_websocket_options(factory, options):
 
 
 
+import traceback
+
+
 class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
    ## authid -> cookie -> set(connection)
@@ -142,92 +150,66 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
       protocol, headers = WampWebSocketServerProtocol.onConnect(self, request)
 
-      self._origin = request.origin
+      try:
 
-      ## transport authentication
-      ##
-      self._authid = None
-      self._authrole = None
-      self._authmethod = None
+         self._origin = request.origin
 
-      ## cookie tracking
-      ##
-      self._cbtid = None
-      if 'cookie' in self.factory._config:
-
-         cookie_config = self.factory._config['cookie']
-         cookie_id_field = cookie_config.get('name', 'cbtid')
-         cookie_id_field_length = int(cookie_config.get('length', 24))
-
-         ## see if there already is a cookie set ..
-         if request.headers.has_key('cookie'):
-            try:
-               cookie = Cookie.SimpleCookie()
-               cookie.load(str(request.headers['cookie']))
-            except Cookie.CookieError:
-               pass
-            else:
-               if cookie.has_key(cookie_id_field):
-                  cbtid = cookie[cookie_id_field].value
-                  if self.factory._cookies.has_key(cbtid):
-                     self._cbtid = cbtid
-                     if self.debug:
-                        log.msg("Cookie already set: %s" % self._cbtid)
-
-         ## if no cookie is set, create a new one ..
-         if self._cbtid is None:
-
-            self._cbtid = util.newid(cookie_id_field_length)
-
-            ## http://tools.ietf.org/html/rfc6265#page-20
-            ## 0: delete cookie
-            ## -1: preserve cookie until browser is closed
-
-            max_age = cookie_config.get('max_age', 86400 * 30 * 12)
-
-            cbtData = {'created': util.utcnow(),
-                       'authid': None,
-                       'authrole': None,
-                       'authmethod': None,
-                       'max_age': max_age,
-                       'connections': set()}
-
-            self.factory._cookies[self._cbtid] = cbtData
-
-            ## do NOT add the "secure" cookie attribute! "secure" refers to the
-            ## scheme of the Web page that triggered the WS, not WS itself!!
-            ##
-            headers['Set-Cookie'] = '%s=%s;max-age=%d' % (cookie_id_field, self._cbtid, max_age)
-            if self.debug:
-               log.msg("Setting new cookie: %s" % headers['Set-Cookie'])
-
-         ## add this WebSocket connection to the set of connections
-         ## associated with the same cookie
-         self.factory._cookies[self._cbtid]['connections'].add(self)
-
-         if self.debug:
-            log.msg("Cookie tracking enabled on WebSocket connection {}".format(self))
-
-         ## if cookie-based authentication is enabled, set auth info from cookie store
+         ## transport authentication
          ##
-         if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
-            self._authid = self.factory._cookies[self._cbtid]['authid']
-            self._authrole = self.factory._cookies[self._cbtid]['authrole']
-            self._authmethod = "cookie.{}".format(self.factory._cookies[self._cbtid]['authmethod'])
+         self._authid = None
+         self._authrole = None
+         self._authmethod = None
+
+         ## cookie tracking
+         ##
+         self._cbtid = None
+
+         if self.factory._cookiestore:
+
+            self._cbtid = self.factory._cookiestore.parse(request.headers)
+
+            ## if no cookie is set, create a new one ..
+            if self._cbtid is None:
+
+               self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
+
+               if self.debug:
+                  log.msg("Setting new cookie: %s" % headers['Set-Cookie'])
+
+            else:
+               if self.debug:
+                  log.msg("Cookie already set")
+
+            ## add this WebSocket connection to the set of connections
+            ## associated with the same cookie
+            self.factory._cookiestore.addProto(self._cbtid, self)
+
             if self.debug:
-               log.msg("Authenticating client via cookie")
+               log.msg("Cookie tracking enabled on WebSocket connection {}".format(self))
+
+            ## if cookie-based authentication is enabled, set auth info from cookie store
+            ##
+            if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
+
+               self._authid, self._authrole, self._authmethod = self.factory._cookiestore.getAuth(self._cbtid)
+
+               if self.debug:
+                  log.msg("Authenticated client via cookie", self._authid, self._authrole, self._authmethod)
+            else:
+               if self.debug:
+                  log.msg("Cookie-based authentication disabled")
+
          else:
+
             if self.debug:
-               log.msg("Cookie-based authentication disabled")
+               log.msg("Cookie tracking disabled on WebSocket connection {}".format(self))
 
-      else:
+         ## accept the WebSocket connection, speaking subprotocol `protocol`
+         ## and setting HTTP headers `headers`
+         return (protocol, headers)
 
-         if self.debug:
-            log.msg("Cookie tracking disabled on WebSocket connection {}".format(self))
-
-      ## accept the WebSocket connection, speaking subprotocol `protocol`
-      ## and setting HTTP headers `headers`
-      return (protocol, headers)
+      except Exception as e:
+         traceback.print_exc()
 
 
    def sendServerStatus(self, redirectUrl = None, redirectAfter = 0):
@@ -249,7 +231,246 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
       ## remove this WebSocket connection from the set of connections
       ## associated with the same cookie
       if self._cbtid:
-         self.factory._cookies[self._cbtid]['connections'].discard(self)
+         self.factory._cookiestore.dropProto(self._cbtid, self)
+
+
+
+
+
+class CookieStore:
+   """
+   A cookie store.
+   """
+
+   def __init__(self, config, debug = False):
+      """
+      Ctor.
+
+      :param config: The cookie configuration.
+      :type config: dict
+      """
+      self.debug = debug
+      if self.debug:
+         log.msg("CookieStore.__init__()", config)
+
+      self._config = config      
+      self._cookie_id_field = config.get('name', 'cbtid')
+      self._cookie_id_field_length = int(config.get('length', 24))
+      self._cookie_max_age = int(config.get('max_age', 86400 * 30 * 12))
+
+      self._cookies = {}
+
+
+   def parse(self, headers):
+      """
+      Parse HTTP header for cookie. If cookie is found, return cookie ID,
+      else return None.
+      """
+      if self.debug:
+         log.msg("CookieStore.parse()", headers)
+
+      ## see if there already is a cookie set ..
+      if 'cookie' in headers:
+         try:
+            cookie = Cookie.SimpleCookie()
+            cookie.load(str(headers['cookie']))
+         except Cookie.CookieError:
+            pass
+         else:
+            if self._cookie_id_field in cookie:
+               id = cookie[self._cookie_id_field].value
+               if id in self._cookies:
+                  return id
+      return None
+
+
+   def create(self):
+      """
+      Create a new cookie, returning the cookie ID and cookie header value.
+      """
+      if self.debug:
+         log.msg("CookieStore.create()")
+
+      ## http://tools.ietf.org/html/rfc6265#page-20
+      ## 0: delete cookie
+      ## -1: preserve cookie until browser is closed
+
+      id = util.newid(self._cookie_id_field_length)
+
+      cbtData = {'created': util.utcnow(),
+                 'authid': None,
+                 'authrole': None,
+                 'authmethod': None,
+                 'max_age': self._cookie_max_age,
+                 'connections': set()}
+
+      self._cookies[id] = cbtData
+
+      ## do NOT add the "secure" cookie attribute! "secure" refers to the
+      ## scheme of the Web page that triggered the WS, not WS itself!!
+      ##
+      return id, '%s=%s;max-age=%d' % (self._cookie_id_field, id, cbtData['max_age'])
+
+
+   def exists(self, id):
+      """
+      Check if cookie with given ID exists.
+      """
+      if self.debug:
+         log.msg("CookieStore.exists()", id)
+
+      return id in self._cookies
+
+
+   def getAuth(self, id):
+      """
+      Return `(authid, authrole, authmethod)` triple given cookie ID.
+      """
+      if self.debug:
+         log.msg("CookieStore.getAuth()", id)
+
+      if id in self._cookies:
+         c = self._cookies[id]
+         return c['authid'], c['authrole'], c['authmethod']
+      else:
+         return None, None, None
+
+
+   def setAuth(self, id, authid, authrole, authmethod):
+      """
+      Set `(authid, authrole, authmethod)` triple for given cookie ID.
+      """
+      if id in self._cookies:
+         c = self._cookies[id]
+         c['authid'] = authid
+         c['authrole'] = authrole
+         c['authmethod'] = authmethod
+
+
+   def addProto(self, id, proto):
+      """
+      Add given WebSocket connection to the set of connections associated
+      with the cookie having the given ID. Return the new count of
+      connections associated with the cookie.
+      """
+      if self.debug:
+         log.msg("CookieStore.addProto()", id, proto)
+
+      if id in self._cookies:
+         self._cookies[id]['connections'].add(proto)
+         return len(self._cookies[id]['connections'])
+      else:
+         return 0
+
+
+   def dropProto(self, id, proto):
+      """
+      Remove given WebSocket connection from the set of connections associated
+      with the cookie having the given ID. Return the new count of
+      connections associated with the cookie.
+      """
+      if self.debug:
+         log.msg("CookieStore.dropProto()", id, proto)
+
+      ## remove this WebSocket connection from the set of connections
+      ## associated with the same cookie
+      if id in self._cookies:
+         self._cookies[id]['connections'].discard(proto)
+         return len(self._cookies[id]['connections'])
+      else:
+         return 0
+
+
+   def getProtos(self, id):
+      """
+      Get all WebSocket connections currently associated with the cookie.
+      """
+      if id in self._cookies:
+         return self._cookies[id]['connections']
+      else:
+         return []
+
+
+
+
+class PersistentCookieStore(CookieStore):
+   """
+   A persistent cookie store.
+   """
+
+   def __init__(self, dbfile, config, debug = False):
+      CookieStore.__init__(self, config, debug)
+      self._dbfile = dbfile
+
+      ## initialize database and create database connection pool
+      self._init_db()
+      self._dbpool = adbapi.ConnectionPool('sqlite3', self._dbfile, check_same_thread = False)
+
+
+   def _init_db(self):
+      if not os.path.isfile(self._dbfile):
+
+         db = sqlite3.connect(self._dbfile)
+         cur = db.cursor()
+
+         cur.execute("""
+                     CREATE TABLE cookies (
+                        id                TEXT     NOT NULL,
+                        created           TEXT     NOT NULL,
+                        max_age           INTEGER  NOT NULL,
+                        authid            TEXT,
+                        authrole          TEXT,
+                        authmethod        TEXT,
+                        PRIMARY KEY (id))
+                     """)
+
+         log.msg("Cookie DB created.")
+
+      else:
+         log.msg("Cookie DB already exists.")
+
+         db = sqlite3.connect(self._dbfile)
+         cur = db.cursor()
+
+         cur.execute("SELECT id, created, max_age, authid, authrole, authmethod FROM cookies")
+         n = 0
+         for row in cur.fetchall():
+            id = row[0]
+            cbtData = {'created': row[1],
+                       'max_age': row[2],
+                       'authid': row[3],
+                       'authrole': row[4],
+                       'authmethod': row[5],
+                       'connections': set()}
+            self._cookies[id] = cbtData
+            n += 1
+         log.msg("Loaded {} cookies into cache.".format(n))
+
+
+   def create(self):
+      id, header = CookieStore.create(self)
+
+      def run(txn):
+         c = self._cookies[id]
+         txn.execute("INSERT INTO cookies (id, created, max_age, authid, authrole, authmethod) VALUES (?, ?, ?, ?, ?, ?)",
+            [id, c['created'], c['max_age'], c['authid'], c['authrole'], c['authmethod']])
+         log.msg("Cookie {} stored".format(id))
+
+      self._dbpool.runInteraction(run)
+
+      return id, header
+
+
+   def setAuth(self, id, authid, authrole, authmethod):
+      CookieStore.setAuth(self, id, authid, authrole, authmethod)
+
+      def run(txn):
+         txn.execute("UPDATE cookies SET authid = ?, authrole = ?, authmethod = ? WHERE id = ?",
+            [authid, authrole, authmethod, id])
+         log.msg("Cookie {} updated".format(id))
+
+      self._dbpool.runInteraction(run)
+
 
 
 
@@ -257,12 +478,14 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
    protocol = CrossbarWampWebSocketServerProtocol
 
-   def __init__(self, factory, config, templates, debug = False):
+   def __init__(self, factory, cbdir, config, templates, debug = False):
       """
       Ctor.
 
       :param factory: WAMP session factory.
       :type factory: An instance of ..
+      :param cbdir: The Crossbar.io node directory.
+      :type cbdir: str
       :param config: Crossbar transport configuration.
       :type config: dict 
       """
@@ -317,6 +540,9 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
                                           debug = self.debug,
                                           debug_wamp = self.debug)
 
+      ## Crossbar.io node directory
+      self._cbdir = cbdir
+
       ## transport configuration
       self._config = config
 
@@ -325,7 +551,15 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
       ## cookie tracking
       if 'cookie' in config:
-         self._cookies = {}
+         if 'database' in config['cookie']:
+            dbfile = os.path.abspath(os.path.join(self._cbdir, config['cookie']['database']))
+            self._cookiestore = PersistentCookieStore(dbfile, config['cookie'])
+            log.msg("Persistent cookie store active: {}".format(dbfile))
+         else:
+            self._cookiestore = CookieStore(config['cookie'])
+            log.msg("Transient cookie store active.")
+      else:
+         self._cookiestore = None
 
       ## set WebSocket options
       set_websocket_options(self, options)

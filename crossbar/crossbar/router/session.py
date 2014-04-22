@@ -212,15 +212,13 @@ class CrossbarRouterSession(RouterSession):
                   dres.callback(types.Accept(authid = self._transport._authid, authrole = self._transport._authrole, authmethod = self._transport._authmethod))
 
                   ## remember the user's auth info (this marks the cookie as authenticated)
-                  if self._transport._cbtid:
-                     cookie = self._transport.factory._cookies[self._transport._cbtid]
-                     cookie['authid'] = self._transport._authid
-                     cookie['authrole'] = self._transport._authrole
-                     cookie['authmethod'] = self._transport._authmethod
+                  if self._transport._cbtid and self._transport.factory._cookiestore:
+                     cs = self._transport.factory._cookiestore
+                     cs.setAuth(self._transport._cbtid, self._transport._authid, self._transport._authrole, self._transport._authmethod)
 
                      ## kick all sessions using same cookie (but not _this_ connection)
                      if True:
-                        for proto in self._transport.factory._cookies[self._transport._cbtid]['connections']:
+                        for proto in cs.getProtos(self._transport._cbtid):
                            if proto and proto != self._transport:
                               try:
                                  proto.close()
@@ -275,14 +273,11 @@ class CrossbarRouterSession(RouterSession):
       self._router.process(self, msg)
       self._session_details = None
 
-
       if details.reason == u"wamp.close.logout":
-         if self._transport._cbtid:
-            cookie = self._transport.factory._cookies[self._transport._cbtid]
-            cookie['authid'] = None
-            cookie['authrole'] = None
-            cookie['authmethod'] = None
-            for proto in cookie['connections']:
+         if self._transport._cbtid and self._transport.factory._cookiestore:
+            cs = self._transport.factory._cookiestore
+            cs.setAuth(self._transport._cbtid, None, None, None)
+            for proto in cs.getProtos(self._transport._cbtid):
                proto.sendClose()
 
 

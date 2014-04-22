@@ -378,7 +378,7 @@ class RouterModule:
       ##
       elif config['type'] == 'websocket':
 
-         transport_factory = CrossbarWampWebSocketServerFactory(router.session_factory, config, self._templates)
+         transport_factory = CrossbarWampWebSocketServerFactory(router.session_factory, self._cbdir, config, self._templates)
 
 
       ## standalone WebSocket testee transport
@@ -514,7 +514,7 @@ class RouterModule:
                ## WAMP-WebSocket resource
                ##
                if path_config['type'] == 'websocket':
-                  ws_factory = CrossbarWampWebSocketServerFactory(router.session_factory, path_config, self._templates)
+                  ws_factory = CrossbarWampWebSocketServerFactory(router.session_factory, self._cbdir, path_config, self._templates)
 
                   ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
                   ws_factory.startFactory()
