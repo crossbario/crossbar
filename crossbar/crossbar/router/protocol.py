@@ -454,7 +454,8 @@ class PersistentCookieStore(CookieStore):
          c = self._cookies[id]
          txn.execute("INSERT INTO cookies (id, created, max_age, authid, authrole, authmethod) VALUES (?, ?, ?, ?, ?, ?)",
             [id, c['created'], c['max_age'], c['authid'], c['authrole'], c['authmethod']])
-         log.msg("Cookie {} stored".format(id))
+         if self.debug:
+            log.msg("Cookie {} stored".format(id))
 
       self._dbpool.runInteraction(run)
 
@@ -467,7 +468,8 @@ class PersistentCookieStore(CookieStore):
       def run(txn):
          txn.execute("UPDATE cookies SET authid = ?, authrole = ?, authmethod = ? WHERE id = ?",
             [authid, authrole, authmethod, id])
-         log.msg("Cookie {} updated".format(id))
+         if self.debug:
+            log.msg("Cookie {} updated".format(id))
 
       self._dbpool.runInteraction(run)
 
