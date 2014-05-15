@@ -18,6 +18,8 @@
 
 from __future__ import absolute_import
 
+import os
+
 from twisted.internet.defer import DeferredList
 
 from autobahn.wamp.exception import ApplicationError
