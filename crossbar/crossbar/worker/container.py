@@ -187,7 +187,7 @@ class ContainerModule:
 
                ## connection timeout in seconds
                ##
-               timeout = int(endpoint_config['type'].get('timeout', 10))
+               timeout = int(endpoint_config.get('timeout', 10))
 
                ## create the endpoint
                ##
