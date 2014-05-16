@@ -121,7 +121,7 @@ class ContainerModule:
       ##
       from autobahn.twisted.websocket import WampWebSocketClientFactory
       debug = component.get('debug', False)
-      transport_factory = WampWebSocketClientFactory(create, router['url'], debug = debug)
+      transport_factory = WampWebSocketClientFactory(create, router['url'], debug = debug, debug_wamp = debug)
       transport_factory.setProtocolOptions(failByDrop = False)
 
       ## start a WebSocket client from an endpoint
