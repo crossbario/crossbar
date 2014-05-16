@@ -480,7 +480,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
    protocol = CrossbarWampWebSocketServerProtocol
 
-   def __init__(self, factory, cbdir, config, templates, debug = False):
+   def __init__(self, factory, cbdir, config, templates):
       """
       Ctor.
 
@@ -491,7 +491,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
       :param config: Crossbar transport configuration.
       :type config: dict 
       """
-      self.debug = config.get('debug', debug)
+      self.debug = config.get('debug', False)
 
       options = config.get('options', {})
 
