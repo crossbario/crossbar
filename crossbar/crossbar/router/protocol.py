@@ -150,6 +150,15 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
    def onConnect(self, request):
 
+      if self.factory.debug_traffic:
+         from twisted.internet import reactor
+
+         def print_traffic():
+            print("Traffic statistics for {}: {}".format(self.peer, self.trafficStats))
+            reactor.callLater(1, print_traffic)
+
+         print_traffic()
+
       protocol, headers = WampWebSocketServerProtocol.onConnect(self, request)
 
       try:
@@ -494,6 +503,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
       :type config: dict 
       """
       self.debug = config.get('debug', False)
+      self.debug_traffic = config.get('debug_traffic', False)
 
       options = config.get('options', {})
 
