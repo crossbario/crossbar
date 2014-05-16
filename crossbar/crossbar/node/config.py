@@ -345,7 +345,8 @@ def check_transport_web(transport):
 
 def check_transport_websocket(transport):
    for k in transport:
-      if k not in ['type', 'endpoint', 'url', 'debug', 'options']:
+      if k not in ['type', 'endpoint', 'url', 'debug', 'debug_traffic', 'options']:
+#      if k not in ['type', 'endpoint', 'url', 'debug', 'options']:
          raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
    if not 'endpoint' in transport:
