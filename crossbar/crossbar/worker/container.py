@@ -72,6 +72,8 @@ class ContainerModule:
       """
       Starts a Class or WAMPlet in this component container.
       """
+      ## create component
+      ##
       if component['type'] == 'wamplet':
 
          try:
@@ -117,14 +119,30 @@ class ContainerModule:
          c = make(cfg)
          return c
 
-      ## create a WAMP-over-WebSocket transport client factory
-      ##
-      from autobahn.twisted.websocket import WampWebSocketClientFactory
-      debug = router.get('debug', False)
-      transport_factory = WampWebSocketClientFactory(create, router['url'], debug = debug, debug_wamp = debug)
-      transport_factory.setProtocolOptions(failByDrop = False)
 
-      ## start a WebSocket client from an endpoint
+      ## create the WAMP transport
+      ##
+      transport_config = router['transport']
+      transport_debug = transport_config.get('debug', False)
+
+      if transport_config['type'] == 'websocket':
+
+         ## create a WAMP-over-WebSocket transport client factory
+         ##
+         from autobahn.twisted.websocket import WampWebSocketClientFactory
+         transport_factory = WampWebSocketClientFactory(create, transport_config['url'], debug = transport_debug, debug_wamp = transport_debug)
+         transport_factory.setProtocolOptions(failByDrop = False)
+
+      elif transport_config['type'] == 'rawsocket':
+
+         from crossbar.router.protocol import CrossbarWampRawSocketClientFactory
+         transport_factory = CrossbarWampRawSocketClientFactory(create, transport_config)
+
+      else:
+         raise ApplicationError("crossbar.error.invalid_configuration", "unknown transport type '{}'".format(transport_config['type']))
+
+
+      ## create client endpoint
       ##
       from twisted.internet import reactor
       from twisted.internet.endpoints import TCP4ClientEndpoint, UNIXClientEndpoint
@@ -137,71 +155,70 @@ class ContainerModule:
       except:
          HAS_TLS = False
 
-      if False:
-         self._client = clientFromString(reactor, router['endpoint'])
-      else:
-         try:
-            endpoint_config = router.get('endpoint')
+      try:
+         endpoint_config = transport_config['endpoint']
 
-            ## a TCP4 endpoint
+         ## a TCP4 endpoint
+         ##
+         if endpoint_config['type'] == 'tcp':
+
+            ## the host to connect ot
             ##
-            if endpoint_config['type'] == 'tcp':
+            host = str(endpoint_config['host'])
 
-               ## the host to connect ot
-               ##
-               host = str(endpoint_config['host'])
-
-               ## the port to connect to
-               ##
-               port = int(endpoint_config['port'])
-
-               ## connection timeout in seconds
-               ##
-               timeout = int(endpoint_config.get('timeout', 10))
-
-               if 'tls' in endpoint_config:
-
-                  ctx = TlsClientContextFactory()
-
-                  ## create a TLS client endpoint
-                  ##
-                  self._client = SSL4ClientEndpoint(reactor,
-                                                    host,
-                                                    port,
-                                                    ctx,
-                                                    timeout = timeout)
-               else:
-                  ## create a non-TLS client endpoint
-                  ##
-                  self._client = TCP4ClientEndpoint(reactor,
-                                                    host,
-                                                    port,
-                                                    timeout = timeout)
-
-            ## a Unix Domain Socket endpoint
+            ## the port to connect to
             ##
-            elif endpoint_config['type'] == 'unix':
+            port = int(endpoint_config['port'])
 
-               ## the path
+            ## connection timeout in seconds
+            ##
+            timeout = int(endpoint_config.get('timeout', 10))
+
+            if 'tls' in endpoint_config:
+
+               ctx = TlsClientContextFactory()
+
+               ## create a TLS client endpoint
                ##
-               path = os.path.abspath(os.path.join(self._cbdir, endpoint_config['path']))
-
-               ## connection timeout in seconds
-               ##
-               timeout = int(endpoint_config.get('timeout', 10))
-
-               ## create the endpoint
-               ##
-               self._client = UNIXClientEndpoint(reactor, path, timeout = timeout)
-
+               self._client = SSL4ClientEndpoint(reactor,
+                                                 host,
+                                                 port,
+                                                 ctx,
+                                                 timeout = timeout)
             else:
-               raise ApplicationError("crossbar.error.invalid_configuration", "invalid endpoint type '{}'".format(endpoint_config['type']))
+               ## create a non-TLS client endpoint
+               ##
+               self._client = TCP4ClientEndpoint(reactor,
+                                                 host,
+                                                 port,
+                                                 timeout = timeout)
 
-         except Exception as e:
-            log.msg("endpoint creation failed: {}".format(e))
-            raise e
+         ## a Unix Domain Socket endpoint
+         ##
+         elif endpoint_config['type'] == 'unix':
+
+            ## the path
+            ##
+            path = os.path.abspath(os.path.join(self._cbdir, endpoint_config['path']))
+
+            ## connection timeout in seconds
+            ##
+            timeout = int(endpoint_config.get('timeout', 10))
+
+            ## create the endpoint
+            ##
+            self._client = UNIXClientEndpoint(reactor, path, timeout = timeout)
+
+         else:
+            raise ApplicationError("crossbar.error.invalid_configuration", "invalid endpoint type '{}'".format(endpoint_config['type']))
+
+      except Exception as e:
+         log.msg("endpoint creation failed: {}".format(e))
+         raise e
 
 
+      ## now connect the client
+      ##
       retry = True
       retryDelay = 1000
 
