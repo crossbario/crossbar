@@ -467,6 +467,9 @@ def check_transport_rawsocket(transport):
    if type(serializer) not in [str, unicode]:
       raise Exception("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
 
+   if serializer not in ['json', 'msgpack']:
+      raise Exception("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
+
    if 'debug' in transport:
       debug = transport['debug']
       if type(debug) != bool:
@@ -708,7 +711,6 @@ def check_process_env(env, silence = False):
             raise Exception("invalid type for environment variable key '{}' in 'options.env.vars' - must be a string ({} encountered)".format(k, type(k)))
          if type(v) not in [str, unicode]:
             raise Exception("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
-
 
 
 
