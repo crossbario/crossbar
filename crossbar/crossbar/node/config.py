@@ -619,8 +619,13 @@ def check_worker(worker, silence = False):
          raise Exception("options must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
 
       for k in options:
-         if k not in ['pythonpath', 'cpu_affinity', 'env']:
+         if k not in ['pythonpath', 'cpu_affinity', 'env', 'title']:
             raise Exception("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
+
+      if 'title' in options:
+         title = options['title']
+         if type(title) not in [str, unicode]:
+            raise Exception("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
 
       if 'pythonpath' in options:
          pythonpath = options['pythonpath']

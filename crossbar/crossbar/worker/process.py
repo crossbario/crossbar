@@ -288,10 +288,10 @@ def run():
                        default = None,
                        help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-   parser.add_argument('-n',
-                       '--name',
+   parser.add_argument('-t',
+                       '--title',
                        default = None,
-                       help = 'Optional process name to set.')
+                       help = 'Optional process title to set.')
 
    options = parser.parse_args()
 
@@ -315,8 +315,8 @@ def run():
    else:
       ## set process title if requested to
       ##
-      if options.name:
-         setproctitle.setproctitle(options.name)
+      if options.title:
+         setproctitle.setproctitle(options.title)
       else:
          setproctitle.setproctitle("Crossbar.io Worker")
 

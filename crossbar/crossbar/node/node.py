@@ -231,20 +231,21 @@ class NodeControllerSession(ApplicationSession):
       """
       Start a new Crossbar.io worker process.
 
-      :param title: Optional process title to set.
-      :type title: str
-      :param debug: Enable debugging on this worker.
-      :type debug: bool
+      :param options: Worker options.
+      :type options: dict
 
       :returns: int -- The PID of the new worker process.
       """
+      ## allow override Python executable from config
+      exe = options.get('python', executable)
+
 
       ## all worker processes start "generic" (like stem cells) and
       ## are later configured via WAMP from the node controller session
       ##
       filename = pkg_resources.resource_filename('crossbar', 'worker/process.py')
 
-      args = [executable, "-u", filename]
+      args = [exe, "-u", filename]
       args.extend(["--cbdir", self._node._cbdir])
 
       ## override worker process title from config
@@ -271,15 +272,11 @@ class NodeControllerSession(ApplicationSession):
          ## must do deepcopy like this (os.environ is a "special" thing ..)
          for k, v in os.environ.items():
             penv[k] = v
-      else:
-         print "NOOOO INHERIT"
 
       ## explicit environment vars from config
       if 'env' in options and 'vars' in options['env']:
          for k, v in options['env']['vars'].items():
             penv[k] = v
-
-      print penv
 
 
       self._worker_no += 1

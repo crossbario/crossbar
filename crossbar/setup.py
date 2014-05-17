@@ -32,7 +32,8 @@ finally:
 
 install_requires = ['setuptools>=2.2',
                     'zope.interface>=3.6.0',
-                    'pyasn1>=0.1.7',
+                    'pyasn1>=0.1.7', # for manhole/conch
+                    'pycrypto>=2.6.1', # for manhole/conch
                     'twisted>=twisted-13.2',
                     'autobahn[twisted]>=0.8.8',
                     'psutil>=1.2.1',
