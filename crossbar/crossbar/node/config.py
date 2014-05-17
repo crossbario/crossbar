@@ -654,8 +654,14 @@ def check_worker(worker, silence = False):
 
          if 'inherit' in env:
             inherit = env['inherit']
-            if type(inherit) != bool:
-               raise Exception("'inherit' in 'options.env' in worker configuration must be bool ({} encountered)".format(type(inherit)))
+            if type(inherit) == bool:
+               pass
+            elif type(inherit) == list:
+               for v in inherit:
+                  if type(v) not in [str, unicode]:
+                     raise Exception("invalid type for inherited env var name in 'inherit' in 'options.env' in worker configuration - must be a string ({} encountered)".format(type(v)))
+            else:
+               raise Exception("'inherit' in 'options.env' in worker configuration must be bool or list ({} encountered)".format(type(inherit)))
 
          if 'vars' in env:
             envvars = env['vars']

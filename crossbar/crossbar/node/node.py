@@ -266,14 +266,20 @@ class NodeControllerSession(ApplicationSession):
       ## worker process environment
       ##
       penv = {}
+      inherit_all = True
 
       ## check/inherit parent process environment
       if 'env' in options and 'inherit' in options['env']:
          inherit = options['env']['inherit']
-      else:
-         inherit = True
+         if type(inherit) == bool:
+            inherit_all = inherit
+         elif type(inherit) == list:
+            inherit_all = False
+            for v in inherit:
+               if v in os.environ:
+                  penv[v] = os.environ[v]
 
-      if inherit:
+      if inherit_all:
          ## must do deepcopy like this (os.environ is a "special" thing ..)
          for k, v in os.environ.items():
             penv[k] = v
