@@ -20,7 +20,6 @@ from __future__ import absolute_import
 
 import os
 import sys
-import psutil
 import datetime
 
 from twisted.python import log
@@ -200,8 +199,14 @@ class WorkerProcess(ApplicationSession):
       """
       Get CPU affinity of this process.
       """
-      p = psutil.Process(self._pid)
-      return p.get_cpu_affinity()
+      try:
+         import psutil
+      except ImportError:
+         log.msg("Warning: could not get process CPU affinity - psutil not installed")
+         return []
+      else:
+         p = psutil.Process(self._pid)
+         return p.get_cpu_affinity()
 
 
 
@@ -209,8 +214,13 @@ class WorkerProcess(ApplicationSession):
       """
       Set CPU affinity of this process.
       """
-      p = psutil.Process(self._pid)
-      p.set_cpu_affinity(cpus)
+      try:
+         import psutil
+      except ImportError:
+         log.msg("Warning: could not set process CPU affinity - psutil not installed")
+      else:
+         p = psutil.Process(self._pid)
+         p.set_cpu_affinity(cpus)
 
 
 

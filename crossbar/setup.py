@@ -29,21 +29,13 @@ except Exception as e:
 finally:
    from setuptools import setup, find_packages
 
-
+## hard dependencies (for soft dependencies, see extra_require below)
+##
 install_requires = ['setuptools>=2.2',
                     'zope.interface>=3.6.0',
-                    'pyasn1>=0.1.7', # for manhole/conch
-                    'pycrypto>=2.6.1', # for manhole/conch
                     'twisted>=twisted-13.2',
                     'autobahn[twisted]>=0.8.8',
-                    'psutil>=1.2.1',
-                    'msgpack-python>=0.4.1',
                     'jinja2>=2.7.2']
-
-import sys
-if not sys.platform.startswith('win'):
-   install_requires.append('setproctitle>=1.1.8')
-
 
 
 ## Get package version and docstring from crossbar/__init__.py
@@ -78,9 +70,12 @@ setup (
    platforms = ('Any'),
    install_requires = install_requires,
    extras_require = {
-      'tls': ['cryptography>=0.3', 'pyOpenSSL>=0.14'],
-      'oracle': ["cx_Oracle>=5.1.2"],
-      'postgres': ["psycopg2>=2.5.1"]
+      'tls': ['cryptography>=0.4', 'pyOpenSSL>=0.14'],
+      'oracle': ['cx_Oracle>=5.1.2'],
+      'postgres': ['psycopg2>=2.5.1'],
+      'manhole': ['pyasn1>=0.1.7', 'pycrypto>=2.6.1'],
+      'msgpack': ['msgpack-python>=0.4.2'],
+      'system': ['psutil>=1.2.1', 'setproctitle>=1.1.8']
    },
    entry_points = {
       'console_scripts': [
