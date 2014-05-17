@@ -227,7 +227,7 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def start_worker(self, title = None, debug = False):
+   def start_worker(self, options = {}):
       """
       Start a new Crossbar.io worker process.
 
@@ -247,11 +247,40 @@ class NodeControllerSession(ApplicationSession):
       args = [executable, "-u", filename]
       args.extend(["--cbdir", self._node._cbdir])
 
-      if title:
-         args.extend(['--name', title])
+      ## override worker process title from config
+      ##
+      if options.get('title', None):
+         args.extend(['--title', options['title']])
 
-      if debug or self.debug:
+      ## turn on debugging on worker process
+      ##
+      if options.get('debug', False):
          args.append('--debug')
+
+      ## worker process environment
+      ##
+      penv = {}
+
+      ## check/inherit parent process environment
+      if 'env' in options and 'inherit' in options['env']:
+         inherit = options['env']['inherit']
+      else:
+         inherit = True
+
+      if inherit:
+         ## must do deepcopy like this (os.environ is a "special" thing ..)
+         for k, v in os.environ.items():
+            penv[k] = v
+      else:
+         print "NOOOO INHERIT"
+
+      ## explicit environment vars from config
+      if 'env' in options and 'vars' in options['env']:
+         for k, v in options['env']['vars'].items():
+            penv[k] = v
+
+      print penv
+
 
       self._worker_no += 1
 
@@ -259,7 +288,7 @@ class NodeControllerSession(ApplicationSession):
                executable,
                args,
                name = "Worker {}".format(self._worker_no),
-               env = os.environ)
+               env = penv)
 
       ## this will be resolved/rejected when the worker is actually
       ## ready to receive commands
@@ -580,7 +609,7 @@ class NodeControllerSession(ApplicationSession):
             ## start a new worker process ..
             ##
             try:
-               pid = yield self.start_worker()
+               pid = yield self.start_worker(process_options)
             except Exception as e:
                log.msg("Failed to start worker process: {}".format(e))
             else:

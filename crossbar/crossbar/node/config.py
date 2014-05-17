@@ -23,6 +23,7 @@ __all__ = ['check_config', 'check_config_file']
 import os
 import json
 import re
+
 from pprint import pformat
 
 from autobahn.websocket.protocol import parseWsUrl
@@ -618,7 +619,7 @@ def check_worker(worker, silence = False):
          raise Exception("options must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
 
       for k in options:
-         if k not in ['pythonpath', 'cpu_affinity']:
+         if k not in ['pythonpath', 'cpu_affinity', 'env']:
             raise Exception("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
 
       if 'pythonpath' in options:
@@ -637,6 +638,30 @@ def check_worker(worker, silence = False):
             if type(a) not in [int, long]:
                raise Exception("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
 
+      if 'env' in options:
+         env = options['env']
+         if type(env) != dict:
+            raise Exception("'env' in 'options' in worker configuration must be dict ({} encountered)".format(type(env)))
+
+         for k in env:
+            if k not in ['inherit', 'vars']:
+               raise Exception("encountered unknown attribute '{}' in 'options.env' in worker configuration".format(k))
+
+         if 'inherit' in env:
+            inherit = env['inherit']
+            if type(inherit) != bool:
+               raise Exception("'inherit' in 'options.env' in worker configuration must be bool ({} encountered)".format(type(inherit)))
+
+         if 'vars' in env:
+            envvars = env['vars']
+            if type(envvars) != dict:
+               raise Exception("'options.env.vars' in worker configuration must be dict ({} encountered)".format(type(envvars)))
+
+            for k, v in envvars.items():
+               if type(k) not in [str, unicode]:
+                  raise Exception("invalid type for environment variable key '{}' in 'options.env.vars' - must be a string ({} encountered)".format(k, type(k)))
+               if type(v) not in [str, unicode]:
+                  raise Exception("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
 
    if not 'modules' in worker:
       raise Exception("missing mandatory attribute 'modules' in worker item\n\n{}".format(pformat(worker)))

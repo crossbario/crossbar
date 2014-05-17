@@ -1,0 +1,73 @@
+{
+   "processes": [
+      {
+         "type": "worker",
+         "options": {
+            "pythonpath": [
+               ".."
+            ],
+            "env": {
+               "inherit": false,
+               "vars": {
+                  "FOOBAR": "heinzelmann",
+                  "BARBAZ": "23"
+               }
+            }
+         },
+         "manhole": {
+            "endpoint": {
+               "type": "tcp",
+               "port": 6022
+            },
+            "users": [
+               {
+                  "user": "oberstet",
+                  "password": "secret"
+               }
+            ]
+         },
+         "modules": [
+            {
+               "type": "router",
+               "realms": {
+                  "realm1": {
+                     "permissions": {
+                        "anonymous": {
+                           "create": true,
+                           "join": true,
+                           "access": {
+                              "*": {
+                                 "publish": true,
+                                 "subscribe": true,
+                                 "call": true,
+                                 "register": true
+                              }
+                           }
+                        }
+                     }
+                  }
+               },
+               "transports": [
+                  {
+                     "type": "web",
+                     "endpoint": {
+                        "type": "tcp",
+                        "port": 8080
+                     },
+                     "paths": {
+                        "/": {
+                           "type": "static",
+                           "directory": ".."
+                        },
+                        "ws": {
+                           "type": "websocket",
+                           "url": "ws://localhost:8080/ws"
+                        }
+                     }
+                  }
+               ]
+            }
+         ]
+      }
+   ]
+}
