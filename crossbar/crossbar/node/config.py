@@ -603,6 +603,39 @@ def check_manhole(manhole, silence = False):
 
 
 
+def check_process_env(env, silence = False):
+   if type(env) != dict:
+      raise Exception("'env' in 'options' in worker/guest configuration must be dict ({} encountered)".format(type(env)))
+
+   for k in env:
+      if k not in ['inherit', 'vars']:
+         raise Exception("encountered unknown attribute '{}' in 'options.env' in worker/guest configuration".format(k))
+
+   if 'inherit' in env:
+      inherit = env['inherit']
+      if type(inherit) == bool:
+         pass
+      elif type(inherit) == list:
+         for v in inherit:
+            if type(v) not in [str, unicode]:
+               raise Exception("invalid type for inherited env var name in 'inherit' in 'options.env' in worker/guest configuration - must be a string ({} encountered)".format(type(v)))
+      else:
+         raise Exception("'inherit' in 'options.env' in worker/guest configuration must be bool or list ({} encountered)".format(type(inherit)))
+
+   if 'vars' in env:
+      envvars = env['vars']
+      if type(envvars) != dict:
+         raise Exception("'options.env.vars' in worker/guest configuration must be dict ({} encountered)".format(type(envvars)))
+
+      for k, v in envvars.items():
+         if type(k) not in [str, unicode]:
+            raise Exception("invalid type for environment variable key '{}' in 'options.env.vars' - must be a string ({} encountered)".format(k, type(k)))
+         if type(v) not in [str, unicode]:
+            raise Exception("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
+
+
+
+
 def check_worker(worker, silence = False):
    for k in worker:
       if k not in ['type', 'options', 'modules', 'manhole']:
@@ -644,35 +677,7 @@ def check_worker(worker, silence = False):
                raise Exception("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
 
       if 'env' in options:
-         env = options['env']
-         if type(env) != dict:
-            raise Exception("'env' in 'options' in worker configuration must be dict ({} encountered)".format(type(env)))
-
-         for k in env:
-            if k not in ['inherit', 'vars']:
-               raise Exception("encountered unknown attribute '{}' in 'options.env' in worker configuration".format(k))
-
-         if 'inherit' in env:
-            inherit = env['inherit']
-            if type(inherit) == bool:
-               pass
-            elif type(inherit) == list:
-               for v in inherit:
-                  if type(v) not in [str, unicode]:
-                     raise Exception("invalid type for inherited env var name in 'inherit' in 'options.env' in worker configuration - must be a string ({} encountered)".format(type(v)))
-            else:
-               raise Exception("'inherit' in 'options.env' in worker configuration must be bool or list ({} encountered)".format(type(inherit)))
-
-         if 'vars' in env:
-            envvars = env['vars']
-            if type(envvars) != dict:
-               raise Exception("'options.env.vars' in worker configuration must be dict ({} encountered)".format(type(envvars)))
-
-            for k, v in envvars.items():
-               if type(k) not in [str, unicode]:
-                  raise Exception("invalid type for environment variable key '{}' in 'options.env.vars' - must be a string ({} encountered)".format(k, type(k)))
-               if type(v) not in [str, unicode]:
-                  raise Exception("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
+         check_process_env(options['env'])
 
    if not 'modules' in worker:
       raise Exception("missing mandatory attribute 'modules' in worker item\n\n{}".format(pformat(worker)))
@@ -699,7 +704,8 @@ def check_guest(guest, silence = False):
                    'stdout',
                    'stderr',
                    'arguments',
-                   'workdir']:
+                   'workdir',
+                   'options']:
          raise Exception("encountered unknown attribute '{}' in guest process configuration".format(k))
 
    check_dict_args({
@@ -710,6 +716,7 @@ def check_guest(guest, silence = False):
       'stderr': (False, [str, unicode]),
       'arguments': (False, [list]),
       'workdir': (False, [str, unicode]),
+      'options': (False, [dict])
       }, guest, "Guest process configuration")
 
    for s in ['stdout', 'stderr']:
@@ -732,6 +739,18 @@ def check_guest(guest, silence = False):
       for arg in guest['arguments']:
          if type(arg) not in [str, unicode]:
             raise Exception("invalid type {} for argument in 'arguments' in guest process configuration".format(type(arg)))
+
+   if 'options' in guest:
+      options = guest['options']
+      if type(options) != dict:
+         raise Exception("options must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
+
+      for k in options:
+         if k not in ['env']:
+            raise Exception("encountered unknown attribute '{}' in 'options' in guest configuration".format(k))
+
+      if 'env' in options:
+         check_process_env(options['env'])
 
 
 

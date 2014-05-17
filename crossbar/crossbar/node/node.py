@@ -118,6 +118,41 @@ class GuestProcess:
 
 
 
+def _create_process_env(options):
+   """
+   Create worker/guest process environment dictionary.
+   """
+   penv = {}
+
+   ## by default, a worker/guest process inherits
+   ## complete environment
+   inherit_all = True
+
+   ## check/inherit parent process environment
+   if 'env' in options and 'inherit' in options['env']:
+      inherit = options['env']['inherit']
+      if type(inherit) == bool:
+         inherit_all = inherit
+      elif type(inherit) == list:
+         inherit_all = False
+         for v in inherit:
+            if v in os.environ:
+               penv[v] = os.environ[v]
+
+   if inherit_all:
+      ## must do deepcopy like this (os.environ is a "special" thing ..)
+      for k, v in os.environ.items():
+         penv[k] = v
+
+   ## explicit environment vars from config
+   if 'env' in options and 'vars' in options['env']:
+      for k, v in options['env']['vars'].items():
+         penv[k] = v
+
+   return penv
+
+
+
 class NodeControllerSession(ApplicationSession):
    """
    Singleton node WAMP session hooked up to the node router.
@@ -265,30 +300,7 @@ class NodeControllerSession(ApplicationSession):
 
       ## worker process environment
       ##
-      penv = {}
-      inherit_all = True
-
-      ## check/inherit parent process environment
-      if 'env' in options and 'inherit' in options['env']:
-         inherit = options['env']['inherit']
-         if type(inherit) == bool:
-            inherit_all = inherit
-         elif type(inherit) == list:
-            inherit_all = False
-            for v in inherit:
-               if v in os.environ:
-                  penv[v] = os.environ[v]
-
-      if inherit_all:
-         ## must do deepcopy like this (os.environ is a "special" thing ..)
-         for k, v in os.environ.items():
-            penv[k] = v
-
-      ## explicit environment vars from config
-      if 'env' in options and 'vars' in options['env']:
-         for k, v in options['env']['vars'].items():
-            penv[k] = v
-
+      penv = _create_process_env(options)
 
       self._worker_no += 1
 
@@ -486,16 +498,27 @@ class NodeControllerSession(ApplicationSession):
          protocol = GuestClientProtocol
 
 
+      ## the guest process configured executable and
+      ## command line arguments
+      ##
       exe = config['executable']
-
       args = [exe]
       args.extend(config.get('arguments', []))
 
+      ## guest process working directory
+      ##
       workdir = self._node._cbdir
       if 'workdir' in config:
          workdir = os.path.join(workdir, config['workdir'])
       workdir = os.path.abspath(workdir)
 
+      ## guest process environment
+      ##
+      penv = _create_process_env(config.get('options', {}))
+
+      ## the following will be used to signal guest readiness
+      ## and exit ..
+      ##
       ready = Deferred()
       exit = Deferred()
 
@@ -509,7 +532,7 @@ class NodeControllerSession(ApplicationSession):
                   exe,
                   args,
                   name = "Guest {}".format(self._guest_no),
-                  env = os.environ)
+                  env = penv)
 
          ## now actually spawn the worker ..
          ##
@@ -535,7 +558,7 @@ class NodeControllerSession(ApplicationSession):
          proto._name = "Guest {}".format(self._guest_no)
 
          try:
-            trnsp = self._node._reactor.spawnProcess(proto, exe, args, path = workdir, env = os.environ)
+            trnsp = self._node._reactor.spawnProcess(proto, exe, args, path = workdir, env = penv)
          except Exception as e:
             log.msg("Guest: Program could not be started - {}".format(e))
             ready.errback(e)

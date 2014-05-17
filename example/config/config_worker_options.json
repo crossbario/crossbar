@@ -1,8 +1,28 @@
 {
    "processes": [
       {
+         "type": "guest",
+         "executable": "/bin/ping",
+         "arguments": ["-c", "5", "www.google.com"],
+         "stdout": "log"
+      },
+      {
+         "type": "guest",
+         "executable": "/usr/bin/env",
+         "stdout": "log",
+         "options": {
+            "env": {
+               "inherit": ["HOME"],
+               "vars": {
+                  "AWESOME": "sure"
+               }
+            }
+         }
+      },
+      {
          "type": "worker",
          "options": {
+            "title": "MyWorker1",
             "pythonpath": [
                ".."
             ],
@@ -10,7 +30,8 @@
                "inherit": false,
                "vars": {
                   "FOOBAR": "heinzelmann",
-                  "BARBAZ": "23"
+                  "BARBAZ": "23",
+                  "PYTHONPATH": "/home/oberstet/scm/tavendo/crossbar/crossbar/crossbar"
                }
             }
          },
