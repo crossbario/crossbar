@@ -539,24 +539,27 @@ class NodeControllerSession(ApplicationSession):
       # pkg_resources.load_entry_point('wamplet1', 'autobahn.twisted.wamplet', 'component1')
 
       for entrypoint in pkg_resources.iter_entry_points('autobahn.twisted.wamplet'):
-         e = entrypoint.load()
-
-         ep = {}
-         ep['dist'] = entrypoint.dist.key
-         ep['version'] = entrypoint.dist.version
-         ep['location'] = entrypoint.dist.location
-         ep['name'] = entrypoint.name
-         ep['module_name'] = entrypoint.module_name
-         ep['entry_point'] = str(entrypoint)
-
-         if hasattr(e, '__doc__') and e.__doc__:
-            ep['doc'] = e.__doc__.strip()
+         try:
+            e = entrypoint.load()
+         except Exception as e:
+            pass
          else:
-            ep['doc'] = None
+            ep = {}
+            ep['dist'] = entrypoint.dist.key
+            ep['version'] = entrypoint.dist.version
+            ep['location'] = entrypoint.dist.location
+            ep['name'] = entrypoint.name
+            ep['module_name'] = entrypoint.module_name
+            ep['entry_point'] = str(entrypoint)
 
-         ep['meta'] = e(None)
+            if hasattr(e, '__doc__') and e.__doc__:
+               ep['doc'] = e.__doc__.strip()
+            else:
+               ep['doc'] = None
 
-         res.append(ep)
+            ep['meta'] = e(None)
+
+            res.append(ep)
 
       return res
 
@@ -583,21 +586,17 @@ class NodeControllerSession(ApplicationSession):
             else:
                log.msg("Worker {}: Started.".format(pid))
 
-            manhole_config = {}
-            yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_name, pid),
-               manhole_config)
-
             ## setup worker generic stuff
             ##
             if 'pythonpath' in process_options:
                try:
-                  yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, pid),
+                  added_paths = yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, pid),
                      process_options['pythonpath'])
 
                except Exception as e:
                   log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(pid, e))
                else:
-                  log.msg("Worker {}: PYTHONPATH extended.".format(pid))
+                  log.msg("Worker {}: PYTHONPATH extended for {}".format(pid, added_paths))
 
             if 'cpu_affinity' in process_options:
                try:
@@ -616,6 +615,10 @@ class NodeControllerSession(ApplicationSession):
             else:
                log.msg("Worker {}: CPU affinity is {}".format(pid, cpu_affinity))
 
+            ## manhole within worker
+            ##
+            if 'manhole' in process:
+               yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_name, pid), process['manhole'])
 
             ## setup modules
             ##
@@ -726,7 +729,7 @@ class Node:
 
 
 
-   @inlineCallbacks
+   #@inlineCallbacks
    def start(self):
       """
       Starts this node. This will start a node controller
@@ -760,10 +763,13 @@ class Node:
 
       ## Detect WAMPlets
       ##
-      for wpl in self._node_controller_session.list_wamplets():
-         log.msg("WAMPlet detected: {}.{}".format(wpl['dist'], wpl['name']))
+      wamplets = sorted(self._node_controller_session.list_wamplets())
+      log.msg("Detected {} WAMPlets in environment:".format(len(wamplets)))
+      for wpl in wamplets:
+         log.msg("WAMPlet {}.{}".format(wpl['dist'], wpl['name']))
 
-      yield self.start_from_local_config(configfile = os.path.join(self._cbdir, self._options.config))
+
+      self._start_from_local_config(configfile = os.path.join(self._cbdir, self._options.config))
 
       self.start_local_management_transport(endpoint_descriptor = "tcp:9000")
 
@@ -799,21 +805,17 @@ class Node:
 
 
 
-   @inlineCallbacks
-   def start_from_local_config(self, configfile):
-      ## load Crossbar.io node configuration
-      ##
+   def _start_from_local_config(self, configfile):
+      """
+      Start Crossbar.io node from local configuration file.
+      """
       configfile = os.path.abspath(configfile)
-
-      log.msg("Loading from local config '{}' ..".format(configfile))
+      log.msg("Starting from local config file '{}'".format(configfile))
 
       try:
          config = check_config_file(configfile, silence = True)
       except Exception as e:
-         raise Exception("Fatal - could not load configuration: {}".format(e))
+         log.msg("Fatal: {}".format(e))
+         sys.exit(1)
       else:
-         ## startup the node from configuration file
-         ##
-         yield self._node_controller_session.run_node_config(config)
-
-         log.msg("Local configuration loaded.")
+         self._node_controller_session.run_node_config(config)

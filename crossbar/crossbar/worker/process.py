@@ -24,16 +24,10 @@ import psutil
 import datetime
 
 from twisted.python import log
-from twisted.internet.defer import inlineCallbacks
-
-## manhole
-##
-from twisted.cred import checkers, portal
-from twisted.conch.manhole import ColoredManhole
-from twisted.conch.manhole_ssh import ConchFactory, TerminalRealm
-from twisted.internet.endpoints import serverFromString
+from twisted.internet.defer import DeferredList, inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions
 
 
@@ -49,11 +43,13 @@ class WorkerProcess(ApplicationSession):
 
       self._pid = os.getpid()
       self._node_name = '918234'
+      self._started = datetime.datetime.utcnow()
 
       if self.debug:
          log.msg("Connected to node router.")
 
       self._router_module = None
+      self._manhole_listening_port = None
 
       self._class_hosts = {}
       self._class_host_seq = 0
@@ -63,81 +59,24 @@ class WorkerProcess(ApplicationSession):
 
    @inlineCallbacks
    def onJoin(self, details):
+      procs = [
+         (self.start_manhole, 'start_manhole'),
+         (self.stop_manhole, 'stop_manhole'),
+         (self.trigger_gc, 'trigger_gc'),
+         (self.get_cpu_affinity, 'get_cpu_affinity'),
+         (self.set_cpu_affinity, 'set_cpu_affinity'),
+         (self.utcnow, 'utcnow'),
+         (self.started, 'started'),
+         (self.uptime, 'uptime'),
+         (self.get_pythonpath, 'get_pythonpath'),
+         (self.add_pythonpath, 'add_pythonpath'),
+      ]
 
-      def start_manhole(config):
-         print("starting manhole")
-         from twisted.internet import reactor
+      dl = []
+      for proc in procs:
+         dl.append(self.register(proc[0], 'crossbar.node.{}.worker.{}.{}'.format(self._node_name, self._pid, proc[1])))
 
-         checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
-         checker.addUser('oberstet', 'secret')
-
-         namespace = {'worker': self}
-
-         rlm = TerminalRealm()
-         rlm.chainedProtocolFactory.protocolFactory = lambda _: ColoredManhole(namespace)
-
-         ptl = portal.Portal(rlm, [checker])
-
-         factory = ConchFactory(ptl)
-
-         server = serverFromString(reactor, "tcp:6022")
-         server.listen(factory)
-
-      yield self.register(start_manhole, 'crossbar.node.{}.worker.{}.start_manhole'.format(self._node_name, self._pid))
-
-
-      def get_cpu_affinity():
-         """
-         Get CPU affinity of this process.
-         """
-         p = psutil.Process(self._pid)
-         return p.get_cpu_affinity()
-
-      yield self.register(get_cpu_affinity, 'crossbar.node.{}.worker.{}.get_cpu_affinity'.format(self._node_name, self._pid))
-
-
-      def set_cpu_affinity(cpus):
-         """
-         Set CPU affinity of this process.
-         """
-         p = psutil.Process(self._pid)
-         p.set_cpu_affinity(cpus)
-
-      yield self.register(set_cpu_affinity, 'crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_name, self._pid))
-
-
-      def utcnow():
-         """
-         Return current time in this process as UTC.
-         """
-         now = datetime.datetime.utcnow()
-         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-      yield self.register(utcnow, 'crossbar.node.{}.worker.{}.now'.format(self._node_name, self._pid))
-
-
-      def get_pythonpath():
-         """
-         Returns the current Python module search path.
-         """
-         return sys.path
-
-      yield self.register(get_pythonpath, 'crossbar.node.{}.worker.{}.get_pythonpath'.format(self._node_name, self._pid))
-
-
-      def add_pythonpath(paths, prepend = True):
-         """
-         Add paths to Python module search path.
-         """
-         ## transform all paths (relative to cbdir) into absolute paths.
-         cbdir = self.factory.options.cbdir
-         paths = [os.path.abspath(os.path.join(cbdir, p)) for p in paths]
-         if prepend:
-            sys.path = paths + sys.path
-         else:
-            sys.path.extend(paths)
-
-      yield self.register(add_pythonpath, 'crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, self._pid))
+      regs = yield DeferredList(dl)
 
 
       from crossbar.worker.router import RouterModule
@@ -194,9 +133,133 @@ class WorkerProcess(ApplicationSession):
          log.msg("Worker ready published ({})".format(pub.id))
 
 
-   def startComponent(self):
-      pass
 
+   def trigger_gc(self):
+      """
+      Triggers a garbage collection.
+      """
+      import gc
+      gc.collect()
+
+
+
+   @inlineCallbacks
+   def start_manhole(self, config):
+      """
+      Start a manhole (SSH) within this worker.
+      """
+      if self._manhole_listening_port:
+         raise ApplicationError("wamp.error.could_not_start", "Could not start manhole - already started")
+
+      ## manhole
+      ##
+      from twisted.cred import checkers, portal
+      from twisted.conch.manhole import ColoredManhole
+      from twisted.conch.manhole_ssh import ConchFactory, TerminalRealm
+
+      checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
+      for user in config['users']:
+         checker.addUser(user['user'], user['password'])
+
+      namespace = {'worker': self}
+
+      rlm = TerminalRealm()
+      rlm.chainedProtocolFactory.protocolFactory = lambda _: ColoredManhole(namespace)
+
+      ptl = portal.Portal(rlm, [checker])
+
+      factory = ConchFactory(ptl)
+
+      from crossbar.twisted.endpoint import create_endpoint_from_config
+      from twisted.internet import reactor
+      cbdir = self.factory.options.cbdir
+
+      server = create_endpoint_from_config(config['endpoint'], cbdir, reactor)
+
+      try:
+         self._manhole_listening_port = yield server.listen(factory)
+      except Exception as e:
+         raise ApplicationError("wamp.error.could_not_listen", "Could not start manhole: '{}'".format(e))
+
+
+
+   @inlineCallbacks
+   def stop_manhole(self):
+      """
+      Start a manhole (SSH) within this worker.
+      """
+      if self._manhole_listening_port:
+         yield self._manhole_listening_port.stopListening()
+         self._manhole_listening_port = None
+      else:
+         raise ApplicationError("wamp.error.could_not_stop", "Could not stop manhole - not started")
+
+
+
+   def get_cpu_affinity(self):
+      """
+      Get CPU affinity of this process.
+      """
+      p = psutil.Process(self._pid)
+      return p.get_cpu_affinity()
+
+
+
+   def set_cpu_affinity(self, cpus):
+      """
+      Set CPU affinity of this process.
+      """
+      p = psutil.Process(self._pid)
+      p.set_cpu_affinity(cpus)
+
+
+
+   def get_pythonpath(self):
+      """
+      Returns the current Python module search path.
+      """
+      return sys.path
+
+
+
+   def add_pythonpath(self, paths, prepend = True):
+      """
+      Add paths to Python module search path.
+      """
+      ## transform all paths (relative to cbdir) into absolute paths.
+      cbdir = self.factory.options.cbdir
+      paths = [os.path.abspath(os.path.join(cbdir, p)) for p in paths]
+      if prepend:
+         sys.path = paths + sys.path
+      else:
+         sys.path.extend(paths)
+      return paths
+
+
+
+   def utcnow(self):
+      """
+      Return current time in this process as UTC (ISO 8601 string).
+      """
+      now = datetime.datetime.utcnow()
+      return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+
+   def started(self):
+      """
+      Return start time of this process as UTC (ISO 8601 string).
+      """
+      return self._started.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+
+   def uptime(self):
+      """
+      Returns uptime of this process in seconds (as float).
+      """
+      now = datetime.datetime.utcnow()
+      return (now - self._started).total_seconds()
 
 
 

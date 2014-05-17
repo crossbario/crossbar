@@ -566,10 +566,51 @@ def check_module(module, silence = False):
 
 
 
+def check_manhole(manhole, silence = False):
+   if type(manhole) != dict:
+      raise Exception("'manhole' items must be dictionaries ({} encountered)\n\n{}".format(type(manhole), pformat(manhole)))
+
+   for k in manhole:
+      if k not in ['endpoint', 'users']:
+         raise Exception("encountered unknown attribute '{}' in Manhole configuration".format(k))
+
+   if not 'endpoint' in manhole:
+      raise Exception("missing mandatory attribute 'endpoint' in Manhole item\n\n{}".format(pformat(manhole)))
+
+   check_endpoint_listen(manhole['endpoint'])
+
+   if not 'users' in manhole:
+      raise Exception("missing mandatory attribute 'users' in Manhole item\n\n{}".format(pformat(manhole)))
+
+   users = manhole['users']
+   if type(users) != list:
+      raise Exception("'manhole.users' items must be lists ({} encountered)\n\n{}".format(type(users), pformat(users)))
+
+   for user in users:
+      if type(user) != dict:
+         raise Exception("'manhole.users.user' items must be dictionaries ({} encountered)\n\n{}".format(type(user), pformat(user)))
+
+      for k in user:
+         if k not in ['user', 'password']:
+            raise Exception("encountered unknown attribute '{}' in manhole.users.user".format(k))
+
+      if not 'user' in user:
+         raise Exception("missing mandatory attribute 'user' in Manhole user item\n\n{}".format(pformat(user)))
+
+      if not 'password' in user:
+         raise Exception("missing mandatory attribute 'password' in Manhole user item\n\n{}".format(pformat(user)))
+
+
+
 def check_worker(worker, silence = False):
    for k in worker:
-      if k not in ['type', 'options', 'modules']:
+      if k not in ['type', 'options', 'modules', 'manhole']:
          raise Exception("encountered unknown attribute '{}' in worker configuration".format(k))
+
+
+   if 'manhole' in worker:
+      check_manhole(worker['manhole'])
+
 
    if 'options' in worker:
       options = worker['options']

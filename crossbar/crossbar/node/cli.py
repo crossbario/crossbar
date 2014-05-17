@@ -32,6 +32,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.choosereactor import install_reactor
 
+import crossbar
 from crossbar.node.node import Node
 
 
@@ -134,9 +135,7 @@ def run_command_init(options):
 
 
 
-import crossbar
 
-#@inlineCallbacks
 def run_command_start(options):
    """
    Subcommand "crossbar start".
@@ -167,13 +166,9 @@ def run_command_start(options):
    ## create and start Crossbar.io node
    ##
    node = Node(reactor, options)
-   try:
-      #yield node.start()
-      node.start()
-   except Exception as e:
-      log.msg(e)
-   else:
-      reactor.run()
+   node.start()
+
+   reactor.run()
 
 
 
