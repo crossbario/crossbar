@@ -160,8 +160,8 @@ def run_command_start(options):
    ##
    reactor = install_reactor(options.reactor, options.debug)
 
-   #if options.debug:
-   #   print("Running on reactor {}".format(reactor))
+   from twisted.python.reflect import qual
+   log.msg("Running on {} reactor.".format(qual(reactor.__class__).split('.')[-1]))
 
    ## create and start Crossbar.io node
    ##

@@ -258,6 +258,11 @@ class NodeControllerSession(ApplicationSession):
       if options.get('debug', False):
          args.append('--debug')
 
+      ## forward explicit reactor selection
+      ##
+      if self._node._options.reactor:
+         args.extend(['--reactor', self._node._options.reactor])
+
       ## worker process environment
       ##
       penv = {}
