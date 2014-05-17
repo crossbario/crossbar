@@ -13,7 +13,7 @@ clean:
 	rm -rf ./build
 	rm -rf ./dist
 	rm -rf ./crossbar.egg-info
-	#rm -rf ./.crossbar
+	rm -rf ./.crossbar
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;

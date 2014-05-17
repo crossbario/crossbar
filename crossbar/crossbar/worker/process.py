@@ -26,6 +26,13 @@ import datetime
 from twisted.python import log
 from twisted.internet.defer import inlineCallbacks
 
+## manhole
+##
+from twisted.cred import checkers, portal
+from twisted.conch.manhole import ColoredManhole
+from twisted.conch.manhole_ssh import ConchFactory, TerminalRealm
+from twisted.internet.endpoints import serverFromString
+
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.types import PublishOptions
 
@@ -56,6 +63,28 @@ class WorkerProcess(ApplicationSession):
 
    @inlineCallbacks
    def onJoin(self, details):
+
+      def start_manhole(config):
+         print("starting manhole")
+         from twisted.internet import reactor
+
+         checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
+         checker.addUser('oberstet', 'secret')
+
+         namespace = {'worker': self}
+
+         rlm = TerminalRealm()
+         rlm.chainedProtocolFactory.protocolFactory = lambda _: ColoredManhole(namespace)
+
+         ptl = portal.Portal(rlm, [checker])
+
+         factory = ConchFactory(ptl)
+
+         server = serverFromString(reactor, "tcp:6022")
+         server.listen(factory)
+
+      yield self.register(start_manhole, 'crossbar.node.{}.worker.{}.start_manhole'.format(self._node_name, self._pid))
+
 
       def get_cpu_affinity():
          """

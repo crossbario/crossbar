@@ -28,6 +28,7 @@ import pkg_resources
 
 from twisted.python import log
 from twisted.python.reflect import qual
+from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.choosereactor import install_reactor
 
@@ -126,7 +127,7 @@ def run_command_init(options):
    except Exception as e:
       raise Exception("Could not create Crossbar.io node directory '{}' [{}]".format(options.cbdir, e))
 
-   with open(os.path.join(options.cbdir, 'config.json'), 'wb') as outfile:
+   with open(os.path.join(options.cbdir, options.config), 'wb') as outfile:
       outfile.write(config)
 
    print("Crossbar.io node initialized at {}".format(os.path.abspath(options.cbdir)))
@@ -135,6 +136,7 @@ def run_command_init(options):
 
 import crossbar
 
+#@inlineCallbacks
 def run_command_start(options):
    """
    Subcommand "crossbar start".
@@ -165,18 +167,25 @@ def run_command_start(options):
    ## create and start Crossbar.io node
    ##
    node = Node(reactor, options)
-   node.start()
-
-   ## enter event loop
-   ##
-   reactor.run()
+   try:
+      #yield node.start()
+      node.start()
+   except Exception as e:
+      log.msg(e)
+   else:
+      reactor.run()
 
 
 
 def run_command_check(options):
+   """
+   Subcommand "crossbar check".
+   """
    from crossbar.node.config import check_config_file
-   configfile = os.path.join(options.cbdir, 'config.json')
-   print("Checking local configuration file {} ...".format(configfile))
+   configfile = os.path.join(options.cbdir, options.config)
+
+   print("Checking local configuration file {}".format(configfile))
+
    try:
       check_config_file(configfile)
    except Exception as e:
@@ -189,10 +198,9 @@ def run_command_check(options):
 
 
 
-
 def run():
    """
-   Entry point of Crossbar.io.
+   Entry point of Crossbar.io CLI.
    """
    ## create the top-level parser
    ##
@@ -242,6 +250,12 @@ def run():
                              default = None,
                              help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
+   parser_init.add_argument('--config',
+                            type = str,
+                            default = 'config.json',
+                            help = "Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+
    ## "start" command
    ##
    parser_start = subparsers.add_parser('start',
@@ -253,6 +267,11 @@ def run():
                              type = str,
                              default = None,
                              help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_start.add_argument('--config',
+                             type = str,
+                             default = 'config.json',
+                             help = "Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
    parser_start.add_argument('--logdir',
                              type = str,
@@ -277,6 +296,11 @@ def run():
                              type = str,
                              default = None,
                              help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_check.add_argument('--config',
+                             type = str,
+                             default = 'config.json',
+                             help = "Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
 
    ## parse cmd line args

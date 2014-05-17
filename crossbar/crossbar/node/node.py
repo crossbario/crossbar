@@ -583,6 +583,9 @@ class NodeControllerSession(ApplicationSession):
             else:
                log.msg("Worker {}: Started.".format(pid))
 
+            manhole_config = {}
+            yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_name, pid),
+               manhole_config)
 
             ## setup worker generic stuff
             ##
@@ -700,6 +703,8 @@ class Node:
       :param cbdir: Crossbar.io node directory to run from.
       :type cbdir: str
       """
+      self._options = options
+
       self.debug = options.debug
       self._cbdir = options.cbdir
 
@@ -758,7 +763,7 @@ class Node:
       for wpl in self._node_controller_session.list_wamplets():
          log.msg("WAMPlet detected: {}.{}".format(wpl['dist'], wpl['name']))
 
-      yield self.start_from_local_config(configfile = os.path.join(self._cbdir, 'config.json'))
+      yield self.start_from_local_config(configfile = os.path.join(self._cbdir, self._options.config))
 
       self.start_local_management_transport(endpoint_descriptor = "tcp:9000")
 
@@ -805,7 +810,7 @@ class Node:
       try:
          config = check_config_file(configfile, silence = True)
       except Exception as e:
-         log.msg("Invalid configuration: {}".format(e))
+         raise Exception("Fatal - could not load configuration: {}".format(e))
       else:
          ## startup the node from configuration file
          ##
