@@ -72,22 +72,40 @@ def check_endpoint_port(port):
 
 
 
+def check_endpoint_timeout(timeout):
+   if type(timeout) not in [int, long]:
+      raise Exception("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
+   if port < 0 or port > 600:
+      raise Exception("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
+
+
+
 def check_endpoint_listen_tls(tls):
    if type(tls) != dict:
       raise Exception("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
 
    for k in tls:
       if k not in ['key', 'certificate', 'dhparam', 'ciphers']:
-         raise Exception("encountered unknown attribute '{}' in listenting endpoint TLS configuration".format(k))
+         raise Exception("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
 
    for k in [('key', True), ('certificate', True), ('dhparam', False), ('ciphers', False)]:
 
       if k[1] and not k[0] in tls:
-         raise Exception("missing mandatory attribute '{}' in listenting endpoint TLS configuration".format(k[0]))
+         raise Exception("missing mandatory attribute '{}' in listening endpoint TLS configuration".format(k[0]))
 
       if k[0] in tls:
          if type(k[0]) not in [str, unicode]:
             raise Exception("'{}' in listening endpoint TLS configuration must be string ({} encountered)".format(k[0], type(k[0])))
+
+
+
+def check_endpoint_connect_tls(tls):
+   if type(tls) != dict:
+      raise Exception("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
+
+   for k in tls:
+      if k not in []:
+         raise Exception("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
 
 
 
@@ -131,6 +149,44 @@ def check_endpoint_listen_unix(endpoint):
 
 
 
+def check_endpoint_connect_tcp(endpoint):
+   for k in endpoint:
+      if k not in ['type', 'host', 'port', 'timeout', 'tls']:
+         raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
+
+   if not 'host' in endpoint:
+      raise Exception("missing mandatory attribute 'host' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+
+   if not 'port' in endpoint:
+      raise Exception("missing mandatory attribute 'port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+
+   check_endpoint_port(endpoint['port'])
+
+   if 'tls' in endpoint:
+      check_endpoint_connect_tls(endpoint['tls'])
+
+   if 'timeout' in endpoint:
+      check_endpoint_timeout(endpoint['timeout'])
+
+
+
+def check_endpoint_connect_unix(endpoint):
+   for k in endpoint:
+      if k not in ['type', 'path', 'timeout']:
+         raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
+
+   if not 'path' in endpoint:
+      raise Exception("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
+
+   path = endpoint['path']
+   if type(path) not in [str, unicode]:
+      raise Exception("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type(path)))
+
+   if 'timeout' in endpoint:
+      check_endpoint_timeout(endpoint['timeout'])
+
+
+
 def check_endpoint_listen(endpoint):
    if type(endpoint) != dict:
       raise Exception("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
@@ -146,6 +202,26 @@ def check_endpoint_listen(endpoint):
       check_endpoint_listen_tcp(endpoint)
    elif etype == 'unix':
       check_endpoint_listen_unix(endpoint)
+   else:
+      raise Exception("logic error")
+
+
+
+def check_endpoint_connect(endpoint):
+   if type(endpoint) != dict:
+      raise Exception("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
+
+   if not 'type' in endpoint:
+      raise Exception("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
+
+   etype = endpoint['type']
+   if etype not in ['tcp', 'unix']:
+      raise Exception("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
+
+   if etype == 'tcp':
+      check_endpoint_connect_tcp(endpoint)
+   elif etype == 'unix':
+      check_endpoint_connect_unix(endpoint)
    else:
       raise Exception("logic error")
 
