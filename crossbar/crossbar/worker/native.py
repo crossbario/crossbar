@@ -27,59 +27,57 @@ from twisted.internet.defer import DeferredList, inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions
+from autobahn.wamp.types import ComponentConfig, PublishOptions
 
 
 
 class NativeWorker(ApplicationSession):
    """
-   A Crossbar.io worker process connects back to the node router
-   via WAMP-over-stdio.
+   A native Crossbar.io worker process. The worker will be connected
+   to the node's management router via WAMP-over-stdio.  
    """
 
    def onConnect(self):
-      self.debug = self.factory.options.debug
+      """
+      Called when the worker has connected to the node's management router.
+      """
+      self.debug = self.config.extra.debug
 
-      self._pid = os.getpid()
-
-      self._node_name = self.factory.options.node
-      self._node_realm = self.factory.options.realm
-      self._cbdir = self.factory.options.cbdir
+      if self.debug:
+         log.msg("Worker connected to node management router.")
 
       self._started = datetime.datetime.utcnow()
 
-      if self.debug:
-         log.msg("Connected to node router.")
-
-      self._router_module = None
       self._manhole_listening_port = None
 
-      self._class_hosts = {}
-      self._class_host_seq = 0
+      #self.join(self._node_realm)
+      print "X"*100, self.config.realm
+      self.join(self.config.realm)
 
-      self.join(self._node_realm)
 
 
    @inlineCallbacks
    def onJoin(self, details):
       """
+      Called when worker process has joined the node's management realm.
       """
       procs = [
-         (self.start_manhole, 'start_manhole'),
-         (self.stop_manhole, 'stop_manhole'),
-         (self.trigger_gc, 'trigger_gc'),
-         (self.get_cpu_affinity, 'get_cpu_affinity'),
-         (self.set_cpu_affinity, 'set_cpu_affinity'),
-         (self.utcnow, 'utcnow'),
-         (self.started, 'started'),
-         (self.uptime, 'uptime'),
-         (self.get_pythonpath, 'get_pythonpath'),
-         (self.add_pythonpath, 'add_pythonpath'),
+         'start_manhole',
+         'stop_manhole',
+         'trigger_gc',
+         'get_cpu_affinity',
+         'set_cpu_affinity',
+         'utcnow',
+         'started',
+         'uptime',
+         'get_pythonpath',
+         'add_pythonpath'
       ]
 
       dl = []
       for proc in procs:
-         dl.append(self.register(proc[0], 'crossbar.node.{}.worker.{}.{}'.format(self._node_name, self._pid, proc[1])))
+         uri = 'crossbar.node.{}.worker.{}.{}'.format(self.config.extra.node, self.config.extra.pid, proc)
+         dl.append(self.register(getattr(self, proc), uri))
 
       regs = yield DeferredList(dl)
 
@@ -90,8 +88,8 @@ class NativeWorker(ApplicationSession):
       ## will either be sequenced from the local node configuration file or remotely
       ## from a management service
       ##
-      pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self._node_name),
-         {'pid': self._pid, 'cmd': [sys.executable] + sys.argv},
+      pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
+         {'pid': self.config.extra.pid, 'cmd': [sys.executable] + sys.argv},
          options = PublishOptions(acknowledge = True))
 
       if self.debug:
@@ -135,13 +133,11 @@ class NativeWorker(ApplicationSession):
 
       factory = ConchFactory(ptl)
 
-      from crossbar.twisted.endpoint import create_endpoint_from_config
+      from crossbar.twisted.endpoint import create_listening_port_from_config
       from twisted.internet import reactor
 
-      server = create_endpoint_from_config(config['endpoint'], self._cbdir, reactor)
-
       try:
-         self._manhole_listening_port = yield server.listen(factory)
+         self._manhole_listening_port = yield create_listening_port_from_config(config['endpoint'], factory, self.config.extra.cbdir, reactor)
       except Exception as e:
          raise ApplicationError("wamp.error.could_not_listen", "Could not start manhole: '{}'".format(e))
 
@@ -170,7 +166,7 @@ class NativeWorker(ApplicationSession):
          log.msg("Warning: could not get process CPU affinity - psutil not installed")
          return []
       else:
-         p = psutil.Process(self._pid)
+         p = psutil.Process(self.config.extra.pid)
          return p.get_cpu_affinity()
 
 
@@ -184,7 +180,7 @@ class NativeWorker(ApplicationSession):
       except ImportError:
          log.msg("Warning: could not set process CPU affinity - psutil not installed")
       else:
-         p = psutil.Process(self._pid)
+         p = psutil.Process(self.config.extra.pid)
          p.set_cpu_affinity(cpus)
 
 
@@ -202,7 +198,7 @@ class NativeWorker(ApplicationSession):
       Add paths to Python module search path.
       """
       ## transform all paths (relative to cbdir) into absolute paths.
-      paths = [os.path.abspath(os.path.join(self._cbdir, p)) for p in paths]
+      paths = [os.path.abspath(os.path.join(self.config.extra.cbdir, p)) for p in paths]
       if prepend:
          sys.path = paths + sys.path
       else:

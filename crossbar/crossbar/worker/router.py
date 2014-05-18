@@ -156,6 +156,10 @@ class RouterWorker(NativeWorker):
 
       ## map: transport index -> transport
       self.transports = {}
+      """
+      Map of transports.
+      """
+
       self.transport_no = 0
 
       ## map: link index -> link
@@ -185,7 +189,7 @@ class RouterWorker(NativeWorker):
 
       dl = []
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.router.{}'.format(self._node_name, self._pid, proc)
+         uri = 'crossbar.node.{}.worker.{}.router.{}'.format(self.config.extra.node, self.config.extra.pid, proc)
          dl.append(self.register(getattr(self, proc), uri))
 
       regs = yield DeferredList(dl)
@@ -202,7 +206,7 @@ class RouterWorker(NativeWorker):
 
    def start_realm(self, realm, config):
       if self.debug:
-         log.msg("Worker {}: realm started".format(self._pid))
+         log.msg("Worker {}: realm started".format(self.config.extra.pid))
       return 1
 
 
@@ -254,7 +258,7 @@ class RouterWorker(NativeWorker):
             klassname = config['name']
 
             if self.debug:
-               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, realm))
+               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self.config.extra.pid, klassname, realm))
 
             import importlib
             c = klassname.split('.')
@@ -273,7 +277,7 @@ class RouterWorker(NativeWorker):
             name = config['entry']
 
             if self.debug:
-               log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self._pid, dist, name, realm))
+               log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self.config.extra.pid, dist, name, realm))
 
             ## make is supposed to make instances of ApplicationSession
             make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
@@ -313,7 +317,7 @@ class RouterWorker(NativeWorker):
       """
       if id in self._components:
          if self.debug:
-            log.msg("Worker {}: stopping component {}".format(self._pid, id))
+            log.msg("Worker {}: stopping component {}".format(self.config.extra.pid, id))
 
          try:
             #self._components[id].disconnect()
@@ -346,7 +350,7 @@ class RouterWorker(NativeWorker):
 
 
       if self.debug:
-         log.msg("Worker {}: starting '{}' transport on router module.".format(config['type'], self._pid))
+         log.msg("Worker {}: starting '{}' transport on router module.".format(config['type'], self.config.extra.pid))
 
 
       ## check for valid transport type
@@ -366,7 +370,7 @@ class RouterWorker(NativeWorker):
       ##
       elif config['type'] == 'websocket':
 
-         transport_factory = CrossbarWampWebSocketServerFactory(router.session_factory, self._cbdir, config, self._templates)
+         transport_factory = CrossbarWampWebSocketServerFactory(router.session_factory, self.config.extra.cbdir, config, self._templates)
 
 
       ## standalone WebSocket testee transport
@@ -396,7 +400,7 @@ class RouterWorker(NativeWorker):
 
             if 'directory' in root_config:
 
-               root_dir = os.path.abspath(os.path.join(self._cbdir, root_config['directory']))
+               root_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, root_config['directory']))
 
             elif 'module' in root_config:
                if not 'resource' in root_config:
@@ -502,7 +506,7 @@ class RouterWorker(NativeWorker):
                ## WAMP-WebSocket resource
                ##
                if path_config['type'] == 'websocket':
-                  ws_factory = CrossbarWampWebSocketServerFactory(router.session_factory, self._cbdir, path_config, self._templates)
+                  ws_factory = CrossbarWampWebSocketServerFactory(router.session_factory, self.config.extra.cbdir, path_config, self._templates)
 
                   ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
                   ws_factory.startFactory()
@@ -519,7 +523,7 @@ class RouterWorker(NativeWorker):
 
                   if 'directory' in path_config:
                   
-                     static_dir = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
+                     static_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
 
                   elif 'module' in path_config:
 
@@ -613,7 +617,7 @@ class RouterWorker(NativeWorker):
                elif path_config['type'] == 'cgi':
 
                   cgi_processor = path_config['processor']
-                  cgi_directory = os.path.abspath(os.path.join(self._cbdir, path_config['directory']))
+                  cgi_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
                   cgi_directory = cgi_directory.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
 
                   cgi_resource = CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
@@ -665,158 +669,52 @@ class RouterWorker(NativeWorker):
 
       ## create transport endpoint / listening port from transport factory
       ##
-      if True:
-         from twisted.internet.endpoints import TCP4ServerEndpoint, UNIXServerEndpoint
-         from twisted.internet.endpoints import serverFromString
-         
-         try:
-            from twisted.internet.endpoints import SSL4ServerEndpoint
-            from crossbar.twisted.tlsctx import TlsServerContextFactory
-            HAS_TLS = True
-         except:
-            HAS_TLS = False
+      from crossbar.twisted.endpoint import create_listening_port_from_config
+      from twisted.internet import reactor
 
-         #server = serverFromString(reactor, "ssl:8080:privateKey=.crossbar/server.key:certKey=.crossbar/server.crt")
+      d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, reactor)
 
-         try:
-            endpoint_config = config.get('endpoint')
+      def ok(port):
+         router.transport_no += 1
+         router.transports[router.transport_no] = RouterTransport(router.transport_no, config, port)
+         return router.transport_no
 
-            ## a TCP4 endpoint
-            ##
-            if endpoint_config['type'] == 'tcp':
+      def fail(err):
+         log.msg("cannot listen on endpoint: {}".format(err.value))
+         raise ApplicationError("crossbar.error.cannotlisten", str(err.value))
 
-               ## the listening port
-               ##
-               port = int(endpoint_config['port'])
-
-               ## the listening interface
-               ##
-               interface = str(endpoint_config.get('interface', '').strip())
-
-               ## the TCP accept queue depth
-               ##
-               backlog = int(endpoint_config.get('backlog', 50))
-
-               if 'tls' in endpoint_config:
-                  
-                  if HAS_TLS:
-                     key_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['key']))
-                     cert_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['certificate']))
-   
-                     with open(key_filepath) as key_file:
-                        with open(cert_filepath) as cert_file:
-   
-                           if 'dhparam' in endpoint_config['tls']:
-                              dhparam_filepath = os.path.abspath(os.path.join(self._cbdir, endpoint_config['tls']['dhparam']))
-                           else:
-                              dhparam_filepath = None
-   
-                           ## create a TLS context factory
-                           ##
-                           key = key_file.read()
-                           cert = cert_file.read()
-                           ciphers = endpoint_config['tls'].get('ciphers')
-                           ctx = TlsServerContextFactory(key, cert, ciphers = ciphers, dhParamFilename = dhparam_filepath)
-   
-                     ## create a TLS server endpoint
-                     ##
-                     server = SSL4ServerEndpoint(reactor,
-                                                 port,
-                                                 ctx,
-                                                 backlog = backlog,
-                                                 interface = interface)
-                  else:
-                     raise ApplicationError("crossbar.error.invalid_configuration", "TLS transport requested, but TLS packages not available")
-                     
-               else:
-                  ## create a non-TLS server endpoint
-                  ##
-                  server = TCP4ServerEndpoint(reactor,
-                                              port,
-                                              backlog = backlog,
-                                              interface = interface)
-
-            ## a Unix Domain Socket endpoint
-            ##
-            elif endpoint_config['type'] == 'unix':
-
-               ## the accept queue depth
-               ##
-               backlog = int(endpoint_config.get('backlog', 50))
-
-               ## the path
-               ##
-               path = os.path.abspath(os.path.join(self._cbdir, endpoint_config['path']))
-
-               ## create the endpoint
-               ##
-               server = UNIXServerEndpoint(reactor, path, backlog = backlog)
-
-            else:
-               raise ApplicationError("crossbar.error.invalid_configuration", "invalid endpoint type '{}'".format(endpoint_config['type']))
-
-         except Exception as e:
-            log.msg("endpoint creation failed: {}".format(e))
-            raise e
+      d.addCallbacks(ok, fail)
+      return d
 
 
-         d = server.listen(transport_factory)
 
-         def ok(port):
-            router.transport_no += 1
-            router.transports[router.transport_no] = RouterTransport(router.transport_no, config, port)
-            return router.transport_no
+   def stop_transport(self, transport_index):
+      """
+      Stop a transport on this router on this router.
+
+      :param transport_index: Index of the transport to stop.
+      :type transport_index: int
+      """
+      if not transport_index in self._transports:
+         raise ApplicationError("crossbar.error.no_such_transport", "No transport started with index {}".format(transport_index))
+
+      if self.debug:
+         log.msg("Worker {}: stopping transport {}".format(self.config.extra.pid, transport_index))
+
+      try:
+         d = self._transports[transport_index].port.stopListening()
+
+         def ok(_):
+            del self._transports[transport_index]
 
          def fail(err):
-            log.msg("cannot listen on endpoint: {}".format(err.value))
-            raise ApplicationError("crossbar.error.cannotlisten", str(err.value))
+            raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, str(err.value)))
 
          d.addCallbacks(ok, fail)
          return d
 
-      else:        
-         # http://stackoverflow.com/questions/12542700/setsockopt-before-connect-for-reactor-connecttcp
-         # http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
-         # http://stackoverflow.com/questions/10077745/twistedweb-on-multicore-multiprocessor
-
-         ## start the WebSocket server from a custom port that share TCP ports
-         ##
-         port = CustomPort(9000, transport_factory, reuse = True)
-         try:
-            port.startListening()
-         except twisted.internet.error.CannotListenError as e:
-            raise ApplicationError("crossbar.error.cannotlisten", str(e))
-         else:
-            self._transport_no += 1
-            self._transports[self._transport_no] = RouterTransport(self._transport_no, config, port)
-            return self._transport_no
-
-
-
-   def stop_transport(self, router_index, transport_index):
-      """
-      Stop a transport on this router module.
-      """
-      if id in self._transports:
-         if self.debug:
-            log.msg("Worker {}: stopping transport {}".format(self._pid, id))
-
-         try:
-            d = self._transports[id].port.stopListening()
-
-            def ok(_):
-               del self._transports[id]
-
-            def fail(err):
-               raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, str(err.value)))
-
-            d.addCallbacks(ok, fail)
-            return d
-
-         except Exception as e:
-            raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, e))
-      else:
-         raise ApplicationError("crossbar.error.no_such_transport", "No transport {}".format(id))
+      except Exception as e:
+         raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, e))
 
 
 
@@ -833,7 +731,7 @@ class RouterWorker(NativeWorker):
       Start a link on this router.
       """
       if self.debug:
-         log.msg("Worker {}: starting router link".format(self._pid))
+         log.msg("Worker {}: starting router link".format(self.config.extra.pid))
 
 
 
@@ -842,4 +740,4 @@ class RouterWorker(NativeWorker):
       Stop a link on this router.
       """
       if self.debug:
-         log.msg("Worker {}: stopping router link {}".format(self._pid, id))
+         log.msg("Worker {}: stopping router link {}".format(self.config.extra.pid, id))

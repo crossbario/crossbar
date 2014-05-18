@@ -56,3 +56,16 @@ class CustomPort(tcp.Port):
             raise Exception("don't know how to set SO_RESUSEPORT on platform {}".format(sys.platform))
 
       return s
+
+
+# http://stackoverflow.com/questions/12542700/setsockopt-before-connect-for-reactor-connecttcp
+# http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
+# http://stackoverflow.com/questions/10077745/twistedweb-on-multicore-multiprocessor
+
+## start the WebSocket server from a custom port that share TCP ports
+##
+#port = CustomPort(9000, transport_factory, reuse = True)
+#try:
+#   port.startListening()
+#except twisted.internet.error.CannotListenError as e:
+#   raise ApplicationError("crossbar.error.cannotlisten", str(e))

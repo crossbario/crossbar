@@ -79,7 +79,7 @@ def run():
 
    ## the worker's PID
    ##
-   pid = os.getpid()
+   options.pid = os.getpid()
 
 
    try:
@@ -143,9 +143,12 @@ def run():
       ## create a WAMP application session factory
       ##
       from autobahn.twisted.wamp import ApplicationSessionFactory
-      session_factory = ApplicationSessionFactory()
-      session_factory.options = options
+      from autobahn.wamp.types import ComponentConfig
+
+      session_config = ComponentConfig(realm = options.realm, extra = options)
+      session_factory = ApplicationSessionFactory(session_config)
       session_factory.session = WORKER_TYPE_TO_CLASS[options.type]
+
 
       ## create a WAMP-over-WebSocket transport server factory
       ##

@@ -36,14 +36,14 @@ from crossbar.worker.native import NativeWorker
 
 class ContainerWorker(NativeWorker):
    """
-   The ComponentModule creates component hosts in a Worker
-   process. Component hosts can dynamically load, reload and
-   unload Python application classes and components (WAMPlets).
+   A container worker hosts application components written in Python, and
+   connects to an application router.
    """
 
    @inlineCallbacks
    def onJoin(self, details):
       """
+      Called when worker process has joined the node's management realm.
       """
       dl = []
       procs = [
@@ -51,7 +51,7 @@ class ContainerWorker(NativeWorker):
       ]
 
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self._node_name, self._pid, proc)
+         uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self.config.extra.node, self.config.extra.pid, proc)
          dl.append(self.register(getattr(self, proc), uri))
 
       regs = yield DeferredList(dl)
@@ -72,13 +72,13 @@ class ContainerWorker(NativeWorker):
             name = component['entry']
 
             if self.debug:
-               log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self._pid, dist, name, router['realm']))
+               log.msg("Starting WAMPlet '{}/{}' in realm '{}' ..".format(dist, name, router['realm']))
 
             ## make is supposed to make instances of ApplicationSession
             make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
 
          except Exception as e:
-            log.msg("Worker {}: failed to import class - {}".format(e))
+            log.msg("Failed to import class - {}".format(e))
             raise ApplicationError("crossbar.error.class_import_failed", str(e))
    
       elif component['type'] == 'class':
@@ -87,7 +87,7 @@ class ContainerWorker(NativeWorker):
             klassname = component['name']
 
             if self.debug:
-               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self._pid, klassname, router['realm']))
+               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self.config.extra.pid, klassname, router['realm']))
 
             import importlib
             c = klassname.split('.')
@@ -194,7 +194,7 @@ class ContainerWorker(NativeWorker):
 
             ## the path
             ##
-            path = os.path.abspath(os.path.join(self._cbdir, endpoint_config['path']))
+            path = os.path.abspath(os.path.join(self.config.extra.cbdir, endpoint_config['path']))
 
             ## connection timeout in seconds
             ##
@@ -219,21 +219,22 @@ class ContainerWorker(NativeWorker):
 
       def try_connect():
          if self.debug:
-            log.msg("Worker {}: connecting to router ..".format(self._pid))
+            log.msg("Connecting to application router ..")
 
          d = self._client.connect(transport_factory)
 
          def success(res):
+            print "*"*100, res
             if self.debug:
-               log.msg("Worker {}: client connected to router".format(self._pid))
+               log.msg("Connected to application router")
 
          def error(err):
-            log.msg("Worker {}: client failed to connect to router - {}".format(self._pid, err))
+            log.msg("Failed to connect to application router: {}".format(err))
             if retry:
-               log.msg("Worker {}: retrying in {} ms".format(self._pid, retryDelay))
+               log.msg("Retrying to connect in {} ms".format(retryDelay))
                reactor.callLater(float(retryDelay) / 1000., try_connect)
             else:
-               log.msg("Worker {}: giving up.".format(seld._pid))
+               log.msg("Could not connect to application router - giving up.")
 
          d.addCallbacks(success, error)
 

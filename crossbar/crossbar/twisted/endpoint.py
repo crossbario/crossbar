@@ -19,7 +19,9 @@
 
 from __future__ import absolute_import
 
-__all__ = ['create_endpoint_from_config']
+__all__ = ['create_listening_endpoint_from_config',
+           'create_listening_port_from_config']
+
 
 import os
 
@@ -36,7 +38,7 @@ from autobahn.wamp.exception import ApplicationError
 
 
 
-def create_endpoint_from_config(endpoint_config, cbdir, reactor):
+def create_listening_endpoint_from_config(endpoint_config, cbdir, reactor):
    """
    """
 
@@ -118,3 +120,12 @@ def create_endpoint_from_config(endpoint_config, cbdir, reactor):
       raise ApplicationError("crossbar.error.invalid_configuration", "invalid endpoint type '{}'".format(endpoint_config['type']))
 
    return server_endpoint
+
+
+
+
+def create_listening_port_from_config(config, factory, cbdir, reactor):
+   """
+   """
+   endpoint = create_listening_endpoint_from_config(config, cbdir, reactor)
+   return endpoint.listen(factory)

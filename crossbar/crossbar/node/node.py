@@ -682,8 +682,8 @@ class NodeControllerSession(ApplicationSession):
 
             ## manhole within worker
             ##
-            if 'manhole' in worker:
-               yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._name, pid), worker['manhole'])
+            if 'manhole' in worker_options:
+               yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._name, pid), worker_options['manhole'])
 
 
             ## Setup: WAMP router process
