@@ -18,7 +18,7 @@
 
 from __future__ import absolute_import
 
-__all__ = ['RouterModule']
+__all__ = ['RouterWorker']
 
 
 import os
@@ -83,15 +83,36 @@ EXTRA_MIME_TYPES = {
 
 
 
+class RouterRealm:
+   """
+   A realm managed by a router.
+   """
+   def __init__(self, id, realm, config):
+      """
+      Ctor.
+
+      :param id: The realm index within the router.
+      :type id: int
+      :param realm: The realm name.
+      :type realm: str
+      :param config: The realm configuration.
+      :type config: str
+      """
+      self.id = id
+      self.realm = realm
+      self.config = config
+
+
+
 class RouterTransport:
    """
-   A router transport attached to a router instance.
+   A transport attached to a router.
    """
    def __init__(self, id, config, port):
       """
       Ctor.
 
-      :param id: The transport index within the router instance.
+      :param id: The transport index within the router.
       :type id: int
       :param config: The transport's configuration.
       :type config: dict
@@ -128,14 +149,11 @@ class RouterComponent:
 
 
 
-
 class RouterWorker(NativeWorker):
    """
-   A router module runs inside a Worker and allows to dynamically start and
-   stop WAMP router instances.
-
-   Each router instance can manage multiple realms, run multiple transports
-   and links, as well as host multiple (embedded) application components.
+   A native Crossbar.io worker that runs a WAMP router which can manage
+   multiple realms, run multiple transports and links, as well as host
+   multiple (embedded) application components.
    """
    WORKER_TYPE = 'router'
 
@@ -151,23 +169,25 @@ class RouterWorker(NativeWorker):
          log.msg("Using Crossbar.io web templates from {}".format(templates_dir))
       self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
 
-
+      ## factory for producing (per-realm) routers
       self.factory = CrossbarRouterFactory()
+
+      ## factory for producing router sessions
       self.session_factory = CrossbarRouterSessionFactory(self.factory)
 
-      ## map: transport index -> transport
-      self.transports = {}
-      """
-      Map of transports.
-      """
+      ## map: realm index -> RouterRealm
+      self.realms = {}
+      self.realm_no = 0
 
+      ## map: transport index -> RouterTransport
+      self.transports = {}
       self.transport_no = 0
 
-      ## map: link index -> link
+      ## map: link index -> RouterLink
       self.links = {}
       self.link_no = 0
 
-      ## map: component index -> (embedded) component
+      ## map: component index -> RouterComponent
       self.components = {}
       self.component_no = 0
 
@@ -194,6 +214,9 @@ class RouterWorker(NativeWorker):
          dl.append(self.register(getattr(self, proc), uri))
 
       regs = yield DeferredList(dl)
+
+      if self.debug:
+         log.msg("RouterWorker procedures registered.")
 
       yield NativeWorker.onJoin(self, details)
 

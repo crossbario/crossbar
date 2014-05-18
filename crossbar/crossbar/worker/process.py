@@ -17,7 +17,8 @@
 ###############################################################################
 
 from __future__ import absolute_import
-import os, sys
+
+__all__ = ['run']
 
 
 
@@ -26,6 +27,8 @@ def run():
    Entry point into (native) worker processes. This wires up stuff such that
    a worker instance is talking WAMP-over-stdio to the node controller.
    """
+   import os, sys
+
    ## create the top-level parser
    ##
    import argparse

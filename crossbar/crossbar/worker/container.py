@@ -18,6 +18,9 @@
 
 from __future__ import absolute_import
 
+__all__ = ['ContainerWorker']
+
+
 import os
 
 from twisted.internet.defer import DeferredList, inlineCallbacks

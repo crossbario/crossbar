@@ -18,6 +18,9 @@
 
 from __future__ import absolute_import
 
+__all__ = ['NativeWorker']
+
+
 import os
 import sys
 import datetime
@@ -81,7 +84,7 @@ class NativeWorker(ApplicationSession):
       regs = yield DeferredList(dl)
 
       if self.debug:
-         log.msg("Worker procedures registered.")
+         log.msg("NativeWorker procedures registered.")
 
       ## signal that this worker is ready for setup. the actual setup procedure
       ## will either be sequenced from the local node configuration file or remotely
