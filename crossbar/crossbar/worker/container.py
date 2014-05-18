@@ -20,7 +20,7 @@ from __future__ import absolute_import
 
 import os
 
-from twisted.internet.defer import DeferredList
+from twisted.internet.defer import DeferredList, inlineCallbacks
 
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig
@@ -29,32 +29,22 @@ from twisted.python import log
 import pkg_resources
 
 
-class ContainerInstance:
-   def __init__(self, id):
-      self.id = id
+from crossbar.worker.native import NativeWorker
 
 
-class ContainerModule:
+
+
+class ContainerWorker(NativeWorker):
    """
    The ComponentModule creates component hosts in a Worker
    process. Component hosts can dynamically load, reload and
    unload Python application classes and components (WAMPlets).
    """
 
-   def __init__(self, cbdir, debug = False):
-      self._cbdir = cbdir
-      self.debug = debug
-      self._client = None
-      self._session = None
-
-
-   def connect(self, session):
-      assert(self._session is None)
-
-      self._session = session
-      self._pid = session._pid
-      self._node_name = session._node_name
-
+   @inlineCallbacks
+   def onJoin(self, details):
+      """
+      """
       dl = []
       procs = [
          'start_component',
@@ -62,10 +52,11 @@ class ContainerModule:
 
       for proc in procs:
          uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self._node_name, self._pid, proc)
-         dl.append(self._session.register(getattr(self, proc), uri))
+         dl.append(self.register(getattr(self, proc), uri))
 
-      d = DeferredList(dl)
-      return d
+      regs = yield DeferredList(dl)
+
+      yield NativeWorker.onJoin(self, details)
 
 
    def start_component(self, component, router):

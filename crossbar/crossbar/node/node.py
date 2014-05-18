@@ -262,7 +262,7 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def start_worker(self, options = {}):
+   def start_worker(self, worker_type, options = {}):
       """
       Start a new Crossbar.io worker process.
 
@@ -284,6 +284,7 @@ class NodeControllerSession(ApplicationSession):
       args.extend(["--cbdir", self._node._cbdir])
       args.extend(["--node", self._node._name])
       args.extend(["--realm", self._node._realm])
+      args.extend(["--type", worker_type])
 
       ## override worker process title from config
       ##
@@ -633,39 +634,39 @@ class NodeControllerSession(ApplicationSession):
       """
       Setup node according to config provided.
       """
-      for process in config['workers']:
+      for worker in config.get('workers', []):
 
-         process_options = process.get('options', {})
+         worker_options = worker.get('options', {})
 
-         ## worker
+         ## router/container
          ##
-         if process['type'] == 'worker':
+         if worker['type'] in ['router', 'container']:
 
             ## start a new worker process ..
             ##
             try:
-               pid = yield self.start_worker(process_options)
+               pid = yield self.start_worker(worker['type'], worker_options)
             except Exception as e:
                log.msg("Failed to start worker process: {}".format(e))
             else:
-               log.msg("Worker {}: Started.".format(pid))
+               log.msg("Worker {}: Started {}.".format(pid, worker['type']))
 
             ## setup worker generic stuff
             ##
-            if 'pythonpath' in process_options:
+            if 'pythonpath' in worker_options:
                try:
                   added_paths = yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._name, pid),
-                     process_options['pythonpath'])
+                     worker_options['pythonpath'])
 
                except Exception as e:
                   log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(pid, e))
                else:
                   log.msg("Worker {}: PYTHONPATH extended for {}".format(pid, added_paths))
 
-            if 'cpu_affinity' in process_options:
+            if 'cpu_affinity' in worker_options:
                try:
                   yield self.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._name, pid),
-                     process_options['cpu_affinity'])
+                     worker_options['cpu_affinity'])
 
                except Exception as e:
                   log.msg("Worker {}: Failed to set CPU affinity - {}".format(pid, e))
@@ -681,73 +682,58 @@ class NodeControllerSession(ApplicationSession):
 
             ## manhole within worker
             ##
-            if 'manhole' in process:
-               yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._name, pid), process['manhole'])
+            if 'manhole' in worker:
+               yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._name, pid), worker['manhole'])
 
-            ## setup modules
+
+            ## Setup: WAMP router process
             ##
-            for module in process['modules']:
+            if worker['type'] == 'router':
 
-               ## Setup: WAMP router process
+               ## start realms
                ##
-               if module['type'] == 'router':
+               for realm_name, realm_config in worker['realms'].items():
 
-                  ## start new router
+                  realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._name, pid), realm_name, realm_config)
+
+                  log.msg("Worker {}: Realm {} ({}) started on router".format(pid, realm_name, realm_index))
+
+                  ## start any application components to run embedded in the realm
                   ##
-                  router_index = yield self.call('crossbar.node.{}.worker.{}.router.start'.format(self._name, pid))
-                  log.msg("Worker {}: Router started ({})".format(pid, router_index))
+                  for component_config in realm_config.get('components', []):
 
-                  ## start realms
-                  ##
-                  for realm_name in module['realms']:
+                     component_index = yield self.call('crossbar.node.{}.worker.{}.router.start_component'.format(self._name, pid), realm_name, component_config)
 
-                     realm_config = module['realms'][realm_name]
-                     realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._name, pid),
-                        router_index, realm_name, realm_config)
-
-                     log.msg("Worker {}: Realm started on router {} ({})".format(pid, router_index, realm_index))
-
-                     ## start any application components to run embedded in the realm
-                     ##
-                     for component_config in realm_config.get('components', []):
-
-                        id = yield self.call('crossbar.node.{}.worker.{}.router.start_component'.format(self._name, pid),
-                           router_index, realm_name, component_config)
-
-                  ## start transports on router
-                  ##
-                  for transport in module['transports']:
-                     id = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._name, pid),
-                        router_index, transport)
-
-                     log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint']['type'], id, router_index))
-
-               ## Setup: Python component host process
+               ## start transports on router
                ##
-               elif module['type'] == 'container':
+               for transport in worker['transports']:
+                  transport_index = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._name, pid), transport)
 
-                  log.msg("Worker {}: Component container started.".format(pid))
+                  log.msg("Worker {}: Transport {}/{} ({}) started on router".format(pid, transport['type'], transport['endpoint']['type'], transport_index))
 
-                  yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._name, pid),
-                     module['component'], module['router'])
+            ## Setup: Python component host process
+            ##
+            elif worker['type'] == 'container':
 
-               else:
-                  raise Exception("logic error")
+               yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._name, pid), worker['component'], worker['router'])
+
+            else:
+               raise Exception("logic error")
 
 
-         elif process['type'] == 'guest':
+         elif worker['type'] == 'guest':
 
             ## start a new worker process ..
             ##
             try:
-               pid = yield self.start_guest(process)
+               pid = yield self.start_guest(worker)
             except Exception as e:
                log.msg("Failed to start guest process: {}".format(e))
             else:
                log.msg("Guest {}: Started.".format(pid))
 
          else:
-            raise Exception("unknown process type '{}'".format(process['type']))
+            raise Exception("unknown worker type '{}'".format(worker['type']))
 
 
 

@@ -72,43 +72,14 @@ from crossbar.twisted.resource import FileNoListing, JsonResource, Resource404, 
 from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
 
+from crossbar.worker.native import NativeWorker
+
+
 
 EXTRA_MIME_TYPES = {
    '.svg': 'image/svg+xml',
    '.jgz': 'text/javascript'
 }
-
-
-
-class RouterInstance:
-   """
-   A Crossbar.io router instance started from a router module,
-   holding transports, links and components.
-   """
-
-   def __init__(self, id):
-      """
-      Ctor.
-
-      :param id: The router instance index within the router module.
-      :type id: int
-      """
-      self.id = id
-
-      self.factory = CrossbarRouterFactory()
-      self.session_factory = CrossbarRouterSessionFactory(self.factory)
-
-      ## map: transport index -> transport
-      self.transports = {}
-      self.transport_no = 0
-
-      ## map: link index -> link
-      self.links = {}
-      self.link_no = 0
-
-      ## map: component index -> (embedded) component
-      self.components = {}
-      self.component_no = 0
 
 
 
@@ -157,7 +128,8 @@ class RouterComponent:
 
 
 
-class RouterModule:
+
+class RouterWorker(NativeWorker):
    """
    A router module runs inside a Worker and allows to dynamically start and
    stop WAMP router instances.
@@ -166,16 +138,11 @@ class RouterModule:
    and links, as well as host multiple (embedded) application components.
    """
 
-   def __init__(self, cbdir, debug = False):
-      """
-      Ctor.
 
-      :param cbdir: Crossbar.io node directory.
-      :type cbdir: str
+   @inlineCallbacks
+   def onJoin(self, details):
       """
-      self._cbdir = cbdir
-      self.debug = debug
-
+      """
       ## Jinja2 templates for Web (like WS status page et al)
       ##
       templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
@@ -183,37 +150,25 @@ class RouterModule:
          log.msg("Using Crossbar.io web templates from {}".format(templates_dir))
       self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
 
-      ## the Worker's WAMP session to the node controller
-      ##
-      self._session = None
 
-      ## a map: router index -> router instance
-      ##
-      self._routers = {}
+      self.factory = CrossbarRouterFactory()
+      self.session_factory = CrossbarRouterSessionFactory(self.factory)
 
-      ## highest assigned router index (this is incremented each time
-      ## a new router instance is started - and never decremented)
-      ##
-      self._router_no = 0
+      ## map: transport index -> transport
+      self.transports = {}
+      self.transport_no = 0
 
+      ## map: link index -> link
+      self.links = {}
+      self.link_no = 0
 
+      ## map: component index -> (embedded) component
+      self.components = {}
+      self.component_no = 0
 
-   def connect(self, session):
-      """
-      Connect the router module to the Worker's WAMP session to the 
-      node controller. The Worker will call this once upon startup.
-      """
-      assert(self._session is None)
-
-      self._session = session
-      self._pid = session._pid
-      self._node_name = session._node_name
 
       ## the procedures registered
       procs = [
-         'list',
-         'start',
-         'stop',
          'list_realms',
          'start_realm',
          'stop_realm',
@@ -231,49 +186,11 @@ class RouterModule:
       dl = []
       for proc in procs:
          uri = 'crossbar.node.{}.worker.{}.router.{}'.format(self._node_name, self._pid, proc)
-         dl.append(self._session.register(getattr(self, proc), uri))
+         dl.append(self.register(getattr(self, proc), uri))
 
-      d = DeferredList(dl)
-      return d
+      regs = yield DeferredList(dl)
 
-
-
-   def list(self):
-      """
-      List currently running router instances.
-
-      :returns list -- List of router instances.
-      """
-      res = []
-      for router in self._routers.values():
-         r = {
-            'id': router.id,
-            'transports': len(router.transports),
-            'components': len(router.components)
-         }
-         res.append(r)
-      return res
-
-
-
-   def start(self):
-      """
-      Start a new router instance.
-
-      :returns int -- The index assigned to the new router instance.
-      """
-      self._router_no += 1
-      self._routers[self._router_no] = RouterInstance(self._router_no)
-      return self._router_no
-
-
-
-   def stop(self, router_index):
-      """
-      Stops a running router instance.
-      """
-      if self.debug:
-         log.msg("Worker {}: stopping router module".format(self._pid))
+      yield NativeWorker.onJoin(self, details)
 
 
 
@@ -283,13 +200,14 @@ class RouterModule:
 
 
 
-   def start_realm(self, router_index, realm, config):
+   def start_realm(self, realm, config):
       if self.debug:
          log.msg("Worker {}: realm started".format(self._pid))
+      return 1
 
 
 
-   def stop_realm(self, router_index, realm):
+   def stop_realm(self, realm_index):
       ## FIXME
       pass
 
@@ -420,14 +338,11 @@ class RouterModule:
 
 
 
-   def start_transport(self, router_index, config):
+   def start_transport(self, config):
       """
       Start a transport on this router module.
       """
-      if not router_index in self._routers:
-         raise ApplicationError("crossbar.error.no_such_router", router_index)
-
-      router = self._routers[router_index]
+      router = self
 
 
       if self.debug:
