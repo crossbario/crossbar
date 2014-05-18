@@ -129,8 +129,10 @@ class ContainerModule:
 
          ## create a WAMP-over-WebSocket transport client factory
          ##
-         from autobahn.twisted.websocket import WampWebSocketClientFactory
-         transport_factory = WampWebSocketClientFactory(create, transport_config['url'], debug = transport_debug, debug_wamp = transport_debug)
+         #from autobahn.twisted.websocket import WampWebSocketClientFactory
+         #transport_factory = WampWebSocketClientFactory(create, transport_config['url'], debug = transport_debug, debug_wamp = transport_debug)
+         from crossbar.router.protocol import CrossbarWampWebSocketClientFactory
+         transport_factory = CrossbarWampWebSocketClientFactory(create, transport_config['url'], debug = transport_debug, debug_wamp = transport_debug)
          transport_factory.setProtocolOptions(failByDrop = False)
 
       elif transport_config['type'] == 'rawsocket':
@@ -141,6 +143,8 @@ class ContainerModule:
       else:
          raise ApplicationError("crossbar.error.invalid_configuration", "unknown transport type '{}'".format(transport_config['type']))
 
+
+      self._foo = transport_factory
 
       ## create client endpoint
       ##

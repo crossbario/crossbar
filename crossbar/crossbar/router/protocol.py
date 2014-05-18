@@ -25,7 +25,9 @@ import datetime
 
 from twisted.python import log
 from autobahn.twisted.websocket import WampWebSocketServerProtocol, \
-                                       WampWebSocketServerFactory
+                                       WampWebSocketServerFactory, \
+                                       WampWebSocketClientProtocol, \
+                                       WampWebSocketClientFactory
 
 from autobahn.twisted.rawsocket import WampRawSocketServerProtocol, \
                                        WampRawSocketServerFactory, \
@@ -675,3 +677,33 @@ class CrossbarWampRawSocketClientFactory(WampRawSocketClientFactory):
          raise Exception("invalid WAMP serializer '{}'".format(serid))
 
       WampRawSocketClientFactory.__init__(self, factory, serializer)
+
+
+
+
+class CrossbarWampWebSocketClientProtocol(WampWebSocketClientProtocol):
+   """
+   """
+
+
+
+class CrossbarWampWebSocketClientFactory(WampWebSocketClientFactory):
+   """
+   """
+   protocol = CrossbarWampWebSocketClientProtocol
+
+   def __init2__(self, factory, config):
+
+      ## transport configuration
+      self._config = config
+
+      WampWebSocketClientFactory.__init__(self, config)
+
+      self.setProtocolOptions(failByDrop = False)
+
+
+
+   def buildProtocol(self, addr):
+      self._proto = WampWebSocketClientFactory.buildProtocol(self, addr)
+      return self._proto
+

@@ -41,7 +41,10 @@ class WorkerProcess(ApplicationSession):
       self.debug = self.factory.options.debug
 
       self._pid = os.getpid()
-      self._node_name = '918234'
+
+      self._node_name = self.factory.options.node
+      self._node_realm = self.factory.options.realm
+
       self._started = datetime.datetime.utcnow()
 
       if self.debug:
@@ -53,7 +56,7 @@ class WorkerProcess(ApplicationSession):
       self._class_hosts = {}
       self._class_host_seq = 0
 
-      self.join("crossbar")
+      self.join(self._node_realm)
 
 
    @inlineCallbacks
@@ -273,6 +276,7 @@ class WorkerProcess(ApplicationSession):
 
 
 
+
 def run():
    """
    Entry point into background worker process. This wires up stuff such that
@@ -293,13 +297,24 @@ def run():
                        choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
                        help = 'Explicit Twisted reactor selection')
 
-   parser.add_argument('--cbdir',
+   parser.add_argument('-c',
+                       '--cbdir',
                        type = str,
-                       default = None,
-                       help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+                       help = "Crossbar.io node directory.")
+
+   parser.add_argument('-n',
+                       '--node',
+                       type = str,
+                       help = 'Crossbar.io node name.')
+
+   parser.add_argument('-r',
+                       '--realm',
+                       type = str,
+                       help = 'Crossbar.io node (management) realm.')
 
    parser.add_argument('-t',
                        '--title',
+                       type = str,
                        default = None,
                        help = 'Optional process title to set.')
 
@@ -330,14 +345,6 @@ def run():
       else:
          setproctitle.setproctitle("Crossbar.io Worker")
 
-
-   ## Crossbar.io node directory
-   ##
-   if hasattr(options, 'cbdir') and not options.cbdir:
-      if os.environ.has_key("CROSSBAR_DIR"):
-         options.cbdir = os.environ['CROSSBAR_DIR']
-      else:
-         options.cbdir = '.crossbar'
 
    options.cbdir = os.path.abspath(options.cbdir)
    log.msg("Starting from node directory {}.".format(options.cbdir))

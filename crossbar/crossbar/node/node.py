@@ -170,8 +170,8 @@ class NodeControllerSession(ApplicationSession):
 
       ## associated node
       self._node = node
-      self._node_name = node._node_name
-      self._node_realm = node._node_realm
+      self._name = node._name
+      self._realm = node._realm
 
       self._created = utcnow()
       self._pid = os.getpid()
@@ -187,7 +187,7 @@ class NodeControllerSession(ApplicationSession):
 
    def onConnect(self):
       ## join the node's controller realm
-      self.join(self._node_realm)
+      self.join(self._realm)
 
 
    @inlineCallbacks
@@ -207,7 +207,7 @@ class NodeControllerSession(ApplicationSession):
             r.ready.callback(pid)
             r.ready = None
 
-      dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._node_name)))
+      dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._name)))
 
       ## node global procedures: 'crossbar.node.<PID>.<PROCEDURE>'
       ##
@@ -220,7 +220,7 @@ class NodeControllerSession(ApplicationSession):
          'list_wamplets'
       ]
       for proc in procs:
-         uri = 'crossbar.node.{}.{}'.format(self._node._node_name, proc)
+         uri = 'crossbar.node.{}.{}'.format(self._node._name, proc)
          dl.append(self.register(getattr(self, proc), uri))
 
       yield DeferredList(dl)
@@ -282,6 +282,8 @@ class NodeControllerSession(ApplicationSession):
 
       args = [exe, "-u", filename]
       args.extend(["--cbdir", self._node._cbdir])
+      args.extend(["--node", self._node._name])
+      args.extend(["--realm", self._node._realm])
 
       ## override worker process title from config
       ##
@@ -295,8 +297,10 @@ class NodeControllerSession(ApplicationSession):
 
       ## forward explicit reactor selection
       ##
-      if self._node._options.reactor:
-         args.extend(['--reactor', self._node._options.reactor])
+      if self._node._reactor_shortname:
+         args.extend(['--reactor', self._node._reactor_shortname])
+
+      log.msg("Starting Worker: {}".format(' '.join(args)))
 
       ## worker process environment
       ##
@@ -629,7 +633,7 @@ class NodeControllerSession(ApplicationSession):
       """
       Setup node according to config provided.
       """
-      for process in config['processes']:
+      for process in config['workers']:
 
          process_options = process.get('options', {})
 
@@ -650,7 +654,7 @@ class NodeControllerSession(ApplicationSession):
             ##
             if 'pythonpath' in process_options:
                try:
-                  added_paths = yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_name, pid),
+                  added_paths = yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._name, pid),
                      process_options['pythonpath'])
 
                except Exception as e:
@@ -660,7 +664,7 @@ class NodeControllerSession(ApplicationSession):
 
             if 'cpu_affinity' in process_options:
                try:
-                  yield self.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_name, pid),
+                  yield self.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._name, pid),
                      process_options['cpu_affinity'])
 
                except Exception as e:
@@ -669,7 +673,7 @@ class NodeControllerSession(ApplicationSession):
                   log.msg("Worker {}: CPU affinity set.".format(pid))
 
             try:
-               cpu_affinity = yield self.call('crossbar.node.{}.worker.{}.get_cpu_affinity'.format(self._node_name, pid))
+               cpu_affinity = yield self.call('crossbar.node.{}.worker.{}.get_cpu_affinity'.format(self._name, pid))
             except Exception as e:
                log.msg("Worker {}: Failed to get CPU affinity - {}".format(pid, e))
             else:
@@ -678,7 +682,7 @@ class NodeControllerSession(ApplicationSession):
             ## manhole within worker
             ##
             if 'manhole' in process:
-               yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_name, pid), process['manhole'])
+               yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._name, pid), process['manhole'])
 
             ## setup modules
             ##
@@ -690,7 +694,7 @@ class NodeControllerSession(ApplicationSession):
 
                   ## start new router
                   ##
-                  router_index = yield self.call('crossbar.node.{}.worker.{}.router.start'.format(self._node_name, pid))
+                  router_index = yield self.call('crossbar.node.{}.worker.{}.router.start'.format(self._name, pid))
                   log.msg("Worker {}: Router started ({})".format(pid, router_index))
 
                   ## start realms
@@ -698,7 +702,7 @@ class NodeControllerSession(ApplicationSession):
                   for realm_name in module['realms']:
 
                      realm_config = module['realms'][realm_name]
-                     realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._node_name, pid),
+                     realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._name, pid),
                         router_index, realm_name, realm_config)
 
                      log.msg("Worker {}: Realm started on router {} ({})".format(pid, router_index, realm_index))
@@ -707,13 +711,13 @@ class NodeControllerSession(ApplicationSession):
                      ##
                      for component_config in realm_config.get('components', []):
 
-                        id = yield self.call('crossbar.node.{}.worker.{}.router.start_component'.format(self._node_name, pid),
+                        id = yield self.call('crossbar.node.{}.worker.{}.router.start_component'.format(self._name, pid),
                            router_index, realm_name, component_config)
 
                   ## start transports on router
                   ##
                   for transport in module['transports']:
-                     id = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._node_name, pid),
+                     id = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._name, pid),
                         router_index, transport)
 
                      log.msg("Worker {}: Transport {}/{} ({}) started on router {}".format(pid, transport['type'], transport['endpoint']['type'], id, router_index))
@@ -724,7 +728,7 @@ class NodeControllerSession(ApplicationSession):
 
                   log.msg("Worker {}: Component container started.".format(pid))
 
-                  yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._node_name, pid),
+                  yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._name, pid),
                      module['component'], module['router'])
 
                else:
@@ -763,29 +767,29 @@ class Node:
 
       :param reactor: Reactor to run on.
       :type reactor: obj
-      :param cbdir: Crossbar.io node directory to run from.
-      :type cbdir: str
+      :param options: Options from command line.
+      :type options: obj
       """
-      self._options = options
-
-      self.debug = options.debug
-      self._cbdir = options.cbdir
-
       self._reactor = reactor
+
+      self._cbdir = options.cbdir
+      self._config = json.loads(open(options.config, 'rb').read())
+      self._reactor_shortname = options.reactor
+
+      self.debug = False
+
       self._worker_processes = {}
 
-      ## node name: FIXME
-      self._node_name = "{}-{}".format(socket.getfqdn(), os.getpid())
-      self._node_name.replace('-', '_')
-      self._node_name = '918234'
-      self._node_realm = 'crossbar'
+      ## the node's name (must be unique within the management realm)
+      self._name = self._config['controller']['node']
 
+      ## the node's management realm
+      self._realm = self._config['controller']['realm']
+
+      ## node controller session (a singleton ApplicationSession embedded
+      ## in the node's management router)
       self._node_controller_session = None
 
-      ## node management
-      self._management_url = "ws://127.0.0.1:7000"
-      #self._management_url = "wss://cloud.crossbar.io"
-      self._management_realm = "crossbar.cloud.aliceblue"
 
 
 
@@ -829,7 +833,8 @@ class Node:
          log.msg("WAMPlet {}.{}".format(wpl['dist'], wpl['name']))
 
 
-      self._start_from_local_config(configfile = os.path.join(self._cbdir, self._options.config))
+#      self._start_from_local_config(configfile = os.path.join(self._cbdir, self._options.config))
+      self._node_controller_session.run_node_config(self._config)
 
       self.start_local_management_transport(endpoint_descriptor = "tcp:9000")
 
@@ -873,7 +878,8 @@ class Node:
       log.msg("Starting from local config file '{}'".format(configfile))
 
       try:
-         config = check_config_file(configfile, silence = True)
+         #config = check_config_file(configfile, silence = True)
+         config = json.loads(open(configfile, 'rb').read())
       except Exception as e:
          log.msg("Fatal: {}".format(e))
          sys.exit(1)

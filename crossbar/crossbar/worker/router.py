@@ -18,6 +18,9 @@
 
 from __future__ import absolute_import
 
+__all__ = ['RouterModule']
+
+
 import os
 import jinja2
 import pkg_resources
@@ -26,6 +29,8 @@ from twisted.internet import reactor
 
 from twisted.python import log
 from twisted.internet.defer import DeferredList
+from twisted.internet.defer import inlineCallbacks
+
 from twisted.internet.endpoints import serverFromString
 
 from autobahn.wamp.exception import ApplicationError
@@ -74,8 +79,54 @@ EXTRA_MIME_TYPES = {
 }
 
 
+
+class RouterInstance:
+   """
+   A Crossbar.io router instance started from a router module,
+   holding transports, links and components.
+   """
+
+   def __init__(self, id):
+      """
+      Ctor.
+
+      :param id: The router instance index within the router module.
+      :type id: int
+      """
+      self.id = id
+
+      self.factory = CrossbarRouterFactory()
+      self.session_factory = CrossbarRouterSessionFactory(self.factory)
+
+      ## map: transport index -> transport
+      self.transports = {}
+      self.transport_no = 0
+
+      ## map: link index -> link
+      self.links = {}
+      self.link_no = 0
+
+      ## map: component index -> (embedded) component
+      self.components = {}
+      self.component_no = 0
+
+
+
 class RouterTransport:
+   """
+   A router transport attached to a router instance.
+   """
    def __init__(self, id, config, port):
+      """
+      Ctor.
+
+      :param id: The transport index within the router instance.
+      :type id: int
+      :param config: The transport's configuration.
+      :type config: dict
+      :param port: The transport's listening port (https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IListeningPort.html)
+      :type port: obj
+      """
       self.id = id
       self.config = config
       self.port = port
@@ -83,7 +134,22 @@ class RouterTransport:
 
 
 class RouterComponent:
+   """
+   An embedded application component running inside a router instance.
+   """
    def __init__(self, id, realm, config, session):
+      """
+      Ctor.
+
+      :param id: The component index within the router instance.
+      :type id: int
+      :param realm: The realm within the router instance this component runs in.
+      :type realm: str
+      :param config: The component's configuration.
+      :type config: dict
+      :param session: The component application session.
+      :type session: obj (instance of ApplicationSession)
+      """
       self.id = id
       self.realm = realm
       self.config = config
@@ -91,37 +157,22 @@ class RouterComponent:
 
 
 
-from twisted.internet.defer import inlineCallbacks
-
-
-
-
-class RouterInstance:
-   def __init__(self, id):
-      self.id = id
-
-      self.factory = CrossbarRouterFactory()
-      self.session_factory = CrossbarRouterSessionFactory(self.factory)
-
-      self.transports = {}
-      self.transport_no = 0
-
-      self.components = {}
-      self.component_no = 0
-
-
-
-
 class RouterModule:
    """
-   Entities:
-      - Realms
-      - Transports
-      - Links
-      - Components
+   A router module runs inside a Worker and allows to dynamically start and
+   stop WAMP router instances.
+
+   Each router instance can manage multiple realms, run multiple transports
+   and links, as well as host multiple (embedded) application components.
    """
 
    def __init__(self, cbdir, debug = False):
+      """
+      Ctor.
+
+      :param cbdir: Crossbar.io node directory.
+      :type cbdir: str
+      """
       self._cbdir = cbdir
       self.debug = debug
 
@@ -132,20 +183,33 @@ class RouterModule:
          log.msg("Using Crossbar.io web templates from {}".format(templates_dir))
       self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
 
+      ## the Worker's WAMP session to the node controller
+      ##
       self._session = None
 
+      ## a map: router index -> router instance
+      ##
       self._routers = {}
+
+      ## highest assigned router index (this is incremented each time
+      ## a new router instance is started - and never decremented)
+      ##
       self._router_no = 0
 
 
+
    def connect(self, session):
+      """
+      Connect the router module to the Worker's WAMP session to the 
+      node controller. The Worker will call this once upon startup.
+      """
       assert(self._session is None)
 
       self._session = session
       self._pid = session._pid
       self._node_name = session._node_name
 
-      dl = []
+      ## the procedures registered
       procs = [
          'list',
          'start',
@@ -164,6 +228,7 @@ class RouterModule:
          'stop_link'
       ]
 
+      dl = []
       for proc in procs:
          uri = 'crossbar.node.{}.worker.{}.router.{}'.format(self._node_name, self._pid, proc)
          dl.append(self._session.register(getattr(self, proc), uri))
@@ -176,6 +241,8 @@ class RouterModule:
    def list(self):
       """
       List currently running router instances.
+
+      :returns list -- List of router instances.
       """
       res = []
       for router in self._routers.values():
@@ -188,9 +255,12 @@ class RouterModule:
       return res
 
 
+
    def start(self):
       """
       Start a new router instance.
+
+      :returns int -- The index assigned to the new router instance.
       """
       self._router_no += 1
       self._routers[self._router_no] = RouterInstance(self._router_no)
@@ -199,6 +269,9 @@ class RouterModule:
 
 
    def stop(self, router_index):
+      """
+      Stops a running router instance.
+      """
       if self.debug:
          log.msg("Worker {}: stopping router module".format(self._pid))
 

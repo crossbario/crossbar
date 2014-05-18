@@ -294,7 +294,7 @@ def run():
 
    parser_check.add_argument('--config',
                              type = str,
-                             default = 'config.json',
+                             default = None,
                              help = "Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
 
@@ -312,6 +312,14 @@ def run():
          else:
             options.cbdir = '.crossbar'
       options.cbdir = os.path.abspath(options.cbdir)
+
+
+   ## Crossbar.io node configuration file
+   ##
+   if hasattr(options, 'config'):
+      if not options.config:
+         options.config = 'config.json'
+      options.config = os.path.join(options.cbdir, options.config)
 
 
    ## Log directory
