@@ -39,6 +39,8 @@ class ContainerWorker(NativeWorker):
    A container worker hosts application components written in Python, and
    connects to an application router.
    """
+   WORKER_TYPE = 'container'
+
 
    @inlineCallbacks
    def onJoin(self, details):
@@ -80,7 +82,7 @@ class ContainerWorker(NativeWorker):
          except Exception as e:
             log.msg("Failed to import class - {}".format(e))
             raise ApplicationError("crossbar.error.class_import_failed", str(e))
-   
+
       elif component['type'] == 'class':
 
          try:

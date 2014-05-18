@@ -34,8 +34,9 @@ from autobahn.wamp.types import ComponentConfig, PublishOptions
 class NativeWorker(ApplicationSession):
    """
    A native Crossbar.io worker process. The worker will be connected
-   to the node's management router via WAMP-over-stdio.  
+   to the node's management router via WAMP-over-stdio.
    """
+   WORKER_TYPE = 'native'
 
    def onConnect(self):
       """
@@ -50,8 +51,6 @@ class NativeWorker(ApplicationSession):
 
       self._manhole_listening_port = None
 
-      #self.join(self._node_realm)
-      print "X"*100, self.config.realm
       self.join(self.config.realm)
 
 
@@ -89,7 +88,7 @@ class NativeWorker(ApplicationSession):
       ## from a management service
       ##
       pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
-         {'pid': self.config.extra.pid, 'cmd': [sys.executable] + sys.argv},
+         {'type': self.WORKER_TYPE, 'pid': self.config.extra.pid},
          options = PublishOptions(acknowledge = True))
 
       if self.debug:
@@ -110,12 +109,13 @@ class NativeWorker(ApplicationSession):
    def start_manhole(self, config):
       """
       Start a manhole (SSH) within this worker.
+
+      :param config: Manhole configuration.
+      :type config: obj
       """
       if self._manhole_listening_port:
          raise ApplicationError("wamp.error.could_not_start", "Could not start manhole - already started")
 
-      ## manhole
-      ##
       from twisted.cred import checkers, portal
       from twisted.conch.manhole import ColoredManhole
       from twisted.conch.manhole_ssh import ConchFactory, TerminalRealm
@@ -138,6 +138,8 @@ class NativeWorker(ApplicationSession):
 
       try:
          self._manhole_listening_port = yield create_listening_port_from_config(config['endpoint'], factory, self.config.extra.cbdir, reactor)
+         topic = 'crossbar.node.{}.worker.{}.on_manhole_start'.format(self.config.extra.node, self.config.extra.pid)
+         self.publish(topic, {'endpoint': config['endpoint']})
       except Exception as e:
          raise ApplicationError("wamp.error.could_not_listen", "Could not start manhole: '{}'".format(e))
 
@@ -146,11 +148,13 @@ class NativeWorker(ApplicationSession):
    @inlineCallbacks
    def stop_manhole(self):
       """
-      Start a manhole (SSH) within this worker.
+      Stop Manhole.
       """
       if self._manhole_listening_port:
          yield self._manhole_listening_port.stopListening()
          self._manhole_listening_port = None
+         topic = 'crossbar.node.{}.worker.{}.on_manhole_stop'.format(self.config.extra.node, self.config.extra.pid)
+         self.publish(topic)
       else:
          raise ApplicationError("wamp.error.could_not_stop", "Could not stop manhole - not started")
 
@@ -159,6 +163,8 @@ class NativeWorker(ApplicationSession):
    def get_cpu_affinity(self):
       """
       Get CPU affinity of this process.
+
+      :returns list -- List of CPU IDs the process affinity is set to.
       """
       try:
          import psutil
@@ -174,6 +180,9 @@ class NativeWorker(ApplicationSession):
    def set_cpu_affinity(self, cpus):
       """
       Set CPU affinity of this process.
+
+      :param cpus: List of CPU IDs to set process affinity to.
+      :type cpus: list
       """
       try:
          import psutil
@@ -187,7 +196,9 @@ class NativeWorker(ApplicationSession):
 
    def get_pythonpath(self):
       """
-      Returns the current Python module search path.
+      Returns the current Python module search paths.
+
+      :returns list -- List of module search paths.
       """
       return sys.path
 
@@ -195,7 +206,14 @@ class NativeWorker(ApplicationSession):
 
    def add_pythonpath(self, paths, prepend = True):
       """
-      Add paths to Python module search path.
+      Add paths to Python module search paths.
+
+      :param paths: List of paths. Relative paths will be resolved relative
+                    to the node directory.
+      :type paths: list
+      :param prepend: If `True`, prepend the given paths to the current paths.
+                      Otherwise append.
+      :type prepend: bool
       """
       ## transform all paths (relative to cbdir) into absolute paths.
       paths = [os.path.abspath(os.path.join(self.config.extra.cbdir, p)) for p in paths]
@@ -209,7 +227,9 @@ class NativeWorker(ApplicationSession):
 
    def utcnow(self):
       """
-      Return current time in this process as UTC (ISO 8601 string).
+      Return current time as determined from within this process.
+
+      :returns str -- Current time (UTC) in UTC ISO 8601 format.
       """
       now = datetime.datetime.utcnow()
       return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -218,7 +238,9 @@ class NativeWorker(ApplicationSession):
 
    def started(self):
       """
-      Return start time of this process as UTC (ISO 8601 string).
+      Return start time of this process.
+
+      :returns str -- Start time (UTC) in UTC ISO 8601 format.
       """
       return self._started.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
@@ -226,7 +248,9 @@ class NativeWorker(ApplicationSession):
 
    def uptime(self):
       """
-      Returns uptime of this process in seconds (as float).
+      Uptime of this process.
+
+      :returns float -- Uptime in seconds.
       """
       now = datetime.datetime.utcnow()
       return (now - self._started).total_seconds()

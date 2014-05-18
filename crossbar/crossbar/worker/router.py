@@ -137,6 +137,7 @@ class RouterWorker(NativeWorker):
    Each router instance can manage multiple realms, run multiple transports
    and links, as well as host multiple (embedded) application components.
    """
+   WORKER_TYPE = 'router'
 
 
    @inlineCallbacks
@@ -294,7 +295,7 @@ class RouterWorker(NativeWorker):
       ## run the component next to the router
       ##
       try:
-         comp = make(cfg)         
+         comp = make(cfg)
       except Exception as e:
          raise ApplicationError("crossbar.error.class_import_failed", str(e))
 
@@ -522,7 +523,7 @@ class RouterWorker(NativeWorker):
                   static_options = path_config.get('options', {})
 
                   if 'directory' in path_config:
-                  
+
                      static_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
 
                   elif 'module' in path_config:
@@ -545,7 +546,7 @@ class RouterWorker(NativeWorker):
                      raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
 
                   static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
-                  
+
                   ## create resource for file system hierarchy
                   ##
                   if static_options.get('enable_directory_listing', False):
@@ -607,7 +608,7 @@ class RouterWorker(NativeWorker):
                ##
                elif path_config['type'] == 'json':
                   value = path_config['value']
-                  
+
                   json_resource = JsonResource(value)
                   root.putChild(path, json_resource)
 

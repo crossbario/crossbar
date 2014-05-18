@@ -794,7 +794,7 @@ class Node:
       except ImportError:
          log.msg("Warning, could not set process title (setproctitle not installed)")
       else:
-         setproctitle.setproctitle("Crossbar.io Node Controller")
+         setproctitle.setproctitle("crossbar-controller")
 
       ## the node controller singleton WAMP application session
       ##
@@ -814,9 +814,12 @@ class Node:
       ## Detect WAMPlets
       ##
       wamplets = sorted(self._node_controller_session.list_wamplets())
-      log.msg("Detected {} WAMPlets in environment:".format(len(wamplets)))
-      for wpl in wamplets:
-         log.msg("WAMPlet {}.{}".format(wpl['dist'], wpl['name']))
+      if len(wamplets) > 0:
+         log.msg("Detected {} WAMPlets in environment:".format(len(wamplets)))
+         for wpl in wamplets:
+            log.msg("WAMPlet {}.{}".format(wpl['dist'], wpl['name']))
+      else:
+         log.msg("No WAMPlets detected in enviroment.")
 
 
 #      self._start_from_local_config(configfile = os.path.join(self._cbdir, self._options.config))

@@ -23,8 +23,8 @@ import os, sys
 
 def run():
    """
-   Entry point into background worker process. This wires up stuff such that
-   a WorkerProcess instance is talking WAMP over stdio to the node controller.
+   Entry point into (native) worker processes. This wires up stuff such that
+   a worker instance is talking WAMP-over-stdio to the node controller.
    """
    ## create the top-level parser
    ##
@@ -34,37 +34,37 @@ def run():
    parser.add_argument('-d',
                        '--debug',
                        action = 'store_true',
-                       help = 'Debug on.')
+                       help = 'Debug on (optional).')
 
    parser.add_argument('--reactor',
                        default = None,
                        choices = ['select', 'poll', 'epoll', 'kqueue', 'iocp'],
-                       help = 'Explicit Twisted reactor selection')
+                       help = 'Explicit Twisted reactor selection (optional).')
 
    parser.add_argument('-c',
                        '--cbdir',
                        type = str,
-                       help = "Crossbar.io node directory.")
+                       help = "Crossbar.io node directory (required).")
 
    parser.add_argument('-n',
                        '--node',
                        type = str,
-                       help = 'Crossbar.io node name.')
+                       help = 'Crossbar.io node name (required).')
 
    parser.add_argument('-r',
                        '--realm',
                        type = str,
-                       help = 'Crossbar.io node (management) realm.')
+                       help = 'Crossbar.io node (management) realm (required).')
 
    parser.add_argument('-t',
                        '--type',
                        choices = ['router', 'container'],
-                       help = 'Worker type.')
+                       help = 'Worker type (required).')
 
    parser.add_argument('--title',
                        type = str,
                        default = None,
-                       help = 'Optional process title to set.')
+                       help = 'Worker process title to set (optional).')
 
    options = parser.parse_args()
 
@@ -92,7 +92,11 @@ def run():
       if options.title:
          setproctitle.setproctitle(options.title)
       else:
-         setproctitle.setproctitle("Crossbar.io Worker")
+         WORKER_TYPE_TO_TITLE = {
+            'router': 'crossbar-worker [router]',
+            'container': 'crossbar-worker [container]'
+         }
+         setproctitle.setproctitle(WORKER_TYPE_TO_TITLE[options.type].strip())
 
 
    options.cbdir = os.path.abspath(options.cbdir)
@@ -166,12 +170,10 @@ def run():
       ## now start reactor loop
       ##
       log.msg("Entering event loop ..")
-
-      #reactor.callLater(4, reactor.stop)
       reactor.run()
 
    except Exception as e:
-      log.msg("Unhandled exception - {}".format(e))
+      log.msg("Unhandled exception: {}".format(e))
       if reactor.running:
          reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
          reactor.stop()
