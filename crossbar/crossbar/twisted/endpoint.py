@@ -20,58 +20,82 @@
 from __future__ import absolute_import
 
 __all__ = ['create_listening_endpoint_from_config',
-           'create_listening_port_from_config']
+           'create_listening_port_from_config',
+           'create_connecting_endpoint_from_config',
+           'create_connecting_port_from_config']
 
 
 import os
 
-from twisted.internet.endpoints import TCP4ServerEndpoint, UNIXServerEndpoint
+from twisted.internet.endpoints import TCP4ServerEndpoint, \
+                                       TCP6ServerEndpoint, \
+                                       TCP4ClientEndpoint, \
+                                       TCP6ClientEndpoint, \
+                                       UNIXServerEndpoint, \
+                                       UNIXClientEndpoint
 
 try:
-   from twisted.internet.endpoints import SSL4ServerEndpoint
-   from crossbar.twisted.tlsctx import TlsServerContextFactory
+   from twisted.internet.endpoints import SSL4ServerEndpoint, \
+                                          SSL4ClientEndpoint
    _HAS_TLS = True
-except:
+except ImportError:
    _HAS_TLS = False
+else:
+   from crossbar.twisted.tlsctx import TlsServerContextFactory, \
+                                       TlsClientContextFactory
 
-from autobahn.wamp.exception import ApplicationError
 
 
 
-def create_listening_endpoint_from_config(endpoint_config, cbdir, reactor):
+def create_listening_endpoint_from_config(config, cbdir, reactor):
    """
+   Create a Twisted stream server endpoint from a Crossbar.io transport configuration.
+
+   See: https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IStreamServerEndpoint.html
+
+   :param config: The transport configuration.
+   :type config: dict
+   :param cbdir: Crossbar.io node directory (we need this for TLS key/certificates).
+   :type cbdir: str
+   :param reactor: The reactor to use for endpoint creation.
+   :type reactor: obj
+
+   :returns obj -- An instance implementing IStreamServerEndpoint
    """
+   endpoint = None
 
-   server_endpoint = None
 
-
-   ## a TCP4 endpoint
+   ## a TCP endpoint
    ##
-   if endpoint_config['type'] == 'tcp':
+   if config['type'] == 'tcp':
+
+      ## the TCP protocol version (v4 or v6)
+      ##
+      version = int(config.get('version', 4))
 
       ## the listening port
       ##
-      port = int(endpoint_config['port'])
+      port = int(config['port'])
 
       ## the listening interface
       ##
-      interface = str(endpoint_config.get('interface', '').strip())
+      interface = str(config.get('interface', '').strip())
 
       ## the TCP accept queue depth
       ##
-      backlog = int(endpoint_config.get('backlog', 50))
+      backlog = int(config.get('backlog', 50))
 
-      if 'tls' in endpoint_config:
+      if 'tls' in config:
          
          if _HAS_TLS:
-            key_filepath = os.path.abspath(os.path.join(cbdir, endpoint_config['tls']['key']))
-            cert_filepath = os.path.abspath(os.path.join(cbdir, endpoint_config['tls']['certificate']))
+            key_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['key']))
+            cert_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['certificate']))
 
             with open(key_filepath) as key_file:
                with open(cert_filepath) as cert_file:
 
-                  if 'dhparam' in endpoint_config['tls']:
-                     dhparam_filepath = os.path.abspath(os.path.join(cbdir, endpoint_config['tls']['dhparam']))
+                  if 'dhparam' in config['tls']:
+                     dhparam_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['dhparam']))
                   else:
                      dhparam_filepath = None
 
@@ -79,53 +103,201 @@ def create_listening_endpoint_from_config(endpoint_config, cbdir, reactor):
                   ##
                   key = key_file.read()
                   cert = cert_file.read()
-                  ciphers = endpoint_config['tls'].get('ciphers')
+                  ciphers = config['tls'].get('ciphers', None)
                   ctx = TlsServerContextFactory(key, cert, ciphers = ciphers, dhParamFilename = dhparam_filepath)
 
             ## create a TLS server endpoint
             ##
-            server_endpoint = SSL4ServerEndpoint(reactor,
-                                                 port,
-                                                 ctx,
-                                                 backlog = backlog,
-                                                 interface = interface)
+            if version == 4:
+               endpoint = SSL4ServerEndpoint(reactor,
+                                                    port,
+                                                    ctx,
+                                                    backlog = backlog,
+                                                    interface = interface)
+            elif version == 6:
+               raise Exception("TLS on IPv6 not implemented")
+            else:
+               raise Exception("invalid TCP protocol version {}".format(version))
+
          else:
-            raise ApplicationError("crossbar.error.invalid_configuration", "TLS transport requested, but TLS packages not available")
+            raise Exception("TLS transport requested, but TLS packages not available")
             
       else:
          ## create a non-TLS server endpoint
          ##
-         server_endpoint = TCP4ServerEndpoint(reactor,
-                                              port,
-                                              backlog = backlog,
-                                              interface = interface)
+         if version == 4:
+            endpoint = TCP4ServerEndpoint(reactor,
+                                                 port,
+                                                 backlog = backlog,
+                                                 interface = interface)
+         elif version == 6:
+            endpoint = TCP6ServerEndpoint(reactor,
+                                                 port,
+                                                 backlog = backlog,
+                                                 interface = interface)
+         else:
+            raise Exception("invalid TCP protocol version {}".format(version))
+
 
    ## a Unix Domain Socket endpoint
    ##
-   elif endpoint_config['type'] == 'unix':
+   elif config['type'] == 'unix':
 
       ## the accept queue depth
       ##
-      backlog = int(endpoint_config.get('backlog', 50))
+      backlog = int(config.get('backlog', 50))
 
       ## the path
       ##
-      path = os.path.abspath(os.path.join(cbdir, endpoint_config['path']))
+      path = os.path.abspath(os.path.join(cbdir, config['path']))
 
       ## create the endpoint
       ##
-      server_endpoint = UNIXServerEndpoint(reactor, path, backlog = backlog)
+      endpoint = UNIXServerEndpoint(reactor, path, backlog = backlog)
 
    else:
-      raise ApplicationError("crossbar.error.invalid_configuration", "invalid endpoint type '{}'".format(endpoint_config['type']))
+      raise Exception("invalid endpoint type '{}'".format(config['type']))
 
-   return server_endpoint
-
+   return endpoint
 
 
 
 def create_listening_port_from_config(config, factory, cbdir, reactor):
    """
+   Create a Twisted listening port from a Crossbar.io transport configuration.
+
+   See: https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IListeningPort.html
+
+   :param config: The transport configuration.
+   :type config: dict
+   :param factory: The transport factory to use (a provider of IProtocolFactory).
+   :type factory: obj
+   :param cbdir: Crossbar.io node directory (we need this for TLS key/certificates).
+   :type cbdir: str
+   :param reactor: The reactor to use for endpoint creation.
+   :type reactor: obj
+
+   :returns obj -- A Deferred that results in an IListeningPort or an CannotListenError
    """
    endpoint = create_listening_endpoint_from_config(config, cbdir, reactor)
    return endpoint.listen(factory)
+
+
+
+def create_connecting_endpoint_from_config(config, cbdir, reactor):
+   """
+   Create a Twisted stream client endpoint from a Crossbar.io transport configuration.
+
+   See: https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IStreamClientEndpoint.html
+
+   :param config: The transport configuration.
+   :type config: dict
+   :param cbdir: Crossbar.io node directory (we need this for Unix domain socket paths and TLS key/certificates).
+   :type cbdir: str
+   :param reactor: The reactor to use for endpoint creation.
+   :type reactor: obj
+
+   :returns obj -- An instance implementing IStreamClientEndpoint
+   """
+   endpoint = None
+
+   ## a TCP endpoint
+   ##
+   if config['type'] == 'tcp':
+
+      ## the TCP protocol version (v4 or v6)
+      ##
+      version = int(config.get('version', 4))
+
+      ## the host to connect to
+      ##
+      host = str(config['host'])
+
+      ## the port to connect to
+      ##
+      port = int(config['port'])
+
+      ## connection timeout in seconds
+      ##
+      timeout = int(config.get('timeout', 10))
+
+      if 'tls' in config:
+
+         if _HAS_TLS:
+            ctx = TlsClientContextFactory()
+
+            ## create a TLS client endpoint
+            ##
+            if version == 4:
+               self._client = SSL4ClientEndpoint(reactor,
+                                                 host,
+                                                 port,
+                                                 ctx,
+                                                 timeout = timeout)
+            elif version == 6:
+               raise Exception("TLS on IPv6 not implemented")
+            else:
+               raise Exception("invalid TCP protocol version {}".format(version))
+
+         else:
+            raise Exception("TLS transport requested, but TLS packages not available")
+
+      else:
+         ## create a non-TLS client endpoint
+         ##
+         if version == 4:
+            self._client = TCP4ClientEndpoint(reactor,
+                                              host,
+                                              port,
+                                              timeout = timeout)
+         elif version == 6:
+            self._client = TCP6ClientEndpoint(reactor,
+                                              host,
+                                              port,
+                                              timeout = timeout)
+         else:
+            raise Exception("invalid TCP protocol version {}".format(version))
+
+   ## a Unix Domain Socket endpoint
+   ##
+   elif config['type'] == 'unix':
+
+      ## the path
+      ##
+      path = os.path.abspath(cbdir, config['path'])
+
+      ## connection timeout in seconds
+      ##
+      timeout = int(config.get('timeout', 10))
+
+      ## create the endpoint
+      ##
+      endpoint = UNIXClientEndpoint(reactor, path, timeout = timeout)
+
+   else:
+      raise Exception("invalid endpoint type '{}'".format(config['type']))
+
+   return endpoint
+
+
+
+
+def create_connecting_port_from_config(config, factory, cbdir, reactor):
+   """
+   Create a Twisted connecting port from a Crossbar.io transport configuration.
+
+   See: https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IListeningPort.html
+
+   :param config: The transport configuration.
+   :type config: dict
+   :param factory: The transport factory to use (a provider of IProtocolFactory).
+   :type factory: obj
+   :param cbdir: Crossbar.io node directory (we need this for Unix domain socket paths and TLS key/certificates).
+   :type cbdir: str
+   :param reactor: The reactor to use for endpoint creation.
+   :type reactor: obj
+
+   :returns obj -- A Deferred that results in an IProtocol upon successful connection otherwise a ConnectError
+   """
+   endpoint = create_connecting_endpoint_from_config(config, cbdir, reactor)
+   return endpoint.connect(factory)

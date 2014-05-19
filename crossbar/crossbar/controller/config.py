@@ -481,6 +481,9 @@ def check_transport(transport):
    if type(transport) != dict:
       raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
 
+   if not 'type' in transport:
+      raise Exception("missing mandatory attribute 'type' in component")
+
    ttype = transport['type']
    if ttype not in ['web', 'websocket', 'websocket.testee', 'rawsocket']:
       raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
@@ -499,6 +502,7 @@ def check_transport(transport):
 def check_component(component):
    if type(component) != dict:
       raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
+
    if not 'type' in component:
       raise Exception("missing mandatory attribute 'type' in component")
 

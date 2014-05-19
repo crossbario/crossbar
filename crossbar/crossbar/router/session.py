@@ -57,6 +57,9 @@ class PendingAuthPersona(PendingAuth):
 
 
 class CrossbarRouterSession(RouterSession):
+   """
+   Router-side of (non-embedded) Crossbar.io WAMP sessions.
+   """
 
    def onOpen(self, transport):
       RouterSession.onOpen(self, transport)
@@ -283,7 +286,10 @@ class CrossbarRouterSession(RouterSession):
 
 
 class CrossbarRouterSessionFactory(RouterSessionFactory):
-
+   """
+   Factory creating the router side of (non-embedded) Crossbar.io WAMP sessions.
+   This is the session factory that will given to router transports.
+   """
    session = CrossbarRouterSession
 
 
@@ -292,3 +298,48 @@ class CrossbarRouterFactory(RouterFactory):
    def __init__(self, options = None, debug = False):
       options = types.RouterOptions(uri_check = types.RouterOptions.URI_CHECK_LOOSE)
       RouterFactory.__init__(self, options, debug)
+
+
+
+# from autobahn.wamp.interfaces import IRouter, IRouterFactory
+
+
+# class CrossbarRouterFactory:
+#    """
+#    Basic WAMP Router factory.
+
+#    This class implements :class:`autobahn.wamp.interfaces.IRouterFactory`.
+#    """
+
+#    def __init__(self, options = None, debug = False):
+#       """
+#       Ctor.
+
+#       :param options: Default router options.
+#       :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.      
+#       """
+#       self._routers = {}
+#       self.debug = debug
+#       self._options = options or types.RouterOptions()
+
+
+#    def get(self, realm):
+#       """
+#       Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
+#       """
+#       if not realm in self._routers:
+#          self._routers[realm] = Router(self, realm, self._options)
+#          if self.debug:
+#             print("Router created for realm '{}'".format(realm))
+#       return self._routers[realm]
+
+
+#    def onLastDetach(self, router):
+#       assert(router.realm in self._routers)
+#       del self._routers[router.realm]
+#       if self.debug:
+#          print("Router destroyed for realm '{}'".format(router.realm))
+
+
+
+# IRouterFactory.register(CrossbarRouterFactory)

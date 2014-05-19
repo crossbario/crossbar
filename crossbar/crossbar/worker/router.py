@@ -74,6 +74,9 @@ from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.worker.native import NativeWorker
 
+from crossbar import controller
+
+
 
 
 EXTRA_MIME_TYPES = {
@@ -222,7 +225,7 @@ class RouterWorker(NativeWorker):
 
 
 
-   def list_realms(self, router_index):
+   def list_realms(self):
       ## FIXME
       return []
 
@@ -235,7 +238,16 @@ class RouterWorker(NativeWorker):
 
 
 
-   def stop_realm(self, realm_index):
+   def stop_realm(self, id, close_sessions = False):
+      """
+      Stop a router realm. No new session will be allowed to attach to the
+      realm Optionally, close all sessions currently attached to the realm.
+
+      :param id: The index of the realm.
+      :type id: int
+      :param close_sessions: If `True`, close all session currently attached.
+      :type close_sessions: bool
+      """
       ## FIXME
       pass
 
@@ -368,33 +380,34 @@ class RouterWorker(NativeWorker):
 
    def start_transport(self, config):
       """
-      Start a transport on this router module.
+      Start a transport on this router.
       """
-      router = self
 
-
-      if self.debug:
-         log.msg("Worker {}: starting '{}' transport on router module.".format(config['type'], self.config.extra.pid))
-
-
-      ## check for valid transport type
+      ## check configuration
       ##
-      if not config['type'] in ['websocket', 'websocket.testee', 'web', 'rawsocket']:
-         raise ApplicationError("crossbar.error.invalid_transport", "Unknown transport type '{}'".format(config['type']))
+      try:
+         controller.config.check_transport(config)
+      except Exception as e:
+         emsg = "ERROR: invalid router transport configuration ({})".format(e)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+      else:
+         if self.debug:
+            log.msg("Starting {}-transport on router.".format(config['type']))
 
 
       ## standalone WAMP-RawSocket transport
       ##
       if config['type'] == 'rawsocket':
 
-         transport_factory = CrossbarWampRawSocketServerFactory(router.session_factory, config)
+         transport_factory = CrossbarWampRawSocketServerFactory(self.session_factory, config)
 
 
       ## standalone WAMP-WebSocket transport
       ##
       elif config['type'] == 'websocket':
 
-         transport_factory = CrossbarWampWebSocketServerFactory(router.session_factory, self.config.extra.cbdir, config, self._templates)
+         transport_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, config, self._templates)
 
 
       ## standalone WebSocket testee transport
@@ -530,7 +543,7 @@ class RouterWorker(NativeWorker):
                ## WAMP-WebSocket resource
                ##
                if path_config['type'] == 'websocket':
-                  ws_factory = CrossbarWampWebSocketServerFactory(router.session_factory, self.config.extra.cbdir, path_config, self._templates)
+                  ws_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, path_config, self._templates)
 
                   ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
                   ws_factory.startFactory()
@@ -688,24 +701,28 @@ class RouterWorker(NativeWorker):
             transport_factory.protocol = HTTPChannelHixie76Aware # needed if Hixie76 is to be supported
 
       else:
+         ## should not arrive here, since we did check_transport() in the beginning
          raise Exception("logic error")
 
 
       ## create transport endpoint / listening port from transport factory
       ##
-      from crossbar.twisted.endpoint import create_listening_port_from_config
       from twisted.internet import reactor
+      from crossbar.twisted.endpoint import create_listening_port_from_config
 
       d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, reactor)
 
       def ok(port):
-         router.transport_no += 1
-         router.transports[router.transport_no] = RouterTransport(router.transport_no, config, port)
-         return router.transport_no
+         self.transport_no += 1
+         self.transports[self.transport_no] = RouterTransport(self.transport_no, config, port)
+         if self.debug:
+            log.msg("Router transport {} started and listening".format(self.transport_no))
+         return self.transport_no
 
       def fail(err):
-         log.msg("cannot listen on endpoint: {}".format(err.value))
-         raise ApplicationError("crossbar.error.cannotlisten", str(err.value))
+         emsg = "ERROR: cannot listen on transport endpoint ({})".format(err.value)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
       d.addCallbacks(ok, fail)
       return d

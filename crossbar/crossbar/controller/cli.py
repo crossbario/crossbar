@@ -33,7 +33,7 @@ from twisted.internet.defer import inlineCallbacks
 from autobahn.twisted.choosereactor import install_reactor
 
 import crossbar
-from crossbar.node.node import Node
+from crossbar.controller.node import Node
 
 
 
@@ -108,7 +108,7 @@ def run_command_init(options):
    """
    Subcommand "crossbar init".
    """
-   from crossbar.node.template import CONFIG_TEMPLATES
+   from crossbar.controller.template import CONFIG_TEMPLATES
    
    if options.template:
       if not CONFIG_TEMPLATES.has_key(options.template):
@@ -176,7 +176,7 @@ def run_command_check(options):
    """
    Subcommand "crossbar check".
    """
-   from crossbar.node.config import check_config_file
+   from crossbar.controller.config import check_config_file
    configfile = os.path.join(options.cbdir, options.config)
 
    print("Checking local configuration file {}".format(configfile))

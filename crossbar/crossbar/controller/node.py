@@ -62,7 +62,7 @@ from crossbar.twisted.process import CustomProcessEndpoint
 from twisted.internet import protocol
 import re, json
 
-from crossbar.node.config import check_config_file
+from crossbar.controller.config import check_config_file
 
 
 
