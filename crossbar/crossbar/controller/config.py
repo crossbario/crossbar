@@ -111,13 +111,18 @@ def check_endpoint_connect_tls(tls):
 
 def check_endpoint_listen_tcp(endpoint):
    for k in endpoint:
-      if k not in ['type', 'port', 'interface', 'backlog', 'tls']:
+      if k not in ['type', 'port', 'shared', 'interface', 'backlog', 'tls']:
          raise Exception("encountered unknown attribute '{}' in listening endpoint".format(k))
 
    if not 'port' in endpoint:
       raise Exception("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
    check_endpoint_port(endpoint['port'])
+
+   if 'shared' in endpoint:
+      shared = endpoint['shared']
+      if type(shared) != bool:
+         raise Exception("'shared' attribute in endpoint must be bool ({} encountered)".format(type(shared)))
 
    if 'tls' in endpoint:
       check_endpoint_listen_tls(endpoint['tls'])

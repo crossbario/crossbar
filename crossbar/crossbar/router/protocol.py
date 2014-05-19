@@ -239,7 +239,9 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
          self.sendHtml(page.render(redirectUrl = redirectUrl,
                                    redirectAfter = redirectAfter,
                                    cbVersion = crossbar.__version__,
-                                   wsUri = self.factory.url))
+                                   wsUri = self.factory.url,
+                                   peer = self.peer,
+                                   workerPid = os.getpid()))
       except Exception as e:         
          log.msg("Error rendering WebSocket status page template: %s" % e)
 

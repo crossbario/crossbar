@@ -16,56 +16,107 @@
 ##
 ###############################################################################
 
+
+# https://lwn.net/Articles/542629/
+# http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
+# http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t
+# http://www.freebsd.org/cgi/man.cgi?query=setsockopt&sektion=2
+# "SO_REUSEPORT on FreeBSD doesn't load balance incoming connections."
+# http://lists.freebsd.org/pipermail/freebsd-net/2013-July/036131.html
+# https://github.com/kavu/go_reuseport
+# http://freeprogrammersblog.vhex.net/post/linux-39-introdued-new-way-of-writing-socket-servers/2
+# http://gitweb.dragonflybsd.org/dragonfly.git/commitdiff/740d1d9f7b7bf9c9c021abb8197718d7a2d441c9
+# http://stackoverflow.com/questions/12542700/setsockopt-before-connect-for-reactor-connecttcp
+# http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
+# http://stackoverflow.com/questions/10077745/twistedweb-on-multicore-multiprocessor
+# http://msdn.microsoft.com/de-de/library/windows/desktop/cc150667(v=vs.85).aspx
+# http://freeprogrammersblog.vhex.net/post/linux-39-introduced-new-way-of-writing-socket-servers/2
+
+
 import sys
 import socket
 
-from twisted.python import log
+from twisted.internet import fdesc
+from twisted.python.runtime import platformType
+
+## Flag indiciating support for creating shared sockets with in-kernel
+## load-balancing (!). Note that while FreeBSD had SO_REUSEPORT for ages,
+## it does NOT (currently) implement load-balancing. Linux >= 3.9 and
+## DragonFly BSD does.
+_HAS_SHARED_LOADBALANCED_SOCKET = False
+
+import platform
+if sys.platform.startswith('linux'):
+   try:
+      # get Linux kernel version, like: (3, 19)
+      _LINUX_KERNEL_VERSION = tuple(platform.uname()[2].split('.')[:2])
+
+      ## SO_REUSEPORT only supported for Linux kernels >= 3.9
+      if _LINUX_KERNEL_VERSION[0] >= 3 and _LINUX_KERNEL_VERSION[1] >= 9:
+         _HAS_SHARED_LOADBALANCED_SOCKET = True
+
+         ## monkey patch missing constant if needed
+         if not hasattr(socket, 'SO_REUSEPORT'):
+            socket.SO_REUSEPORT = 15
+   except:
+      pass
+
+
+
+def create_stream_socket(addressFamily, shared = False):
+   """
+   Create a new socket for use with Twisted's IReactor.adoptStreamPort.
+
+   :param addressFamily: The socket address family.
+   :type addressFamily: One of socket.AF_INET, socket.AF_INET6, socket.AF_UNIX
+   :param shared: If `True`, request to create a shared, load-balanced socket.
+                  When this feature is not available, throw an exception.
+   :type shared: bool
+   :returns obj -- A socket.
+   """
+   s = socket.socket(addressFamily, socket.SOCK_STREAM)
+   s.setblocking(0)
+   fdesc._setCloseOnExec(s.fileno())   
+
+   if platformType == "posix" and sys.platform != "cygwin":
+      s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+   if shared:
+      if addressFamily not in [socket.AF_INET, socket.AF_INET6]:
+         raise Exception("shared sockets are only supported for TCP")
+
+      if _HAS_SHARED_LOADBALANCED_SOCKET:
+         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+      else:
+         raise Exception("shared sockets unsupported on this system")
+
+   return s
+
+
+
 from twisted.internet import tcp
 
 
-
-class CustomPort(tcp.Port):
+class SharedPort(tcp.Port):
    """
-   A custom port which sets socket options for sharing TCP ports
-   between multiple processes.
+   A custom port which sets socket options for sharing TCP ports between multiple processes.
+
+   port = SharedPort(9000, factory, shared = True)
+   port.startListening()
    """
 
-   def __init__(self, port, factory, backlog = 50, interface = '', reactor = None, reuse = False):
+   def __init__(self, port, factory, backlog = 50, interface = '', reactor = None, shared = False):
+
+      if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
+         raise Exception("shared sockets unsupported on this system")
+
       tcp.Port.__init__(self, port, factory, backlog, interface, reactor)
-      self._reuse = reuse
+
+      self._shared = shared
 
 
    def createInternetSocket(self):
       s = tcp.Port.createInternetSocket(self)
-      if self._reuse:
-         ##
-         ## reuse IP Port
-         ##
-         if 'bsd' in sys.platform or \
-             sys.platform.startswith('linux') or \
-             sys.platform.startswith('darwin'):
-            ## reuse IP address/port 
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-
-         elif sys.platform == 'win32':
-            ## on Windows, REUSEADDR already implies REUSEPORT
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-         else:
-            raise Exception("don't know how to set SO_RESUSEPORT on platform {}".format(sys.platform))
-
+      if self._shared:
+         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
       return s
-
-
-# http://stackoverflow.com/questions/12542700/setsockopt-before-connect-for-reactor-connecttcp
-# http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
-# http://stackoverflow.com/questions/10077745/twistedweb-on-multicore-multiprocessor
-
-## start the WebSocket server from a custom port that share TCP ports
-##
-#port = CustomPort(9000, transport_factory, reuse = True)
-#try:
-#   port.startListening()
-#except twisted.internet.error.CannotListenError as e:
-#   raise ApplicationError("crossbar.error.cannotlisten", str(e))

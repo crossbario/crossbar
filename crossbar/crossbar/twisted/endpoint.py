@@ -25,8 +25,9 @@ __all__ = ['create_listening_endpoint_from_config',
            'create_connecting_port_from_config']
 
 
-import os
+import os, sys
 
+from twisted.internet import defer
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
                                        TCP6ServerEndpoint, \
                                        TCP4ClientEndpoint, \
@@ -43,6 +44,9 @@ except ImportError:
 else:
    from crossbar.twisted.tlsctx import TlsServerContextFactory, \
                                        TlsClientContextFactory
+
+
+from crossbar.twisted.sharedport import SharedPort
 
 
 
@@ -127,14 +131,14 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
          ##
          if version == 4:
             endpoint = TCP4ServerEndpoint(reactor,
-                                                 port,
-                                                 backlog = backlog,
-                                                 interface = interface)
+                                          port,
+                                          backlog = backlog,
+                                          interface = interface)
          elif version == 6:
             endpoint = TCP6ServerEndpoint(reactor,
-                                                 port,
-                                                 backlog = backlog,
-                                                 interface = interface)
+                                          port,
+                                          backlog = backlog,
+                                          interface = interface)
          else:
             raise Exception("invalid TCP protocol version {}".format(version))
 
@@ -162,6 +166,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
 
 
+
 def create_listening_port_from_config(config, factory, cbdir, reactor):
    """
    Create a Twisted listening port from a Crossbar.io transport configuration.
@@ -179,8 +184,35 @@ def create_listening_port_from_config(config, factory, cbdir, reactor):
 
    :returns obj -- A Deferred that results in an IListeningPort or an CannotListenError
    """
-   endpoint = create_listening_endpoint_from_config(config, cbdir, reactor)
-   return endpoint.listen(factory)
+   if config['type'] == 'tcp' and config.get('shared', False):
+
+      ## the TCP protocol version (v4 or v6)
+      ##
+      version = int(config.get('version', 4))
+
+      ## the listening port
+      ##
+      port = int(config['port'])
+
+      ## the listening interface
+      ##
+      interface = str(config.get('interface', '').strip())
+
+      ## the TCP accept queue depth
+      ##
+      backlog = int(config.get('backlog', 50))
+
+      listening_port = SharedPort(port, factory, backlog, interface, reactor, shared = True)
+      try:
+         listening_port.startListening()
+         return defer.succeed(listening_port)
+      except Exception as e:
+         return defer.fail(e)
+
+   else:
+
+      endpoint = create_listening_endpoint_from_config(config, cbdir, reactor)
+      return endpoint.listen(factory)
 
 
 
@@ -229,11 +261,11 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
             ## create a TLS client endpoint
             ##
             if version == 4:
-               self._client = SSL4ClientEndpoint(reactor,
-                                                 host,
-                                                 port,
-                                                 ctx,
-                                                 timeout = timeout)
+               endpoint = SSL4ClientEndpoint(reactor,
+                                             host,
+                                             port,
+                                             ctx,
+                                             timeout = timeout)
             elif version == 6:
                raise Exception("TLS on IPv6 not implemented")
             else:
@@ -246,15 +278,15 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
          ## create a non-TLS client endpoint
          ##
          if version == 4:
-            self._client = TCP4ClientEndpoint(reactor,
-                                              host,
-                                              port,
-                                              timeout = timeout)
+            endpoint = TCP4ClientEndpoint(reactor,
+                                          host,
+                                          port,
+                                          timeout = timeout)
          elif version == 6:
-            self._client = TCP6ClientEndpoint(reactor,
-                                              host,
-                                              port,
-                                              timeout = timeout)
+            endpoint = TCP6ClientEndpoint(reactor,
+                                          host,
+                                          port,
+                                          timeout = timeout)
          else:
             raise Exception("invalid TCP protocol version {}".format(version))
 
@@ -278,7 +310,6 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
       raise Exception("invalid endpoint type '{}'".format(config['type']))
 
    return endpoint
-
 
 
 

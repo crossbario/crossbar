@@ -145,77 +145,9 @@ class ContainerWorker(NativeWorker):
       ## create client endpoint
       ##
       from twisted.internet import reactor
-      from twisted.internet.endpoints import TCP4ClientEndpoint, UNIXClientEndpoint
-      from twisted.internet.endpoints import clientFromString
+      from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
 
-      try:
-         from twisted.internet.endpoints import SSL4ClientEndpoint
-         from crossbar.twisted.tlsctx import TlsClientContextFactory
-         HAS_TLS = True
-      except:
-         HAS_TLS = False
-
-      try:
-         endpoint_config = transport_config['endpoint']
-
-         ## a TCP4 endpoint
-         ##
-         if endpoint_config['type'] == 'tcp':
-
-            ## the host to connect ot
-            ##
-            host = str(endpoint_config['host'])
-
-            ## the port to connect to
-            ##
-            port = int(endpoint_config['port'])
-
-            ## connection timeout in seconds
-            ##
-            timeout = int(endpoint_config.get('timeout', 10))
-
-            if 'tls' in endpoint_config:
-
-               ctx = TlsClientContextFactory()
-
-               ## create a TLS client endpoint
-               ##
-               self._client = SSL4ClientEndpoint(reactor,
-                                                 host,
-                                                 port,
-                                                 ctx,
-                                                 timeout = timeout)
-            else:
-               ## create a non-TLS client endpoint
-               ##
-               self._client = TCP4ClientEndpoint(reactor,
-                                                 host,
-                                                 port,
-                                                 timeout = timeout)
-
-         ## a Unix Domain Socket endpoint
-         ##
-         elif endpoint_config['type'] == 'unix':
-
-            ## the path
-            ##
-            path = os.path.abspath(os.path.join(self.config.extra.cbdir, endpoint_config['path']))
-
-            ## connection timeout in seconds
-            ##
-            timeout = int(endpoint_config.get('timeout', 10))
-
-            ## create the endpoint
-            ##
-            self._client = UNIXClientEndpoint(reactor, path, timeout = timeout)
-
-         else:
-            raise ApplicationError("crossbar.error.invalid_configuration", "invalid endpoint type '{}'".format(endpoint_config['type']))
-
-      except Exception as e:
-         log.msg("endpoint creation failed: {}".format(e))
-         raise e
-
+      endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'], self.config.extra.cbdir, reactor)
 
       ## now connect the client
       ##
@@ -226,10 +158,9 @@ class ContainerWorker(NativeWorker):
          if self.debug:
             log.msg("Connecting to application router ..")
 
-         d = self._client.connect(transport_factory)
+         d = endpoint.connect(transport_factory)
 
-         def success(res):
-            print "*"*100, res
+         def success(proto):
             if self.debug:
                log.msg("Connected to application router")
 
