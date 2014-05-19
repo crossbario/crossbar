@@ -89,7 +89,54 @@
                "type": "web",
                "endpoint": {
                   "type": "tcp",
-                  "port": 8080
+                  "port": 8080,
+                  "shared": true
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket",
+                     "url": "ws://localhost:8080/ws"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "router",
+         "options": {
+            "pythonpath": [
+               ".."
+            ]
+         },
+         "realms": {
+            "realm1": {
+               "permissions": {
+                  "anonymous": {
+                     "create": true,
+                     "join": true,
+                     "access": {
+                        "*": {
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     }
+                  }
+               }
+            }
+         },
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080,
+                  "shared": true
                },
                "paths": {
                   "/": {
