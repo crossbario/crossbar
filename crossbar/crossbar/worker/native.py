@@ -34,7 +34,7 @@ from autobahn.wamp.types import ComponentConfig, PublishOptions
 
 
 
-class NativeWorker(ApplicationSession):
+class NativeWorkerSession(ApplicationSession):
    """
    A native Crossbar.io worker process. The worker will be connected
    to the node's management router via WAMP-over-stdio.
@@ -257,3 +257,19 @@ class NativeWorker(ApplicationSession):
       """
       now = datetime.datetime.utcnow()
       return (now - self._started).total_seconds()
+
+
+
+
+def create_native_worker_server_factory(application_session_factory, ready, exit):
+   ## factory that creates router session transports. these are for clients
+   ## that talk WAMP-WebSocket over pipes with spawned worker processes and
+   ## for any uplink session to a management service
+   ##
+   factory = NativeWorkerClientFactory(router_session_factory, "ws://localhost", debug = False)
+
+   ## we need to increase the opening handshake timeout in particular, since starting up a worker
+   ## on PyPy will take a little (due to JITting)
+   factory.setProtocolOptions(failByDrop = False, openHandshakeTimeout = 30, closeHandshakeTimeout = 5)
+
+   return factory

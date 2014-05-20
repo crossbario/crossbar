@@ -293,7 +293,7 @@ class NodeControllerSession(ApplicationSession):
       if self._node._reactor_shortname:
          args.extend(['--reactor', self._node._reactor_shortname])
 
-      log.msg("Starting Worker: {}".format(' '.join(args)))
+      log.msg("Starting native worker: {}".format(' '.join(args)))
 
       ## worker process environment
       ##
@@ -301,12 +301,12 @@ class NodeControllerSession(ApplicationSession):
 
       self._process_id += 1
 
-      worker_no = self._process_id
+      process_id = self._process_id
 
       ep = CustomProcessEndpoint(self._node._reactor,
                executable,
                args,
-               name = "Worker {}".format(worker_no),
+               name = "Worker {}".format(process_id),
                env = penv)
 
       ## this will be resolved/rejected when the worker is actually
@@ -317,72 +317,13 @@ class NodeControllerSession(ApplicationSession):
       exit = Deferred()
 
 
-      class WorkerClientProtocol(WampWebSocketClientProtocol):
 
-         def connectionMade(self):
-            WampWebSocketClientProtocol.connectionMade(self)
-            self._pid = self.transport.pid
-            self.factory.proto = self
-
-
-         def connectionLost(self, reason):
-            WampWebSocketClientProtocol.connectionLost(self, reason)
-            self.factory.proto = None
-
-            log.msg("Worker {}: Process connection gone ({})".format(self._pid, reason.value))
-
-            if isinstance(reason.value, ProcessTerminated):
-               if not ready.called:
-                  ## the worker was never ready in the first place ..
-                  ready.errback(reason)
-               else:
-                  ## the worker _did_ run (was ready before), but now exited with error
-                  if not exit.called:
-                     exit.errback(reason)
-                  else:
-                     log.msg("FIXME: unhandled code path (1) in WorkerClientProtocol.connectionLost", reason.value)
-            elif isinstance(reason.value, ProcessDone) or isinstance(reason.value, ConnectionDone):
-               ## the worker exited cleanly
-               if not exit.called:
-                  exit.callback()
-               else:
-                  log.msg("FIXME: unhandled code path (2) in WorkerClientProtocol.connectionLost", reason.value)
-            else:
-               ## should not arrive here
-               log.msg("FIXME: unhandled code path (3) in WorkerClientProtocol.connectionLost", reason.value)
-
-
-      class WorkerClientFactory(WampWebSocketClientFactory):
-
-         def __init__(self, *args, **kwargs):
-            WampWebSocketClientFactory.__init__(self, *args, **kwargs)
-            self.proto = None
-
-         def buildProtocol(self, addr):
-            self.proto = WorkerClientProtocol()
-            self.proto.factory = self
-            return self.proto
-
-         def stopFactory(self):
-            WampWebSocketClientFactory.stopFactory(self)
-            if self.proto:
-               self.proto.close()
-               #self.proto.transport.loseConnection()
-
-
-      ## factory that creates router session transports. these are for clients
-      ## that talk WAMP-WebSocket over pipes with spawned worker processes and
-      ## for any uplink session to a management service
-      ##
-      factory = WorkerClientFactory(self._node._router_session_factory, "ws://localhost", debug = self.debug)
-
-      ## we need to increase the opening handshake timeout in particular, since starting up a worker
-      ## on PyPy will take a little (due to JITting)
-      factory.setProtocolOptions(failByDrop = False, openHandshakeTimeout = 30, closeHandshakeTimeout = 5)
+      from crossbar.controller.native import create_native_worker_client_factory
+      transport_factory = create_native_worker_client_factory(self._node._router_session_factory, ready, exit)
 
       ## now actually spawn the worker ..
       ##
-      d = ep.connect(factory)
+      d = ep.connect(transport_factory)
 
       def onconnect(proto):
          print "XXXXXXXXXXXx", proto
@@ -391,7 +332,19 @@ class NodeControllerSession(ApplicationSession):
 
          ## remember the worker process, including "ready" deferred. this will later
          ## be fired upon the worker publishing to 'crossbar.node.{}.on_worker_ready'
-         self._processes[pid] = NodeNativeWorkerProcess(worker_no, pid, ready, exit, worker_type, factory = factory, proto = proto)
+         self._processes[pid] = NodeNativeWorkerProcess(process_id, pid, ready, exit, worker_type, factory = transport_factory, proto = proto)
+
+         topic = 'crossbar.node.{}.on_process_start'.format(self._node._name)
+         self.publish(topic, {'pid': pid})
+
+
+         def on_exit_success(_):
+            del self._processes[pid]
+
+         def on_exit_failed(exit_code):
+            del self._processes[pid]
+
+         exit.addCallbacks(on_exit_success, on_exit_failed)
 
       def onerror(err):
          log.msg("Could not start worker process with args '{}': {}".format(args, err.value))
@@ -407,12 +360,14 @@ class NodeControllerSession(ApplicationSession):
       """
       Stops a worker process.
       """
+      print "stop_process", pid
       if pid in self._processes:
          process = self._processes[pid]
 
          if process.process_type in ['router', 'container']:
             #self._processes[pid].factory.stopFactory()
-            self._processes[pid].proto.leave()
+            #self._processes[pid].proto.leave()
+            self._processes[pid].proto.transport.signalProcess("KILL")
          elif process.process_type == 'guest':
             pass
          else:
@@ -536,7 +491,7 @@ class NodeControllerSession(ApplicationSession):
 
 
       self._process_id += 1
-      worker_no = self._process_id
+      process_id = self._process_id
 
       if False:
 
@@ -545,7 +500,7 @@ class NodeControllerSession(ApplicationSession):
          ep = CustomProcessEndpoint(self._node._reactor,
                   exe,
                   args,
-                  name = "Worker {}".format(worker_no),
+                  name = "Worker {}".format(process_id),
                   env = penv)
 
          ## now actually spawn the worker ..
@@ -568,7 +523,7 @@ class NodeControllerSession(ApplicationSession):
       else:
 
          proto = GuestClientProtocol()
-         proto._name = "Worker {}".format(worker_no)
+         proto._name = "Worker {}".format(process_id)
 
          try:
             trnsp = self._node._reactor.spawnProcess(proto, exe, args, path = workdir, env = penv)
@@ -579,15 +534,23 @@ class NodeControllerSession(ApplicationSession):
             pid = trnsp.pid
             proto._pid = pid
 
-            ready.callback(pid)
-
-            self._processes[pid] = NodeGuestWorkerProcess(worker_no, pid, ready, exit, proto = proto)
+            self._processes[pid] = NodeGuestWorkerProcess(process_id, pid, ready, exit, proto = proto)
             log.msg("Guest {}: Program started.".format(pid))
 
+            ready.callback(pid)
+
+            topic = 'crossbar.node.{}.on_process_start'.format(self._node._name)
+            self.publish(topic, {'pid': pid})
+
+
             def on_guest_exit_success(_):
+               topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
+               self.publish(topic, {'pid': pid, 'exit_code': 0})
                del self._processes[pid]
 
             def on_guest_exit_failed(exit_code):
+               topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
+               self.publish(topic, {'pid': pid, 'exit_code': exit_code})
                del self._processes[pid]
 
             exit.addCallbacks(on_guest_exit_success, on_guest_exit_failed)

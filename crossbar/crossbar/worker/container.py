@@ -32,12 +32,12 @@ from twisted.python import log
 import pkg_resources
 
 
-from crossbar.worker.native import NativeWorker
+from crossbar.worker.native import NativeWorkerSession
 
 
 
 
-class ContainerWorker(NativeWorker):
+class ContainerWorkerSession(NativeWorkerSession):
    """
    A container worker hosts application components written in Python, and
    connects to an application router.
@@ -61,7 +61,7 @@ class ContainerWorker(NativeWorker):
 
       regs = yield DeferredList(dl)
 
-      yield NativeWorker.onJoin(self, details)
+      yield NativeWorkerSession.onJoin(self, details)
 
 
    def start_component(self, component, router):

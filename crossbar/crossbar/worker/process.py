@@ -117,13 +117,13 @@ def run():
    log.msg("Running on {} reactor.".format(qual(reactor.__class__).split('.')[-1]))
 
 
-   from crossbar.worker.router import RouterWorker
-   from crossbar.worker.container import ContainerWorker
+   from crossbar.worker.router import RouterWorkerSession
+   from crossbar.worker.container import ContainerWorkerSession
 
 
    WORKER_TYPE_TO_CLASS = {
-      'router': RouterWorker,
-      'container': ContainerWorker
+      'router': RouterWorkerSession,
+      'container': ContainerWorkerSession
    }
 
 

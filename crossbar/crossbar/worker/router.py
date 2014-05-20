@@ -72,7 +72,7 @@ from crossbar.twisted.resource import FileNoListing, JsonResource, Resource404, 
 from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar.worker.native import NativeWorker
+from crossbar.worker.native import NativeWorkerSession
 
 from crossbar import controller
 
@@ -152,7 +152,7 @@ class RouterComponent:
 
 
 
-class RouterWorker(NativeWorker):
+class RouterWorkerSession(NativeWorkerSession):
    """
    A native Crossbar.io worker that runs a WAMP router which can manage
    multiple realms, run multiple transports and links, as well as host
@@ -221,7 +221,7 @@ class RouterWorker(NativeWorker):
       if self.debug:
          log.msg("RouterWorker procedures registered.")
 
-      yield NativeWorker.onJoin(self, details)
+      yield NativeWorkerSession.onJoin(self, details)
 
 
 
