@@ -11,15 +11,32 @@
       <script src="autobahn.min.js"></script>
 
       <script>
+         var nodename = "mynode1";
+         var session = null;
+
          var connection = new autobahn.Connection({
             url: 'ws://127.0.0.1:9000',
-            realm: 'crossbar'
+            realm: 'record-evolution'
          });
 
-         connection.onopen = function (session, details) {
+         connection.onopen = function (new_session, details) {
 
-            console.log(session, details);
+            session = new_session;
 
+            console.log("connected", session.id);
+
+            session.call('crossbar.node.' + nodename + '.list_processes').then(
+               function (workers) {
+                  workers.forEach(function (worker) {
+                     console.log(worker);
+                  });
+               },
+               function (err) {
+                  console.log(err.error, err.args[0]);
+               }
+            );
+
+/*
             var node_name = '918234';
 
             session.call('crossbar.node.' + node_name + '.get_node_processes').then(
@@ -40,10 +57,12 @@
                   console.log(error);
                }
             );
+*/            
          };
 
          connection.onclose = function () {
             //window.location.reload();
+            session = null;
          }
 
          connection.open();

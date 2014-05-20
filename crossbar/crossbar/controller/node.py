@@ -22,6 +22,7 @@ __all__ = ['Node']
 
 
 from twisted.python import log
+from twisted.internet import defer
 from twisted.internet.defer import Deferred, DeferredList, returnValue, inlineCallbacks
 
 from twisted.internet.error import ProcessDone, \
@@ -51,7 +52,6 @@ from twisted.internet.endpoints import clientFromString
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp import types
 
-from autobahn.util import utcnow
 
 import socket
 import os
@@ -64,57 +64,23 @@ import re, json
 
 from crossbar.controller.config import check_config_file
 
+from crossbar.controller.types import *
 
 
+#from autobahn.util import utcnow
+from datetime import datetime, timedelta
 
-class WorkerProcess:
+def utcnow():
    """
-   Internal run-time representation of a running node worker process.
+   Get current time in UTC as ISO 8601 string.
    """
-   def __init__(self, pid, ready = None, exit = None, factory = None):
-      """
-      Ctor.
-
-      :param pid: The worker process PID.
-      :type pid: int
-      :param ready: A deferred that resolves when the worker is ready.
-      :type ready: instance of Deferred
-      :param exit: A deferred that resolves when the worker has exited.
-      :type exit: instance of Deferred
-      :param factory: The WAMP client factory that connects to the worker.
-      :type factory: instance of WorkerClientFactory
-      """
-      self.pid = pid
-      self.ready = ready
-      self.exit = exit
-      self.factory = factory
-      self.created = utcnow()
+   now = datetime.utcnow()
+   return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
+def formatutc(ts):
+   return ts.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
-class GuestProcess:
-   """
-   Internal run-time representation of a running node guest process.
-   """
-
-   def __init__(self, pid, ready = None, exit = None, proto = None):
-      """
-      Ctor.
-
-      :param pid: The worker process PID.
-      :type pid: int
-      :param ready: A deferred that resolves when the worker is ready.
-      :type ready: instance of Deferred
-      :param exit: A deferred that resolves when the worker has exited.
-      :type exit: instance of Deferred
-      :param proto: The WAMP client protocol that connects to the worker.
-      :type proto: instance of GuestClientProtocol
-      """
-      self.pid = pid
-      self.ready = ready
-      self.exit = exit
-      self.proto = proto
-      self.created = utcnow()
 
 
 
@@ -176,13 +142,17 @@ class NodeControllerSession(ApplicationSession):
       self._created = utcnow()
       self._pid = os.getpid()
 
-      ## map of worker processes: PID -> WorkerProcess
-      self._workers = {}
-      self._worker_no = 0
+      ## map of worker processes: PID -> NativeWorkerProcess
+      self._processes = {}
+      self._process_id = 0
 
-      ## map of guest processes: PID -> GuestProcess
-      self._guests = {}
-      self._guest_no = 0
+      exit = Deferred()
+
+      self._processes[self._pid] = NodeControllerProcess(0, self._pid, defer.succeed(self._pid), exit)
+
+      ## map of guest processes: PID -> GuestWorkerProcess
+      #self._guests = {}
+      #self._guest_no = 0
 
 
    def onConnect(self):
@@ -202,21 +172,23 @@ class NodeControllerSession(ApplicationSession):
       def on_worker_ready(res):
          ## fire the Deferred previously stored for signaling "worker ready"
          pid = res['pid']
-         r = self._workers.get(pid, None)
+         r = self._processes.get(pid, None)
          if r and r.ready:
             r.ready.callback(pid)
-            r.ready = None
 
       dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._name)))
 
       ## node global procedures: 'crossbar.node.<PID>.<PROCEDURE>'
       ##
       procs = [
+         'start_router',
+         'start_container',
+         'start_guest',
+         'list_processes',
+         'stop_process',
+
          'get_info',
          'stop',
-         'list_workers',
-         'start_worker',
-         'start_guest',
          'list_wamplets'
       ]
       for proc in procs:
@@ -234,7 +206,7 @@ class NodeControllerSession(ApplicationSession):
       return {
          'created': self._created,
          'pid': self._pid,
-         'workers': len(self._workers),
+         'workers': len(self._processes),
          'guests': len(self._guests),
          'directory': self._node._cbdir
       }
@@ -250,19 +222,39 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def list_workers(self):
+   def list_processes(self):
       """
-      Returns a list of worker processes currently running on this node.
+      Returns the list of processes currently running on this node.
       """
+      now = datetime.utcnow()
       res = []
-      for k in sorted(self._workers.keys()):
-         p = self._workers[k]
-         res.append({'pid': p.pid, 'created': p.created, 'is_ready': p.ready is None})
+      for k in sorted(self._processes.keys()):
+         p = self._processes[k]
+         #print p.process_type, p.pid, p.ready, p.exit, p.ready.called, p.exit.called
+         res.append({
+            'id': p.id,
+            'pid': p.pid,
+            'type': p.process_type,
+            'started': formatutc(p.started),
+            'uptime': (now - p.started).total_seconds(),
+            #'ready': p.ready.called,
+            #'exit': p.exit.called,
+         })
       return res
 
 
 
-   def start_worker(self, worker_type, options = {}):
+   def start_router(self, options):
+      return self.start_native_worker('router', options)
+
+
+
+   def start_container(self, options):
+      return self.start_native_worker('container', options)
+
+
+
+   def start_native_worker(self, worker_type, options = {}):
       """
       Start a new Crossbar.io worker process.
 
@@ -307,12 +299,14 @@ class NodeControllerSession(ApplicationSession):
       ##
       penv = _create_process_env(options)
 
-      self._worker_no += 1
+      self._process_id += 1
+
+      worker_no = self._process_id
 
       ep = CustomProcessEndpoint(self._node._reactor,
                executable,
                args,
-               name = "Worker {}".format(self._worker_no),
+               name = "Worker {}".format(worker_no),
                env = penv)
 
       ## this will be resolved/rejected when the worker is actually
@@ -390,13 +384,14 @@ class NodeControllerSession(ApplicationSession):
       ##
       d = ep.connect(factory)
 
-      def onconnect(res):
-         pid = res.transport.pid
+      def onconnect(proto):
+         print "XXXXXXXXXXXx", proto
+         pid = proto.transport.pid
          log.msg("Worker PID {} process connected".format(pid))
 
          ## remember the worker process, including "ready" deferred. this will later
          ## be fired upon the worker publishing to 'crossbar.node.{}.on_worker_ready'
-         self._workers[pid] = WorkerProcess(pid, ready, exit, factory = factory)
+         self._processes[pid] = NodeNativeWorkerProcess(worker_no, pid, ready, exit, worker_type, factory = factory, proto = proto)
 
       def onerror(err):
          log.msg("Could not start worker process with args '{}': {}".format(args, err.value))
@@ -408,18 +403,28 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def stop_worker(self, pid):
+   def stop_process(self, pid):
       """
       Stops a worker process.
       """
-      if pid in self._workers:
-         try:
-            self._workers[pid].factory.stopFactory()
-         except Exception as e:
-            log.msg("Could not stop worker {}: {}".format(pid, e))
-            raise e
+      if pid in self._processes:
+         process = self._processes[pid]
+
+         if process.process_type in ['router', 'container']:
+            #self._processes[pid].factory.stopFactory()
+            self._processes[pid].proto.leave()
+         elif process.process_type == 'guest':
+            pass
          else:
-            del self._processes[pid]
+            pass
+
+         # try:
+         #    self._processes[pid].factory.stopFactory()
+         # except Exception as e:
+         #    log.msg("Could not stop worker {}: {}".format(pid, e))
+         #    raise e
+         # else:
+         #    del self._processes[pid]
       else:
          raise ApplicationError("wamp.error.invalid_argument", "No worker with PID '{}'".format(pid))
 
@@ -434,6 +439,12 @@ class NodeControllerSession(ApplicationSession):
 
       :returns: int -- The PID of the new process.
       """
+      ## the following will be used to signal guest readiness
+      ## and exit ..
+      ##
+      ready = Deferred()
+      exit = Deferred()
+
 
       class GuestClientProtocol(protocol.ProcessProtocol):
 
@@ -491,8 +502,10 @@ class NodeControllerSession(ApplicationSession):
          def processEnded(self, reason):
             if isinstance(reason.value,  ProcessDone):
                log.msg("Guest {}: Ended cleanly.".format(self._pid))
+               exit.callback(None)
             elif isinstance(reason.value, ProcessTerminated):
                log.msg("Guest {}: Ended with error {}".format(self._pid, reason.value.exitCode))
+               exit.errback(reason.value.exitCode)
             else:
                ## should not arrive here
                pass
@@ -521,22 +534,18 @@ class NodeControllerSession(ApplicationSession):
       ##
       penv = _create_process_env(config.get('options', {}))
 
-      ## the following will be used to signal guest readiness
-      ## and exit ..
-      ##
-      ready = Deferred()
-      exit = Deferred()
 
+      self._process_id += 1
+      worker_no = self._process_id
 
       if False:
-         self._guest_no += 1
 
          factory = GuestClientFactory()
 
          ep = CustomProcessEndpoint(self._node._reactor,
                   exe,
                   args,
-                  name = "Guest {}".format(self._guest_no),
+                  name = "Worker {}".format(worker_no),
                   env = penv)
 
          ## now actually spawn the worker ..
@@ -546,7 +555,7 @@ class NodeControllerSession(ApplicationSession):
          def onconnect(proto):
             pid = proto.transport.pid
             proto._pid = pid
-            self._guests[pid] = GuestProcess(pid, ready, exit, proto = proto)
+            self._processes[pid] = NodeGuestWorkerProcess(pid, ready, exit, proto = proto)
             log.msg("Guest {}: Program started.".format(pid))
             ready.callback(pid)
 
@@ -557,10 +566,9 @@ class NodeControllerSession(ApplicationSession):
          d.addCallbacks(onconnect, onerror)
 
       else:
-         self._guest_no += 1
 
          proto = GuestClientProtocol()
-         proto._name = "Guest {}".format(self._guest_no)
+         proto._name = "Worker {}".format(worker_no)
 
          try:
             trnsp = self._node._reactor.spawnProcess(proto, exe, args, path = workdir, env = penv)
@@ -570,9 +578,19 @@ class NodeControllerSession(ApplicationSession):
          else:
             pid = trnsp.pid
             proto._pid = pid
-            self._guests[pid] = GuestProcess(pid, ready, exit, proto = proto)
-            log.msg("Guest {}: Program started.".format(pid))
+
             ready.callback(pid)
+
+            self._processes[pid] = NodeGuestWorkerProcess(worker_no, pid, ready, exit, proto = proto)
+            log.msg("Guest {}: Program started.".format(pid))
+
+            def on_guest_exit_success(_):
+               del self._processes[pid]
+
+            def on_guest_exit_failed(exit_code):
+               del self._processes[pid]
+
+            exit.addCallbacks(on_guest_exit_success, on_guest_exit_failed)
 
       return ready
 
@@ -582,14 +600,14 @@ class NodeControllerSession(ApplicationSession):
       """
       Stops a guest process.
       """
-      if pid in self._guests:
+      if pid in self._processes:
          try:
-            self._guests[pid].proto.transport.loseConnection()
+            self._processes[pid].proto.transport.loseConnection()
          except Exception as e:
             log.msg("Could not stop guest {}: {}".format(pid, e))
             raise e
          else:
-            del self._guests[pid]
+            del self._processes[pid]
       else:
          raise ApplicationError("wamp.error.invalid_argument", "No guest with PID '{}'".format(pid))
 
@@ -645,7 +663,12 @@ class NodeControllerSession(ApplicationSession):
             ## start a new worker process ..
             ##
             try:
-               pid = yield self.start_worker(worker['type'], worker_options)
+               if worker['type'] == 'router':
+                  pid = yield self.start_router(worker_options)
+               elif worker['type'] == 'container':
+                  pid = yield self.start_container(worker_options)
+               else:
+                  raise Exception("logic error")
             except Exception as e:
                log.msg("Failed to start worker process: {}".format(e))
             else:
