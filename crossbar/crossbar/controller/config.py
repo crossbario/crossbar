@@ -784,16 +784,19 @@ def check_worker(worker, silence = False):
 
 
 def check_guest(guest, silence = False):
+   """
+   Check a guest worker configuration.
+   """
    for k in guest:
       if k not in ['type',
                    'executable',
+                   'arguments',
                    'stdin',
                    'stdout',
                    'stderr',
-                   'arguments',
                    'workdir',
                    'options']:
-         raise Exception("encountered unknown attribute '{}' in guest process configuration".format(k))
+         raise Exception("encountered unknown attribute '{}' in guest worker configuration".format(k))
 
    check_dict_args({
       'type': (True, [str, unicode]),
@@ -806,10 +809,13 @@ def check_guest(guest, silence = False):
       'options': (False, [dict])
       }, guest, "Guest process configuration")
 
+   if guest['type'] != 'guest':
+      raise Exception("invalid value '{}' for type in guest worker configuration".format(guest['type']))
+
    for s in ['stdout', 'stderr']:
       if s in guest:
          if guest[s] not in ['close', 'log', 'drop']:
-            raise Exception("invalid value '{}' for '{}' in guest process configuration".format(guest[s], s))
+            raise Exception("invalid value '{}' for '{}' in guest worker configuration".format(guest[s], s))
 
    if 'stdin' in guest:
       if type(guest['stdin']) == dict:
@@ -820,12 +826,12 @@ def check_guest(guest, silence = False):
             }, guest['stdin'], "Guest process 'stdin' configuration")
       else:
          if guest['stdin'] not in ['close']:
-            raise Exception("invalid value '{}' for 'stdin' in guest process configuration".format(guest['stdin']))
+            raise Exception("invalid value '{}' for 'stdin' in guest worker configuration".format(guest['stdin']))
 
    if 'arguments' in guest:
       for arg in guest['arguments']:
          if type(arg) not in [str, unicode]:
-            raise Exception("invalid type {} for argument in 'arguments' in guest process configuration".format(type(arg)))
+            raise Exception("invalid type {} for argument in 'arguments' in guest worker configuration".format(type(arg)))
 
    if 'options' in guest:
       options = guest['options']
@@ -834,7 +840,7 @@ def check_guest(guest, silence = False):
 
       for k in options:
          if k not in ['env']:
-            raise Exception("encountered unknown attribute '{}' in 'options' in guest configuration".format(k))
+            raise Exception("encountered unknown attribute '{}' in 'options' in guest worker configuration".format(k))
 
       if 'env' in options:
          check_process_env(options['env'])

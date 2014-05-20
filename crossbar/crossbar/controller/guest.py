@@ -45,6 +45,7 @@ class GuestClientProtocol(protocol.ProcessProtocol):
             log.msg(msg, system = "{:<10} {:>6}".format(self._name, self._pid))
 
    def connectionMade(self):
+      print "guest connectionMade"
       config = self.factory._config
 
       if 'stdout' in config and config['stdout'] == 'close':
@@ -87,18 +88,23 @@ class GuestClientProtocol(protocol.ProcessProtocol):
       pass
 
    def processExited(self, reason):
-      pass
+      print "*"*10, "processExited", reason
 
    def processEnded(self, reason):
-      if isinstance(reason.value,  ProcessDone):
-         #log.msg("Guest {}: Ended cleanly.".format(self._pid))
-         self.factory._on_exit.callback(None)
-      elif isinstance(reason.value, ProcessTerminated):
-         #log.msg("Guest {}: Ended with error {}".format(self._pid, reason.value.exitCode))
-         self.factory._on_exit.errback(reason.value.exitCode)
-      else:
-         ## should not arrive here
-         pass
+      print "*"*10, "processEnded", reason
+      try:
+         if isinstance(reason.value,  ProcessDone):
+            #log.msg("Guest {}: Ended cleanly.".format(self._pid))
+            self.factory._on_exit.callback(None)
+         elif isinstance(reason.value, ProcessTerminated):
+            #log.msg("Guest {}: Ended with error {}".format(self._pid, reason.value.exitCode))
+#            self.factory._on_exit.errback(reason.value.exitCode)
+            self.factory._on_exit.errback(reason)
+         else:
+            ## should not arrive here
+            pass
+      except Exception as e:
+         print "XXXX", e
 
 
 

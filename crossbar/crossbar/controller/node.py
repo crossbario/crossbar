@@ -62,8 +62,7 @@ from crossbar.twisted.process import CustomProcessEndpoint
 from twisted.internet import protocol
 import re, json
 
-from crossbar.controller.config import check_config_file
-
+from crossbar import controller
 from crossbar.controller.types import *
 
 
@@ -394,6 +393,11 @@ class NodeControllerSession(ApplicationSession):
 
       :returns: int -- The PID of the new process.
       """
+      try:
+         controller.config.check_guest(config)
+      except Exception as e:
+         raise ApplicationError('crossbar.error.invalid_configuration', 'invalid guest worker configuration: {}'.format(e))
+
       ## the following will be used to signal guest readiness
       ## and exit ..
       ##
@@ -490,6 +494,7 @@ class NodeControllerSession(ApplicationSession):
 
 
             def on_guest_exit_success(_):
+               print "on_guest_exit_success"
                p = self._processes[pid]
                now = datetime.utcnow()
                topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
@@ -500,16 +505,24 @@ class NodeControllerSession(ApplicationSession):
                })
                del self._processes[pid]
 
-            def on_guest_exit_failed(exit_code):
-               p = self._processes[pid]
-               now = datetime.utcnow()
-               topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
-               self.publish(topic, {
-                  'pid': pid,
-                  'exit_code': exit_code,
-                  'uptime': (now - p.started).total_seconds()
-               })
-               del self._processes[pid]
+            def on_guest_exit_failed(reason):
+               ## https://twistedmatrix.com/documents/current/api/twisted.internet.error.ProcessTerminated.html
+               exit_code = reason.value.exitCode
+               signal = reason.value.signal
+               print "on_guest_exit_failed", pid, exit_code, type(exit_code)
+               try:
+                  p = self._processes[pid]
+                  now = datetime.utcnow()
+                  topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
+                  self.publish(topic, {
+                     'pid': pid,
+                     'exit_code': exit_code,
+                     'signal': signal,
+                     'uptime': (now - p.started).total_seconds()
+                  })
+                  del self._processes[pid]
+               except Exception as e:
+                  print "(8888", e
 
             exit.addCallbacks(on_guest_exit_success, on_guest_exit_failed)
 
@@ -811,7 +824,7 @@ class Node:
       log.msg("Starting from local config file '{}'".format(configfile))
 
       try:
-         #config = check_config_file(configfile, silence = True)
+         #config = controller.config.check_config_file(configfile, silence = True)
          config = json.loads(open(configfile, 'rb').read())
       except Exception as e:
          log.msg("Fatal: {}".format(e))
