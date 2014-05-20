@@ -8,6 +8,7 @@
       <p>Open JavaScript console to watch output.</p>
 
       <button onclick="test_list_processes()">List Processes</button>
+      <button onclick="test_list_wamplets()">List WAMPlets</button>
       <button onclick="test_start_guest_1()">Start Guest 1</button>
 
 
@@ -44,6 +45,7 @@
          connection.onclose = function () {
             //window.location.reload();
             session = null;
+            console.log(arguments);
          }
 
          connection.open();
@@ -54,6 +56,20 @@
                function (workers) {
                   workers.forEach(function (worker) {
                      console.log(worker);
+                  });
+               },
+               function (err) {
+                  console.log(err.error, err.args[0]);
+               }
+            );            
+         }
+
+         function test_list_wamplets() {
+            session.call('crossbar.node.' + nodename + '.list_wamplets').then(
+               function (wamplets) {
+                  console.log("found " + wamplets.length + " WAMPlets")
+                  wamplets.forEach(function (wamplet) {
+                     console.log(wamplet);
                   });
                },
                function (err) {

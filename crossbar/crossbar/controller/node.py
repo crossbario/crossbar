@@ -401,75 +401,6 @@ class NodeControllerSession(ApplicationSession):
       exit = Deferred()
 
 
-      class GuestClientProtocol(protocol.ProcessProtocol):
-
-         def __init__(self):
-            self._pid = None
-            self._name = None
-
-         def _log(self, data):
-            for msg in data.split('\n'):
-               msg = msg.strip()
-               if msg != "":
-                  log.msg(msg, system = "{:<10} {:>6}".format(self._name, self._pid))
-
-         def connectionMade(self):
-            if 'stdout' in config and config['stdout'] == 'close':
-               self.transport.closeStdout()
-
-            if 'stderr' in config and config['stderr'] == 'close':
-               self.transport.closeStderr()
-
-            if 'stdin' in config:
-               if config['stdin'] == 'close':
-                  self.transport.closeStdin()
-               else:
-                  if config['stdin']['type'] == 'json':
-                     self.transport.write(json.dumps(config['stdin']['value']))
-                  elif config['stdin']['type'] == 'msgpack':
-                     pass ## FIXME
-                  else:
-                     raise Exception("logic error")
-
-                  if config['stdin'].get('close', True):
-                     self.transport.closeStdin()
-
-         def outReceived(self, data):
-            if config.get('stdout', None) == 'log':
-               self._log(data)
-
-         def errReceived(self, data):
-            if config.get('stderr', None) == 'log':
-               self._log(data)
-
-         def inConnectionLost(self):
-            pass
-
-         def outConnectionLost(self):
-            pass
-
-         def errConnectionLost(self):
-            pass
-
-         def processExited(self, reason):
-            pass
-
-         def processEnded(self, reason):
-            if isinstance(reason.value,  ProcessDone):
-               log.msg("Guest {}: Ended cleanly.".format(self._pid))
-               exit.callback(None)
-            elif isinstance(reason.value, ProcessTerminated):
-               log.msg("Guest {}: Ended with error {}".format(self._pid, reason.value.exitCode))
-               exit.errback(reason.value.exitCode)
-            else:
-               ## should not arrive here
-               pass
-
-
-      class GuestClientFactory(protocol.Factory):
-
-         protocol = GuestClientProtocol
-
 
       ## the guest process configured executable and
       ## command line arguments
@@ -495,13 +426,20 @@ class NodeControllerSession(ApplicationSession):
 
       if False:
 
-         factory = GuestClientFactory()
+         #factory = GuestClientFactory()
+         from crossbar.controller.guest import create_guest_worker_client_factory
 
-         ep = CustomProcessEndpoint(self._node._reactor,
-                  exe,
-                  args,
-                  name = "Worker {}".format(process_id),
-                  env = penv)
+         factory = create_guest_worker_client_factory(config, ready, exit)
+
+         #ep = CustomProcessEndpoint(self._node._reactor,
+         #         exe,
+         #         args,
+         #         name = "Worker {}".format(process_id),
+         #         env = penv)
+
+         from twisted.internet.endpoints import ProcessEndpoint
+
+         ep = ProcessEndpoint()
 
          ## now actually spawn the worker ..
          ##
@@ -522,10 +460,18 @@ class NodeControllerSession(ApplicationSession):
 
       else:
 
-         proto = GuestClientProtocol()
+         #proto = GuestClientProtocol()
+
+         from crossbar.controller.guest import create_guest_worker_client_factory
+
+         factory = create_guest_worker_client_factory(config, ready, exit)
+         proto = factory.buildProtocol(None)
+
          proto._name = "Worker {}".format(process_id)
 
          try:
+            ## An object which provides IProcessTransport:
+            ## https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IProcessTransport.html
             trnsp = self._node._reactor.spawnProcess(proto, exe, args, path = workdir, env = penv)
          except Exception as e:
             log.msg("Guest: Program could not be started - {}".format(e))
@@ -544,13 +490,25 @@ class NodeControllerSession(ApplicationSession):
 
 
             def on_guest_exit_success(_):
+               p = self._processes[pid]
+               now = datetime.utcnow()
                topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
-               self.publish(topic, {'pid': pid, 'exit_code': 0})
+               self.publish(topic, {
+                  'pid': pid,
+                  'exit_code': 0,
+                  'uptime': (now - p.started).total_seconds()
+               })
                del self._processes[pid]
 
             def on_guest_exit_failed(exit_code):
+               p = self._processes[pid]
+               now = datetime.utcnow()
                topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
-               self.publish(topic, {'pid': pid, 'exit_code': exit_code})
+               self.publish(topic, {
+                  'pid': pid,
+                  'exit_code': exit_code,
+                  'uptime': (now - p.started).total_seconds()
+               })
                del self._processes[pid]
 
             exit.addCallbacks(on_guest_exit_success, on_guest_exit_failed)
