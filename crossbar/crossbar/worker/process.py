@@ -56,7 +56,7 @@ def run():
 
    parser.add_argument('-i',
                        '--id',
-                       type = str,
+                       type = int,
                        help = 'Crossbar.io node process ID (required).')
 
    parser.add_argument('-r',
@@ -160,7 +160,7 @@ def run():
       ## create a WAMP-over-WebSocket transport server factory
       ##
       from autobahn.twisted.websocket import WampWebSocketServerFactory
-      transport_factory = WampWebSocketServerFactory(session_factory, "ws://localhost", debug = True, debug_wamp = True)
+      transport_factory = WampWebSocketServerFactory(session_factory, "ws://localhost", debug = False, debug_wamp = False)
       transport_factory.protocol = WorkerServerProtocol
       transport_factory.setProtocolOptions(failByDrop = False)
 

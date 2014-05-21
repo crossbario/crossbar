@@ -150,22 +150,26 @@ class NodeControllerSession(ApplicationSession):
    @inlineCallbacks
    def onJoin(self, details):
 
-      dl = []
-
-      ## when a worker process has connected back to the router of
+      ## When a (native) worker process has connected back to the router of
       ## the node controller, the worker will publish this event
-      ## to signal it's readyness ..
+      ## to signal it's readyness.
       ##
       def on_worker_ready(res):
-         ## fire the Deferred previously stored for signaling "worker ready"
          id = res['id']
-         r = self._processes.get(id, None)
-         if r and r.ready:
-            r.ready.callback(None)
+         if id in self._processes:
+            ready = self._processes[id].ready
+            if not ready.called:
+               ## fire the Deferred previously stored for
+               ## signaling "worker ready"
+               ready.callback(id)
+            else:
+               log.msg("INTERNAL ERROR: on_worker_ready() fired for process {} - ready already called".format(id))
+         else:
+            log.msg("INTERNAL ERROR: on_worker_ready() fired for process {} - no process with that ID".format(id))
 
-      dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._name)))
+      self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._name))
 
-      ## node global procedures: 'crossbar.node.<PID>.<PROCEDURE>'
+      ## register node controller procedures: 'crossbar.node.<ID>.<PROCEDURE>'
       ##
       procs = [
          'start_router',
@@ -173,11 +177,13 @@ class NodeControllerSession(ApplicationSession):
          'start_guest',
          'list_processes',
          'stop_process',
-
          'get_info',
          'stop',
          'list_wamplets'
       ]
+
+      dl = []
+
       for proc in procs:
          uri = 'crossbar.node.{}.{}'.format(self._node._name, proc)
          dl.append(self.register(getattr(self, proc), uri))
@@ -588,7 +594,9 @@ class NodeControllerSession(ApplicationSession):
             ##
             try:
                if worker['type'] == 'router':
+                  print "1.1"*10
                   id = yield self.start_router(worker_options)
+                  print "1.2"*10
                elif worker['type'] == 'container':
                   id = yield self.start_container(worker_options)
                else:
@@ -641,6 +649,8 @@ class NodeControllerSession(ApplicationSession):
                ## start realms
                ##
                for realm_name, realm_config in worker['realms'].items():
+
+                  print "###", realm_name, realm_config
 
                   realm_index = yield self.call('crossbar.node.{}.process.{}.router.start_realm'.format(self._name, id), realm_name, realm_config)
 

@@ -18,40 +18,54 @@
 
 from __future__ import absolute_import
 
-__all__ = ['ContainerWorker']
+__all__ = ['ContainerWorkerSession']
 
 
 import os
-
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
-
-from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import ComponentConfig
-
-from twisted.python import log
-from twisted import internet
 import pkg_resources
+from datetime import datetime
+
+from twisted.internet import reactor
+from twisted import internet
+from twisted.python import log
+from twisted.internet.defer import Deferred, \
+                                   DeferredList, \
+                                   inlineCallbacks
+
+from autobahn.util import utcnow, utcstr
+from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import ComponentConfig, \
+                                PublishOptions, \
+                                RegisterOptions
 
 from crossbar import controller
 from crossbar.worker.native import NativeWorkerSession
-
 from crossbar.router.protocol import CrossbarWampWebSocketClientFactory, \
                                      CrossbarWampRawSocketClientFactory
 
-
-from datetime import datetime
-from autobahn.util import utcnow, utcstr
-
-from autobahn.wamp.types import PublishOptions, RegisterOptions
-
+from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
 
 
 
 class ContainerComponent:
    """
+   An application component running inside a container.
+
+   This class is for _internal_ use within ContainerWorkerSession.
    """
    def __init__(self, id, config, proto, session):
       """
+      Ctor.
+
+      :param id: The ID of the component within the container.
+      :type id: int
+      :param config: The component configuration the component was created from.
+      :type config: dict
+      :param proto: The transport protocol instance the component runs for talking
+                    to the application router.
+      :type proto: instance of CrossbarWampWebSocketClientProtocol or CrossbarWampRawSocketClientProtocol
+      :param session: The application session of this component.
+      :type session: Instance derived of ApplicationSession.
       """
       self.started = datetime.utcnow()
       self.id = id
@@ -61,6 +75,9 @@ class ContainerComponent:
 
 
    def marshal(self):
+      """
+      Marshal object information for use with WAMP calls/events.
+      """
       now = datetime.utcnow()
       return {
          'id': self.id,
@@ -74,8 +91,9 @@ class ContainerComponent:
 
 class ContainerWorkerSession(NativeWorkerSession):
    """
-   A container worker hosts application components written in Python, and
-   connects to an application router.
+   A container is a native worker process that hosts application components
+   written in Python. A container connects to an application router (creating
+   a WAMP transport) and attached to a given realm on the application router.
    """
    WORKER_TYPE = 'container'
 
@@ -98,7 +116,7 @@ class ContainerWorkerSession(NativeWorkerSession):
       ]
 
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self.config.extra.node, self.config.extra.id, proc)
+         uri = 'crossbar.node.{}.process.{}.container.{}'.format(self.config.extra.node, self.config.extra.id, proc)
          dl.append(self.register(getattr(self, proc), uri, options = RegisterOptions(details_arg = 'details', discloseCaller = True)))
 
       regs = yield DeferredList(dl)
@@ -202,22 +220,24 @@ class ContainerWorkerSession(NativeWorkerSession):
 
       ## 3) create and connect client endpoint
       ##
-      from twisted.internet import reactor
-      from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
-
       endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'], self.config.extra.cbdir, reactor)
+
 
       ## now connect the client
       ##
       d = endpoint.connect(transport_factory)
 
       def success(proto):
-         print "T"*10, proto
          self.component_id += 1
          self.components[self.component_id] = ContainerComponent(self.component_id, config, proto, None)
-         if self.debug:
-            log.msg("Connected to application router")
-         return self.component_id
+
+         ## publish event "on_component_start" to all but the caller
+         ##
+         topic = 'crossbar.node.{}.process.{}.container.on_component_start'.format(self.config.extra.node, self.config.extra.id)
+         event = {'id': self.component_id}
+         self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
+
+         return event
 
       def error(err):
          ## https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
@@ -226,6 +246,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             log.msg(emsg)
             raise ApplicationError('crossbar.error.cannot_connect', emsg)
          else:
+            ## should not arrive here (since all errors arriving here should be subclasses of ConnectError)            
             raise err
 
       d.addCallbacks(success, error)
@@ -234,49 +255,20 @@ class ContainerWorkerSession(NativeWorkerSession):
 
 
 
-      #onconnect = Deferred()
-
-      # retry = True
-      # retryDelay = 1000
-
-      # def try_connect():
-      #    if self.debug:
-      #       log.msg("Connecting to application router ..")
-
-      #    d = endpoint.connect(transport_factory)
-
-      #    def success(proto):
-      #       if self.debug:
-      #          log.msg("Connected to application router")
-
-      #    def error(err):
-      #       ## https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
-      #       if isinstance(err.value, internet.error.ConnectError):
-      #          ## twisted.internet.error.ConnectionRefusedError
-      #          print "YYY", err.value, isinstance(err.value, internet.error.ConnectError)
-      #          log.msg("Failed to connect to application router: {}".format(err))
-      #          if retry:
-      #             log.msg("Retrying to connect in {} ms".format(retryDelay))
-      #             reactor.callLater(float(retryDelay) / 1000., try_connect)
-      #          else:
-      #             log.msg("Could not connect to application router - giving up.")
-      #       else:
-      #          pass
-
-      #    d.addCallbacks(success, error)
-
-      # try_connect()
-
-      # return onconnect
-
    def stop_component(self, id, details = None):
       """
+      Stop a component currently running within this container.
+
+      :param id: The ID of the component to stop.
+      :type id: int
       """
       if id not in self.components:
-         raise ApplicationError('crossbar.error.no_such_object', 'No component with ID {}'.format(id))
+         raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
       self.components[id].proto.close()
 
+      ## publish event "on_component_stop" to all but the caller
+      ##
       topic = 'crossbar.node.{}.process.{}.container.on_component_stop'.format(self.config.extra.node, self.config.extra.id)
       event = {'id': id}
       self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
@@ -284,11 +276,14 @@ class ContainerWorkerSession(NativeWorkerSession):
       del self.components[id]
 
 
+
    def get_components(self, details = None):
       """
+      Get components currently running within this container.
+
+      :returns list -- List of components.
       """
       res = []
       for c in self.components.values():
          res.append(c.marshal())
       return res
-

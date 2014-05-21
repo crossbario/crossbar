@@ -234,7 +234,7 @@
                }
             };
 
-            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.container.start_component', [config])
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.container.start_component', [config])
                .then(
                   function (id) {
                      console.log("container component started with ID", id);
@@ -248,7 +248,7 @@
 
 
          function test_stop_container_component_1(worker_id, component_id) {
-            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.container.stop_component', [component_id])
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.container.stop_component', [component_id])
                .then(
                   function () {
                      console.log("container component stopped");
@@ -262,7 +262,7 @@
 
 
          function test_list_container_components(worker_id) {
-            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.container.get_components').then(
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.container.get_components').then(
                function (component) {
                   console.log("" + component.length + " components running")
                   component.forEach(function (component) {
