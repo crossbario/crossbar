@@ -265,9 +265,9 @@
 
 
          function test_restart_container_component_1(worker_id, component_id) {
-            var reload_module = true;
+            var reload_modules = true;
 
-            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.container.restart_component', [component_id, reload_module])
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.container.restart_component', [component_id, reload_modules])
                .then(
                   function (res) {
                      console.log("container component restarted", res);
@@ -275,6 +275,7 @@
                   function (err) {
                      console.log(err.error);
                      console.log(err.args[0]);
+                     console.log(err.args[1]);
                   }
                );
          }

@@ -29,12 +29,6 @@ import traceback
 import StringIO
 from datetime import datetime
 
-try:
-   reload
-except NameError:
-   # Python 3
-   from imp import reload
-
 from twisted.internet import reactor
 from twisted import internet
 from twisted.python import log
@@ -121,10 +115,9 @@ class ContainerWorkerSession(NativeWorkerSession):
 
       dl = []
       procs = [
+         'get_components',
          'start_component',
          'stop_component',
-         'get_components',
-         #'reload_component',
          'restart_component'
       ]
 
@@ -138,14 +131,19 @@ class ContainerWorkerSession(NativeWorkerSession):
 
 
 
-   def start_component(self, config, reload_module = False, details = None):
+   def start_component(self, config, reload_modules = False, details = None):
       """
       Starts a Class or WAMPlet in this component container.
 
       :param config: Component configuration.
       :type config: dict
+      :param reload_modules: If `True`, enforce reloading of modules (user code)
+                             that were modified (see: TrackingModuleReloader).
+      :type reload_modules: bool
+      :param details: Caller details.
+      :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
-      :returns int -- The component index assigned.
+      :returns dict -- A dict with combined info from component starting.
       """
       try:
          controller.config.check_container_component(config)
@@ -154,8 +152,6 @@ class ContainerWorkerSession(NativeWorkerSession):
          log.msg(emsg)
          raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
-
-      module = None
 
       ## 1) create WAMP application component factory
       ##
@@ -189,28 +185,29 @@ class ContainerWorkerSession(NativeWorkerSession):
             module_name, class_name = '.'.join(c[:-1]), c[-1]
             module = importlib.import_module(module_name)
 
-            ## http://stackoverflow.com/questions/437589/how-do-i-unload-reload-a-python-module
-            ##
-            if reload_module:
-               reload(module)
-
             ## create_component() is supposed to make instances of ApplicationSession later
             ##
             create_component = getattr(module, class_name)
 
          except Exception as e:
             tb = traceback.format_exc()
-            emsg = 'ERROR: failed to import class {} ("{}")'.format(klassname, e)
+            emsg = 'ERROR: failed to import class {} ("{}")'.format(qualified_classname, e)
             log.msg(emsg)
             raise ApplicationError("crossbar.error.cannot_import", emsg, tb)
 
          else:
             if self.debug:
-               log.msg("Creating component from class {}".format(klassname))
+               log.msg("Creating component from class {}".format(qualified_classname))
 
       else:
          ## should not arrive here, since we did `check_container_component()`
          raise Exception("logic error")
+
+
+      ## force reload of modules (user code)
+      ##
+      if reload_modules:
+         self._module_tracker.reload()
 
 
       ## WAMP application session factory
@@ -267,7 +264,6 @@ class ContainerWorkerSession(NativeWorkerSession):
          self.component_id += 1
          self.components[self.component_id] = ContainerComponent(self.component_id,
             config, proto, None)
-         self.components[self.component_id].module = module
 
          ## publish event "on_component_start" to all but the caller
          ##
@@ -284,7 +280,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             log.msg(emsg)
             raise ApplicationError('crossbar.error.cannot_connect', emsg)
          else:
-            ## should not arrive here (since all errors arriving here should be subclasses of ConnectError)            
+            ## should not arrive here (since all errors arriving here should be subclasses of ConnectError)
             raise err
 
       d.addCallbacks(success, error)
@@ -294,18 +290,27 @@ class ContainerWorkerSession(NativeWorkerSession):
 
 
    @inlineCallbacks
-   def restart_component(self, id, reload_module = False, details = None):
+   def restart_component(self, id, reload_modules = False, details = None):
       """
+      Restart a component currently running within this container using the
+      same configuration that was used when first starting the component.
+
+      :param id: The ID of the component to restart.
+      :type id: int
+      :param reload_modules: If `True`, enforce reloading of modules (user code)
+                             that were modified (see: TrackingModuleReloader).
+      :type reload_modules: bool
+      :param details: Caller details.
+      :type details: instance of :class:`autobahn.wamp.types.CallDetails`
+
+      :returns dict -- A dict with combined info from component stopping/starting.
       """
       if id not in self.components:
          raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
-      if True:
-         self._module_tracker.reload()
-
       config = self.components[id].config
       stopped = yield self.stop_component(id, details = details)
-      started = yield self.start_component(config, reload_module = reload_module, details = details)
+      started = yield self.start_component(config, reload_modules = reload_modules, details = details)
       returnValue({'stopped': stopped, 'started': started})
 
 
@@ -316,6 +321,10 @@ class ContainerWorkerSession(NativeWorkerSession):
 
       :param id: The ID of the component to stop.
       :type id: int
+      :param details: Caller details.
+      :type details: instance of :class:`autobahn.wamp.types.CallDetails`
+
+      :returns dict -- A dict with component start information.
       """
       if id not in self.components:
          raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
@@ -348,6 +357,9 @@ class ContainerWorkerSession(NativeWorkerSession):
    def get_components(self, details = None):
       """
       Get components currently running within this container.
+
+      :param details: Caller details.
+      :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
       :returns list -- List of components.
       """
