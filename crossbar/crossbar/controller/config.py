@@ -18,7 +18,9 @@
 
 from __future__ import absolute_import
 
-__all__ = ['check_config', 'check_config_file']
+__all__ = ['check_config',
+           'check_config_file',
+           'check_guest']
 
 import os
 import json
@@ -532,6 +534,11 @@ def check_component(component):
 
    else:
       raise Exception("logic error")
+
+
+
+def check_container_component(component):
+   print "FIXME: check_container_component"
 
 
 

@@ -37,6 +37,17 @@
             <td>Test starting a guest worker that fails at run time.</td>
             <td><button onclick="test_start_guest_4()">Start Guest Test 4</button></td>
          </tr>
+
+
+         <tr>
+            <td>Test starting a container worker.</td>
+            <td><button onclick="test_start_container_1()">Start Container Test 1</button></td>
+         </tr>
+
+         <tr>
+            <td>Test starting a component in a container.</td>
+            <td><button onclick="test_start_container_component_1()">Start Container Component Test 1</button></td>
+         </tr>
       </table>
 
       <script src="autobahn.min.js"></script>
@@ -182,6 +193,86 @@
                      console.log(err.args[0]);
                   }
                );
+         }
+
+         function test_start_container_1() {
+            var config = {
+               type: 'container',
+               options: {
+                  pythonpath: ['..']
+               }
+            };
+
+            session.call('crossbar.node.' + nodename + '.start_container', [config])
+               .then(
+                  function (id) {
+                     console.log("container started with ID", id);
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                  }
+               );
+         }
+
+         function test_start_container_component_1(worker_id) {
+
+            var config = {
+               "type": "class",
+               "name": "timeservice.Timeservice",
+               "router": {
+                  "realm": "realm1",
+                  "transport": {
+                     "type": "websocket",
+                     "url": "ws://localhost:8080/ws",
+                     "endpoint": {
+                        "type": "tcp",
+                        "host": "127.0.0.1",
+                        "port": 8080
+                     }
+                  }
+               }
+            };
+
+            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.container.start_component', [config])
+               .then(
+                  function (id) {
+                     console.log("container component started with ID", id);
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                  }
+               );
+         }
+
+
+         function test_stop_container_component_1(worker_id, component_id) {
+            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.container.stop_component', [component_id])
+               .then(
+                  function () {
+                     console.log("container component stopped");
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                  }
+               );
+         }
+
+
+         function test_list_container_components(worker_id) {
+            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.container.get_components').then(
+               function (component) {
+                  console.log("" + component.length + " components running")
+                  component.forEach(function (component) {
+                     console.log(component);
+                  });
+               },
+               function (err) {
+                  console.log(err.error, err.args[0]);
+               }
+            );
          }
       </script>
    </body>

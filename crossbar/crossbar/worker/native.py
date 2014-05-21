@@ -23,11 +23,12 @@ __all__ = ['NativeWorker']
 
 import os
 import sys
-import datetime
+from datetime import datetime
 
 from twisted.python import log
 from twisted.internet.defer import DeferredList, inlineCallbacks
 
+from autobahn.util import utcnow, utcstr
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
@@ -47,10 +48,10 @@ class NativeWorkerSession(ApplicationSession):
       """
       self.debug = self.config.extra.debug
 
-      if self.debug:
+      if True or self.debug:
          log.msg("Worker connected to node management router.")
 
-      self._started = datetime.datetime.utcnow()
+      self._started = datetime.utcnow()
 
       self._manhole_listening_port = None
 
@@ -78,7 +79,7 @@ class NativeWorkerSession(ApplicationSession):
 
       dl = []
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.{}'.format(self.config.extra.node, self.config.extra.pid, proc)
+         uri = 'crossbar.node.{}.process.{}.{}'.format(self.config.extra.node, self.config.extra.id, proc)
          dl.append(self.register(getattr(self, proc), uri))
 
       regs = yield DeferredList(dl)
@@ -91,7 +92,7 @@ class NativeWorkerSession(ApplicationSession):
       ## from a management service
       ##
       pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
-         {'type': self.WORKER_TYPE, 'pid': self.config.extra.pid},
+         {'type': self.WORKER_TYPE, 'id': self.config.extra.id, 'pid': os.getpid()},
          options = PublishOptions(acknowledge = True))
 
       if self.debug:
@@ -141,7 +142,7 @@ class NativeWorkerSession(ApplicationSession):
 
       try:
          self._manhole_listening_port = yield create_listening_port_from_config(config['endpoint'], factory, self.config.extra.cbdir, reactor)
-         topic = 'crossbar.node.{}.worker.{}.on_manhole_start'.format(self.config.extra.node, self.config.extra.pid)
+         topic = 'crossbar.node.{}.process.{}.on_manhole_start'.format(self.config.extra.node, self.config.extra.id)
          self.publish(topic, {'endpoint': config['endpoint']})
       except Exception as e:
          raise ApplicationError("wamp.error.could_not_listen", "Could not start manhole: '{}'".format(e))
@@ -156,7 +157,7 @@ class NativeWorkerSession(ApplicationSession):
       if self._manhole_listening_port:
          yield self._manhole_listening_port.stopListening()
          self._manhole_listening_port = None
-         topic = 'crossbar.node.{}.worker.{}.on_manhole_stop'.format(self.config.extra.node, self.config.extra.pid)
+         topic = 'crossbar.node.{}.process.{}.on_manhole_stop'.format(self.config.extra.node, self.config.extra.id)
          self.publish(topic)
       else:
          raise ApplicationError("wamp.error.could_not_stop", "Could not stop manhole - not started")
@@ -175,7 +176,7 @@ class NativeWorkerSession(ApplicationSession):
          log.msg("Warning: could not get process CPU affinity - psutil not installed")
          return []
       else:
-         p = psutil.Process(self.config.extra.pid)
+         p = psutil.Process(os.getpid())
          return p.get_cpu_affinity()
 
 
@@ -192,7 +193,7 @@ class NativeWorkerSession(ApplicationSession):
       except ImportError:
          log.msg("Warning: could not set process CPU affinity - psutil not installed")
       else:
-         p = psutil.Process(self.config.extra.pid)
+         p = psutil.Process(os.getpid())
          p.set_cpu_affinity(cpus)
 
 
@@ -234,8 +235,7 @@ class NativeWorkerSession(ApplicationSession):
 
       :returns str -- Current time (UTC) in UTC ISO 8601 format.
       """
-      now = datetime.datetime.utcnow()
-      return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+      return utcnow()
 
 
 
@@ -245,7 +245,7 @@ class NativeWorkerSession(ApplicationSession):
 
       :returns str -- Start time (UTC) in UTC ISO 8601 format.
       """
-      return self._started.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+      return utcstr(self._started)
 
 
 
@@ -255,7 +255,7 @@ class NativeWorkerSession(ApplicationSession):
 
       :returns float -- Uptime in seconds.
       """
-      now = datetime.datetime.utcnow()
+      now = datetime.utcnow()
       return (now - self._started).total_seconds()
 
 

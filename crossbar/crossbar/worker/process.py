@@ -54,6 +54,11 @@ def run():
                        type = str,
                        help = 'Crossbar.io node name (required).')
 
+   parser.add_argument('-i',
+                       '--id',
+                       type = str,
+                       help = 'Crossbar.io node process ID (required).')
+
    parser.add_argument('-r',
                        '--realm',
                        type = str,
@@ -78,11 +83,6 @@ def run():
    from crossbar.twisted.process import BareFormatFileLogObserver
    flo = BareFormatFileLogObserver(sys.stderr)
    log.startLoggingWithObserver(flo.emit)
-
-
-   ## the worker's PID
-   ##
-   options.pid = os.getpid()
 
 
    try:
@@ -160,7 +160,7 @@ def run():
       ## create a WAMP-over-WebSocket transport server factory
       ##
       from autobahn.twisted.websocket import WampWebSocketServerFactory
-      transport_factory = WampWebSocketServerFactory(session_factory, "ws://localhost", debug = False)
+      transport_factory = WampWebSocketServerFactory(session_factory, "ws://localhost", debug = True, debug_wamp = True)
       transport_factory.protocol = WorkerServerProtocol
       transport_factory.setProtocolOptions(failByDrop = False)
 

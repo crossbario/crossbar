@@ -23,16 +23,51 @@ __all__ = ['ContainerWorker']
 
 import os
 
-from twisted.internet.defer import DeferredList, inlineCallbacks
+from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig
 
 from twisted.python import log
+from twisted import internet
 import pkg_resources
 
-
+from crossbar import controller
 from crossbar.worker.native import NativeWorkerSession
+
+from crossbar.router.protocol import CrossbarWampWebSocketClientFactory, \
+                                     CrossbarWampRawSocketClientFactory
+
+
+from datetime import datetime
+from autobahn.util import utcnow, utcstr
+
+from autobahn.wamp.types import PublishOptions, RegisterOptions
+
+
+
+
+class ContainerComponent:
+   """
+   """
+   def __init__(self, id, config, proto, session):
+      """
+      """
+      self.started = datetime.utcnow()
+      self.id = id
+      self.config = config
+      self.proto = proto
+      self.session = session
+
+
+   def marshal(self):
+      now = datetime.utcnow()
+      return {
+         'id': self.id,
+         'started': utcstr(self.started),
+         'uptime': (now - self.started).total_seconds(),
+         'config': self.config
+      }
 
 
 
@@ -50,34 +85,55 @@ class ContainerWorkerSession(NativeWorkerSession):
       """
       Called when worker process has joined the node's management realm.
       """
+      ## map: component id -> ContainerComponent
+      self.components = {}
+      self.component_id = 0
+
+
       dl = []
       procs = [
          'start_component',
+         'stop_component',
+         'get_components'
       ]
 
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self.config.extra.node, self.config.extra.pid, proc)
-         dl.append(self.register(getattr(self, proc), uri))
+         uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self.config.extra.node, self.config.extra.id, proc)
+         dl.append(self.register(getattr(self, proc), uri, options = RegisterOptions(details_arg = 'details', discloseCaller = True)))
 
       regs = yield DeferredList(dl)
 
       yield NativeWorkerSession.onJoin(self, details)
 
 
-   def start_component(self, component, router):
+
+   def start_component(self, config, details = None):
       """
       Starts a Class or WAMPlet in this component container.
+
+      :param config: Component configuration.
+      :type config: dict
+
+      :returns int -- The component index assigned.
       """
-      ## create component
+      try:
+         controller.config.check_container_component(config)
+      except Exception as e:
+         emsg = "ERROR: could not start container component - invalid configuration ({})".format(e)
+         log.msg(emsg)
+         raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+
+
+      ## 1) create WAMP application component factory
       ##
-      if component['type'] == 'wamplet':
+      if config['type'] == 'wamplet':
 
          try:
-            dist = component['dist']
-            name = component['entry']
+            dist = config['dist']
+            name = config['entry']
 
             if self.debug:
-               log.msg("Starting WAMPlet '{}/{}' in realm '{}' ..".format(dist, name, router['realm']))
+               log.msg("Starting WAMPlet '{}/{}' in realm '{}' ..".format(dist, name, config['router']['realm']))
 
             ## make is supposed to make instances of ApplicationSession
             make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
@@ -86,13 +142,13 @@ class ContainerWorkerSession(NativeWorkerSession):
             log.msg("Failed to import class - {}".format(e))
             raise ApplicationError("crossbar.error.class_import_failed", str(e))
 
-      elif component['type'] == 'class':
+      elif config['type'] == 'class':
 
          try:
-            klassname = component['name']
+            klassname = config['name']
 
             if self.debug:
-               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self.config.extra.pid, klassname, router['realm']))
+               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self.config.extra.id, klassname, config['router']['realm']))
 
             import importlib
             c = klassname.split('.')
@@ -107,42 +163,44 @@ class ContainerWorkerSession(NativeWorkerSession):
             raise ApplicationError("crossbar.error.class_import_failed", str(e))
 
       else:
-         raise ApplicationError("crossbar.error.invalid_configuration", "unknown component type '{}'".format(component['type']))
+         ## should not arrive here, since we did `check_container_component()`
+         raise Exception("logic error")
 
 
-      def create():
-         cfg = ComponentConfig(realm = router['realm'], extra = component.get('extra', None))
+      ## WAMP application session factory
+      ##
+      def create_session():
+         cfg = ComponentConfig(realm = config['router']['realm'], extra = config.get('extra', None))
          c = make(cfg)
          return c
 
 
-      ## create the WAMP transport
+      ## 2) create WAMP transport factory
       ##
-      transport_config = router['transport']
+      transport_config = config['router']['transport']
       transport_debug = transport_config.get('debug', False)
 
+
+      ## WAMP-over-WebSocket transport
+      ##
       if transport_config['type'] == 'websocket':
 
          ## create a WAMP-over-WebSocket transport client factory
          ##
-         #from autobahn.twisted.websocket import WampWebSocketClientFactory
-         #transport_factory = WampWebSocketClientFactory(create, transport_config['url'], debug = transport_debug, debug_wamp = transport_debug)
-         from crossbar.router.protocol import CrossbarWampWebSocketClientFactory
-         transport_factory = CrossbarWampWebSocketClientFactory(create, transport_config['url'], debug = transport_debug, debug_wamp = transport_debug)
-         transport_factory.setProtocolOptions(failByDrop = False)
+         transport_factory = CrossbarWampWebSocketClientFactory(create_session, transport_config['url'], debug = transport_debug, debug_wamp = transport_debug)
 
+      ## WAMP-over-RawSocket transport
+      ##
       elif transport_config['type'] == 'rawsocket':
 
-         from crossbar.router.protocol import CrossbarWampRawSocketClientFactory
-         transport_factory = CrossbarWampRawSocketClientFactory(create, transport_config)
+         transport_factory = CrossbarWampRawSocketClientFactory(create_session, transport_config)
 
       else:
-         raise ApplicationError("crossbar.error.invalid_configuration", "unknown transport type '{}'".format(transport_config['type']))
+         ## should not arrive here, since we did `check_container_component()`
+         raise Exception("logic error")
 
 
-      self._foo = transport_factory
-
-      ## create client endpoint
+      ## 3) create and connect client endpoint
       ##
       from twisted.internet import reactor
       from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
@@ -151,27 +209,86 @@ class ContainerWorkerSession(NativeWorkerSession):
 
       ## now connect the client
       ##
-      retry = True
-      retryDelay = 1000
+      d = endpoint.connect(transport_factory)
 
-      def try_connect():
+      def success(proto):
+         print "T"*10, proto
+         self.component_id += 1
+         self.components[self.component_id] = ContainerComponent(self.component_id, config, proto, None)
          if self.debug:
-            log.msg("Connecting to application router ..")
+            log.msg("Connected to application router")
+         return self.component_id
 
-         d = endpoint.connect(transport_factory)
+      def error(err):
+         ## https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
+         if isinstance(err.value, internet.error.ConnectError):
+            emsg = "ERROR: could not connect container component to router - transport establishment failed ({})".format(err.value)
+            log.msg(emsg)
+            raise ApplicationError('crossbar.error.cannot_connect', emsg)
+         else:
+            raise err
 
-         def success(proto):
-            if self.debug:
-               log.msg("Connected to application router")
+      d.addCallbacks(success, error)
 
-         def error(err):
-            log.msg("Failed to connect to application router: {}".format(err))
-            if retry:
-               log.msg("Retrying to connect in {} ms".format(retryDelay))
-               reactor.callLater(float(retryDelay) / 1000., try_connect)
-            else:
-               log.msg("Could not connect to application router - giving up.")
+      return d
 
-         d.addCallbacks(success, error)
 
-      try_connect()
+
+      #onconnect = Deferred()
+
+      # retry = True
+      # retryDelay = 1000
+
+      # def try_connect():
+      #    if self.debug:
+      #       log.msg("Connecting to application router ..")
+
+      #    d = endpoint.connect(transport_factory)
+
+      #    def success(proto):
+      #       if self.debug:
+      #          log.msg("Connected to application router")
+
+      #    def error(err):
+      #       ## https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
+      #       if isinstance(err.value, internet.error.ConnectError):
+      #          ## twisted.internet.error.ConnectionRefusedError
+      #          print "YYY", err.value, isinstance(err.value, internet.error.ConnectError)
+      #          log.msg("Failed to connect to application router: {}".format(err))
+      #          if retry:
+      #             log.msg("Retrying to connect in {} ms".format(retryDelay))
+      #             reactor.callLater(float(retryDelay) / 1000., try_connect)
+      #          else:
+      #             log.msg("Could not connect to application router - giving up.")
+      #       else:
+      #          pass
+
+      #    d.addCallbacks(success, error)
+
+      # try_connect()
+
+      # return onconnect
+
+   def stop_component(self, id, details = None):
+      """
+      """
+      if id not in self.components:
+         raise ApplicationError('crossbar.error.no_such_object', 'No component with ID {}'.format(id))
+
+      self.components[id].proto.close()
+
+      topic = 'crossbar.node.{}.process.{}.container.on_component_stop'.format(self.config.extra.node, self.config.extra.id)
+      event = {'id': id}
+      self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
+
+      del self.components[id]
+
+
+   def get_components(self, details = None):
+      """
+      """
+      res = []
+      for c in self.components.values():
+         res.append(c.marshal())
+      return res
+

@@ -213,7 +213,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
       dl = []
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.router.{}'.format(self.config.extra.node, self.config.extra.pid, proc)
+         uri = 'crossbar.node.{}.process.{}.router.{}'.format(self.config.extra.node, self.config.extra.id, proc)
          dl.append(self.register(getattr(self, proc), uri))
 
       regs = yield DeferredList(dl)
@@ -233,7 +233,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
    def start_realm(self, realm, config):
       if self.debug:
-         log.msg("Worker {}: realm started".format(self.config.extra.pid))
+         log.msg("Worker {}: realm started".format(self.config.extra.id))
       return 1
 
 
@@ -294,7 +294,7 @@ class RouterWorkerSession(NativeWorkerSession):
             klassname = config['name']
 
             if self.debug:
-               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self.config.extra.pid, klassname, realm))
+               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self.config.extra.id, klassname, realm))
 
             import importlib
             c = klassname.split('.')
@@ -313,7 +313,7 @@ class RouterWorkerSession(NativeWorkerSession):
             name = config['entry']
 
             if self.debug:
-               log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self.config.extra.pid, dist, name, realm))
+               log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self.config.extra.id, dist, name, realm))
 
             ## make is supposed to make instances of ApplicationSession
             make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
@@ -353,7 +353,7 @@ class RouterWorkerSession(NativeWorkerSession):
       """
       if id in self._components:
          if self.debug:
-            log.msg("Worker {}: stopping component {}".format(self.config.extra.pid, id))
+            log.msg("Worker {}: stopping component {}".format(self.config.extra.id, id))
 
          try:
             #self._components[id].disconnect()
@@ -740,7 +740,7 @@ class RouterWorkerSession(NativeWorkerSession):
          raise ApplicationError("crossbar.error.no_such_transport", "No transport started with index {}".format(transport_index))
 
       if self.debug:
-         log.msg("Worker {}: stopping transport {}".format(self.config.extra.pid, transport_index))
+         log.msg("Worker {}: stopping transport {}".format(self.config.extra.id, transport_index))
 
       try:
          d = self._transports[transport_index].port.stopListening()
@@ -772,7 +772,7 @@ class RouterWorkerSession(NativeWorkerSession):
       Start a link on this router.
       """
       if self.debug:
-         log.msg("Worker {}: starting router link".format(self.config.extra.pid))
+         log.msg("Worker {}: starting router link".format(self.config.extra.id))
 
 
 
@@ -781,4 +781,4 @@ class RouterWorkerSession(NativeWorkerSession):
       Stop a link on this router.
       """
       if self.debug:
-         log.msg("Worker {}: stopping router link {}".format(self.config.extra.pid, id))
+         log.msg("Worker {}: stopping router link {}".format(self.config.extra.id, id))

@@ -66,20 +66,8 @@ from crossbar import controller
 from crossbar.controller.types import *
 
 
-#from autobahn.util import utcnow
+from autobahn.util import utcnow, utcstr
 from datetime import datetime, timedelta
-
-def utcnow():
-   """
-   Get current time in UTC as ISO 8601 string.
-   """
-   now = datetime.utcnow()
-   return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
-
-def formatutc(ts):
-   return ts.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
 
 
 
@@ -147,7 +135,7 @@ class NodeControllerSession(ApplicationSession):
 
       exit = Deferred()
 
-      self._processes[self._pid] = NodeControllerProcess(0, self._pid, defer.succeed(self._pid), exit)
+      self._processes[0] = NodeControllerProcess(0, self._pid, defer.succeed(self._pid), exit)
 
       ## map of guest processes: PID -> GuestWorkerProcess
       #self._guests = {}
@@ -170,10 +158,10 @@ class NodeControllerSession(ApplicationSession):
       ##
       def on_worker_ready(res):
          ## fire the Deferred previously stored for signaling "worker ready"
-         pid = res['pid']
-         r = self._processes.get(pid, None)
+         id = res['id']
+         r = self._processes.get(id, None)
          if r and r.ready:
-            r.ready.callback(pid)
+            r.ready.callback(None)
 
       dl.append(self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node._name)))
 
@@ -234,7 +222,7 @@ class NodeControllerSession(ApplicationSession):
             'id': p.id,
             'pid': p.pid,
             'type': p.process_type,
-            'started': formatutc(p.started),
+            'started': utcstr(p.started),
             'uptime': (now - p.started).total_seconds(),
             #'ready': p.ready.called,
             #'exit': p.exit.called,
@@ -262,6 +250,9 @@ class NodeControllerSession(ApplicationSession):
 
       :returns: int -- The PID of the new worker process.
       """
+      self._process_id += 1
+      process_id = self._process_id
+
       ## allow override Python executable from config
       exe = options.get('python', executable)
 
@@ -274,6 +265,7 @@ class NodeControllerSession(ApplicationSession):
       args = [exe, "-u", filename]
       args.extend(["--cbdir", self._node._cbdir])
       args.extend(["--node", self._node._name])
+      args.extend(["--id", str(process_id)])
       args.extend(["--realm", self._node._realm])
       args.extend(["--type", worker_type])
 
@@ -297,10 +289,6 @@ class NodeControllerSession(ApplicationSession):
       ## worker process environment
       ##
       penv = _create_process_env(options)
-
-      self._process_id += 1
-
-      process_id = self._process_id
 
       ep = CustomProcessEndpoint(self._node._reactor,
                executable,
@@ -331,17 +319,17 @@ class NodeControllerSession(ApplicationSession):
 
          ## remember the worker process, including "ready" deferred. this will later
          ## be fired upon the worker publishing to 'crossbar.node.{}.on_worker_ready'
-         self._processes[pid] = NodeNativeWorkerProcess(process_id, pid, ready, exit, worker_type, factory = transport_factory, proto = proto)
+         self._processes[process_id] = NodeNativeWorkerProcess(process_id, pid, ready, exit, worker_type, factory = transport_factory, proto = proto)
 
          topic = 'crossbar.node.{}.on_process_start'.format(self._node._name)
-         self.publish(topic, {'pid': pid})
+         self.publish(topic, {'id': process_id, 'pid': pid})
 
 
          def on_exit_success(_):
-            del self._processes[pid]
+            del self._processes[process_id]
 
          def on_exit_failed(exit_code):
-            del self._processes[pid]
+            del self._processes[process_id]
 
          exit.addCallbacks(on_exit_success, on_exit_failed)
 
@@ -355,18 +343,18 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def stop_process(self, pid):
+   def stop_process(self, id):
       """
       Stops a worker process.
       """
-      print "stop_process", pid
-      if pid in self._processes:
-         process = self._processes[pid]
+      print "stop_process", id
+      if id in self._processes:
+         process = self._processes[id]
 
          if process.process_type in ['router', 'container']:
             #self._processes[pid].factory.stopFactory()
             #self._processes[pid].proto.leave()
-            self._processes[pid].proto.transport.signalProcess("KILL")
+            self._processes[id].proto.transport.signalProcess("KILL")
          elif process.process_type == 'guest':
             pass
          else:
@@ -380,7 +368,7 @@ class NodeControllerSession(ApplicationSession):
          # else:
          #    del self._processes[pid]
       else:
-         raise ApplicationError("wamp.error.invalid_argument", "No worker with PID '{}'".format(pid))
+         raise ApplicationError("wamp.error.invalid_argument", "No worker with ID '{}'".format(id))
 
 
 
@@ -452,9 +440,9 @@ class NodeControllerSession(ApplicationSession):
          def onconnect(proto):
             pid = proto.transport.pid
             proto._pid = pid
-            self._processes[pid] = NodeGuestWorkerProcess(pid, ready, exit, proto = proto)
+            self._processes[process_id] = NodeGuestWorkerProcess(pid, ready, exit, proto = proto)
             log.msg("Guest {}: Program started.".format(pid))
-            ready.callback(pid)
+            ready.callback(None)
 
          def onerror(err):
             log.msg("Guest: Program could not be started - {}".format(err.value))
@@ -484,43 +472,45 @@ class NodeControllerSession(ApplicationSession):
             pid = trnsp.pid
             proto._pid = pid
 
-            self._processes[pid] = NodeGuestWorkerProcess(process_id, pid, ready, exit, proto = proto)
-            log.msg("Guest {}: Program started.".format(pid))
+            self._processes[process_id] = NodeGuestWorkerProcess(process_id, pid, ready, exit, proto = proto)
+            log.msg("Guest {}: Program started.".format(process_id))
 
-            ready.callback(pid)
+            ready.callback(None)
 
             topic = 'crossbar.node.{}.on_process_start'.format(self._node._name)
-            self.publish(topic, {'pid': pid})
+            self.publish(topic, {'id': process_id, 'pid': pid})
 
 
             def on_guest_exit_success(_):
                print "on_guest_exit_success"
-               p = self._processes[pid]
+               p = self._processes[process_id]
                now = datetime.utcnow()
                topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
                self.publish(topic, {
+                  'id': process_id,
                   'pid': pid,
                   'exit_code': 0,
                   'uptime': (now - p.started).total_seconds()
                })
-               del self._processes[pid]
+               del self._processes[process_id]
 
             def on_guest_exit_failed(reason):
                ## https://twistedmatrix.com/documents/current/api/twisted.internet.error.ProcessTerminated.html
                exit_code = reason.value.exitCode
                signal = reason.value.signal
-               print "on_guest_exit_failed", pid, exit_code, type(exit_code)
+               print "on_guest_exit_failed", process_id, pid, exit_code, type(exit_code)
                try:
-                  p = self._processes[pid]
+                  p = self._processes[process_id]
                   now = datetime.utcnow()
                   topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
                   self.publish(topic, {
+                     'id': process_id,
                      'pid': pid,
                      'exit_code': exit_code,
                      'signal': signal,
                      'uptime': (now - p.started).total_seconds()
                   })
-                  del self._processes[pid]
+                  del self._processes[process_id]
                except Exception as e:
                   print "(8888", e
 
@@ -530,20 +520,20 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def stop_guest(self, pid):
+   def stop_guest(self, id):
       """
       Stops a guest process.
       """
-      if pid in self._processes:
+      if id in self._processes:
          try:
-            self._processes[pid].proto.transport.loseConnection()
+            self._processes[id].proto.transport.loseConnection()
          except Exception as e:
-            log.msg("Could not stop guest {}: {}".format(pid, e))
+            log.msg("Could not stop guest {}: {}".format(id, e))
             raise e
          else:
-            del self._processes[pid]
+            del self._processes[id]
       else:
-         raise ApplicationError("wamp.error.invalid_argument", "No guest with PID '{}'".format(pid))
+         raise ApplicationError("wamp.error.invalid_argument", "No guest with ID '{}'".format(id))
 
 
 
@@ -598,49 +588,50 @@ class NodeControllerSession(ApplicationSession):
             ##
             try:
                if worker['type'] == 'router':
-                  pid = yield self.start_router(worker_options)
+                  id = yield self.start_router(worker_options)
                elif worker['type'] == 'container':
-                  pid = yield self.start_container(worker_options)
+                  id = yield self.start_container(worker_options)
                else:
                   raise Exception("logic error")
             except Exception as e:
                log.msg("Failed to start worker process: {}".format(e))
+               raise e
             else:
-               log.msg("Worker {}: Started {}.".format(pid, worker['type']))
+               log.msg("Worker {}: Started {}.".format(id, worker['type']))
 
             ## setup worker generic stuff
             ##
             if 'pythonpath' in worker_options:
                try:
-                  added_paths = yield self.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._name, pid),
+                  added_paths = yield self.call('crossbar.node.{}.process.{}.add_pythonpath'.format(self._name, id),
                      worker_options['pythonpath'])
 
                except Exception as e:
-                  log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(pid, e))
+                  log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(id, e))
                else:
-                  log.msg("Worker {}: PYTHONPATH extended for {}".format(pid, added_paths))
+                  log.msg("Worker {}: PYTHONPATH extended for {}".format(id, added_paths))
 
             if 'cpu_affinity' in worker_options:
                try:
-                  yield self.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._name, pid),
+                  yield self.call('crossbar.node.{}.process.{}.set_cpu_affinity'.format(self._name, id),
                      worker_options['cpu_affinity'])
 
                except Exception as e:
-                  log.msg("Worker {}: Failed to set CPU affinity - {}".format(pid, e))
+                  log.msg("Worker {}: Failed to set CPU affinity - {}".format(id, e))
                else:
-                  log.msg("Worker {}: CPU affinity set.".format(pid))
+                  log.msg("Worker {}: CPU affinity set.".format(id))
 
             try:
-               cpu_affinity = yield self.call('crossbar.node.{}.worker.{}.get_cpu_affinity'.format(self._name, pid))
+               cpu_affinity = yield self.call('crossbar.node.{}.process.{}.get_cpu_affinity'.format(self._name, id))
             except Exception as e:
-               log.msg("Worker {}: Failed to get CPU affinity - {}".format(pid, e))
+               log.msg("Worker {}: Failed to get CPU affinity - {}".format(id, e))
             else:
-               log.msg("Worker {}: CPU affinity is {}".format(pid, cpu_affinity))
+               log.msg("Worker {}: CPU affinity is {}".format(id, cpu_affinity))
 
             ## manhole within worker
             ##
             if 'manhole' in worker_options:
-               yield self.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._name, pid), worker_options['manhole'])
+               yield self.call('crossbar.node.{}.process.{}.start_manhole'.format(self._name, id), worker_options['manhole'])
 
 
             ## Setup: WAMP router process
@@ -651,28 +642,32 @@ class NodeControllerSession(ApplicationSession):
                ##
                for realm_name, realm_config in worker['realms'].items():
 
-                  realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._name, pid), realm_name, realm_config)
+                  realm_index = yield self.call('crossbar.node.{}.process.{}.router.start_realm'.format(self._name, id), realm_name, realm_config)
 
-                  log.msg("Worker {}: Realm {} ({}) started on router".format(pid, realm_name, realm_index))
+                  log.msg("Worker {}: Realm {} ({}) started on router".format(id, realm_name, realm_index))
 
                   ## start any application components to run embedded in the realm
                   ##
                   for component_config in realm_config.get('components', []):
 
-                     component_index = yield self.call('crossbar.node.{}.worker.{}.router.start_component'.format(self._name, pid), realm_name, component_config)
+                     component_index = yield self.call('crossbar.node.{}.process.{}.router.start_component'.format(self._name, id), realm_name, component_config)
 
                ## start transports on router
                ##
                for transport in worker['transports']:
-                  transport_index = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._name, pid), transport)
+                  transport_index = yield self.call('crossbar.node.{}.process.{}.router.start_transport'.format(self._name, id), transport)
 
-                  log.msg("Worker {}: Transport {}/{} ({}) started on router".format(pid, transport['type'], transport['endpoint']['type'], transport_index))
+                  log.msg("Worker {}: Transport {}/{} ({}) started on router".format(id, transport['type'], transport['endpoint']['type'], transport_index))
 
             ## Setup: Python component host process
             ##
             elif worker['type'] == 'container':
 
-               yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._name, pid), worker['component'], worker['router'])
+               for component_config in worker.get('components', []):
+
+                  component_id = yield self.call('crossbar.node.{}.process.{}.container.start_component'.format(self._name, id), component_config)
+
+               #yield self.call('crossbar.node.{}.process.{}.container.start_component'.format(self._name, pid), worker['component'], worker['router'])
 
             else:
                raise Exception("logic error")
