@@ -22,15 +22,26 @@ __all__ = ['ContainerWorkerSession']
 
 
 import os
+import sys
+import importlib
 import pkg_resources
+import traceback
+import StringIO
 from datetime import datetime
+
+try:
+   reload
+except NameError:
+   # Python 3
+   from imp import reload
 
 from twisted.internet import reactor
 from twisted import internet
 from twisted.python import log
 from twisted.internet.defer import Deferred, \
                                    DeferredList, \
-                                   inlineCallbacks
+                                   inlineCallbacks, \
+                                   returnValue
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
@@ -112,7 +123,9 @@ class ContainerWorkerSession(NativeWorkerSession):
       procs = [
          'start_component',
          'stop_component',
-         'get_components'
+         'get_components',
+         #'reload_component',
+         'restart_component'
       ]
 
       for proc in procs:
@@ -125,7 +138,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
 
 
-   def start_component(self, config, details = None):
+   def start_component(self, config, reload_module = False, details = None):
       """
       Starts a Class or WAMPlet in this component container.
 
@@ -142,43 +155,58 @@ class ContainerWorkerSession(NativeWorkerSession):
          raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
 
+      module = None
+
       ## 1) create WAMP application component factory
       ##
       if config['type'] == 'wamplet':
 
+         package = config['package']
+         entrypoint = config['entrypoint']
+
          try:
-            dist = config['dist']
-            name = config['entry']
-
-            if self.debug:
-               log.msg("Starting WAMPlet '{}/{}' in realm '{}' ..".format(dist, name, config['router']['realm']))
-
-            ## make is supposed to make instances of ApplicationSession
-            make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
+            ## create_component() is supposed to make instances of ApplicationSession later
+            ##
+            create_component = pkg_resources.load_entry_point(package, 'autobahn.twisted.wamplet', entrypoint)
 
          except Exception as e:
-            log.msg("Failed to import class - {}".format(e))
-            raise ApplicationError("crossbar.error.class_import_failed", str(e))
+            tb = traceback.format_exc()
+            emsg = 'ERROR: failed to import WAMPlet {}.{} ("{}")'.format(package, entrypoint, e)
+            log.msg(emsg)
+            raise ApplicationError("crossbar.error.cannot_import", emsg, tb)
+
+         else:
+            if self.debug:
+               log.msg("Creating component from WAMPlet {}.{}".format(package, entrypoint))
+
 
       elif config['type'] == 'class':
 
+         qualified_classname = config['classname']
+
          try:
-            klassname = config['name']
+            c = qualified_classname.split('.')
+            module_name, class_name = '.'.join(c[:-1]), c[-1]
+            module = importlib.import_module(module_name)
 
-            if self.debug:
-               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self.config.extra.id, klassname, config['router']['realm']))
+            ## http://stackoverflow.com/questions/437589/how-do-i-unload-reload-a-python-module
+            ##
+            if reload_module:
+               reload(module)
 
-            import importlib
-            c = klassname.split('.')
-            mod, kls = '.'.join(c[:-1]), c[-1]
-            app = importlib.import_module(mod)
-
-            ## make is supposed to be of class ApplicationSession
-            make = getattr(app, kls)
+            ## create_component() is supposed to make instances of ApplicationSession later
+            ##
+            create_component = getattr(module, class_name)
 
          except Exception as e:
-            log.msg("Worker {}: failed to import class - {}".format(e))
-            raise ApplicationError("crossbar.error.class_import_failed", str(e))
+            tb = traceback.format_exc()
+            emsg = 'ERROR: failed to import class {} ("{}")'.format(klassname, e)
+            log.msg(emsg)
+            raise ApplicationError("crossbar.error.cannot_import", emsg, tb)
+
+         else:
+            if self.debug:
+               log.msg("Creating component from class {}".format(klassname))
 
       else:
          ## should not arrive here, since we did `check_container_component()`
@@ -188,8 +216,9 @@ class ContainerWorkerSession(NativeWorkerSession):
       ## WAMP application session factory
       ##
       def create_session():
-         cfg = ComponentConfig(realm = config['router']['realm'], extra = config.get('extra', None))
-         c = make(cfg)
+         cfg = ComponentConfig(realm = config['router']['realm'],
+            extra = config.get('extra', None))
+         c = create_component(cfg)
          return c
 
 
@@ -197,6 +226,7 @@ class ContainerWorkerSession(NativeWorkerSession):
       ##
       transport_config = config['router']['transport']
       transport_debug = transport_config.get('debug', False)
+      transport_debug_wamp = transport_config.get('debug_wamp', False)
 
 
       ## WAMP-over-WebSocket transport
@@ -205,13 +235,17 @@ class ContainerWorkerSession(NativeWorkerSession):
 
          ## create a WAMP-over-WebSocket transport client factory
          ##
-         transport_factory = CrossbarWampWebSocketClientFactory(create_session, transport_config['url'], debug = transport_debug, debug_wamp = transport_debug)
+         transport_factory = CrossbarWampWebSocketClientFactory(create_session,
+            transport_config['url'],
+            debug = transport_debug,
+            debug_wamp = transport_debug_wamp)
 
       ## WAMP-over-RawSocket transport
       ##
       elif transport_config['type'] == 'rawsocket':
 
-         transport_factory = CrossbarWampRawSocketClientFactory(create_session, transport_config)
+         transport_factory = CrossbarWampRawSocketClientFactory(create_session,
+            transport_config)
 
       else:
          ## should not arrive here, since we did `check_container_component()`
@@ -220,7 +254,9 @@ class ContainerWorkerSession(NativeWorkerSession):
 
       ## 3) create and connect client endpoint
       ##
-      endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'], self.config.extra.cbdir, reactor)
+      endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'],
+         self.config.extra.cbdir,
+         reactor)
 
 
       ## now connect the client
@@ -229,7 +265,9 @@ class ContainerWorkerSession(NativeWorkerSession):
 
       def success(proto):
          self.component_id += 1
-         self.components[self.component_id] = ContainerComponent(self.component_id, config, proto, None)
+         self.components[self.component_id] = ContainerComponent(self.component_id,
+            config, proto, None)
+         self.components[self.component_id].module = module
 
          ## publish event "on_component_start" to all but the caller
          ##
@@ -255,6 +293,20 @@ class ContainerWorkerSession(NativeWorkerSession):
 
 
 
+   @inlineCallbacks
+   def restart_component(self, id, reload_module = False, details = None):
+      """
+      """
+      if id not in self.components:
+         raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
+
+      config = self.components[id].config
+      stopped = yield self.stop_component(id, details = details)
+      started = yield self.start_component(config, reload_module = reload_module, details = details)
+      returnValue({'stopped': stopped, 'started': started})
+
+
+
    def stop_component(self, id, details = None):
       """
       Stop a component currently running within this container.
@@ -265,15 +317,28 @@ class ContainerWorkerSession(NativeWorkerSession):
       if id not in self.components:
          raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
+      now = datetime.utcnow()
+
+      ## FIXME: should we session.leave() first and only close the transport then?
+      ## This gives the app component a better hook to do any cleanup.
       self.components[id].proto.close()
+
+      c = self.components[id]
+      event = {
+         'id': id,
+         'started': utcstr(c.started),
+         'stopped': utcstr(now),
+         'uptime': (now - c.started).total_seconds()
+      }
 
       ## publish event "on_component_stop" to all but the caller
       ##
       topic = 'crossbar.node.{}.process.{}.container.on_component_stop'.format(self.config.extra.node, self.config.extra.id)
-      event = {'id': id}
       self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
 
       del self.components[id]
+
+      return event
 
 
 

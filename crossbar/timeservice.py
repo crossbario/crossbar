@@ -22,6 +22,13 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
 
+FOO = 25
+#dfdfg
+
+def foo():
+   return FOO
+
+from foobar import getfoo
 
 
 ## WAMP application component with our app code.
@@ -35,13 +42,21 @@ class Timeservice(ApplicationSession):
       ##
       def utcnow():
          now = datetime.datetime.utcnow()
+         print FOO, foo()
+         #return "foo"
+         return getfoo()
          return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-      reg = yield self.register(utcnow, 'com.timeservice.now')
-      print("Procedure registered with ID {}".format(reg.id))
+      try:
+         reg = yield self.register(utcnow, 'com.timeservice.now')
+      except Exception as e:
+         self.leave()
+      else:
+         print("xx Procedure registered with ID {}".format(reg.id))
 
 
    def onDisconnect(self):
+      print("onDisconnect")
       reactor.stop()
 
 

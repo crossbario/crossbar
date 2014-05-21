@@ -219,7 +219,7 @@
 
             var config = {
                "type": "class",
-               "name": "timeservice.Timeservice",
+               "classname": "timeservice.Timeservice",
                "router": {
                   "realm": "realm1",
                   "transport": {
@@ -234,7 +234,9 @@
                }
             };
 
-            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.container.start_component', [config])
+            var reload = true;
+
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.container.start_component', [config, reload])
                .then(
                   function (id) {
                      console.log("container component started with ID", id);
@@ -242,6 +244,7 @@
                   function (err) {
                      console.log(err.error);
                      console.log(err.args[0]);
+                     console.log(err.args[1]);
                   }
                );
          }
@@ -252,6 +255,22 @@
                .then(
                   function () {
                      console.log("container component stopped");
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                  }
+               );
+         }
+
+
+         function test_restart_container_component_1(worker_id, component_id) {
+            var reload_module = true;
+
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.container.restart_component', [component_id, reload_module])
+               .then(
+                  function (res) {
+                     console.log("container component restarted", res);
                   },
                   function (err) {
                      console.log(err.error);
