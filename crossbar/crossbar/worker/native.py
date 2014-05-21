@@ -33,6 +33,9 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
 
+from crossbar.worker.reloader import TrackingModuleReloader
+
+
 
 
 class NativeWorkerSession(ApplicationSession):
@@ -47,6 +50,8 @@ class NativeWorkerSession(ApplicationSession):
       Called when the worker has connected to the node's management router.
       """
       self.debug = self.config.extra.debug
+
+      self._module_tracker = TrackingModuleReloader(silence = False)
 
       if True or self.debug:
          log.msg("Worker connected to node management router.")

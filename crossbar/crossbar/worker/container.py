@@ -300,6 +300,9 @@ class ContainerWorkerSession(NativeWorkerSession):
       if id not in self.components:
          raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
+      if True:
+         self._module_tracker.reload()
+
       config = self.components[id].config
       stopped = yield self.stop_component(id, details = details)
       started = yield self.start_component(config, reload_module = reload_module, details = details)
