@@ -89,6 +89,25 @@
          connection.open();
 
 
+         function test_subscribe_cpu_affinity_change() {
+
+            session.call('crossbar.node.' + nodename + '.list_processes').then(
+               function (workers) {
+                  workers.forEach(function (worker) {
+                     if (worker.type === 'router' || worker.type === 'container') {
+                        session.subscribe('crossbar.node.' + nodename + '.process.' + worker.id + '.on_cpu_affinity_set',
+                           function (args) {
+                              console.log("CPU affinity set on worker " + worker.id, args[0].affinity);
+                           })
+                     }
+                  });
+               },
+               function (err) {
+                  console.log(err.error, err.args[0]);
+               }
+            );
+         }
+
          function test_list_processes() {
             session.call('crossbar.node.' + nodename + '.list_processes').then(
                function (workers) {
@@ -293,6 +312,109 @@
                   console.log(err.error, err.args[0]);
                }
             );
+         }
+
+         function test_start_manhole_1(worker_id) {
+            var config = {
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 6022
+               },
+               "users": [
+                  {
+                     "user": "oberstet",
+                     "password": "secret"
+                  }
+               ]
+            };
+
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.start_manhole', [config])
+               .then(
+                  function (res) {
+                     console.log("manhole started", res);
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                  }
+               );
+         }
+
+         function test_stop_manhole_1(worker_id) {
+
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.stop_manhole')
+               .then(
+                  function (res) {
+                     console.log("manhole stopped", res);
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                  }
+               );
+         }
+
+         function test_get_cpu_affinity_1(worker_id) {
+
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.get_cpu_affinity')
+               .then(
+                  function (res) {
+                     console.log("current CPU affinity", res);
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                  }
+               );
+         }
+
+         function test_set_cpu_affinity_1(worker_id) {
+
+            var affinity = [1, 3, 5, 23, 11];
+
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.set_cpu_affinity', [affinity])
+               .then(
+                  function (res) {
+                     console.log("new CPU affinity", res);
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                  }
+               );
+         }
+
+         function test_add_pythonpath(worker_id) {
+
+            var paths = ["/tmp", "../../v1", "../../foobar"];
+
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.add_pythonpath', [paths])
+               .then(
+                  function (res) {
+                     console.log("python paths added", res);
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                     console.log(err.kwargs);
+                  }
+               );
+         }
+
+
+         function test_get_pinfo(worker_id) {
+
+            session.call('crossbar.node.' + nodename + '.process.' + worker_id + '.get_pinfo')
+               .then(
+                  function (res) {
+                     console.log(res);
+                  },
+                  function (err) {
+                     console.log(err.error);
+                     console.log(err.args[0]);
+                     console.log(err.kwargs);
+                  }
+               );
          }
       </script>
    </body>

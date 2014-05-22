@@ -38,6 +38,8 @@ class Timeservice(ApplicationSession):
    @inlineCallbacks
    def onJoin(self, details):
 
+      self._f = open(__file__, 'r')
+
       ## register a function that can be called remotely
       ##
       def utcnow():

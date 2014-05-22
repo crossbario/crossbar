@@ -594,9 +594,7 @@ class NodeControllerSession(ApplicationSession):
             ##
             try:
                if worker['type'] == 'router':
-                  print "1.1"*10
                   id = yield self.start_router(worker_options)
-                  print "1.2"*10
                elif worker['type'] == 'container':
                   id = yield self.start_container(worker_options)
                else:
@@ -636,13 +634,14 @@ class NodeControllerSession(ApplicationSession):
             else:
                log.msg("Worker {}: CPU affinity is {}".format(id, cpu_affinity))
 
+
             ## manhole within worker
             ##
-            if 'manhole' in worker_options:
-               yield self.call('crossbar.node.{}.process.{}.start_manhole'.format(self._name, id), worker_options['manhole'])
+            if 'manhole' in worker:
+               yield self.call('crossbar.node.{}.process.{}.start_manhole'.format(self._name, id), worker['manhole'])
 
 
-            ## Setup: WAMP router process
+            ## WAMP router process
             ##
             if worker['type'] == 'router':
 

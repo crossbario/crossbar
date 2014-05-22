@@ -75,7 +75,7 @@ setup (
       'postgres': ['psycopg2>=2.5.1'],
       'manhole': ['pyasn1>=0.1.7', 'pycrypto>=2.6.1'],
       'msgpack': ['msgpack-python>=0.4.2'],
-      'system': ['psutil>=1.2.1', 'setproctitle>=1.1.8']
+      'system': ['psutil>=2.1.1', 'setproctitle>=1.1.8']
    },
    entry_points = {
       'console_scripts': [

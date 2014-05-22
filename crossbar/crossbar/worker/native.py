@@ -26,15 +26,66 @@ import sys
 from datetime import datetime
 
 from twisted.python import log
-from twisted.internet.defer import DeferredList, inlineCallbacks
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred, \
+                                   DeferredList, \
+                                   inlineCallbacks, \
+                                   returnValue
+
+try:
+   ## Manhole supports needs a couple of package optional for Crossbar.
+   ## So we catch import errors and note those.
+   ##
+   from twisted.cred import checkers, portal
+   from twisted.conch.manhole import ColoredManhole
+   from twisted.conch.manhole_ssh import ConchFactory, TerminalRealm
+except ImportError as e:
+   _HAS_MANHOLE = False
+   _MANHOLE_MISSING_REASON = str(e)
+else:
+   _HAS_MANHOLE = True
+   _MANHOLE_MISSING_REASON = None
+
+
+try:
+   import psutil
+except ImportError:
+   _HAS_PSUTIL = False
+else:
+   _HAS_PSUTIL = True
+   from crossbar.worker.processinfo import ProcessInfo
+
+
 
 from autobahn.util import utcnow, utcstr
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import ComponentConfig, PublishOptions
+from autobahn.wamp.types import PublishOptions, \
+                                RegisterOptions
 
+from crossbar import controller
 from crossbar.worker.reloader import TrackingModuleReloader
+from crossbar.twisted.endpoint import create_listening_port_from_config
 
+
+class ManholeService:
+   def __init__(self, config, port):
+      """
+      """
+      self.started = datetime.utcnow()
+      self.config = config
+      self.port = port
+
+   def marshal(self):
+      """
+      Marshal object information for use with WAMP calls/events.
+      """
+      now = datetime.utcnow()
+      return {
+         'started': utcstr(self.started),
+         'uptime': (now - self.started).total_seconds(),
+         'config': self.config
+      }
 
 
 
@@ -50,15 +101,21 @@ class NativeWorkerSession(ApplicationSession):
       Called when the worker has connected to the node's management router.
       """
       self.debug = self.config.extra.debug
+      self.debug_app = True
 
-      self._module_tracker = TrackingModuleReloader(silence = False)
+      self._module_tracker = TrackingModuleReloader(debug = True)
 
       if True or self.debug:
          log.msg("Worker connected to node management router.")
 
       self._started = datetime.utcnow()
 
-      self._manhole_listening_port = None
+      self._manhole_service = None
+
+      if _HAS_PSUTIL:
+         self._pinfo = ProcessInfo()
+      else:
+         self._pinfo = None
 
       self.join(self.config.realm)
 
@@ -72,6 +129,7 @@ class NativeWorkerSession(ApplicationSession):
       procs = [
          'start_manhole',
          'stop_manhole',
+         'get_manhole',
          'trigger_gc',
          'get_cpu_affinity',
          'set_cpu_affinity',
@@ -79,13 +137,14 @@ class NativeWorkerSession(ApplicationSession):
          'started',
          'uptime',
          'get_pythonpath',
-         'add_pythonpath'
+         'add_pythonpath',
+         'get_pinfo'
       ]
 
       dl = []
       for proc in procs:
          uri = 'crossbar.node.{}.process.{}.{}'.format(self.config.extra.node, self.config.extra.id, proc)
-         dl.append(self.register(getattr(self, proc), uri))
+         dl.append(self.register(getattr(self, proc), uri, options = RegisterOptions(details_arg = 'details', discloseCaller = True)))
 
       regs = yield DeferredList(dl)
 
@@ -105,7 +164,14 @@ class NativeWorkerSession(ApplicationSession):
 
 
 
-   def trigger_gc(self):
+   def get_pinfo(self, details = None):
+      if self._pinfo:
+         return self._pinfo.cpu_stats()
+         return self._pinfo.netio()
+         return self._pinfo.open_fds()
+
+
+   def trigger_gc(self, details = None):
       """
       Triggers a garbage collection.
       """
@@ -115,24 +181,38 @@ class NativeWorkerSession(ApplicationSession):
 
 
    @inlineCallbacks
-   def start_manhole(self, config):
+   def start_manhole(self, config, details = None):
       """
       Start a manhole (SSH) within this worker.
 
       :param config: Manhole configuration.
       :type config: obj
       """
-      if self._manhole_listening_port:
-         raise ApplicationError("wamp.error.could_not_start", "Could not start manhole - already started")
+      if not _HAS_MANHOLE:
+         emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
+         log.msg(emsg)
+         raise ApplicationError("wamp.error.feature_unavailable", emsg)
 
-      from twisted.cred import checkers, portal
-      from twisted.conch.manhole import ColoredManhole
-      from twisted.conch.manhole_ssh import ConchFactory, TerminalRealm
+      if self._manhole_service:
+         emsg = "ERROR: could not start manhole - already running"
+         log.msg(emsg)
+         raise ApplicationError("wamp.error.already_running", emsg)
 
+      try:
+         controller.config.check_manhole(config)
+      except Exception as e:
+         emsg = "ERROR: could not start manhole - invalid configuration ({})".format(e)
+         log.msg(emsg)
+         raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+
+      ## setup user authentication
+      ##
       checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
       for user in config['users']:
          checker.addUser(user['user'], user['password'])
 
+      ## setup manhole namespace
+      ##
       namespace = {'worker': self}
 
       rlm = TerminalRealm()
@@ -142,68 +222,108 @@ class NativeWorkerSession(ApplicationSession):
 
       factory = ConchFactory(ptl)
 
-      from crossbar.twisted.endpoint import create_listening_port_from_config
-      from twisted.internet import reactor
-
       try:
-         self._manhole_listening_port = yield create_listening_port_from_config(config['endpoint'], factory, self.config.extra.cbdir, reactor)
-         topic = 'crossbar.node.{}.process.{}.on_manhole_start'.format(self.config.extra.node, self.config.extra.id)
-         self.publish(topic, {'endpoint': config['endpoint']})
+         listening_port = yield create_listening_port_from_config(config['endpoint'], factory, self.config.extra.cbdir, reactor)
+         self._manhole_service = ManholeService(config, listening_port)
+
       except Exception as e:
-         raise ApplicationError("wamp.error.could_not_listen", "Could not start manhole: '{}'".format(e))
+#            emsg = "ERROR: could not connect container component to router - transport establishment failed ({})".format(err.value)
+#            log.msg(emsg)
+#            raise ApplicationError('crossbar.error.cannot_connect', emsg)
+         raise ApplicationError("wamp.error.cannot_listen", "Could not start manhole: '{}'".format(e))
+
+      else:
+         ## publish event "on_manhole_start" to all but the caller
+         ##
+         topic = 'crossbar.node.{}.process.{}.on_manhole_start'.format(self.config.extra.node, self.config.extra.id)
+         event = self._manhole_service.marshal()
+
+         #self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
+
+         returnValue(event)
 
 
 
    @inlineCallbacks
-   def stop_manhole(self):
+   def stop_manhole(self, details = None):
       """
       Stop Manhole.
       """
-      if self._manhole_listening_port:
-         yield self._manhole_listening_port.stopListening()
-         self._manhole_listening_port = None
+      if self._manhole_service:
+         yield self._manhole_service.port.stopListening()
+         self._manhole_service = None
          topic = 'crossbar.node.{}.process.{}.on_manhole_stop'.format(self.config.extra.node, self.config.extra.id)
          self.publish(topic)
       else:
-         raise ApplicationError("wamp.error.could_not_stop", "Could not stop manhole - not started")
+         raise ApplicationError("wamp.error.could_not_stop", "Could not stop manhole - service is not running")
 
 
 
-   def get_cpu_affinity(self):
+   def get_manhole(self, details = None):
+      if not self._manhole_service:
+         return None
+      else:
+         return self._manhole_service.marshal()
+
+
+
+   def get_cpu_affinity(self, details = None):
       """
       Get CPU affinity of this process.
 
       :returns list -- List of CPU IDs the process affinity is set to.
       """
+      if not _HAS_PSUTIL:
+         emsg = "ERROR: unable to get CPU affinity - required package 'psutil' is not installed"
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+
       try:
-         import psutil
-      except ImportError:
-         log.msg("Warning: could not get process CPU affinity - psutil not installed")
-         return []
-      else:
          p = psutil.Process(os.getpid())
-         return p.get_cpu_affinity()
+         current_affinity = p.get_cpu_affinity()
+      except Exception as e:
+         emsg = "ERROR: could not get CPU affinity ({})".format(e)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.request_error", emsg)
+      else:
+         res = {'affinity': current_affinity}
+         return res
 
 
 
-   def set_cpu_affinity(self, cpus):
+   def set_cpu_affinity(self, cpus, details = None):
       """
       Set CPU affinity of this process.
 
       :param cpus: List of CPU IDs to set process affinity to.
       :type cpus: list
       """
+      if not _HAS_PSUTIL:
+         emsg = "ERROR: unable to set CPU affinity - required package 'psutil' is not installed"
+         log.msg(emsg)
+         raise ApplicationError("wamp.error.feature_unavailable", emsg)
+
       try:
-         import psutil
-      except ImportError:
-         log.msg("Warning: could not set process CPU affinity - psutil not installed")
-      else:
          p = psutil.Process(os.getpid())
          p.set_cpu_affinity(cpus)
+         new_affinity = p.get_cpu_affinity()
+      except Exception as e:
+         emsg = "ERROR: could not set CPU affinity ({})".format(e)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.request_error", emsg)
+      else:
+
+         ## publish event "on_component_start" to all but the caller
+         ##
+         topic = 'crossbar.node.{}.process.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.id)
+         res = {'affinity': new_affinity, 'who': details.authid}
+         self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
+
+         return res
 
 
 
-   def get_pythonpath(self):
+   def get_pythonpath(self, details = None):
       """
       Returns the current Python module search paths.
 
@@ -213,7 +333,7 @@ class NativeWorkerSession(ApplicationSession):
 
 
 
-   def add_pythonpath(self, paths, prepend = True):
+   def add_pythonpath(self, paths, prepend = True, details = None):
       """
       Add paths to Python module search paths.
 
@@ -224,17 +344,42 @@ class NativeWorkerSession(ApplicationSession):
                       Otherwise append.
       :type prepend: bool
       """
-      ## transform all paths (relative to cbdir) into absolute paths.
-      paths = [os.path.abspath(os.path.join(self.config.extra.cbdir, p)) for p in paths]
+      paths_added = []
+      for p in paths:
+         ## transform all paths (relative to cbdir) into absolute paths
+         ##
+         path_to_add = os.path.abspath(os.path.join(self.config.extra.cbdir, p))
+         if os.path.isdir(path_to_add):
+            paths_added.append({'requested': p, 'resolved': path_to_add})
+         else:
+            emsg = "ERROR: cannot add Python search path '{}' - resolved path '{}' is not a directory".format(p, path_to_add)
+            log.msg(emsg)
+            raise ApplicationError('crossbar.error.invalid_argument', emsg, requested = p, resolved = path_to_add)
+
+      ## now extend python module search path
+      ##
+      paths_added_resolved = [p['resolved'] for p in paths_added]
       if prepend:
-         sys.path = paths + sys.path
+         sys.path = paths_added_resolved + sys.path
       else:
-         sys.path.extend(paths)
-      return paths
+         sys.path.extend(paths_added_resolved)
+
+      ## publish event "on_pythonpath_add" to all but the caller
+      ##
+      topic = 'crossbar.node.{}.process.{}.on_pythonpath_add'.format(self.config.extra.node, self.config.extra.id)
+      res = {
+         'paths': sys.path,
+         'paths_added': paths_added,
+         'prepend': prepend,
+         'who': details.authid
+      }
+      self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
+
+      return res
 
 
 
-   def utcnow(self):
+   def utcnow(self, details = None):
       """
       Return current time as determined from within this process.
 
@@ -244,7 +389,7 @@ class NativeWorkerSession(ApplicationSession):
 
 
 
-   def started(self):
+   def started(self, details = None):
       """
       Return start time of this process.
 
@@ -254,7 +399,7 @@ class NativeWorkerSession(ApplicationSession):
 
 
 
-   def uptime(self):
+   def uptime(self, details = None):
       """
       Uptime of this process.
 

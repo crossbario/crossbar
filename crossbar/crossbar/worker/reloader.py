@@ -62,7 +62,7 @@ class TrackingModuleReloader:
    loaded after that point in time.
    """
 
-   def __init__(self, silence = False, use_mtimes = True):
+   def __init__(self, use_mtimes = True, debug = False):
       """
       Ctor.
 
@@ -72,8 +72,8 @@ class TrackingModuleReloader:
                          module reloading to actually changed files.
       :type use_mtimes: bool
       """
-      self._silence = silence
       self._use_mtimes = use_mtimes
+      self._debug = debug
       self.snapshot()
 
 
@@ -117,24 +117,24 @@ class TrackingModuleReloader:
                _, old_mtime = self._module_mtimes[mod_name]
 
                if new_mtime == old_mtime:
-                  if not self._silence:
+                  if self._debug:
                      print("Module {} unchanged".format(mod_name))
                else:
                   self._module_mtimes[mod_name] = (f, new_mtime)
                   reload_modules.append(mod_name)
-                  if not self._silence:
+                  if self._debug:
                      print("Change of module {} detected (file {}).".format(mod_name, f))
             else:
                self._module_mtimes[mod_name] = get_module_path_and_mtime(m)
                reload_modules.append(mod_name)
-               if not self._silence:
+               if self._debug:
                   print("Tracking new module {}".format(mod_name))
       else:
          reload_modules = maybe_dirty_modules
 
 
       if len(reload_modules):
-         if not self._silence:
+         if self._debug:
             print("Reloading {} possibly changed modules".format(len(reload_modules)))
          for module in reload_modules:
             print("Reloading module {}".format(module))
@@ -143,7 +143,7 @@ class TrackingModuleReloader:
             ##
             reload(current_modules[module])
       else:
-         if not self._silence:
+         if self._debug:
             print("No modules to reload")
 
       return reload_modules
