@@ -53,7 +53,7 @@ except ImportError:
    _HAS_PSUTIL = False
 else:
    _HAS_PSUTIL = True
-   from crossbar.worker.processinfo import ProcessInfo
+   from crossbar.worker.processinfo import ProcessInfo, SystemInfo
 
 
 
@@ -114,6 +114,7 @@ class NativeWorkerSession(ApplicationSession):
 
       if _HAS_PSUTIL:
          self._pinfo = ProcessInfo()
+         self._sinfo = SystemInfo()
       else:
          self._pinfo = None
 
@@ -166,7 +167,7 @@ class NativeWorkerSession(ApplicationSession):
 
    def get_pinfo(self, details = None):
       if self._pinfo:
-         return self._pinfo.cpu_stats()
+         return self._pinfo.stats(), self._sinfo.stats()
          return self._pinfo.netio()
          return self._pinfo.open_fds()
 

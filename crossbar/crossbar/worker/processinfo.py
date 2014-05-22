@@ -23,6 +23,7 @@ __all__ = ['NativeWorker']
 import sys
 import socket
 
+from autobahn.util import utcnow
 
 try:
    import psutil
@@ -40,8 +41,13 @@ if _HAS_PSUTIL:
 
    class SystemInfo:
       """
-      Access system global information and statistics.
+      Access system global information and statistics.     
       """
+
+      def __init__(self):
+         """
+         """
+         self._stats_seq = 0
 
       def cpu(self):
          return {
@@ -49,17 +55,42 @@ if _HAS_PSUTIL:
             'logical_count': psutil.cpu_count(logical = True)
          }
 
+
+      def stats(self):
+         """
+         """
+         self._stats_seq += 1
+         res = {}
+         res['seq'] = self._stats_seq
+         res['ts'] = utcnow()
+         res['cpu'] = self.cpu_stats()
+         res['mem'] = self.mem_stats()
+         res['net'] = self.net_stats()
+         res['disk'] = self.disk_stats()
+         return res
+
+
       def cpu_stats(self):
          """
          Returns CPU times per (logical) CPU.
          """
-         res = []
+         res = {}
+         i = 0
          for c in psutil.cpu_times(percpu = True):
-            res.append({
+            res[i] = {
                'user': c.user,
                'system': c.system,
                'idle': c.idle
-            })
+            }
+            i += 1
+         return res
+
+
+      def mem_stats(self):
+         res = {}
+         m = psutil.virtual_memory()
+         res['total'] = m.total
+         res['available'] = m.available
          return res
 
 
@@ -72,14 +103,41 @@ if _HAS_PSUTIL:
          for nic in ns.keys():
             stats = ns[nic]
             res[nic] = {
-               'bytes_sent': stats.bytes_sent,
-               'bytes_recv': stats.bytes_recv,
-               'packets_sent': stats.packets_sent,
-               'packets_recv': stats.packets_recv,
-               'errin': stats.errin,
-               'errout': stats.errout,
-               'dropin': stats.dropin,
-               'dropout': stats.dropout
+               'out': {
+                  'bytes': stats.bytes_sent,
+                  'packets': stats.packets_sent,
+                  'errors': stats.errout,
+                  'dropped': stats.dropout
+               },
+               'in': {
+                  'bytes': stats.bytes_recv,
+                  'packets': stats.packets_recv,
+                  'errors': stats.errin,
+                  'dropped': stats.dropin
+               }
+            }
+         return res
+
+
+      def disk_stats(self):
+         """
+         Returns disk I/O statistics per disk.
+         """
+         res = {}
+         ds = psutil.disk_io_counters(perdisk = True)
+         for disk in ds.keys():
+            stats = ds[disk]
+            res[disk] = {
+               'read': {
+                  'ops': stats.read_count,
+                  'bytes': stats.read_bytes,
+                  'time': stats.read_time
+               },
+               'write': {
+                  'ops': stats.write_count,
+                  'bytes': stats.write_bytes,
+                  'time': stats.write_time
+               }
             }
          return res
 
@@ -104,22 +162,45 @@ if _HAS_PSUTIL:
          Ctor.
          """
          self._p = psutil.Process()
+         self._stats_seq = 0
 
 
-      def cpu_stats(self):
+      def stats(self):
          """
          """
+         self._stats_seq += 1
          res = {}
+         res['seq'] = self._stats_seq
+         res['ts'] = utcnow()
+
          s = self._p.num_ctx_switches()
+
          c = self._p.cpu_times()
+         c_perc = self._p.cpu_percent()
+
          m = self._p.memory_info()
+         m_perc = self._p.memory_percent()
+
          f = self._p.io_counters()
+
+         ## process status
+         res['status'] = self._p.status()
+
+         ## context switches
          res['voluntary'] = s[0]
          res['nonvoluntary'] = s[1]
+
+         ## cpu
          res['user'] = c.user
          res['system'] = c.system
+         res['cpu_percent'] = c_perc
+
+         ## memory
          res['resident'] = m.rss
          res['virtual'] = m.vms
+         res['mem_percent'] = m_perc
+
+         ## disk
          res['reads'] = f.read_count
          res['writes'] = f.write_count
          return res
