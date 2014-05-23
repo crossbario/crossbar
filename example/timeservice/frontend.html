@@ -17,8 +17,10 @@
                   console.log("Current time:", now);
                   //connection.close();
                },
-               function (error) {
-                  console.log("Call failed:", error);
+               function (err) {
+                  console.log("call failed");
+                  console.log(err.error);
+                  console.log(err.args[0]);
                   //connection.close();
                }
             );

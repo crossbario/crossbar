@@ -52,12 +52,12 @@ def run():
    parser.add_argument('-n',
                        '--node',
                        type = str,
-                       help = 'Crossbar.io node name (required).')
+                       help = 'Crossbar.io node ID (required).')
 
-   parser.add_argument('-i',
-                       '--id',
-                       type = int,
-                       help = 'Crossbar.io node process ID (required).')
+   parser.add_argument('-w',
+                       '--worker',
+                       type = str,
+                       help = 'Crossbar.io worker ID (required).')
 
    parser.add_argument('-r',
                        '--realm',

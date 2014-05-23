@@ -21,14 +21,18 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
+from twisted.internet.defer import Deferred
 
 
-class NodeProcess:
+
+class WorkerProcess:
    """
+   Internal run-time representation of a running node worker process.
    """
-   process_type = "node"
 
-   def __init__(self, id, pid, ready, exit):
+   worker_type = 'worker'
+
+   def __init__(self, id, who):
       """
       Ctor.
 
@@ -39,38 +43,23 @@ class NodeProcess:
       :param exit: A deferred that resolves when the worker has exited.
       :type exit: instance of Deferred
       """
-      self.started = datetime.utcnow()
       self.id = id
+      self.who = who
+      self.status = "starting"
+      self.created = datetime.utcnow()
+      self.started = None
       self.pid = pid
-      self.ready = ready
-      self.exit = exit
 
 
 
-class NodeControllerProcess(NodeProcess):
-   """   
-   """
-   process_type = "controller"
-
-
-
-class NodeWorkerProcess(NodeProcess):
+class NativeWorkerProcess(WorkerProcess):
    """
    Internal run-time representation of a running node worker process.
    """
 
-   process_type = 'worker'
+   worker_type = 'native'
 
-
-
-class NodeNativeWorkerProcess(NodeWorkerProcess):
-   """
-   Internal run-time representation of a running node worker process.
-   """
-
-   process_type = 'native'
-
-   def __init__(self, id, pid, ready, exit, type, factory, proto):
+   def __init__(self, id, who):
       """
       Ctor.
 
@@ -83,19 +72,38 @@ class NodeNativeWorkerProcess(NodeWorkerProcess):
       :param factory: The WAMP client factory that connects to the worker.
       :type factory: instance of WorkerClientFactory
       """
-      NodeWorkerProcess.__init__(self, id, pid, ready, exit)
-      self.process_type = type
-      self.factory = factory
-      self.proto = proto
+      WorkerProcess.__init__(self, id, who)
+
+      self.connected = Deferred()
+      self.ready = Deferred()
+      self.exit = Deferred()
+      self.disconnected = Deferred()
+      
+      self.factory = None
+      self.proto = None
 
 
 
-class NodeGuestWorkerProcess(NodeWorkerProcess):
+class RouterWorkerProcess(NativeWorkerProcess):
+   """
+   """
+   worker_type = 'router'
+
+
+
+class ContainerWorkerProcess(NativeWorkerProcess):
+   """
+   """
+   worker_type = 'container'
+
+
+
+class GuestWorkerProcess(WorkerProcess):
    """
    Internal run-time representation of a running node guest process.
    """
 
-   process_type = 'guest'
+   worker_type = 'guest'
 
    def __init__(self, id, pid, ready, exit, proto):
       """
@@ -110,5 +118,5 @@ class NodeGuestWorkerProcess(NodeWorkerProcess):
       :param proto: An instance of GuestClientProtocol.
       :type proto: obj
       """
-      NodeWorkerProcess.__init__(self, id, pid, ready, exit)
+      WorkerProcess.__init__(self, id, pid, ready, exit)
       self.proto = proto

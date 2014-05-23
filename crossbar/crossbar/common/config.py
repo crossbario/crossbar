@@ -642,6 +642,16 @@ def check_container(container, silence = False):
 
 
 
+def check_router_options(router_options):
+   print("FIXME: implement check_router_options")
+
+
+
+def check_container_options(container_options):
+   print("FIXME: implement check_container_options")
+
+
+
 def check_module(module, silence = False):
    if type(module) != dict:
       raise Exception("'module' items must be dictionaries ({} encountered)\n\n{}".format(type(module), pformat(module)))

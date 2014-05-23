@@ -9,8 +9,8 @@
 
       <table>
          <tr>
-            <td>Test listing all processes currently running on node.</td>
-            <td><button onclick="test_list_processes()">List Processes</button></td>
+            <td>Test listing all workers currently running on node.</td>
+            <td><button onclick="test_get_workers()">Get Workers</button></td>
          </tr>
 
          <tr>
@@ -67,6 +67,22 @@
 
             console.log("connected", session.id);
 
+            // node controller topics
+            //
+            var topics = [
+               'on_router_starting',
+               'on_router_started',
+               'on_router_stopping',
+               'on_router_stopped'
+            ];
+            topics.forEach(function (topic) {
+               var uri = 'crossbar.node.' + nodename + '.' + topic;
+               session.subscribe(uri,
+                  function (args, kwargs) {
+                     console.log(uri, args, kwargs);
+                  });
+            });
+
             session.subscribe('crossbar.node.' + nodename + '.on_process_start',
                function (args) {
                   var process = args[0];
@@ -108,8 +124,8 @@
             );
          }
 
-         function test_list_processes() {
-            session.call('crossbar.node.' + nodename + '.list_processes').then(
+         function test_get_workers() {
+            session.call('crossbar.node.' + nodename + '.get_workers').then(
                function (workers) {
                   workers.forEach(function (worker) {
                      console.log(worker);

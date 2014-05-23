@@ -18,7 +18,7 @@
 
 from __future__ import absolute_import
 
-__all__ = ['NativeWorker']
+__all__ = ['NativeWorkerSession']
 
 
 import os
@@ -33,7 +33,7 @@ from twisted.internet.defer import Deferred, \
                                    returnValue
 
 try:
-   ## Manhole supports needs a couple of package optional for Crossbar.
+   ## Manhole support needs a couple of packages optional for Crossbar.
    ## So we catch import errors and note those.
    ##
    from twisted.cred import checkers, portal
@@ -53,7 +53,7 @@ except ImportError:
    _HAS_PSUTIL = False
 else:
    _HAS_PSUTIL = True
-   from crossbar.worker.processinfo import ProcessInfo, SystemInfo
+   from crossbar.common.processinfo import ProcessInfo, SystemInfo
 
 
 
@@ -64,21 +64,36 @@ from autobahn.wamp.types import PublishOptions, \
                                 RegisterOptions
 
 from crossbar import controller
-from crossbar.worker.reloader import TrackingModuleReloader
+from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
 
 class ManholeService:
+   """
+   Manhole service running inside a (native) worker.
+
+   This class is for _internal_ use within NativeWorkerSession.
+   """
+
    def __init__(self, config, port):
       """
+      Ctor.
+
+      :param config: The configuration the manhole service was started with.
+      :type config: dict
+      :param port: The listening port this service runs on.
+      :type port: instance of IListeningPort
       """
       self.started = datetime.utcnow()
       self.config = config
       self.port = port
 
+
    def marshal(self):
       """
       Marshal object information for use with WAMP calls/events.
+
+      :returns: dict -- The marshalled information.
       """
       now = datetime.utcnow()
       return {
@@ -92,9 +107,12 @@ class ManholeService:
 class NativeWorkerSession(ApplicationSession):
    """
    A native Crossbar.io worker process. The worker will be connected
-   to the node's management router via WAMP-over-stdio.
+   to the node's management router running inside the node controller
+   via WAMP-over-stdio.
    """
+
    WORKER_TYPE = 'native'
+
 
    def onConnect(self):
       """
@@ -103,10 +121,10 @@ class NativeWorkerSession(ApplicationSession):
       self.debug = self.config.extra.debug
       self.debug_app = True
 
-      self._module_tracker = TrackingModuleReloader(debug = True)
+      if self.debug:
+         log.msg("Connected to node management router.")
 
-      if True or self.debug:
-         log.msg("Worker connected to node management router.")
+      self._module_tracker = TrackingModuleReloader(debug = True)
 
       self._started = datetime.utcnow()
 
@@ -144,7 +162,7 @@ class NativeWorkerSession(ApplicationSession):
 
       dl = []
       for proc in procs:
-         uri = 'crossbar.node.{}.process.{}.{}'.format(self.config.extra.node, self.config.extra.id, proc)
+         uri = 'crossbar.node.{}.worker.{}.{}'.format(self.config.extra.node, self.config.extra.worker, proc)
          dl.append(self.register(getattr(self, proc), uri, options = RegisterOptions(details_arg = 'details', discloseCaller = True)))
 
       regs = yield DeferredList(dl)
@@ -157,7 +175,7 @@ class NativeWorkerSession(ApplicationSession):
       ## from a management service
       ##
       pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
-         {'type': self.WORKER_TYPE, 'id': self.config.extra.id, 'pid': os.getpid()},
+         {'type': self.WORKER_TYPE, 'id': self.config.extra.worker, 'pid': os.getpid()},
          options = PublishOptions(acknowledge = True))
 
       if self.debug:
@@ -192,15 +210,15 @@ class NativeWorkerSession(ApplicationSession):
       if not _HAS_MANHOLE:
          emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
          log.msg(emsg)
-         raise ApplicationError("wamp.error.feature_unavailable", emsg)
+         raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
       if self._manhole_service:
          emsg = "ERROR: could not start manhole - already running"
          log.msg(emsg)
-         raise ApplicationError("wamp.error.already_running", emsg)
+         raise ApplicationError("crossbar.error.already_running", emsg)
 
       try:
-         controller.config.check_manhole(config)
+         common.config.check_manhole(config)
       except Exception as e:
          emsg = "ERROR: could not start manhole - invalid configuration ({})".format(e)
          log.msg(emsg)
@@ -231,12 +249,12 @@ class NativeWorkerSession(ApplicationSession):
 #            emsg = "ERROR: could not connect container component to router - transport establishment failed ({})".format(err.value)
 #            log.msg(emsg)
 #            raise ApplicationError('crossbar.error.cannot_connect', emsg)
-         raise ApplicationError("wamp.error.cannot_listen", "Could not start manhole: '{}'".format(e))
+         raise ApplicationError("crossbar.error.cannot_listen", "Could not start manhole: '{}'".format(e))
 
       else:
          ## publish event "on_manhole_start" to all but the caller
          ##
-         topic = 'crossbar.node.{}.process.{}.on_manhole_start'.format(self.config.extra.node, self.config.extra.id)
+         topic = 'crossbar.node.{}.worker.{}.on_manhole_start'.format(self.config.extra.node, self.config.extra.worker)
          event = self._manhole_service.marshal()
 
          #self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
@@ -253,10 +271,10 @@ class NativeWorkerSession(ApplicationSession):
       if self._manhole_service:
          yield self._manhole_service.port.stopListening()
          self._manhole_service = None
-         topic = 'crossbar.node.{}.process.{}.on_manhole_stop'.format(self.config.extra.node, self.config.extra.id)
+         topic = 'crossbar.node.{}.worker.{}.on_manhole_stop'.format(self.config.extra.node, self.config.extra.worker)
          self.publish(topic)
       else:
-         raise ApplicationError("wamp.error.could_not_stop", "Could not stop manhole - service is not running")
+         raise ApplicationError("crossbar.error.could_not_stop", "Could not stop manhole - service is not running")
 
 
 
@@ -302,7 +320,7 @@ class NativeWorkerSession(ApplicationSession):
       if not _HAS_PSUTIL:
          emsg = "ERROR: unable to set CPU affinity - required package 'psutil' is not installed"
          log.msg(emsg)
-         raise ApplicationError("wamp.error.feature_unavailable", emsg)
+         raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
       try:
          p = psutil.Process(os.getpid())
@@ -316,7 +334,7 @@ class NativeWorkerSession(ApplicationSession):
 
          ## publish event "on_component_start" to all but the caller
          ##
-         topic = 'crossbar.node.{}.process.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.id)
+         topic = 'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.worker)
          res = {'affinity': new_affinity, 'who': details.authid}
          self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
 
@@ -367,7 +385,7 @@ class NativeWorkerSession(ApplicationSession):
 
       ## publish event "on_pythonpath_add" to all but the caller
       ##
-      topic = 'crossbar.node.{}.process.{}.on_pythonpath_add'.format(self.config.extra.node, self.config.extra.id)
+      topic = 'crossbar.node.{}.worker.{}.on_pythonpath_add'.format(self.config.extra.node, self.config.extra.worker)
       res = {
          'paths': sys.path,
          'paths_added': paths_added,

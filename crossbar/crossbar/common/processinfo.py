@@ -18,7 +18,7 @@
 
 from __future__ import absolute_import
 
-__all__ = ['NativeWorker']
+__all__ = ['SystemInfo', 'ProcessInfo']
 
 import sys
 import socket

@@ -43,7 +43,7 @@ from autobahn.wamp.types import ComponentConfig, \
                                 PublishOptions, \
                                 RegisterOptions
 
-from crossbar import controller
+from crossbar import common
 from crossbar.worker.native import NativeWorkerSession
 from crossbar.router.protocol import CrossbarWampWebSocketClientFactory, \
                                      CrossbarWampRawSocketClientFactory
@@ -122,7 +122,7 @@ class ContainerWorkerSession(NativeWorkerSession):
       ]
 
       for proc in procs:
-         uri = 'crossbar.node.{}.process.{}.container.{}'.format(self.config.extra.node, self.config.extra.id, proc)
+         uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self.config.extra.node, self.config.extra.worker, proc)
          dl.append(self.register(getattr(self, proc), uri, options = RegisterOptions(details_arg = 'details', discloseCaller = True)))
 
       regs = yield DeferredList(dl)
@@ -146,7 +146,7 @@ class ContainerWorkerSession(NativeWorkerSession):
       :returns dict -- A dict with combined info from component starting.
       """
       try:
-         controller.config.check_container_component(config)
+         common.config.check_container_component(config)
       except Exception as e:
          emsg = "ERROR: could not start container component - invalid configuration ({})".format(e)
          log.msg(emsg)
@@ -267,7 +267,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
          ## publish event "on_component_start" to all but the caller
          ##
-         topic = 'crossbar.node.{}.process.{}.container.on_component_start'.format(self.config.extra.node, self.config.extra.id)
+         topic = 'crossbar.node.{}.worker.{}.container.on_component_start'.format(self.config.extra.node, self.config.extra.worker)
          event = {'id': self.component_id}
          self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
 
@@ -345,7 +345,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
       ## publish event "on_component_stop" to all but the caller
       ##
-      topic = 'crossbar.node.{}.process.{}.container.on_component_stop'.format(self.config.extra.node, self.config.extra.id)
+      topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self.config.extra.node, self.config.extra.worker)
       self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
 
       del self.components[id]
