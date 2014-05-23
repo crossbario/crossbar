@@ -48,7 +48,6 @@ class WorkerProcess:
       self.status = "starting"
       self.created = datetime.utcnow()
       self.started = None
-      self.pid = pid
 
 
 
@@ -57,7 +56,7 @@ class NativeWorkerProcess(WorkerProcess):
    Internal run-time representation of a running node worker process.
    """
 
-   worker_type = 'native'
+   TYPE = 'native'
 
    def __init__(self, id, who):
       """
@@ -74,11 +73,13 @@ class NativeWorkerProcess(WorkerProcess):
       """
       WorkerProcess.__init__(self, id, who)
 
-      self.connected = Deferred()
+      ## this will be resolved/rejected when the worker is actually
+      ## ready to receive commands via WAMP
       self.ready = Deferred()
+
+      ## this will be resolved when the worker exits (after previously connected)
       self.exit = Deferred()
-      self.disconnected = Deferred()
-      
+
       self.factory = None
       self.proto = None
 
@@ -87,14 +88,14 @@ class NativeWorkerProcess(WorkerProcess):
 class RouterWorkerProcess(NativeWorkerProcess):
    """
    """
-   worker_type = 'router'
+   TYPE = 'router'
 
 
 
 class ContainerWorkerProcess(NativeWorkerProcess):
    """
    """
-   worker_type = 'container'
+   TYPE = 'container'
 
 
 
@@ -103,7 +104,7 @@ class GuestWorkerProcess(WorkerProcess):
    Internal run-time representation of a running node guest process.
    """
 
-   worker_type = 'guest'
+   TYPE = 'guest'
 
    def __init__(self, id, pid, ready, exit, proto):
       """

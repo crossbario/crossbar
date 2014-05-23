@@ -27,7 +27,7 @@ def run():
    Entry point into (native) worker processes. This wires up stuff such that
    a worker instance is talking WAMP-over-stdio to the node controller.
    """
-   import os, sys
+   import os, sys, platform
 
    ## create the top-level parser
    ##
@@ -102,24 +102,22 @@ def run():
          setproctitle.setproctitle(WORKER_TYPE_TO_TITLE[options.type].strip())
 
 
-   options.cbdir = os.path.abspath(options.cbdir)
-   log.msg("Starting from node directory {}.".format(options.cbdir))
-
-   os.chdir(options.cbdir)
-
-
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
    from autobahn.twisted.choosereactor import install_reactor
    reactor = install_reactor(options.reactor)
 
    from twisted.python.reflect import qual
-   log.msg("Running on {} reactor.".format(qual(reactor.__class__).split('.')[-1]))
+   log.msg("Running under {} using {} reactor".format(platform.python_implementation(), qual(reactor.__class__).split('.')[-1]))
+
+
+   options.cbdir = os.path.abspath(options.cbdir)
+   os.chdir(options.cbdir)
+   #log.msg("Starting from node directory {}".format(options.cbdir))
 
 
    from crossbar.worker.router import RouterWorkerSession
    from crossbar.worker.container import ContainerWorkerSession
-
 
    WORKER_TYPE_TO_CLASS = {
       'router': RouterWorkerSession,

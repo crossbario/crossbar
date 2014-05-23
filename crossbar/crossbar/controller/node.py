@@ -94,6 +94,7 @@ class NodeControllerSession(ApplicationSession):
       """
       ApplicationSession.__init__(self)
       self.debug = node.debug
+      self.debug_app = True
 
       ## associated node
       self._node = node
@@ -194,6 +195,8 @@ class NodeControllerSession(ApplicationSession):
 
       :returns: list -- List of worker processes.
       """
+      log.msg("get_workers", system = "foobar")
+      log.msg("get_workers")
       now = datetime.utcnow()
       res = []
       for k in sorted(self._workers.keys()):
@@ -203,8 +206,8 @@ class NodeControllerSession(ApplicationSession):
             'id': p.id,
             'pid': p.pid,
             'type': p.worker_type,
-            'started': utcstr(p.started),
-            'uptime': (now - p.started).total_seconds(),
+            #'started': utcstr(p.started),
+            #'uptime': (now - p.started).total_seconds(),
             #'ready': p.ready.called,
             #'exit': p.exit.called,
          })
@@ -216,6 +219,12 @@ class NodeControllerSession(ApplicationSession):
       Start a new router worker: a Crossbar.io native worker process
       that runs a WAMP router.
 
+      crossbar.node.<node_id>.on_router_starting
+      crossbar.node.<node_id>.on_router_started
+
+      crossbar.node.<node_id>.on_router_stopping
+      crossbar.node.<node_id>.on_router_stopped
+
       :param id: The worker ID to start this router with.
       :type id: str
       :param options: The router worker options.
@@ -224,43 +233,7 @@ class NodeControllerSession(ApplicationSession):
       if self.debug:
          log.msg("NodeControllerSession.start_router", id, options)
 
-      if id in self._workers:
-         emsg = "ERROR: could not start router worker - a worker with ID {} is already running (or starting)".format(id)
-         log.msg(emsg)
-         raise ApplicationError('crossbar.error.worker_already_running', emsg)
-
-      try:
-         common.config.check_router_options(options)
-      except Exception as e:
-         emsg = "ERROR: could not start router - invalid configuration ({})".format(e)
-         log.msg(emsg)
-         raise ApplicationError('crossbar.error.invalid_configuration', emsg)
-
-      worker = RouterWorkerProcess(id, details.authid)
-      self._workers[id] = worker
-
-      topic = 'crossbar.node.{}.on_router_starting'.format(self._node_id)
-      res = {
-         'id': id,
-         'created': utcstr(worker.created),
-         'who': worker.who
-      }
-      self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
-
-      self._start_native_worker(worker, options)
-
-      return res
-
-      # topic = 'crossbar.node.{}.on_router_start'.format(self._node_id)
-      # res = {
-      #    'id': id,
-      #    'pid': self._workers[id].pid,
-      #    'started': utcstr(self._workers[id].started),
-      #    'who': details.authid
-      # }
-      # self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
-
-      # returnValue(res)
+      return self._start_native_worker('router', id, options, details = details)
 
 
 
@@ -278,47 +251,68 @@ class NodeControllerSession(ApplicationSession):
       if self.debug:
          log.msg("NodeControllerSession.start_container", id, options)
 
+      return self._start_native_worker('router', id, options, details = details)
+
+
+
+   def _start_native_worker(self, wtype, id, options, details = None):
+
+      assert(wtype in ['router', 'container'])
+
+      ## prohibit starting a worker twice
+      ##
       if id in self._workers:
-         emsg = "ERROR: could not start container worker - a worker with ID {} is already running".format(id)
+         emsg = "ERROR: could not start worker - a worker with ID {} is already running (or starting)".format(id)
          log.msg(emsg)
          raise ApplicationError('crossbar.error.worker_already_running', emsg)
 
+      ## check worker options
+      ##
       try:
-         common.config.check_container_options(options)
+         if wtype == 'router':
+            common.config.check_router_options(options)
+         elif wtype == 'container':
+            common.config.check_container_options(options)
+         else:
+            raise Exception("logic error")
       except Exception as e:
-         emsg = "ERROR: could not start container - invalid configuration ({})".format(e)
+         emsg = "ERROR: could not start router - invalid configuration ({})".format(e)
          log.msg(emsg)
          raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
-      yield self._start_native_worker('container', id, options)
-
-      topic = 'crossbar.node.{}.on_container_start'.format(self._node_id)
-      res = {
-         'id': id,
-         'pid': self._workers[id].pid,
-         'started': utcstr(self._workers[id].started),
-         'who': details.authid
-      }
-      self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
-
-      returnValue(res)
-
-
-
-   def _start_native_worker(self, worker, options, details = None):
-
       ## allow override Python executable from options
       ##
-      exe = options.get('python', executable)
+      if 'python' in options:
+         exe = options['python']
 
+         ## the executable must be an absolute path, e.g. /home/oberstet/pypy-2.2.1-linux64/bin/pypy
+         ##
+         if not os.path.isabs(exe):
+            emsg = "ERROR: python '{}' from worker options must be an absolute path".format(exe)
+            log.msg(emsg)
+            raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+
+         ## of course the path must exist and actually be executable
+         ##
+         if not (os.path.isfile(exe) and os.access(exe, os.X_OK)):
+            emsg = "ERROR: python '{}' from worker options does not exist or isn't an executable".format(exe)
+            log.msg(emsg)
+            raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+      else:
+         exe = sys.executable
+
+      ## all native workers (routers and containers for now) start from the same script
+      ##
       filename = pkg_resources.resource_filename('crossbar', 'worker/process.py')
 
+      ## assemble command line for forking the worker
+      ##
       args = [exe, "-u", filename]
       args.extend(["--cbdir", self._node._cbdir])
       args.extend(["--node", str(self._node_id)])
-      args.extend(["--worker", str(worker_id)])
+      args.extend(["--worker", str(id)])
       args.extend(["--realm", self._realm])
-      args.extend(["--type", worker_type])
+      args.extend(["--type", wtype])
 
       ## allow override worker process title from options
       ##
@@ -335,67 +329,112 @@ class NodeControllerSession(ApplicationSession):
       if self._node._reactor_shortname:
          args.extend(['--reactor', self._node._reactor_shortname])
 
-      log.msg("Starting native worker: {}".format(' '.join(args)))
-
-      ## worker process environment
+      ## create worker process environment
       ##
       penv = create_process_env(options)
 
-      ep = CustomProcessEndpoint(self._node._reactor,
-               executable,
-               args,
-               name = "Worker {}".format(worker_id),
-               env = penv)
+      ## log name of worker
+      ##
+      worker_logname = {'router': 'Router', 'container': 'Container'}.get(wtype, 'Worker')
 
-      ## this will be resolved/rejected when the worker is actually
-      ## ready to receive commands via WAMP
-      ready = Deferred()
+      ## create a (custom) process endpoint
+      ##
+      ep = CustomProcessEndpoint(self._node._reactor, exe, args, name = worker_logname, env = penv)
 
-      ## this will be resolved when the worker exits (after previously connected)
-      exit = Deferred()
+      ## add worker tracking instance to the worker map ..
+      ##
+      worker = RouterWorkerProcess(id, details.authid)
+      self._workers[id] = worker
 
       ## create a transport factory for talking WAMP to the native worker
       ##
-      transport_factory = create_native_worker_client_factory(self._node._router_session_factory, ready, exit)
+      transport_factory = create_native_worker_client_factory(self._node._router_session_factory, worker.ready, worker.exit)
+      transport_factory.noisy = False
 
-      ## now actually spawn the worker ..
+      ## now (immediately before actually forking) signal the starting of the worker
       ##
-      log.msg("Starting native worker ({}) ..".format(worker_type))
+      if wtype == 'router':
+         starting_topic = 'crossbar.node.{}.on_router_starting'.format(self._node_id)
+      elif wtype == 'container':
+         starting_topic = 'crossbar.node.{}.on_container_starting'.format(self._node_id)
+      else:
+         raise Exception("logic error")
+
+      starting_info = {
+         'id': id,
+         'status': worker.status,
+         'created': utcstr(worker.created),
+         'who': worker.who
+      }
+
+      ## the caller gets a progressive result ..
+      if details.progress:
+         details.progress(starting_info)
+
+      ## .. while all others get an event
+      self.publish(starting_topic, starting_info, options = PublishOptions(exclude = [details.caller]))
+
+      ## now actually fork the worker ..
+      ##
+      if self.debug:
+         log.msg("Starting native worker ({}) using command line '{}'".format(worker.TYPE, ' '.join(args)))
+      else:
+         log.msg("Starting native worker ({}) ..".format(worker.TYPE))
+
       d = ep.connect(transport_factory)
+
 
       def onconnect(proto):
          ## proto is an instance of NativeWorkerClientProtocol
          pid = proto.transport.pid
-         log.msg("Worker PID {} process connected".format(pid))
+         print("Worker PID {} process connected".format(pid))
 
          ## remember the worker process, including "ready" deferred. this will later
          ## be fired upon the worker publishing to 'crossbar.node.{}.on_worker_ready'
          #self._workers[worker_id] = NodeNativeWorkerProcess(worker_id, pid, ready, exit, worker_type, factory = transport_factory, proto = proto)
-         worker = self._workers[worker_id]
          worker.pid = pid
-         worker.ready = ready
-         worker.exit = exit
          worker.factory = transport_factory
          worker.proto = proto
 
-         topic = 'crossbar.node.{}.on_worker_start'.format(self._node_id)
-         self.publish(topic, {'id': worker_id, 'pid': pid})
+         worker.status = 'connected'
+         worker.connected = datetime.utcnow()
+
+         topic = 'crossbar.node.{}.on_router_connected'.format(self._node_id)
+         res = {
+            'id': worker.id,
+            'status': worker.status,
+            'connected': utcstr(worker.connected),
+            'who': worker.who
+         }
+         if details.progress:
+            details.progress(res)
+
+         self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
+
+#         topic = 'crossbar.node.{}.on_worker_start'.format(self._node_id)
+#         self.publish(topic, {'id': worker.id, 'pid': worker.pid})
 
          def on_exit_success(_):
-            del self._workers[worker_id]
+            del self._workers[worker.id]
 
          def on_exit_failed(exit_code):
-            del self._workers[worker_id]
+            del self._workers[worker.id]
 
-         exit.addCallbacks(on_exit_success, on_exit_failed)
+         worker.exit.addCallbacks(on_exit_success, on_exit_failed)
 
       def onerror(err):
+         print "$"*100
          log.msg("Could not start worker process with args '{}': {}".format(args, err.value))
-         ready.errback(err)
+         worker.ready.errback(err)
 
       d.addCallbacks(onconnect, onerror)
 
-      return ready
+      def onready(id):
+         log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
+
+      worker.ready.addCallback(onready)
+
+      return worker.ready
 
 
 
@@ -866,11 +905,13 @@ class Node:
 
       self._router_server_transport_factory = WampWebSocketServerFactory(self._router_session_factory, debug = self.debug)
       self._router_server_transport_factory.setProtocolOptions(failByDrop = False)
+      self._router_server_transport_factory.noisy = False
 
 
       ## start the WebSocket server from an endpoint
       ##
       self._router_server = serverFromString(self._reactor, endpoint_descriptor)
+      ## FIXME: the following spills out log noise: "WampWebSocketServerFactory starting on 9000"
       self._router_server.listen(self._router_server_transport_factory)
 
 

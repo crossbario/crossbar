@@ -36,6 +36,8 @@ try:
    ## Manhole support needs a couple of packages optional for Crossbar.
    ## So we catch import errors and note those.
    ##
+   import Crypto # twisted.conch.manhole_ssh will import even without, but we _need_ SSH
+   import pyasn1
    from twisted.cred import checkers, portal
    from twisted.conch.manhole import ColoredManhole
    from twisted.conch.manhole_ssh import ConchFactory, TerminalRealm

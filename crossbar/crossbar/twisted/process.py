@@ -42,7 +42,7 @@ class _CustomWrapIProtocol(_WrapIProtocol):
             msg = msg.strip()
             if msg != "":
                name = self._name or "Child"
-               log.msg(msg, system = "{:<10} {:>6}".format(name, self.transport.pid))
+               log.msg(msg, system = "{:<10} {:>6}".format(name, self.transport.pid), override_system = True)
       else:
          _WrapIProtocol.childDataReceived(self, childFD, data)
 
@@ -90,15 +90,19 @@ class DefaultSystemFileLogObserver(FileLogObserver):
    Log observer with default settable system.
    """
 
-   def __init__(self, f, system = None):
+   def __init__(self, f, system = None, override = True):
       FileLogObserver.__init__(self, f)
       if system:
          self._system = system
       else:
          self._system = "Process {}".format(os.getpid())
+      self._override = override
 
 
    def emit(self, eventDict):
-      if not 'system' in eventDict or eventDict['system'] == "-":
-         eventDict['system'] = self._system
+      if 'system' in eventDict and 'override_system' in eventDict and eventDict['override_system']:
+         pass
+      else:
+         if self._override or (not 'system' in eventDict) or eventDict['system'] == "-":
+            eventDict['system'] = self._system
       FileLogObserver.emit(self, eventDict)

@@ -44,10 +44,15 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
 
 
    def connectionLost(self, reason):
+      print
+      print
+      log.msg("Worker {}: Process connection gone ({})".format(self._pid, reason.value))
+      print
+      print
+
       WampWebSocketClientProtocol.connectionLost(self, reason)
       self.factory.proto = None
 
-      log.msg("Worker {}: Process connection gone ({})".format(self._pid, reason.value))
 
       if isinstance(reason.value, ProcessTerminated):
          if not self.factory._on_ready.called:

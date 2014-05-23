@@ -30,6 +30,9 @@ check:
 start:
 	PYTHONPATH=. python -m crossbar.controller.cli start
 
+start_pypy:
+	PYTHONPATH=. pypy -m crossbar.controller.cli start
+
 publish: clean
 	python setup.py register
 	python setup.py sdist upload

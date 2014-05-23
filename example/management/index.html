@@ -71,6 +71,7 @@
             //
             var topics = [
                'on_router_starting',
+               'on_router_connected',
                'on_router_started',
                'on_router_stopping',
                'on_router_stopped'
@@ -124,9 +125,31 @@
             );
          }
 
+         function test_start_router1() {
+            var id = 'router1';
+            var options = {
+//               python: '/bin/cat'
+//               python: '/bin/foobar'
+               python: '/home/oberstet/pypy-2.2.1-linux64/bin/pypy'
+            };
+
+            session.call('crossbar.node.' + nodename + '.start_router', [id, options], {}, {receive_progress: true}).then(
+               function (res) {
+                  console.log('done', res);
+               },
+               function (err) {
+                  console.log(err.error, err.args[0]);
+               },
+               function (progress) {
+                  console.log('progress', progress);
+               }
+            );
+         }
+
          function test_get_workers() {
             session.call('crossbar.node.' + nodename + '.get_workers').then(
                function (workers) {
+                  console.log("" + workers.length + " workers currently running");
                   workers.forEach(function (worker) {
                      console.log(worker);
                   });

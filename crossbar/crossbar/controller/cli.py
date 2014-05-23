@@ -25,6 +25,7 @@ import sys
 import json
 import argparse
 import pkg_resources
+import platform
 
 from twisted.python import log
 from twisted.python.reflect import qual
@@ -109,7 +110,7 @@ def run_command_init(options):
    Subcommand "crossbar init".
    """
    from crossbar.controller.template import CONFIG_TEMPLATES
-   
+
    if options.template:
       if not CONFIG_TEMPLATES.has_key(options.template):
          raise Exception("No such Crossbar.io node template {}".format(options.template))
@@ -154,14 +155,16 @@ def run_command_start(options):
 
    log.msg("=" * 30 + " Crossbar.io " + "=" * 30 + "\n")
 
-   log.msg("Crossbar.io {} node starting".format(crossbar.__version__))
+   log.msg("Crossbar.io {} starting".format(crossbar.__version__))
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
    reactor = install_reactor(options.reactor, options.debug)
 
    from twisted.python.reflect import qual
-   log.msg("Running on {} reactor.".format(qual(reactor.__class__).split('.')[-1]))
+   log.msg("Running on {} using {} reactor".format(platform.python_implementation(), qual(reactor.__class__).split('.')[-1]))
+   log.msg("Starting from node directory {}".format(options.cbdir))
+
 
    ## create and start Crossbar.io node
    ##
