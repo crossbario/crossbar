@@ -44,7 +44,14 @@ from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
 from crossbar.worker.testee import TesteeServerFactory
 
 
-from twisted.web.wsgi import WSGIResource
+try:
+   from twisted.web.wsgi import WSGIResource
+   _HAS_WSGI = True
+except ImportError:
+   ## Twisted hasn't ported this to Python 3 yet
+   _HAS_WSGI = False
+
+
 from autobahn.twisted.resource import WebSocketResource, \
                                       WSGIRootResource, \
                                       HTTPChannelHixie76Aware
@@ -60,14 +67,28 @@ import twisted
 import crossbar
 twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
 
+try:
+   from twisted.web.static import File
+   from crossbar.twisted.resource import FileNoListing
+   _HAS_STATIC = True
+except ImportError:
+   ## Twisted hasn't ported this to Python 3 yet
+   _HAS_STATIC = False
 
-from twisted.web.static import File
+
 from twisted.web.resource import Resource
 
 from autobahn.twisted.resource import WebSocketResource
 
 from crossbar.twisted.site import createHSTSRequestFactory
-from crossbar.twisted.resource import FileNoListing, JsonResource, Resource404, CgiDirectory, RedirectResource
+from crossbar.twisted.resource import JsonResource, Resource404, RedirectResource
+
+from crossbar.twisted.resource import _HAS_STATIC, _HAS_CGI
+
+if _HAS_CGI:
+   from crossbar.twisted.resource import CgiDirectory
+
+
 
 from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
@@ -484,6 +505,9 @@ class RouterWorkerSession(NativeWorkerSession):
          ##
          elif root_type == 'wsgi':
 
+            if not _HAS_WSGI:
+               raise ApplicationError("crossbar.error.invalid_configuration", "WSGI unsupported")
+
             wsgi_options = root_config.get('options', {})
 
             if not 'module' in root_config:
@@ -604,6 +628,9 @@ class RouterWorkerSession(NativeWorkerSession):
                ## WSGI resource
                ##
                elif path_config['type'] == 'wsgi':
+
+                  if not _HAS_WSGI:
+                     raise ApplicationError("crossbar.error.invalid_configuration", "WSGI unsupported")
 
                   wsgi_options = path_config.get('options', {})
 

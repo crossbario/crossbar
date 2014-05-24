@@ -26,7 +26,8 @@ import sys
 import importlib
 import pkg_resources
 import traceback
-import StringIO
+
+from six import StringIO
 from datetime import datetime
 
 from twisted.internet import reactor

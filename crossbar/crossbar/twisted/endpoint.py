@@ -36,12 +36,13 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
                                        UNIXClientEndpoint
 
 try:
+   from OpenSSL import crypto, SSL
    from twisted.internet.endpoints import SSL4ServerEndpoint, \
                                           SSL4ClientEndpoint
-   _HAS_TLS = True
 except ImportError:
    _HAS_TLS = False
 else:
+   _HAS_TLS = True
    from crossbar.twisted.tlsctx import TlsServerContextFactory, \
                                        TlsClientContextFactory
 

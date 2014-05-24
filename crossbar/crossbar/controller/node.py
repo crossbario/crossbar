@@ -418,7 +418,7 @@ class NodeControllerSession(ApplicationSession):
 
       ## now actually fork the worker ..
       ##
-      if self.debug:
+      if True or self.debug:
          log.msg("Starting {} with ID '{}' using command line '{}' ..".format(worker_logname, id, ' '.join(args)))
       else:
          log.msg("Starting {} with ID '{}' ..".format(worker_logname, id))

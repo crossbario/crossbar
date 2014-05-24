@@ -27,8 +27,8 @@ from twisted.python import log
 from twisted.internet.defer import Deferred
 
 import json
-import urllib
-import Cookie
+
+from six.moves import urllib
 
 from autobahn import util
 from autobahn.websocket import http
