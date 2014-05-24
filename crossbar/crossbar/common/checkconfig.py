@@ -25,6 +25,7 @@ __all__ = ['check_config',
 import os
 import json
 import re
+import six
 
 from pprint import pformat
 
@@ -49,7 +50,7 @@ def check_dict_args(spec, config, msg):
 
 
 def check_or_raise_uri(value, message):
-   if type(value) not in [str, unicode]:
+   if type(value) != six.text_type:
       raise Exception("{}: invalid type {} for URI".format(message, type(value)))
    #if not _URI_PAT_LOOSE_NON_EMPTY.match(value):
    if not _URI_PAT_STRICT_NON_EMPTY.match(value):
@@ -59,7 +60,7 @@ def check_or_raise_uri(value, message):
 
 
 def check_endpoint_backlog(backlog):
-   if type(backlog) not in [int, long]:
+   if type(backlog) not in six.integer_types:
       raise Exception("'backlog' attribute in endpoint must be int ({} encountered)".format(type(backlog)))
    if backlog < 1 or backlog > 65535:
       raise Exception("invalid value {} for 'backlog' attribute in endpoint (must be from [1, 65535])".format(backlog))
@@ -67,7 +68,7 @@ def check_endpoint_backlog(backlog):
 
 
 def check_endpoint_port(port):
-   if type(port) not in [int, long]:
+   if type(port) not in six.integer_types:
       raise Exception("'port' attribute in endpoint must be integer ({} encountered)".format(type(port)))
    if port < 1 or port > 65535:
       raise Exception("invalid value {} for 'port' attribute in endpoint".format(port))
@@ -75,7 +76,7 @@ def check_endpoint_port(port):
 
 
 def check_endpoint_timeout(timeout):
-   if type(timeout) not in [int, long]:
+   if type(timeout) not in six.integer_types:
       raise Exception("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
    if port < 0 or port > 600:
       raise Exception("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
@@ -96,7 +97,7 @@ def check_endpoint_listen_tls(tls):
          raise Exception("missing mandatory attribute '{}' in listening endpoint TLS configuration".format(k[0]))
 
       if k[0] in tls:
-         if type(k[0]) not in [str, unicode]:
+         if type(k[0]) != six.text_type:
             raise Exception("'{}' in listening endpoint TLS configuration must be string ({} encountered)".format(k[0], type(k[0])))
 
 
@@ -131,7 +132,7 @@ def check_endpoint_listen_tcp(endpoint):
 
    if 'interface' in endpoint:
       interface = endpoint['interface']
-      if type(interface) not in [str, unicode]:
+      if type(interface) != six.text_type:
          raise Exception("'interface' attribute in endpoint must be string ({} encountered)".format(type(interface)))
 
    if 'backlog' in endpoint:
@@ -148,7 +149,7 @@ def check_endpoint_listen_unix(endpoint):
       raise Exception("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
 
    path = endpoint['path']
-   if type(path) not in [str, unicode]:
+   if type(path) != six.text_type:
       raise Exception("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type(path)))
 
    if 'backlog' in endpoint:
@@ -186,7 +187,7 @@ def check_endpoint_connect_unix(endpoint):
       raise Exception("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
 
    path = endpoint['path']
-   if type(path) not in [str, unicode]:
+   if type(path) != six.text_type:
       raise Exception("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type(path)))
 
    if 'timeout' in endpoint:
@@ -280,7 +281,7 @@ def check_transport_web_path_service_websocket(config):
 
    if 'url' in config:
       url = config['url']
-      if type(url) not in [str, unicode]:
+      if type(url) != six.text_type:
          raise Exception("'url' in WebSocket configuration must be str ({} encountered)".format(type(url)))
       try:
          u = parseWsUrl(url)
@@ -291,10 +292,10 @@ def check_transport_web_path_service_websocket(config):
 
 def check_transport_web_path_service_static(config):
    check_dict_args({
-      'type': (True, [str, unicode]),
-      'directory': (False, [str, unicode]),
-      'module': (False, [str, unicode]),
-      'resource': (False, [str, unicode]),
+      'type': (True, [six.text_type]),
+      'directory': (False, [six.text_type]),
+      'module': (False, [six.text_type]),
+      'resource': (False, [six.text_type]),
       'enable_directory_listing': (False, [bool])
       }, config, "Web transport 'static' path service")
 
@@ -309,24 +310,24 @@ def check_transport_web_path_service_static(config):
 
 def check_transport_web_path_service_wsgi(config):
    check_dict_args({
-      'type': (True, [str, unicode]),
-      'module': (True, [str, unicode]),
-      'object': (True, [str, unicode])
+      'type': (True, [six.text_type]),
+      'module': (True, [six.text_type]),
+      'object': (True, [six.text_type])
       }, config, "Web transport 'wsgi' path service")
 
 
 
 def check_transport_web_path_service_redirect(config):
    check_dict_args({
-      'type': (True, [str, unicode]),
-      'url': (True, [str, unicode])
+      'type': (True, [six.text_type]),
+      'url': (True, [six.text_type])
       }, config, "Web transport 'redirect' path service")
 
 
 
 def check_transport_web_path_service_json(config):
    check_dict_args({
-      'type': (True, [str, unicode]),
+      'type': (True, [six.text_type]),
       'value': (True, None)
       }, config, "Web transport 'json' path service")
 
@@ -334,9 +335,9 @@ def check_transport_web_path_service_json(config):
 
 def check_transport_web_path_service_cgi(config):
    check_dict_args({
-      'type': (True, [str, unicode]),
-      'directory': (True, [str, unicode]),
-      'processor': (True, [str, unicode]),
+      'type': (True, [six.text_type]),
+      'directory': (True, [six.text_type]),
+      'processor': (True, [six.text_type]),
       }, config, "Web transport 'cgi' path service")
 
 
@@ -395,7 +396,7 @@ def check_transport_web(transport):
    pat = re.compile("^([a-z0-9A-Z]+|/)$")
 
    for p in paths:
-      if type(p) not in [str, unicode]:
+      if type(p) != six.text_type:
          raise Exception("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
 
       if not pat.match(p):
@@ -420,7 +421,7 @@ def check_transport_web(transport):
 
       if 'hsts_max_age' in options:
          hsts_max_age = options['hsts_max_age']
-         if type(hsts_max_age) not in [int, long]:
+         if type(hsts_max_age) not in six.integer_types:
             raise Exception("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
          if hsts_max_age < 0:
             raise Exception("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
@@ -448,7 +449,7 @@ def check_transport_websocket(transport):
 
    if 'url' in transport:
       url = transport['url']
-      if type(url) not in [str, unicode]:
+      if type(url) != six.text_type:
          raise Exception("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
       try:
          u = parseWsUrl(url)
@@ -471,7 +472,7 @@ def check_transport_rawsocket(transport):
       raise Exception("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
    serializer = transport['serializer']
-   if type(serializer) not in [str, unicode]:
+   if type(serializer) != six.text_type:
       raise Exception("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
 
    if serializer not in ['json', 'msgpack']:
@@ -519,16 +520,16 @@ def check_component(component):
 
    if ctype == 'wamplet':
       check_dict_args({
-         'type': (True, [str, unicode]),
-         'dist': (True, [str, unicode]),
-         'entry': (True, [str, unicode]),
+         'type': (True, [six.text_type]),
+         'dist': (True, [six.text_type]),
+         'entry': (True, [six.text_type]),
          'extra': (False, None),
          }, component, "invalid component configuration")
 
    elif ctype == 'class':
       check_dict_args({
-         'type': (True, [str, unicode]),
-         'name': (True, [str, unicode]),
+         'type': (True, [six.text_type]),
+         'name': (True, [six.text_type]),
          'extra': (False, None),
          }, component, "invalid component configuration")
 
@@ -722,7 +723,7 @@ def check_process_env(env, silence = False):
          pass
       elif type(inherit) == list:
          for v in inherit:
-            if type(v) not in [str, unicode]:
+            if type(v) != six.text_type:
                raise Exception("invalid type for inherited env var name in 'inherit' in 'options.env' in worker/guest configuration - must be a string ({} encountered)".format(type(v)))
       else:
          raise Exception("'inherit' in 'options.env' in worker/guest configuration must be bool or list ({} encountered)".format(type(inherit)))
@@ -733,9 +734,9 @@ def check_process_env(env, silence = False):
          raise Exception("'options.env.vars' in worker/guest configuration must be dict ({} encountered)".format(type(envvars)))
 
       for k, v in envvars.items():
-         if type(k) not in [str, unicode]:
+         if type(k) != six.text_type:
             raise Exception("invalid type for environment variable key '{}' in 'options.env.vars' - must be a string ({} encountered)".format(k, type(k)))
-         if type(v) not in [str, unicode]:
+         if type(v) != six.text_type:
             raise Exception("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
 
 
@@ -761,7 +762,7 @@ def check_worker(worker, silence = False):
 
       if 'title' in options:
          title = options['title']
-         if type(title) not in [str, unicode]:
+         if type(title) != six.text_type:
             raise Exception("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
 
       if 'pythonpath' in options:
@@ -769,7 +770,7 @@ def check_worker(worker, silence = False):
          if type(pythonpath) != list:
             raise Exception("'pythonpath' in 'options' in worker configuration must be lists ({} encountered)".format(type(pythonpath)))
          for p in pythonpath:
-            if type(p) not in [str, unicode]:
+            if type(p) != six.text_type:
                raise Exception("paths in 'pythonpath' in 'options' in worker configuration must be strings ({} encountered)".format(type(p)))
 
       if 'cpu_affinity' in options:
@@ -777,7 +778,7 @@ def check_worker(worker, silence = False):
          if type(cpu_affinity) != list:
             raise Exception("'cpu_affinity' in 'options' in worker configuration must be lists ({} encountered)".format(type(cpu_affinity)))
          for a in cpu_affinity:
-            if type(a) not in [int, long]:
+            if type(a) not in six.integer_types:
                raise Exception("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
 
       if 'env' in options:
@@ -816,13 +817,13 @@ def check_guest(guest, silence = False):
          raise Exception("encountered unknown attribute '{}' in guest worker configuration".format(k))
 
    check_dict_args({
-      'type': (True, [str, unicode]),
-      'executable': (True, [str, unicode]),
-      'stdin': (False, [str, unicode, dict]),
-      'stdout': (False, [str, unicode]),
-      'stderr': (False, [str, unicode]),
+      'type': (True, [six.text_type]),
+      'executable': (True, [six.text_type]),
+      'stdin': (False, [six.text_type, dict]),
+      'stdout': (False, [six.text_type]),
+      'stderr': (False, [six.text_type]),
       'arguments': (False, [list]),
-      'workdir': (False, [str, unicode]),
+      'workdir': (False, [six.text_type]),
       'options': (False, [dict])
       }, guest, "Guest process configuration")
 
@@ -837,7 +838,7 @@ def check_guest(guest, silence = False):
    if 'stdin' in guest:
       if type(guest['stdin']) == dict:
          check_dict_args({
-            'type': (True, [str, unicode]),
+            'type': (True, [six.text_type]),
             'value': (True, None),
             'close': (False, [bool]),
             }, guest['stdin'], "Guest process 'stdin' configuration")
@@ -847,7 +848,7 @@ def check_guest(guest, silence = False):
 
    if 'arguments' in guest:
       for arg in guest['arguments']:
-         if type(arg) not in [str, unicode]:
+         if type(arg) != six.text_type:
             raise Exception("invalid type {} for argument in 'arguments' in guest worker configuration".format(type(arg)))
 
    if 'options' in guest:

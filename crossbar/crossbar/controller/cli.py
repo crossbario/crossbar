@@ -112,7 +112,7 @@ def run_command_init(options):
    from crossbar.controller.template import CONFIG_TEMPLATES
 
    if options.template:
-      if not CONFIG_TEMPLATES.has_key(options.template):
+      if not options.template in CONFIG_TEMPLATES:
          raise Exception("No such Crossbar.io node template {}".format(options.template))
       else:
          template = CONFIG_TEMPLATES[options.template]
@@ -310,7 +310,7 @@ def run():
    ##
    if hasattr(options, 'cbdir'):
       if not options.cbdir:
-         if os.environ.has_key("CROSSBAR_DIR"):
+         if "CROSSBAR_DIR" in os.environ:
             options.cbdir = os.environ['CROSSBAR_DIR']
          else:
             options.cbdir = '.crossbar'

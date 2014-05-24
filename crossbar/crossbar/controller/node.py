@@ -44,6 +44,8 @@ from autobahn.twisted.wamp import RouterSessionFactory
 from autobahn.twisted.websocket import WampWebSocketClientFactory, WampWebSocketClientProtocol
 from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
 
+from crossbar.common import checkconfig
+
 import pkg_resources
 from sys import argv, executable
 
@@ -67,7 +69,6 @@ from crossbar.twisted.process import CustomProcessEndpoint
 from twisted.internet import protocol
 import re, json
 
-from crossbar import common
 from crossbar.controller.types import *
 
 
@@ -269,9 +270,9 @@ class NodeControllerSession(ApplicationSession):
       ##
       try:
          if wtype == 'router':
-            common.config.check_router_options(options)
+            checkconfig.check_router_options(options)
          elif wtype == 'container':
-            common.config.check_container_options(options)
+            checkconfig.check_container_options(options)
          else:
             raise Exception("logic error")
       except Exception as e:
@@ -491,7 +492,7 @@ class NodeControllerSession(ApplicationSession):
       :returns: int -- The PID of the new process.
       """
       try:
-         common.config.check_guest(config)
+         checkconfig.check_guest(config)
       except Exception as e:
          raise ApplicationError('crossbar.error.invalid_configuration', 'invalid guest worker configuration: {}'.format(e))
 
@@ -834,7 +835,10 @@ class Node:
       self._reactor = reactor
 
       self._cbdir = options.cbdir
-      self._config = json.loads(open(options.config, 'rb').read())
+
+      with open(options.config) as config_file:
+         self._config = json.load(config_file)
+
       self._reactor_shortname = options.reactor
 
       self.debug = False
