@@ -17,6 +17,7 @@ clean:
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
+	find . -name "__pycache__" -type d -exec rm -rf {} \;
 
 init:
 	PYTHONPATH=. python -m crossbar.controller.cli init

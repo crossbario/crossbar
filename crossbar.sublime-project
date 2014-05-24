@@ -5,7 +5,7 @@
 			"follow_symlinks": false,
          "name": "Crossbar.io",
 			"path": ".",
-         "folder_exclude_patterns": ["build", "dist", "*.egg-info"],
+         "folder_exclude_patterns": ["build", "dist", "*.egg-info", "__pycache__"],
          "file_exclude_patterns": ["*.pyc", "dropin.cache"]
 		}
 	],
