@@ -38,6 +38,21 @@
             <td><button onclick="test_stop_router('router1', true)">Kill router1</button></td>
          </tr>
 
+         <tr>
+            <td>Start a new Container with ID 'container1'.</td>
+            <td><button onclick="test_start_container('container1')">Start container1</button></td>
+         </tr>
+
+         <tr>
+            <td>Stop Container with ID 'container1'.</td>
+            <td><button onclick="test_stop_container('container1')">Stop container1</button></td>
+         </tr>
+
+         <tr>
+            <td>Kill Container with ID 'container1'.</td>
+            <td><button onclick="test_stop_container('container1', true)">Kill container1</button></td>
+         </tr>
+
       </table>
 
       <table>
@@ -156,6 +171,7 @@
             );
          }
 
+
          function logerr(err) {
             console.log(err.error); // error URI
             console.log(err.args[0]); // error log message
@@ -191,6 +207,21 @@
          }
 
 
+         function test_get_workers() {
+            session.call('crossbar.node.' + nodename + '.get_workers').then(
+               function (workers) {
+                  console.log("" + workers.length + " workers currently running");
+                  workers.forEach(function (worker) {
+                     console.log(worker);
+                  });
+               },
+               function (err) {
+                  console.log(err.error, err.args[0]);
+               }
+            );
+         }
+
+
          function test_start_router(id) {
 
             var options = {
@@ -209,6 +240,7 @@
             );
          }
 
+
          function test_stop_router(id, kill) {
 
             session.call('crossbar.node.' + nodename + '.stop_router', [id, kill], {}, {receive_progress: true}).then(
@@ -222,7 +254,8 @@
             );
          }
 
-         function test_start_container1() {
+
+         function test_start_container() {
             var id = 'container1';
             var options = {
                traceback: 100
@@ -232,44 +265,31 @@
                function (res) {
                   console.log('done', res);
                },
-               function (err) {
-                  console.log(err.error);
-                  console.log(err.args[0]);
-                  logtrace(err.args[1]);
-               },
+               logerr,
                function (progress) {
                   console.log('progress', progress);
                }
             );
          }
 
-         function test_get_workers() {
-            session.call('crossbar.node.' + nodename + '.get_workers').then(
-               function (workers) {
-                  console.log("" + workers.length + " workers currently running");
-                  workers.forEach(function (worker) {
-                     console.log(worker);
-                  });
+
+         function test_stop_container(id, kill) {
+
+            session.call('crossbar.node.' + nodename + '.stop_container', [id, kill], {}, {receive_progress: true}).then(
+               function (res) {
+                  console.log('done', res);
                },
-               function (err) {
-                  console.log(err.error, err.args[0]);
+               logerr,
+               function (progress) {
+                  console.log('progress', progress);
                }
             );
          }
 
-         function test_list_wamplets() {
-            session.call('crossbar.node.' + nodename + '.list_wamplets').then(
-               function (wamplets) {
-                  console.log("found " + wamplets.length + " WAMPlets")
-                  wamplets.forEach(function (wamplet) {
-                     console.log(wamplet);
-                  });
-               },
-               function (err) {
-                  console.log(err.error, err.args[0]);
-               }
-            );
-         }
+
+
+
+
 
          function test_start_guest_1() {
 

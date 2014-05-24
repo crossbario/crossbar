@@ -242,17 +242,16 @@ class NodeControllerSession(ApplicationSession):
       """
       now = datetime.utcnow()
       res = []
-      for k in sorted(self._workers.keys()):
-         p = self._workers[k]
+      for worker in sorted(self._workers.values(), key = lambda w: w.created):
          res.append({
-            'id': p.id,
-            'pid': p.pid,
-            'type': p.TYPE,
-            'status': p.status,
-            'created': utcstr(p.created),
-            'started': utcstr(p.started),
-            'startup_time': (p.started - p.created).total_seconds() if p.started else None,
-            'uptime': (now - p.started).total_seconds() if p.started else None,
+            'id': worker.id,
+            'pid': worker.pid,
+            'type': worker.TYPE,
+            'status': worker.status,
+            'created': utcstr(worker.created),
+            'started': utcstr(worker.started),
+            'startup_time': (worker.started - worker.created).total_seconds() if worker.started else None,
+            'uptime': (now - worker.started).total_seconds() if worker.started else None,
          })
       return res
 
@@ -398,7 +397,13 @@ class NodeControllerSession(ApplicationSession):
 
       ## add worker tracking instance to the worker map ..
       ##
-      worker = RouterWorkerProcess(id, details.authid)
+      if wtype == 'router':
+         worker = RouterWorkerProcess(id, details.authid)
+      elif wtype == 'container':
+         worker = ContainerWorkerProcess(id, details.authid)
+      else:
+         raise Exception("logic error")
+
       self._workers[id] = worker
 
       ## ready handling
