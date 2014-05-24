@@ -214,6 +214,7 @@ class NodeControllerSession(ApplicationSession):
       return res
 
 
+
    def start_router(self, id, options = {}, details = None):
       """
       Start a new router worker: a Crossbar.io native worker process
@@ -237,7 +238,6 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   @inlineCallbacks
    def start_container(self, id, options = {}, details = None):
       """
       Start a new container worker: a Crossbar.io native worker process
@@ -251,7 +251,7 @@ class NodeControllerSession(ApplicationSession):
       if self.debug:
          log.msg("NodeControllerSession.start_container", id, options)
 
-      return self._start_native_worker('router', id, options, details = details)
+      return self._start_native_worker('container', id, options, details = details)
 
 
 
@@ -262,7 +262,7 @@ class NodeControllerSession(ApplicationSession):
       ## prohibit starting a worker twice
       ##
       if id in self._workers:
-         emsg = "ERROR: could not start worker - a worker with ID {} is already running (or starting)".format(id)
+         emsg = "ERROR: could not start worker - a worker with ID '{}'' is already running (or starting)".format(id)
          log.msg(emsg)
          raise ApplicationError('crossbar.error.worker_already_running', emsg)
 
@@ -461,23 +461,61 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-   def stop_router(self, id, details = None):
+   def stop_router(self, id, kill = False, details = None):
       """
       Stops a currently running router worker.
 
       :param id: The ID of the router worker to stop.
       :type id: str
+      :param kill: If `True`, kill the process. Otherwise, gracefully
+                   shut down the worker.
+      :type kill: bool
       """
       if self.debug:
-         log.msg("NodeControllerSession.stop_router", id)
+         log.msg("NodeControllerSession.start_router", id, kill, options)
 
-      if id not in self._workers or self._workers[id].worker_type != 'router':
-         emsg = "ERROR: no router worker with ID '{}' currently running".format(id)
+      return self._stop_native_worker('router', id, kill, details = details)
+
+
+
+   def stop_container(self, id, kill = False, details = None):
+      """
+      Stops a currently running container worker.
+
+      :param id: The ID of the container worker to stop.
+      :type id: str
+      :param kill: If `True`, kill the process. Otherwise, gracefully
+                   shut down the worker.
+      :type kill: bool
+      """
+      if self.debug:
+         log.msg("NodeControllerSession.stop_container", id, kill, options)
+
+      return self._stop_native_worker('container', id, kill, details = details)
+
+
+
+   def _stop_native_worker(self, wtype, id, kill, details = None):
+
+      assert(wtype in ['router', 'container'])
+
+      if id not in self._workers or self._workers[id].TYPE != wtype:
+         emsg = "ERROR: no {} worker with ID '{}' currently running".format(wtype, id)
          raise ApplicationError('crossbar.error.worker_not_running', emsg)
 
-      self._workers[id].factory.stopFactory()
-      #self._workers[id].proto._session.leave()
-      #self._workers[id].proto.transport.signalProcess("KILL")
+      worker = self._workers[id]
+
+      if worker.status != 'started':
+         emsg = "ERROR: worker with ID '{}' is not in 'started' status (current status: '{}')".format(id, worker.status)
+         raise ApplicationError('crossbar.error.worker_not_running', emsg)
+
+      if kill:
+         log.msg("Killing {} worker with ID '{}'".format(wtype, id))
+         self._workers[id].proto.transport.signalProcess("KILL")
+      else:
+         log.msg("Stopping {} worker with ID '{}'".format(wtype, id))
+         self._workers[id].factory.stopFactory()
+         #self._workers[id].proto._session.leave()
 
 
 

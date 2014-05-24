@@ -9,9 +9,28 @@
 
       <table>
          <tr>
-            <td>Test listing all workers currently running on node.</td>
+            <td>Get all workers currently running on the node.</td>
             <td><button onclick="test_get_workers()">Get Workers</button></td>
          </tr>
+
+         <tr>
+            <td>Start a new Router with ID 'router1'.</td>
+            <td><button onclick="test_start_router('router1')">Start router1</button></td>
+         </tr>
+
+         <tr>
+            <td>Stop Router with ID 'router1'.</td>
+            <td><button onclick="test_stop_router('router1')">Stop router1</button></td>
+         </tr>
+
+         <tr>
+            <td>Kill Router with ID 'router1'.</td>
+            <td><button onclick="test_stop_router('router1', true)">Kill router1</button></td>
+         </tr>
+
+      </table>
+
+      <table>
 
          <tr>
             <td>Test listing all WAMPlets in the node environment.</td>
@@ -53,11 +72,19 @@
       <script src="autobahn.min.js"></script>
 
       <script>
+         // node name
          var nodename = "mynode1";
+
+         // WAMP session to node management router (if established)
          var session = null;
 
+         // connect to node management router
          var connection = new autobahn.Connection({
+
+            // node management router
             url: 'ws://127.0.0.1:9000',
+
+            // node management realm
             realm: 'record-evolution'
          });
 
@@ -65,16 +92,20 @@
 
             session = new_session;
 
-            console.log("connected", session.id);
+            console.log("connected to node management router", session.id);
 
             // node controller topics
             //
             var topics = [
                'on_router_starting',
-               'on_router_connected',
                'on_router_started',
                'on_router_stopping',
-               'on_router_stopped'
+               'on_router_stopped',
+
+               'on_container_starting',
+               'on_container_started',
+               'on_container_stopping',
+               'on_container_stopped'
             ];
             topics.forEach(function (topic) {
                var uri = 'crossbar.node.' + nodename + '.' + topic;
@@ -83,18 +114,6 @@
                      console.log(uri, args, kwargs);
                   });
             });
-
-            session.subscribe('crossbar.node.' + nodename + '.on_process_start',
-               function (args) {
-                  var process = args[0];
-                  console.log("process started", process);
-               });
-
-            session.subscribe('crossbar.node.' + nodename + '.on_process_exit',
-               function (args) {
-                  var process = args[0];
-                  console.log("process ended", process);
-               });
          };
 
          connection.onclose = function () {
@@ -125,25 +144,56 @@
             );
          }
 
-         function logtrace(tb) {
+         function logerr(err) {
+            console.log(err.error); // error URI
+            console.log(err.args[0]); // error log message
+
+            var tb = err.args[1]; // traceback
             if (tb && Array.isArray(tb)) {
                tb.forEach(function (line) {
                   console.log(line);
                })
-            }
+            }            
          }
 
-         function test_start_router1() {
-            var id = 'router2';
+         function test_start_router(id) {
+
             var options = {
-//               python: '/bin/cat'
-//               python: '/bin/foobar'
-//               python: '/home/oberstet/pypy-2.2.1-linux64/bin/pypy'
-               python: '/home/oberstet/pypy-2.3-linux64/bin/pypy',
-               traceback: 100
+               //python: '/home/oberstet/pypy23/bin/pypy',
+               //traceback: 100
             };
 
             session.call('crossbar.node.' + nodename + '.start_router', [id, options], {}, {receive_progress: true}).then(
+               function (res) {
+                  console.log('done', res);
+               },
+               logerr,
+               function (progress) {
+                  console.log('progress', progress);
+               }
+            );
+         }
+
+         function test_stop_router(id, kill) {
+
+            session.call('crossbar.node.' + nodename + '.stop_router', [id, kill], {}, {receive_progress: true}).then(
+               function (res) {
+                  console.log('done', res);
+               },
+               logerr,
+               function (progress) {
+                  console.log('progress', progress);
+               }
+            );
+         }
+
+         function test_start_container1() {
+            var id = 'container1';
+            var options = {
+               traceback: 100
+            };
+
+            session.call('crossbar.node.' + nodename + '.start_container', [id, options], {}, {receive_progress: true}).then(
                function (res) {
                   console.log('done', res);
                },
