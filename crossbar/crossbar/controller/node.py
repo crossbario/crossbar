@@ -79,6 +79,7 @@ from crossbar.controller.process import create_process_env
 from crossbar.controller.native import create_native_worker_client_factory
 
 from crossbar.controller.types import *
+from autobahn.twisted.util import sleep
 
 
 
@@ -112,9 +113,11 @@ class NodeControllerSession(ApplicationSession):
       exit = Deferred()
 
 
+
    def onConnect(self):
       ## join the node's controller realm
       self.join(self._realm)
+
 
 
    @inlineCallbacks
@@ -142,18 +145,15 @@ class NodeControllerSession(ApplicationSession):
       ## register node controller procedures: 'crossbar.node.<ID>.<PROCEDURE>'
       ##
       procs = [
+         'shutdown',
+         'get_info',
          'get_workers',
-
          'start_router',
          'stop_router',
-
          'start_container',
-
+         'stop_container',
          'start_guest',
-
-         'get_info',
-         'stop',
-         'list_wamplets'
+         'stop_guest',
       ]
 
       dl = []
@@ -168,6 +168,25 @@ class NodeControllerSession(ApplicationSession):
 
 
 
+   @inlineCallbacks
+   def shutdown(self, restart = False, details = None):
+      """
+      Stop this node.
+      """
+      log.msg("Shutting down node ..")
+
+      shutdown_topic = 'crossbar.node.{}.on_shutdown'.format(self._node_id)
+
+      shutdown_info = {
+      }
+
+      yield self.publish(shutdown_topic, shutdown_info, options = PublishOptions(acknowledge = True))
+      yield sleep(3)
+
+      self._node._reactor.stop()
+
+
+
    def get_info(self, details = None):
       """
       Return node information.
@@ -176,18 +195,42 @@ class NodeControllerSession(ApplicationSession):
          'created': self._created,
          'pid': self._pid,
          'workers': len(self._workers),
-         'guests': len(self._guests),
-         'directory': self._node._cbdir
+         'directory': self._node._cbdir,
+         'wamplets': self._get_wamplets()
       }
 
 
 
-   def stop(self, restart = False, details = None):
+   def _get_wamplets(self):
       """
-      Stop this node.
+      List installed WAMPlets.
       """
-      log.msg("Stopping node (restart = {}) ..".format(restart))
-      self._node._reactor.stop()
+      res = []
+
+      for entrypoint in pkg_resources.iter_entry_points('autobahn.twisted.wamplet'):
+         try:
+            e = entrypoint.load()
+         except Exception as e:
+            pass
+         else:
+            ep = {}
+            ep['dist'] = entrypoint.dist.key
+            ep['version'] = entrypoint.dist.version
+            ep['location'] = entrypoint.dist.location
+            ep['name'] = entrypoint.name
+            ep['module_name'] = entrypoint.module_name
+            ep['entry_point'] = str(entrypoint)
+
+            if hasattr(e, '__doc__') and e.__doc__:
+               ep['doc'] = e.__doc__.strip()
+            else:
+               ep['doc'] = None
+
+            ep['meta'] = e(None)
+
+            res.append(ep)
+
+      return sorted(res)
 
 
 
@@ -337,6 +380,17 @@ class NodeControllerSession(ApplicationSession):
       ##
       worker_logname = {'router': 'Router', 'container': 'Container'}.get(wtype, 'Worker')
 
+      ## topic URIs used (later)
+      ##
+      if wtype == 'router':
+         starting_topic = 'crossbar.node.{}.on_router_starting'.format(self._node_id)
+         started_topic = 'crossbar.node.{}.on_router_started'.format(self._node_id)
+      elif wtype == 'container':
+         starting_topic = 'crossbar.node.{}.on_container_starting'.format(self._node_id)
+         started_topic = 'crossbar.node.{}.on_container_started'.format(self._node_id)
+      else:
+         raise Exception("logic error")
+
       ## create a (custom) process endpoint
       ##
       ep = CustomProcessEndpoint(self._node._reactor, exe, args, env = penv,
@@ -393,15 +447,6 @@ class NodeControllerSession(ApplicationSession):
 
       ## now (immediately before actually forking) signal the starting of the worker
       ##
-      if wtype == 'router':
-         starting_topic = 'crossbar.node.{}.on_router_starting'.format(self._node_id)
-         started_topic = 'crossbar.node.{}.on_router_started'.format(self._node_id)
-      elif wtype == 'container':
-         starting_topic = 'crossbar.node.{}.on_container_starting'.format(self._node_id)
-         started_topic = 'crossbar.node.{}.on_container_started'.format(self._node_id)
-      else:
-         raise Exception("logic error")
-
       starting_info = {
          'id': id,
          'status': worker.status,
@@ -516,7 +561,6 @@ class NodeControllerSession(ApplicationSession):
          log.msg("Stopping {} worker with ID '{}'".format(wtype, id))
          self._workers[id].factory.stopFactory()
          #self._workers[id].proto._session.leave()
-
 
 
 
@@ -663,7 +707,6 @@ class NodeControllerSession(ApplicationSession):
 
 
 
-
    def stop_guest(self, id, kill = False, details = None):
       """
       Stops a currently running guest worker.
@@ -689,40 +732,6 @@ class NodeControllerSession(ApplicationSession):
       else:
          del self._workers[id]
 
-
-
-   def list_wamplets(self, details = None):
-      """
-      List installed WAMPlets.
-      """
-      res = []
-
-      # pkg_resources.load_entry_point('wamplet1', 'autobahn.twisted.wamplet', 'component1')
-
-      for entrypoint in pkg_resources.iter_entry_points('autobahn.twisted.wamplet'):
-         try:
-            e = entrypoint.load()
-         except Exception as e:
-            pass
-         else:
-            ep = {}
-            ep['dist'] = entrypoint.dist.key
-            ep['version'] = entrypoint.dist.version
-            ep['location'] = entrypoint.dist.location
-            ep['name'] = entrypoint.name
-            ep['module_name'] = entrypoint.module_name
-            ep['entry_point'] = str(entrypoint)
-
-            if hasattr(e, '__doc__') and e.__doc__:
-               ep['doc'] = e.__doc__.strip()
-            else:
-               ep['doc'] = None
-
-            ep['meta'] = e(None)
-
-            res.append(ep)
-
-      return res
 
 
    @inlineCallbacks
@@ -851,6 +860,7 @@ class NodeControllerSession(ApplicationSession):
 
 
 
+
 class Node:
    """
    A Crossbar.io node is the running a controller process
@@ -895,8 +905,6 @@ class Node:
 
 
 
-
-   #@inlineCallbacks
    def start(self):
       """
       Starts this node. This will start a node controller
@@ -930,7 +938,7 @@ class Node:
 
       ## Detect WAMPlets
       ##
-      wamplets = sorted(self._node_controller_session.list_wamplets())
+      wamplets = self._node_controller_session._get_wamplets()
       if len(wamplets) > 0:
          log.msg("Detected {} WAMPlets in environment:".format(len(wamplets)))
          for wpl in wamplets:

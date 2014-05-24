@@ -9,6 +9,16 @@
 
       <table>
          <tr>
+            <td>Shutdown node.</td>
+            <td><button onclick="test_shutdown()">Shutdown</button></td>
+         </tr>
+
+         <tr>
+            <td>Get node information.</td>
+            <td><button onclick="test_get_info()">Get Info</button></td>
+         </tr>
+
+         <tr>
             <td>Get all workers currently running on the node.</td>
             <td><button onclick="test_get_workers()">Get Workers</button></td>
          </tr>
@@ -97,6 +107,8 @@
             // node controller topics
             //
             var topics = [
+               'on_shutdown',
+
                'on_router_starting',
                'on_router_started',
                'on_router_stopping',
@@ -155,6 +167,29 @@
                })
             }            
          }
+
+
+         function test_shutdown() {
+
+            session.call('crossbar.node.' + nodename + '.shutdown').then(
+               function () {
+                  console.log("will never arrive here ..");
+               },
+               logerr
+            );
+         }
+
+
+         function test_get_info() {
+
+            session.call('crossbar.node.' + nodename + '.get_info').then(
+               function (node_info) {
+                  console.log(node_info);
+               },
+               logerr
+            );
+         }
+
 
          function test_start_router(id) {
 
