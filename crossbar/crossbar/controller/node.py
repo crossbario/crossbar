@@ -37,6 +37,7 @@ from autobahn.twisted.wamp import ApplicationSession
 
 import os, sys
 import json
+import traceback
 
 from autobahn.wamp.router import RouterFactory
 from autobahn.twisted.wamp import RouterSessionFactory
@@ -195,21 +196,19 @@ class NodeControllerSession(ApplicationSession):
 
       :returns: list -- List of worker processes.
       """
-      log.msg("get_workers", system = "foobar")
-      log.msg("get_workers")
       now = datetime.utcnow()
       res = []
       for k in sorted(self._workers.keys()):
          p = self._workers[k]
-         #print p.process_type, p.pid, p.ready, p.exit, p.ready.called, p.exit.called
          res.append({
             'id': p.id,
             'pid': p.pid,
-            'type': p.worker_type,
-            #'started': utcstr(p.started),
-            #'uptime': (now - p.started).total_seconds(),
-            #'ready': p.ready.called,
-            #'exit': p.exit.called,
+            'type': p.TYPE,
+            'status': p.status,
+            'created': utcstr(p.created),
+            'started': utcstr(p.started),
+            'startup_time': (p.started - p.created).total_seconds() if p.started else None,
+            'uptime': (now - p.started).total_seconds() if p.started else None,
          })
       return res
 
@@ -339,24 +338,66 @@ class NodeControllerSession(ApplicationSession):
 
       ## create a (custom) process endpoint
       ##
-      ep = CustomProcessEndpoint(self._node._reactor, exe, args, name = worker_logname, env = penv)
+      ep = CustomProcessEndpoint(self._node._reactor, exe, args, env = penv,
+         name = worker_logname, keeplog = options.get('traceback', None))
 
       ## add worker tracking instance to the worker map ..
       ##
       worker = RouterWorkerProcess(id, details.authid)
       self._workers[id] = worker
 
+      ## ready handling
+      ##
+      def on_ready_success(id):
+         log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
+
+         worker.status = 'started'
+         worker.started = datetime.utcnow()
+
+         started_info = {
+            'id': worker.id,
+            'status': worker.status,
+            'started': utcstr(worker.started),
+            'who': worker.who
+         }
+
+         self.publish(started_topic, started_info, options = PublishOptions(exclude = [details.caller]))
+
+         return started_info
+
+      def on_ready_error(err):
+         del self._workers[worker.id]
+
+         emsg = 'ERROR: failed to start native worker - {}'.format(err.value)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.cannot_start", emsg, ep.getlog())
+
+      worker.ready.addCallbacks(on_ready_success, on_ready_error)
+
+
+      def on_exit_success(res):
+         del self._workers[worker.id]
+
+      def on_exit_error(err):
+         del self._workers[worker.id]
+
+      worker.exit.addCallbacks(on_exit_success, on_exit_error)
+
+
       ## create a transport factory for talking WAMP to the native worker
       ##
       transport_factory = create_native_worker_client_factory(self._node._router_session_factory, worker.ready, worker.exit)
       transport_factory.noisy = False
+      self._workers[id].factory = transport_factory
 
       ## now (immediately before actually forking) signal the starting of the worker
       ##
       if wtype == 'router':
          starting_topic = 'crossbar.node.{}.on_router_starting'.format(self._node_id)
+         started_topic = 'crossbar.node.{}.on_router_started'.format(self._node_id)
       elif wtype == 'container':
          starting_topic = 'crossbar.node.{}.on_container_starting'.format(self._node_id)
+         started_topic = 'crossbar.node.{}.on_container_started'.format(self._node_id)
       else:
          raise Exception("logic error")
 
@@ -377,62 +418,43 @@ class NodeControllerSession(ApplicationSession):
       ## now actually fork the worker ..
       ##
       if self.debug:
-         log.msg("Starting native worker ({}) using command line '{}'".format(worker.TYPE, ' '.join(args)))
+         log.msg("Starting {} with ID '{}' using command line '{}' ..".format(worker_logname, id, ' '.join(args)))
       else:
-         log.msg("Starting native worker ({}) ..".format(worker.TYPE))
+         log.msg("Starting {} with ID '{}' ..".format(worker_logname, id))
 
       d = ep.connect(transport_factory)
 
 
-      def onconnect(proto):
-         ## proto is an instance of NativeWorkerClientProtocol
-         pid = proto.transport.pid
-         print("Worker PID {} process connected".format(pid))
+      def on_connect_success(proto):
 
-         ## remember the worker process, including "ready" deferred. this will later
-         ## be fired upon the worker publishing to 'crossbar.node.{}.on_worker_ready'
-         #self._workers[worker_id] = NodeNativeWorkerProcess(worker_id, pid, ready, exit, worker_type, factory = transport_factory, proto = proto)
+         ## this seems to be called immediately when the child process
+         ## has been forked. even if it then immediately fails because
+         ## e.g. the executable doesn't even exist. in other words,
+         ## I'm not sure under what conditions the deferred will errback ..
+
+         pid = proto.transport.pid
+         if self.debug:
+            log.msg("Native worker process connected with PID {}".format(pid))
+
          worker.pid = pid
-         worker.factory = transport_factory
+
+         ## proto is an instance of NativeWorkerClientProtocol
          worker.proto = proto
 
          worker.status = 'connected'
          worker.connected = datetime.utcnow()
 
-         topic = 'crossbar.node.{}.on_router_connected'.format(self._node_id)
-         res = {
-            'id': worker.id,
-            'status': worker.status,
-            'connected': utcstr(worker.connected),
-            'who': worker.who
-         }
-         if details.progress:
-            details.progress(res)
 
-         self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
+      def on_connect_error(err):
 
-#         topic = 'crossbar.node.{}.on_worker_start'.format(self._node_id)
-#         self.publish(topic, {'id': worker.id, 'pid': worker.pid})
+         ## not sure when this errback is triggered at all ..
+         if self.debug:
+            log.msg("ERROR: Connecting forked native worker failed - {}".format(err))
 
-         def on_exit_success(_):
-            del self._workers[worker.id]
-
-         def on_exit_failed(exit_code):
-            del self._workers[worker.id]
-
-         worker.exit.addCallbacks(on_exit_success, on_exit_failed)
-
-      def onerror(err):
-         print "$"*100
-         log.msg("Could not start worker process with args '{}': {}".format(args, err.value))
+         ## in any case, forward the error ..
          worker.ready.errback(err)
 
-      d.addCallbacks(onconnect, onerror)
-
-      def onready(id):
-         log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
-
-      worker.ready.addCallback(onready)
+      d.addCallbacks(on_connect_success, on_connect_error)
 
       return worker.ready
 

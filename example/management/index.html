@@ -125,12 +125,22 @@
             );
          }
 
+         function logtrace(tb) {
+            if (tb && Array.isArray(tb)) {
+               tb.forEach(function (line) {
+                  console.log(line);
+               })
+            }
+         }
+
          function test_start_router1() {
-            var id = 'router1';
+            var id = 'router2';
             var options = {
 //               python: '/bin/cat'
 //               python: '/bin/foobar'
-               python: '/home/oberstet/pypy-2.2.1-linux64/bin/pypy'
+//               python: '/home/oberstet/pypy-2.2.1-linux64/bin/pypy'
+               python: '/home/oberstet/pypy-2.3-linux64/bin/pypy',
+               traceback: 100
             };
 
             session.call('crossbar.node.' + nodename + '.start_router', [id, options], {}, {receive_progress: true}).then(
@@ -138,7 +148,9 @@
                   console.log('done', res);
                },
                function (err) {
-                  console.log(err.error, err.args[0]);
+                  console.log(err.error);
+                  console.log(err.args[0]);
+                  logtrace(err.args[1]);
                },
                function (progress) {
                   console.log('progress', progress);

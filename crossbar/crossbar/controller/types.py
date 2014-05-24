@@ -30,7 +30,7 @@ class WorkerProcess:
    Internal run-time representation of a running node worker process.
    """
 
-   worker_type = 'worker'
+   TYPE = 'worker'
 
    def __init__(self, id, who):
       """
@@ -46,7 +46,9 @@ class WorkerProcess:
       self.id = id
       self.who = who
       self.status = "starting"
+
       self.created = datetime.utcnow()
+      self.connected = None
       self.started = None
 
 
