@@ -450,7 +450,7 @@ class RouterWorkerSession(NativeWorkerSession):
                else:
                   try:
                      root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['module'], root_config['resource']))
-                  except Exception, e:
+                  except Exception as e:
                      raise ApplicationError("crossbar.error.invalid_configuration", str(e))
                   else:
                      mod_version = getattr(mod, '__version__', '?.?.?')
@@ -574,7 +574,7 @@ class RouterWorkerSession(NativeWorkerSession):
                      else:
                         try:
                            static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['module'], path_config['resource']))
-                        except Exception, e:
+                        except Exception as e:
                            raise ApplicationError("crossbar.error.invalid_configuration", str(e))
 
                   else:

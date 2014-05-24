@@ -33,6 +33,9 @@ start:
 start_pypy:
 	PYTHONPATH=. pypy -m crossbar.controller.cli start
 
+start_py34:
+	PYTHONPATH=. /home/oberstet/python341/bin/python3 -m crossbar.controller.cli start
+
 publish: clean
 	python setup.py register
 	python setup.py sdist upload

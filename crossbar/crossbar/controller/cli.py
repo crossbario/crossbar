@@ -92,16 +92,16 @@ def run_command_version(options):
 
    import crossbar
 
-   print
-   print "Crossbar.io software versions:"
-   print
-   print "Crossbar.io     : %s" % crossbar.__version__
-   print "Autobahn        : %s" % ab_ver
-   print "Twisted         : %s" % tx_ver
-   print "Python          : %s" % py_ver
-   print "UTF8 Validator  : %s" % utf8_ver
-   print "XOR Masker      : %s" % xor_ver
-   print
+   print()
+   print("Crossbar.io software versions:")
+   print()
+   print("Crossbar.io     : {0}".format(crossbar.__version__))
+   print("Autobahn        : {0}".format(ab_ver))
+   print("Twisted         : {0}".format(tx_ver))
+   print("Python          : {0}".format(py_ver))
+   print("UTF8 Validator  : {0}".format(utf8_ver))
+   print("XOR Masker      : {0}".format(xor_ver))
+   print()
 
 
 
@@ -188,9 +188,9 @@ def run_command_check(options):
       check_config_file(configfile)
    except Exception as e:
       print("Error encountered:")
-      print
+      print()
       print(e)
-      print
+      print()
    else:
       print("Ok, configuration file looks good.")
 

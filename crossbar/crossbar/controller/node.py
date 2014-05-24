@@ -588,7 +588,6 @@ class NodeControllerSession(ApplicationSession):
 
 
             def on_guest_exit_success(_):
-               print "on_guest_exit_success"
                p = self._workers[id]
                now = datetime.utcnow()
                topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
@@ -604,7 +603,6 @@ class NodeControllerSession(ApplicationSession):
                ## https://twistedmatrix.com/documents/current/api/twisted.internet.error.ProcessTerminated.html
                exit_code = reason.value.exitCode
                signal = reason.value.signal
-               print "on_guest_exit_failed", id, pid, exit_code, type(exit_code)
                try:
                   p = self._workers[id]
                   now = datetime.utcnow()
@@ -618,7 +616,7 @@ class NodeControllerSession(ApplicationSession):
                   })
                   del self._workers[id]
                except Exception as e:
-                  print "(8888", e
+                  print(e)
 
             exit.addCallbacks(on_guest_exit_success, on_guest_exit_failed)
 

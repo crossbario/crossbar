@@ -30,14 +30,14 @@ from twisted.python import log
 ##   - https://bugs.launchpad.net/pyopenssl/+bug/1244201
 ##   - https://www.openssl.org/docs/ssl/SSL_CTX_set_options.html
 ##
-SSL.OP_NO_COMPRESSION                         = 0x00020000L
-SSL.OP_CIPHER_SERVER_PREFERENCE               = 0x00400000L
-SSL.OP_SINGLE_ECDH_USE                        = 0x00080000L
-SSL.OP_SINGLE_DH_USE                          = 0x00100000L
-SSL.OP_DONT_INSERT_EMPTY_FRAGMENTS            = 0x00000800L
-SSL.OP_NO_TLSv1                               = 0x04000000L
-SSL.OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000L
-SSL.OP_NO_TICKET                              = 0x00004000L
+SSL.OP_NO_COMPRESSION                         = 0x00020000
+SSL.OP_CIPHER_SERVER_PREFERENCE               = 0x00400000
+SSL.OP_SINGLE_ECDH_USE                        = 0x00080000
+SSL.OP_SINGLE_DH_USE                          = 0x00100000
+SSL.OP_DONT_INSERT_EMPTY_FRAGMENTS            = 0x00000800
+SSL.OP_NO_TLSv1                               = 0x04000000
+SSL.OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000
+SSL.OP_NO_TICKET                              = 0x00004000
 
 SSL_DEFAULT_OPTIONS = SSL.OP_NO_SSLv2 | \
                       SSL.OP_NO_SSLv3 | \
@@ -280,8 +280,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
          if self._dhParamFilename:
             try:
                ctx.load_tmp_dh(self._dhParamFilename)
-            except Exception, e:
-               log.msg("Error: OpenSSL DH modes not active - failed to load DH parameter file [%s]" % e)
+            except Exception as e:
+               log.msg("Error: OpenSSL DH modes not active - failed to load DH parameter file [{}]".format(e))
             else:
                log.msg("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
          else:
@@ -298,8 +298,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             ##
             #print OpenSSL.SSL.ELLIPTIC_CURVE_DESCRIPTIONS
             ctx.set_tmp_ecdh_curve(ECDH_DEFAULT_CURVE_NAME)
-         except Exception, e:
-            log.msg("Warning: OpenSSL failed to set ECDH default curve [%s]" % e)
+         except Exception as e:
+            log.msg("Warning: OpenSSL failed to set ECDH default curve [{}]".format(e))
          else:
             log.msg("Ok, OpenSSL is using ECDH elliptic curve {}".format(ECDH_DEFAULT_CURVE_NAME))
 

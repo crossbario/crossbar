@@ -45,7 +45,7 @@ class GuestClientProtocol(protocol.ProcessProtocol):
             log.msg(msg, system = "{:<10} {:>6}".format(self._name, self._pid))
 
    def connectionMade(self):
-      print "guest connectionMade"
+
       config = self.factory._config
 
       if 'stdout' in config and config['stdout'] == 'close':
@@ -88,10 +88,9 @@ class GuestClientProtocol(protocol.ProcessProtocol):
       pass
 
    def processExited(self, reason):
-      print "*"*10, "processExited", reason
+      pass
 
    def processEnded(self, reason):
-      print "*"*10, "processEnded", reason
       try:
          if isinstance(reason.value,  ProcessDone):
             #log.msg("Guest {}: Ended cleanly.".format(self._pid))
@@ -104,7 +103,7 @@ class GuestClientProtocol(protocol.ProcessProtocol):
             ## should not arrive here
             pass
       except Exception as e:
-         print "XXXX", e
+         print(e)
 
 
 

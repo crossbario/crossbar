@@ -538,7 +538,7 @@ def check_component(component):
 
 
 def check_container_component(component):
-   print "FIXME: check_container_component"
+   print("FIXME: check_container_component")
 
 
 
