@@ -29,14 +29,6 @@ except Exception as e:
 finally:
    from setuptools import setup, find_packages
 
-## hard dependencies (for soft dependencies, see extra_require below)
-##
-install_requires = ['setuptools>=2.2',
-                    'zope.interface>=3.6.0',
-                    'twisted>=twisted-13.2',
-                    'autobahn[twisted]>=0.8.8',
-                    'jinja2>=2.7.2']
-
 
 ## Get package version and docstring from crossbar/__init__.py
 ##
@@ -68,14 +60,38 @@ setup (
    author_email = 'autobahnws@googlegroups.com',
    url = 'http://crossbar.io/',
    platforms = ('Any'),
-   install_requires = install_requires,
+   install_requires = [
+      'setuptools>=2.2',         # Python Software Foundation license
+      'zope.interface>=3.6.0',   # Zope Public license
+      'twisted>=twisted-13.2',   # MIT license
+      'autobahn[twisted]>=0.8.8',# Apache license
+      'jinja2>=2.7.2'            # BSD license
+   ],
    extras_require = {
-      'tls': ['cryptography>=0.4', 'pyOpenSSL>=0.14'],
-      'oracle': ['cx_Oracle>=5.1.2'],
-      'postgres': ['psycopg2>=2.5.1'],
-      'manhole': ['pyasn1>=0.1.7', 'pycrypto>=2.6.1'],
-      'msgpack': ['msgpack-python>=0.4.2'],
-      'system': ['psutil>=2.1.1', 'setproctitle>=1.1.8']
+      'tls': [
+         'cryptography>=0.4',    # Apache license
+         'pyOpenSSL>=0.14',      # Apache license
+         'pyasn1',               # BSD license
+         'pyasn1-modules',       # BSD license
+         'service_identity',     # MIT license
+      ],
+      'oracle': [
+         'cx_Oracle>=5.1.2'      # Python Software Foundation license
+      ],
+      'postgres': [
+         'psycopg2>=2.5.1'       # LGPL license
+      ],
+      'manhole': [
+         'pyasn1>=0.1.7',        # BSD license
+         'pycrypto>=2.6.1'       # Public Domain license
+      ],
+      'msgpack': [
+         'msgpack-python>=0.4.2' # Apache license
+      ],
+      'system': [
+         'psutil>=2.1.1',        # BSD license
+         'setproctitle>=1.1.8'   # BSD license
+      ]
    },
    entry_points = {
       'console_scripts': [
