@@ -32,7 +32,7 @@ from twisted.internet.error import ProcessDone, \
 
 
 
-class GuestClientProtocol(protocol.ProcessProtocol):
+class GuestWorkerClientProtocol(protocol.ProcessProtocol):
 
    def __init__(self):
       self._pid = None
@@ -107,17 +107,17 @@ class GuestClientProtocol(protocol.ProcessProtocol):
 
 
 
-class GuestClientFactory(protocol.Factory):
+class GuestWorkerClientFactory(protocol.Factory):
 
    def buildProtocol(self, addr):
-      self.proto = GuestClientProtocol()
+      self.proto = GuestWorkerClientProtocol()
       self.proto.factory = self
       return self.proto
 
 
 
 def create_guest_worker_client_factory(config, on_ready, on_exit):
-   factory = GuestClientFactory()
+   factory = GuestWorkerClientFactory()
    factory._config = config
    factory._on_ready = on_ready
    factory._on_exit = on_exit

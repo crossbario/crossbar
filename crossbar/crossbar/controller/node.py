@@ -77,6 +77,7 @@ from datetime import datetime, timedelta
 
 from crossbar.controller.process import create_process_env
 from crossbar.controller.native import create_native_worker_client_factory
+from crossbar.controller.guest import create_guest_worker_client_factory
 
 from crossbar.controller.types import *
 from autobahn.twisted.util import sleep
@@ -578,21 +579,19 @@ class NodeControllerSession(ApplicationSession):
 
       :returns: int -- The PID of the new process.
       """
+      ## prohibit starting a worker twice
+      ##
+      if id in self._workers:
+         emsg = "ERROR: could not start worker - a worker with ID '{}'' is already running (or starting)".format(id)
+         log.msg(emsg)
+         raise ApplicationError('crossbar.error.worker_already_running', emsg)
+
       try:
          checkconfig.check_guest(config)
       except Exception as e:
          raise ApplicationError('crossbar.error.invalid_configuration', 'invalid guest worker configuration: {}'.format(e))
 
-      ## the following will be used to signal guest readiness
-      ## and exit ..
-      ##
-      ready = Deferred()
-      exit = Deferred()
-
-
-
-      ## the guest process configured executable and
-      ## command line arguments
+      ## guest process executable and command line arguments
       ##
       exe = config['executable']
       args = [exe]
@@ -609,106 +608,128 @@ class NodeControllerSession(ApplicationSession):
       ##
       penv = create_process_env(config.get('options', {}))
 
+      ## log name of worker
+      ##
+      worker_logname = 'Guest'
 
-      if False:
+      ## topic URIs used (later)
+      ##
+      starting_topic = 'crossbar.node.{}.on_guest_starting'.format(self._node_id)
+      started_topic = 'crossbar.node.{}.on_guest_started'.format(self._node_id)
 
-         #factory = GuestClientFactory()
-         from crossbar.controller.guest import create_guest_worker_client_factory
+      ## create a (custom) process endpoint
+      ##
+      ep = CustomProcessEndpoint(self._node._reactor, exe, args, env = penv,
+         name = worker_logname, keeplog = options.get('traceback', None))
 
-         factory = create_guest_worker_client_factory(config, ready, exit)
+      ## add worker tracking instance to the worker map ..
+      ##
+      worker = GuestWorkerProcess(id, details.authid)
 
-         #ep = CustomProcessEndpoint(self._node._reactor,
-         #         exe,
-         #         args,
-         #         name = "Worker {}".format(id),
-         #         env = penv)
+      self._workers[id] = worker
 
-         from twisted.internet.endpoints import ProcessEndpoint
+      ## ready handling
+      ##
+      def on_ready_success(id):
+         log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
 
-         ep = ProcessEndpoint()
+         worker.status = 'started'
+         worker.started = datetime.utcnow()
 
-         ## now actually spawn the worker ..
-         ##
-         d = ep.connect(factory)
+         started_info = {
+            'id': worker.id,
+            'status': worker.status,
+            'started': utcstr(worker.started),
+            'who': worker.who
+         }
 
-         def onconnect(proto):
-            pid = proto.transport.pid
-            proto._pid = pid
-            self._workers[id] = NodeGuestWorkerProcess(pid, ready, exit, proto = proto)
-            log.msg("Guest {}: Program started.".format(pid))
-            ready.callback(None)
+         self.publish(started_topic, started_info, options = PublishOptions(exclude = [details.caller]))
 
-         def onerror(err):
-            log.msg("Guest: Program could not be started - {}".format(err.value))
-            ready.errback(err)
+         return started_info
 
-         d.addCallbacks(onconnect, onerror)
+      def on_ready_error(err):
+         del self._workers[worker.id]
 
+         emsg = 'ERROR: failed to start guest worker - {}'.format(err.value)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.cannot_start", emsg, ep.getlog())
+
+      worker.ready.addCallbacks(on_ready_success, on_ready_error)
+
+
+      def on_exit_success(res):
+         del self._workers[worker.id]
+
+      def on_exit_error(err):
+         del self._workers[worker.id]
+
+      worker.exit.addCallbacks(on_exit_success, on_exit_error)
+
+
+      ## create a transport factory for talking WAMP to the native worker
+      ##
+      transport_factory = create_guest_worker_client_factory(config, worker.ready, worker.exit)
+      transport_factory.noisy = False
+      self._workers[id].factory = transport_factory
+
+      ## now (immediately before actually forking) signal the starting of the worker
+      ##
+      starting_info = {
+         'id': id,
+         'status': worker.status,
+         'created': utcstr(worker.created),
+         'who': worker.who
+      }
+
+      ## the caller gets a progressive result ..
+      if details.progress:
+         details.progress(starting_info)
+
+      ## .. while all others get an event
+      self.publish(starting_topic, starting_info, options = PublishOptions(exclude = [details.caller]))
+
+      ## now actually fork the worker ..
+      ##
+      if True or self.debug:
+         log.msg("Starting {} with ID '{}' using command line '{}' ..".format(worker_logname, id, ' '.join(args)))
       else:
+         log.msg("Starting {} with ID '{}' ..".format(worker_logname, id))
 
-         #proto = GuestClientProtocol()
-
-         from crossbar.controller.guest import create_guest_worker_client_factory
-
-         factory = create_guest_worker_client_factory(config, ready, exit)
-         proto = factory.buildProtocol(None)
-
-         proto._name = "Worker {}".format(id)
-
-         try:
-            ## An object which provides IProcessTransport:
-            ## https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IProcessTransport.html
-            trnsp = self._node._reactor.spawnProcess(proto, exe, args, path = workdir, env = penv)
-         except Exception as e:
-            log.msg("Guest: Program could not be started - {}".format(e))
-            ready.errback(e)
-         else:
-            pid = trnsp.pid
-            proto._pid = pid
-
-            self._workers[id] = NodeGuestWorkerProcess(id, pid, ready, exit, proto = proto)
-            log.msg("Guest {}: Program started.".format(id))
-
-            ready.callback(None)
-
-            topic = 'crossbar.node.{}.on_process_start'.format(self._node._name)
-            self.publish(topic, {'id': id, 'pid': pid})
+      d = ep.connect(transport_factory)
 
 
-            def on_guest_exit_success(_):
-               p = self._workers[id]
-               now = datetime.utcnow()
-               topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
-               self.publish(topic, {
-                  'id': id,
-                  'pid': pid,
-                  'exit_code': 0,
-                  'uptime': (now - p.started).total_seconds()
-               })
-               del self._workers[id]
+      def on_connect_success(proto):
 
-            def on_guest_exit_failed(reason):
-               ## https://twistedmatrix.com/documents/current/api/twisted.internet.error.ProcessTerminated.html
-               exit_code = reason.value.exitCode
-               signal = reason.value.signal
-               try:
-                  p = self._workers[id]
-                  now = datetime.utcnow()
-                  topic = 'crossbar.node.{}.on_process_exit'.format(self._node._name)
-                  self.publish(topic, {
-                     'id': id,
-                     'pid': pid,
-                     'exit_code': exit_code,
-                     'signal': signal,
-                     'uptime': (now - p.started).total_seconds()
-                  })
-                  del self._workers[id]
-               except Exception as e:
-                  print(e)
+         ## this seems to be called immediately when the child process
+         ## has been forked. even if it then immediately fails because
+         ## e.g. the executable doesn't even exist. in other words,
+         ## I'm not sure under what conditions the deferred will errback ..
 
-            exit.addCallbacks(on_guest_exit_success, on_guest_exit_failed)
+         pid = proto.transport.pid
+         if self.debug:
+            log.msg("Guest worker process connected with PID {}".format(pid))
 
-      return ready
+         worker.pid = pid
+
+         ## proto is an instance of GuestWorkerClientProtocol
+         worker.proto = proto
+
+         worker.status = 'connected'
+         worker.connected = datetime.utcnow()
+
+
+      def on_connect_error(err):
+
+         ## not sure when this errback is triggered at all ..
+         if self.debug:
+            log.msg("ERROR: Connecting forked guest worker failed - {}".format(err))
+
+         ## in any case, forward the error ..
+         worker.ready.errback(err)
+
+      d.addCallbacks(on_connect_success, on_connect_error)
+
+      return worker.ready
 
 
 

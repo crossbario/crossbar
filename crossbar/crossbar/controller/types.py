@@ -27,7 +27,7 @@ from twisted.internet.defer import Deferred
 
 class WorkerProcess:
    """
-   Internal run-time representation of a running node worker process.
+   Internal run-time representation of a worker process.
    """
 
    TYPE = 'worker'
@@ -36,12 +36,10 @@ class WorkerProcess:
       """
       Ctor.
 
-      :param pid: The worker process PID.
-      :type pid: int
-      :param ready: A deferred that resolves when the worker is ready.
-      :type ready: instance of Deferred
-      :param exit: A deferred that resolves when the worker has exited.
-      :type exit: instance of Deferred
+      :param id: The ID of the worker.
+      :type id: str
+      :param who: Who triggered creation of this worker.
+      :type who: str
       """
       self.id = id
       self.who = who
@@ -51,11 +49,18 @@ class WorkerProcess:
       self.connected = None
       self.started = None
 
+      ## A deferred that resolves when the worker is ready.
+      self.ready = Deferred()
+
+      ## A deferred that resolves when the worker has exited.
+      self.exit = Deferred()
+
 
 
 class NativeWorkerProcess(WorkerProcess):
    """
-   Internal run-time representation of a running node worker process.
+   Internal run-time representation of a native worker (router or
+   container currently) process.
    """
 
    TYPE = 'native'
@@ -64,23 +69,12 @@ class NativeWorkerProcess(WorkerProcess):
       """
       Ctor.
 
-      :param pid: The worker process PID.
-      :type pid: int
-      :param ready: A deferred that resolves when the worker is ready.
-      :type ready: instance of Deferred
-      :param exit: A deferred that resolves when the worker has exited.
-      :type exit: instance of Deferred
-      :param factory: The WAMP client factory that connects to the worker.
-      :type factory: instance of WorkerClientFactory
+      :param id: The ID of the worker.
+      :type id: str
+      :param who: Who triggered creation of this worker.
+      :type who: str
       """
       WorkerProcess.__init__(self, id, who)
-
-      ## this will be resolved/rejected when the worker is actually
-      ## ready to receive commands via WAMP
-      self.ready = Deferred()
-
-      ## this will be resolved when the worker exits (after previously connected)
-      self.exit = Deferred()
 
       self.factory = None
       self.proto = None
@@ -89,37 +83,38 @@ class NativeWorkerProcess(WorkerProcess):
 
 class RouterWorkerProcess(NativeWorkerProcess):
    """
+   Internal run-time representation of a router worker process.
    """
+
    TYPE = 'router'
 
 
 
 class ContainerWorkerProcess(NativeWorkerProcess):
    """
+   Internal run-time representation of a container worker process.
    """
+
    TYPE = 'container'
 
 
 
 class GuestWorkerProcess(WorkerProcess):
    """
-   Internal run-time representation of a running node guest process.
+   Internal run-time representation of a guest worker process.
    """
 
    TYPE = 'guest'
 
-   def __init__(self, id, pid, ready, exit, proto):
+   def __init__(self, id, who):
       """
       Ctor.
 
-      :param pid: The worker process PID.
-      :type pid: int
-      :param ready: A deferred that resolves when the worker is ready.
-      :type ready: instance of Deferred
-      :param exit: A deferred that resolves when the worker has exited.
-      :type exit: instance of Deferred
-      :param proto: An instance of GuestClientProtocol.
-      :type proto: obj
+      :param id: The ID of the worker.
+      :type id: str
+      :param who: Who triggered creation of this worker.
+      :type who: str
       """
-      WorkerProcess.__init__(self, id, pid, ready, exit)
-      self.proto = proto
+      WorkerProcess.__init__(self, id, who)
+
+      self.proto = None
