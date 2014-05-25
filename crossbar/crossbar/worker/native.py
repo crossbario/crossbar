@@ -251,7 +251,7 @@ class NativeWorkerSession(ApplicationSession):
 
       if self._pinfo:
 
-         stats_monitor_set_topic = 'crossbar.node.{}.worker.{}.on_process_stat_monitoring_set'.format(self.config.extra.node, self.config.extra.worker)
+         stats_monitor_set_topic = 'crossbar.node.{}.worker.{}.on_process_stats_monitoring_set'.format(self.config.extra.node, self.config.extra.worker)
 
          ## stop and remove any existing monitor
          if self._pinfo_monitor:
@@ -303,6 +303,9 @@ class NativeWorkerSession(ApplicationSession):
       :param config: Manhole configuration.
       :type config: obj
       """
+      if self.debug:
+         log.msg("NativeWorkerSession.start_manhole")
+
       if not _HAS_MANHOLE:
          emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
          log.msg(emsg)
@@ -382,17 +385,59 @@ class NativeWorkerSession(ApplicationSession):
       """
       Stop Manhole.
       """
-      if self._manhole_service:
+      if self.debug:
+         log.msg("NativeWorkerSession.stop_manhole")
+
+      if not _HAS_MANHOLE:
+         emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+
+      if not self._manhole_service or self._manhole_service.status != 'started':
+         emsg = "ERROR: cannot stop manhole - not running (or already shutting down)"
+         raise ApplicationError("crossbar.error.not_started", emsg)
+
+      self._manhole_service.status = 'stopping'
+
+      stopping_topic = 'crossbar.node.{}.worker.{}.on_manhole_stopping'.format(self.config.extra.node, self.config.extra.worker)
+      stopping_info = None
+
+      ## the caller gets a progressive result ..
+      if details.progress:
+         details.progress(stopping_info)
+
+      ## .. while all others get an event
+      self.publish(stopping_topic, stopping_info, options = PublishOptions(exclude = [details.caller]))
+
+      try:
          yield self._manhole_service.port.stopListening()
-         self._manhole_service = None
-         topic = 'crossbar.node.{}.worker.{}.on_manhole_stop'.format(self.config.extra.node, self.config.extra.worker)
-         self.publish(topic)
-      else:
-         raise ApplicationError("crossbar.error.could_not_stop", "Could not stop manhole - service is not running")
+      except Exception as e:
+         raise Exception("INTERNAL ERROR: don't know how to handle a failed called to stopListening() - {}".format(e))
+
+      self._manhole_service = None
+
+      stopped_topic = 'crossbar.node.{}.worker.{}.on_manhole_stopped'.format(self.config.extra.node, self.config.extra.worker)
+      stopped_info = None
+      self.publish(stopped_topic, stopped_info, options = PublishOptions(exclude = [details.caller]))
+
+      returnValue(stopped_info)
 
 
 
    def get_manhole(self, details = None):
+      """
+      Get current manhole service information.
+
+      :returns: dict -- A dict with service information or `None` if the service is not running.
+      """
+      if self.debug:
+         log.msg("NativeWorkerSession.get_manhole")
+
+      if not _HAS_MANHOLE:
+         emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+
       if not self._manhole_service:
          return None
       else:
@@ -406,6 +451,9 @@ class NativeWorkerSession(ApplicationSession):
 
       :returns list -- List of CPU IDs the process affinity is set to.
       """
+      if self.debug:
+         log.msg("NativeWorkerSession.get_cpu_affinity")
+
       if not _HAS_PSUTIL:
          emsg = "ERROR: unable to get CPU affinity - required package 'psutil' is not installed"
          log.msg(emsg)
@@ -417,7 +465,7 @@ class NativeWorkerSession(ApplicationSession):
       except Exception as e:
          emsg = "ERROR: could not get CPU affinity ({})".format(e)
          log.msg(emsg)
-         raise ApplicationError("crossbar.error.request_error", emsg)
+         raise ApplicationError("crossbar.error.runtime_error", emsg)
       else:
          res = {'affinity': current_affinity}
          return res
@@ -431,6 +479,9 @@ class NativeWorkerSession(ApplicationSession):
       :param cpus: List of CPU IDs to set process affinity to.
       :type cpus: list
       """
+      if self.debug:
+         log.msg("NativeWorkerSession.set_cpu_affinity")
+
       if not _HAS_PSUTIL:
          emsg = "ERROR: unable to set CPU affinity - required package 'psutil' is not installed"
          log.msg(emsg)
@@ -443,16 +494,21 @@ class NativeWorkerSession(ApplicationSession):
       except Exception as e:
          emsg = "ERROR: could not set CPU affinity ({})".format(e)
          log.msg(emsg)
-         raise ApplicationError("crossbar.error.request_error", emsg)
+         raise ApplicationError("crossbar.error.runtime_error", emsg)
       else:
 
-         ## publish event "on_component_start" to all but the caller
+         ## publish info to all but the caller ..
          ##
-         topic = 'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.worker)
-         res = {'affinity': new_affinity, 'who': details.authid}
-         self.publish(topic, res, options = PublishOptions(exclude = [details.caller]))
+         cpu_affinity_set_topic = 'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.worker)
+         cpu_affinity_set_info = {
+            'affinity': new_affinity,
+            'who': details.authid
+         }
+         self.publish(cpu_affinity_set_topic, cpu_affinity_set_info, options = PublishOptions(exclude = [details.caller]))
 
-         return res
+         ## .. and return info directly to caller
+         ##
+         return cpu_affinity_set_info
 
 
 
@@ -462,6 +518,9 @@ class NativeWorkerSession(ApplicationSession):
 
       :returns list -- List of module search paths.
       """
+      if self.debug:
+         log.msg("NativeWorkerSession.get_pythonpath")
+
       return sys.path
 
 
@@ -477,6 +536,9 @@ class NativeWorkerSession(ApplicationSession):
                       Otherwise append.
       :type prepend: bool
       """
+      if self.debug:
+         log.msg("NativeWorkerSession.add_pythonpath")
+
       paths_added = []
       for p in paths:
          ## transform all paths (relative to cbdir) into absolute paths
@@ -518,6 +580,9 @@ class NativeWorkerSession(ApplicationSession):
 
       :returns str -- Current time (UTC) in UTC ISO 8601 format.
       """
+      if self.debug:
+         log.msg("NativeWorkerSession.utcnow")
+
       return utcnow()
 
 
@@ -528,6 +593,9 @@ class NativeWorkerSession(ApplicationSession):
 
       :returns str -- Start time (UTC) in UTC ISO 8601 format.
       """
+      if self.debug:
+         log.msg("NativeWorkerSession.started")
+
       return utcstr(self._started)
 
 
@@ -538,6 +606,9 @@ class NativeWorkerSession(ApplicationSession):
 
       :returns float -- Uptime in seconds.
       """
+      if self.debug:
+         log.msg("NativeWorkerSession.uptime")
+
       now = datetime.utcnow()
       return (now - self._started).total_seconds()
 
