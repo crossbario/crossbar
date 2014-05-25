@@ -219,23 +219,23 @@ class RouterWorkerSession(NativeWorkerSession):
 
       ## the procedures registered
       procs = [
-         'list_realms',
-         'start_realm',
-         'stop_realm',
-         'list_components',
-         'start_component',
-         'stop_component',
-         'list_transports',
-         'start_transport',
-         'stop_transport',
-         'list_links',
-         'start_link',
-         'stop_link'
+         'get_router_realms',
+         'start_router_realm',
+         'stop_router_realm',
+         'get_router_components',
+         'start_router_component',
+         'stop_router_component',
+         'get_router_transports',
+         'start_router_transport',
+         'stop_router_transport',
+         'get_router_links',
+         'start_router_link',
+         'stop_router_link'
       ]
 
       dl = []
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.router.{}'.format(self.config.extra.node, self.config.extra.worker, proc)
+         uri = 'crossbar.node.{}.worker.{}.{}'.format(self.config.extra.node, self.config.extra.worker, proc)
          if self.debug:
             log.msg("Registering procedure '{}'".format(uri))
          dl.append(self.register(getattr(self, proc), uri))
@@ -249,20 +249,20 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def list_realms(self):
+   def get_router_realms(self):
       ## FIXME
       return []
 
 
 
-   def start_realm(self, realm, config):
+   def start_router_realm(self, realm, config):
       if self.debug:
          log.msg("Worker {}: realm started".format(self.config.extra.worker))
       return 1
 
 
 
-   def stop_realm(self, id, close_sessions = False):
+   def stop_router_realm(self, id, close_sessions = False):
       """
       Stop a router realm. No new session will be allowed to attach to the
       realm Optionally, close all sessions currently attached to the realm.
@@ -277,7 +277,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def list_components(self, router_index):
+   def get_router_components(self, router_index):
       """
       List currently running application components.
       """
@@ -294,7 +294,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def start_component(self, router_index, realm, config):
+   def start_router_component(self, router_index, realm, config):
       """
       Dynamically start an application component to run next to the router in "embedded mode".
 
@@ -371,7 +371,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def stop_component(self, router_index, component_index):
+   def stop_router_component(self, router_index, component_index):
       """
       Stop an application component on this router.
       """
@@ -390,7 +390,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def list_transports(self, router_index):
+   def get_router_transports(self, router_index):
       """
       List currently running transports.
       """
@@ -402,7 +402,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def start_transport(self, config):
+   def start_router_transport(self, config):
       """
       Start a transport on this router.
       """
@@ -759,7 +759,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def stop_transport(self, transport_index):
+   def stop_router_transport(self, transport_index):
       """
       Stop a transport on this router on this router.
 
@@ -789,7 +789,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def list_links(self, router_index):
+   def get_router_links(self, router_index):
       """
       List currently running links.
       """
@@ -797,7 +797,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def start_link(self, router_index, config):
+   def start_router_link(self, router_index, config):
       """
       Start a link on this router.
       """
@@ -806,7 +806,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def stop_link(self, router_index, link_index):
+   def stop_router_link(self, router_index, link_index):
       """
       Stop a link on this router.
       """

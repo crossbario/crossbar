@@ -20,7 +20,6 @@ from __future__ import absolute_import
 
 __all__ = ['NativeWorkerSession']
 
-
 import os
 import sys
 import gc
@@ -45,7 +44,9 @@ try:
    import pyasn1
    from twisted.cred import checkers, portal
    from twisted.conch.manhole import ColoredManhole
-   from twisted.conch.manhole_ssh import ConchFactory, TerminalRealm
+   from twisted.conch.manhole_ssh import ConchFactory, \
+                                         TerminalRealm, \
+                                         TerminalSession
 except ImportError as e:
    _HAS_MANHOLE = False
    _MANHOLE_MISSING_REASON = str(e)
@@ -72,6 +73,7 @@ from autobahn.wamp.types import PublishOptions, \
 
 from crossbar import controller
 from crossbar.common.reloader import TrackingModuleReloader
+from crossbar.common import checkconfig
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
 
@@ -82,7 +84,7 @@ class ManholeService:
    This class is for _internal_ use within NativeWorkerSession.
    """
 
-   def __init__(self, config, port):
+   def __init__(self, config, who):
       """
       Ctor.
 
@@ -91,9 +93,12 @@ class ManholeService:
       :param port: The listening port this service runs on.
       :type port: instance of IListeningPort
       """
-      self.started = datetime.utcnow()
       self.config = config
-      self.port = port
+      self.who = who
+      self.status = 'starting'
+      self.created = datetime.utcnow()
+      self.started = None
+      self.port = None
 
 
    def marshal(self):
@@ -104,8 +109,10 @@ class ManholeService:
       """
       now = datetime.utcnow()
       return {
-         'started': utcstr(self.started),
-         'uptime': (now - self.started).total_seconds(),
+         'created': utcstr(self.created),
+         'status': self.status,
+         'started': utcstr(self.started) if self.started else None,
+         'uptime': (now - self.started).total_seconds() if self.started else None,
          'config': self.config
       }
 
@@ -302,12 +309,12 @@ class NativeWorkerSession(ApplicationSession):
          raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
       if self._manhole_service:
-         emsg = "ERROR: could not start manhole - already running"
+         emsg = "ERROR: could not start manhole - already running (or starting)"
          log.msg(emsg)
-         raise ApplicationError("crossbar.error.already_running", emsg)
+         raise ApplicationError("crossbar.error.already_started", emsg)
 
       try:
-         common.config.check_manhole(config)
+         checkconfig.check_manhole(config)
       except Exception as e:
          emsg = "ERROR: could not start manhole - invalid configuration ({})".format(e)
          log.msg(emsg)
@@ -323,32 +330,50 @@ class NativeWorkerSession(ApplicationSession):
       ##
       namespace = {'worker': self}
 
+      class PatchedTerminalSession(TerminalSession):
+         ## get rid of
+         ## exceptions.AttributeError: TerminalSession instance has no attribute 'windowChanged'
+         def windowChanged(self, winSize):
+            pass
+
       rlm = TerminalRealm()
+      rlm.sessionFactory = PatchedTerminalSession # monkey patch
       rlm.chainedProtocolFactory.protocolFactory = lambda _: ColoredManhole(namespace)
 
       ptl = portal.Portal(rlm, [checker])
 
       factory = ConchFactory(ptl)
+      factory.noisy = False
+
+      self._manhole_service = ManholeService(config, details.authid)
+
+      starting_topic = 'crossbar.node.{}.worker.{}.on_manhole_starting'.format(self.config.extra.node, self.config.extra.worker)
+      starting_info = self._manhole_service.marshal()
+
+      ## the caller gets a progressive result ..
+      if details.progress:
+         details.progress(starting_info)
+
+      ## .. while all others get an event
+      self.publish(starting_topic, starting_info, options = PublishOptions(exclude = [details.caller]))
 
       try:
-         listening_port = yield create_listening_port_from_config(config['endpoint'], factory, self.config.extra.cbdir, reactor)
-         self._manhole_service = ManholeService(config, listening_port)
-
+         self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'], factory, self.config.extra.cbdir, reactor)
       except Exception as e:
-#            emsg = "ERROR: could not connect container component to router - transport establishment failed ({})".format(err.value)
-#            log.msg(emsg)
-#            raise ApplicationError('crossbar.error.cannot_connect', emsg)
-         raise ApplicationError("crossbar.error.cannot_listen", "Could not start manhole: '{}'".format(e))
+         self._manhole_service = None
+         emsg = "ERROR: manhole service endpoint cannot listen - {}".format(e)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
-      else:
-         ## publish event "on_manhole_start" to all but the caller
-         ##
-         topic = 'crossbar.node.{}.worker.{}.on_manhole_start'.format(self.config.extra.node, self.config.extra.worker)
-         event = self._manhole_service.marshal()
+      ## alright, manhole has started
+      self._manhole_service.started = datetime.utcnow()
+      self._manhole_service.status = 'started'
 
-         #self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
+      started_topic = 'crossbar.node.{}.worker.{}.on_manhole_started'.format(self.config.extra.node, self.config.extra.worker)
+      started_info = self._manhole_service.marshal()
+      self.publish(started_topic, started_info, options = PublishOptions(exclude = [details.caller]))
 
-         returnValue(event)
+      returnValue(started_info)
 
 
 
