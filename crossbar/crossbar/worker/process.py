@@ -87,7 +87,7 @@ def run():
    try:
       import setproctitle
    except ImportError:
-      log.msg("Warning, could not set process title (setproctitle not installed)")
+      log.msg("Warning: could not set worker process title (setproctitle not installed)")
    else:
       ## set process title if requested to
       ##
@@ -130,12 +130,14 @@ def run():
 
       def connectionLost(self, reason):
          try:
+            ## this log message is unlikely to reach the controller (unless
+            ## only stdin/stdout pipes were lost, but not stderr)
             log.msg("Connection to node controller lost.")
             WampWebSocketServerProtocol.connectionLost(self, reason)
          except:
             pass
          finally:
-            ## loosing the connection to the node controller (the pipes) is fatal.
+            ## loosing the connection to the node controller is fatal:
             ## stop the reactor and exit with error
             if reactor.running:
                reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)

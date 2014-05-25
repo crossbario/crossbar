@@ -34,6 +34,9 @@ from twisted.internet.defer import Deferred, \
                                    inlineCallbacks, \
                                    returnValue
 
+from twisted.internet.task import LoopingCall
+
+
 try:
    ## Manhole support needs a couple of packages optional for Crossbar.
    ## So we catch import errors and note those.
@@ -61,7 +64,7 @@ else:
 
 
 
-from autobahn.util import utcnow, utcstr
+from autobahn.util import utcnow, utcstr, rtime
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, \
@@ -136,10 +139,12 @@ class NativeWorkerSession(ApplicationSession):
 
       if _HAS_PSUTIL:
          self._pinfo = ProcessInfo()
-         self._sinfo = SystemInfo()
+         self._pinfo_monitor = None
+         self._pinfo_monitor_seq = 0
       else:
          self._pinfo = None
-         self._sinfo
+         self._pinfo_monitor = None
+         self._pinfo_monitor_seq = None
          log.msg("Warning: process utilities not available")
 
       self.join(self.config.realm)
@@ -163,7 +168,9 @@ class NativeWorkerSession(ApplicationSession):
          'uptime',
          'get_pythonpath',
          'add_pythonpath',
-         'get_pinfo'
+         'get_process_info',
+         'get_process_stats',
+         'set_process_stats_monitoring'
       ]
 
       dl = []
@@ -191,22 +198,93 @@ class NativeWorkerSession(ApplicationSession):
 
 
 
-   def get_pinfo(self, details = None):
+   def get_process_info(self, details = None):
+      """
+      Get process information (open files, sockets, ...).
+
+      :returns: dict -- Dictionary with process information.
+      """
+      if self.debug:
+         log.msg("NativeWorkerSession.get_process_info")
+
       if self._pinfo:
-         return self._pinfo.stats(), self._sinfo.stats()
-         return self._pinfo.netio()
-         return self._pinfo.open_fds()
+         return self._pinfo.get_info()
+      else:
+         emsg = "ERROR: could not retrieve process statistics - required packages not installed"
+         raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+
+
+
+   def get_process_stats(self, details = None):
+      """
+      Get process statistics (CPU, memory, I/O).
+
+      :returns: dict -- Dictionary with process statistics.
+      """
+      if self.debug:
+         log.msg("NativeWorkerSession.get_process_stats")
+
+      if self._pinfo:
+         return self._pinfo.get_stats()
+      else:
+         emsg = "ERROR: could not retrieve process statistics - required packages not installed"
+         raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+
+
+
+   def set_process_stats_monitoring(self, interval, details = None):
+      """
+      Enable/disable periodic publication of process statistics.
+
+      :param interval: The monitoring interval in seconds. Set to 0 to disable monitoring.
+      :type interval: float
+      """
+      if self.debug:
+         log.msg("NativeWorkerSession.set_process_stats_monitoring", interval)
+
+      if self._pinfo:
+
+         stats_monitor_set_topic = 'crossbar.node.{}.worker.{}.on_process_stat_monitoring_set'.format(self.config.extra.node, self.config.extra.worker)
+
+         ## stop and remove any existing monitor
+         if self._pinfo_monitor:
+            self._pinfo_monitor.stop()
+            self._pinfo_monitor = None
+
+            self.publish(stats_monitor_set_topic, 0, options = PublishOptions(exclude = [details.caller]))
+
+         ## possibly start a new monitor
+         if interval > 0:
+            stats_topic = 'crossbar.node.{}.worker.{}.on_process_stats'.format(self.config.extra.node, self.config.extra.worker)
+
+            def publish_stats():
+               stats = self._pinfo.get_stats()
+               self._pinfo_monitor_seq += 1
+               stats['seq'] = self._pinfo_monitor_seq
+               self.publish(stats_topic, stats)
+
+            self._pinfo_monitor = LoopingCall(publish_stats)
+            self._pinfo_monitor.start(interval)
+
+            self.publish(stats_monitor_set_topic, interval, options = PublishOptions(exclude = [details.caller]))
+      else:
+         emsg = "ERROR: cannot setup process statistics monitor - required packages not installed"
+         raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
 
 
    def trigger_gc(self, details = None):
       """
       Triggers a garbage collection.
+
+      :returns: float -- Time consumed for GC in ms.
       """
       if self.debug:
          log.msg("NativeWorkerSession.trigger_gc")
 
+      started = rtime()
       gc.collect()
+      return 1000. * (rtime() - started)
 
 
 

@@ -47,7 +47,6 @@ if _HAS_PSUTIL:
       def __init__(self):
          """
          """
-         self._stats_seq = 0
 
       def cpu(self):
          return {
@@ -59,9 +58,7 @@ if _HAS_PSUTIL:
       def stats(self):
          """
          """
-         self._stats_seq += 1
          res = {}
-         res['seq'] = self._stats_seq
          res['ts'] = utcnow()
          res['cpu'] = self.cpu_stats()
          res['mem'] = self.mem_stats()
@@ -162,15 +159,13 @@ if _HAS_PSUTIL:
          Ctor.
          """
          self._p = psutil.Process()
-         self._stats_seq = 0
 
 
-      def stats(self):
+      def get_stats(self):
          """
+         Get process statistics.
          """
-         self._stats_seq += 1
          res = {}
-         res['seq'] = self._stats_seq
          res['ts'] = utcnow()
 
          s = self._p.num_ctx_switches()
@@ -206,8 +201,9 @@ if _HAS_PSUTIL:
          return res
 
 
-      def used_descriptors(self):
+      def get_info(self):
          """
+         Gets process information.
          """
          descriptors = None
          try:
@@ -221,8 +217,8 @@ if _HAS_PSUTIL:
          res = {
             'descriptors': descriptors,
             'threads': cnt_threads,
-            'files': len(self._p.open_files()),
-            'sockets': len(self._p.connections(kind = 'all'))
+            'files': self.open_files(),
+            'sockets': self.open_sockets()
          }
          return res
 
@@ -265,17 +261,4 @@ if _HAS_PSUTIL:
                'remote': raddr,
                'status': status
             })
-         return res
-
-
-
-      def open_fds(self):
-         """
-         Returns files and sockets currently opened by this process.
-
-         :returns: dict -- A dict with two lists.
-         """
-         res = {}
-         res['sockets'] = self.open_sockets()
-         res['files'] = self.open_files()
          return res

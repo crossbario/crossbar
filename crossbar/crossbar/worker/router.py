@@ -186,6 +186,7 @@ class RouterWorkerSession(NativeWorkerSession):
    def onJoin(self, details):
       """
       """
+      self._f = open("/tmp/test.txt", 'w')
       ## Jinja2 templates for Web (like WS status page et al)
       ##
       templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))

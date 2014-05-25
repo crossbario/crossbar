@@ -25,28 +25,49 @@
 
          <tr>
             <td>Start a new Router with ID 'router1'.</td>
-            <td><button onclick="test_start_router('router1')">Start router1</button></td>
+            <td><button onclick="test_start_router('router1')">Start Router</button></td>
          </tr>
 
          <tr>
             <td>Stop Router with ID 'router1'.</td>
-            <td><button onclick="test_stop_router('router1')">Stop router1</button></td>
+            <td><button onclick="test_stop_router('router1')">Stop Router</button></td>
          </tr>
 
          <tr>
             <td>Kill Router with ID 'router1'.</td>
-            <td><button onclick="test_stop_router('router1', true)">Kill router1</button></td>
+            <td><button onclick="test_stop_router('router1', true)">Kill Router</button></td>
          </tr>
 
          <tr>
             <td>Get log for Router with ID 'router1'.</td>
-            <td><button onclick="test_get_worker_log('router1', 40)">Get log for router1</button></td>
+            <td><button onclick="test_get_worker_log('router1', 40)">Get Worker Log</button></td>
          </tr>
 
          <tr>
             <td>Trigger a GC on Router with ID 'router1'.</td>
-            <td><button onclick="test_trigger_gc('router1')">Trigger GC for router1</button></td>
+            <td><button onclick="test_trigger_gc('router1')">Trigger Worker GC</button></td>
          </tr>
+
+         <tr>
+            <td>Get process statistics for Router with ID 'router1'.</td>
+            <td><button onclick="test_get_process_stats('router1')">Get Process Stats</button></td>
+         </tr>
+
+         <tr>
+            <td>Get process information for Router with ID 'router1'.</td>
+            <td><button onclick="test_get_process_info('router1')">Get Process Info</button></td>
+         </tr>
+
+         <tr>
+            <td>Enable process statistics monitoring for Router with ID 'router1'.</td>
+            <td><button onclick="test_set_process_stats_monitoring('router1', 1)">Enable Process Stats Monitoring</button></td>
+         </tr>
+
+         <tr>
+            <td>Disable process statistics monitoring for Router with ID 'router1'.</td>
+            <td><button onclick="test_set_process_stats_monitoring('router1', 0)">Disable Process Stats Monitoring</button></td>
+         </tr>
+
 
 
          <tr>
@@ -65,6 +86,8 @@
          </tr>
 
       </table>
+
+      <br><br><br>
 
       <table>
 
@@ -237,7 +260,7 @@
 
             var options = {
                debug: true,
-               //python: '/home/oberstet/pypy23/bin/pypy',
+               python: '/home/oberstet/pypy23/bin/pypy',
                traceback: 100
             };
 
@@ -253,6 +276,12 @@
                      function (args) {
                         var log_entry = args[0];
                         console.log('Log:', worker_id, log_entry);
+                     });
+
+                  session.subscribe('crossbar.node.' + nodename + '.worker.' + worker_id + '.on_process_stats',
+                     function (args) {
+                        var stats = args[0];
+                        console.log('Process stats:', worker_id, stats);
                      });
                },
                logerr,
@@ -294,12 +323,46 @@
          function test_trigger_gc(worker_id) {
 
             session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.trigger_gc').then(
-               function () {
-                  console.log('GC performed');
+               function (duration) {
+                  console.log('GC performed in ' + duration + ' ms');
                },
                logerr
             );
          }
+
+
+         function test_get_process_stats(worker_id) {
+
+            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.get_process_stats').then(
+               function (stats) {
+                  console.log('Process statistics:', stats);
+               },
+               logerr
+            );
+         }
+
+
+         function test_get_process_info(worker_id) {
+
+            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.get_process_info').then(
+               function (info) {
+                  console.log('Process information:', info);
+               },
+               logerr
+            );
+         }
+
+
+         function test_set_process_stats_monitoring(worker_id, interval) {
+
+            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.set_process_stats_monitoring', [interval]).then(
+               function () {
+                  console.log('process stats monitoring set', worker_id, interval);
+               },
+               logerr
+            );
+         }
+
 
 
          function test_start_container() {
