@@ -30,32 +30,23 @@ from twisted.internet import defer
 
 
 
-class _CustomWrapIProtocol(_WrapIProtocol):
+class _WorkerWrapIProtocol(_WrapIProtocol):
    """
-   Wraps an IProtocol into an IProcessProtocol which logs `stderr` in
-   a format that includes a settable name and the PID of the process
-   from which we receive.
+   Wraps an IProtocol into an IProcessProtocol which forwards data
+   received on Worker._log_fds to WorkerProcess.log().
    """
 
    def childDataReceived(self, childFD, data):
-      if childFD == 2:
-         for msg in data.split('\n'):
-            msg = msg.strip()
-            if msg != "":
-               if self._log is not None:
-                  self._log.append(msg)
-                  if self._keeplog > 0 and len(self._log) > self._keeplog:
-                     self._log.popleft()
-               name = self._name or "Child"
-               log.msg(msg, system = "{:<10} {:>6}".format(name, self.transport.pid), override_system = True)
+      if childFD in self._worker._log_fds:
+         self._worker.log(childFD, data)
       else:
          _WrapIProtocol.childDataReceived(self, childFD, data)
 
 
 
-class CustomProcessEndpoint(ProcessEndpoint):
+class WorkerProcessEndpoint(ProcessEndpoint):
    """
-   A custom process endpoint that supports advanced log features.
+   A custom process endpoint for workers.
 
    :see: http://twistedmatrix.com/documents/current/api/twisted.internet.endpoints.ProcessEndpoint.html
    """
@@ -64,47 +55,21 @@ class CustomProcessEndpoint(ProcessEndpoint):
       """
       Ctor.
 
-      :param name: The log system name to use for logging messages
-                   received from process child over stderr.
-      :type name: str
-      :param keeplog: If not `None`, buffer log message received to be later
-                      retrieved via getlog(). If `0`, keep infinite log internally.
-                      If `> 0`, keep at most such many log entries in buffer.
-      :type keeplog: int or None
+      :param worker: The worker this endpoint is being used for.
+      :type worker: instance of WorkerProcess
       """
-      self._name = kwargs.pop('name', None)
-      self._keeplog = kwargs.pop('keeplog', None)
-
-      if self._keeplog is not None:
-         self._log = deque()
-      else:
-         self._log = None
-
+      self._worker = kwargs.pop('worker')
       ProcessEndpoint.__init__(self, *args, **kwargs)
-
-
-   def getlog(self):
-      """
-      Get buffered log.
-
-      :returns: list -- Buffered log.
-      """
-      if self._log:
-         return list(self._log)
-      else:
-         return []
 
 
    def connect(self, protocolFactory):
       """
-      See base class ctor.
+      See base class.
       """
       proto = protocolFactory.buildProtocol(_ProcessAddress())
       try:
-         wrapped = _CustomWrapIProtocol(proto, self._executable, self._errFlag)
-         wrapped._name = self._name
-         wrapped._log = self._log
-         wrapped._keeplog = self._keeplog
+         wrapped = _WorkerWrapIProtocol(proto, self._executable, self._errFlag)
+         wrapped._worker = self._worker
          self._spawnProcess(wrapped,
             self._executable, self._args, self._env, self._path, self._uid,
             self._gid, self._usePTY, self._childFDs)

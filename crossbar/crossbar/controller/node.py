@@ -64,7 +64,7 @@ import socket
 import os
 
 from twisted.internet.protocol import ProcessProtocol
-from crossbar.twisted.process import CustomProcessEndpoint
+from crossbar.twisted.process import WorkerProcessEndpoint
 
 from twisted.internet import protocol
 import re, json
@@ -149,6 +149,7 @@ class NodeControllerSession(ApplicationSession):
          'shutdown',
          'get_info',
          'get_workers',
+         'get_worker_log',
          'start_router',
          'stop_router',
          'start_container',
@@ -255,6 +256,24 @@ class NodeControllerSession(ApplicationSession):
             'uptime': (now - worker.started).total_seconds() if worker.started else None,
          })
       return res
+
+
+
+   def get_worker_log(self, id, limit = None, details = None):
+      """
+      Get buffered worker log.
+
+      :param limit: Optionally, limit the amount of log entries returned
+         to the last N entries.
+      :type limit: None or int
+
+      :returns: list -- Buffered log.
+      """
+      if id not in self._workers:
+         emsg = "ERROR: no worker with ID '{}'".format(id)
+         raise ApplicationError('crossbar.error.no_such_worker', emsg)
+
+      return self._workers[id].getlog(limit)
 
 
 
@@ -374,7 +393,7 @@ class NodeControllerSession(ApplicationSession):
 
       ## create worker process environment
       ##
-      penv = create_process_env(options)
+      worker_env = create_process_env(options)
 
       ## log name of worker
       ##
@@ -391,21 +410,20 @@ class NodeControllerSession(ApplicationSession):
       else:
          raise Exception("logic error")
 
-      ## create a (custom) process endpoint
-      ##
-      ep = CustomProcessEndpoint(self._node._reactor, exe, args, env = penv,
-         name = worker_logname, keeplog = options.get('traceback', None))
-
       ## add worker tracking instance to the worker map ..
       ##
       if wtype == 'router':
-         worker = RouterWorkerProcess(id, details.authid)
+         worker = RouterWorkerProcess(self, id, details.authid, keeplog = options.get('traceback', None))
       elif wtype == 'container':
-         worker = ContainerWorkerProcess(id, details.authid)
+         worker = ContainerWorkerProcess(self, id, details.authid, keeplog = options.get('traceback', None))
       else:
          raise Exception("logic error")
 
       self._workers[id] = worker
+
+      ## create a (custom) process endpoint
+      ##
+      ep = WorkerProcessEndpoint(self._node._reactor, exe, args, env = worker_env, worker = worker)
 
       ## ready handling
       ##
@@ -431,7 +449,7 @@ class NodeControllerSession(ApplicationSession):
 
          emsg = 'ERROR: failed to start native worker - {}'.format(err.value)
          log.msg(emsg)
-         raise ApplicationError("crossbar.error.cannot_start", emsg, ep.getlog())
+         raise ApplicationError("crossbar.error.cannot_start", emsg, worker.getlog())
 
       worker.ready.addCallbacks(on_ready_success, on_ready_error)
 
@@ -488,6 +506,7 @@ class NodeControllerSession(ApplicationSession):
          if self.debug:
             log.msg("Native worker process connected with PID {}".format(pid))
 
+         ## note the PID of the worker
          worker.pid = pid
 
          ## proto is an instance of NativeWorkerClientProtocol

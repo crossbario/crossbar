@@ -190,7 +190,7 @@ class RouterWorkerSession(NativeWorkerSession):
       ##
       templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
       if self.debug:
-         log.msg("Using Crossbar.io web templates from {}".format(templates_dir))
+         log.msg("Using Web templates from {}".format(templates_dir))
       self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
 
       ## factory for producing (per-realm) routers
@@ -235,12 +235,14 @@ class RouterWorkerSession(NativeWorkerSession):
       dl = []
       for proc in procs:
          uri = 'crossbar.node.{}.worker.{}.router.{}'.format(self.config.extra.node, self.config.extra.worker, proc)
+         if self.debug:
+            log.msg("Registering procedure '{}'".format(uri))
          dl.append(self.register(getattr(self, proc), uri))
 
       regs = yield DeferredList(dl)
 
       if self.debug:
-         log.msg("RouterWorker procedures registered.")
+         log.msg("RouterWorker registered {} procedures".format(len(regs)))
 
       yield NativeWorkerSession.onJoin(self, details)
 

@@ -21,7 +21,6 @@ from __future__ import absolute_import
 __all__ = ['run']
 
 
-
 def run():
    """
    Entry point into (native) worker processes. This wires up stuff such that

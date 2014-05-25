@@ -39,6 +39,17 @@
          </tr>
 
          <tr>
+            <td>Get log for Router with ID 'router1'.</td>
+            <td><button onclick="test_get_worker_log('router1', 40)">Get log for router1</button></td>
+         </tr>
+
+         <tr>
+            <td>Trigger a GC on Router with ID 'router1'.</td>
+            <td><button onclick="test_trigger_gc('router1')">Trigger GC for router1</button></td>
+         </tr>
+
+
+         <tr>
             <td>Start a new Container with ID 'container1'.</td>
             <td><button onclick="test_start_container('container1')">Start container1</button></td>
          </tr>
@@ -222,16 +233,27 @@
          }
 
 
-         function test_start_router(id) {
+         function test_start_router(worker_id) {
 
             var options = {
+               debug: true,
                //python: '/home/oberstet/pypy23/bin/pypy',
-               //traceback: 100
+               traceback: 100
             };
 
-            session.call('crossbar.node.' + nodename + '.start_router', [id, options], {}, {receive_progress: true}).then(
+            session.call('crossbar.node.' + nodename + '.start_router', [worker_id, options], {}, {receive_progress: true}).then(
                function (res) {
-                  console.log('done', res);
+
+                  console.log('router started', res);
+
+                  // subscribe to worker log event (just an example, there are many more worker event types)
+                  // => unsubscribe when worker stops
+                  //
+                  session.subscribe('crossbar.node.' + nodename + '.worker.' + worker_id + '.on_log',
+                     function (args) {
+                        var log_entry = args[0];
+                        console.log('Log:', worker_id, log_entry);
+                     });
                },
                logerr,
                function (progress) {
@@ -251,6 +273,31 @@
                function (progress) {
                   console.log('progress', progress);
                }
+            );
+         }
+
+
+         function test_get_worker_log(id, limit) {
+
+            session.call('crossbar.node.' + nodename + '.get_worker_log', [id, limit]).then(
+               function (log_entries) {
+                  console.log("Log length", log_entries.length);
+                  log_entries.forEach(function (log_line) {
+                     console.log(log_line);
+                  });
+               },
+               logerr
+            );
+         }
+
+
+         function test_trigger_gc(worker_id) {
+
+            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.trigger_gc').then(
+               function () {
+                  console.log('GC performed');
+               },
+               logerr
             );
          }
 

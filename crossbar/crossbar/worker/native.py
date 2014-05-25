@@ -23,6 +23,8 @@ __all__ = ['NativeWorkerSession']
 
 import os
 import sys
+import gc
+
 from datetime import datetime
 
 from twisted.python import log
@@ -124,7 +126,7 @@ class NativeWorkerSession(ApplicationSession):
       self.debug_app = True
 
       if self.debug:
-         log.msg("Connected to node management router.")
+         log.msg("Connected to management router")
 
       self._module_tracker = TrackingModuleReloader(debug = True)
 
@@ -137,6 +139,8 @@ class NativeWorkerSession(ApplicationSession):
          self._sinfo = SystemInfo()
       else:
          self._pinfo = None
+         self._sinfo
+         log.msg("Warning: process utilities not available")
 
       self.join(self.config.realm)
 
@@ -165,12 +169,14 @@ class NativeWorkerSession(ApplicationSession):
       dl = []
       for proc in procs:
          uri = 'crossbar.node.{}.worker.{}.{}'.format(self.config.extra.node, self.config.extra.worker, proc)
+         if True or self.debug:
+            log.msg("Registering procedure '{}'".format(uri))
          dl.append(self.register(getattr(self, proc), uri, options = RegisterOptions(details_arg = 'details', discloseCaller = True)))
 
       regs = yield DeferredList(dl)
 
       if self.debug:
-         log.msg("NativeWorker procedures registered.")
+         log.msg("NativeWorker registered {} procedures".format(len(regs)))
 
       ## signal that this worker is ready for setup. the actual setup procedure
       ## will either be sequenced from the local node configuration file or remotely
@@ -181,7 +187,7 @@ class NativeWorkerSession(ApplicationSession):
          options = PublishOptions(acknowledge = True))
 
       if self.debug:
-         log.msg("Worker ready published ({})".format(pub.id))
+         log.msg("NativeWorker ready event published")
 
 
 
@@ -192,11 +198,14 @@ class NativeWorkerSession(ApplicationSession):
          return self._pinfo.open_fds()
 
 
+
    def trigger_gc(self, details = None):
       """
       Triggers a garbage collection.
       """
-      import gc
+      if self.debug:
+         log.msg("NativeWorkerSession.trigger_gc")
+
       gc.collect()
 
 
