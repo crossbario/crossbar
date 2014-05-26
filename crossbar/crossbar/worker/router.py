@@ -153,23 +153,21 @@ class RouterComponent:
    """
    An embedded application component running inside a router instance.
    """
-   def __init__(self, id, realm, config, session):
+   def __init__(self, id, config, session):
       """
       Ctor.
 
       :param id: The component index within the router instance.
       :type id: int
-      :param realm: The realm within the router instance this component runs in.
-      :type realm: str
       :param config: The component's configuration.
       :type config: dict
       :param session: The component application session.
       :type session: obj (instance of ApplicationSession)
       """
       self.id = id
-      self.realm = realm
       self.config = config
       self.session = session
+      self.created = datetime.utcnow()
 
 
 
@@ -186,7 +184,8 @@ class RouterWorkerSession(NativeWorkerSession):
    def onJoin(self, details):
       """
       """
-      self._f = open("/tmp/test.txt", 'w')
+      yield NativeWorkerSession.onJoin(self, details, publish_ready = False)
+
       ## Jinja2 templates for Web (like WS status page et al)
       ##
       templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
@@ -202,19 +201,15 @@ class RouterWorkerSession(NativeWorkerSession):
 
       ## map: realm index -> RouterRealm
       self.realms = {}
-      self.realm_no = 0
 
       ## map: transport index -> RouterTransport
       self.transports = {}
-      self.transport_no = 0
 
       ## map: link index -> RouterLink
       self.links = {}
-      self.link_no = 0
 
       ## map: component index -> RouterComponent
       self.components = {}
-      self.component_no = 0
 
 
       ## the procedures registered
@@ -235,7 +230,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
       dl = []
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.{}'.format(self.config.extra.node, self.config.extra.worker, proc)
+         uri = '{}.{}'.format(self._uri_prefix, proc)
          if self.debug:
             log.msg("Registering procedure '{}'".format(uri))
          dl.append(self.register(getattr(self, proc), uri))
@@ -245,72 +240,88 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("RouterWorker registered {} procedures".format(len(regs)))
 
-      yield NativeWorkerSession.onJoin(self, details)
+      ## NativeWorkerSession.publish_ready()
+      yield self.publish_ready()
 
 
 
    def get_router_realms(self):
-      ## FIXME
-      return []
-
-
-
-   def start_router_realm(self, realm, config):
+      """
+      List realms currently managed by this router.
+      """
       if self.debug:
-         log.msg("Worker {}: realm started".format(self.config.extra.worker))
-      return 1
+         log.msg("{}.get_router_realms".format(self.__class__.name))
+
+      raise NotImplementedError()
+
+
+
+   def start_router_realm(self, id, config):
+      """
+      Starts a realm managed by this router.
+
+      :param id: The ID of the realm to start.
+      :type id: str
+      :param config: The realm configuration.
+      :type config: dict
+      """
+      if self.debug:
+         log.msg("{}.start_router_realm".format(self.__class__.name), id, config)
+
+      raise NotImplementedError()
 
 
 
    def stop_router_realm(self, id, close_sessions = False):
       """
-      Stop a router realm. No new session will be allowed to attach to the
-      realm Optionally, close all sessions currently attached to the realm.
+      Stop a router realm.
 
-      :param id: The index of the realm.
-      :type id: int
+      When a realm has stopped, no new session will be allowed to attach to the realm.
+      Optionally, close all sessions currently attached to the realm.
+
+      :param id: ID of the realm to stop.
+      :type id: str
       :param close_sessions: If `True`, close all session currently attached.
       :type close_sessions: bool
       """
-      ## FIXME
-      pass
+      if self.debug:
+         log.msg("{}.stop_router_realm".format(self.__class__.name), id, close_sessions)
+
+      raise NotImplementedError()
 
 
 
-   def get_router_components(self, router_index):
+   def get_router_components(self):
       """
-      List currently running application components.
+      List application components currently running (embedded) in this router.
       """
-      if not router_index in self._routers:
-         raise ApplicationError("crossbar.error.no_such_router", router_index)
+      if self.debug:
+         log.msg("{}.get_router_components".format(self.__class__.name))
 
-      router = self._routers[router_index]
-
-      res = {}
-      for component in router.components.values():
-         res[component.id] = component.config
-
+      res = []
+      for component in sorted(self._components.values(), key = lambda c: c.created):
+         res.append({
+            'id': component.id,
+            'created': utcstr(component.created),
+            'config': component.config,
+         })
       return res
 
 
 
-   def start_router_component(self, router_index, realm, config):
+   def start_router_component(self, id, config):
       """
       Dynamically start an application component to run next to the router in "embedded mode".
 
-      :param realm: The realm in which to start the component.
-      :type realm: str
+      :param id: The ID of the component to start.
+      :type id: str
       :param config: The component configuration.
       :type config: obj
-
-      :returns int -- The component index assigned.
       """
-      if not router_index in self._routers:
-         raise ApplicationError("crossbar.error.no_such_router", router_index)
+      if self.debug:
+         log.msg("{}.start_router_component".format(self.__class__.name), id, config)
 
-      router = self._routers[router_index]
-
-      cfg = ComponentConfig(realm = realm, extra = config.get('extra', None))
+      cfg = ComponentConfig(realm = config['realm'], extra = config.get('extra', None))
 
       if config['type'] == 'class':
 
@@ -371,10 +382,16 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def stop_router_component(self, router_index, component_index):
+   def stop_router_component(self, id):
       """
-      Stop an application component on this router.
+      Stop an application component running on this router.
+
+      :param id: The ID of the component to stop.
+      :type id: str
       """
+      if self.debug:
+         log.msg("{}.stop_router_component".format(self.__class__.name), id)
+
       if id in self._components:
          if self.debug:
             log.msg("Worker {}: stopping component {}".format(self.config.extra.worker, id))
@@ -390,10 +407,13 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def get_router_transports(self, router_index):
+   def get_router_transports(self):
       """
       List currently running transports.
       """
+      if self.debug:
+         log.msg("{}.get_router_transports".format(self.__class__.name))
+
       res = {}
       for key, transport in self._transports.items():
          res[key] = transport.config
@@ -402,11 +422,17 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def start_router_transport(self, config):
+   def start_router_transport(self, id, config):
       """
       Start a transport on this router.
+
+      :param id: The ID of the transport to start.
+      :type id: str
+      :param config: The transport configuration.
+      :type config: dict
       """
-      print "XXX", config
+      if self.debug:
+         log.msg("{}.start_router_transport".format(self.__class__.name), id, config)
 
       ## check configuration
       ##
@@ -760,13 +786,16 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def stop_router_transport(self, transport_index):
+   def stop_router_transport(self, id):
       """
       Stop a transport on this router on this router.
 
-      :param transport_index: Index of the transport to stop.
-      :type transport_index: int
+      :param id: The ID of the transport to stop.
+      :type id: dict
       """
+      if self.debug:
+         log.msg("{}.stop_router_transport".format(self.__class__.name), id)
+
       if not transport_index in self._transports:
          raise ApplicationError("crossbar.error.no_such_transport", "No transport started with index {}".format(transport_index))
 
@@ -790,26 +819,41 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def get_router_links(self, router_index):
+   def get_router_links(self):
       """
-      List currently running links.
+      List currently running router links.
       """
-      return []
+      if self.debug:
+         log.msg("{}.get_router_links".format(self.__class__.name))
+
+      raise NotImplementedError()
 
 
 
-   def start_router_link(self, router_index, config):
+   def start_router_link(self, id, config):
       """
       Start a link on this router.
+
+      :param id: The ID of the link to start.
+      :type id: str
+      :param config: The link configuration.
+      :type config: dict
       """
       if self.debug:
-         log.msg("Worker {}: starting router link".format(self.config.extra.worker))
+         log.msg("{}.start_router_link".format(self.__class__.name), id, config)
+
+      raise NotImplementedError()
 
 
 
-   def stop_router_link(self, router_index, link_index):
+   def stop_router_link(self, id):
       """
       Stop a link on this router.
+
+      :param id: The ID of the link to stop.
+      :type id: str
       """
       if self.debug:
-         log.msg("Worker {}: stopping router link {}".format(self.config.extra.worker, id))
+         log.msg("{}.stop_router_link".format(self.__class__.name), id)
+
+      raise NotImplementedError()

@@ -72,7 +72,7 @@ class NativeWorkerSession(NativeProcessSession):
 
 
    @inlineCallbacks
-   def onJoin(self, details):
+   def onJoin(self, details, publish_ready = True):
       """
       Called when worker process has joined the node's management realm.
       """
@@ -97,6 +97,13 @@ class NativeWorkerSession(NativeProcessSession):
       if self.debug:
          log.msg("{} registered {} procedures".format(self.__class__.__name__, len(regs)))
 
+      if publish_ready:
+         yield self.publish_ready()
+
+
+
+   @inlineCallbacks
+   def publish_ready(self):
       ## signal that this worker is ready for setup. the actual setup procedure
       ## will either be sequenced from the local node configuration file or remotely
       ## from a management service
