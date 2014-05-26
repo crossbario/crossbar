@@ -858,7 +858,7 @@ class NodeControllerSession(ApplicationSession):
                ##
                for realm_name, realm_config in worker['realms'].items():
 
-                  realm_index = yield self.call('crossbar.node.{}.worker.{}.router.start_realm'.format(self._node_id, id), realm_name, realm_config)
+                  realm_index = yield self.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, id), realm_name, realm_config)
 
                   log.msg("Worker {}: Realm {} ({}) started on router".format(id, realm_name, realm_index))
 
@@ -866,12 +866,12 @@ class NodeControllerSession(ApplicationSession):
                   ##
                   for component_config in realm_config.get('components', []):
 
-                     component_index = yield self.call('crossbar.node.{}.worker.{}.router.start_component'.format(self._node_id, id), realm_name, component_config)
+                     component_index = yield self.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, id), realm_name, component_config)
 
                ## start transports on router
                ##
                for transport in worker['transports']:
-                  transport_index = yield self.call('crossbar.node.{}.worker.{}.router.start_transport'.format(self._node_id, id), transport)
+                  transport_index = yield self.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, id), transport)
 
                   log.msg("Worker {}: Transport {}/{} ({}) started on router".format(id, transport['type'], transport['endpoint']['type'], transport_index))
 
@@ -881,7 +881,7 @@ class NodeControllerSession(ApplicationSession):
 
                for component_config in worker.get('components', []):
 
-                  component_id = yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._node_id, id), component_config)
+                  component_id = yield self.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, id), component_config)
 
                #yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._node_id, pid), worker['component'], worker['router'])
 

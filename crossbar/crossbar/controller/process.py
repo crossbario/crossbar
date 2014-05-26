@@ -57,5 +57,3 @@ def create_process_env(options):
          penv[k] = v
 
    return penv
-
-

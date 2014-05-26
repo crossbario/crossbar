@@ -95,7 +95,7 @@ from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.worker.native import NativeWorkerSession
 
-from crossbar import common
+from crossbar.common import checkconfig
 
 
 
@@ -406,11 +406,12 @@ class RouterWorkerSession(NativeWorkerSession):
       """
       Start a transport on this router.
       """
+      print "XXX", config
 
       ## check configuration
       ##
       try:
-         common.config.check_transport(config)
+         checkconfig.check_transport(config)
       except Exception as e:
          emsg = "ERROR: invalid router transport configuration ({})".format(e)
          log.msg(emsg)
