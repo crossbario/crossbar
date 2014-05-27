@@ -434,10 +434,18 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("{}.start_router_transport".format(self.__class__.name), id, config)
 
+      ## prohibit starting a transport twice
+      ##
+      if id in self.transports:
+         emsg = "ERROR: could not start transport - a transport with ID '{}'' is already running (or starting)".format(id)
+         log.msg(emsg)
+         raise ApplicationError('crossbar.error.already_running', emsg)
+
       ## check configuration
       ##
       try:
-         checkconfig.check_transport(config)
+         #checkconfig.check_transport(config)
+         pass
       except Exception as e:
          emsg = "ERROR: invalid router transport configuration ({})".format(e)
          log.msg(emsg)
@@ -770,11 +778,10 @@ class RouterWorkerSession(NativeWorkerSession):
       d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, reactor)
 
       def ok(port):
-         self.transport_no += 1
-         self.transports[self.transport_no] = RouterTransport(self.transport_no, config, port)
+         self.transports[id] = RouterTransport(id, config, port)
          if self.debug:
             log.msg("Router transport {} started and listening".format(self.transport_no))
-         return self.transport_no
+         return
 
       def fail(err):
          emsg = "ERROR: cannot listen on transport endpoint ({})".format(err.value)
@@ -796,26 +803,24 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("{}.stop_router_transport".format(self.__class__.name), id)
 
-      if not transport_index in self._transports:
-         raise ApplicationError("crossbar.error.no_such_transport", "No transport started with index {}".format(transport_index))
+      if not id in self.transports or self.transports['id'] != 'started':
+         emsg = "ERROR: cannot stop transport - no transport with ID '{}' (or already stopping)".format(id)
+         log.msg(emsg)
+         raise ApplicationError('crossbar.error.not_running', emsg)
 
       if self.debug:
-         log.msg("Worker {}: stopping transport {}".format(self.config.extra.worker, transport_index))
+         log.msg("Stopping transport with ID '{}'".format(id))
 
-      try:
-         d = self._transports[transport_index].port.stopListening()
+      d = self._transports[id].port.stopListening()
 
-         def ok(_):
-            del self._transports[transport_index]
+      def ok(_):
+         del self._transports[id]
 
-         def fail(err):
-            raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, str(err.value)))
+      def fail(err):
+         raise ApplicationError("crossbar.error.cannot_stop", "Failed to stop transport: {}".format(str(err.value)))
 
-         d.addCallbacks(ok, fail)
-         return d
-
-      except Exception as e:
-         raise ApplicationError("crossbar.error.transport.cannot_stop", "Failed to stop transport {}: {}".format(id, e))
+      d.addCallbacks(ok, fail)
+      return d
 
 
 

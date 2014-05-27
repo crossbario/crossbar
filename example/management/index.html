@@ -152,7 +152,7 @@
 
       <script>
          // node name
-         var nodename = "mynode1";
+         var nodename = "node1";
 
          // WAMP session to node management router (if established)
          var session = null;
@@ -164,7 +164,7 @@
             url: 'ws://127.0.0.1:9000',
 
             // node management realm
-            realm: 'record-evolution'
+            realm: 'crossbar'
          });
 
          connection.onopen = function (new_session, details) {
@@ -242,7 +242,7 @@
                   var line = log_entry[2];
                   console.log(line);
                })
-            }            
+            }
          }
 
 
@@ -298,7 +298,7 @@
                   function (args, kwargs) {
                      console.log(uri, args, kwargs);
                   });
-            });            
+            });
          }
 
 

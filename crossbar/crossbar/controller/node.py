@@ -199,116 +199,97 @@ class Node:
 
       for worker in config.get('workers', []):
 
-         id = worker['id']
-         options = worker.get('options', {})
+         worker_id = worker['id']
+         worker_type = worker['type']
+         worker_options = worker.get('options', {})
+
+         if worker_type == 'router':
+            worker_logname = "Router '{}'".format(worker_id)
+
+         elif worker_type == 'container':
+            worker_logname = "Container '{}'".format(worker_id)
+
+         elif worker_type == 'guest':
+            worker_logname = "Guest '{}'".format(worker_id)
+
+         else:
+            raise Exception("logic error")
 
          ## router/container
          ##
-         if worker['type'] in ['router', 'container']:
+         if worker_type in ['router', 'container']:
 
             ## start a new worker process ..
             ##
-            try:
-               if worker['type'] == 'router':
-                  yield self._controller.start_router(id, options, details = call_details)
-               elif worker['type'] == 'container':
-                  yield self._controller.start_container(id, options, details = call_details)
-               else:
-                  raise Exception("logic error")
-            except Exception as e:
-               log.msg("Failed to start worker process: {}".format(e))
-               raise e
+            if worker_type == 'router':
+               yield self._controller.start_router(worker_id, worker_options, details = call_details)
+
+            elif worker_type == 'container':
+               yield self._controller.start_container(worker_id, worker_options, details = call_details)
+
             else:
-               log.msg("Worker {}: Started {}.".format(id, worker['type']))
+               raise Exception("logic error")
 
             ## setup worker generic stuff
             ##
-            if 'pythonpath' in options:
-               try:
-                  added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, id),
-                     options['pythonpath'])
+            if 'pythonpath' in worker_options:
+               added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'])
+               log.msg("{}: PYTHONPATH extended for {}".format(worker_logname, added_paths))
 
-               except Exception as e:
-                  log.msg("Worker {}: Failed to set PYTHONPATH - {}".format(id, e))
-               else:
-                  log.msg("Worker {}: PYTHONPATH extended for {}".format(id, added_paths))
-
-            if 'cpu_affinity' in options:
-               try:
-                  yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, id),
-                     options['cpu_affinity'])
-
-               except Exception as e:
-                  log.msg("Worker {}: Failed to set CPU affinity - {}".format(id, e))
-               else:
-                  log.msg("Worker {}: CPU affinity set.".format(id))
-
-            try:
-               cpu_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.get_cpu_affinity'.format(self._node_id, id))
-            except Exception as e:
-               log.msg("Worker {}: Failed to get CPU affinity - {}".format(id, e))
-            else:
-               log.msg("Worker {}: CPU affinity is {}".format(id, cpu_affinity))
-
+            if 'cpu_affinity' in worker_options:
+               new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'])
+               log.msg("{}: CPU affinity set to {}".format(worker_logname, new_affinity))
 
             ## manhole within worker
             ##
             if 'manhole' in worker:
-               yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, id), worker['manhole'])
+               yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, worker_id), worker['manhole'])
+               log.msg("{}: manhole started".format(worker_logname))
 
-
-            ## WAMP router process
+            ## setup router worker
             ##
-            if worker['type'] == 'router':
+            if worker_type == 'router':
 
                ## start realms
                ##
                for realm in worker.get('realms', []):
 
-                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, id), realm['id'], realm)
+                  #yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm['id'], realm)
+                  log.msg("{}: realm '{}' started".format(worker_logname, realm['id']))
 
-                  #log.msg("Worker {}: Realm {} ({}) started on router".format(id, realm_name, realm_index))
+               ## start components to run embedded in the router
+               ##
+               for component in worker.get('components', []):
 
-                  ## start any application components to run embedded in the realm
-                  ##
-                  for component in realm.get('components', []):
-
-                     yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, id), component['id'], component)
+                  #yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component['id'], component)
+                  log.msg("{}: component '{}' started".format(worker_logname, component['id']))
 
                ## start transports on router
                ##
                for transport in worker['transports']:
 
-                  transport_index = yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, id), transport['id'], transport)
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport['id'], transport)
+                  log.msg("{}: transport '{}' started".format(worker_logname, transport['id']))
 
-                  #log.msg("Worker {}: Transport {}/{} ({}) started on router".format(id, transport['type'], transport['endpoint']['type'], transport_index))
-
-            ## Setup: Python component host process
+            ## setup container worker
             ##
-            elif worker['type'] == 'container':
+            elif worker_type == 'container':
 
                for component in worker.get('components', []):
 
-                  yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, id), component['id'], component)
-
-               #yield self.call('crossbar.node.{}.worker.{}.container.start_component'.format(self._node_id, pid), worker['component'], worker['router'])
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component['id'], component)
+                  log.msg("{}: component '{}' started".format(worker_logname, component['id']))
 
             else:
                raise Exception("logic error")
 
 
-         elif worker['type'] == 'guest':
+         elif worker_type == 'guest':
 
-            ## start a new worker process ..
+            ## start guest worker
             ##
-            try:
-               pid = yield self._controller.start_guest(worker, details = call_details)
-            except Exception as e:
-               log.msg("Failed to start guest process: {}".format(e))
-            else:
-               log.msg("Guest {}: Started.".format(pid))
+            yield self._controller.start_guest(worker_id, worker, details = call_details)
+            log.msg("{}: started".format(worker_logname))
 
          else:
-            raise Exception("unknown worker type '{}'".format(worker['type']))
-
-
+            raise Exception("logic error")
