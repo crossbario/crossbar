@@ -134,6 +134,10 @@ class NativeProcessSession(ApplicationSession):
 
       self._started = datetime.utcnow()
 
+      ## see: BaseSession
+      self.include_traceback = False
+      self.debug_app = True
+
       self._manhole_service = None
 
       if _HAS_PSUTIL:

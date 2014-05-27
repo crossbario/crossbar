@@ -90,16 +90,16 @@ def run_command_version(options):
 
    import crossbar
 
-   print()
+   print("")
    print("Crossbar.io software versions:")
-   print()
+   print("")
    print("Crossbar.io     : {0}".format(crossbar.__version__))
    print("Autobahn        : {0}".format(ab_ver))
    print("Twisted         : {0}".format(tx_ver))
    print("Python          : {0}".format(py_ver))
    print("UTF8 Validator  : {0}".format(utf8_ver))
    print("XOR Masker      : {0}".format(xor_ver))
-   print()
+   print("")
 
 
 

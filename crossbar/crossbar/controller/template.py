@@ -70,6 +70,59 @@ CONFIG_DEFAULT = """{
 }
 """
 
+CONFIG_DEFAULT = """
+{
+   "controller": {
+      "id": "node1"
+   },
+   "workers": [
+      {
+         "id": "router1",
+         "type": "router",
+         "realms": [
+            {
+               "id": "realm1",
+               "name": "realm1",
+               "roles": [
+                  {
+                     "id": "anonymous",
+                     "permissions": [
+                        {
+                           "id": "perm1",
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "id": "transport1",
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
 
 
 CONFIG_DEMOS = """{
