@@ -33,8 +33,6 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.choosereactor import install_reactor
 
-import crossbar
-from crossbar.controller.node import Node
 
 
 
@@ -155,6 +153,7 @@ def run_command_start(options):
 
    log.msg("=" * 30 + " Crossbar.io " + "=" * 30 + "\n")
 
+   import crossbar
    log.msg("Crossbar.io {} starting".format(crossbar.__version__))
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
@@ -168,6 +167,7 @@ def run_command_start(options):
 
    ## create and start Crossbar.io node
    ##
+   from crossbar.controller.node import Node
    node = Node(reactor, options)
    node.start()
 

@@ -26,6 +26,7 @@ import gc
 from datetime import datetime
 
 from twisted.python import log
+from twisted.internet import reactor
 from twisted.internet.defer import Deferred, \
                                    DeferredList, \
                                    inlineCallbacks, \
@@ -119,7 +120,11 @@ class NativeProcessSession(ApplicationSession):
    def onConnect(self, do_join = True):
       """
       """
-      self.debug = self.config.extra.debug
+      if not hasattr(self, 'debug'):
+         self.debug = self.config.extra.debug
+
+      if not hasattr(self, 'cbdir'):
+         self.cbdir = self.config.extra.cbdir
 
       if not hasattr(self, '_uri_prefix'):
          self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra.node)
@@ -304,7 +309,7 @@ class NativeProcessSession(ApplicationSession):
 
       ## setup manhole namespace
       ##
-      namespace = {'worker': self}
+      namespace = {'session': self}
 
       class PatchedTerminalSession(TerminalSession):
          ## get rid of
@@ -334,7 +339,7 @@ class NativeProcessSession(ApplicationSession):
       self.publish(starting_topic, starting_info, options = PublishOptions(exclude = [details.caller]))
 
       try:
-         self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'], factory, self.config.extra.cbdir, reactor)
+         self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'], factory, self.cbdir, reactor)
       except Exception as e:
          self._manhole_service = None
          emsg = "ERROR: manhole service endpoint cannot listen - {}".format(e)

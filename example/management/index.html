@@ -7,79 +7,89 @@
       <h1>Authenticated WAMP with Mozilla Persona</h1>
       <p>Open JavaScript console to watch output.</p>
 
+      <h2>Node Controller</h2>
       <table>
          <tr>
             <td>Shutdown node.</td>
             <td><button onclick="test_shutdown()">Shutdown</button></td>
          </tr>
-
          <tr>
             <td>Get node information.</td>
             <td><button onclick="test_get_info()">Get Info</button></td>
          </tr>
-
          <tr>
             <td>Get all workers currently running on the node.</td>
             <td><button onclick="test_get_workers()">Get Workers</button></td>
          </tr>
+         <tr>
+            <td>Get process information for node controller.</td>
+            <td><button onclick="test_get_process_info()">Get Process Info</button></td>
+         </tr>
+         <tr>
+            <td>Get process stats for node controller.</td>
+            <td><button onclick="test_get_process_stats()">Get Process Stats</button></td>
+         </tr>
+         <tr>
+            <td>Trigger GC on node controller.</td>
+            <td><button onclick="test_trigger_gc()">Trigger GC</button></td>
+         </tr>
+         <tr>
+            <td>Start Manhole on node controller.</td>
+            <td><button onclick="test_start_manhole()">Start Manhole</button></td>
+         </tr>
+      </table>
 
+      <h2>Router 1</h2>
+      <table>
          <tr>
             <td>Start a new Router with ID 'router1'.</td>
             <td><button onclick="test_start_router('router1')">Start Router</button></td>
          </tr>
-
          <tr>
             <td>Stop Router with ID 'router1'.</td>
             <td><button onclick="test_stop_router('router1')">Stop Router</button></td>
          </tr>
-
          <tr>
             <td>Kill Router with ID 'router1'.</td>
             <td><button onclick="test_stop_router('router1', true)">Kill Router</button></td>
          </tr>
-
          <tr>
             <td>Get log for Router with ID 'router1'.</td>
             <td><button onclick="test_get_worker_log('router1', 40)">Get Worker Log</button></td>
          </tr>
-
          <tr>
             <td>Trigger a GC on Router with ID 'router1'.</td>
             <td><button onclick="test_trigger_gc('router1')">Trigger Worker GC</button></td>
          </tr>
-
          <tr>
             <td>Get process statistics for Router with ID 'router1'.</td>
             <td><button onclick="test_get_process_stats('router1')">Get Process Stats</button></td>
          </tr>
-
          <tr>
             <td>Get process information for Router with ID 'router1'.</td>
             <td><button onclick="test_get_process_info('router1')">Get Process Info</button></td>
          </tr>
-
          <tr>
             <td>Enable process statistics monitoring for Router with ID 'router1'.</td>
             <td><button onclick="test_set_process_stats_monitoring('router1', 1)">Enable Process Stats Monitoring</button></td>
          </tr>
-
          <tr>
             <td>Disable process statistics monitoring for Router with ID 'router1'.</td>
             <td><button onclick="test_set_process_stats_monitoring('router1', 0)">Disable Process Stats Monitoring</button></td>
          </tr>
-
          <tr>
             <td>Start Manhole on Router with ID 'router1'.</td>
             <td><button onclick="test_start_manhole('router1')">Start Manhole</button></td>
          </tr>
-
          <tr>
             <td>Stop Manhole on Router with ID 'router1'.</td>
             <td><button onclick="test_stop_manhole('router1')">Stop Manhole</button></td>
          </tr>
+      </table>
 
 
-
+      <h2>Container 1</h2>
+      <table>
          <tr>
             <td>Start a new Container with ID 'container1'.</td>
             <td><button onclick="test_start_container('container1')">Start container1</button></td>
@@ -361,7 +371,14 @@
 
          function test_trigger_gc(worker_id) {
 
-            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.trigger_gc').then(
+            var proc_uri = null;
+            if (worker_id) {
+               proc_uri = 'crossbar.node.' + nodename + '.worker.' + worker_id + '.trigger_gc';
+            } else {
+               proc_uri = 'crossbar.node.' + nodename + '.trigger_gc';
+            }
+
+            session.call(proc_uri).then(
                function (duration) {
                   console.log('GC performed in ' + duration + ' ms');
                },
@@ -372,7 +389,14 @@
 
          function test_get_process_stats(worker_id) {
 
-            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.get_process_stats').then(
+            var proc_uri = null;
+            if (worker_id) {
+               proc_uri = 'crossbar.node.' + nodename + '.worker.' + worker_id + '.get_process_stats';
+            } else {
+               proc_uri = 'crossbar.node.' + nodename + '.get_process_stats';
+            }
+
+            session.call(proc_uri).then(
                function (stats) {
                   console.log('Process statistics:', stats);
                },
@@ -383,7 +407,14 @@
 
          function test_get_process_info(worker_id) {
 
-            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.get_process_info').then(
+            var proc_uri = null;
+            if (worker_id) {
+               proc_uri = 'crossbar.node.' + nodename + '.worker.' + worker_id + '.get_process_info';
+            } else {
+               proc_uri = 'crossbar.node.' + nodename + '.get_process_info';
+            }
+
+            session.call(proc_uri).then(
                function (info) {
                   console.log('Process information:', info);
                },
@@ -633,7 +664,14 @@
                ]
             };
 
-            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.start_manhole', [config], {}, {receive_progress: true})
+            var proc_uri = null;
+            if (worker_id) {
+               proc_uri = 'crossbar.node.' + nodename + '.worker.' + worker_id + '.start_manhole';
+            } else {
+               proc_uri = 'crossbar.node.' + nodename + '.start_manhole';
+            }
+
+            session.call(proc_uri, [config], {}, {receive_progress: true})
                .then(
                   function (info) {
                      console.log("manhole started", info);
