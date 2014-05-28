@@ -211,6 +211,8 @@ class RouterWorkerSession(NativeWorkerSession):
       ## map: component index -> RouterComponent
       self.components = {}
 
+      self.debug_app = True
+
 
       ## the procedures registered
       procs = [
@@ -329,7 +331,7 @@ class RouterWorkerSession(NativeWorkerSession):
             klassname = config['name']
 
             if self.debug:
-               log.msg("Worker {}: starting class '{}' in realm '{}' ..".format(self.config.extra.worker, klassname, realm))
+               log.msg("Starting class '{}'".format(klassname))
 
             import importlib
             c = klassname.split('.')
@@ -338,8 +340,9 @@ class RouterWorkerSession(NativeWorkerSession):
             make = getattr(app, klass)
 
          except Exception as e:
-            log.msg("Worker {}: failed to import class - {}".format(e))
-            raise ApplicationError("crossbar.error.class_import_failed", str(e))
+            emsg = "Failed to import class '{}' - {}".format(klassname, e)
+            log.msg(emsg)
+            raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
       elif config['type'] == 'wamplet':
 
@@ -348,14 +351,15 @@ class RouterWorkerSession(NativeWorkerSession):
             name = config['entry']
 
             if self.debug:
-               log.msg("Worker {}: starting WAMPlet '{}/{}' in realm '{}' ..".format(self.config.extra.worker, dist, name, realm))
+               log.msg("Starting WAMPlet '{}/{}'".format(dist, name))
 
             ## make is supposed to make instances of ApplicationSession
             make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
 
          except Exception as e:
-            log.msg("Worker {}: failed to import class - {}".format(e))
-            raise ApplicationError("crossbar.error.class_import_failed", str(e))
+            emsg = "Failed to import wamplet '{}/{}' - {}".format(dist, name, e)
+            log.msg(emsg)
+            raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
       else:
          raise ApplicationError("crossbar.error.invalid_configuration", "invalid component type '{}'".format(config['type']))
@@ -373,12 +377,9 @@ class RouterWorkerSession(NativeWorkerSession):
          raise ApplicationError("crossbar.error.class_import_failed", "session not derived of ApplicationSession")
 
 
-      router.session_factory.add(comp)
+      self.session_factory.add(comp)
 
-      router.component_no += 1
-      router.components[router.component_no] = RouterComponent(router.component_no, realm, config, comp)
-
-      return router.component_no
+      #self.components[id] = RouterComponent(id, realm, config, comp)
 
 
 

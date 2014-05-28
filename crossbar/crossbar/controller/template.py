@@ -254,14 +254,14 @@ CONFIG_TEMPLATES = {
       "help": "A minimal WAMP router",
       "config": CONFIG_DEFAULT,
    },
-   "python": {
+   "hello:python": {
       "help": "A Python WAMP application with a WAMP router",
       "config": CONFIG_DEFAULT,
       "basedir": "templates/python",
       "params": {
          "node_id": "node1",
          "realm_id": "realm1",
-         "appname": "helloworld"
+         "appname": "hello"
       }
    }
    #"demos": CONFIG_DEMOS,
@@ -307,13 +307,12 @@ class Templates:
 
       appdir = os.path.abspath(os.path.join(cbdir, '..'))
 
-      kk = jinja2.Environment(loader = jinja2.FileSystemLoader(basedir))
+      jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(basedir),
+         keep_trailing_newline = True)
 
       _params = template['params'].copy()
       if params:
          _params.update(params)
-
-      page = kk.get_template('.crossbar/config.json')
 
       created = []
       try:
@@ -340,7 +339,7 @@ class Templates:
                print("Creating file      {}".format(dst_file))
                if not dryrun:
                   with open(dst_file, 'wb') as dst_file_fd:
-                     page = kk.get_template(src_file_rel_path)
+                     page = jinja_env.get_template(src_file_rel_path)
                      contents = page.render(**_params)
                      dst_file_fd.write(contents)
 

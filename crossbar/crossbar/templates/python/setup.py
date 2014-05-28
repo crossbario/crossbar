@@ -1,16 +1,16 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
-   name = 'votegame',
-   version = '0.0.2',
-   description = 'VoteGame Service WAMPlet',
+   name = '{{ appname }}',
+   version = '0.0.1',
+   description = "'{{ appname }}' WAMP Component",
    platforms = ['Any'],
-   packages = find_packages(),
+   packages = '{{ appname }}',
    include_package_data = True,
    zip_safe = False,
    entry_points = {
       'autobahn.twisted.wamplet': [
-         'backend = votegame.backend:make'
+         'backend = {{ appname }}.{{ appname }}:AppSession'
       ],
    }
 )

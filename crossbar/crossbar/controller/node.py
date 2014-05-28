@@ -261,7 +261,7 @@ class Node:
                ##
                for component in worker.get('components', []):
 
-                  #yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component['id'], component)
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component['id'], component)
                   log.msg("{}: component '{}' started".format(worker_logname, component['id']))
 
                ## start transports on router
