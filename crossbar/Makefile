@@ -19,6 +19,9 @@ clean:
 	find . -name "*.log" -exec rm -f {} \;
 	find . -name "__pycache__" -type d -exec rm -rf {} \;
 
+version:
+	PYTHONPATH=. python -m crossbar.controller.cli version
+
 init:
 	PYTHONPATH=. python -m crossbar.controller.cli init
 

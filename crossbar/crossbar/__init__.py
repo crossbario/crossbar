@@ -18,12 +18,16 @@
 
 __doc__ = """
 Crossbar.io - Polyglot application router.
-Documentation, community and source-code at http://crossbar.io
+
+For more information, please visit:
+
+ * Documentation: https://github.com/crossbario/crossbar/wiki
+ * Homepage: http://crossbar.io/
+ * Source code: https://github.com/crossbario/crossbar
+
+Open-source licensed under the GNU Affero General Public License version 3.
 
 Created by Tavendo GmbH. Get in contact at http://tavendo.com
-
-Open-source licensed under the GNU Affero General Public License version 3
-https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE
 """
 
-__version__ = "0.9.3"
+__version__ = "0.9.4"
