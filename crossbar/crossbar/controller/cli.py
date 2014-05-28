@@ -27,6 +27,7 @@ import argparse
 import pkg_resources
 import platform
 import shutil
+import traceback
 
 from twisted.python import log
 from twisted.python.reflect import qual
@@ -127,12 +128,12 @@ def run_command_init(options):
    if os.path.exists(options.cbdir):
       raise Exception("node directory '{}' already exists".format(options.cbdir))
 
-   try:
-      os.mkdir(options.cbdir)
-   except Exception as e:
-      raise Exception("could not create node directory '{}' ({})".format(options.cbdir, e))
-   else:
-      print("Node directory '{}' created".format(options.cbdir))
+   # try:
+   #    os.mkdir(options.cbdir)
+   # except Exception as e:
+   #    raise Exception("could not create node directory '{}' ({})".format(options.cbdir, e))
+   # else:
+   #    print("Node directory '{}' created".format(options.cbdir))
 
    try:
       templates.init(options.cbdir, options.template)
@@ -372,6 +373,7 @@ if __name__ == '__main__':
       run()
    except Exception as e:
       print("\nError: {}\n".format(e))
+      traceback.print_exc()
       sys.exit(1)
    else:
       sys.exit(0)
