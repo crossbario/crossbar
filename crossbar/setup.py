@@ -95,7 +95,7 @@ setup (
    },
    entry_points = {
       'console_scripts': [
-         'crossbar = crossbar.node.cli:run'
+         'crossbar = crossbar.controller.cli:run'
       ]},
    #packages = ['crossbar'],
    packages = find_packages(),

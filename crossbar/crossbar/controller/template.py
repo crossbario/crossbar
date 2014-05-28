@@ -328,22 +328,24 @@ class Templates:
                created.append(('dir', create_dir_path))
 
             for f in files:
-               src_file = os.path.join(root, f)
-               src_file_rel_path = os.path.relpath(src_file, basedir)
-               reldir = os.path.relpath(root, basedir)
-               reldir = reldir.replace('appname', _params['appname'])
-               dst_dir_path = os.path.join(appdir, reldir)
-               f = f.replace('appname', _params['appname'])
-               dst_file = os.path.abspath(os.path.join(dst_dir_path, f))
+               ## FIXME
+               if not f.endswith(".pyc"):
+                  src_file = os.path.join(root, f)
+                  src_file_rel_path = os.path.relpath(src_file, basedir)
+                  reldir = os.path.relpath(root, basedir)
+                  reldir = reldir.replace('appname', _params['appname'])
+                  dst_dir_path = os.path.join(appdir, reldir)
+                  f = f.replace('appname', _params['appname'])
+                  dst_file = os.path.abspath(os.path.join(dst_dir_path, f))
 
-               print("Creating file      {}".format(dst_file))
-               if not dryrun:
-                  with open(dst_file, 'wb') as dst_file_fd:
-                     page = jinja_env.get_template(src_file_rel_path)
-                     contents = page.render(**_params)
-                     dst_file_fd.write(contents)
+                  print("Creating file      {}".format(dst_file))
+                  if not dryrun:
+                     with open(dst_file, 'wb') as dst_file_fd:
+                        page = jinja_env.get_template(src_file_rel_path)
+                        contents = page.render(**_params)
+                        dst_file_fd.write(contents)
 
-               created.append(('file', dst_file))
+                  created.append(('file', dst_file))
 
          # force exception to test rollback
          #a = 1/0
