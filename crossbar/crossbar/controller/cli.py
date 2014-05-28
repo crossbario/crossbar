@@ -26,6 +26,7 @@ import json
 import argparse
 import pkg_resources
 import platform
+import shutil
 
 from twisted.python import log
 from twisted.python.reflect import qual
@@ -103,34 +104,47 @@ def run_command_version(options):
 
 
 
+def run_command_templates(options):
+   """
+   Subcommand "crossbar templates".
+   """
+   from crossbar.controller.template import print_templates_help
+   print_templates_help()
+
+
+
 def run_command_init(options):
    """
    Subcommand "crossbar init".
    """
-   from crossbar.controller.template import CONFIG_TEMPLATES
+   from crossbar.controller.template import Templates
 
-   if options.template:
-      if not options.template in CONFIG_TEMPLATES:
-         raise Exception("No such Crossbar.io node template {}".format(options.template))
-      else:
-         template = CONFIG_TEMPLATES[options.template]
-         #config = json.dumps(template, indent = 3, ensure_ascii = False, sort_keys = False)
-         config = template
-   else:
-      raise Exception("Missing template to instantiate Crossbar.io node")
+   templates = Templates()
+
+   if not options.template in templates:
+      raise Exception("no node template '{}' - use the command 'crossbar templates' to list templates available".format(options.template))
 
    if os.path.exists(options.cbdir):
-      raise Exception("Path '{}' for Crossbar.io node directory already exists".format(options.cbdir))
+      raise Exception("node directory '{}' already exists".format(options.cbdir))
 
    try:
       os.mkdir(options.cbdir)
    except Exception as e:
-      raise Exception("Could not create Crossbar.io node directory '{}' [{}]".format(options.cbdir, e))
+      raise Exception("could not create node directory '{}' ({})".format(options.cbdir, e))
+   else:
+      print("Node directory '{}' created".format(options.cbdir))
 
-   with open(os.path.join(options.cbdir, options.config), 'wb') as outfile:
-      outfile.write(config)
+   try:
+      templates.init(options.cbdir, options.template)
+   except Exception as e:
+      try:
+         shutil.rmtree(options.cbdir)
+      except:
+         pass
+      raise e
 
-   print("Crossbar.io node initialized at {}".format(os.path.abspath(options.cbdir)))
+   print("Node initialized")
+   print("\nTo start your node, run 'crossbar start'")
 
 
 
@@ -250,8 +264,17 @@ def run():
 
    parser_init.add_argument('--config',
                             type = str,
-                            default = 'config.json',
+                            default = None,
                             help = "Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+
+   ## "templates" command
+   ##
+   parser_templates = subparsers.add_parser('templates',
+                                            help = 'List templates available for initializing a new Crossbar.io node.')
+
+   parser_templates.set_defaults(func = run_command_templates)
+
 
 
    ## "start" command
@@ -345,4 +368,10 @@ def run():
 
 
 if __name__ == '__main__':
-   run()
+   try:
+      run()
+   except Exception as e:
+      print("\nError: {}\n".format(e))
+      sys.exit(1)
+   else:
+      sys.exit(0)

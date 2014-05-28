@@ -19,6 +19,9 @@
 __all__ = ['CONFIG_TEMPLATES']
 
 
+import os
+
+
 CONFIG_DEFAULT = """{
    "processes": [
       {
@@ -247,7 +250,36 @@ CONFIG_TESTEE = """{
 
 
 CONFIG_TEMPLATES = {
-   "default": CONFIG_DEFAULT,
-   "demos": CONFIG_DEMOS,
-   "testee": CONFIG_TESTEE,
+   "default": {
+      "help": "A minimal WAMP router",
+      "config": CONFIG_DEFAULT,
+   },
+   "python": {
+      "help": "A Python WAMP application with a WAMP router",
+      "config": CONFIG_DEFAULT,
+   }
+   #"demos": CONFIG_DEMOS,
+   #"testee": CONFIG_TESTEE,
 }
+
+
+def print_templates_help():
+   print("\nAvailable Crossbar.io node templates:\n")
+   for t in CONFIG_TEMPLATES:
+      print("  {} {}".format(t.ljust(20, ' '), CONFIG_TEMPLATES[t]['help']))
+   print("")
+
+
+class Templates:
+   def __init__(self):
+      self._templates = CONFIG_TEMPLATES
+
+   def __contains__(self, template):
+      return template in self._templates
+
+   def init(self, cbdir, template):
+      config = self._templates[template]['config']
+      with open(os.path.join(cbdir, 'config.json'), 'wb') as outfile:
+         outfile.write(config)
+      print("Node configuration created from template '{}'".format(template))
+
