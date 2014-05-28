@@ -257,7 +257,12 @@ CONFIG_TEMPLATES = {
    "python": {
       "help": "A Python WAMP application with a WAMP router",
       "config": CONFIG_DEFAULT,
-      "basedir": "templates/python"
+      "basedir": "templates/python",
+      "params": {
+         "node_id": "node1",
+         "realm_id": "realm1",
+         "appname": "helloworld"
+      }
    }
    #"demos": CONFIG_DEMOS,
    #"testee": CONFIG_TESTEE,
@@ -296,27 +301,28 @@ class Templates:
    def __contains__(self, template):
       return template in self._templates
 
-   def init(self, cbdir, template, dryrun = True):
+   def init(self, cbdir, template, params = None, dryrun = False):
       template = self._templates[template]
       basedir = os.path.abspath(pkg_resources.resource_filename("crossbar", template['basedir']))
 
       appdir = os.path.abspath(os.path.join(cbdir, '..'))
-      #print basedir
 
       kk = jinja2.Environment(loader = jinja2.FileSystemLoader(basedir))
 
-      parameters = {}
-      parameters['node_id'] = "node123"
-      parameters['realm_id'] = "myrealm1"
+      _params = template['params'].copy()
+      if params:
+         _params.update(params)
 
       page = kk.get_template('.crossbar/config.json')
-      #print page.render(**parameters)
 
       created = []
       try:
          for root, dirs, files in os.walk(basedir):
             for d in dirs:
-               create_dir_path = os.path.join(appdir, os.path.relpath(os.path.join(root, d), basedir))
+               reldir = os.path.relpath(os.path.join(root, d), basedir)
+               reldir = reldir.replace('appname', _params['appname'])
+               create_dir_path = os.path.join(appdir, reldir)
+
                print("Creating directory {}".format(create_dir_path))
                if not dryrun:
                   os.mkdir(create_dir_path)
@@ -324,13 +330,25 @@ class Templates:
 
             for f in files:
                src_file = os.path.join(root, f)
-               dst_dir_path = os.path.join(appdir, os.path.relpath(root, basedir))
+               src_file_rel_path = os.path.relpath(src_file, basedir)
+               reldir = os.path.relpath(root, basedir)
+               reldir = reldir.replace('appname', _params['appname'])
+               dst_dir_path = os.path.join(appdir, reldir)
+               f = f.replace('appname', _params['appname'])
                dst_file = os.path.abspath(os.path.join(dst_dir_path, f))
-               print("Copying {} to {}".format(src_file, dst_file))
+
+               print("Creating file      {}".format(dst_file))
                if not dryrun:
-                  pass
+                  with open(dst_file, 'wb') as dst_file_fd:
+                     page = kk.get_template(src_file_rel_path)
+                     contents = page.render(**_params)
+                     dst_file_fd.write(contents)
+
                created.append(('file', dst_file))
-         a = 1/0
+
+         # force exception to test rollback
+         #a = 1/0
+
       except Exception as e:
          print("Error encountered - rolling back")
          for ptype, path in reversed(created):
