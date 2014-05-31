@@ -23,7 +23,10 @@ __all__ = ['RouterWorker']
 
 import os
 import jinja2
+import importlib
 import pkg_resources
+from datetime import datetime
+
 
 from twisted.internet import reactor
 
@@ -323,21 +326,41 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("{}.start_router_component".format(self.__class__.name), id, config)
 
-      cfg = ComponentConfig(realm = config['realm'], extra = config.get('extra', None))
+      ## prohibit starting a component twice
+      ##
+      if id in self.components:
+         emsg = "ERROR: could not start component - a component with ID '{}'' is already running (or starting)".format(id)
+         log.msg(emsg)
+         raise ApplicationError('crossbar.error.already_running', emsg)
+
+      ## check configuration
+      ##
+      try:
+         checkconfig.check_router_component(config)
+      except Exception as e:
+         emsg = "ERROR: invalid router component configuration ({})".format(e)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+      else:
+         if self.debug:
+            log.msg("Starting {}-component on router.".format(config['type']))
+
+
+      realm = config['realm']
+      cfg = ComponentConfig(realm = realm, extra = config.get('extra', None))
 
       if config['type'] == 'class':
 
          try:
-            klassname = config['name']
+            klassname = config['classname']
 
             if self.debug:
                log.msg("Starting class '{}'".format(klassname))
-
-            import importlib
+           
             c = klassname.split('.')
-            mod, klass = '.'.join(c[:-1]), c[-1]
-            app = importlib.import_module(mod)
-            make = getattr(app, klass)
+            module_name, klass_name = '.'.join(c[:-1]), c[-1]
+            module = importlib.import_module(module_name)
+            make = getattr(module, klass_name)
 
          except Exception as e:
             emsg = "Failed to import class '{}' - {}".format(klassname, e)
@@ -347,8 +370,8 @@ class RouterWorkerSession(NativeWorkerSession):
       elif config['type'] == 'wamplet':
 
          try:
-            dist = config['dist']
-            name = config['entry']
+            dist = config['distribution']
+            name = config['entrypoint']
 
             if self.debug:
                log.msg("Starting WAMPlet '{}/{}'".format(dist, name))
@@ -369,17 +392,16 @@ class RouterWorkerSession(NativeWorkerSession):
       ## run the component next to the router
       ##
       try:
-         comp = make(cfg)
+         session = make(cfg)
       except Exception as e:
          raise ApplicationError("crossbar.error.class_import_failed", str(e))
 
-      if not isinstance(comp, ApplicationSession):
+      if not isinstance(session, ApplicationSession):
          raise ApplicationError("crossbar.error.class_import_failed", "session not derived of ApplicationSession")
 
 
-      self.session_factory.add(comp)
-
-      #self.components[id] = RouterComponent(id, realm, config, comp)
+      self.components[id] = RouterComponent(id, config, session)
+      self.session_factory.add(session)
 
 
 
@@ -445,8 +467,7 @@ class RouterWorkerSession(NativeWorkerSession):
       ## check configuration
       ##
       try:
-         #checkconfig.check_transport(config)
-         pass
+         checkconfig.check_router_transport(config)
       except Exception as e:
          emsg = "ERROR: invalid router transport configuration ({})".format(e)
          log.msg(emsg)
@@ -470,19 +491,11 @@ class RouterWorkerSession(NativeWorkerSession):
          transport_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, config, self._templates)
 
 
-      ## standalone WebSocket testee transport
-      ##
-      elif config['type'] == 'websocket.testee':
-
-         transport_factory = TesteeServerFactory(config, self._templates)
-
-
-      ## Twisted Web transport
+      ## Twisted Web based transport
       ##
       elif config['type'] == 'web':
 
          options = config.get('options', {})
-
 
          ## create Twisted Web root resource
          ##

@@ -375,7 +375,7 @@ def check_transport_web_path_service(path, config):
 
 def check_transport_web(transport):
    for k in transport:
-      if k not in ['type', 'endpoint', 'paths', 'options']:
+      if k not in ['id', 'type', 'endpoint', 'paths', 'options']:
          raise Exception("encountered unknown attribute '{}' in Web transport configuration".format(k))
 
    if not 'endpoint' in transport:
@@ -485,7 +485,10 @@ def check_transport_rawsocket(transport):
 
 
 
-def check_transport(transport):
+def check_router_transport(transport, silence = False):
+   """
+   Check router transports.
+   """
    if type(transport) != dict:
       raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
 
@@ -493,21 +496,24 @@ def check_transport(transport):
       raise Exception("missing mandatory attribute 'type' in component")
 
    ttype = transport['type']
-   if ttype not in ['web', 'websocket', 'websocket.testee', 'rawsocket']:
+   if ttype not in ['web', 'websocket', 'rawsocket']:
       raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
-   if ttype in ['websocket', 'websocket.testee']:
+   if ttype  == 'websocket':
       check_transport_websocket(transport)
+
    elif ttype == 'rawsocket':
       check_transport_rawsocket(transport)
+
    elif ttype == 'web':
       check_transport_web(transport)
+
    else:
       raise Exception("logic error")
 
 
 
-def check_component(component):
+def check_router_component(component, silence = False):
    if type(component) != dict:
       raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
 
@@ -521,15 +527,17 @@ def check_component(component):
    if ctype == 'wamplet':
       check_dict_args({
          'type': (True, [six.text_type]),
-         'dist': (True, [six.text_type]),
-         'entry': (True, [six.text_type]),
+         'realm': (True, [six.text_type]),
+         'distribution': (True, [six.text_type]),
+         'entrypoint': (True, [six.text_type]),
          'extra': (False, None),
          }, component, "invalid component configuration")
 
    elif ctype == 'class':
       check_dict_args({
          'type': (True, [six.text_type]),
-         'name': (True, [six.text_type]),
+         'realm': (True, [six.text_type]),
+         'classname': (True, [six.text_type]),
          'extra': (False, None),
          }, component, "invalid component configuration")
 
@@ -543,7 +551,8 @@ def check_container_component(component):
 
 
 
-def check_realm(realm, silence = False):
+def check_router_realm(realm, silence = False):
+   return
    ## permissions
    ##
    if 'permissions' in realm:
@@ -597,34 +606,55 @@ def check_realm(realm, silence = False):
 
 
 def check_router(router, silence = False):
+   """
+   Checks a router worker configuration.
+
+   :param router: The configuration to check.
+   :type router: dict
+   """
    for k in router:
-      if k not in ['type', 'realms', 'transports']:
+      if k not in ['id', 'type', 'options', 'manhole', 'realms', 'transports', 'components', 'links']:
          raise Exception("encountered unknown attribute '{}' in router configuration".format(k))
+
+   ## check stuff common to all native workers
+   ##
+   if 'manhole' in router:
+      check_manhole(router['manhole'])
+
+   if 'options' in router:
+      check_native_worker_options(router['options'])
 
    ## realms
    ##
-   if not 'realms' in router:
-      raise Exception("missing mandatory attribute 'realms' in router item\n\n{}".format(pformat(router)))
+   realms = router.get('realms', [])
 
-   realms = router['realms']
-
-   if type(realms) != dict:
-      raise Exception("'realms' items must be dictionaries ({} encountered)\n\n{}".format(type(realms), pformat(router)))
+   if type(realms) != list:
+      raise Exception("'realms' items must be lists ({} encountered)\n\n{}".format(type(realms), pformat(router)))
 
    i = 1
-   for r in sorted(realms.keys()):
+   for realm in realms:
       if not silence:
-         print("Checking realm item {} ('{}') ..".format(i, r))
-      check_or_raise_uri(r, "realm keys must be valid WAMP URIs")
-      check_realm(realms[r], silence)
+         print("Checking realm item {} ..".format(i))
+      check_router_realm(realm, silence)
+      i += 1
+
+   ## components
+   ##
+   components = router.get('components', [])
+
+   if type(components) != list:
+      raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(router)))
+
+   i = 1
+   for component in components:
+      if not silence:
+         print("Checking component item {} ..".format(i))
+      check_router_component(component, silence)
       i += 1
 
    ## transports
    ##
-   if not 'transports' in router:
-      raise Exception("missing mandatory attribute 'transports' in router item\n\n{}".format(pformat(router)))
-
-   transports = router['transports']
+   transports = router.get('transports', [])
 
    if type(transports) != list:
       raise Exception("'transports' items must be lists ({} encountered)\n\n{}".format(type(transports), pformat(router)))
@@ -633,7 +663,7 @@ def check_router(router, silence = False):
    for transport in transports:
       if not silence:
          print("Checking transport item {} ..".format(i))
-      check_transport(transport)
+      check_router_transport(transport, silence)
       i += 1
 
 
@@ -650,26 +680,6 @@ def check_router_options(router_options):
 
 def check_container_options(container_options):
    print("FIXME: implement check_container_options")
-
-
-
-def check_module(module, silence = False):
-   if type(module) != dict:
-      raise Exception("'module' items must be dictionaries ({} encountered)\n\n{}".format(type(module), pformat(module)))
-
-   if not 'type' in module:
-      raise Exception("missing mandatory attribute 'type' in module item\n\n{}".format(pformat(module)))
-
-   mtype = module['type']
-   if mtype not in ['router', 'container']:
-      raise Exception("invalid attribute value '{}' for attribute 'type' in module item\n\n{}".format(mtype, pformat(module)))
-
-   if mtype == 'router':
-      check_router(module, silence)
-   elif mtype == 'container':
-      check_container(module, silence)
-   else:
-      raise Exception("logic error")
 
 
 
@@ -741,63 +751,38 @@ def check_process_env(env, silence = False):
 
 
 
-def check_worker(worker, silence = False):
-   for k in worker:
-      if k not in ['type', 'options', 'modules', 'manhole']:
-         raise Exception("encountered unknown attribute '{}' in worker configuration".format(k))
+def check_native_worker_options(options, silence = False):
 
+   if type(options) != dict:
+      raise Exception("options must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
 
-   if 'manhole' in worker:
-      check_manhole(worker['manhole'])
+   for k in options:
+      if k not in ['pythonpath', 'cpu_affinity', 'env', 'title']:
+         raise Exception("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
 
+   if 'title' in options:
+      title = options['title']
+      if type(title) != six.text_type:
+         raise Exception("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
 
-   if 'options' in worker:
-      options = worker['options']
-      if type(options) != dict:
-         raise Exception("options must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
+   if 'pythonpath' in options:
+      pythonpath = options['pythonpath']
+      if type(pythonpath) != list:
+         raise Exception("'pythonpath' in 'options' in worker configuration must be lists ({} encountered)".format(type(pythonpath)))
+      for p in pythonpath:
+         if type(p) != six.text_type:
+            raise Exception("paths in 'pythonpath' in 'options' in worker configuration must be strings ({} encountered)".format(type(p)))
 
-      for k in options:
-         if k not in ['pythonpath', 'cpu_affinity', 'env', 'title']:
-            raise Exception("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
+   if 'cpu_affinity' in options:
+      cpu_affinity = options['cpu_affinity']
+      if type(cpu_affinity) != list:
+         raise Exception("'cpu_affinity' in 'options' in worker configuration must be lists ({} encountered)".format(type(cpu_affinity)))
+      for a in cpu_affinity:
+         if type(a) not in six.integer_types:
+            raise Exception("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
 
-      if 'title' in options:
-         title = options['title']
-         if type(title) != six.text_type:
-            raise Exception("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
-
-      if 'pythonpath' in options:
-         pythonpath = options['pythonpath']
-         if type(pythonpath) != list:
-            raise Exception("'pythonpath' in 'options' in worker configuration must be lists ({} encountered)".format(type(pythonpath)))
-         for p in pythonpath:
-            if type(p) != six.text_type:
-               raise Exception("paths in 'pythonpath' in 'options' in worker configuration must be strings ({} encountered)".format(type(p)))
-
-      if 'cpu_affinity' in options:
-         cpu_affinity = options['cpu_affinity']
-         if type(cpu_affinity) != list:
-            raise Exception("'cpu_affinity' in 'options' in worker configuration must be lists ({} encountered)".format(type(cpu_affinity)))
-         for a in cpu_affinity:
-            if type(a) not in six.integer_types:
-               raise Exception("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
-
-      if 'env' in options:
-         check_process_env(options['env'])
-
-   if not 'modules' in worker:
-      raise Exception("missing mandatory attribute 'modules' in worker item\n\n{}".format(pformat(worker)))
-
-   modules = worker['modules']
-
-   if type(modules) != list:
-      raise Exception("'modules' attribute in worker item must be a list ({} encountered)\n\n{}".format(type(modules), pformat(worker)))
-
-   i = 1
-   for module in modules:
-      if not silence:
-         print("Checking module item {} ..".format(i))
-      check_module(module, silence)
-      i += 1
+   if 'env' in options:
+      check_process_env(options['env'])
 
 
 
@@ -806,7 +791,8 @@ def check_guest(guest, silence = False):
    Check a guest worker configuration.
    """
    for k in guest:
-      if k not in ['type',
+      if k not in ['id',
+                   'type',
                    'executable',
                    'arguments',
                    'stdin',
@@ -817,6 +803,7 @@ def check_guest(guest, silence = False):
          raise Exception("encountered unknown attribute '{}' in guest worker configuration".format(k))
 
    check_dict_args({
+      'id': (False, [six.text_type]),
       'type': (True, [six.text_type]),
       'executable': (True, [six.text_type]),
       'stdin': (False, [six.text_type, dict]),
@@ -865,22 +852,27 @@ def check_guest(guest, silence = False):
 
 
 
-def check_process(process, silence = False):
-   if type(process) != dict:
-      raise Exception("process items must be dictionaries ({} encountered)\n\n{}".format(type(process), pformat(process)))
+def check_worker(worker, silence = False):
+   if type(worker) != dict:
+      raise Exception("worker items must be dictionaries ({} encountered)\n\n{}".format(type(worker), pformat(worker)))
 
-   if not 'type' in process:
-      raise Exception("missing mandatory attribute 'type' in process item\n\n{}".format(pformat(process)))
+   if not 'type' in worker:
+      raise Exception("missing mandatory attribute 'type' in worker item\n\n{}".format(pformat(worker)))
 
-   ptype = process['type']
+   ptype = worker['type']
 
-   if ptype not in ['worker', 'guest']:
-      raise Exception("invalid attribute value '{}' for attribute 'type' in process item\n\n{}".format(ptype, pformat(process)))
+   if ptype not in ['router', 'container', 'guest']:
+      raise Exception("invalid attribute value '{}' for attribute 'type' in worker item\n\n{}".format(ptype, pformat(worker)))
 
-   if ptype == 'worker':
-      check_worker(process, silence)
+   if ptype == 'router':
+      check_router(worker, silence)
+
+   elif ptype == 'container':
+      check_container(worker, silence)
+
    elif ptype == 'guest':
-      check_guest(process, silence)
+      check_guest(worker, silence)
+
    else:
       raise Exception("logic error")
 
@@ -891,27 +883,35 @@ def check_config(config, silence = False):
       raise Exception("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
 
    for k in config:
-      if k not in ['processes']:
+      if k not in ['controller', 'workers']:
          raise Exception("encountered unknown attribute '{}' in top-level configuration".format(k))
 
-   if not 'processes' in config:
-      raise Exception("missing 'processes' attribute in top-level configuration item")
+   #if not 'processes' in config:
+   #   raise Exception("missing 'processes' attribute in top-level configuration item")
 
-   processes = config['processes']
+   ## check workers
+   ##
+   workers = config.get('workers', [])
 
-   if type(processes) != list:
-      raise Exception("'processes' attribute in top-level configuration must be a list ({} encountered)".format(type(processes)))
+   if type(workers) != list:
+      raise Exception("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
 
    i = 1
-   for process in processes:
+   for worker in workers:
       if not silence:
-         print("Checking process item {} ..".format(i))
-      check_process(process, silence)
+         print("Checking worker item {} ..".format(i))
+      check_worker(worker, silence)
       i += 1
 
 
 
 def check_config_file(configfile, silence = False):
+   """
+   Check a Crossbar.io local configuration file.
+
+   :param configfile: The file to check.
+   :type configfile: str
+   """
    configfile = os.path.abspath(configfile)
 
    with open(configfile, 'rb') as infile:

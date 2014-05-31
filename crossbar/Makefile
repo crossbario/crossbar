@@ -22,6 +22,9 @@ clean:
 version:
 	PYTHONPATH=. python -m crossbar.controller.cli version
 
+templates:
+	PYTHONPATH=. python -m crossbar.controller.cli templates
+
 init:
 	PYTHONPATH=. python -m crossbar.controller.cli init
 

@@ -48,7 +48,9 @@ from crossbar.twisted.process import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
 from crossbar.controller.guest import create_guest_worker_client_factory
 
-from crossbar.controller.types import *
+from crossbar.controller.types import RouterWorkerProcess, \
+                                      ContainerWorkerProcess, \
+                                      GuestWorkerProcess
 from crossbar.common.process import NativeProcessSession
 
 
@@ -66,10 +68,11 @@ class NodeControllerSession(NativeProcessSession):
       :param node: The node singleton for this node controller session.
       :type node: obj
       """
-      ApplicationSession.__init__(self)
+      NativeProcessSession.__init__(self)
       #self.debug = node.debug
       self.debug = True
       self.debug_app = True
+
 
       ## associated node
       self._node = node
@@ -372,8 +375,8 @@ class NodeControllerSession(NativeProcessSession):
 
       ## forward explicit reactor selection
       ##
-      if self._node._reactor_shortname:
-         args.extend(['--reactor', self._node._reactor_shortname])
+      if self._node.options.reactor:
+         args.extend(['--reactor', self._node.options.reactor])
 
       ## create worker process environment
       ##
@@ -607,9 +610,11 @@ class NodeControllerSession(NativeProcessSession):
          workdir = os.path.join(workdir, config['workdir'])
       workdir = os.path.abspath(workdir)
 
+      options = config.get('options', {})
+
       ## guest process environment
       ##
-      penv = create_process_env(config.get('options', {}))
+      worker_env = create_process_env(options)
 
       ## log name of worker
       ##
@@ -620,16 +625,15 @@ class NodeControllerSession(NativeProcessSession):
       starting_topic = 'crossbar.node.{}.on_guest_starting'.format(self._node_id)
       started_topic = 'crossbar.node.{}.on_guest_started'.format(self._node_id)
 
-      ## create a (custom) process endpoint
-      ##
-      ep = CustomProcessEndpoint(self._node._reactor, exe, args, env = penv,
-         name = worker_logname, keeplog = options.get('traceback', None))
-
       ## add worker tracking instance to the worker map ..
       ##
-      worker = GuestWorkerProcess(id, details.authid)
+      worker = GuestWorkerProcess(self, id, details.authid, keeplog = options.get('traceback', None))
 
       self._workers[id] = worker
+
+      ## create a (custom) process endpoint
+      ##
+      ep = WorkerProcessEndpoint(self._node._reactor, exe, args, env = worker_env, worker = worker)
 
       ## ready handling
       ##

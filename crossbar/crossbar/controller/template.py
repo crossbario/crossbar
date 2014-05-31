@@ -252,11 +252,15 @@ CONFIG_TESTEE = """{
 CONFIG_TEMPLATES = {
    "default": {
       "help": "A minimal WAMP router",
-      "config": CONFIG_DEFAULT,
+      "basedir": "templates/default",
+      "params": {
+         "node_id": "node1",
+         "realm_id": "realm1",
+         "appname": "hello"
+      }
    },
    "hello:python": {
       "help": "A Python WAMP application with a WAMP router",
-      "config": CONFIG_DEFAULT,
       "basedir": "templates/python",
       "params": {
          "node_id": "node1",

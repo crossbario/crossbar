@@ -65,24 +65,21 @@ class Node:
       :param options: Options from command line.
       :type options: obj
       """
+      self.options = options
+      ## the reactor under which we run
       self._reactor = reactor
 
-      self._cbdir = options.cbdir
-
-      with open(options.config) as config_file:
-         self._config = json.load(config_file)
-
+      ## shortname for reactor to run (when given via explicit option) or None
       self._reactor_shortname = options.reactor
 
-      self.debug = False
-
-      self._worker_workers = {}
+      ## node directory
+      self._cbdir = options.cbdir
 
       ## the node's name (must be unique within the management realm)
-      self._node_id = self._config['controller']['id']
+      #self._node_id = self._config['controller']['id']
 
       ## the node's management realm
-      self._realm = self._config['controller'].get('realm', 'crossbar')
+      #self._realm = self._config['controller'].get('realm', 'crossbar')
 
       ## node controller session (a singleton ApplicationSession embedded
       ## in the node's management router)
@@ -92,19 +89,36 @@ class Node:
 
    def start(self):
       """
-      Starts this node. This will start a node controller
-      and then spawn new worker processes as needed.
-
-      The node controller will watch spawned processes,
-      communicate via stdio with the worker, and start
-      and restart the worker processes as needed.
+      Starts this node. This will start a node controller and then spawn new worker
+      processes as needed.
       """
+      ## for now, a node is always started from a local configuration
+      ##
+      configfile = os.path.join(self.options.cbdir, self.options.config)
+      config = checkconfig.check_config_file(configfile, silence = True)
+
+      self.start_from_config(config)
+
+
+
+   def start_from_config(self, config):
+
+      title = config['controller'].get('title', 'crossbar-controller')
+
       try:
          import setproctitle
       except ImportError:
          log.msg("Warning, could not set process title (setproctitle not installed)")
       else:
-         setproctitle.setproctitle("crossbar-controller")
+         setproctitle.setproctitle(title)
+
+
+      ## the node's name (must be unique within the management realm)
+      self._node_id = config['controller'].get('id', 'node1')
+
+      ## the node's management realm
+      self._realm = config['controller'].get('realm', 'crossbar')
+
 
       ## the node controller singleton WAMP application session
       ##
@@ -135,10 +149,14 @@ class Node:
 
 
 #      self._start_from_local_config(configfile = os.path.join(self._cbdir, self._options.config))
-      self.run_node_config(self._config)
+#      if True:
+#         configfile = os.path.join(self.options.cbdir, self.options.config)
+      self.run_node_config(config)
 
       self.start_local_management_transport(endpoint_descriptor = "tcp:9000")
 
+
+   #def _start_node_controller(self):
 
 
    def start_local_management_transport(self, endpoint_descriptor):
@@ -147,7 +165,7 @@ class Node:
       from autobahn.twisted.websocket import WampWebSocketServerFactory
       from twisted.internet.endpoints import serverFromString
 
-      self._router_server_transport_factory = WampWebSocketServerFactory(self._router_session_factory, debug = self.debug)
+      self._router_server_transport_factory = WampWebSocketServerFactory(self._router_session_factory, debug = False)
       self._router_server_transport_factory.setProtocolOptions(failByDrop = False)
       self._router_server_transport_factory.noisy = False
 
@@ -168,8 +186,8 @@ class Node:
       log.msg("Starting from local config file '{}'".format(configfile))
 
       try:
-         #config = controller.config.check_config_file(configfile, silence = True)
-         config = json.loads(open(configfile, 'rb').read())
+         config = controller.config.check_config_file(configfile, silence = True)
+         #config = json.loads(open(configfile, 'rb').read())
       except Exception as e:
          log.msg("Fatal: {}".format(e))
          sys.exit(1)
@@ -197,9 +215,20 @@ class Node:
       ##
       call_details = CallDetails(caller = 0, authid = 'node')
 
+      ## startup all workers
+      ##
+      worker_no = 1
+
       for worker in config.get('workers', []):
 
-         worker_id = worker['id']
+         ## worker ID, type and logname
+         ##
+         if 'id' in worker:
+            worker_id = worker.pop('id')
+         else:
+            worker_id = 'worker{}'.format(worker_no)
+            worker_no += 1
+
          worker_type = worker['type']
          worker_options = worker.get('options', {})
 
@@ -215,11 +244,12 @@ class Node:
          else:
             raise Exception("logic error")
 
+
          ## router/container
          ##
          if worker_type in ['router', 'container']:
 
-            ## start a new worker process ..
+            ## start a new native worker process ..
             ##
             if worker_type == 'router':
                yield self._controller.start_router(worker_id, worker_options, details = call_details)
@@ -230,7 +260,8 @@ class Node:
             else:
                raise Exception("logic error")
 
-            ## setup worker generic stuff
+
+            ## setup native worker generic stuff
             ##
             if 'pythonpath' in worker_options:
                added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'])
@@ -240,45 +271,80 @@ class Node:
                new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'])
                log.msg("{}: CPU affinity set to {}".format(worker_logname, new_affinity))
 
-            ## manhole within worker
-            ##
             if 'manhole' in worker:
                yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, worker_id), worker['manhole'])
                log.msg("{}: manhole started".format(worker_logname))
+
 
             ## setup router worker
             ##
             if worker_type == 'router':
 
-               ## start realms
+               ## start realms on router
                ##
+               realm_no = 1
+
                for realm in worker.get('realms', []):
 
-                  #yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm['id'], realm)
-                  log.msg("{}: realm '{}' started".format(worker_logname, realm['id']))
+                  if 'id' in realm:
+                     realm_id = realm.pop('id')
+                  else:
+                     realm_id = 'realm{}'.format(realm_no)
+                     realm_no += 1
+
+                  ## FIXME
+                  #yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm)
+                  #log.msg("{}: realm '{}' started".format(worker_logname, realm_id))
+
 
                ## start components to run embedded in the router
                ##
+               component_no = 1
+
                for component in worker.get('components', []):
 
-                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component['id'], component)
-                  log.msg("{}: component '{}' started".format(worker_logname, component['id']))
+                  if 'id' in component:
+                     component_id = component.pop('id')
+                  else:
+                     component_id = 'component{}'.format(component_no)
+                     component_no += 1
+
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component_id, component)
+                  log.msg("{}: component '{}' started".format(worker_logname, component_id))
+
 
                ## start transports on router
                ##
+               transport_no = 1
+
                for transport in worker['transports']:
 
-                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport['id'], transport)
-                  log.msg("{}: transport '{}' started".format(worker_logname, transport['id']))
+                  if 'id' in transport:
+                     transport_id = transport.pop('id')
+                  else:
+                     transport_id = 'transport{}'.format(transport_no)
+                     transport_no += 1
+
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport)
+                  log.msg("{}: transport '{}' started".format(worker_logname, transport_id))
+
 
             ## setup container worker
             ##
             elif worker_type == 'container':
 
+               component_no = 1
+
                for component in worker.get('components', []):
 
-                  yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component['id'], component)
-                  log.msg("{}: component '{}' started".format(worker_logname, component['id']))
+                  if 'id' in component:
+                     component_id = component.pop('id')
+                  else:
+                     component_id = 'component{}'.format(component_no)
+                     component_no += 1
+
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component)
+                  log.msg("{}: component '{}' started".format(worker_logname, component_id))
 
             else:
                raise Exception("logic error")
