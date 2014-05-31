@@ -5,3 +5,6 @@ cbdata
 .cbdata
 .crossbar*
 *.db
+*.zip
+*.egg
+

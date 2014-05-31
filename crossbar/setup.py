@@ -16,7 +16,6 @@
 ##
 ###############################################################################
 
-
 from __future__ import absolute_import
 
 from distutils import log
@@ -64,7 +63,7 @@ setup (
       'setuptools>=2.2',         # Python Software Foundation license
       'zope.interface>=3.6.0',   # Zope Public license
       'twisted>=twisted-13.2',   # MIT license
-      'autobahn[twisted]>=0.8.8',# Apache license
+      'autobahn[twisted]>=0.8.9',# Apache license
       'jinja2>=2.7.2'            # BSD license
    ],
    extras_require = {
