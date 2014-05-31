@@ -54,6 +54,49 @@ from crossbar.controller.types import RouterWorkerProcess, \
 from crossbar.common.process import NativeProcessSession
 
 
+from twisted.internet import reactor
+from crossbar.twisted.endpoint import create_listening_port_from_config
+from autobahn.twisted.websocket import WampWebSocketServerFactory
+
+
+
+class ManagementTransport:
+   """
+   Local management service running inside node controller.
+   """
+
+   def __init__(self, config, who):
+      """
+      Ctor.
+
+      :param config: The configuration the manhole service was started with.
+      :type config: dict
+      :param who: Who triggered creation of this service.
+      :type who: str
+      """
+      self.config = config
+      self.who = who
+      self.status = 'starting'
+      self.created = datetime.utcnow()
+      self.started = None
+      self.port = None
+
+
+   def marshal(self):
+      """
+      Marshal object information for use with WAMP calls/events.
+
+      :returns: dict -- The marshalled information.
+      """
+      now = datetime.utcnow()
+      return {
+         'created': utcstr(self.created),
+         'status': self.status,
+         'started': utcstr(self.started) if self.started else None,
+         'uptime': (now - self.started).total_seconds() if self.started else None,
+         'config': self.config
+      }
+
 
 
 class NodeControllerSession(NativeProcessSession):
@@ -86,6 +129,8 @@ class NodeControllerSession(NativeProcessSession):
 
       ## map of worker processes: worker_id -> NativeWorkerProcess
       self._workers = {}
+
+      self._management_transport = None
 
       exit = Deferred()
 
@@ -130,6 +175,7 @@ class NodeControllerSession(NativeProcessSession):
       ##
       procs = [
          'shutdown',
+         'start_management_transport',
          'get_info',
          'get_workers',
          'get_worker_log',
@@ -173,6 +219,67 @@ class NodeControllerSession(NativeProcessSession):
       yield sleep(3)
 
       self._node._reactor.stop()
+
+
+
+   @inlineCallbacks
+   def start_management_transport(self, config, details = None):
+      """
+      Start transport for local management router.
+
+      :param config: Transport configuration.
+      :type config: obj
+      """
+      if self.debug:
+         log.msg("{}.start_management_transport".format(self.__class__.__name__), config)
+
+      if self._management_transport:
+         emsg = "ERROR: could not start management transport - already running (or starting)"
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.already_started", emsg)
+
+      try:
+         checkconfig.check_transport_websocket(config)
+      except Exception as e:
+         emsg = "ERROR: could not start management transport - invalid configuration ({})".format(e)
+         log.msg(emsg)
+         raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+
+
+      self._management_transport = ManagementTransport(config, details.authid)
+
+      factory = WampWebSocketServerFactory(self._node._router_session_factory, debug = False)
+      factory.setProtocolOptions(failByDrop = False)
+      factory.noisy = False
+
+
+      starting_topic = '{}.on_management_transport_starting'.format(self._uri_prefix)
+      starting_info = self._management_transport.marshal()
+
+      ## the caller gets a progressive result ..
+      if details.progress:
+         details.progress(starting_info)
+
+      ## .. while all others get an event
+      self.publish(starting_topic, starting_info, options = PublishOptions(exclude = [details.caller]))
+
+      try:
+         self._management_transport.port = yield create_listening_port_from_config(config['endpoint'], factory, self.cbdir, reactor)
+      except Exception as e:
+         self._management_transport = None
+         emsg = "ERROR: local management service endpoint cannot listen - {}".format(e)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.cannot_listen", emsg)
+
+      ## alright, manhole has started
+      self._management_transport.started = datetime.utcnow()
+      self._management_transport.status = 'started'
+
+      started_topic = '{}.on_management_transport_started'.format(self._uri_prefix)
+      started_info = self._management_transport.marshal()
+      self.publish(started_topic, started_info, options = PublishOptions(exclude = [details.caller]))
+
+      returnValue(started_info)
 
 
 

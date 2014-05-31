@@ -95,6 +95,7 @@ class Node:
       ## for now, a node is always started from a local configuration
       ##
       configfile = os.path.join(self.options.cbdir, self.options.config)
+      log.msg("Starting from local configuration '{}'".format(configfile))
       config = checkconfig.check_config_file(configfile, silence = True)
 
       self.start_from_config(config)
@@ -148,33 +149,7 @@ class Node:
          log.msg("No WAMPlets detected in enviroment.")
 
 
-#      self._start_from_local_config(configfile = os.path.join(self._cbdir, self._options.config))
-#      if True:
-#         configfile = os.path.join(self.options.cbdir, self.options.config)
       self.run_node_config(config)
-
-      self.start_local_management_transport(endpoint_descriptor = "tcp:9000")
-
-
-   #def _start_node_controller(self):
-
-
-   def start_local_management_transport(self, endpoint_descriptor):
-      ## create a WAMP-over-WebSocket transport server factory
-      ##
-      from autobahn.twisted.websocket import WampWebSocketServerFactory
-      from twisted.internet.endpoints import serverFromString
-
-      self._router_server_transport_factory = WampWebSocketServerFactory(self._router_session_factory, debug = False)
-      self._router_server_transport_factory.setProtocolOptions(failByDrop = False)
-      self._router_server_transport_factory.noisy = False
-
-
-      ## start the WebSocket server from an endpoint
-      ##
-      self._router_server = serverFromString(self._reactor, endpoint_descriptor)
-      ## FIXME: the following spills out log noise: "WampWebSocketServerFactory starting on 9000"
-      self._router_server.listen(self._router_server_transport_factory)
 
 
 
@@ -195,6 +170,7 @@ class Node:
          self.run_node_config(config)
 
 
+
    @inlineCallbacks
    def run_node_config(self, config):
       try:
@@ -202,6 +178,7 @@ class Node:
       except:
          traceback.print_exc()
          self._reactor.stop()
+
 
 
    @inlineCallbacks
@@ -214,6 +191,14 @@ class Node:
       ## remoted procedure locally
       ##
       call_details = CallDetails(caller = 0, authid = 'node')
+
+      controller = config.get('controller', {})
+
+      ## start local transport for management router
+      ##
+      if 'transport' in controller:
+         yield self._controller.start_management_transport(controller['transport'], details = call_details)
+
 
       ## startup all workers
       ##
