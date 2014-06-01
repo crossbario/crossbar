@@ -376,12 +376,6 @@ class NodeControllerSession(NativeProcessSession):
       Start a new router worker: a Crossbar.io native worker process
       that runs a WAMP router.
 
-      crossbar.node.<node_id>.on_router_starting
-      crossbar.node.<node_id>.on_router_started
-
-      crossbar.node.<node_id>.on_router_stopping
-      crossbar.node.<node_id>.on_router_stopped
-
       :param id: The worker ID to start this router with.
       :type id: str
       :param options: The router worker options.

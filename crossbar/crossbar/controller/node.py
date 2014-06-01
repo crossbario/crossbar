@@ -25,6 +25,7 @@ import os
 import sys
 import json
 import traceback
+import socket
 
 from twisted.python import log
 from twisted.internet.defer import Deferred, \
@@ -104,21 +105,28 @@ class Node:
 
    def start_from_config(self, config):
 
-      title = config['controller'].get('title', 'crossbar-controller')
+      controller_config = config.get('controller', {})
+
+      controller_options = controller_config.get('options', {})
+
+      controller_title = controller_options.get('title', 'crossbar-controller')
 
       try:
          import setproctitle
       except ImportError:
          log.msg("Warning, could not set process title (setproctitle not installed)")
       else:
-         setproctitle.setproctitle(title)
+         setproctitle.setproctitle(controller_title)
 
 
       ## the node's name (must be unique within the management realm)
-      self._node_id = config['controller'].get('id', 'node1')
+      if 'id' in controller_config:
+         self._node_id = controller_config['id']
+      else:
+         self._node_id = socket.gethostname()
 
       ## the node's management realm
-      self._realm = config['controller'].get('realm', 'crossbar')
+      self._realm = controller_config.get('realm', 'crossbar')
 
 
       ## the node controller singleton WAMP application session

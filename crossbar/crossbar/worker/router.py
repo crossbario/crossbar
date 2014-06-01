@@ -374,7 +374,7 @@ class RouterWorkerSession(NativeWorkerSession):
       elif config['type'] == 'wamplet':
 
          try:
-            dist = config['distribution']
+            dist = config['package']
             name = config['entrypoint']
 
             if self.debug:

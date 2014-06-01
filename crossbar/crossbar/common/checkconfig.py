@@ -533,6 +533,9 @@ def check_transport_web(transport):
       if k not in ['id', 'type', 'endpoint', 'paths', 'options']:
          raise Exception("encountered unknown attribute '{}' in Web transport configuration".format(k))
 
+   if 'id' in transport:
+      check_id(transport['id'])
+
    if not 'endpoint' in transport:
       raise Exception("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
 
@@ -604,6 +607,9 @@ def check_transport_websocket(transport):
       if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options']:
          raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
+   if 'id' in transport:
+      check_id(transport['id'])
+
    if not 'endpoint' in transport:
       raise Exception("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
@@ -634,9 +640,18 @@ def check_transport_websocket(transport):
 
 
 def check_transport_rawsocket(transport):
+   """
+   Check a RawSocket-WAMP transport configuration.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
    for k in transport:
-      if k not in ['type', 'endpoint', 'serializer', 'debug']:
+      if k not in ['id', 'type', 'endpoint', 'serializer', 'debug']:
          raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
+
+   if 'id' in transport:
+      check_id(transport['id'])
 
    if not 'endpoint' in transport:
       raise Exception("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
@@ -692,6 +707,12 @@ def check_router_transport(transport, silence = False):
 
 
 def check_router_component(component, silence = False):
+   """
+   Check a component configuration for a component running side-by-side with router.
+
+   :param component: The component configuration.
+   :type component: dict
+   """
    if type(component) != dict:
       raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
 
@@ -704,15 +725,17 @@ def check_router_component(component, silence = False):
 
    if ctype == 'wamplet':
       check_dict_args({
+         'id': (False, [six.text_type]),
          'type': (True, [six.text_type]),
          'realm': (True, [six.text_type]),
-         'distribution': (True, [six.text_type]),
+         'package': (True, [six.text_type]),
          'entrypoint': (True, [six.text_type]),
          'extra': (False, None),
          }, component, "invalid component configuration")
 
    elif ctype == 'class':
       check_dict_args({
+         'id': (False, [six.text_type]),
          'type': (True, [six.text_type]),
          'realm': (True, [six.text_type]),
          'classname': (True, [six.text_type]),
@@ -898,6 +921,12 @@ def check_manhole(manhole, silence = False):
 
 
 def check_process_env(env, silence = False):
+   """
+   Check a worker process environment configuration.
+
+   :param env: The `env` part of the worker options.
+   :type env: dict
+   """
    if type(env) != dict:
       raise Exception("'env' in 'options' in worker/guest configuration must be dict ({} encountered)".format(type(env)))
 
@@ -930,18 +959,29 @@ def check_process_env(env, silence = False):
 
 
 def check_native_worker_options(options, silence = False):
+   """
+   Check native worker options.
+
+   :param options: The native worker options to check.
+   :type options: dict
+   """
 
    if type(options) != dict:
-      raise Exception("options must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
+      raise Exception("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
    for k in options:
-      if k not in ['pythonpath', 'cpu_affinity', 'env', 'title']:
+      if k not in ['title', 'python', 'pythonpath', 'cpu_affinity', 'env']:
          raise Exception("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
 
    if 'title' in options:
       title = options['title']
       if type(title) != six.text_type:
          raise Exception("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
+
+   if 'python' in options:
+      python = options['python']
+      if type(python) != six.text_type:
+         raise Exception("'python' in 'options' in worker configuration must be a string ({} encountered)".format(type(python)))
 
    if 'pythonpath' in options:
       pythonpath = options['pythonpath']
@@ -1062,6 +1102,28 @@ def check_worker(worker, silence = False):
 
 
 
+def check_controller_options(options, silence = False):
+   """
+   Check controller options.
+
+   :param options: The options to check.
+   :type options: dict
+   """
+
+   if type(options) != dict:
+      raise Exception("'options' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(options)))
+
+   for k in options:
+      if k not in ['title']:
+         raise Exception("encountered unknown attribute '{}' in 'options' in controller configuration".format(k))
+
+   if 'title' in options:
+      title = options['title']
+      if type(title) != six.text_type:
+         raise Exception("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
+
+
+
 def check_controller(controller, silence = False):
    """
    Check a node controller configuration item.
@@ -1073,7 +1135,7 @@ def check_controller(controller, silence = False):
       raise Exception("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
    for k in controller:
-      if k not in ['id', 'realm', 'transport', 'manhole']:
+      if k not in ['id', 'realm', 'options', 'transport', 'manhole']:
          raise Exception("encountered unknown attribute '{}' in controller configuration".format(k))
 
    if 'id' in controller:
@@ -1082,11 +1144,14 @@ def check_controller(controller, silence = False):
    if 'realm' in controller:
       check_realm_name(controller['realm'])
 
+   if 'options' in controller:
+      check_controller_options(controller['options'])
+
    if 'manhole' in controller:
       check_manhole(controller['manhole'])
 
    if 'transport' in controller:
-      ## For now, only allow WAMP-WebSocket here
+      ## FIXME: for now, only allow WAMP-WebSocket here
       check_transport_websocket(controller['transport'])
 
 
