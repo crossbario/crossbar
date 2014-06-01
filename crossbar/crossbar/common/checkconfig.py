@@ -60,6 +60,12 @@ def check_or_raise_uri(value, message):
 
 
 def check_endpoint_backlog(backlog):
+   """
+   Check listening endpoint backlog parameter.
+
+   :param backlog: The backlog parameter for listening endpoints to check.
+   :type backlog: int
+   """
    if type(backlog) not in six.integer_types:
       raise Exception("'backlog' attribute in endpoint must be int ({} encountered)".format(type(backlog)))
    if backlog < 1 or backlog > 65535:
@@ -68,6 +74,12 @@ def check_endpoint_backlog(backlog):
 
 
 def check_endpoint_port(port):
+   """
+   Check a listening/connecting endpoint TCP port.
+
+   :param port: The port to check.
+   :type port: int
+   """
    if type(port) not in six.integer_types:
       raise Exception("'port' attribute in endpoint must be integer ({} encountered)".format(type(port)))
    if port < 1 or port > 65535:
@@ -75,7 +87,27 @@ def check_endpoint_port(port):
 
 
 
+def check_endpoint_ip_version(version):
+   """
+   Check a listening/connecting endpoint TCP version.
+
+   :param version: The version to check.
+   :type version: int
+   """
+   if type(version) not in six.integer_types:
+      raise Exception("'version' attribute in endpoint must be integer ({} encountered)".format(type(version)))
+   if version not in [4, 6]:
+      raise Exception("invalid value {} for 'version' attribute in endpoint".format(version))
+
+
+
 def check_endpoint_timeout(timeout):
+   """
+   Check a connecting endpoint timeout parameter.
+
+   :param timeout: The timeout to check.
+   :type timeout: int
+   """
    if type(timeout) not in six.integer_types:
       raise Exception("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
    if port < 0 or port > 600:
@@ -84,6 +116,12 @@ def check_endpoint_timeout(timeout):
 
 
 def check_endpoint_listen_tls(tls):
+   """
+   Check a listening endpoint TLS configuration.
+
+   :param tls: The TLS configuration part of a listening endpoint.
+   :type tls: dict
+   """
    if type(tls) != dict:
       raise Exception("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
 
@@ -103,6 +141,12 @@ def check_endpoint_listen_tls(tls):
 
 
 def check_endpoint_connect_tls(tls):
+   """
+   Check a connecting endpoint TLS configuration.
+
+   :param tls: The TLS configuration part of a connecting endpoint.
+   :type tls: dict
+   """
    if type(tls) != dict:
       raise Exception("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
 
@@ -113,14 +157,23 @@ def check_endpoint_connect_tls(tls):
 
 
 def check_endpoint_listen_tcp(endpoint):
+   """
+   Check a TCP listening endpoint configuration.
+
+   :param endpoint: The TCP listening endpoint to check.
+   :type endpoint: dict
+   """
    for k in endpoint:
-      if k not in ['type', 'port', 'shared', 'interface', 'backlog', 'tls']:
+      if k not in ['type', 'version', 'port', 'shared', 'interface', 'backlog', 'tls']:
          raise Exception("encountered unknown attribute '{}' in listening endpoint".format(k))
 
    if not 'port' in endpoint:
       raise Exception("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
    check_endpoint_port(endpoint['port'])
+
+   if 'version' in endpoint:
+      check_endpoint_ip_version(endpoint['version'])
 
    if 'shared' in endpoint:
       shared = endpoint['shared']
@@ -141,6 +194,12 @@ def check_endpoint_listen_tcp(endpoint):
 
 
 def check_endpoint_listen_unix(endpoint):
+   """
+   Check a Unix listening endpoint configuration.
+
+   :param endpoint: The Unix listening endpoint to check.
+   :type endpoint: dict
+   """
    for k in endpoint:
       if k not in ['type', 'path', 'backlog']:
          raise Exception("encountered unknown attribute '{}' in listening endpoint".format(k))
@@ -158,6 +217,12 @@ def check_endpoint_listen_unix(endpoint):
 
 
 def check_endpoint_connect_tcp(endpoint):
+   """
+   Check a TCP connecting endpoint configuration.
+
+   :param endpoint: The TCP connecting endpoint to check.
+   :type endpoint: dict
+   """
    for k in endpoint:
       if k not in ['type', 'host', 'port', 'timeout', 'tls']:
          raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
@@ -179,6 +244,12 @@ def check_endpoint_connect_tcp(endpoint):
 
 
 def check_endpoint_connect_unix(endpoint):
+   """
+   Check a Unix connecting endpoint configuration.
+
+   :param endpoint: The Unix connecting endpoint to check.
+   :type endpoint: dict
+   """
    for k in endpoint:
       if k not in ['type', 'path', 'timeout']:
          raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
@@ -196,6 +267,12 @@ def check_endpoint_connect_unix(endpoint):
 
 
 def check_endpoint_listen(endpoint):
+   """
+   Check a listening endpoint configuration.
+
+   :param endpoint: The listening endpoint configuration.
+   :type endpoint: dict
+   """
    if type(endpoint) != dict:
       raise Exception("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
 
@@ -216,6 +293,12 @@ def check_endpoint_listen(endpoint):
 
 
 def check_endpoint_connect(endpoint):
+   """
+   Check a conencting endpoint configuration.
+
+   :param endpoint: The connecting endpoint configuration.
+   :type endpoint: dict
+   """
    if type(endpoint) != dict:
       raise Exception("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
 
@@ -236,6 +319,12 @@ def check_endpoint_connect(endpoint):
 
 
 def check_websocket_options(options):
+   """
+   Check WebSocket / WAMP-WebSocket protocol options.
+
+   :param options: The options to check.
+   :type options: dict
+   """
    if type(options) != dict:
       raise Exception("WebSocket options must be a dictionary ({} encountered)".format(type(options)))
 
@@ -430,8 +519,7 @@ def check_transport_web(transport):
 
 def check_transport_websocket(transport):
    for k in transport:
-      if k not in ['type', 'endpoint', 'url', 'debug', 'debug_traffic', 'options']:
-#      if k not in ['type', 'endpoint', 'url', 'debug', 'options']:
+      if k not in ['type', 'endpoint', 'url', 'debug', 'options']:
          raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
    if not 'endpoint' in transport:
@@ -488,6 +576,9 @@ def check_transport_rawsocket(transport):
 def check_router_transport(transport, silence = False):
    """
    Check router transports.
+
+   :param transport: Router transport item to check.
+   :type transport: dict
    """
    if type(transport) != dict:
       raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
@@ -853,6 +944,12 @@ def check_guest(guest, silence = False):
 
 
 def check_worker(worker, silence = False):
+   """
+   Check a node worker configuration item.
+
+   :param worker: The worker configuration to check.
+   :type worker: dict
+   """
    if type(worker) != dict:
       raise Exception("worker items must be dictionaries ({} encountered)\n\n{}".format(type(worker), pformat(worker)))
 
@@ -878,7 +975,37 @@ def check_worker(worker, silence = False):
 
 
 
+def check_controller(controller, silence = False):
+   """
+   Check a node controller configuration item.
+
+   :param controller: The controller configuration to check.
+   :type controller: dict
+   """
+   if type(controller) != dict:
+      raise Exception("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
+
+   for k in controller:
+      if k not in ['transport', 'manhole']:
+         raise Exception("encountered unknown attribute '{}' in controller configuration".format(k))
+
+   if 'manhole' in controller:
+      check_manhole(controller['manhole'])
+
+   if 'transport' in controller:
+      ## For now, only allow WAMP-WebSocket here
+      check_transport_websocket(controller['transport'])
+
+
+
+
 def check_config(config, silence = False):
+   """
+   Check a Crossbar.io top-level configuration.
+
+   :param config: The configuration to check.
+   :type config: dict
+   """
    if type(config) != dict:
       raise Exception("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
 
@@ -886,8 +1013,10 @@ def check_config(config, silence = False):
       if k not in ['controller', 'workers']:
          raise Exception("encountered unknown attribute '{}' in top-level configuration".format(k))
 
-   #if not 'processes' in config:
-   #   raise Exception("missing 'processes' attribute in top-level configuration item")
+   ## check contoller config
+   ##
+   controller = config.get('controller', {})
+   check_controller(controller)
 
    ## check workers
    ##

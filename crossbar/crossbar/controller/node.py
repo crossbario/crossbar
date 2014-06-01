@@ -76,10 +76,10 @@ class Node:
       self._cbdir = options.cbdir
 
       ## the node's name (must be unique within the management realm)
-      #self._node_id = self._config['controller']['id']
+      self._node_id = None
 
       ## the node's management realm
-      #self._realm = self._config['controller'].get('realm', 'crossbar')
+      self._realm = None
 
       ## node controller session (a singleton ApplicationSession embedded
       ## in the node's management router)
@@ -193,6 +193,13 @@ class Node:
       call_details = CallDetails(caller = 0, authid = 'node')
 
       controller = config.get('controller', {})
+
+
+      ## start Manhole in node controller
+      ##
+      if 'manhole' in controller:
+         yield self._controller.start_manhole(controller['manhole'], details = call_details)
+
 
       ## start local transport for management router
       ##

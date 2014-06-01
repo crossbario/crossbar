@@ -194,20 +194,19 @@ def run_command_check(options):
    """
    Subcommand "crossbar check".
    """
-   from crossbar.controller.config import check_config_file
+   from crossbar.common.checkconfig import check_config_file
    configfile = os.path.join(options.cbdir, options.config)
 
    print("Checking local configuration file {}".format(configfile))
 
    try:
-      check_config_file(configfile)
+     check_config_file(configfile)
    except Exception as e:
-      print("Error encountered:")
-      print()
-      print(e)
-      print()
+      print("\nError: {}\n".format(e))
+      sys.exit(1)
    else:
       print("Ok, configuration file looks good.")
+      sys.exit(0)
 
 
 
