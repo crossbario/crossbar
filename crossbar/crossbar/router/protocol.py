@@ -528,9 +528,9 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
       ## explicit list of WAMP serializers
       ##
-      if 'serializers' in options:
+      if 'serializers' in config:
          serializers = []
-         sers = set(options['serializers'])
+         sers = set(config['serializers'])
 
          if 'json' in sers:
             ## try JSON WAMP serializer

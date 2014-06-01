@@ -46,6 +46,10 @@ from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
 
 from crossbar.worker.testee import TesteeServerFactory
 
+from twisted.internet import reactor
+from crossbar.twisted.endpoint import create_listening_port_from_config
+
+
 
 try:
    from twisted.web.wsgi import WSGIResource
@@ -500,29 +504,31 @@ class RouterWorkerSession(NativeWorkerSession):
          ## create Twisted Web root resource
          ##
          root_config = config['paths']['/']
+
          root_type = root_config['type']
+         root_options = root_config.get('options', {})
 
 
          ## Static file hierarchy root resource
          ##
          if root_type == 'static':
 
-
             if 'directory' in root_config:
 
                root_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, root_config['directory']))
 
-            elif 'module' in root_config:
+            elif 'package' in root_config:
+
                if not 'resource' in root_config:
-                  raise ApplicationError("crossbar.error.invalid_configuration", "missing module")
+                  raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
 
                try:
-                  mod = importlib.import_module(root_config['module'])
+                  mod = importlib.import_module(root_config['package'])
                except ImportError:
-                  raise ApplicationError("crossbar.error.invalid_configuration", "module import failed")
+                  raise ApplicationError("crossbar.error.invalid_configuration", "package import failed")
                else:
                   try:
-                     root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['module'], root_config['resource']))
+                     root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['package'], root_config['resource']))
                   except Exception as e:
                      raise ApplicationError("crossbar.error.invalid_configuration", str(e))
                   else:
@@ -539,7 +545,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             ## create resource for file system hierarchy
             ##
-            if options.get('enable_directory_listing', False):
+            if root_options.get('enable_directory_listing', False):
                root = File(root_dir)
             else:
                root = FileNoListing(root_dir)
@@ -547,6 +553,8 @@ class RouterWorkerSession(NativeWorkerSession):
             ## set extra MIME types
             ##
             root.contentTypes.update(EXTRA_MIME_TYPES)
+            if 'mime_types' in root_options:
+               root.contentTypes.update(root_options['mime_types'])
 
             ## render 404 page on any concrete path not found
             ##
@@ -619,6 +627,7 @@ class RouterWorkerSession(NativeWorkerSession):
                ## WAMP-WebSocket resource
                ##
                if path_config['type'] == 'websocket':
+
                   ws_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, path_config, self._templates)
 
                   ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
@@ -638,18 +647,18 @@ class RouterWorkerSession(NativeWorkerSession):
 
                      static_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
 
-                  elif 'module' in path_config:
+                  elif 'package' in path_config:
 
                      if not 'resource' in path_config:
-                        raise ApplicationError("crossbar.error.invalid_configuration", "missing module")
+                        raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
 
                      try:
-                        mod = importlib.import_module(path_config['module'])
+                        mod = importlib.import_module(path_config['package'])
                      except ImportError:
                         raise ApplicationError("crossbar.error.invalid_configuration", "module import failed")
                      else:
                         try:
-                           static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['module'], path_config['resource']))
+                           static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
                         except Exception as e:
                            raise ApplicationError("crossbar.error.invalid_configuration", str(e))
 
@@ -669,6 +678,8 @@ class RouterWorkerSession(NativeWorkerSession):
                   ## set extra MIME types
                   ##
                   static_resource.contentTypes.update(EXTRA_MIME_TYPES)
+                  if 'mime_types' in static_options:
+                     static_resource.contentTypes.update(static_options['mime_types'])
 
                   ## render 404 page on any concrete path not found
                   ##
@@ -694,8 +705,8 @@ class RouterWorkerSession(NativeWorkerSession):
 
                   try:
                      mod = importlib.import_module(path_config['module'])
-                  except ImportError:
-                     raise ApplicationError("crossbar.error.invalid_configuration", "module import failed")
+                  except ImportError as e:
+                     raise ApplicationError("crossbar.error.invalid_configuration", "module import failed - {}".format(e))
                   else:
                      if not path_config['object'] in mod.__dict__:
                         raise ApplicationError("crossbar.error.invalid_configuration", "object not in module")
@@ -786,9 +797,6 @@ class RouterWorkerSession(NativeWorkerSession):
 
       ## create transport endpoint / listening port from transport factory
       ##
-      from twisted.internet import reactor
-      from crossbar.twisted.endpoint import create_listening_port_from_config
-
       d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, reactor)
 
       def ok(port):

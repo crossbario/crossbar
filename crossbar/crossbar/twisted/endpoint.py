@@ -78,8 +78,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
       ##
       version = int(config.get('version', 4))
 
-      print "$"*100, version
-
       ## the listening port
       ##
       port = int(config['port'])

@@ -35,6 +35,15 @@ from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
                                   _URI_PAT_LOOSE_NON_EMPTY
 
 
+def check_id(id):
+   return
+
+
+
+def check_realm_name(name):
+   return
+
+
 
 def check_dict_args(spec, config, msg):
    for k in config:
@@ -348,10 +357,7 @@ def check_websocket_options(options):
                    'fail_by_drop',
                    'echo_close_codereason',
                    'tcp_nodelay',
-                   'compression',
-
-                   ## WAMP-WebSocket options
-                   'serializers'
+                   'compression'
                    ]:
          raise Exception("encountered unknown attribute '{}' in WebSocket options".format(k))
 
@@ -360,6 +366,12 @@ def check_websocket_options(options):
 
 
 def check_transport_web_path_service_websocket(config):
+   """
+   Check a "websocket" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
    if 'options' in config:
       check_websocket_options(config['options'])
 
@@ -380,24 +392,42 @@ def check_transport_web_path_service_websocket(config):
 
 
 def check_transport_web_path_service_static(config):
+   """
+   Check a "static" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
    check_dict_args({
       'type': (True, [six.text_type]),
       'directory': (False, [six.text_type]),
-      'module': (False, [six.text_type]),
+      'package': (False, [six.text_type]),
       'resource': (False, [six.text_type]),
-      'enable_directory_listing': (False, [bool])
+      'options': (False, [dict])
       }, config, "Web transport 'static' path service")
 
    if 'directory' in config:
-      if 'module' in config or 'resource' in config:
-         raise Exception("Web transport 'static' path service: either 'directory' OR 'module' + 'resource' must be given, not both")
+      if 'package' in config or 'resource' in config:
+         raise Exception("Web transport 'static' path service: either 'directory' OR 'package' + 'resource' must be given, not both")
    else:
-      if not 'module' in config or not 'resource' in config:
-         raise Exception("Web transport 'static' path service: either 'directory' OR 'module' + 'resource' must be given, not both")
+      if not 'package' in config or not 'resource' in config:
+         raise Exception("Web transport 'static' path service: either 'directory' OR 'package' + 'resource' must be given, not both")
+
+   if 'options' in config:
+      check_dict_args({
+         'enable_directory_listing': (False, [bool]),
+         'mime_types': (False, [dict]),
+         }, config['options'], "'options' in Web transport 'static' path service")
 
 
 
 def check_transport_web_path_service_wsgi(config):
+   """
+   Check a "wsgi" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
    check_dict_args({
       'type': (True, [six.text_type]),
       'module': (True, [six.text_type]),
@@ -407,6 +437,12 @@ def check_transport_web_path_service_wsgi(config):
 
 
 def check_transport_web_path_service_redirect(config):
+   """
+   Check a "redirect" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
    check_dict_args({
       'type': (True, [six.text_type]),
       'url': (True, [six.text_type])
@@ -415,6 +451,12 @@ def check_transport_web_path_service_redirect(config):
 
 
 def check_transport_web_path_service_json(config):
+   """
+   Check a "json" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
    check_dict_args({
       'type': (True, [six.text_type]),
       'value': (True, None)
@@ -423,6 +465,12 @@ def check_transport_web_path_service_json(config):
 
 
 def check_transport_web_path_service_cgi(config):
+   """
+   Check a "cgi" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
    check_dict_args({
       'type': (True, [six.text_type]),
       'directory': (True, [six.text_type]),
@@ -432,21 +480,33 @@ def check_transport_web_path_service_cgi(config):
 
 
 def check_transport_web_path_service_longpoll(config):
+   """
+   Check a "longpoll" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
    raise Exception("Web transport 'longpoll' path service : not yet implemented")
 
 
 
 def check_transport_web_path_service(path, config):
+   """
+   Check a single path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
    if not 'type' in config:
-      raise Exception("missing mandatory attribute 'type' in Web transport path '{}' configuration\n\n{}".format(path, config))
+      raise Exception("missing mandatory attribute 'type' in Web transport path service '{}' configuration\n\n{}".format(path, config))
 
    ptype = config['type']
    if path == '/':
       if ptype not in ['static', 'wsgi', 'redirect']:
-         raise Exception("invalid type '{}' for root-path service in Web transport path '{}' configuration\n\n{}".format(ptype, path, config))
+         raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
    else:
       if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll']:
-         raise Exception("invalid type '{}' for sub-path service in Web transport path '{}' configuration\n\n{}".format(ptype, path, config))
+         raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
    checkers = {
       'websocket': check_transport_web_path_service_websocket,
@@ -463,6 +523,12 @@ def check_transport_web_path_service(path, config):
 
 
 def check_transport_web(transport):
+   """
+   Check router web transport.
+
+   :param transport: The Web transport configuration to check.
+   :type transport: dict
+   """
    for k in transport:
       if k not in ['id', 'type', 'endpoint', 'paths', 'options']:
          raise Exception("encountered unknown attribute '{}' in Web transport configuration".format(k))
@@ -503,6 +569,11 @@ def check_transport_web(transport):
          if type(access_log) != bool:
             raise Exception("'access_log' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(access_log)))
 
+      if 'display_tracebacks' in options:
+         display_tracebacks = options['display_tracebacks']
+         if type(display_tracebacks) != bool:
+            raise Exception("'display_tracebacks' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(display_tracebacks)))
+
       if 'hsts' in options:
          hsts = options['hsts']
          if type(hsts) != bool:
@@ -515,11 +586,22 @@ def check_transport_web(transport):
          if hsts_max_age < 0:
             raise Exception("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
 
+      if 'hixie76_aware' in options:
+         hixie76_aware = options['hixie76_aware']
+         if type(hixie76_aware) != bool:
+            raise Exception("'hixie76_aware' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hixie76_aware)))
+
 
 
 def check_transport_websocket(transport):
+   """
+   Check a WebSocket-WAMP transport configuration.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
    for k in transport:
-      if k not in ['type', 'endpoint', 'url', 'debug', 'options']:
+      if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options']:
          raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
    if not 'endpoint' in transport:
@@ -528,7 +610,12 @@ def check_transport_websocket(transport):
    check_endpoint_listen(transport['endpoint'])
 
    if 'options' in transport:
-      check_websocket_options(transport[options])
+      check_websocket_options(transport['options'])
+
+   if 'serializers' in transport:
+      serializers = transport['serializers']
+      if type(serializers) != list:
+         raise Exception("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
 
    if 'debug' in transport:
       debug = transport['debug']
@@ -986,8 +1073,14 @@ def check_controller(controller, silence = False):
       raise Exception("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
    for k in controller:
-      if k not in ['transport', 'manhole']:
+      if k not in ['id', 'realm', 'transport', 'manhole']:
          raise Exception("encountered unknown attribute '{}' in controller configuration".format(k))
+
+   if 'id' in controller:
+      check_id(controller['id'])
+
+   if 'realm' in controller:
+      check_realm_name(controller['realm'])
 
    if 'manhole' in controller:
       check_manhole(controller['manhole'])
@@ -995,7 +1088,6 @@ def check_controller(controller, silence = False):
    if 'transport' in controller:
       ## For now, only allow WAMP-WebSocket here
       check_transport_websocket(controller['transport'])
-
 
 
 
@@ -1015,8 +1107,10 @@ def check_config(config, silence = False):
 
    ## check contoller config
    ##
-   controller = config.get('controller', {})
-   check_controller(controller)
+   if 'controller' in config:
+      if not silence:
+         print("Checking controller item ..")
+      check_controller(config['controller'])
 
    ## check workers
    ##
