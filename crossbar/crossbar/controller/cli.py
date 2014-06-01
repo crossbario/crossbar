@@ -135,8 +135,9 @@ def run_command_init(options):
    except Exception as e:
       raise Exception("could not create node directory '{}' ({})".format(options.appdir, e))
    else:
-      print("Node directory '{}' created".format(options.appdir))
+      print("Crossbar.io application directory '{}' created".format(options.appdir))
 
+   print("Initializing application template '{}'".format(options.template))
    templates.init(options.appdir, options.template)
 
    # try:
@@ -148,8 +149,8 @@ def run_command_init(options):
    #       pass
    #    raise e
 
-   print("Node initialized")
-   print("\nTo start your node, run 'crossbar start'")
+   print("Application template initialized")
+   print("\nTo start your node, run 'crossbar start --cbdir {}'".format(os.path.join(options.appdir, '.crossbar')))
 
 
 
