@@ -1,0 +1,105 @@
+{
+   "controller": {
+      "id": "node1",
+      "options": {
+         "title": "MyController"
+      },
+      "transport": {
+         "type": "websocket",
+         "endpoint": {
+            "type": "tcp",
+            "port": 9000
+         }
+      }
+   },
+   "workers": [
+      {
+         "id": "myworker1",
+         "type": "router",
+         "options": {
+            "python": "/home/oberstet/python276/bin/python",
+            "pythonpath": ["."]
+         },
+         "components": [
+         ],
+         "transports": [
+            {
+               "id": "transport23",
+               "type": "websocket",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8081
+               },
+               "serializers": ["json", "msgpack"],
+               "options": {
+                  "open_handshake_timeout": 3
+               }
+            },
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "options": {
+                  "access_log": true,
+                  "display_tracebacks": true,
+                  "hixie76_aware": true
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": "..",
+                     "options": {
+                        "enable_directory_listing": true,
+                        "mime_types": {
+                           ".svg": "image/svg+xml"
+                        }
+                     }
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  },
+                  "foobar": {
+                     "type": "redirect",
+                     "url": "../crossbar"
+                  },
+                  "config": {
+                     "type": "json",
+                     "value": {
+                        "param1": [1, 2, 3]
+                     }
+                  },
+                  "baz": {
+                     "type": "wsgi",
+                     "module": "myapp",
+                     "object": "app"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["."]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "backend.Component",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "url": "ws://localhost:8080/ws",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  }
+               }
+            }           
+         ]
+      }
+   ]
+}

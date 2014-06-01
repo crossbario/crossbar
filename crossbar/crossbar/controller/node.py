@@ -66,6 +66,8 @@ class Node:
       :param options: Options from command line.
       :type options: obj
       """
+      self.debug = False
+
       self.options = options
       ## the reactor under which we run
       self._reactor = reactor
@@ -265,7 +267,10 @@ class Node:
             ##
             if 'pythonpath' in worker_options:
                added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'])
-               log.msg("{}: PYTHONPATH extended for {}".format(worker_logname, added_paths))
+               if self.debug:
+                  log.msg("{}: PYTHONPATH extended for {}".format(worker_logname, added_paths))
+               else:
+                  log.msg("{}: PYTHONPATH extended".format(worker_logname))
 
             if 'cpu_affinity' in worker_options:
                new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'])

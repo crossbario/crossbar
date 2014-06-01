@@ -44,7 +44,7 @@ from autobahn.wamp.types import ComponentConfig, \
                                 PublishOptions, \
                                 RegisterOptions
 
-from crossbar import common
+from crossbar.common import checkconfig
 from crossbar.worker.native import NativeWorkerSession
 from crossbar.router.protocol import CrossbarWampWebSocketClientFactory, \
                                      CrossbarWampRawSocketClientFactory
@@ -109,30 +109,38 @@ class ContainerWorkerSession(NativeWorkerSession):
       """
       Called when worker process has joined the node's management realm.
       """
-      ## map: component id -> ContainerComponent
+      yield NativeWorkerSession.onJoin(self, details, publish_ready = False)
+
+      ## map: component ID -> ContainerComponent
       self.components = {}
-      self.component_id = 0
 
 
-      dl = []
+      ## the procedures registered
       procs = [
-         'get_components',
-         'start_component',
-         'stop_component',
-         'restart_component'
+         'get_container_components',
+         'start_container_component',
+         'stop_container_component',
+         'restart_container_component'
       ]
 
+      dl = []
       for proc in procs:
-         uri = 'crossbar.node.{}.worker.{}.container.{}'.format(self.config.extra.node, self.config.extra.worker, proc)
+         uri = '{}.{}'.format(self._uri_prefix, proc)
+         if self.debug:
+            log.msg("Registering procedure '{}'".format(uri))
          dl.append(self.register(getattr(self, proc), uri, options = RegisterOptions(details_arg = 'details', discloseCaller = True)))
 
       regs = yield DeferredList(dl)
 
-      yield NativeWorkerSession.onJoin(self, details)
+      if self.debug:
+         log.msg("ContainerWorker registered {} procedures".format(len(regs)))
+
+      ## NativeWorkerSession.publish_ready()
+      yield self.publish_ready()
 
 
 
-   def start_component(self, config, reload_modules = False, details = None):
+   def start_container_component(self, id, config, reload_modules = False, details = None):
       """
       Starts a Class or WAMPlet in this component container.
 
@@ -146,12 +154,31 @@ class ContainerWorkerSession(NativeWorkerSession):
 
       :returns dict -- A dict with combined info from component starting.
       """
-      try:
-         common.config.check_container_component(config)
-      except Exception as e:
-         emsg = "ERROR: could not start container component - invalid configuration ({})".format(e)
+      if self.debug:
+         log.msg("{}.start_container_component".format(self.__class__.__name__), id, config)
+
+      ## prohibit starting a component twice
+      ##
+      if id in self.components:
+         emsg = "ERROR: could not start component - a component with ID '{}'' is already running (or starting)".format(id)
          log.msg(emsg)
-         raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+         raise ApplicationError('crossbar.error.already_running', emsg)
+
+      ## check configuration
+      ##
+      try:
+         checkconfig.check_container_component(config)
+      except Exception as e:
+         emsg = "ERROR: invalid container component configuration ({})".format(e)
+         log.msg(emsg)
+         raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+      else:
+         if self.debug:
+            log.msg("Starting {}-component in container.".format(config['type']))
+
+
+      realm = config['realm']
+      componentcfg = ComponentConfig(realm = realm, extra = config.get('extra', None))
 
 
       ## 1) create WAMP application component factory
@@ -214,15 +241,12 @@ class ContainerWorkerSession(NativeWorkerSession):
       ## WAMP application session factory
       ##
       def create_session():
-         cfg = ComponentConfig(realm = config['router']['realm'],
-            extra = config.get('extra', None))
-         c = create_component(cfg)
-         return c
+         return create_component(componentcfg)
 
 
       ## 2) create WAMP transport factory
       ##
-      transport_config = config['router']['transport']
+      transport_config = config['transport']
       transport_debug = transport_config.get('debug', False)
       transport_debug_wamp = transport_config.get('debug_wamp', False)
 
@@ -237,6 +261,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             transport_config['url'],
             debug = transport_debug,
             debug_wamp = transport_debug_wamp)
+         transport_factory.noisy = False
 
       ## WAMP-over-RawSocket transport
       ##
@@ -244,6 +269,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
          transport_factory = CrossbarWampRawSocketClientFactory(create_session,
             transport_config)
+         transport_factory.noisy = False
 
       else:
          ## should not arrive here, since we did `check_container_component()`
@@ -262,14 +288,12 @@ class ContainerWorkerSession(NativeWorkerSession):
       d = endpoint.connect(transport_factory)
 
       def success(proto):
-         self.component_id += 1
-         self.components[self.component_id] = ContainerComponent(self.component_id,
-            config, proto, None)
+         self.components[id] = ContainerComponent(id, config, proto, None)
 
          ## publish event "on_component_start" to all but the caller
          ##
          topic = 'crossbar.node.{}.worker.{}.container.on_component_start'.format(self.config.extra.node, self.config.extra.worker)
-         event = {'id': self.component_id}
+         event = {'id': id}
          self.publish(topic, event, options = PublishOptions(exclude = [details.caller]))
 
          return event
@@ -291,7 +315,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
 
    @inlineCallbacks
-   def restart_component(self, id, reload_modules = False, details = None):
+   def restart_container_component(self, id, reload_modules = False, details = None):
       """
       Restart a component currently running within this container using the
       same configuration that was used when first starting the component.
@@ -316,7 +340,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
 
 
-   def stop_component(self, id, details = None):
+   def stop_container_component(self, id, details = None):
       """
       Stop a component currently running within this container.
 
@@ -355,7 +379,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
 
 
-   def get_components(self, details = None):
+   def get_container_components(self, details = None):
       """
       Get components currently running within this container.
 

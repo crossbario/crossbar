@@ -49,6 +49,8 @@ from crossbar.worker.testee import TesteeServerFactory
 from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
+from autobahn.wamp.types import PublishOptions, \
+                                RegisterOptions
 
 
 try:
@@ -190,6 +192,7 @@ class RouterWorkerSession(NativeWorkerSession):
    @inlineCallbacks
    def onJoin(self, details):
       """
+      Called when worker process has joined the node's management realm.
       """
       yield NativeWorkerSession.onJoin(self, details, publish_ready = False)
 
@@ -206,19 +209,17 @@ class RouterWorkerSession(NativeWorkerSession):
       ## factory for producing router sessions
       self.session_factory = CrossbarRouterSessionFactory(self.factory)
 
-      ## map: realm index -> RouterRealm
+      ## map: realm ID -> RouterRealm
       self.realms = {}
 
-      ## map: transport index -> RouterTransport
+      ## map: transport ID -> RouterTransport
       self.transports = {}
 
-      ## map: link index -> RouterLink
+      ## map: link ID -> RouterLink
       self.links = {}
 
-      ## map: component index -> RouterComponent
+      ## map: component ID -> RouterComponent
       self.components = {}
-
-      self.debug_app = True
 
 
       ## the procedures registered
@@ -242,7 +243,7 @@ class RouterWorkerSession(NativeWorkerSession):
          uri = '{}.{}'.format(self._uri_prefix, proc)
          if self.debug:
             log.msg("Registering procedure '{}'".format(uri))
-         dl.append(self.register(getattr(self, proc), uri))
+         dl.append(self.register(getattr(self, proc), uri, options = RegisterOptions(details_arg = 'details', discloseCaller = True)))
 
       regs = yield DeferredList(dl)
 
@@ -254,18 +255,18 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def get_router_realms(self):
+   def get_router_realms(self, details = None):
       """
       List realms currently managed by this router.
       """
       if self.debug:
-         log.msg("{}.get_router_realms".format(self.__class__.name))
+         log.msg("{}.get_router_realms".format(self.__class__.__name__))
 
       raise NotImplementedError()
 
 
 
-   def start_router_realm(self, id, config):
+   def start_router_realm(self, id, config, details = None):
       """
       Starts a realm managed by this router.
 
@@ -275,13 +276,13 @@ class RouterWorkerSession(NativeWorkerSession):
       :type config: dict
       """
       if self.debug:
-         log.msg("{}.start_router_realm".format(self.__class__.name), id, config)
+         log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
 
       raise NotImplementedError()
 
 
 
-   def stop_router_realm(self, id, close_sessions = False):
+   def stop_router_realm(self, id, close_sessions = False, details = None):
       """
       Stop a router realm.
 
@@ -294,18 +295,18 @@ class RouterWorkerSession(NativeWorkerSession):
       :type close_sessions: bool
       """
       if self.debug:
-         log.msg("{}.stop_router_realm".format(self.__class__.name), id, close_sessions)
+         log.msg("{}.stop_router_realm".format(self.__class__.__name__), id, close_sessions)
 
       raise NotImplementedError()
 
 
 
-   def get_router_components(self):
+   def get_router_components(self, details = None):
       """
       List application components currently running (embedded) in this router.
       """
       if self.debug:
-         log.msg("{}.get_router_components".format(self.__class__.name))
+         log.msg("{}.get_router_components".format(self.__class__.__name__))
 
       res = []
       for component in sorted(self._components.values(), key = lambda c: c.created):
@@ -318,7 +319,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def start_router_component(self, id, config):
+   def start_router_component(self, id, config, details = None):
       """
       Dynamically start an application component to run next to the router in "embedded mode".
 
@@ -328,7 +329,7 @@ class RouterWorkerSession(NativeWorkerSession):
       :type config: obj
       """
       if self.debug:
-         log.msg("{}.start_router_component".format(self.__class__.name), id, config)
+         log.msg("{}.start_router_component".format(self.__class__.__name__), id, config)
 
       ## prohibit starting a component twice
       ##
@@ -409,7 +410,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def stop_router_component(self, id):
+   def stop_router_component(self, id, details = None):
       """
       Stop an application component running on this router.
 
@@ -417,7 +418,7 @@ class RouterWorkerSession(NativeWorkerSession):
       :type id: str
       """
       if self.debug:
-         log.msg("{}.stop_router_component".format(self.__class__.name), id)
+         log.msg("{}.stop_router_component".format(self.__class__.__name__), id)
 
       if id in self._components:
          if self.debug:
@@ -434,12 +435,12 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def get_router_transports(self):
+   def get_router_transports(self, details = None):
       """
       List currently running transports.
       """
       if self.debug:
-         log.msg("{}.get_router_transports".format(self.__class__.name))
+         log.msg("{}.get_router_transports".format(self.__class__.__name__))
 
       res = {}
       for key, transport in self._transports.items():
@@ -449,7 +450,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def start_router_transport(self, id, config):
+   def start_router_transport(self, id, config, details = None):
       """
       Start a transport on this router.
 
@@ -459,7 +460,7 @@ class RouterWorkerSession(NativeWorkerSession):
       :type config: dict
       """
       if self.debug:
-         log.msg("{}.start_router_transport".format(self.__class__.name), id, config)
+         log.msg("{}.start_router_transport".format(self.__class__.__name__), id, config)
 
       ## prohibit starting a transport twice
       ##
@@ -486,6 +487,7 @@ class RouterWorkerSession(NativeWorkerSession):
       if config['type'] == 'rawsocket':
 
          transport_factory = CrossbarWampRawSocketServerFactory(self.session_factory, config)
+         transport_factory.noisy = False
 
 
       ## standalone WAMP-WebSocket transport
@@ -493,6 +495,7 @@ class RouterWorkerSession(NativeWorkerSession):
       elif config['type'] == 'websocket':
 
          transport_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, config, self._templates)
+         transport_factory.noisy = False
 
 
       ## Twisted Web based transport
@@ -765,6 +768,7 @@ class RouterWorkerSession(NativeWorkerSession):
          ## create the actual transport factory
          ##
          transport_factory = Site(root)
+         transport_factory.noisy = False
 
 
          ## Web access logging
@@ -802,7 +806,7 @@ class RouterWorkerSession(NativeWorkerSession):
       def ok(port):
          self.transports[id] = RouterTransport(id, config, port)
          if self.debug:
-            log.msg("Router transport {} started and listening".format(self.transport_no))
+            log.msg("Router transport '{}'' started and listening".format(id))
          return
 
       def fail(err):
@@ -815,7 +819,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def stop_router_transport(self, id):
+   def stop_router_transport(self, id, details = None):
       """
       Stop a transport on this router on this router.
 
@@ -823,7 +827,7 @@ class RouterWorkerSession(NativeWorkerSession):
       :type id: dict
       """
       if self.debug:
-         log.msg("{}.stop_router_transport".format(self.__class__.name), id)
+         log.msg("{}.stop_router_transport".format(self.__class__.__name__), id)
 
       if not id in self.transports or self.transports['id'] != 'started':
          emsg = "ERROR: cannot stop transport - no transport with ID '{}' (or already stopping)".format(id)
@@ -846,18 +850,18 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def get_router_links(self):
+   def get_router_links(self, details = None):
       """
       List currently running router links.
       """
       if self.debug:
-         log.msg("{}.get_router_links".format(self.__class__.name))
+         log.msg("{}.get_router_links".format(self.__class__.__name__))
 
       raise NotImplementedError()
 
 
 
-   def start_router_link(self, id, config):
+   def start_router_link(self, id, config, details = None):
       """
       Start a link on this router.
 
@@ -867,13 +871,13 @@ class RouterWorkerSession(NativeWorkerSession):
       :type config: dict
       """
       if self.debug:
-         log.msg("{}.start_router_link".format(self.__class__.name), id, config)
+         log.msg("{}.start_router_link".format(self.__class__.__name__), id, config)
 
       raise NotImplementedError()
 
 
 
-   def stop_router_link(self, id):
+   def stop_router_link(self, id, details = None):
       """
       Stop a link on this router.
 
@@ -881,6 +885,6 @@ class RouterWorkerSession(NativeWorkerSession):
       :type id: str
       """
       if self.debug:
-         log.msg("{}.stop_router_link".format(self.__class__.name), id)
+         log.msg("{}.stop_router_link".format(self.__class__.__name__), id)
 
       raise NotImplementedError()

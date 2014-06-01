@@ -136,7 +136,7 @@ class NativeProcessSession(ApplicationSession):
 
       ## see: BaseSession
       self.include_traceback = False
-      self.debug_app = True
+      self.debug_app = False
 
       self._manhole_service = None
 

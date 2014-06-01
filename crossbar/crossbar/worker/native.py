@@ -124,7 +124,7 @@ class NativeWorkerSession(NativeProcessSession):
       :returns list -- List of CPU IDs the process affinity is set to.
       """
       if self.debug:
-         log.msg("{}.get_cpu_affinity".format(self.__class__.name))
+         log.msg("{}.get_cpu_affinity".format(self.__class__.__name__))
 
       if not _HAS_PSUTIL:
          emsg = "ERROR: unable to get CPU affinity - required package 'psutil' is not installed"
@@ -152,7 +152,7 @@ class NativeWorkerSession(NativeProcessSession):
       :type cpus: list
       """
       if self.debug:
-         log.msg("{}.set_cpu_affinity".format(self.__class__.name))
+         log.msg("{}.set_cpu_affinity".format(self.__class__.__name__))
 
       if not _HAS_PSUTIL:
          emsg = "ERROR: unable to set CPU affinity - required package 'psutil' is not installed"
@@ -191,7 +191,7 @@ class NativeWorkerSession(NativeProcessSession):
       :returns list -- List of module search paths.
       """
       if self.debug:
-         log.msg("{}.get_pythonpath".format(self.__class__.name))
+         log.msg("{}.get_pythonpath".format(self.__class__.__name__))
 
       return sys.path
 
@@ -209,7 +209,7 @@ class NativeWorkerSession(NativeProcessSession):
       :type prepend: bool
       """
       if self.debug:
-         log.msg("{}.add_pythonpath".format(self.__class__.name))
+         log.msg("{}.add_pythonpath".format(self.__class__.__name__))
 
       paths_added = []
       for p in paths:

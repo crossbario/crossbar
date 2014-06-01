@@ -124,7 +124,7 @@ def check_endpoint_timeout(timeout):
 
 
 
-def check_endpoint_listen_tls(tls):
+def check_listening_endpoint_tls(tls):
    """
    Check a listening endpoint TLS configuration.
 
@@ -149,7 +149,7 @@ def check_endpoint_listen_tls(tls):
 
 
 
-def check_endpoint_connect_tls(tls):
+def check_connecting_endpoint_tls(tls):
    """
    Check a connecting endpoint TLS configuration.
 
@@ -165,7 +165,7 @@ def check_endpoint_connect_tls(tls):
 
 
 
-def check_endpoint_listen_tcp(endpoint):
+def check_listening_endpoint_tcp(endpoint):
    """
    Check a TCP listening endpoint configuration.
 
@@ -190,7 +190,7 @@ def check_endpoint_listen_tcp(endpoint):
          raise Exception("'shared' attribute in endpoint must be bool ({} encountered)".format(type(shared)))
 
    if 'tls' in endpoint:
-      check_endpoint_listen_tls(endpoint['tls'])
+      check_listening_endpoint_tls(endpoint['tls'])
 
    if 'interface' in endpoint:
       interface = endpoint['interface']
@@ -202,7 +202,7 @@ def check_endpoint_listen_tcp(endpoint):
 
 
 
-def check_endpoint_listen_unix(endpoint):
+def check_listening_endpoint_unix(endpoint):
    """
    Check a Unix listening endpoint configuration.
 
@@ -225,7 +225,7 @@ def check_endpoint_listen_unix(endpoint):
 
 
 
-def check_endpoint_connect_tcp(endpoint):
+def check_connecting_endpoint_tcp(endpoint):
    """
    Check a TCP connecting endpoint configuration.
 
@@ -245,14 +245,14 @@ def check_endpoint_connect_tcp(endpoint):
    check_endpoint_port(endpoint['port'])
 
    if 'tls' in endpoint:
-      check_endpoint_connect_tls(endpoint['tls'])
+      check_connecting_endpoint_tls(endpoint['tls'])
 
    if 'timeout' in endpoint:
       check_endpoint_timeout(endpoint['timeout'])
 
 
 
-def check_endpoint_connect_unix(endpoint):
+def check_connecting_endpoint_unix(endpoint):
    """
    Check a Unix connecting endpoint configuration.
 
@@ -275,7 +275,7 @@ def check_endpoint_connect_unix(endpoint):
 
 
 
-def check_endpoint_listen(endpoint):
+def check_listening_endpoint(endpoint):
    """
    Check a listening endpoint configuration.
 
@@ -293,15 +293,15 @@ def check_endpoint_listen(endpoint):
       raise Exception("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
    if etype == 'tcp':
-      check_endpoint_listen_tcp(endpoint)
+      check_listening_endpoint_tcp(endpoint)
    elif etype == 'unix':
-      check_endpoint_listen_unix(endpoint)
+      check_listening_endpoint_unix(endpoint)
    else:
       raise Exception("logic error")
 
 
 
-def check_endpoint_connect(endpoint):
+def check_connecting_endpoint(endpoint):
    """
    Check a conencting endpoint configuration.
 
@@ -319,9 +319,9 @@ def check_endpoint_connect(endpoint):
       raise Exception("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
    if etype == 'tcp':
-      check_endpoint_connect_tcp(endpoint)
+      check_connecting_endpoint_tcp(endpoint)
    elif etype == 'unix':
-      check_endpoint_connect_unix(endpoint)
+      check_connecting_endpoint_unix(endpoint)
    else:
       raise Exception("logic error")
 
@@ -365,7 +365,7 @@ def check_websocket_options(options):
 
 
 
-def check_transport_web_path_service_websocket(config):
+def check_web_path_service_websocket(config):
    """
    Check a "websocket" path service on Web transport.
 
@@ -391,7 +391,7 @@ def check_transport_web_path_service_websocket(config):
 
 
 
-def check_transport_web_path_service_static(config):
+def check_web_path_service_static(config):
    """
    Check a "static" path service on Web transport.
 
@@ -421,7 +421,7 @@ def check_transport_web_path_service_static(config):
 
 
 
-def check_transport_web_path_service_wsgi(config):
+def check_web_path_service_wsgi(config):
    """
    Check a "wsgi" path service on Web transport.
 
@@ -436,7 +436,7 @@ def check_transport_web_path_service_wsgi(config):
 
 
 
-def check_transport_web_path_service_redirect(config):
+def check_web_path_service_redirect(config):
    """
    Check a "redirect" path service on Web transport.
 
@@ -450,7 +450,7 @@ def check_transport_web_path_service_redirect(config):
 
 
 
-def check_transport_web_path_service_json(config):
+def check_web_path_service_json(config):
    """
    Check a "json" path service on Web transport.
 
@@ -464,7 +464,7 @@ def check_transport_web_path_service_json(config):
 
 
 
-def check_transport_web_path_service_cgi(config):
+def check_web_path_service_cgi(config):
    """
    Check a "cgi" path service on Web transport.
 
@@ -479,7 +479,7 @@ def check_transport_web_path_service_cgi(config):
 
 
 
-def check_transport_web_path_service_longpoll(config):
+def check_web_path_service_longpoll(config):
    """
    Check a "longpoll" path service on Web transport.
 
@@ -490,7 +490,7 @@ def check_transport_web_path_service_longpoll(config):
 
 
 
-def check_transport_web_path_service(path, config):
+def check_web_path_service(path, config):
    """
    Check a single path service on Web transport.
 
@@ -509,22 +509,22 @@ def check_transport_web_path_service(path, config):
          raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
    checkers = {
-      'websocket': check_transport_web_path_service_websocket,
-      'static': check_transport_web_path_service_static,
-      'wsgi': check_transport_web_path_service_wsgi,
-      'redirect': check_transport_web_path_service_redirect,
-      'json': check_transport_web_path_service_json,
-      'cgi': check_transport_web_path_service_cgi,
-      'longpoll': check_transport_web_path_service_longpoll
+      'websocket': check_web_path_service_websocket,
+      'static': check_web_path_service_static,
+      'wsgi': check_web_path_service_wsgi,
+      'redirect': check_web_path_service_redirect,
+      'json': check_web_path_service_json,
+      'cgi': check_web_path_service_cgi,
+      'longpoll': check_web_path_service_longpoll
    }
 
    checkers[ptype](config)
 
 
 
-def check_transport_web(transport):
+def check_listening_transport_web(transport):
    """
-   Check router web transport.
+   Check a listening Web-WAMP transport configuration.
 
    :param transport: The Web transport configuration to check.
    :type transport: dict
@@ -539,7 +539,7 @@ def check_transport_web(transport):
    if not 'endpoint' in transport:
       raise Exception("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
 
-   check_endpoint_listen(transport['endpoint'])
+   check_listening_endpoint(transport['endpoint'])
 
    if not 'paths' in transport:
       raise Exception("missing mandatory attribute 'paths' in Web transport item\n\n{}".format(pformat(transport)))
@@ -560,7 +560,7 @@ def check_transport_web(transport):
       if not pat.match(p):
          raise Exception("invalid value '{}' for path in Web transport configuration".format(p))
 
-      check_transport_web_path_service(p, paths[p])
+      check_web_path_service(p, paths[p])
 
    if 'options' in transport:
       options = transport['options']
@@ -596,9 +596,9 @@ def check_transport_web(transport):
 
 
 
-def check_transport_websocket(transport):
+def check_listening_transport_websocket(transport):
    """
-   Check a WebSocket-WAMP transport configuration.
+   Check a listening WebSocket-WAMP transport configuration.
 
    :param transport: The configuration item to check.
    :type transport: dict
@@ -613,7 +613,7 @@ def check_transport_websocket(transport):
    if not 'endpoint' in transport:
       raise Exception("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
-   check_endpoint_listen(transport['endpoint'])
+   check_listening_endpoint(transport['endpoint'])
 
    if 'options' in transport:
       check_websocket_options(transport['options'])
@@ -639,9 +639,9 @@ def check_transport_websocket(transport):
 
 
 
-def check_transport_rawsocket(transport):
+def check_listening_transport_rawsocket(transport):
    """
-   Check a RawSocket-WAMP transport configuration.
+   Check a listening RawSocket-WAMP transport configuration.
 
    :param transport: The configuration item to check.
    :type transport: dict
@@ -656,7 +656,88 @@ def check_transport_rawsocket(transport):
    if not 'endpoint' in transport:
       raise Exception("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
-   check_endpoint_listen(transport['endpoint'])
+   check_listening_endpoint(transport['endpoint'])
+
+   if not 'serializer' in transport:
+      raise Exception("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
+
+   serializer = transport['serializer']
+   if type(serializer) != six.text_type:
+      raise Exception("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
+
+   if serializer not in ['json', 'msgpack']:
+      raise Exception("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
+
+   if 'debug' in transport:
+      debug = transport['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+
+
+def check_connecting_transport_websocket(transport):
+   """
+   Check a connecting WebSocket-WAMP transport configuration.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
+   for k in transport:
+      if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options']:
+         raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
+
+   if 'id' in transport:
+      check_id(transport['id'])
+
+   if not 'endpoint' in transport:
+      raise Exception("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
+
+   check_connecting_endpoint(transport['endpoint'])
+
+   if 'options' in transport:
+      check_websocket_options(transport['options'])
+
+   if 'serializers' in transport:
+      serializers = transport['serializers']
+      if type(serializers) != list:
+         raise Exception("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
+
+   if 'debug' in transport:
+      debug = transport['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+   if not 'url' in transport:
+      raise Exception("missing mandatory attribute 'url' in WebSocket transport item\n\n{}".format(pformat(transport)))
+
+   url = transport['url']
+   if type(url) != six.text_type:
+      raise Exception("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
+   try:
+      u = parseWsUrl(url)
+   except Exception as e:
+      raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
+
+
+
+def check_connecting_transport_rawsocket(transport):
+   """
+   Check a connecting RawSocket-WAMP transport configuration.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
+   for k in transport:
+      if k not in ['id', 'type', 'endpoint', 'serializer', 'debug']:
+         raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
+
+   if 'id' in transport:
+      check_id(transport['id'])
+
+   if not 'endpoint' in transport:
+      raise Exception("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
+
+   check_connecting_endpoint(transport['endpoint'])
 
    if not 'serializer' in transport:
       raise Exception("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
@@ -693,13 +774,13 @@ def check_router_transport(transport, silence = False):
       raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
    if ttype  == 'websocket':
-      check_transport_websocket(transport)
+      check_listening_transport_websocket(transport)
 
    elif ttype == 'rawsocket':
-      check_transport_rawsocket(transport)
+      check_listening_transport_rawsocket(transport)
 
    elif ttype == 'web':
-      check_transport_web(transport)
+      check_listening_transport_web(transport)
 
    else:
       raise Exception("logic error")
@@ -747,8 +828,79 @@ def check_router_component(component, silence = False):
 
 
 
-def check_container_component(component):
-   print("FIXME: check_container_component")
+def check_container_transport(transport, silence = False):
+   """
+   Check container transports.
+
+   :param transport: Container transport item to check.
+   :type transport: dict
+   """
+   if type(transport) != dict:
+      raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
+
+   if not 'type' in transport:
+      raise Exception("missing mandatory attribute 'type' in component")
+
+   ttype = transport['type']
+   if ttype not in ['websocket', 'rawsocket']:
+      raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
+
+   if ttype  == 'websocket':
+      check_connecting_transport_websocket(transport)
+
+   elif ttype == 'rawsocket':
+      check_connecting_transport_rawsocket(transport)
+
+   else:
+      raise Exception("logic error")
+
+
+
+def check_container_component(component, silence = False):
+   """
+   Check a container component configuration.
+
+   :param component: The component configuration to check.
+   :type component: dict
+   """
+   if type(component) != dict:
+      raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
+
+   if not 'type' in component:
+      raise Exception("missing mandatory attribute 'type' in component")
+
+   ctype = component['type']
+   if ctype not in ['wamplet', 'class']:
+      raise Exception("invalid value '{}' for component type".format(ctype))
+
+   if ctype == 'wamplet':
+      check_dict_args({
+         'id': (False, [six.text_type]),
+         'type': (True, [six.text_type]),
+         'realm': (True, [six.text_type]),
+         'transport': (True, [dict]),
+
+         'package': (True, [six.text_type]),
+         'entrypoint': (True, [six.text_type]),
+         'extra': (False, None),
+         }, component, "invalid component configuration")
+
+   elif ctype == 'class':
+      check_dict_args({
+         'id': (False, [six.text_type]),
+         'type': (True, [six.text_type]),
+         'realm': (True, [six.text_type]),
+         'transport': (True, [dict]),
+
+         'classname': (True, [six.text_type]),
+         'extra': (False, None),
+         }, component, "invalid component configuration")
+
+   else:
+      raise Exception("logic error")
+
+
+   check_container_transport(component['transport'])
 
 
 
@@ -870,17 +1022,47 @@ def check_router(router, silence = False):
 
 
 def check_container(container, silence = False):
-   print("FIXME: check_container")
+   """
+   Checks a router worker configuration.
+
+   :param router: The configuration to check.
+   :type router: dict
+   """
+   for k in container:
+      if k not in ['id', 'type', 'options', 'manhole', 'transports', 'components']:
+         raise Exception("encountered unknown attribute '{}' in container configuration".format(k))
+
+   ## check stuff common to all native workers
+   ##
+   if 'manhole' in container:
+      check_manhole(container['manhole'])
+
+   if 'options' in container:
+      check_native_worker_options(container['options'])
+
+   ## components
+   ##
+   components = container.get('components', [])
+
+   if type(components) != list:
+      raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(router)))
+
+   i = 1
+   for component in components:
+      if not silence:
+         print("Checking component item {} ..".format(i))
+      check_container_component(component, silence)
+      i += 1
 
 
 
-def check_router_options(router_options):
-   print("FIXME: implement check_router_options")
+def check_router_options(options):
+   check_native_worker_options(options)
 
 
 
-def check_container_options(container_options):
-   print("FIXME: implement check_container_options")
+def check_container_options(options):
+   check_native_worker_options(options)
 
 
 
@@ -1152,7 +1334,7 @@ def check_controller(controller, silence = False):
 
    if 'transport' in controller:
       ## FIXME: for now, only allow WAMP-WebSocket here
-      check_transport_websocket(controller['transport'])
+      check_listening_transport_websocket(controller['transport'])
 
 
 

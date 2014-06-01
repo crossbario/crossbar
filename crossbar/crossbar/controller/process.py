@@ -113,8 +113,8 @@ class NodeControllerSession(NativeProcessSession):
       """
       NativeProcessSession.__init__(self)
       #self.debug = node.debug
-      self.debug = True
-      self.debug_app = True
+      self.debug = False
+      self.debug_app = False
 
 
       ## associated node
@@ -239,7 +239,7 @@ class NodeControllerSession(NativeProcessSession):
          raise ApplicationError("crossbar.error.already_started", emsg)
 
       try:
-         checkconfig.check_transport_websocket(config)
+         checkconfig.check_listening_transport_websocket(config)
       except Exception as e:
          emsg = "ERROR: could not start management transport - invalid configuration ({})".format(e)
          log.msg(emsg)
@@ -371,7 +371,7 @@ class NodeControllerSession(NativeProcessSession):
 
 
 
-   def start_router(self, id, options = {}, details = None):
+   def start_router(self, id, options = None, details = None):
       """
       Start a new router worker: a Crossbar.io native worker process
       that runs a WAMP router.
@@ -388,7 +388,7 @@ class NodeControllerSession(NativeProcessSession):
 
 
 
-   def start_container(self, id, options = {}, details = None):
+   def start_container(self, id, options = None, details = None):
       """
       Start a new container worker: a Crossbar.io native worker process
       that can host WAMP application components written in Python.
@@ -405,7 +405,7 @@ class NodeControllerSession(NativeProcessSession):
 
 
 
-   def _start_native_worker(self, wtype, id, options, details = None):
+   def _start_native_worker(self, wtype, id, options = None, details = None):
 
       assert(wtype in ['router', 'container'])
 
@@ -418,6 +418,7 @@ class NodeControllerSession(NativeProcessSession):
 
       ## check worker options
       ##
+      options = options or {}
       try:
          if wtype == 'router':
             checkconfig.check_router_options(options)
@@ -426,7 +427,7 @@ class NodeControllerSession(NativeProcessSession):
          else:
             raise Exception("logic error")
       except Exception as e:
-         emsg = "ERROR: could not start router - invalid configuration ({})".format(e)
+         emsg = "ERROR: could not start native worker - invalid configuration ({})".format(e)
          log.msg(emsg)
          raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
@@ -575,7 +576,7 @@ class NodeControllerSession(NativeProcessSession):
 
       ## now actually fork the worker ..
       ##
-      if True or self.debug:
+      if self.debug:
          log.msg("Starting {} with ID '{}' using command line '{}' ..".format(worker_logname, id, ' '.join(args)))
       else:
          log.msg("Starting {} with ID '{}' ..".format(worker_logname, id))
@@ -798,7 +799,7 @@ class NodeControllerSession(NativeProcessSession):
 
       ## now actually fork the worker ..
       ##
-      if True or self.debug:
+      if self.debug:
          log.msg("Starting {} with ID '{}' using command line '{}' ..".format(worker_logname, id, ' '.join(args)))
       else:
          log.msg("Starting {} with ID '{}' ..".format(worker_logname, id))
