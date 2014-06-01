@@ -19,6 +19,7 @@
 __all__ = ['Templates']
 
 
+import sys
 import os
 import pkg_resources
 import jinja2
@@ -79,8 +80,14 @@ class Templates:
    def init(self, appdir, template, params = None, dryrun = False):
       """
       """
+      IS_WIN = sys.platform.startswith("win")
+
       template = self.TEMPLATES[template]
-      basedir = os.path.abspath(pkg_resources.resource_filename("crossbar", template['basedir']))
+#      basedir = os.path.abspath(pkg_resources.resource_filename("crossbar", template['basedir']))
+      basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
+      if IS_WIN:
+         basedir = basedir.replace('\\', '/') # Jinja need forward slashes even on Windows
+      #print("Using templates from '{}'".format(basedir))
 
       appdir = os.path.abspath(appdir)
 
@@ -108,7 +115,7 @@ class Templates:
             for f in files:
                ## FIXME
                if not f.endswith(".pyc"):
-                  src_file = os.path.join(root, f)
+                  src_file = os.path.abspath(os.path.join(root, f))
                   src_file_rel_path = os.path.relpath(src_file, basedir)
                   reldir = os.path.relpath(root, basedir)
                   if 'appname' in _params:
@@ -120,6 +127,9 @@ class Templates:
                   print("Creating file      {}".format(dst_file))
                   if not dryrun:
                      with open(dst_file, 'wb') as dst_file_fd:
+                        if IS_WIN:
+                           # Jinja need forward slashes even on Windows
+                           src_file_rel_path = src_file_rel_path.replace('\\', '/')
                         page = jinja_env.get_template(src_file_rel_path)
                         contents = page.render(**_params)
                         dst_file_fd.write(contents)

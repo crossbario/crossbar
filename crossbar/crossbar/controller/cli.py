@@ -150,7 +150,7 @@ def run_command_init(options):
    #    raise e
 
    print("Application template initialized")
-   print("\nTo start your node, run 'crossbar start --cbdir {}'".format(os.path.join(options.appdir, '.crossbar')))
+   print("\nTo start your node, run 'crossbar start --cbdir {}'".format(os.path.abspath(os.path.join(options.appdir, '.crossbar'))))
 
 
 
