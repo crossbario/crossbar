@@ -16,300 +16,73 @@
 ##
 ###############################################################################
 
-__all__ = ['CONFIG_TEMPLATES']
+__all__ = ['Templates']
 
 
 import os
-
-
-CONFIG_DEFAULT = """{
-   "processes": [
-      {
-         "type": "worker",
-         "modules": [
-            {
-               "type": "router",
-               "realms": {
-                  "realm1": {
-                     "permissions": {
-                        "anonymous": {
-                           "create": true,
-                           "join": true,
-                           "access": {
-                              "*": {
-                                 "publish": true,
-                                 "subscribe": true,
-                                 "call": true,
-                                 "register": true
-                              }
-                           }
-                        }
-                     }
-                  }
-               },
-               "transports": [
-                  {
-                     "type": "web",
-                     "endpoint": {
-                        "type": "tcp",
-                        "port": 8080
-                     },
-                     "paths": {
-                        "/": {
-                           "type": "static",
-                           "directory": ".."
-                        },
-                        "ws": {
-                           "type": "websocket",
-                           "url": "ws://localhost:8080/ws"
-                        }
-                     }
-                  }
-               ]
-            }
-         ]
-      }
-   ]
-}
-"""
-
-CONFIG_DEFAULT = """
-{
-   "controller": {
-      "id": "node1"
-   },
-   "workers": [
-      {
-         "id": "router1",
-         "type": "router",
-         "realms": [
-            {
-               "id": "realm1",
-               "name": "realm1",
-               "roles": [
-                  {
-                     "id": "anonymous",
-                     "permissions": [
-                        {
-                           "id": "perm1",
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
-                        }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "id": "transport1",
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      }
-   ]
-}
-"""
-
-
-CONFIG_DEMOS = """{
-   "processes": [
-      {
-         "type": "worker",
-         "options": {
-            "pythonpath": [".."]
-         },
-         "modules": [
-            {
-               "type": "router",
-               "realms": {
-                  "realm1": {
-                     "permissions": {
-                        "anonymous": {
-                           "create": true,
-                           "join": true,
-                           "access": {
-                              "*": {
-                                 "publish": true,
-                                 "subscribe": true,
-                                 "call": true,
-                                 "register": true
-                              }
-                           }
-                        }
-                     },
-                     "components": [
-                        {
-                           "type": "class",
-                           "name": "crossbardemo.basic.TimeService"
-                        },
-                        {
-                           "type": "class",
-                           "name": "crossbardemo.basic.TickService"
-                        },
-                        {
-                           "type": "class",
-                           "name": "crossbardemo.basic.MathService"
-                        }
-                     ]
-                  }
-               },
-               "transports": [
-                  {
-                     "type": "web",
-                     "endpoint": {
-                        "type": "tcp",
-                        "port": 8080
-                     },
-                     "paths": {
-                        "/": {
-                           "type": "static",
-                           "module": "crossbardemo",
-                           "resource": "web"
-                        },
-                        "ws": {
-                           "type": "websocket",
-                           "url": "ws://localhost:8080/ws"
-                        }
-                     }
-                  }
-               ]
-            }
-         ]
-      }
-   ]
-}
-"""
-
-
-
-CONFIG_TESTEE = """{
-   "processes": [
-      {
-         "type": "worker",
-         "modules": [
-            {
-               "type": "router",
-               "realms": {
-                  "realm1": {
-                     "permissions": {
-                        "anonymous": {
-                           "create": true,
-                           "join": true,
-                           "access": {
-                              "*": {
-                                 "publish": true,
-                                 "subscribe": true,
-                                 "call": true,
-                                 "register": true
-                              }
-                           }
-                        }
-                     }
-                  }
-               },
-               "transports": [
-                  {
-                     "type": "websocket.testee",
-                     "endpoint": {
-                        "type": "tcp",
-                        "port": 9001
-                     },
-                     "url": "ws://localhost:9001",
-                     "options": {
-                        "compression": {
-                           "deflate": {
-                           }
-                        }
-                     }
-                  }
-               ]
-            }
-         ]
-      }
-   ]
-}
-"""
-
-
-
-CONFIG_TEMPLATES = {
-   "default": {
-      "help": "A minimal WAMP router",
-      "basedir": "templates/default",
-      "params": {
-         "node_id": "node1",
-         "realm_id": "realm1",
-         "appname": "hello"
-      }
-   },
-   "hello:python": {
-      "help": "A Python WAMP application with a WAMP router",
-      "basedir": "templates/python",
-      "params": {
-         "node_id": "node1",
-         "realm_id": "realm1",
-         "appname": "hello"
-      }
-   }
-   #"demos": CONFIG_DEMOS,
-   #"testee": CONFIG_TESTEE,
-}
-
-
-def print_templates_help():
-   print("\nAvailable Crossbar.io node templates:\n")
-   for t in CONFIG_TEMPLATES:
-      print("  {} {}".format(t.ljust(20, ' '), CONFIG_TEMPLATES[t]['help']))
-   print("")
-
-
-
-import jinja2
 import pkg_resources
+import jinja2
 
-   #    templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
-   #    if self.debug:
-   #       log.msg("Using Web templates from {}".format(templates_dir))
-   #    self._templates = jinja2.Environment(loader = jinja2.FileSystemLoader(templates_dir))
-
-   #    self._page = templates.get_template('cb_web_404.html')
-   #    self._directory = directory
-
-   # def render_GET(self, request):
-   #    s = self._page.render(cbVersion = crossbar.__version__,
-   #                          directory = self._directory)
 
 
 class Templates:
+   """
+   """
 
-   def __init__(self):
-      self._templates = CONFIG_TEMPLATES
+   TEMPLATES = {
+      "default": {
+         "help": "A WAMP router speaking WebSocket plus Web server.",
+         "basedir": "templates/default",
+         "params": {
+         }
+      },
+      "hello:python": {
+         "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
+         "basedir": "templates/python",
+         "params": {
+            "node_id": "node1",
+            "realm_id": "realm1",
+            "appname": "hello"
+         }
+      },
+      "votegame:python": {
+         "help": "A simple real-time Votegame with Python backend and HTML5 frontend.",
+         "basedir": "templates/python",
+         "params": {
+            "node_id": "node1",
+            "realm_id": "realm1",
+            "appname": "hello"
+         }
+      }
+      #"demos": CONFIG_DEMOS,
+      #"testee": CONFIG_TESTEE,
+   }
+
+
+   def help(self):
+      """
+      """
+      print("\nAvailable Crossbar.io node templates:\n")
+      for t in self.TEMPLATES:
+         print("  {} {}".format(t.ljust(20, ' '), self.TEMPLATES[t]['help']))
+      print("")
+
+
 
    def __contains__(self, template):
-      return template in self._templates
+      """
+      """
+      return template in self.TEMPLATES
 
-   def init(self, cbdir, template, params = None, dryrun = False):
-      template = self._templates[template]
+
+
+   def init(self, appdir, template, params = None, dryrun = False):
+      """
+      """
+      template = self.TEMPLATES[template]
       basedir = os.path.abspath(pkg_resources.resource_filename("crossbar", template['basedir']))
 
-      appdir = os.path.abspath(os.path.join(cbdir, '..'))
+      appdir = os.path.abspath(appdir)
 
       jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(basedir),
          keep_trailing_newline = True)
@@ -374,9 +147,3 @@ class Templates:
             else:
                raise Exception("logic error")
          raise e
-
-      return
-
-      with open(os.path.join(cbdir, 'config.json'), 'wb') as outfile:
-         outfile.write(config)
-      print("Node configuration created from template '{}'".format(template))

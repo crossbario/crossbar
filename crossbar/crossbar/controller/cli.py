@@ -109,8 +109,10 @@ def run_command_templates(options):
    """
    Subcommand "crossbar templates".
    """
-   from crossbar.controller.template import print_templates_help
-   print_templates_help()
+   from crossbar.controller.template import Templates
+
+   templates = Templates()
+   templates.help()
 
 
 
@@ -125,8 +127,8 @@ def run_command_init(options):
    if not options.template in templates:
       raise Exception("no node template '{}' - use the command 'crossbar templates' to list templates available".format(options.template))
 
-   if os.path.exists(options.cbdir):
-      raise Exception("node directory '{}' already exists".format(options.cbdir))
+   if os.path.exists(options.appdir):
+      raise Exception("app directory '{}' already exists".format(options.appdir))
 
    # try:
    #    os.mkdir(options.cbdir)
@@ -135,14 +137,16 @@ def run_command_init(options):
    # else:
    #    print("Node directory '{}' created".format(options.cbdir))
 
-   try:
-      templates.init(options.cbdir, options.template)
-   except Exception as e:
-      try:
-         shutil.rmtree(options.cbdir)
-      except:
-         pass
-      raise e
+   templates.init(options.appdir, options.template)
+
+   # try:
+   #    templates.init(options.appdir, options.template)
+   # except Exception as e:
+   #    try:
+   #       shutil.rmtree(options.appdir)
+   #    except:
+   #       pass
+   #    raise e
 
    print("Node initialized")
    print("\nTo start your node, run 'crossbar start'")
@@ -257,15 +261,10 @@ def run():
                              default = 'default',
                              help = "Template for initialization")
 
-   parser_init.add_argument('--cbdir',
+   parser_init.add_argument('--appdir',
                              type = str,
-                             default = None,
-                             help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-   parser_init.add_argument('--config',
-                            type = str,
-                            default = None,
-                            help = "Crossbar.io configuration file (overrides default CBDIR/config.json)")
+                             default = '.',
+                             help = "Application base directory where to create app and node from template.")
 
 
    ## "templates" command
