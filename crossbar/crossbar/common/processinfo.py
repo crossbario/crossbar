@@ -39,6 +39,11 @@ else:
 
 if _HAS_PSUTIL:
 
+   if sys.platform.startswith("win"):
+      _HAS_AF_UNIX = False
+   else:
+      _HAS_AF_UNIX = True
+
    class SystemInfo:
       """
       Access system global information and statistics.     
@@ -144,15 +149,18 @@ if _HAS_PSUTIL:
       """
       Access process related information and statistics
       """
-
       _ADDRESS_TYPE_FAMILY_MAP = {
          (socket.AF_INET, socket.SOCK_STREAM): 'tcp4',
          (socket.AF_INET6, socket.SOCK_STREAM): 'tcp6',
          (socket.AF_INET, socket.SOCK_DGRAM): 'udp4',
          (socket.AF_INET6, socket.SOCK_DGRAM): 'udp6',
-         (socket.AF_UNIX, socket.SOCK_STREAM): 'unix',
-         (socket.AF_UNIX, socket.SOCK_DGRAM): 'unix'
       }
+
+      if _HAS_AF_UNIX:
+         _ADDRESS_TYPE_FAMILY_MAP.update({
+            (socket.AF_UNIX, socket.SOCK_STREAM): 'unix',
+            (socket.AF_UNIX, socket.SOCK_DGRAM): 'unix'
+         })
 
       def __init__(self):
          """
@@ -245,7 +253,7 @@ if _HAS_PSUTIL:
 
          for c in self._p.connections(kind = 'all'):
             socket_type = ProcessInfo._ADDRESS_TYPE_FAMILY_MAP.get((c.family, c.type))
-            if c.family == socket.AF_UNIX:
+            if _HAS_AF_UNIX and c.family == socket.AF_UNIX:
                laddr = c.laddr
                raddr = ""
             else:
