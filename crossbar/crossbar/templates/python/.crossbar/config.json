@@ -1,0 +1,57 @@
+
+{
+   "controller": {
+   },
+   "workers": [
+      {
+         "type": "router",
+         "options": {
+            "pythonpath": [".."]
+         },
+         "realms": [
+            {
+               "name": "{{ realm_id }}",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": "../{{ appname }}/web"
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ],
+         "components": [
+            {
+               "type": "class",
+               "classname": "{{ appname }}.{{ appname }}.AppSession",
+               "realm": "{{ realm_id }}"
+            }
+         ]
+      }
+   ]
+}

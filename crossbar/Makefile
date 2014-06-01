@@ -28,6 +28,13 @@ templates:
 init:
 	PYTHONPATH=. python -m crossbar.controller.cli init
 
+init_hello_python:
+	rm -rf test_hello
+	PYTHONPATH=. python -m crossbar.controller.cli init --template hello:python --appdir test_hello
+
+start_hello_python:
+	PYTHONPATH=. python -m crossbar.controller.cli start --cbdir test_hello/.crossbar
+
 init_demos:
 	PYTHONPATH=. python -m crossbar.controller.cli init --template demos
 

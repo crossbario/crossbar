@@ -130,12 +130,12 @@ def run_command_init(options):
    if os.path.exists(options.appdir):
       raise Exception("app directory '{}' already exists".format(options.appdir))
 
-   # try:
-   #    os.mkdir(options.cbdir)
-   # except Exception as e:
-   #    raise Exception("could not create node directory '{}' ({})".format(options.cbdir, e))
-   # else:
-   #    print("Node directory '{}' created".format(options.cbdir))
+   try:
+      os.mkdir(options.appdir)
+   except Exception as e:
+      raise Exception("could not create node directory '{}' ({})".format(options.appdir, e))
+   else:
+      print("Node directory '{}' created".format(options.appdir))
 
    templates.init(options.appdir, options.template)
 

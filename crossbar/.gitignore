@@ -1,9 +1,6 @@
 dist
 build
 *.egg-info
-cbdata
-.cbdata
-.crossbar*
 *.db
 *.zip
 *.egg

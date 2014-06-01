@@ -96,7 +96,8 @@ class Templates:
          for root, dirs, files in os.walk(basedir):
             for d in dirs:
                reldir = os.path.relpath(os.path.join(root, d), basedir)
-               reldir = reldir.replace('appname', _params['appname'])
+               if 'appname' in _params:
+                  reldir = reldir.replace('appname', _params['appname'])
                create_dir_path = os.path.join(appdir, reldir)
 
                print("Creating directory {}".format(create_dir_path))
@@ -110,9 +111,10 @@ class Templates:
                   src_file = os.path.join(root, f)
                   src_file_rel_path = os.path.relpath(src_file, basedir)
                   reldir = os.path.relpath(root, basedir)
-                  reldir = reldir.replace('appname', _params['appname'])
+                  if 'appname' in _params:
+                     reldir = reldir.replace('appname', _params['appname'])
+                     f = f.replace('appname', _params['appname'])
                   dst_dir_path = os.path.join(appdir, reldir)
-                  f = f.replace('appname', _params['appname'])
                   dst_file = os.path.abspath(os.path.join(dst_dir_path, f))
 
                   print("Creating file      {}".format(dst_file))
@@ -128,7 +130,7 @@ class Templates:
          #a = 1/0
 
       except Exception as e:
-         print("Error encountered - rolling back")
+         print("Error encountered ({}) - rolling back".format(e))
          for ptype, path in reversed(created):
             if ptype == 'file':
                try:
