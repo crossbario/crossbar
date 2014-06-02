@@ -296,7 +296,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
 
       ## the path
       ##
-      path = os.path.abspath(cbdir, config['path'])
+      path = os.path.abspath(os.path.join(cbdir, config['path']))
 
       ## connection timeout in seconds
       ##
