@@ -540,7 +540,7 @@ class RouterWorkerSession(NativeWorkerSession):
                      raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                   else:
                      mod_version = getattr(mod, '__version__', '?.?.?')
-                     log.msg("Loaded static Web resource '{}' from module '{} {}' (filesystem path {})".format(root_config['resource'], root_config['module'], mod_version, root_dir))
+                     log.msg("Loaded static Web resource '{}' from package '{} {}' (filesystem path {})".format(root_config['resource'], root_config['package'], mod_version, root_dir))
 
             else:
                raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
