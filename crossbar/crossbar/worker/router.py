@@ -528,12 +528,16 @@ class RouterWorkerSession(NativeWorkerSession):
                try:
                   mod = importlib.import_module(root_config['package'])
                except ImportError:
-                  raise ApplicationError("crossbar.error.invalid_configuration", "package import failed")
+                  emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+                  log.msg(emsg)
+                  raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                else:
                   try:
                      root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['package'], root_config['resource']))
                   except Exception as e:
-                     raise ApplicationError("crossbar.error.invalid_configuration", str(e))
+                     emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+                     log.msg(emsg)
+                     raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                   else:
                      mod_version = getattr(mod, '__version__', '?.?.?')
                      log.msg("Loaded static Web resource '{}' from module '{} {}' (filesystem path {})".format(root_config['resource'], root_config['module'], mod_version, root_dir))
@@ -657,13 +661,17 @@ class RouterWorkerSession(NativeWorkerSession):
 
                      try:
                         mod = importlib.import_module(path_config['package'])
-                     except ImportError:
-                        raise ApplicationError("crossbar.error.invalid_configuration", "module import failed")
+                     except ImportError as e:
+                        emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+                        log.msg(emsg)
+                        raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                      else:
                         try:
                            static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
                         except Exception as e:
-                           raise ApplicationError("crossbar.error.invalid_configuration", str(e))
+                           emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+                           log.msg(emsg)
+                           raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
                   else:
 
