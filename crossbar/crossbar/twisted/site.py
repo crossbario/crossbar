@@ -18,6 +18,28 @@
 
 from __future__ import absolute_import
 
+import six
+
+
+def patchFileContentTypes(root):
+   """
+   For reasons beyond my understanding, on Python 2.7.7, the MIME type map in
+   `twisted.web.static.File.contentTypes` ends up having values (not all) that
+   are of type unicode. This breaks stuff further down the line, since twisted
+   will bail out "data must not be unicode" when the HTTP header with the
+   respective content type is written.
+
+   We work around by patching the map.
+   """
+   if six.PY2:
+      c = 0
+      for k, v in root.contentTypes.items():
+         if type(v) == unicode:
+            root.contentTypes[k] = root.contentTypes[k].encode('ascii')
+            c += 1
+      print("Monkey-patched MIME table ({} of {} entries)".format(c, len(root.contentTypes)))
+
+
 
 def createHSTSRequestFactory(requestFactory, hstsMaxAge = 31536000):
    """

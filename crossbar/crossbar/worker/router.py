@@ -105,7 +105,7 @@ from autobahn.twisted.wamp import ApplicationSession
 from crossbar.worker.native import NativeWorkerSession
 
 from crossbar.common import checkconfig
-
+from crossbar.twisted.site import patchFileContentTypes
 
 
 
@@ -562,6 +562,7 @@ class RouterWorkerSession(NativeWorkerSession):
             root.contentTypes.update(EXTRA_MIME_TYPES)
             if 'mime_types' in root_options:
                root.contentTypes.update(root_options['mime_types'])
+            patchFileContentTypes(root)
 
             ## render 404 page on any concrete path not found
             ##
@@ -691,7 +692,8 @@ class RouterWorkerSession(NativeWorkerSession):
                   static_resource.contentTypes.update(EXTRA_MIME_TYPES)
                   if 'mime_types' in static_options:
                      static_resource.contentTypes.update(static_options['mime_types'])
-
+                  patchFileContentTypes(static_resource)
+                  
                   ## render 404 page on any concrete path not found
                   ##
                   static_resource.childNotFound = Resource404(self._templates, static_dir)
