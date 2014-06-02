@@ -1077,7 +1077,7 @@ def check_manhole(manhole, silence = False):
    if not 'endpoint' in manhole:
       raise Exception("missing mandatory attribute 'endpoint' in Manhole item\n\n{}".format(pformat(manhole)))
 
-   check_endpoint_listen(manhole['endpoint'])
+   check_listening_endpoint(manhole['endpoint'])
 
    if not 'users' in manhole:
       raise Exception("missing mandatory attribute 'users' in Manhole item\n\n{}".format(pformat(manhole)))

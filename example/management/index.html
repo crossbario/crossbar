@@ -305,9 +305,9 @@
          function test_start_router(worker_id) {
 
             var options = {
-               debug: true,
-               python: '/home/oberstet/pypy23/bin/pypy',
-               traceback: 100
+               //debug: true,
+               //python: '/home/oberstet/pypy23/bin/pypy',
+               //traceback: 100
             };
 
             session.call('crossbar.node.' + nodename + '.start_router', [worker_id, options], {}, {receive_progress: true}).then(
@@ -438,7 +438,7 @@
          function test_start_container() {
             var id = 'container1';
             var options = {
-               traceback: 100
+               //traceback: 100
             };
 
             session.call('crossbar.node.' + nodename + '.start_container', [id, options], {}, {receive_progress: true}).then(
