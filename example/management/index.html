@@ -35,11 +35,24 @@
          </tr>
          <tr>
             <td>Start Manhole on node controller.</td>
-            <td><button onclick="test_start_manhole()">Start Manhole</button></td>
+            <td><button onclick="test_start_manhole(null, 6021)">Start Manhole</button></td>
          </tr>
          <tr>
             <td>Stop Manhole on node controller.</td>
             <td><button onclick="test_stop_manhole()">Stop Manhole</button></td>
+         </tr>
+      </table>
+
+
+      <h2>Worker 1</h2>
+      <table>
+         <tr>
+            <td>Start Manhole.</td>
+            <td><button onclick="test_start_manhole('worker1', 6024)">Start Manhole</button></td>
+         </tr>
+         <tr>
+            <td>Stop Manhole.</td>
+            <td><button onclick="test_stop_manhole('worker1')">Stop Manhole</button></td>
          </tr>
       </table>
 
@@ -61,7 +74,7 @@
       <table>
          <tr>
             <td>Start Manhole.</td>
-            <td><button onclick="test_start_manhole('worker4')">Start Manhole</button></td>
+            <td><button onclick="test_start_manhole('worker4', 6022)">Start Manhole</button></td>
          </tr>
          <tr>
             <td>Stop Manhole.</td>
