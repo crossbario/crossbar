@@ -141,7 +141,7 @@ class RouterTransport:
    """
    A transport attached to a router.
    """
-   def __init__(self, id, config, port):
+   def __init__(self, id, config, factory, port):
       """
       Ctor.
 
@@ -149,11 +149,14 @@ class RouterTransport:
       :type id: int
       :param config: The transport's configuration.
       :type config: dict
+      :param factory: The transport factory in use.
+      :type factory: obj
       :param port: The transport's listening port (https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IListeningPort.html)
       :type port: obj
       """
       self.id = id
       self.config = config
+      self.factory = factory
       self.port = port
 
 
@@ -693,7 +696,7 @@ class RouterWorkerSession(NativeWorkerSession):
                   if 'mime_types' in static_options:
                      static_resource.contentTypes.update(static_options['mime_types'])
                   patchFileContentTypes(static_resource)
-                  
+
                   ## render 404 page on any concrete path not found
                   ##
                   static_resource.childNotFound = Resource404(self._templates, static_dir)
@@ -814,7 +817,7 @@ class RouterWorkerSession(NativeWorkerSession):
       d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, reactor)
 
       def ok(port):
-         self.transports[id] = RouterTransport(id, config, port)
+         self.transports[id] = RouterTransport(id, config, transport_factory, port)
          if self.debug:
             log.msg("Router transport '{}'' started and listening".format(id))
          return
