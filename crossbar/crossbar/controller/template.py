@@ -39,24 +39,12 @@ class Templates:
       },
       "hello:python": {
          "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
-         "basedir": "templates/python",
+         "basedir": "templates/hello/python",
          "params": {
-            "node_id": "node1",
-            "realm_id": "realm1",
+            "realm": "realm1",
             "appname": "hello"
          }
       },
-      "votegame:python": {
-         "help": "A simple real-time Votegame with Python backend and HTML5 frontend.",
-         "basedir": "templates/python",
-         "params": {
-            "node_id": "node1",
-            "realm_id": "realm1",
-            "appname": "hello"
-         }
-      }
-      #"demos": CONFIG_DEMOS,
-      #"testee": CONFIG_TESTEE,
    }
 
 

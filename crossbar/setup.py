@@ -21,12 +21,12 @@ from __future__ import absolute_import
 from distutils import log
 
 try:
+   import setuptools
+except ImportError:
    from ez_setup import use_setuptools
    use_setuptools()
-except Exception as e:
-   log.warn("ez_setup failed: {0}".format(e))
-finally:
-   from setuptools import setup, find_packages
+
+from setuptools import setup, find_packages
 
 
 ## Get package version and docstring from crossbar/__init__.py
