@@ -37,7 +37,38 @@
             <td>Start Manhole on node controller.</td>
             <td><button onclick="test_start_manhole()">Start Manhole</button></td>
          </tr>
+         <tr>
+            <td>Stop Manhole on node controller.</td>
+            <td><button onclick="test_stop_manhole()">Stop Manhole</button></td>
+         </tr>
       </table>
+
+
+      <h2>Worker 2</h2>
+      <table>
+         <tr>
+            <td>Start Manhole.</td>
+            <td><button onclick="test_start_manhole('worker2', 6023)">Start Manhole</button></td>
+         </tr>
+         <tr>
+            <td>Stop Manhole.</td>
+            <td><button onclick="test_stop_manhole('worker2')">Stop Manhole</button></td>
+         </tr>
+      </table>
+
+
+      <h2>Worker 4</h2>
+      <table>
+         <tr>
+            <td>Start Manhole.</td>
+            <td><button onclick="test_start_manhole('worker4')">Start Manhole</button></td>
+         </tr>
+         <tr>
+            <td>Stop Manhole.</td>
+            <td><button onclick="test_stop_manhole('worker4')">Stop Manhole</button></td>
+         </tr>
+      </table>
+
 
       <h2>Router 1</h2>
       <table>
@@ -152,7 +183,8 @@
 
       <script>
          // node name
-         var nodename = "node1";
+         //var nodename = "node1";
+         var nodename = "clandeck";
 
          // WAMP session to node management router (if established)
          var session = null;
@@ -161,7 +193,8 @@
          var connection = new autobahn.Connection({
 
             // node management router
-            url: 'ws://127.0.0.1:9000',
+            //url: 'ws://127.0.0.1:9000',
+            url: 'ws://demo.crossbar.io:9000',
 
             // node management realm
             realm: 'crossbar'
@@ -650,11 +683,12 @@
             );
          }
 
-         function test_start_manhole(worker_id) {
+         function test_start_manhole(worker_id, port) {
+            port = port || 6022;
             var config = {
                "endpoint": {
                   "type": "tcp",
-                  "port": 6022
+                  "port": port
                },
                "users": [
                   {
@@ -674,7 +708,7 @@
             session.call(proc_uri, [config], {}, {receive_progress: true})
                .then(
                   function (info) {
-                     console.log("manhole started", info);
+                     console.log("manhole started on port " + port, info);
                   },
                   logerr,
                   function (progress) {
@@ -685,7 +719,14 @@
 
          function test_stop_manhole(worker_id) {
 
-            session.call('crossbar.node.' + nodename + '.worker.' + worker_id + '.stop_manhole')
+            var proc_uri = null;
+            if (worker_id) {
+               proc_uri = 'crossbar.node.' + nodename + '.worker.' + worker_id + '.stop_manhole';
+            } else {
+               proc_uri = 'crossbar.node.' + nodename + '.stop_manhole';
+            }
+
+            session.call(proc_uri)
                .then(
                   function (res) {
                      console.log("manhole stopped", res);
