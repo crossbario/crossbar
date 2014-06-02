@@ -144,8 +144,8 @@ def check_listening_endpoint_tls(tls):
          raise Exception("missing mandatory attribute '{}' in listening endpoint TLS configuration".format(k[0]))
 
       if k[0] in tls:
-         if type(k[0]) != six.text_type:
-            raise Exception("'{}' in listening endpoint TLS configuration must be string ({} encountered)".format(k[0], type(k[0])))
+         if type(tls[k[0]]) != six.text_type:
+            raise Exception("'{}' in listening endpoint TLS configuration must be string ({} encountered)".format(k[0], type(tls[k[0]])))
 
 
 
