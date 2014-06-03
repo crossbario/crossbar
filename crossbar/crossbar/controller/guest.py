@@ -21,6 +21,8 @@ from __future__ import absolute_import
 
 __all__ = ['create_guest_worker_client_factory']
 
+import json
+
 from twisted.python import log
 from twisted.internet import protocol
 from twisted.internet.error import ProcessDone, \
@@ -44,38 +46,40 @@ class GuestWorkerClientProtocol(protocol.Protocol):
       ## `self.transport` is now a provider of `twisted.internet.interfaces.IProcessTransport`
       ## see: http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IProcessTransport.html
 
+      options = self.config.get('options', {})
+
       if self.debug:
          log.msg("GuestWorkerClientProtocol.connectionMade")
 
-      if 'stdout' in self.config and self.config['stdout'] == 'close':
+      if 'stdout' in options and options['stdout'] == 'close':
          self.transport.closeStdout()
          if self.debug:
             log.msg("GuestWorkerClientProtocol: stdout to guest closed")
 
-      if 'stderr' in self.config and self.config['stderr'] == 'close':
+      if 'stderr' in options and options['stderr'] == 'close':
          self.transport.closeStderr()
          if self.debug:
             log.msg("GuestWorkerClientProtocol: stderr to guest closed")
 
-      if 'stdin' in self.config:
-         if self.config['stdin'] == 'close':
+      if 'stdin' in options:
+         if options['stdin'] == 'close':
             self.transport.closeStdin()
             if self.debug:
                log.msg("GuestWorkerClientProtocol: stdin to guest closed")
          else:
-            if self.config['stdin']['type'] == 'json':
+            if options['stdin']['type'] == 'json':
 
-               self.transport.write(json.dumps(self.config['stdin']['value']))
+               self.transport.write(json.dumps(options['stdin']['value']))
                if self.debug:
                   log.msg("GuestWorkerClientProtocol: JSON value written to stdin on guest")
 
-            elif self.config['stdin']['type'] == 'msgpack':
+            elif options['stdin']['type'] == 'msgpack':
                raise Exception("not implemented")
 
             else:
                raise Exception("logic error")
 
-            if self.config['stdin'].get('close', True):
+            if options['stdin'].get('close', True):
                self.transport.closeStdin()
                if self.debug:
                   log.msg("GuestWorkerClientProtocol: stdin to guest closed")

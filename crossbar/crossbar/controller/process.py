@@ -702,6 +702,8 @@ class NodeControllerSession(NativeProcessSession):
       except Exception as e:
          raise ApplicationError('crossbar.error.invalid_configuration', 'invalid guest worker configuration: {}'.format(e))
 
+      options = config.get('options', {})
+
       ## guest process executable and command line arguments
       ##
       exe = config['executable']
@@ -711,11 +713,9 @@ class NodeControllerSession(NativeProcessSession):
       ## guest process working directory
       ##
       workdir = self._node._cbdir
-      if 'workdir' in config:
-         workdir = os.path.join(workdir, config['workdir'])
+      if 'workdir' in options:
+         workdir = os.path.join(workdir, options['workdir'])
       workdir = os.path.abspath(workdir)
-
-      options = config.get('options', {})
 
       ## guest process environment
       ##
@@ -743,6 +743,7 @@ class NodeControllerSession(NativeProcessSession):
       ## ready handling
       ##
       def on_ready_success(proto):
+
          worker.pid = proto.transport.pid
          worker.status = 'started'
          worker.started = datetime.utcnow()
@@ -752,11 +753,11 @@ class NodeControllerSession(NativeProcessSession):
 
          ## directory watcher
          ##
-         if 'watch' in config:
+         if 'watch' in options:
 
             ## assemble list of watched directories
             watched_dirs = []
-            for d in config['watch'].get('directories', []):
+            for d in options['watch'].get('directories', []):
                watched_dirs.append(os.path.abspath(os.path.join(self._node._cbdir, d)))
 
             ## create a directory watcher

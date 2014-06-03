@@ -1207,33 +1207,12 @@ def check_guest(guest, silence = False):
       'id': (False, [six.text_type]),
       'type': (True, [six.text_type]),
       'executable': (True, [six.text_type]),
-      'stdin': (False, [six.text_type, dict]),
-      'stdout': (False, [six.text_type]),
-      'stderr': (False, [six.text_type]),
       'arguments': (False, [list]),
-      'workdir': (False, [six.text_type]),
       'options': (False, [dict]),
-      'watch': (False, [dict]),
       }, guest, "Guest process configuration")
 
    if guest['type'] != 'guest':
       raise Exception("invalid value '{}' for type in guest worker configuration".format(guest['type']))
-
-   for s in ['stdout', 'stderr']:
-      if s in guest:
-         if guest[s] not in ['close', 'log', 'drop']:
-            raise Exception("invalid value '{}' for '{}' in guest worker configuration".format(guest[s], s))
-
-   if 'stdin' in guest:
-      if type(guest['stdin']) == dict:
-         check_dict_args({
-            'type': (True, [six.text_type]),
-            'value': (True, None),
-            'close': (False, [bool]),
-            }, guest['stdin'], "Guest process 'stdin' configuration")
-      else:
-         if guest['stdin'] not in ['close']:
-            raise Exception("invalid value '{}' for 'stdin' in guest worker configuration".format(guest['stdin']))
 
    if 'arguments' in guest:
       for arg in guest['arguments']:
@@ -1242,12 +1221,34 @@ def check_guest(guest, silence = False):
 
    if 'options' in guest:
       options = guest['options']
-      if type(options) != dict:
-         raise Exception("options must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
 
-      for k in options:
-         if k not in ['env']:
-            raise Exception("encountered unknown attribute '{}' in 'options' in guest worker configuration".format(k))
+      if type(options) != dict:
+         raise Exception("'options' must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
+
+      check_dict_args({
+         'env': (False, [dict]),
+         'workdir': (False, [six.text_type]),
+         'stdin': (False, [six.text_type, dict]),
+         'stdout': (False, [six.text_type]),
+         'stderr': (False, [six.text_type]),
+         'watch': (False, [dict]),
+         }, options, "Guest process configuration")
+
+      for s in ['stdout', 'stderr']:
+         if s in options:
+            if options[s] not in ['close', 'log', 'drop']:
+               raise Exception("invalid value '{}' for '{}' in guest worker configuration".format(options[s], s))
+
+      if 'stdin' in options:
+         if type(options['stdin']) == dict:
+            check_dict_args({
+               'type': (True, [six.text_type]),
+               'value': (True, None),
+               'close': (False, [bool]),
+               }, options['stdin'], "Guest process 'stdin' configuration")
+         else:
+            if options['stdin'] not in ['close']:
+               raise Exception("invalid value '{}' for 'stdin' in guest worker configuration".format(options['stdin']))
 
       if 'env' in options:
          check_process_env(options['env'])

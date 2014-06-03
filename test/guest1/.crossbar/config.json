@@ -1,4 +1,3 @@
-
 {
    "controller": {
    },
@@ -46,11 +45,22 @@
       {
          "type": "guest",
          "executable": "/usr/bin/node",
-         "arguments": ["../hello/hello.js"],
-         "stdin": "close",
-         "watch": {
-            "directories": ["../hello"],
-            "action": "restart"
+         "arguments": ["hello.js"],
+         "options": {
+            "workdir": "../hello",
+            "stdin": {
+               "type": "json",
+               "value": {
+                  "url": "ws://localhost:8080/ws",
+                  "realm": "realm1",
+                  "custom1": 23
+               },
+               "close": true
+            },
+            "watch": {
+               "directories": ["../hello"],
+               "action": "restart"
+            }
          }
       }
    ]
