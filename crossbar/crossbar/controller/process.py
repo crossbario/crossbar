@@ -767,9 +767,11 @@ class NodeControllerSession(NativeProcessSession):
 
 
       def on_exit_success(res):
+         log.msg("Guest excited with success")
          del self._workers[worker.id]
 
       def on_exit_error(err):
+         log.msg("Guest excited with error", err)
          del self._workers[worker.id]
 
       worker.exit.addCallbacks(on_exit_success, on_exit_error)
@@ -812,7 +814,9 @@ class NodeControllerSession(NativeProcessSession):
          ## this seems to be called immediately when the child process
          ## has been forked. even if it then immediately fails because
          ## e.g. the executable doesn't even exist. in other words,
-         ## I'm not sure under what conditions the deferred will errback ..
+         ## I'm not sure under what conditions the deferred will
+         ## errback - probably only if the forking of a new process fails
+         ## at OS level due to out of memory conditions or such.
 
          pid = proto.transport.pid
          if self.debug:
@@ -829,7 +833,7 @@ class NodeControllerSession(NativeProcessSession):
 
       def on_connect_error(err):
 
-         ## not sure when this errback is triggered at all ..
+         ## not sure when this errback is triggered at all .. see above.
          if self.debug:
             log.msg("ERROR: Connecting forked guest worker failed - {}".format(err))
 
