@@ -1,59 +1,36 @@
 # Crossbar.io
 
-**Open-source polyglot application router**
+*The polyglot application router.*
 
-*Remote Procedure Calls* and *Publish & Subscribe* for distributed applications, direct-to-database messaging and no application server needed.
+**Crossbar**.io is an [open-source](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE) **application router** that allows to build distributed systems out of application components which are loosely coupled.
 
-> Please also see the [Wiki](https://github.com/crossbario/crossbar/wiki) for more information.
+Application components talk to each other over [WAMP](http://wamp.ws) - an open communication protocol that unifies two simple, yet powerful messaging patterns in one protocol:
 
+* calling remote procedures ("Remote Procedure Calls") and
+* publishing events ("Publish & Subscribe")
 
+At it's core, what **Crossbar**.io provides is the *dynamic routing of calls and events between application components*. In a robust, secure and scalable way.
 
-## What is that?
+Finally, **Crossbar**.io is *polyglot*, which means application components can be written in [different languages](http://wamp.ws/implementations/), e.g. [Python](http://autobahn.ws/python), [JavaScript](http://autobahn.ws/js) or [C++](http://autobahn.ws/cpp). Not only that, but each application component can run under it's *native* run-time system!
 
-[**Crossbar**.io](http://crossbar.io) is an application _router_: it can route remote procedure calls to endpoints and at the same time can act as a message broker to dispatch events in (soft) real-time to subscribers.
+We think **Crossbar**.io is a big step forward, bringing **more power** and **less complexity** to developers.
 
-It provides application infrastructure services to application components running in a distributed system and does so using two well-known, powerful messaging patterns:
+If you are creating apps or systems like
 
- * *Remote Procedure Calls*
- * *Publish & Subscribe*
+* [Next-gen Web](https://demo.crossbar.io/)
+* [Internet-of-Things](http://tavendo.com/blog/post/arduino-yun-with-autobahn/)
+* Connected Car
+* [Real-time Collaboration](http://showroomdummy.com/)
+* [Database-driven business applications](http://www.record-evolution.com/)
+* [Messaging and chat](https://demo.crossbar.io/clandeck/)
+* Multi-player online games
 
-For example, **Crossbar**.io allows you to
+and you are looking for a fresh, powerful developer experience, **Crossbar**.io might be made for you;)
 
-  * Call database stored procedures from JavaScript
-  * Subscribe to topics and receive events in JavaScript
-  * Publish events to topics from within database stored procedures or triggers
+**Where to go**
 
-## Why?
-
-### Less complexity
-
- * no application server required
- * logically 2-tier architecture
- * clean separation of frontend and backend code
- * fewer wheels to keep running and maintain
- * only JavaScript and PL/SQL know-how needed
-
-### More power
-
- * create next-generation, single-page HTML5 frontends
- * create real-time enabled applications
- * push information from within the database
- * drive Web and Mobile frontends from the same backend API
-
-## How does it work?
-
-**Crossbar**.io provides routing services according to [The Web Application Messaging Protocol (WAMP)](http://wamp.ws/) and supports direct integration of databases into WAMP based architectures. PostgreSQL and Oracle connectors under development.
-
-**Crossbar.io** is written in Python, and builds on [Twisted](http://twistedmatrix.com/) and [Autobahn](http://autobahn.ws/). It's fully asynchronous, high-performance with critical code paths accelerated in native code, and also able to run on [PyPy](http://pypy.org/), a [JITting](http://en.wikipedia.org/wiki/Just-in-time_compilation) Python implementation.
-
-
-# Where to go
-
-For further information including a getting started, please checkout the [Wiki](https://github.com/crossbario/crossbar/wiki).
-
+For further information, please checkout the [documentation](https://github.com/crossbario/crossbar/wiki) or get in touch on our [mailing list](https://groups.google.com/forum/#!forum/autobahnws).
 
 ----------
-
-
 
 Copyright (c) 2014 [Tavendo GmbH](http://www.tavendo.com). Licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.
