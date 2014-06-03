@@ -34,7 +34,7 @@
                "paths": {
                   "/": {
                      "type": "static",
-                     "directory": "../{{ appname }}/web"
+                     "directory": "../web"
                   },
                   "ws": {
                      "type": "websocket"
@@ -46,7 +46,14 @@
       {
          "type": "guest",
          "executable": "{{ nodejs }}",
-         "arguments": ["../{{ appname }}/{{ appname }}.js"]
+         "arguments": ["{{ appname }}.js"],
+         "options": {
+            "workdir": "../node",
+            "watch": {
+               "directories": ["../node"],
+               "action": "restart"
+            }
+         }
       }
    ]
 }

@@ -775,7 +775,7 @@ class NodeControllerSession(NativeProcessSession):
                worker.watcher.stop()
                proto.signal('TERM')
 
-               if config['watch'].get('action', None) == 'restart':
+               if options['watch'].get('action', None) == 'restart':
                   log.msg("Restarting guest ..")
                   reactor.callLater(0.1, self.start_guest, id, config, details)
 
