@@ -7,7 +7,8 @@ all:
 	@echo ""
 
 install:
-	python setup.py install
+	#python setup.py install
+	pip install -e .[tls,msgpack,manhole,system]
 
 clean:
 	rm -rf ./build

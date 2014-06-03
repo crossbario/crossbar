@@ -18,6 +18,7 @@
 
 from __future__ import absolute_import
 
+import sys
 from distutils import log
 
 try:
@@ -48,6 +49,19 @@ if mo:
    docstr = mo.group(1)
 else:
    raise RuntimeError("Unable to find doc string in {}.".format(PACKAGE_FILE))
+
+
+extra_require_system = [
+   'psutil>=2.1.1',        # BSD license
+   'setproctitle>=1.1.8'   # BSD license
+]
+if sys.platform.startswith('linux'):
+   extra_require_system.append('pyinotify>=0.9.4') ## MIT license
+elif sys.platform.startswith('win'):
+   ## PyWin32 - Python Software Foundation License
+   pass
+else:
+   pass
 
 
 setup (
@@ -87,10 +101,7 @@ setup (
       'msgpack': [
          'msgpack-python>=0.4.2' # Apache license
       ],
-      'system': [
-         'psutil>=2.1.1',        # BSD license
-         'setproctitle>=1.1.8'   # BSD license
-      ]
+      'system': extra_require_system
    },
    entry_points = {
       'console_scripts': [

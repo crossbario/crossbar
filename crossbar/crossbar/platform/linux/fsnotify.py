@@ -16,6 +16,28 @@
 ##
 ###############################################################################
 
+
+import os
+import pyinotify
+
+
+class _EventHandler(pyinotify.ProcessEvent):
+
+   def __init__(self, callback):
+      pyinotify.ProcessEvent.__init__(self)
+      self._callback = callback
+
+   def process_IN_CREATE(self, event):
+      self._callback({'type': 'create', 'path': event.pathname})
+
+   def process_IN_MODIFY(self, event):
+      self._callback({'type': 'modify', 'path': event.pathname})
+
+   def process_IN_DELETE(self, event):
+      self._callback({'type': 'delete', 'path': event.pathname})
+
+
+
 class DirWatcher:
    """
    Watches a directory for file system changes.
@@ -41,7 +63,13 @@ class DirWatcher:
       :param timeout: Iff `asynch == True`, the timeout in ms for the event loop.
       :type timeout: int
       """
-      raise Exception("not implemented")
+      self._dir = os.path.abspath(dir)
+      self._recurse = recurse
+      self._asynch = asynch
+      self._timeout = timeout
+      self._stopped = False
+      self._wm = pyinotify.WatchManager()
+      self._mask = pyinotify.IN_CREATE | pyinotify.IN_MODIFY | pyinotify.IN_DELETE
    
 
    def stop(self):
@@ -64,4 +92,36 @@ class DirWatcher:
       :param callback: The callback fired when a change is detected.
       :type callback: callable
       """
-      raise Exception("not implemented")
+      if self._asynch:
+         self._loop_asynchronous(callback)
+      else:
+         self._loop_synchronous(callback)
+
+
+   def _loop_synchronous(self, callback):
+      handler = _EventHandler(callback)
+      notifier = pyinotify.Notifier(self._wm, handler)
+      wdd = self._wm.add_watch(self._dir, self._mask, rec = self._recurse)
+      notifier.loop()
+
+
+   def _loop_asynchronous(self, callback):
+      handler = _EventHandler(callback)
+      notifier = pyinotify.Notifier(self._wm, handler, timeout = self._timeout)
+      wdd = self._wm.add_watch(self._dir, self._mask, rec = self._recurse)
+
+      while not self._stopped:
+         notifier.process_events()
+
+         # loop in case more events appear while we are processing
+         while notifier.check_events():
+            notifier.read_events()
+            notifier.process_events()
+
+
+if __name__ == '__main__':
+   dw = DirWatcher(asynch = True, timeout = 1000)
+#   dw = DirWatcher(asynch = False)
+   def log(r):
+      print(r)
+   dw.loop(log)
