@@ -47,7 +47,11 @@
          "type": "guest",
          "executable": "/usr/bin/node",
          "arguments": ["../hello/hello.js"],
-         "stdin": "close"
+         "stdin": "close",
+         "watch": {
+            "directories": ["../hello"],
+            "action": "restart"
+         }
       }
    ]
 }

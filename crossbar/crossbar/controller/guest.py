@@ -80,6 +80,9 @@ class GuestWorkerClientProtocol(protocol.Protocol):
                if self.debug:
                   log.msg("GuestWorkerClientProtocol: stdin to guest closed")
 
+      self.factory._on_ready.callback(self)
+
+
 
    def connectionLost(self, reason):
       if self.debug:
@@ -102,6 +105,15 @@ class GuestWorkerClientProtocol(protocol.Protocol):
          log.msg("GuestWorkerClientProtocol: INTERNAL ERROR - {}".format(e))
 
 
+   def signal(self, sig = 'TERM'):
+      assert(sig in ['KILL', 'TERM', 'INT'])
+      try:
+         self.transport.signalProcess(sig)
+      except ProcessExitedAlready:
+         pass
+      except OSError as e:
+         log.msg(e)
+
 
 
 class GuestWorkerClientFactory(protocol.Factory):
@@ -121,12 +133,7 @@ class GuestWorkerClientFactory(protocol.Factory):
    def signal(self, sig = 'TERM'):
       assert(sig in ['KILL', 'TERM', 'INT'])
       if self.proto:
-         try:
-            self.proto.transport.signalProcess(sig)
-         except ProcessExitedAlready:
-            pass
-         except OSError as e:
-            log.msg(e)
+         self.proto.signal(sig)
 
 
 

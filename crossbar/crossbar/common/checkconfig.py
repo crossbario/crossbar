@@ -1199,7 +1199,8 @@ def check_guest(guest, silence = False):
                    'stdout',
                    'stderr',
                    'workdir',
-                   'options']:
+                   'options',
+                   'watch']:
          raise Exception("encountered unknown attribute '{}' in guest worker configuration".format(k))
 
    check_dict_args({
@@ -1211,7 +1212,8 @@ def check_guest(guest, silence = False):
       'stderr': (False, [six.text_type]),
       'arguments': (False, [list]),
       'workdir': (False, [six.text_type]),
-      'options': (False, [dict])
+      'options': (False, [dict]),
+      'watch': (False, [dict]),
       }, guest, "Guest process configuration")
 
    if guest['type'] != 'guest':

@@ -23,18 +23,26 @@ import pyinotify
 
 class _EventHandler(pyinotify.ProcessEvent):
 
-   def __init__(self, callback):
+   def __init__(self, callback, notify_once):
       pyinotify.ProcessEvent.__init__(self)
       self._callback = callback
+      self._notify_once = notify_once
+      self._notifications = 0
 
    def process_IN_CREATE(self, event):
-      self._callback({'type': 'create', 'path': event.pathname})
+      if not self._notify_once or self._notifications == 0:
+         self._callback({'type': 'create', 'path': event.pathname})
+         self._notifications += 1
 
    def process_IN_MODIFY(self, event):
-      self._callback({'type': 'modify', 'path': event.pathname})
+      if not self._notify_once or self._notifications == 0:
+         self._callback({'type': 'modify', 'path': event.pathname})
+         self._notifications += 1
 
    def process_IN_DELETE(self, event):
-      self._callback({'type': 'delete', 'path': event.pathname})
+      if not self._notify_once or self._notifications == 0:
+         self._callback({'type': 'delete', 'path': event.pathname})
+         self._notifications += 1
 
 
 
@@ -43,7 +51,7 @@ class DirWatcher:
    Watches a directory for file system changes.
    """
 
-   def __init__(self, dir = '.', recurse = True, asynch = True, timeout = 200):
+   def __init__(self, dirs = ['.'], recurse = True, asynch = True, timeout = 200, notify_once = False):
       """
       Directory change watcher.
 
@@ -63,10 +71,11 @@ class DirWatcher:
       :param timeout: Iff `asynch == True`, the timeout in ms for the event loop.
       :type timeout: int
       """
-      self._dir = os.path.abspath(dir)
+      self._dirs = dirs
       self._recurse = recurse
       self._asynch = asynch
       self._timeout = timeout
+      self._notify_once = notify_once
       self._stopped = False
       self._wm = pyinotify.WatchManager()
       self._mask = pyinotify.IN_CREATE | pyinotify.IN_MODIFY | pyinotify.IN_DELETE
@@ -82,7 +91,7 @@ class DirWatcher:
 
       In all cases, calling `stop()` returns immediately (won't block).
       """
-      raise Exception("not implemented")
+      self._stopped = True
 
 
    def loop(self, callback):
@@ -99,16 +108,23 @@ class DirWatcher:
 
 
    def _loop_synchronous(self, callback):
-      handler = _EventHandler(callback)
+      handler = _EventHandler(callback, self._notify_once)
       notifier = pyinotify.Notifier(self._wm, handler)
-      wdd = self._wm.add_watch(self._dir, self._mask, rec = self._recurse)
+
+      ## add directories to watch
+      for directory in self._dirs:
+         self._wm.add_watch(os.path.abspath(directory), self._mask, rec = self._recurse)
+
       notifier.loop()
 
 
    def _loop_asynchronous(self, callback):
-      handler = _EventHandler(callback)
+      handler = _EventHandler(callback, self._notify_once)
       notifier = pyinotify.Notifier(self._wm, handler, timeout = self._timeout)
-      wdd = self._wm.add_watch(self._dir, self._mask, rec = self._recurse)
+
+      ## add directories to watch
+      for directory in self._dirs:
+         self._wm.add_watch(os.path.abspath(directory), self._mask, rec = self._recurse)
 
       while not self._stopped:
          notifier.process_events()

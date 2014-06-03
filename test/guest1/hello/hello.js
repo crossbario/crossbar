@@ -8,7 +8,7 @@ var connection = new autobahn.Connection({
 connection.onopen = function (session) {
 
    function hello() {
-      return "Hello from NodeJS!!!!";
+      return "Hello from NodeJS!";
    }
 
    session.register('com.hello.hello', hello).then(

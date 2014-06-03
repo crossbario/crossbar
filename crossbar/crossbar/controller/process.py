@@ -33,6 +33,7 @@ from twisted.internet.defer import Deferred, \
                                    returnValue, \
                                    inlineCallbacks
 
+from twisted.internet.threads import deferToThread
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
@@ -57,6 +58,8 @@ from crossbar.common.process import NativeProcessSession
 from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
 from autobahn.twisted.websocket import WampWebSocketServerFactory
+
+from crossbar.platform.linux.fsnotify import DirWatcher
 
 
 
@@ -739,12 +742,48 @@ class NodeControllerSession(NativeProcessSession):
 
       ## ready handling
       ##
-      def on_ready_success(id):
-         log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
-
+      def on_ready_success(proto):
+         worker.pid = proto.transport.pid
          worker.status = 'started'
          worker.started = datetime.utcnow()
 
+         log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
+
+
+         ## directory watcher
+         ##
+         if 'watch' in config:
+
+            ## assemble list of watched directories
+            watched_dirs = []
+            for d in config['watch'].get('directories', []):
+               watched_dirs.append(os.path.abspath(os.path.join(self._node._cbdir, d)))
+
+            ## create a directory watcher
+            worker.watcher = DirWatcher(dirs = watched_dirs, notify_once = True)
+
+            ## make sure to stop the background thread running inside the
+            ## watcher upon Twisted being shut down
+            def on_shutdown():
+               worker.watcher.stop()
+
+            reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
+
+            ## this handler will get fired by the watcher upon detecting an FS event
+            def on_fsevent(evt):
+               worker.watcher.stop()
+               proto.signal('TERM')
+
+               if config['watch'].get('action', None) == 'restart':
+                  log.msg("Restarting guest ..")
+                  reactor.callLater(0.1, self.start_guest, id, config, details)
+
+            ## now run the watcher on a background thread
+            deferToThread(worker.watcher.loop, on_fsevent)
+
+
+         ## assemble guest worker startup information
+         ##
          started_info = {
             'id': worker.id,
             'status': worker.status,
