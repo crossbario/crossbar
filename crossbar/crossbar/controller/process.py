@@ -735,7 +735,7 @@ class NodeControllerSession(NativeProcessSession):
 
       ## create a (custom) process endpoint
       ##
-      ep = WorkerProcessEndpoint(self._node._reactor, exe, args, env = worker_env, worker = worker)
+      ep = WorkerProcessEndpoint(self._node._reactor, exe, args, path = workdir, env = worker_env, worker = worker)
 
       ## ready handling
       ##

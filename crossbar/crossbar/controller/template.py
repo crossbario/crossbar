@@ -41,8 +41,18 @@ class Templates:
          "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
          "basedir": "templates/hello/python",
          "params": {
+            "appname": "hello",
             "realm": "realm1",
-            "appname": "hello"
+         }
+      },
+      "hello:nodejs": {
+         "help": "A minimal NodeJS WAMP application hosted in a router and a HTML5 client.",
+         "basedir": "templates/hello/nodejs",
+         "params": {
+            "appname": "hello",
+            "realm": "realm1",
+            "url": "ws://127.0.0.1:8080/ws",
+            "nodejs": "/usr/bin/node"
          }
       },
    }
