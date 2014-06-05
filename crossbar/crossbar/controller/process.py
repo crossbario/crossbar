@@ -59,7 +59,12 @@ from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
 from autobahn.twisted.websocket import WampWebSocketServerFactory
 
-from crossbar.platform.linux.fsnotify import DirWatcher
+if sys.platform.startswith('linux'):
+   _HAS_FSNOTIFY = True
+   from crossbar.platform.linux.fsnotify import DirWatcher
+else:
+   _HAS_FSNOTIFY = False
+
 
 
 
@@ -755,32 +760,37 @@ class NodeControllerSession(NativeProcessSession):
          ##
          if 'watch' in options:
 
-            ## assemble list of watched directories
-            watched_dirs = []
-            for d in options['watch'].get('directories', []):
-               watched_dirs.append(os.path.abspath(os.path.join(self._node._cbdir, d)))
+            if _HAS_FSNOTIFY:
 
-            ## create a directory watcher
-            worker.watcher = DirWatcher(dirs = watched_dirs, notify_once = True)
+               ## assemble list of watched directories
+               watched_dirs = []
+               for d in options['watch'].get('directories', []):
+                  watched_dirs.append(os.path.abspath(os.path.join(self._node._cbdir, d)))
 
-            ## make sure to stop the background thread running inside the
-            ## watcher upon Twisted being shut down
-            def on_shutdown():
-               worker.watcher.stop()
+               ## create a directory watcher
+               worker.watcher = DirWatcher(dirs = watched_dirs, notify_once = True)
 
-            reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
+               ## make sure to stop the background thread running inside the
+               ## watcher upon Twisted being shut down
+               def on_shutdown():
+                  worker.watcher.stop()
 
-            ## this handler will get fired by the watcher upon detecting an FS event
-            def on_fsevent(evt):
-               worker.watcher.stop()
-               proto.signal('TERM')
+               reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
 
-               if options['watch'].get('action', None) == 'restart':
-                  log.msg("Restarting guest ..")
-                  reactor.callLater(0.1, self.start_guest, id, config, details)
+               ## this handler will get fired by the watcher upon detecting an FS event
+               def on_fsevent(evt):
+                  worker.watcher.stop()
+                  proto.signal('TERM')
 
-            ## now run the watcher on a background thread
-            deferToThread(worker.watcher.loop, on_fsevent)
+                  if options['watch'].get('action', None) == 'restart':
+                     log.msg("Restarting guest ..")
+                     reactor.callLater(0.1, self.start_guest, id, config, details)
+
+               ## now run the watcher on a background thread
+               deferToThread(worker.watcher.loop, on_fsevent)
+
+            else:
+               log.msg("Warning: cannot watch directory for changes - feature DirWatcher unavailable")
 
 
          ## assemble guest worker startup information
