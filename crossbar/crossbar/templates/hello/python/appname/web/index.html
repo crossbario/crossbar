@@ -7,8 +7,17 @@
       <script src="autobahn.min.js"></script>
 
       <script>
+         // the URL of the WAMP Router (Crossbar.io)
+         var wsuri;
+         if (document.location.origin == "file://") {
+            wsuri = "ws://127.0.0.1:8080/ws";
+
+         } else {
+            wsuri = (window.location.protocol === "http:" ? "ws:" : "wss:") + "//" + document.location.host + "/ws";
+         }
+
          var connection = new autobahn.Connection({
-            url: "ws://127.0.0.1:8080/ws",
+            url: wsuri,
             realm: "{{ realm }}"
          });
 
