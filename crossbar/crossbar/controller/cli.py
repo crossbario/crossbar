@@ -127,17 +127,22 @@ def run_command_init(options):
    if not options.template in templates:
       raise Exception("no node template '{}' - use the command 'crossbar templates' to list templates available".format(options.template))
 
-   if os.path.exists(options.appdir):
-      raise Exception("app directory '{}' already exists".format(options.appdir))
-
-   try:
-      os.mkdir(options.appdir)
-   except Exception as e:
-      raise Exception("could not create node directory '{}' ({})".format(options.appdir, e))
+   if options.appdir is None:
+      options.appdir = '.'
    else:
-      print("Crossbar.io application directory '{}' created".format(options.appdir))
+      if os.path.exists(options.appdir):
+         raise Exception("app directory '{}' already exists".format(options.appdir))
 
-   print("Initializing application template '{}'".format(options.template))
+      try:
+         os.mkdir(options.appdir)
+      except Exception as e:
+         raise Exception("could not create application directory '{}' ({})".format(options.appdir, e))
+      else:
+         print("Crossbar.io application directory '{}' created".format(options.appdir))
+
+   options.appdir = os.path.abspath(options.appdir)
+
+   print("Initializing application template '{}' in directory '{}'".format(options.template, options.appdir))
    templates.init(options.appdir, options.template)
 
    # try:
@@ -264,7 +269,7 @@ def run():
 
    parser_init.add_argument('--appdir',
                              type = str,
-                             default = '.',
+                             default = None,
                              help = "Application base directory where to create app and node from template.")
 
 
