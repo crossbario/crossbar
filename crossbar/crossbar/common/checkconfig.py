@@ -119,7 +119,7 @@ def check_endpoint_timeout(timeout):
    """
    if type(timeout) not in six.integer_types:
       raise Exception("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
-   if port < 0 or port > 600:
+   if timeout < 0 or timeout > 600:
       raise Exception("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
 
 
