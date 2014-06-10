@@ -129,7 +129,7 @@ class Templates:
                            # Jinja need forward slashes even on Windows
                            src_file_rel_path = src_file_rel_path.replace('\\', '/')
                         page = jinja_env.get_template(src_file_rel_path)
-                        contents = page.render(**_params)
+                        contents = page.render(**_params).encode('utf8')
                         dst_file_fd.write(contents)
 
                   created.append(('file', dst_file))
