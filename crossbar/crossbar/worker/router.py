@@ -36,6 +36,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet.endpoints import serverFromString
 
+from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 
 from crossbar.router.session import CrossbarRouterSessionFactory, \
@@ -90,7 +91,11 @@ from twisted.web.resource import Resource
 from autobahn.twisted.resource import WebSocketResource
 
 from crossbar.twisted.site import createHSTSRequestFactory
-from crossbar.twisted.resource import JsonResource, Resource404, RedirectResource
+
+from crossbar.twisted.resource import JsonResource, \
+                                      Resource404, \
+                                      RedirectResource, \
+                                      PusherResource
 
 from crossbar.twisted.resource import _HAS_STATIC, _HAS_CGI
 
@@ -773,6 +778,26 @@ class RouterWorkerSession(NativeWorkerSession):
                elif path_config['type'] == 'longpoll':
 
                   log.msg("Web path type 'longpoll' not implemented")
+
+
+               ## Pusher resource
+               ##
+               elif path_config['type'] == 'pusher':
+
+                  ## create a vanilla session: the pusher will use this to inject events
+                  ##
+                  pusher_session_config = ComponentConfig(realm = path_config['realm'], extra = None)
+                  pusher_session = ApplicationSession(pusher_session_config)
+
+                  ## add the pushing session to the router
+                  ##
+                  self.session_factory.add(pusher_session)
+
+                  ## now create the pusher Twisted Web resource and add it to resource tree
+                  ##
+                  pusher_resource = PusherResource(path_config, pusher_session)
+                  root.putChild(path, pusher_resource)
+
 
                else:
                   raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web path type '{}'".format(path_config['type']))

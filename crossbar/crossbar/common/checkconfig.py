@@ -490,6 +490,20 @@ def check_web_path_service_longpoll(config):
 
 
 
+def check_web_path_service_pusher(config):
+   """
+   Check a "pusher" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
+   check_dict_args({
+      'type': (True, [six.text_type]),
+      'realm': (True, [six.text_type]),
+      }, config, "Web transport 'pusher' path service")
+
+
+
 def check_web_path_service(path, config):
    """
    Check a single path service on Web transport.
@@ -505,7 +519,7 @@ def check_web_path_service(path, config):
       if ptype not in ['static', 'wsgi', 'redirect']:
          raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
    else:
-      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll']:
+      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher']:
          raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
    checkers = {
@@ -515,7 +529,8 @@ def check_web_path_service(path, config):
       'redirect': check_web_path_service_redirect,
       'json': check_web_path_service_json,
       'cgi': check_web_path_service_cgi,
-      'longpoll': check_web_path_service_longpoll
+      'longpoll': check_web_path_service_longpoll,
+      'pusher': check_web_path_service_pusher,
    }
 
    checkers[ptype](config)
