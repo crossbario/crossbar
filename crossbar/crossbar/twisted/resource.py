@@ -150,10 +150,17 @@ if _HAS_CGI:
 
 
 import json
+import datetime
+import hmac
+import hashlib
+import base64
+
+import six
+
 from autobahn.util import utcnow, parseutc
 
 from autobahn.wamp.types import PublishOptions
-
+from twisted.web.server import NOT_DONE_YET
 
 
 class PusherResource(Resource):
@@ -172,7 +179,21 @@ class PusherResource(Resource):
       self._config = config
       self._session = session
 
-      self._config_post_body_limit = int(self._config.get('post_body_limit', 0))
+      self._debug = False
+
+      options = config.get('options', {})
+
+      self._key = None
+      if 'key' in options:
+         self._key = options['key'].encode('utf8')
+
+      self._secret = None
+      if 'secret' in options:
+         self._secret = options['secret'].encode('utf8')
+
+      self._post_body_limit = int(options.get('post_body_limit', 0))
+      self._timestamp_delta_limit = int(options.get('timestamp_delta_limit', 300))
+
 
 
    def _deny_request(self, request, code, reason):
@@ -180,119 +201,192 @@ class PusherResource(Resource):
       Called when client request is denied.
       """
       request.setResponseCode(code)
-      return "%s\n" % str(reason)
+      return "{}\n".format(reason)
+
 
 
    def render(self, request):
+      if self._debug:
+         log.msg("PusherResource.render", request.method, request.path, request.args)
+
       if request.method != "POST":
          return self._deny_request(request, 405, "HTTP/{0} not allowed".format(request.method))
       else:
          return self.render_POST(request)
 
 
+
    def render_POST(self, request):
       """
-      The HTTP/POST to WebSockets hub Twisted/Web resource main method.
+      Receives an HTTP/POST request to forward a WAMP event.
       """
-      print "GOT POST", request.path, request.args
       try:
          path = request.path
          args = request.args
          headers = request.getAllHeaders()
 
+         ## check content type
+         ##
          if headers.get("content-type", None) != 'application/x-www-form-urlencoded':
             return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(headers.get("content-type", None)))
 
          ## enforce "post_body_limit"
          ##
          content_length = int(headers.get("content-length", 0))
-         if self._config_post_body_limit and content_length > self._config_post_body_limit:  
-            return self._deny_request(request, 400, "content length ({0}) exceeds maximum ({1})".format(content_length, self._config_post_body_limit))
+         if self._post_body_limit and content_length > self._post_body_limit:  
+            return self._deny_request(request, 400, "HTTP/POST body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit))
 
-         ## "topic" parameter
          ##
-         if not args.has_key("topic"):
-            return self._deny_request(request, 400, "missing mandatory parameter 'topic'")
-         topic = args["topic"][0]
+         ## parse/check HTTP/POST query parameters
+         ##
 
-         ## FIXME: check topic
-
-         appkey = args.get("appkey", [False])[0]
-         signature = args.get("signature", [False])[0]
-         timestamp_str = args.get("timestamp", [False])[0]
-         if appkey or signature or timestamp_str:
-            if not (appkey and signature and timestamp_str):
-               return self._deny_request(request, 400, "either all or none of parameters 'appkey', 'signature' and 'timestamp' must be present")
-
-         if timestamp_str:
-            # '2011-10-14T12:59:51Z'
-            timestamp = parseutc(timestamp_str)
-            if timestamp is None:
-               return self._deny_request(request, 400, "invalid timestamp '{0}' (must be i.e. '2011-10-14T16:59:51Z'".format(timestamp_str))
-            delta = int(round(abs(timestamp - datetime.datetime.utcnow()).total_seconds()))
-            if delta > self._getTimestampDeltaLimit():
-               return self._deny_request(request, 400, "timestamp expired (delta {0} seconds)".format(delta))
+         ## key
+         ##
+         if 'key' in args:
+            key_str = args["key"][0]
          else:
-            timestamp = None
+            if self._secret:
+               return self._deny_request(request, 400, "signed request required, but mandatory 'key' field missing")
 
-         if args.has_key('event'):
-            json_str = args['event'][0]
+         ## timestamp
+         ##
+         if 'timestamp' in args:
+            timestamp_str = args["timestamp"][0]
+            try:
+               ts = datetime.datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+               delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
+               if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
+                  return self._deny_request(request, 400, "request expired (delta {0} seconds)".format(delta))
+            except:
+               return self._deny_request(request, 400, "invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(timestamp_str))
          else:
-            json_str = request.content.read()
+            if self._secret:
+               return self._deny_request(request, 400, "signed request required, but mandatory 'timestamp' field missing")
 
-         print "$$$", json_str
+         ## seq
+         ##
+         if 'seq' in args:
+            seq_str = args["seq"][0]
+            try:
+               seq = int(seq_str)
+            except:
+               return self._deny_request(request, 400, "invalid sequence number '{0}' (must be an integer)".format(seq_str))
+         else:
+            if self._secret:
+               return self._deny_request(request, 400, "signed request required, but mandatory 'seq' field missing")
 
-         if appkey:
-            sig = self.services["restpusher"].signature(topic, appkey, timestamp_str, json_str)
-            if sig is None:
-               return self._deny_request(request, 400, "unknown application key '%s'" % appkey)
-            if sig != signature:
-               return self._deny_request(request, 401, "invalid request signature (expected %s, got %s)" % (sig, signature))
+         ## nonce
+         ##
+         if 'nonce' in args:
+            nonce_str = args["nonce"][0]
+            try:
+               nonce = int(nonce_str)
+            except:
+               return self._deny_request(request, 400, "invalid nonce '{0}' (must be an integer)".format(nonce_str))
+         else:
+            if self._secret:
+               return self._deny_request(request, 400, "signed request required, but mandatory 'nonce' field missing")
+
+         ## signature
+         ##
+         if 'signature' in args:
+            signature_str = args["signature"][0]
+         else:
+            if self._secret:
+               return self._deny_request(request, 400, "signed request required, but mandatory 'signature' field missing")
+
+
+         ## read HTTP/POST body
+         ##
+         body = request.content.read()
+
+
+         ## do more checks if signed requests are required
+         ##
+         if self._secret:
+
+            if key_str != self._key:
+               return self._deny_request(request, 400, "unknown key '{0}' in signed request".format(key_str))
+
+            ## Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
+            hm = hmac.new(self._secret, None, hashlib.sha256)
+            hm.update(key_str)
+            hm.update(timestamp_str)
+            hm.update(seq_str)
+            hm.update(nonce_str)
+            hm.update(body)
+            signature_recomputed = base64.urlsafe_b64encode(hm.digest())
+
+            if signature_str != signature_recomputed:
+               return self._deny_request(request, 401, "invalid request signature")
+            else:
+               if self._debug:
+                  log.msg("request signature ok!")
+
 
          user_agent = headers.get("user-agent", "unknown")
          client_ip = request.getClientIP()
          is_secure = request.isSecure()
 
-         #auth = self.services["restpusher"].authorize(topic, client_ip, appkey)
-         auth = (True, None, "global default")
+         ## FIXME: authorize request
+         authorized = True
 
-         if auth[0]:
+         if authorized:
 
             try:
-               event = json.loads(json_str)
+               event = json.loads(body)
             except Exception as e:
-               return self._deny_request(request, 400, "invalid JSON in request body - {}".format(e))
+               return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
 
-            if args.has_key("exclude"):
-               exclude = [x.strip() for x in args["exclude"][0].split(",")]
-            else:
-               exclude = []
+            if type(event) != dict:
+               return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be JSON dict")
 
-            if args.has_key("eligible"):
-               eligible = [x.strip() for x in args["eligible"][0].split(",")]
-            else:
-               eligible = None
+            if not 'topic' in event:
+               return self._deny_request(request, 400, "invalid request event - missing 'topic' in HTTP/POST body")
 
-            ## dispatch & log event
-            #d = self.services["appws"].dispatchHubEvent(topic, event, exclude, eligible)
+            topic = event.pop('topic')
 
-            print "DISPATCH", topic, event
-            #self._session.publish(topic, event, options = PublishOptions(acknowledge = True))
-            self._session.publish(topic, event)
+            args = event.pop('args', [])
+            kwargs = event.pop('kwargs', {})
+            options = event.pop('options', {})
 
-            # d.addCallback(lambda res: self.log(user_agent,
-            #                                    client_ip,
-            #                                    is_secure,
-            #                                    topic,
-            #                                    content_length,
-            #                                    postrule_id = auth[1],
-            #                                    receiver_count = res[0],
-            #                                    requested_count = res[1]))
-            ## signal success to submitter
-            request.setResponseCode(202)
-            return ""
+            publish_options = PublishOptions(acknowledge = True,
+               exclude = options.get('exclude', None),
+               eligible = options.get('eligible', None))
+
+            kwargs['options'] = publish_options
+
+            ## http://twistedmatrix.com/documents/current/web/howto/web-in-60/asynchronous-deferred.html
+
+            d = self._session.publish(topic, *args, **kwargs)
+
+            def on_publish_ok(pub):
+               res = {'id': pub.id}
+               if self._debug:
+                  log.msg("request succeeded: {0}".format(res))
+               body = json.dumps(res, separators = (',',':'))
+               if six.PY3:
+                  body = body.encode('utf8')
+
+               request.setHeader('content-type', 'application/json; charset=UTF-8')
+               request.setResponseCode(202)
+               request.write(body)
+               request.finish()
+
+            def on_publish_error(err):
+               emsg = "request failed: {0}\n".format(err.value)
+               if self._debug:
+                  log.msg(emsg)
+               request.setResponseCode(400)
+               request.write(emsg)
+               request.finish()
+
+            d.addCallbacks(on_publish_ok, on_publish_error)
+
+            return NOT_DONE_YET
+
          else:
-            return self._deny_request(request, 401, "not authorized (denied by post rule %s: %s)" % (auth[1], auth[2]))
+            return self._deny_request(request, 401, "not authorized")
 
       except Exception as e:
          ## catch all .. should not happen (usually)

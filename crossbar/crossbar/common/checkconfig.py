@@ -500,7 +500,17 @@ def check_web_path_service_pusher(config):
    check_dict_args({
       'type': (True, [six.text_type]),
       'realm': (True, [six.text_type]),
+      'role': (True, [six.text_type]),
+      'options': (False, [dict]),
       }, config, "Web transport 'pusher' path service")
+
+   if 'options' in config:
+      check_dict_args({
+         'key': (False, [six.text_type]),
+         'secret': (False, [six.text_type]),
+         'post_body_limit': (False, six.integer_types),
+         'timestamp_delta_limit': (False, six.integer_types),
+         }, config['options'], "Web transport 'pusher' path service")
 
 
 
