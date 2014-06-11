@@ -1045,7 +1045,7 @@ def check_container(container, silence = False):
    components = container.get('components', [])
 
    if type(components) != list:
-      raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(router)))
+      raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(container)))
 
    i = 1
    for component in components:
