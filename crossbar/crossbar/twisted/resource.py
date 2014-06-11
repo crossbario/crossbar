@@ -268,8 +268,8 @@ class PusherResource(Resource):
 
          ## check content type
          ##
-         #if headers.get("content-type", None) != 'application/x-www-form-urlencoded':
-         #   return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(headers.get("content-type", None)))
+         if headers.get("content-type", None) != 'application/json':
+            return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(headers.get("content-type", None)))
 
          ## enforce "post_body_limit"
          ##
