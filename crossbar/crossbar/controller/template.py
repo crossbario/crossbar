@@ -37,6 +37,12 @@ class Templates:
          "params": {
          }
       },
+      "pusher": {
+         "help": "A WAMP router with a HTTP gateway for pushing events.",
+         "basedir": "templates/pusher",
+         "params": {
+         }
+      },
       "hello:python": {
          "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
          "basedir": "templates/hello/python",

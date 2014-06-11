@@ -18,11 +18,18 @@
 
 import os
 import json
+import datetime
+import hmac
+import hashlib
+import base64
+
+import six
+
+from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.python import log
 from twisted.web.resource import Resource, NoResource
 from twisted.web import server
-
 
 try:
    ## triggers module level reactor import
@@ -43,6 +50,8 @@ except ImportError:
    ## Twisted hasn't ported this to Python 3 yet
    _HAS_CGI = False
 
+
+from autobahn.wamp.types import PublishOptions
 
 import crossbar
 
@@ -149,39 +158,63 @@ if _HAS_CGI:
 
 
 
-import json
-import datetime
-import hmac
-import hashlib
-import base64
-
-import six
-
-from autobahn.util import utcnow, parseutc
-
-from autobahn.wamp.types import PublishOptions
-from twisted.web.server import NOT_DONE_YET
-
-
 class PusherResource(Resource):
    """
    A HTTP/POST to WAMP PubSub bridge.
 
-   {
-      post_body_limit: 10000
-   }
+   Config:
 
-   curl -d 'topic=com.myapp.topic1&event="123"' http://127.0.0.1:8080/push
+      "transports": [
+         {
+            "type": "web",
+            "endpoint": {
+               "type": "tcp",
+               "port": 8080
+            },
+            "paths": {
+               "/": {
+                  "type": "static",
+                  "directory": ".."
+               },
+               "ws": {
+                  "type": "websocket"
+               },
+               "push": {
+                  "type": "pusher",
+                  "realm": "realm1",
+                  "role": "anonymous",
+                  "options": {
+                     "key": "foobar",
+                     "secret": "secret",
+                     "post_body_limit": 8192,
+                     "timestamp_delta_limit": 10,
+                     "require_ip": ["192.168.1.1/255.255.255.0", "127.0.0.1"],
+                     "require_tls": false
+                  }
+               }
+            }
+         }
+      ]
+
+   Test:
+
+      curl -H "Content-Type: application/json" -d '{"topic": "com.myapp.topic1", "args": ["Hello, world"]}' http://127.0.0.1:8080/push
    """
 
-   def __init__(self, config, session):
+   def __init__(self, options, session):
+      """
+      Ctor.
+
+      :param options: Options for path service from configuration.
+      :type options: dict
+      :param session: Instance of `ApplicationSession` to be used for forwarding events.
+      :type session: obj
+      """
       Resource.__init__(self)
-      self._config = config
+      self._options = options
       self._session = session
 
-      self._debug = False
-
-      options = config.get('options', {})
+      self._debug = options.get('debug', False)
 
       self._key = None
       if 'key' in options:
@@ -194,12 +227,20 @@ class PusherResource(Resource):
       self._post_body_limit = int(options.get('post_body_limit', 0))
       self._timestamp_delta_limit = int(options.get('timestamp_delta_limit', 300))
 
+      self._require_ip = None
+      if 'require_ip' in options:
+         self._require_ip = [IPNetwork(net) for net in options['require_ip']]
+
+      self._require_tls = options.get('require_tls', None)
+
 
 
    def _deny_request(self, request, code, reason):
       """
       Called when client request is denied.
       """
+      if self._debug:
+         log.msg("PusherResource [request denied] - {0} / {1}".format(code, reason))
       request.setResponseCode(code)
       return "{}\n".format(reason)
 
@@ -207,7 +248,7 @@ class PusherResource(Resource):
 
    def render(self, request):
       if self._debug:
-         log.msg("PusherResource.render", request.method, request.path, request.args)
+         log.msg("PusherResource [render]", request.method, request.path, request.args)
 
       if request.method != "POST":
          return self._deny_request(request, 405, "HTTP/{0} not allowed".format(request.method))
@@ -227,8 +268,8 @@ class PusherResource(Resource):
 
          ## check content type
          ##
-         if headers.get("content-type", None) != 'application/x-www-form-urlencoded':
-            return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(headers.get("content-type", None)))
+         #if headers.get("content-type", None) != 'application/x-www-form-urlencoded':
+         #   return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(headers.get("content-type", None)))
 
          ## enforce "post_body_limit"
          ##
@@ -321,12 +362,31 @@ class PusherResource(Resource):
                return self._deny_request(request, 401, "invalid request signature")
             else:
                if self._debug:
-                  log.msg("request signature ok!")
+                  log.msg("PusherResource - ok, request signature valid.")
 
 
          user_agent = headers.get("user-agent", "unknown")
          client_ip = request.getClientIP()
          is_secure = request.isSecure()
+
+         ## enforce client IP address
+         ##
+         if self._require_ip:
+            ip = IPAddress(client_ip)
+            allowed = False
+            for net in self._require_ip:
+               if ip in net:
+                  allowed = True
+                  break
+            if not allowed:
+               return self._deny_request(request, 400, "request denied based on IP address")
+
+         ## enforce TLS
+         ##
+         if self._require_tls:
+            if not is_secure:
+               return self._deny_request(request, 400, "request denied because not using TLS")
+
 
          ## FIXME: authorize request
          authorized = True
@@ -363,18 +423,19 @@ class PusherResource(Resource):
             def on_publish_ok(pub):
                res = {'id': pub.id}
                if self._debug:
-                  log.msg("request succeeded: {0}".format(res))
+                  log.msg("PusherResource - request succeeded with result {0}".format(res))
                body = json.dumps(res, separators = (',',':'))
                if six.PY3:
                   body = body.encode('utf8')
 
                request.setHeader('content-type', 'application/json; charset=UTF-8')
+               request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
                request.setResponseCode(202)
                request.write(body)
                request.finish()
 
             def on_publish_error(err):
-               emsg = "request failed: {0}\n".format(err.value)
+               emsg = "PusherResource - request failed with error {0}\n".format(err.value)
                if self._debug:
                   log.msg(emsg)
                request.setResponseCode(400)
@@ -383,7 +444,7 @@ class PusherResource(Resource):
 
             d.addCallbacks(on_publish_ok, on_publish_error)
 
-            return NOT_DONE_YET
+            return server.NOT_DONE_YET
 
          else:
             return self._deny_request(request, 401, "not authorized")

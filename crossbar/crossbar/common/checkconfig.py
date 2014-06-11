@@ -490,6 +490,34 @@ def check_web_path_service_longpoll(config):
 
 
 
+def check_web_path_service_pusher_post_body_limit(limit):
+   """
+   Check a pusher web path service "post_body_limit" parameter.
+
+   :param port: The limit to check.
+   :type port: int
+   """
+   if type(limit) not in six.integer_types:
+      raise Exception("'post_body_limit' attribute in pusher configuration must be integer ({} encountered)".format(type(limit)))
+   if limit < 0 or limit > 2**20:
+      raise Exception("invalid value {} for 'post_body_limit' attribute in pusher configuration".format(limit))
+
+
+
+def check_web_path_service_pusher_timestamp_delta_limit(limit):
+   """
+   Check a pusher web path service "timestamp_delta_limit" parameter.
+
+   :param port: The limit to check.
+   :type port: int
+   """
+   if type(limit) not in six.integer_types:
+      raise Exception("'timestamp_delta_limit' attribute in pusher configuration must be integer ({} encountered)".format(type(limit)))
+   if limit < 0 or limit > 86400:
+      raise Exception("invalid value {} for 'timestamp_delta_limit' attribute in pusher configuration".format(limit))
+
+
+
 def check_web_path_service_pusher(config):
    """
    Check a "pusher" path service on Web transport.
@@ -506,11 +534,20 @@ def check_web_path_service_pusher(config):
 
    if 'options' in config:
       check_dict_args({
+         'debug': (False, [bool]),
          'key': (False, [six.text_type]),
          'secret': (False, [six.text_type]),
+         'require_tls': (False, [bool]),
+         'require_ip': (False, [list]),
          'post_body_limit': (False, six.integer_types),
          'timestamp_delta_limit': (False, six.integer_types),
          }, config['options'], "Web transport 'pusher' path service")
+
+      if 'post_body_limit' in config['options']:
+         check_web_path_service_pusher_post_body_limit(config['options']['post_body_limit'])
+
+      if 'timestamp_delta_limit' in config['options']:
+         check_web_path_service_pusher_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
 

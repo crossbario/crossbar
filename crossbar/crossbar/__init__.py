@@ -30,4 +30,4 @@ Open-source licensed under the GNU Affero General Public License version 3.
 Created by Tavendo GmbH. Get in contact at http://tavendo.com
 """
 
-__version__ = "0.9.4-3"
+__version__ = "0.9.5"

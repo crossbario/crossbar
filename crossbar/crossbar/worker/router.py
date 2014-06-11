@@ -795,7 +795,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
                   ## now create the pusher Twisted Web resource and add it to resource tree
                   ##
-                  pusher_resource = PusherResource(path_config, pusher_session)
+                  pusher_resource = PusherResource(path_config.get('options', {}), pusher_session)
                   root.putChild(path, pusher_resource)
 
 
