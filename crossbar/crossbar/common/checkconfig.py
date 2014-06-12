@@ -119,7 +119,7 @@ def check_endpoint_timeout(timeout):
    """
    if type(timeout) not in six.integer_types:
       raise Exception("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
-   if port < 0 or port > 600:
+   if timeout < 0 or timeout > 600:
       raise Exception("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
 
 
@@ -1107,7 +1107,7 @@ def check_container(container, silence = False):
    components = container.get('components', [])
 
    if type(components) != list:
-      raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(router)))
+      raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(container)))
 
    i = 1
    for component in components:
