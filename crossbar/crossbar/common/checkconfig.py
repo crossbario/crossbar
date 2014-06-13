@@ -119,7 +119,7 @@ def check_endpoint_timeout(timeout):
    """
    if type(timeout) not in six.integer_types:
       raise Exception("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
-   if port < 0 or port > 600:
+   if timeout < 0 or timeout > 600:
       raise Exception("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
 
 
@@ -490,6 +490,67 @@ def check_web_path_service_longpoll(config):
 
 
 
+def check_web_path_service_pusher_post_body_limit(limit):
+   """
+   Check a pusher web path service "post_body_limit" parameter.
+
+   :param port: The limit to check.
+   :type port: int
+   """
+   if type(limit) not in six.integer_types:
+      raise Exception("'post_body_limit' attribute in pusher configuration must be integer ({} encountered)".format(type(limit)))
+   if limit < 0 or limit > 2**20:
+      raise Exception("invalid value {} for 'post_body_limit' attribute in pusher configuration".format(limit))
+
+
+
+def check_web_path_service_pusher_timestamp_delta_limit(limit):
+   """
+   Check a pusher web path service "timestamp_delta_limit" parameter.
+
+   :param port: The limit to check.
+   :type port: int
+   """
+   if type(limit) not in six.integer_types:
+      raise Exception("'timestamp_delta_limit' attribute in pusher configuration must be integer ({} encountered)".format(type(limit)))
+   if limit < 0 or limit > 86400:
+      raise Exception("invalid value {} for 'timestamp_delta_limit' attribute in pusher configuration".format(limit))
+
+
+
+def check_web_path_service_pusher(config):
+   """
+   Check a "pusher" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
+   check_dict_args({
+      'type': (True, [six.text_type]),
+      'realm': (True, [six.text_type]),
+      'role': (True, [six.text_type]),
+      'options': (False, [dict]),
+      }, config, "Web transport 'pusher' path service")
+
+   if 'options' in config:
+      check_dict_args({
+         'debug': (False, [bool]),
+         'key': (False, [six.text_type]),
+         'secret': (False, [six.text_type]),
+         'require_tls': (False, [bool]),
+         'require_ip': (False, [list]),
+         'post_body_limit': (False, six.integer_types),
+         'timestamp_delta_limit': (False, six.integer_types),
+         }, config['options'], "Web transport 'pusher' path service")
+
+      if 'post_body_limit' in config['options']:
+         check_web_path_service_pusher_post_body_limit(config['options']['post_body_limit'])
+
+      if 'timestamp_delta_limit' in config['options']:
+         check_web_path_service_pusher_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
+
+
+
 def check_web_path_service(path, config):
    """
    Check a single path service on Web transport.
@@ -505,7 +566,7 @@ def check_web_path_service(path, config):
       if ptype not in ['static', 'wsgi', 'redirect']:
          raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
    else:
-      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll']:
+      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher']:
          raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
    checkers = {
@@ -515,7 +576,8 @@ def check_web_path_service(path, config):
       'redirect': check_web_path_service_redirect,
       'json': check_web_path_service_json,
       'cgi': check_web_path_service_cgi,
-      'longpoll': check_web_path_service_longpoll
+      'longpoll': check_web_path_service_longpoll,
+      'pusher': check_web_path_service_pusher,
    }
 
    checkers[ptype](config)
@@ -1045,7 +1107,7 @@ def check_container(container, silence = False):
    components = container.get('components', [])
 
    if type(components) != list:
-      raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(router)))
+      raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(container)))
 
    i = 1
    for component in components:

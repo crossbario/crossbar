@@ -4,4 +4,4 @@ build
 *.db
 *.zip
 *.egg
-
+/.crossbar

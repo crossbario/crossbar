@@ -59,11 +59,7 @@ from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
 from autobahn.twisted.websocket import WampWebSocketServerFactory
 
-if sys.platform.startswith('linux'):
-   _HAS_FSNOTIFY = True
-   from crossbar.platform.linux.fsnotify import DirWatcher
-else:
-   _HAS_FSNOTIFY = False
+from crossbar.platform import HAS_FSNOTIFY, DirWatcher
 
 
 
@@ -760,7 +756,7 @@ class NodeControllerSession(NativeProcessSession):
          ##
          if 'watch' in options:
 
-            if _HAS_FSNOTIFY:
+            if HAS_FSNOTIFY:
 
                ## assemble list of watched directories
                watched_dirs = []

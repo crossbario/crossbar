@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+   <body>
+      <h1>Crossbar.io HTTP Bridge Demo</h1>
+      <p>Open JavaScript console to watch output.</p>
+      <script>AUTOBAHN_DEBUG = true;</script>
+      <script src="autobahn.min.js"></script>
+
+      <script>
+         // the URL of the WAMP Router (Crossbar.io)
+         var wsuri;
+         if (document.location.origin == "file://") {
+            wsuri = "ws://127.0.0.1:8080/ws";
+
+         } else {
+            wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+                        document.location.host + "/ws";
+         }
+
+         var connection = new autobahn.Connection({
+            url: wsuri,
+            realm: "realm1"
+         });
+
+         connection.onopen = function (session) {
+
+            console.log("Connected");
+
+            function onevent (args, kwargs) {
+               console.log("Got event:", args, kwargs);
+            }
+
+            session.subscribe('com.myapp.topic1', onevent);
+         };
+
+         connection.onclose = function () {
+            console.log("Connection lost", arguments);
+         }
+
+         connection.open();
+      </script>
+   </body>
+</html>
