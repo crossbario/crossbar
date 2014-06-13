@@ -16,3 +16,20 @@
 ##
 ###############################################################################
 
+__all__ = [
+   'HAS_FSNOTIFY',
+   'DirWatcher'
+]
+
+
+import sys
+
+HAS_FSNOTIFY = False
+DirWatcher = None
+
+if sys.platform.startswith('linux'):
+   try:
+      from crossbar.platform.linux.fsnotify import DirWatcher
+      HAS_FSNOTIFY = True
+   except ImportError:
+      pass

@@ -17,8 +17,14 @@
 ###############################################################################
 
 
+from __future__ import absolute_import
+
+__all__ = ['DirWatcher']
+
+
 import os
 import pyinotify
+
 
 
 class _EventHandler(pyinotify.ProcessEvent):
@@ -133,6 +139,7 @@ class DirWatcher:
          while notifier.check_events():
             notifier.read_events()
             notifier.process_events()
+
 
 
 if __name__ == '__main__':
