@@ -5,16 +5,17 @@
 *An Introduction*
 
 1. [What is it?](#what-is-it)
-2. [Why should I care?](#why-should-i-care)
-3. [Where to go](#where-to-go)
+2. [What can I do?](#what-can-i-do)
+3. [Why should I care?](#why-should-i-care)
+4. [Where to go?](#where-to-go)
 
 
 *Other documents:*
 
-* [Is Crossbar.io the Future of Python Web Apps?](http://tavendo.com/blog/post/is-crossbar-the-future-of-python-web-apps/) - *A developer's blog post about Crossbar.io - good introduction!*
-* [Why WAMP](http://wamp.ws/why/) - *An introduction to Unified Routing and WAMP*
-* [WebSocket - Why, what, and - can I use it?](http://tavendo.com/blog/post/websocket-why-what-can-i-use-it/) - *A good introduction and motivation for WebSocket*
-* [Crossbar.io Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start) - *Entry page in the Crossbar.io documentation Wiki*
+* [Is Crossbar.io the Future of Python Web Apps?](http://tavendo.com/blog/post/is-crossbar-the-future-of-python-web-apps/) - *A developer's blog post - good introduction!*
+* [Why WAMP](http://wamp.ws/why/) - *Unified Routing and WAMP explained*
+* [WebSocket - Why, what, and - can I use it?](http://tavendo.com/blog/post/websocket-why-what-can-i-use-it/) - *Background and motivation of WebSocket*
+* [Crossbar.io Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start) - *Documentation Wiki Entry page*
 * [Crossbar.io Project](https://github.com/crossbario/crossbar/wiki#quick-start) - *The project's homepage.*
 
 ## What is it?
@@ -24,14 +25,6 @@ Crossbar.io is an [open-source](https://github.com/crossbario/crossbar/blob/mast
 At it's core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other. This communication infrastructure is based on **Unified Routing** and **WAMP**:
 
 >[**Unified Routing**](http://wamp.ws/why/#unified_routing) provides applications components with two communication patterns to use: remote procedure calls and publish & subscribe. In both patterns, the application components involved are fully decoupled by Crossbar.io which dynamically routes calls and events between the former. [**WAMP**](http://wamp.ws) is an open, standardized protocol that runs native on WebSocket.
-
-**Unified Routing** allows Crossbar.io to provide developers with a powerful approach:
-
-1. Composing a system from a set of self-contained, independent services or application components
-
-2. Distributing application components freely across system resources like nodes, independent of the application communication paths
-
-We think above approach is scalable in terms of developement and deployment, and in particular allows developers to create more advanced systems with less complexity and in less time.
 
 Complementing the core application routing services, Crossbar.io features:
 
@@ -67,14 +60,14 @@ Finally, Crossbar.io is *polyglot*, which means application components can be wr
 We think Crossbar.io is a big step forward, bringing **more power** and **less complexity** to developers.
 -->
 
-## Why should I care?
+## What can I do?
 
 Here are some things you can do with Crossbar.io - you can have
 
 * all of your application frontends update in real-time as data changes on the backend or in other frontends
 * write your application in JavaScript, from front- to backend
 
-Hence, when you are creating apps or systems like
+Crossbar.io is a good fit for applications like
 
 * [Next-gen Web](https://demo.crossbar.io/)
 * [Internet-of-Things](http://tavendo.com/blog/post/arduino-yun-with-autobahn/)
@@ -84,7 +77,18 @@ Hence, when you are creating apps or systems like
 * [Messaging and chat](https://demo.crossbar.io/clandeck/)
 * Multi-player online games
 
-and are looking for a fresh, powerful developer experience, Crossbar.io might be made for you;)
+
+## Why should I care?
+
+Crossbar.io is made for *DevOps* - it allows *developers* to
+
+**compose** a system from self-contained, independent services or application components
+
+and *operators* to
+
+**distribute** application components freely across system resources like nodes without breaking application communication
+
+We believe above approach is scalable in terms of development and deployment, and in particular allows to create and operate more advanced systems with less complexity and in less time.
 
 
 ## Where to go?
