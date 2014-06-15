@@ -62,12 +62,7 @@ We think Crossbar.io is a big step forward, bringing **more power** and **less c
 
 ## What can I do?
 
-Here are some things you can do with Crossbar.io - you can have
-
-* all of your application frontends update in real-time as data changes on the backend or in other frontends
-* write your application in JavaScript, from front- to backend
-
-Crossbar.io is a good fit for applications like
+Checkout some Crossbar.io powered demos and apps 
 
 * [Next-gen Web](https://demo.crossbar.io/)
 * [Internet-of-Things](http://tavendo.com/blog/post/arduino-yun-with-autobahn/)
