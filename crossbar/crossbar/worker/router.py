@@ -66,6 +66,7 @@ from autobahn.twisted.resource import WebSocketResource, \
                                       WSGIRootResource, \
                                       HTTPChannelHixie76Aware
 
+from autobahn.twisted.longpoll import WampLongPollResource
 
 import importlib
 import pkg_resources
@@ -87,8 +88,6 @@ except ImportError:
 
 
 from twisted.web.resource import Resource
-
-from autobahn.twisted.resource import WebSocketResource
 
 from crossbar.twisted.site import createHSTSRequestFactory
 
@@ -777,7 +776,18 @@ class RouterWorkerSession(NativeWorkerSession):
                ##
                elif path_config['type'] == 'longpoll':
 
-                  log.msg("Web path type 'longpoll' not implemented")
+                  path_options = path_config.get('options', {})
+
+                  lp_resource = WampLongPollResource(self.session_factory,
+                     timeout = path_options.get('request_timeout', 10),
+                     killAfter = path_options.get('session_timeout', 30),
+                     queueLimitBytes = path_options.get('queue_limit_bytes', 128 * 1024),
+                     queueLimitMessages = path_options.get('queue_limit_messages', 100),
+                     debug = path_options.get('debug', False),
+                     #debug_session_id = path_options.get('debug_session_id', None)
+                  )
+
+                  root.putChild(path, lp_resource)
 
 
                ## Pusher resource

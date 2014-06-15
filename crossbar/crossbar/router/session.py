@@ -64,7 +64,7 @@ class CrossbarRouterSession(RouterSession):
    def onOpen(self, transport):
       RouterSession.onOpen(self, transport)
 
-      if hasattr(self._transport.factory, '_config'):
+      if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
          self._transport_config = self._transport.factory._config
       else:
          self._transport_config = {}
