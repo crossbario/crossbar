@@ -39,15 +39,13 @@ Complementing the core application routing services, Crossbar.io features:
  * **multi-process architecture**
  * **full-stack services**
 
-Crossbar.io is a **polyglot component host** able to dynamically load, run and monitor application components written in different languages, and running under their native run-time:
-
-*Want to have component **A** written in JavaScript and run on NodeJS, while component **B** written in Python and run on PyPy, and component **C** written and run on C++ natively? No problem.*
+Crossbar.io is a **polyglot component host** able to dynamically load, run and monitor application components written in different languages, and running under their native run-time: want to have component **A** written in JavaScript and run on NodeJS, while component **B** written in Python and run on PyPy, and component **C** written and run on C++ natively? No problem.
 
 >For quick start, the command line tool of Crossbar.io is able to generate complete, ready-to-run application templates for different languages.
 
 Crossbar.io has a **multi-process architecture** where a node controller process spawns and monitors worker processes. Worker types include router, application component host and arbitrary guest processes. *The multi-process architecture enables scaling up on multi-core systems and supports secure and robust operation.*
 
-Crossbar.io also includes a whole set of **full-stack services**, such as authentication and authorization, serving static Web files, HTTP long-poll fallback, HTTP push bridge, CGI scripts and hosting WSGI applications.
+Crossbar.io also includes a whole set of **full-stack services**, such as authentication and authorization, serving static Web files, HTTP long-poll fallback, HTTP push bridge, CGI scripts and hosting WSGI applications. This will often make Crossbar.io all the infrastructure you need besides your database.
 
 <!--
 *Unified Routing* 
