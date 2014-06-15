@@ -1,8 +1,12 @@
 # Crossbar.io
 
-*This document:*
+**Crossbar.io - Unified application router.**
 
-**Crossbar.io - Unified application router. An introduction.**
+*An Introduction*
+
+1. [What is it?](#what-is-it)
+2. [Why should I care?](#why-should-i-care)
+3. [Where to go](#where-to-go)
 
 
 *Other documents:*
