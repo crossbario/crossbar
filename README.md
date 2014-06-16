@@ -1,24 +1,33 @@
 # Crossbar.io
 
-**Crossbar.io - Unified application router.**
+**Crossbar.io** - Unified application router.
 
-*An Introduction*
+**Join the [mailing list](http://groups.google.com/group/autobahnws), follow us on [Twitter](https://twitter.com/crossbario) and [Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start) with Crossbar.io!**
 
-1. [What is it?](#what-is-it)
+___________
+*This README:*
+
+1. [What is Crossbar.io?](#what-is-crossbar-io)
 2. [What can I do?](#what-can-i-do)
 3. [Why should I care?](#why-should-i-care)
-4. [Where to go?](#where-to-go)
 
 
-*Other documents:*
+*Related articles:*
 
 * [Is Crossbar.io the Future of Python Web Apps?](http://tavendo.com/blog/post/is-crossbar-the-future-of-python-web-apps/) - *A developer's blog post - good introduction!*
-* [Why WAMP](http://wamp.ws/why/) - *Unified Routing and WAMP explained*
 * [WebSocket - Why, what, and - can I use it?](http://tavendo.com/blog/post/websocket-why-what-can-i-use-it/) - *Background and motivation of WebSocket*
-* [Crossbar.io Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start) - *Documentation Wiki Entry page*
-* [Crossbar.io Project](https://github.com/crossbario/crossbar/wiki#quick-start) - *The project's homepage.*
+* [Why WAMP](http://wamp.ws/why/) - *Unified Routing and WAMP explained*
 
-## What is it?
+*More Resources:*
+
+* [Project Homepage](http://crossbar.io)
+* **[Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start)**
+* [Documentation](https://github.com/crossbario/crossbar/wiki)
+* [Demos](https://demo.crossbar.io/)
+
+
+
+## What is Crossbar.io?
 
 Crossbar.io is an [open-source](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE) server software that allows developers to create distributed systems, composed of application components which are loosely coupled, communicate in (soft) real-time and can be implemented in different languages:
 
@@ -89,10 +98,6 @@ and *operators* to
 
 We believe the above approach is scalable in terms of development and deployment, and in particular allows to create and operate more advanced systems with less complexity and in less time.
 
-
-## Where to go?
-
-For further information, please checkout the [documentation](https://github.com/crossbario/crossbar/wiki) or get in touch on our [mailing list](https://groups.google.com/forum/#!forum/autobahnws).
 
 ----------
 
