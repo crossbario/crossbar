@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 730.15 607.24">
+<g transform="translate(15.077 -228.74)">
+<g transform="translate(-6.9507 236.87)">
+<path d="m1.8741 183.03v120.41h120.49v-120.41h-120.49z" fill-rule="evenodd" fill="#b5cb85"/>
+<text xml:space="preserve" font-size="29.985px" y="252.37575" x="14.992619" font-family="Segoe UI" fill="#000000">node</text>
+<text xml:space="preserve" font-size="29.985px" y="252.37575" x="82.459404" font-family="Segoe UI" fill="#000000">.</text>
+<text xml:space="preserve" font-size="29.985px" y="252.37575" x="88.706329" font-family="Segoe UI" fill="#000000">js</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="339.8327" x="13.743234" font-family="Segoe UI" fill="#000000">Server</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="338.58331" x="272.36591" font-family="Segoe UI" fill="#000000">Crossbar</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="338.58331" x="394.80563" font-family="Segoe UI" fill="#000000">.</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="338.58331" x="402.30194" font-family="Segoe UI" fill="#000000">io</text>
+<path stroke-linejoin="round" d="m157.42 245.27 86.364 0.39043" stroke="#ffe000" stroke-linecap="round" stroke-width="6.7935px" fill="none"/>
+<path d="m160.7 258.7-26.706-13.509 26.862-13.275-0.15617 26.784z" fill-rule="evenodd" fill="#ffe000"/>
+<path d="m240.51 232.23 26.706 13.587-26.862 13.197 0.15617-26.784z" fill-rule="evenodd" fill="#ffe000"/>
+<path d="m284.08 174.37v136.57h136.65v-136.57h-136.65z" fill-rule="evenodd" fill="#1a1a1a"/>
+<path d="m284.08 203.26v13.665l32.172-0.0781 21.474 21.396 9.8389-9.8389-25.3-25.378-38.184 0.23426z" fill-rule="evenodd" fill="#ffde00"/>
+<path d="m366.93 247.77-9.8389 9.8389 24.441 24.519h39.199v-13.665h-33.109l-20.693-20.693z" fill-rule="evenodd" fill="#ffde00"/>
+<path d="m382.55 203.03-65.202 65.515h-33.265v13.665h39.043l65.358-65.358h32.25v-13.821h-38.184z" fill-rule="evenodd" fill="#ffde00"/>
+<path d="m574.25 183.89v120.41h120.41v-120.41h-120.41z" fill-rule="evenodd" fill="#b5cb85"/>
+<text xml:space="preserve" font-size="29.985px" y="253.62514" x="588.46027" font-family="Segoe UI" fill="#000000">Python</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="341.08206" x="587.21088" font-family="Segoe UI" fill="#000000">Server</text>
+<path d="m125.64 2.9673v120.41h120.49v-120.41h-120.49z" fill-rule="evenodd" fill="#b5cb85"/>
+<text xml:space="preserve" font-size="29.985px" y="53.723549" x="152.42496" font-family="Segoe UI" fill="#000000">Java</text>
+<text xml:space="preserve" font-size="29.985px" y="53.723549" x="207.39789" font-family="Segoe UI" fill="#000000">-</text>
+<text xml:space="preserve" font-size="29.985px" y="89.955711" x="148.6768" font-family="Segoe UI" fill="#000000">Script</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="159.92126" x="124.93849" font-family="Segoe UI" fill="#000000">Browser</text>
+<path stroke-linejoin="round" d="m215.21 183.82 32.796 24.363" stroke="#ffe000" stroke-linecap="round" stroke-width="6.7935px" fill="none"/>
+<path d="m209.9 196.54-13.509-26.706 29.517 5.2318-16.008 21.474z" fill-rule="evenodd" fill="#ffe000"/>
+<path d="m253.31 195.45 13.509 26.706-29.439-5.2318 15.93-21.474z" fill-rule="evenodd" fill="#ffe000"/>
+<path d="m456.34 1.8741v120.49h120.41v-120.49h-120.41z" fill-rule="evenodd" fill="#b5cb85"/>
+<text xml:space="preserve" font-size="29.985px" y="34.982777" x="483.51196" font-family="Segoe UI" fill="#000000">Java</text>
+<text xml:space="preserve" font-size="29.985px" y="34.982777" x="538.48486" font-family="Segoe UI" fill="#000000">/</text>
+<text xml:space="preserve" font-size="29.985px" y="71.214935" x="463.52179" font-family="Segoe UI" fill="#000000">Android</text>
+<text xml:space="preserve" font-size="29.985px" y="107.4471" x="509.74902" font-family="Segoe UI" fill="#000000">*</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="158.67188" x="467.26996" font-family="Segoe UI" fill="#000000">Mobile</text>
+<path d="m125.17 351.86v120.41h120.41v-120.41h-120.41z" fill-rule="evenodd" fill="#b5cb85"/>
+<text xml:space="preserve" font-size="29.985px" y="421.04269" x="156.17311" font-family="Segoe UI" fill="#000000">C</text>
+<text xml:space="preserve" font-size="29.985px" y="421.04269" x="173.66451" font-family="Segoe UI" fill="#000000">++</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="508.49966" x="107.4471" font-family="Segoe UI" fill="#000000">Embedded</text>
+<path d="m456.26 350.53v120.41h120.41v-120.41h-120.41z" fill-rule="evenodd" fill="#b5cb85"/>
+<text xml:space="preserve" font-size="29.985px" y="402.30194" x="468.51932" font-family="Segoe UI" fill="#000000">PL</text>
+<text xml:space="preserve" font-size="29.985px" y="402.30194" x="499.75394" font-family="Segoe UI" fill="#000000">/</text>
+<text xml:space="preserve" font-size="29.985px" y="402.30194" x="510.99841" font-family="Segoe UI" fill="#000000">SQL</text>
+<text xml:space="preserve" font-size="29.985px" y="437.2847" x="509.74902" font-family="Segoe UI" fill="#000000">*</text>
+<text font-weight="bold" xml:space="preserve" font-size="29.985px" y="507.25027" x="448.52917" font-family="Segoe UI" fill="#000000">Database</text>
+<path stroke-linejoin="round" d="m493.12 182.18-35.998 22.333" stroke="#ffe000" stroke-linecap="round" stroke-width="6.7935px" fill="none"/>
+<path d="m497.33 195.37 15.695-25.534-29.829 2.733 14.134 22.801z" fill-rule="evenodd" fill="#ffe000"/>
+<path d="m452.9 191.31-15.695 25.534 29.829-2.733-14.134-22.801z" fill-rule="evenodd" fill="#ffe000"/>
+<path stroke-linejoin="round" d="m211.69 334.13 40.293-46.93" stroke="#ffe000" stroke-linecap="round" stroke-width="6.7935px" fill="none"/>
+<path d="m203.65 322.81-7.262 29.048 27.643-11.557-20.381-17.491z" fill-rule="evenodd" fill="#ffe000"/>
+<path d="m259.95 298.45 7.262-29.048-27.643 11.557 20.381 17.491z" fill-rule="evenodd" fill="#ffe000"/>
+<path stroke-linejoin="round" d="m509.51 334.84-54.89-49.75" stroke="#ffe000" stroke-linecap="round" stroke-width="6.7935px" fill="none"/>
+<path d="m516.07 322.65 10.854 27.877-28.814-8.0429 17.96-19.834z" fill-rule="evenodd" fill="#ffe000"/>
+<path d="m448.06 297.28-10.854-27.877 28.892 8.0429-18.038 19.834z" fill-rule="evenodd" fill="#ffe000"/>
+<path stroke-linejoin="round" d="m460.63 245.82h66.452" stroke="#ffe000" stroke-linecap="round" stroke-width="6.7935px" fill="none"/>
+<path d="m463.99 259.17-26.784-13.353 26.784-13.431v26.784z" fill-rule="evenodd" fill="#ffe000"/>
+<path d="m523.73 232.39 26.784 13.431-26.784 13.353v-26.784z" fill-rule="evenodd" fill="#ffe000"/>
+<text xml:space="preserve" font-size="29.985px" y="582.21338" x="431.03778" font-family="Segoe UI" fill="#000000">* </text>
+<text xml:space="preserve" font-size="29.985px" y="582.21338" x="452.27734" font-family="Segoe UI" fill="#000000">under development</text>
+</g>
+</g>
+</svg>
