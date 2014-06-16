@@ -9,22 +9,20 @@ ___________
 *This README:*
 
 1. [What is Crossbar.io?](#what-is-crossbario)
-2. [What can I do?](#what-can-i-do)
-3. [Why should I care?](#why-should-i-care)
+2. [Things you can do](#things-you-can-do)
+3. [Benefits](#benefits)
 
 
 *Related articles:*
 
 * [Is Crossbar.io the Future of Python Web Apps?](http://tavendo.com/blog/post/is-crossbar-the-future-of-python-web-apps/) - *A developer's blog post - good introduction!*
-* [WebSocket - Why, what, and - can I use it?](http://tavendo.com/blog/post/websocket-why-what-can-i-use-it/) - *Background and motivation of WebSocket*
 * [Why WAMP](http://wamp.ws/why/) - *Unified Routing and WAMP explained*
 
 *More Resources:*
 
-* [Project Homepage](http://crossbar.io)
+* [Homepage](http://crossbar.io)
 * **[Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start)**
 * [Documentation](https://github.com/crossbario/crossbar/wiki)
-* [Demos](https://demo.crossbar.io/)
 
 
 ## What is Crossbar.io?
@@ -54,7 +52,7 @@ Crossbar.io has a **multi-process architecture** where a node controller process
 Crossbar.io also includes a whole set of **full-stack services**, such as authentication and authorization, serving static Web files, HTTP long-poll fallback, HTTP push bridge, CGI scripts and hosting WSGI applications. This will often make Crossbar.io all the infrastructure you need besides your database.
 
 
-## What can I do?
+## Things you can do
 
 Here are a couple of demos and applications built with Crossbar.io
 
@@ -81,7 +79,7 @@ From a developer point of view, what seems natural is having the frontend issue 
 To summarize, above "Vote Game" app would be a good fit for Crossbar.io and is [easy to implement](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp/wamplet/votegame). 
 
 
-## Why should I care?
+## Benefits
 
 We think that application developers and system operators should be freed from the burden and compexity of old architectures.
 
