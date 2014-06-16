@@ -5,9 +5,10 @@
 **Join the [mailing list](http://groups.google.com/group/autobahnws), follow us on [Twitter](https://twitter.com/crossbario) and [Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start) with Crossbar.io!**
 
 ___________
+
 *This README:*
 
-1. [What is Crossbar.io?](#what-is-crossbar-io)
+1. [What is Crossbar.io?](#what-is-crossbario)
 2. [What can I do?](#what-can-i-do)
 3. [Why should I care?](#why-should-i-care)
 
@@ -24,7 +25,6 @@ ___________
 * **[Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start)**
 * [Documentation](https://github.com/crossbario/crossbar/wiki)
 * [Demos](https://demo.crossbar.io/)
-
 
 
 ## What is Crossbar.io?
@@ -53,25 +53,6 @@ Crossbar.io has a **multi-process architecture** where a node controller process
 
 Crossbar.io also includes a whole set of **full-stack services**, such as authentication and authorization, serving static Web files, HTTP long-poll fallback, HTTP push bridge, CGI scripts and hosting WSGI applications. This will often make Crossbar.io all the infrastructure you need besides your database.
 
-<!--
-*Unified Routing*
-
-
-instrastructure
-unified routing
-
-
-Application components talk to each other over [WAMP](http://wamp.ws) - an open communication protocol that runs native on the Web (via [WebSocket](http://tavendo.com/blog/post/websocket-why-what-can-i-use-it/)) and *unifies two simple, yet powerful messaging patterns in one protocol*:
-
-* calling remote procedures (*Remote Procedure Calls*) and
-* publishing events (*Publish & Subscribe*)
-
-At it's core, what Crossbar.io provides is the **dynamic routing of calls and events between application components**. In a robust, secure and scalable way. And application components can be deployed to and span multiple systems.
-
-Finally, Crossbar.io is *polyglot*, which means application components can be written in [different languages](http://wamp.ws/implementations/), e.g. [Python](http://autobahn.ws/python), [JavaScript](http://autobahn.ws/js) or [C++](http://autobahn.ws/cpp). Not only that, but each application component can run under it's *native* run-time system!
-
-We think Crossbar.io is a big step forward, bringing **more power** and **less complexity** to developers.
--->
 
 ## What can I do?
 
@@ -110,5 +91,6 @@ We believe the above approach is scalable in terms of development and deployment
 
 
 ----------
+
 
 Copyright (c) 2014 [Tavendo GmbH](http://www.tavendo.com). Licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.
