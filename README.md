@@ -74,11 +74,11 @@ Checkout some Crossbar.io powered demos and apps
 
 * [Next-gen Web](https://demo.crossbar.io/)
 * [Internet-of-Things](http://tavendo.com/blog/post/arduino-yun-with-autobahn/)
-<!-- * Connected Car -->
+* Connected Car
 * [Real-time Collaboration](http://showroomdummy.com/)
 * [Database-driven business applications](http://www.record-evolution.com/)
 * [Messaging and chat](https://demo.crossbar.io/clandeck/)
-<!-- * Multi-player online games -->
+* Multi-player online games
 
 
 ## Why should I care?
