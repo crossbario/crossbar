@@ -24,7 +24,7 @@ Crossbar.io is an [open-source](https://github.com/crossbario/crossbar/blob/mast
 
 At its core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other.
 
-[Crossbar.io clients overview - languages/environments: javascript/browser, javascript/node.js, Python, C++, under development: Java/Android, PL/SQL - PostgreSQL](docs/figures/crossbar_clients_optimized.svg)
+![Crossbar.io clients overview - languages/environments: javascript/browser, javascript/node.js, Python, C++, under development: Java/Android, PL/SQL - PostgreSQL](docs/figures/crossbar_clients_optimized.svg)
 
 This communication infrastructure is based on **Unified Routing** and **WAMP**:
 
