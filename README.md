@@ -35,19 +35,19 @@ Crossbar.io is an [open-source](https://github.com/crossbario/crossbar/blob/mast
 
 At its core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other. This communication infrastructure is based on **Unified Routing** and **WAMP**:
 
->[**Unified Routing**](http://wamp.ws/why/#unified_routing) provides applications components with two communication patterns to use: **remote procedure calls** and **publish & subscribe**. In both patterns, the application components involved are fully decoupled by Crossbar.io which dynamically routes calls and events between them. [**WAMP**](http://wamp.ws) is an open, standardized protocol that runs natively on WebSocket.
+>[**Unified Routing**](http://wamp.ws/why/#unified_routing) provides applications components with two communication patterns to use: **remote procedure calls** and **publish & subscribe**. In both patterns, the application components involved are fully decoupled by Crossbar.io which dynamically routes calls and events between them. [**WAMP**](http://wamp.ws) is an open, standardized protocol for Unified Routing that runs natively on WebSocket.
 
-In addition to the core application routing services, Crossbar.io features:
+In addition to the core application routing service, Crossbar.io features:
 
- * **polyglot component hosting**
+ * **application component hosting**
  * **multi-process architecture**
  * **full-stack services**
 
-Crossbar.io is a **polyglot component host** able to dynamically load, run and monitor application components written in different languages, and running under their native run-time.
+Crossbar.io is a **component host** able to dynamically load, run and monitor **application components** written in different languages, and running under their native run-time.
 
 Want to have component **A** written in JavaScript and running on NodeJS, component **B** written in Python and running on PyPy, and component **C** written and running on C++ natively? No problem - Crossbar.io has you covered.
 
->For a quick start, the command line tool of Crossbar.io is able to generate complete, ready-to-run application templates for different languages.
+>To get you started quickly, the command line tool of Crossbar.io is able to generate complete, ready-to-run application templates for different languages.
 
 Crossbar.io has a **multi-process architecture** where a node controller process spawns and monitors worker processes. Worker types include router, application component host and arbitrary guest processes. *The multi-process architecture enables scaling up on multi-core systems and supports secure and robust operation.*
 
@@ -75,7 +75,7 @@ We think Crossbar.io is a big step forward, bringing **more power** and **less c
 
 ## What can I do?
 
-Checkout some Crossbar.io powered demos and apps
+Here are a couple of demos and applications built with Crossbar.io
 
 * [Next-gen Web](https://demo.crossbar.io/)
 * [Internet-of-Things](http://tavendo.com/blog/post/arduino-yun-with-autobahn/)
@@ -85,16 +85,26 @@ Checkout some Crossbar.io powered demos and apps
 * [Messaging and chat](https://demo.crossbar.io/clandeck/)
 * Multi-player online games
 
+which can give you a hands-on impression of what you can do.
+
+We can also take an example:
+
+*Imagine you create a "Vote Game" web applications, where visitors can vote for one of three kinds of ice cream and the total number of votes for the different ice creams is displayed.*
+
+Now, here is the catch: we want ot have the numbers shown to be correct - always, and instantly. Whenever someone votes on a ice cream, the displayed numbers of all visitors should update immediately.
+
+In other words: we want a real-time enabled user interface.
+
+From a developer point of view, what seems natural is having the frontend issue a remote procedure call to get the total number of votes initially. Then subscribe to a topic to get updates on the total number of votes. And finally issue a remote procedure call for actually voting. The backend should note each vote, and publish updated numbers for total votes. These patterns, remote procedure calls and publish & subscribe are exactly those provided by WAMP.
+
+To summarize, above "Vote Game" app would be a good fit for Crossbar.io and is [easy to implement](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp/wamplet/votegame). 
+
 
 ## Why should I care?
 
-Crossbar.io is made for *DevOps* - it allows *developers* to
+We think that application developers and system operators should be freed from the burden and compexity of old architectures.
 
-**compose** a system from self-contained, independent services or application components
-
-and *operators* to
-
-**distribute** application components freely across system resources like nodes without breaking application communication
+Crossbar.io is made for *DevOps*: it allows *developers* to easily **compose** a system from self-contained, independent services or application components and *operators* to **distribute** application components freely across system resources like nodes without breaking application communication.
 
 We believe the above approach is scalable in terms of development and deployment, and in particular allows to create and operate more advanced systems with less complexity and in less time.
 
