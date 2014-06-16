@@ -22,11 +22,9 @@
 
 Crossbar.io is an [open-source](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE) server software that allows developers to create distributed systems, composed of application components which are loosely coupled, communicate in (soft) real-time and can be implemented in different languages.
 
-At its core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other.
+![Crossbar.io clients overview - languages/environments: javascript/browser, javascript/node.js, Python, C++, under development: Java/Android, PL/SQL - PostgreSQL](docs/figures/gen/crossbar_integration.svg)
 
-<!--
-![Crossbar.io clients overview - languages/environments: javascript/browser, javascript/node.js, Python, C++, under development: Java/Android, PL/SQL - PostgreSQL](docs/figures/crossbar_clients_optimized.png)
--->
+At its core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other.
 
 This communication infrastructure is based on **Unified Routing** and **WAMP**:
 
