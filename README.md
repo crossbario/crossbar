@@ -24,9 +24,7 @@ Crossbar.io is an [open-source](https://github.com/crossbario/crossbar/blob/mast
 
 ![Crossbar.io clients overview - languages/environments: javascript/browser, javascript/node.js, Python, C++, under development: Java/Android, PL/SQL - PostgreSQL](docs/figures/gen/crossbar_integration.png)
 
-At its core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other.
-
-This communication infrastructure is based on **Unified Routing** and **WAMP**:
+At its core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other. This communication infrastructure is based on **Unified Routing** and **WAMP**:
 
 >[**Unified Routing**](http://wamp.ws/why/#unified_routing) provides applications components with two communication patterns to use: **remote procedure calls** and **publish & subscribe**. In both patterns, the application components involved are fully decoupled by Crossbar.io which dynamically routes calls and events between them. [**WAMP**](http://wamp.ws) is an open, standardized protocol that runs natively on WebSocket.
 
