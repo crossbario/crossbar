@@ -1,100 +1,54 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 1106.8 612.84">
-<g transform="translate(196.21 -199.51)">
-<g transform="translate(-188.11 207.63)">
-<path d="m1065.1 474.38c13.047 0 23.672-10.625 23.672-23.672v-283.44c0-13.047-10.625-23.594-23.672-23.594h-812.58c-13.047 0-23.594 10.547-23.594 23.594v283.44c0 13.047 10.547 23.672 23.594 23.672h812.58z" fill-rule="evenodd" fill="#d9d9d9"/>
-<path d="m339.92 332.66-14.219 10.625h9.375v12.969h9.6094v-12.969h9.375l-14.141-10.625z" fill-rule="evenodd" fill="#737373"/>
-<path d="m280.86 261.72v70.938h118.12v-70.938h-118.12z" fill-rule="evenodd" fill="#404040"/>
-<text xml:space="preserve" font-size="16.25px" y="292.5" x="315" font-family="Arial" fill="#ffc000">Router</text>
-<text xml:space="preserve" font-size="16.25px" y="312.5" x="312.5" font-family="Arial" fill="#ffc000">Worker</text>
-<path d="m1032 403.52c13.047 0 23.594-10.625 23.594-23.672s-10.547-23.594-23.594-23.594h-118.12c-13.047 0-23.594 10.547-23.594 23.594s10.547 23.672 23.594 23.672h118.12z" fill-rule="evenodd" fill="#8c8c8c"/>
-<text xml:space="preserve" font-size="15px" y="383.75" x="906.25" font-family="Arial" fill="#ffffff">Key </text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="936.25" font-family="Arial" fill="#ffffff">&amp; </text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="950" font-family="Arial" fill="#ffffff">Configuration</text>
-<path d="m422.58 261.72v70.938h118.12v-70.938h-118.12z" fill-rule="evenodd" fill="#404040"/>
-<text xml:space="preserve" font-size="16.25px" y="292.5" x="456.25" font-family="Arial" fill="#ffc000">Router</text>
-<text xml:space="preserve" font-size="16.25px" y="312.5" x="455" font-family="Arial" fill="#ffc000">Worker</text>
-<path d="m564.3 261.72v70.938h118.12v-70.938h-118.12z" fill-rule="evenodd" fill="#404040"/>
-<text xml:space="preserve" font-size="16.25px" y="292.5" x="598.75" font-family="Arial" fill="#ffc000">Router</text>
-<text xml:space="preserve" font-size="16.25px" y="312.5" x="596.25" font-family="Arial" fill="#ffc000">Worker</text>
-<path d="m706.02 261.72v70.938h118.12v-70.938h-118.12z" fill-rule="evenodd" fill="#404040"/>
-<text xml:space="preserve" font-size="16.25px" y="292.5" x="740" font-family="Arial" fill="#ffc000">Router</text>
-<text xml:space="preserve" font-size="16.25px" y="312.5" x="738.75" font-family="Arial" fill="#ffc000">Worker</text>
-<path d="m824.14 403.52c13.047 0 23.672-10.625 23.672-23.672s-10.625-23.594-23.672-23.594h-543.28c-13.047 0-23.594 10.547-23.594 23.594s10.547 23.672 23.594 23.672h543.28z" fill-rule="evenodd" fill="#ffc000"/>
-<text xml:space="preserve" font-size="15px" y="383.75" x="310" font-family="Arial" fill="#000000">All Workers listen on same TCP addresse</text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="587.5" font-family="Arial" fill="#000000">/</text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="591.25" font-family="Arial" fill="#000000">port </text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="621.25" font-family="Arial" fill="#000000">(</text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="626.25" font-family="Arial" fill="#000000">using SO</text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="688.75" font-family="Arial" fill="#000000">_</text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="696.25" font-family="Arial" fill="#000000">REUSEPORT</text>
-<text xml:space="preserve" font-size="15px" y="383.75" x="790" font-family="Arial" fill="#000000">)</text>
-<path d="m887.97 190.86v141.8h167.66v-141.8h-167.66z" fill-rule="evenodd" fill="#404040"/>
-<text xml:space="preserve" font-size="20px" y="267.5" x="901.25" font-family="Arial" fill="#ffc000">Node Controller</text>
-<path d="m339.92 403.52-14.219 14.141h9.375v127.58h9.6094v-127.58h9.375l-14.141-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
-<path d="m410.78 403.52-14.219 14.141h9.375v127.58h9.6875v-127.58h9.2969l-14.141-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
-<path d="m765.08 403.52-14.141 14.141h9.375v127.58h9.6094v-127.58h9.375l-14.219-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
-<path d="m694.22 403.52-14.141 14.141h9.375v127.58h9.6094v-127.58h9.375l-14.219-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
-<path d="m481.64 403.52-14.14 14.14h9.2969v127.58h9.6875v-127.58h9.2969l-14.141-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
-<path d="m552.5 403.52-14.141 14.141h9.2969v127.58h9.6875v-127.58h9.2969l-14.15-14.14z" fill-rule="evenodd" fill="#bfbfbf"/>
-<path d="m623.36 403.52-14.141 14.141h9.2969v127.58h9.6875v-127.58h9.375l-14.219-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
-<path d="m1041.5 96.406c13.047 0 23.594-10.547 23.594-23.594v-47.266c0-13.046-10.6-23.671-23.6-23.671h-139.38c-13.047 0-23.594 10.625-23.594 23.672v47.266c0 13.047 10.547 23.594 23.594 23.594h139.38z" fill-rule="evenodd" fill="#f60"/>
-<text xml:space="preserve" font-size="20px" y="42.5" x="913.75" font-family="Arial" fill="#ffffff">Management</text>
-<text xml:space="preserve" font-size="20px" y="67.5" x="938.75" font-family="Arial" fill="#ffffff">Service</text>
-<text font-weight="bold" xml:space="preserve" font-size="23.75px" y="457.5" x="856.25" font-family="Arial" fill="#404040">Crossbar</text>
-<text font-weight="bold" xml:space="preserve" font-size="23.75px" y="457.5" x="958.75" font-family="Arial" fill="#404040">.</text>
-<text font-weight="bold" xml:space="preserve" font-size="23.75px" y="457.5" x="965" font-family="Arial" fill="#404040">io </text>
-<text xml:space="preserve" font-size="23.75px" y="457.5" x="991.25" font-family="Arial" fill="#404040">Node</text>
-<path d="m404.84 96.406c13.047 0 23.672-10.547 23.672-23.594v-47.266c0.01-13.046-10.62-23.671-23.67-23.671h-70.859c-13.047 0-23.594 10.625-23.594 23.672v47.266c0 13.047 10.547 23.594 23.594 23.594h70.859z" fill-rule="evenodd" fill="#d9d9d9"/>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="322.5" font-family="Arial" fill="#595959">Crossbar</text>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="396.25" font-family="Arial" fill="#595959">.</text>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="401.25" font-family="Arial" fill="#595959">io</text>
-<text xml:space="preserve" font-size="16.25px" y="63.75" x="350" font-family="Arial" fill="#595959">Node</text>
-<path d="m971.8 96.406-12.969 12.969h8.5938v81.484h8.75v-81.484h8.5937l-12.969-12.969z" fill-rule="evenodd" fill="#f60"/>
-<path stroke-linejoin="round" d="m971.8 96.406-12.969 12.969h8.5938v81.484h8.75v-81.484h8.5937l-12.969-12.969z" stroke="#f60" stroke-linecap="round" stroke-width=".39062px" fill="none"/>
-<path d="m548.98 96.406c13.047 0 23.594-10.547 23.594-23.594v-47.266c0.01-13.046-10.54-23.671-23.59-23.671h-70.859c-13.047 0-23.672 10.625-23.672 23.672v47.266c0 13.047 10.625 23.594 23.672 23.594h70.859z" fill-rule="evenodd" fill="#d9d9d9"/>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="467.5" font-family="Arial" fill="#595959">Crossbar</text>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="540" font-family="Arial" fill="#595959">.</text>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="545" font-family="Arial" fill="#595959">io</text>
-<text xml:space="preserve" font-size="16.25px" y="63.75" x="493.75" font-family="Arial" fill="#595959">Node</text>
-<path d="m690.7 96.406c13.047 0 23.594-10.547 23.594-23.594v-47.266c0.01-13.046-10.54-23.671-23.59-23.671h-70.859c-13.047 0-23.672 10.625-23.672 23.672v47.266c0 13.047 10.625 23.594 23.672 23.594h70.859z" fill-rule="evenodd" fill="#d9d9d9"/>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="608.75" font-family="Arial" fill="#595959">Crossbar</text>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="682.5" font-family="Arial" fill="#595959">.</text>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="686.25" font-family="Arial" fill="#595959">io</text>
-<text xml:space="preserve" font-size="16.25px" y="63.75" x="635" font-family="Arial" fill="#595959">Node</text>
-<path d="m311.56 238.12-14.141 10.625h9.2969v12.969h9.6875v-12.969h9.2969l-14.141-10.625z" fill-rule="evenodd" fill="#737373"/>
-<path d="m370.62 96.406-14.219 14.141h9.375v151.17h9.6875v-151.17h9.2969l-14.15-14.144z" fill-rule="evenodd" fill="#737373"/>
-<path d="m481.64 332.66-14.141 10.625h9.2969v12.969h9.6875v-12.969h9.2969l-14.141-10.625z" fill-rule="evenodd" fill="#737373"/>
-<path d="m453.28 238.12-14.141 10.625h9.2969v12.969h9.6875v-12.969h9.375l-14.219-10.625z" fill-rule="evenodd" fill="#737373"/>
-<path d="m512.34 96.406-14.141 14.141h9.2969v151.17h9.6875v-151.17h9.2969l-14.141-14.141z" fill-rule="evenodd" fill="#737373"/>
-<path d="m623.36 332.66-14.141 10.625h9.2969v12.969h9.6875v-12.969h9.375l-14.219-10.625z" fill-rule="evenodd" fill="#737373"/>
-<path d="m595 238.12-14.141 10.625h9.375v12.969h9.6094v-12.969h9.375l-14.22-10.62z" fill-rule="evenodd" fill="#737373"/>
-<path d="m654.06 96.406-14.141 14.141h9.375v151.17h9.6094v-151.17h9.375l-14.219-14.141z" fill-rule="evenodd" fill="#737373"/>
-<path d="m765.08 332.66-14.141 10.625h9.375v12.969h9.6094v-12.969h9.375l-14.219-10.625z" fill-rule="evenodd" fill="#737373"/>
-<path d="m736.72 238.12-14.141 10.625h9.375v12.969h9.6094v-12.969h9.375l-14.219-10.625z" fill-rule="evenodd" fill="#737373"/>
-<path d="m795.78 96.406-14.141 14.141h9.375v151.17h9.6094v-151.17h9.375l-14.219-14.141z" fill-rule="evenodd" fill="#737373"/>
-<path d="m824.14 238.12c13.047 0 23.672-10.547 23.672-23.594s-10.625-23.672-23.672-23.672h-543.28c-13.047 0-23.594 10.625-23.594 23.672s10.547 23.594 23.594 23.594h543.28z" fill-rule="evenodd" fill="#ffc000"/>
-<text xml:space="preserve" font-size="15px" y="218.75" x="291.25" font-family="Arial" fill="#000000">Each Worker connects via WAMP</text>
-<text xml:space="preserve" font-size="15px" y="218.75" x="516.25" font-family="Arial" fill="#000000">-</text>
-<text xml:space="preserve" font-size="15px" y="218.75" x="521.25" font-family="Arial" fill="#000000">over</text>
-<text xml:space="preserve" font-size="15px" y="218.75" x="550" font-family="Arial" fill="#000000">-</text>
-<text xml:space="preserve" font-size="15px" y="218.75" x="555" font-family="Arial" fill="#000000">Unix</text>
-<text xml:space="preserve" font-size="15px" y="218.75" x="585" font-family="Arial" fill="#000000">-</text>
-<text xml:space="preserve" font-size="15px" y="218.75" x="590" font-family="Arial" fill="#000000">Domain Sockets to other Workers</text>
-<path d="m831.25 96.406c13.047 0 23.594-10.547 23.594-23.594v-47.266c0-13.046-10.54-23.671-23.59-23.671h-70.859c-13.047 0-23.672 10.625-23.672 23.672v47.266c0 13.047 10.625 23.594 23.672 23.594h70.859z" fill-rule="evenodd" fill="#d9d9d9"/>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="750" font-family="Arial" fill="#595959">Crossbar</text>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="822.5" font-family="Arial" fill="#595959">.</text>
-<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="43.75" x="827.5" font-family="Arial" fill="#595959">io</text>
-<text xml:space="preserve" font-size="16.25px" y="63.75" x="776.25" font-family="Arial" fill="#595959">Node</text>
-<text xml:space="preserve" font-size="23.75px" y="590" x="463.75" font-family="Arial" fill="#000000">Application Clients</text>
-<path d="m2.1094 74.219v-27.422h273.98v73.203h-108.59l61.41 47.27-118.13-47.27h-108.67v-45.781z" fill-rule="evenodd" fill="#fff"/>
-<path stroke-linejoin="round" d="m2.1094 74.219v-27.422h273.98v73.203h-108.59l61.41 47.27-118.13-47.27h-108.67v-45.781z" stroke="#000" stroke-linecap="round" stroke-width=".39062px" fill="none"/>
-<text xml:space="preserve" font-size="16.25px" y="78.75" x="52.5" font-family="Arial" fill="#000000">Scale</text>
-<text xml:space="preserve" font-size="16.25px" y="78.75" x="93.75" font-family="Arial" fill="#000000">-</text>
-<text xml:space="preserve" font-size="16.25px" y="78.75" x="100" font-family="Arial" fill="#000000">up and Scale</text>
-<text xml:space="preserve" font-size="16.25px" y="78.75" x="197.5" font-family="Arial" fill="#000000">-</text>
-<text xml:space="preserve" font-size="16.25px" y="78.75" x="202.5" font-family="Arial" fill="#000000">out </text>
-<text xml:space="preserve" font-size="16.25px" y="98.75" x="52.5" font-family="Arial" fill="#000000">architectures supported</text>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 1086.1 612.84">
+<g transform="translate(127.85 -447.36)">
+<g transform="translate(-119.76 455.48)">
+<path d="m1044.5 474.38c13.047 0 23.594-10.625 23.594-23.672v-283.44c0-13.047-10.547-23.594-23.594-23.594h-812.66c-13.047 0-23.594 10.547-23.594 23.594v283.44c0 13.047 10.547 23.672 23.594 23.672h812.66z" fill-rule="evenodd" fill="#d9d9d9"/>
+<path d="m260.16 261.72v70.938h118.12v-70.938h-118.12z" fill-rule="evenodd" fill="#404040"/>
+<text font-weight="bold" xml:space="preserve" font-size="15px" y="283.75" x="277.5" font-family="Arial" fill="#ffc000">Component</text>
+<text font-weight="bold" xml:space="preserve" font-size="15px" y="301.25" x="302.5" font-family="Arial" fill="#ffc000">Host</text>
+<text xml:space="preserve" font-size="15px" y="320" x="295" font-family="Arial" fill="#ffc000">Worker</text>
+<path d="m1011.3 403.52c13.047 0 23.672-10.625 23.672-23.672 0-13.05-10.6-23.6-23.7-23.6h-118.05c-13.047 0-23.672 10.547-23.672 23.594s10.625 23.672 23.672 23.672h118.05z" fill-rule="evenodd" fill="#8c8c8c"/>
+<text xml:space="preserve" font-size="15px" y="383.75" x="885" font-family="Arial" fill="#ffffff">Key </text>
+<text xml:space="preserve" font-size="15px" y="383.75" x="915" font-family="Arial" fill="#ffffff">&amp; </text>
+<text xml:space="preserve" font-size="15px" y="383.75" x="930" font-family="Arial" fill="#ffffff">Configuration</text>
+<path d="m401.88 261.72v70.938h115.23v-70.938h-115.23z" fill-rule="evenodd" fill="#404040"/>
+<text font-weight="bold" xml:space="preserve" font-size="15px" y="283.75" x="417.5" font-family="Arial" fill="#ffc000">Component</text>
+<text font-weight="bold" xml:space="preserve" font-size="15px" y="301.25" x="442.5" font-family="Arial" fill="#ffc000">Host</text>
+<text xml:space="preserve" font-size="15px" y="320" x="435" font-family="Arial" fill="#ffc000">Worker</text>
+<path d="m616.25 261.72v70.938h118.12v-70.938h-118.12z" fill-rule="evenodd" fill="#404040"/>
+<text font-weight="bold" xml:space="preserve" font-size="16.25px" y="292.5" x="648.75" font-family="Arial" fill="#ffc000">Router</text>
+<text xml:space="preserve" font-size="16.25px" y="312.5" x="648.75" font-family="Arial" fill="#ffc000">Worker</text>
+<path d="m803.52 403.52c13.047 0 23.594-10.625 23.594-23.672s-10.547-23.594-23.594-23.594h-252.42c-13.05-0.01-23.6 10.54-23.6 23.58 0 13.047 10.547 23.672 23.594 23.672h252.42z" fill-rule="evenodd" fill="#ffc000"/>
+<text xml:space="preserve" font-size="15px" y="383.75" x="597.5" font-family="Arial" fill="#000000">One or more Transports</text>
+<path d="m867.27 190.86v141.8h167.73v-141.8h-167.73z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="20px" y="256.25" x="927.5" font-family="Arial" fill="#ffc000">Node</text>
+<text xml:space="preserve" font-size="20px" y="280" x="907.5" font-family="Arial" fill="#ffc000">Controller</text>
+<path d="m744.45 403.52-14.219 14.141h9.375v127.58h9.6094v-127.58h9.375l-14.141-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
+<path d="m673.59 403.52-14.219 14.141h9.375v127.58h9.6094v-127.58h9.375l-14.141-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
+<path d="m602.66 403.52-14.141 14.141h9.375v127.58h9.6094v-127.58h9.375l-14.219-14.141z" fill-rule="evenodd" fill="#bfbfbf"/>
+<path d="m1020.8 96.406c13.047 0 23.672-10.547 23.672-23.594v-47.266c0-13.046-10.7-23.671-23.7-23.671h-139.37c-13.047 0-23.594 10.625-23.594 23.672v47.266c0 13.047 10.547 23.594 23.594 23.594h139.37z" fill-rule="evenodd" fill="#f60"/>
+<text xml:space="preserve" font-size="20px" y="42.5" x="892.5" font-family="Arial" fill="#ffffff">Management</text>
+<text xml:space="preserve" font-size="20px" y="67.5" x="917.5" font-family="Arial" fill="#ffffff">Service</text>
+<text font-weight="bold" xml:space="preserve" font-size="23.75px" y="457.5" x="835" font-family="Arial" fill="#404040">Crossbar</text>
+<text font-weight="bold" xml:space="preserve" font-size="23.75px" y="457.5" x="937.5" font-family="Arial" fill="#404040">.</text>
+<text font-weight="bold" xml:space="preserve" font-size="23.75px" y="457.5" x="943.75" font-family="Arial" fill="#404040">io </text>
+<text xml:space="preserve" font-size="23.75px" y="457.5" x="971.25" font-family="Arial" fill="#404040">Node</text>
+<path d="m951.09 96.406-12.97 12.974h8.5938v81.484h8.8281v-81.484h8.5156l-12.969-12.969z" fill-rule="evenodd" fill="#f60"/>
+<path stroke-linejoin="round" d="m951.09 96.406-12.97 12.974h8.5938v81.484h8.8281v-81.484h8.5156l-12.969-12.969z" stroke="#f60" stroke-linecap="round" stroke-width=".39062px" fill="none"/>
+<path d="m319.61 238.12-14.141 10.625h9.375v12.969h9.6094v-12.969h9.375l-14.219-10.625z" fill-rule="evenodd" fill="#737373"/>
+<path d="m461.33 238.12-14.141 10.625h9.375v12.969h9.6094v-12.969h9.375l-14.219-10.625z" fill-rule="evenodd" fill="#737373"/>
+<path d="m675.31 332.66-14.141 10.625h9.375v12.969h9.6094v-12.969h9.375l-14.219-10.625z" fill-rule="evenodd" fill="#737373"/>
+<path d="m674.77 238.12-14.219 10.625h9.375v12.969h9.6875v-12.969h9.2969l-14.141-10.625z" fill-rule="evenodd" fill="#737373"/>
+<path d="m803.52 238.12c13.047 0 23.594-10.547 23.594-23.594s-10.547-23.672-23.594-23.672h-543.36c-13.047 0-23.594 10.625-23.594 23.672s10.547 23.594 23.594 23.594h543.36z" fill-rule="evenodd" fill="#ffc000"/>
+<text xml:space="preserve" font-size="15px" y="218.75" x="352.5" font-family="Arial" fill="#000000">WAMP over Unix Domain Socket or Loopback TCP</text>
+<text xml:space="preserve" font-size="15px" y="218.75" x="692.5" font-family="Arial" fill="#000000">/</text>
+<text xml:space="preserve" font-size="15px" y="218.75" x="697.5" font-family="Arial" fill="#000000">IP</text>
+<text xml:space="preserve" font-size="23.75px" y="590" x="587.5" font-family="Arial" fill="#000000">Application Clients</text>
+<path d="m2.1094 104.84v-36.406h284.45v97.031h-113.91l87.5 131.72-144.14-131.72h-113.91v-60.625z" fill-rule="evenodd" fill="#fff"/>
+<path stroke-linejoin="round" d="m2.1094 104.84v-36.406h284.45v97.031h-113.91l87.5 131.72-144.14-131.72h-113.91v-60.625z" stroke="#000" stroke-linecap="round" stroke-width=".39062px" fill="none"/>
+<text xml:space="preserve" font-size="16.25px" y="102.5" x="8.75" font-family="Arial" fill="#000000">Multiple application components can </text>
+<text xml:space="preserve" font-size="16.25px" y="122.5" x="8.75" font-family="Arial" fill="#000000">be run in workers together with </text>
+<text xml:space="preserve" font-size="16.25px" y="142.5" x="8.75" font-family="Arial" fill="#000000">routers in a single node</text>
 </g>
 </g>
 </svg>

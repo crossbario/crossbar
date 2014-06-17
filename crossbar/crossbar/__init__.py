@@ -17,16 +17,27 @@
 ###############################################################################
 
 __doc__ = """
-Crossbar.io - Polyglot application router.
+Crossbar.io - Unified application router.
 
-For more information, please visit:
+Crossbar.io is an open-source server software that allows developers to create
+distributed systems, composed of application components which are loosely coupled,
+communicate in (soft) real-time and can be implemented in different languages.
 
- * Documentation: https://github.com/crossbario/crossbar/wiki
+Crossbar.io features:
+
+ - application routing core (RPC+PubSub)
+ - full WAMP v2 AP implementation
+ - application component hosting
+ - multi-process architecture
+ - and more
+
+For more information, please go to
+
  * Homepage: http://crossbar.io/
+ * Documentation: https://github.com/crossbario/crossbar/wiki
  * Source code: https://github.com/crossbario/crossbar
 
 Open-source licensed under the GNU Affero General Public License version 3.
-
 Created by Tavendo GmbH. Get in contact at http://tavendo.com
 """
 

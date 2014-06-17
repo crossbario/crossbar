@@ -14,7 +14,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.4 r9939"
-   sodipodi:docname="Neues Dokument 1">
+   sodipodi:docname="crossbar_deployment_01.svg">
   <defs
      id="defs4" />
   <sodipodi:namedview
@@ -25,8 +25,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
-     inkscape:cx="354.68205"
-     inkscape:cy="302.7564"
+     inkscape:cx="377.91644"
+     inkscape:cy="229.57097"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -47,7 +47,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -55,140 +55,140 @@
      inkscape:label="Ebene 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(682.77902,71.030675)">
+     transform="translate(706.01341,-17.408305)">
     <g
-       id="g2989"
-       transform="translate(-674.65402,-62.905675)">
+       id="g3152"
+       transform="translate(-697.88841,25.533305)">
       <path
-         id="path2991"
+         id="path3154"
          d="m 838.125,474.375 c 13.04688,0 23.59375,-10.625 23.59375,-23.67188 l 0,0 0,-283.4375 c 0,-13.04687 -10.54687,-23.59374 -23.59375,-23.59374 l 0,0 -812.578125,0 C 12.5,143.67188 1.875,154.21875 1.875,167.26562 l 0,283.4375 C 1.875,463.75 12.5,474.375 25.546875,474.375 l 0,0 812.578125,0 z"
          style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path2993"
+         id="path3156"
          d="m 805.07812,403.51562 c 13.04688,0 23.59376,-10.625 23.59376,-23.67187 l 0,0 0,0 c 0,-13.04687 -10.54688,-23.59375 -23.59376,-23.59375 l -118.125,0 c -13.04687,0 -23.59374,10.54688 -23.59374,23.59375 l 0,0 c 0,13.04687 10.54687,23.67187 23.59374,23.67187 l 0,0 118.125,0 z"
          style="fill:#8c8c8c;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text2995"
+         id="text3158"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="383.75"
          x="678.75"
          xml:space="preserve">Key </text>
       <text
-         id="text2997"
+         id="text3160"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="383.75"
          x="708.75"
          xml:space="preserve">&amp; </text>
       <text
-         id="text2999"
+         id="text3162"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="383.75"
          x="723.75"
          xml:space="preserve">Configuration</text>
       <path
-         id="path3001"
+         id="path3164"
          d="m 660.9375,190.85938 0,141.79687 167.73438,0 0,-141.79687 -167.73438,0 z"
          style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3003"
+         id="text3166"
          style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
-         y="267.5"
-         x="675"
-         xml:space="preserve">Node Controller</text>
+         y="256.25"
+         x="721.25"
+         xml:space="preserve">Node</text>
+      <text
+         id="text3168"
+         style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="280"
+         x="701.25"
+         xml:space="preserve">Controller</text>
       <path
-         id="path3005"
+         id="path3170"
          d="m 814.53125,96.40625 c 13.04687,0 23.59375,-10.546875 23.59375,-23.59375 l 0,0 0,-47.265625 C 838.125,12.5 827.57812,1.875 814.53125,1.875 l 0,0 -139.375,0 c -13.04687,0 -23.67187,10.625 -23.67187,23.671875 l 0,0 0,47.265625 c 0,13.046875 10.625,23.59375 23.67187,23.59375 l 0,0 139.375,0 z"
          style="fill:#ff6600;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3007"
+         id="text3172"
          style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="42.5"
          x="686.25"
          xml:space="preserve">Management</text>
       <text
-         id="text3009"
+         id="text3174"
          style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="67.5"
          x="711.25"
          xml:space="preserve">Service</text>
       <text
-         id="text3011"
+         id="text3176"
          style="font-size:23.75px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#404040;font-family:Arial"
          y="457.5"
          x="628.75"
          xml:space="preserve">Crossbar</text>
       <text
-         id="text3013"
+         id="text3178"
          style="font-size:23.75px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#404040;font-family:Arial"
          y="457.5"
          x="731.25"
          xml:space="preserve">.</text>
       <text
-         id="text3015"
+         id="text3180"
          style="font-size:23.75px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#404040;font-family:Arial"
          y="457.5"
          x="737.5"
          xml:space="preserve">io </text>
       <text
-         id="text3017"
+         id="text3182"
          style="font-size:23.75px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#404040;font-family:Arial"
          y="457.5"
          x="765"
          xml:space="preserve">Node</text>
       <path
-         id="path3019"
+         id="path3184"
          d="M 744.84375,96.40625 731.875,109.375 l 8.51562,0 0,81.48438 8.82813,0 0,-81.48438 8.59375,0 -12.96875,-12.96875 z"
          style="fill:#ff6600;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3021"
+         id="path3186"
          d="M 744.84375,96.40625 731.875,109.375 l 8.51562,0 0,81.48438 8.82813,0 0,-81.48438 8.59375,0 -12.96875,-12.96875 z"
          style="fill:none;stroke:#ff6600;stroke-width:0.390625px;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-dasharray:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3023"
-         d="m 342.03125,205.39062 0,-27.5 108.67187,0 289.6875,-34.21874 -232.96874,34.21874 108.67187,0 0,73.20313 -274.0625,0 0,-45.70313 z"
+         id="path3188"
+         d="m 332.65625,252.89062 0,-40.78124 219.6875,0 0,40.78124 108.59375,8.82813 -108.59375,18.35937 0,40.70313 -219.6875,0 0,-67.89063 z"
          style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3025"
-         d="m 342.03125,205.39062 0,-27.5 108.67187,0 289.6875,-34.21874 -232.96874,34.21874 108.67187,0 0,73.20313 -274.0625,0 0,-45.70313 z"
+         id="path3190"
+         d="m 332.65625,252.89062 0,-40.78124 219.6875,0 0,40.78124 108.59375,8.82813 -108.59375,18.35937 0,40.70313 -219.6875,0 0,-67.89063 z"
          style="fill:none;stroke:#000000;stroke-width:0.390625px;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-dasharray:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3027"
+         id="text3192"
          style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="200"
-         x="386.25"
-         xml:space="preserve">Node may be paired with </text>
+         y="241.25"
+         x="338.75"
+         xml:space="preserve">A node runs from a local </text>
       <text
-         id="text3029"
+         id="text3194"
          style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="220"
-         x="372.5"
-         xml:space="preserve">Crossbar</text>
+         y="261.25"
+         x="338.75"
+         xml:space="preserve">configuration and optionally </text>
       <text
-         id="text3031"
+         id="text3196"
          style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="220"
-         x="440"
-         xml:space="preserve">.</text>
+         y="281.25"
+         x="338.75"
+         xml:space="preserve">connects to a remote </text>
       <text
-         id="text3033"
+         id="text3198"
          style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="220"
-         x="443.75"
-         xml:space="preserve">io Cloud for remote </text>
-      <text
-         id="text3035"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="240"
-         x="372.5"
-         xml:space="preserve">management and monitoring</text>
+         y="301.25"
+         x="338.75"
+         xml:space="preserve">management service</text>
     </g>
   </g>
 </svg>

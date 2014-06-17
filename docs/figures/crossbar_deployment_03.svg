@@ -9,7 +9,7 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="1106.8463"
+   width="1086.1412"
    height="612.84485"
    id="svg3065"
    version="1.1"
@@ -25,8 +25,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.7"
-     inkscape:cx="682.77477"
-     inkscape:cy="336.79655"
+     inkscape:cx="614.42106"
+     inkscape:cy="356.07612"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -47,7 +47,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -55,531 +55,272 @@
      inkscape:label="Ebene 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(196.20732,-199.50505)">
+     transform="translate(127.85361,-447.35605)">
     <g
-       id="g3279"
-       transform="translate(-188.11105,207.63005)">
+       id="g3080"
+       transform="translate(-119.75923,455.48105)">
       <path
-         id="path3281"
-         d="m 1065.0781,474.375 c 13.0469,0 23.6719,-10.625 23.6719,-23.67188 l 0,0 0,-283.4375 c 0,-13.04687 -10.625,-23.59374 -23.6719,-23.59374 l 0,0 -812.5781,0 c -13.04688,0 -23.59375,10.54687 -23.59375,23.59374 l 0,0 0,283.4375 c 0,13.04688 10.54687,23.67188 23.59375,23.67188 l 0,0 812.5781,0 z"
+         id="path3082"
+         d="m 1044.4531,474.375 c 13.0469,0 23.5938,-10.625 23.5938,-23.67188 l 0,0 0,-283.4375 c 0,-13.04687 -10.5469,-23.59374 -23.5938,-23.59374 l 0,0 -812.65622,0 c -13.04688,0 -23.59376,10.54687 -23.59376,23.59374 l 0,283.4375 c 0,13.04688 10.54688,23.67188 23.59376,23.67188 l 0,0 812.65622,0 z"
          style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3283"
-         d="m 339.92188,332.65625 -14.21876,10.625 9.375,0 0,12.96875 9.60938,0 0,-12.96875 9.375,0 -14.14062,-10.625 z"
-         style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3285"
-         d="m 280.85938,261.71875 0,70.9375 118.125,0 0,-70.9375 -118.125,0 z"
+         id="path3084"
+         d="m 260.15625,261.71875 0,70.9375 118.125,0 0,-70.9375 -118.125,0 z"
          style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3287"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
-         y="292.5"
-         x="315"
-         xml:space="preserve">Router</text>
+         id="text3086"
+         style="font-size:15px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="283.75"
+         x="277.5"
+         xml:space="preserve">Component</text>
       <text
-         id="text3289"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
-         y="312.5"
-         x="312.5"
+         id="text3088"
+         style="font-size:15px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="301.25"
+         x="302.5"
+         xml:space="preserve">Host</text>
+      <text
+         id="text3090"
+         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="320"
+         x="295"
          xml:space="preserve">Worker</text>
       <path
-         id="path3291"
-         d="m 1032.0312,403.51562 c 13.0469,0 23.5938,-10.625 23.5938,-23.67187 l 0,0 0,0 c 0,-13.04687 -10.5469,-23.59375 -23.5938,-23.59375 l 0,0 -118.12495,0 c -13.04687,0 -23.59375,10.54688 -23.59375,23.59375 l 0,0 c 0,13.04687 10.54688,23.67187 23.59375,23.67187 l 0,0 118.12495,0 z"
+         id="path3092"
+         d="m 1011.3281,403.51562 c 13.0469,0 23.6719,-10.625 23.6719,-23.67187 l 0,0 0,0 C 1035,366.79688 1024.375,356.25 1011.3281,356.25 l 0,0 -118.04685,0 c -13.04687,0 -23.67187,10.54688 -23.67187,23.59375 l 0,0 c 0,13.04687 10.625,23.67187 23.67187,23.67187 l 0,0 118.04685,0 z"
          style="fill:#8c8c8c;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3293"
+         id="text3094"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="383.75"
-         x="906.25"
+         x="885"
          xml:space="preserve">Key </text>
       <text
-         id="text3295"
+         id="text3096"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="383.75"
-         x="936.25"
+         x="915"
          xml:space="preserve">&amp; </text>
       <text
-         id="text3297"
+         id="text3098"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="383.75"
-         x="950"
+         x="930"
          xml:space="preserve">Configuration</text>
       <path
-         id="path3299"
-         d="m 422.57812,261.71875 0,70.9375 118.125,0 0,-70.9375 -118.125,0 z"
+         id="path3100"
+         d="m 401.875,261.71875 0,70.9375 115.23438,0 0,-70.9375 -115.23438,0 z"
          style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3301"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
-         y="292.5"
-         x="456.25"
-         xml:space="preserve">Router</text>
+         id="text3102"
+         style="font-size:15px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="283.75"
+         x="417.5"
+         xml:space="preserve">Component</text>
       <text
-         id="text3303"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
-         y="312.5"
-         x="455"
+         id="text3104"
+         style="font-size:15px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="301.25"
+         x="442.5"
+         xml:space="preserve">Host</text>
+      <text
+         id="text3106"
+         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="320"
+         x="435"
          xml:space="preserve">Worker</text>
       <path
-         id="path3305"
-         d="m 564.29688,261.71875 0,70.9375 118.125,0 0,-70.9375 -118.125,0 z"
+         id="path3108"
+         d="m 616.25,261.71875 0,70.9375 118.125,0 0,-70.9375 -118.125,0 z"
          style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3307"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         id="text3110"
+         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
          y="292.5"
-         x="598.75"
+         x="648.75"
          xml:space="preserve">Router</text>
       <text
-         id="text3309"
+         id="text3112"
          style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
          y="312.5"
-         x="596.25"
+         x="648.75"
          xml:space="preserve">Worker</text>
       <path
-         id="path3311"
-         d="m 706.01562,261.71875 0,70.9375 118.125,0 0,-70.9375 -118.125,0 z"
-         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <text
-         id="text3313"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
-         y="292.5"
-         x="740"
-         xml:space="preserve">Router</text>
-      <text
-         id="text3315"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
-         y="312.5"
-         x="738.75"
-         xml:space="preserve">Worker</text>
-      <path
-         id="path3317"
-         d="m 824.14062,403.51562 c 13.04688,0 23.67188,-10.625 23.67188,-23.67187 l 0,0 0,0 c 0,-13.04687 -10.625,-23.59375 -23.67188,-23.59375 l 0,0 -543.28124,0 c -13.04688,0 -23.59376,10.54688 -23.59376,23.59375 l 0,0 c 0,13.04687 10.54688,23.67187 23.59376,23.67187 l 0,0 543.28124,0 z"
+         id="path3114"
+         d="m 803.51562,403.51562 c 13.04688,0 23.59376,-10.625 23.59376,-23.67187 l 0,0 0,0 c 0,-13.04687 -10.54688,-23.59375 -23.59376,-23.59375 l -252.42187,0 C 538.04688,356.25 527.5,366.79688 527.5,379.84375 l 0,0 c 0,13.04687 10.54688,23.67187 23.59375,23.67187 l 252.42187,0 z"
          style="fill:#ffc000;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3319"
+         id="text3116"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
          y="383.75"
-         x="310"
-         xml:space="preserve">All Workers listen on same TCP addresse</text>
-      <text
-         id="text3321"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="383.75"
-         x="587.5"
-         xml:space="preserve">/</text>
-      <text
-         id="text3323"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="383.75"
-         x="591.25"
-         xml:space="preserve">port </text>
-      <text
-         id="text3325"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="383.75"
-         x="621.25"
-         xml:space="preserve">(</text>
-      <text
-         id="text3327"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="383.75"
-         x="626.25"
-         xml:space="preserve">using SO</text>
-      <text
-         id="text3329"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="383.75"
-         x="688.75"
-         xml:space="preserve">_</text>
-      <text
-         id="text3331"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="383.75"
-         x="696.25"
-         xml:space="preserve">REUSEPORT</text>
-      <text
-         id="text3333"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="383.75"
-         x="790"
-         xml:space="preserve">)</text>
+         x="597.5"
+         xml:space="preserve">One or more Transports</text>
       <path
-         id="path3335"
-         d="m 887.96875,190.85938 0,141.79687 167.65625,0 0,-141.79687 -167.65625,0 z"
+         id="path3118"
+         d="m 867.26562,190.85938 0,141.79687 167.73438,0 0,-141.79687 -167.73438,0 z"
          style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3337"
+         id="text3120"
          style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
-         y="267.5"
-         x="901.25"
-         xml:space="preserve">Node Controller</text>
+         y="256.25"
+         x="927.5"
+         xml:space="preserve">Node</text>
+      <text
+         id="text3122"
+         style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="280"
+         x="907.5"
+         xml:space="preserve">Controller</text>
       <path
-         id="path3339"
-         d="m 339.92188,403.51562 -14.21876,14.14063 9.375,0 0,127.57813 9.60938,0 0,-127.57813 9.375,0 -14.14062,-14.14063 z"
+         id="path3124"
+         d="m 744.45312,403.51562 -14.21874,14.14063 9.375,0 0,127.57813 9.60937,0 0,-127.57813 9.375,0 -14.14063,-14.14063 z"
          style="fill:#bfbfbf;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3341"
-         d="m 410.78125,403.51562 -14.21875,14.14063 9.375,0 0,127.57813 9.6875,0 0,-127.57813 9.29688,0 -14.14063,-14.14063 z"
+         id="path3126"
+         d="m 673.59375,403.51562 -14.21875,14.14063 9.375,0 0,127.57813 9.60938,0 0,-127.57813 9.375,0 -14.14063,-14.14063 z"
          style="fill:#bfbfbf;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3343"
-         d="m 765.07812,403.51562 -14.14062,14.14063 9.375,0 0,127.57813 9.60938,0 0,-127.57813 9.375,0 -14.21876,-14.14063 z"
+         id="path3128"
+         d="m 602.65625,403.51562 -14.14063,14.14063 9.375,0 0,127.57813 9.60938,0 0,-127.57813 9.375,0 -14.21875,-14.14063 z"
          style="fill:#bfbfbf;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3345"
-         d="m 694.21875,403.51562 -14.14063,14.14063 9.375,0 0,127.57813 9.60938,0 0,-127.57813 9.375,0 -14.21875,-14.14063 z"
-         style="fill:#bfbfbf;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3347"
-         d="M 481.64062,403.51562 467.5,417.65625 l 9.29688,0 0,127.57813 9.6875,0 0,-127.57813 9.29687,0 -14.14063,-14.14063 z"
-         style="fill:#bfbfbf;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3349"
-         d="m 552.5,403.51562 -14.14062,14.14063 9.29687,0 0,127.57813 9.6875,0 0,-127.57813 9.29687,0 L 552.5,403.51562 z"
-         style="fill:#bfbfbf;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3351"
-         d="m 623.35938,403.51562 -14.14063,14.14063 9.29687,0 0,127.57813 9.6875,0 0,-127.57813 9.375,0 -14.21874,-14.14063 z"
-         style="fill:#bfbfbf;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3353"
-         d="m 1041.4844,96.40625 c 13.0468,0 23.5937,-10.546875 23.5937,-23.59375 l 0,0 0,-47.265625 C 1065.0781,12.5 1054.5312,1.875 1041.4844,1.875 l 0,0 -139.37502,0 c -13.04688,0 -23.59376,10.625 -23.59376,23.671875 l 0,0 0,47.265625 c 0,13.046875 10.54688,23.59375 23.59376,23.59375 l 139.37502,0 z"
+         id="path3130"
+         d="m 1020.7812,96.40625 c 13.0469,0 23.6719,-10.546875 23.6719,-23.59375 l 0,0 0,-47.265625 C 1044.4531,12.5 1033.8281,1.875 1020.7812,1.875 l 0,0 -139.37495,0 c -13.04687,0 -23.59375,10.625 -23.59375,23.671875 l 0,0 0,47.265625 c 0,13.046875 10.54688,23.59375 23.59375,23.59375 l 0,0 139.37495,0 z"
          style="fill:#ff6600;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3355"
+         id="text3132"
          style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="42.5"
-         x="913.75"
+         x="892.5"
          xml:space="preserve">Management</text>
       <text
-         id="text3357"
+         id="text3134"
          style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffffff;font-family:Arial"
          y="67.5"
-         x="938.75"
+         x="917.5"
          xml:space="preserve">Service</text>
       <text
-         id="text3359"
+         id="text3136"
          style="font-size:23.75px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#404040;font-family:Arial"
          y="457.5"
-         x="856.25"
+         x="835"
          xml:space="preserve">Crossbar</text>
       <text
-         id="text3361"
+         id="text3138"
          style="font-size:23.75px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#404040;font-family:Arial"
          y="457.5"
-         x="958.75"
+         x="937.5"
          xml:space="preserve">.</text>
       <text
-         id="text3363"
+         id="text3140"
          style="font-size:23.75px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#404040;font-family:Arial"
          y="457.5"
-         x="965"
+         x="943.75"
          xml:space="preserve">io </text>
       <text
-         id="text3365"
+         id="text3142"
          style="font-size:23.75px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#404040;font-family:Arial"
          y="457.5"
-         x="991.25"
+         x="971.25"
          xml:space="preserve">Node</text>
       <path
-         id="path3367"
-         d="m 404.84375,96.40625 c 13.04687,0 23.67187,-10.546875 23.67187,-23.59375 l 0,0 0,-47.265625 C 428.51562,12.5 417.89062,1.875 404.84375,1.875 l 0,0 -70.85937,0 c -13.04688,0 -23.59376,10.625 -23.59376,23.671875 l 0,0 0,47.265625 c 0,13.046875 10.54688,23.59375 23.59376,23.59375 l 70.85937,0 z"
-         style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <text
-         id="text3369"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="322.5"
-         xml:space="preserve">Crossbar</text>
-      <text
-         id="text3371"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="396.25"
-         xml:space="preserve">.</text>
-      <text
-         id="text3373"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="401.25"
-         xml:space="preserve">io</text>
-      <text
-         id="text3375"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="63.75"
-         x="350"
-         xml:space="preserve">Node</text>
-      <path
-         id="path3377"
-         d="m 971.79688,96.40625 -12.96876,12.96875 8.59376,0 0,81.48438 8.75,0 0,-81.48438 8.59374,0 -12.96874,-12.96875 z"
+         id="path3144"
+         d="M 951.09375,96.40625 938.125,109.375 l 8.59375,0 0,81.48438 8.82813,0 0,-81.48438 8.51562,0 -12.96875,-12.96875 z"
          style="fill:#ff6600;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3379"
-         d="m 971.79688,96.40625 -12.96876,12.96875 8.59376,0 0,81.48438 8.75,0 0,-81.48438 8.59374,0 -12.96874,-12.96875 z"
+         id="path3146"
+         d="M 951.09375,96.40625 938.125,109.375 l 8.59375,0 0,81.48438 8.82813,0 0,-81.48438 8.51562,0 -12.96875,-12.96875 z"
          style="fill:none;stroke:#ff6600;stroke-width:0.390625px;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-dasharray:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3381"
-         d="m 548.98438,96.40625 c 13.04687,0 23.59374,-10.546875 23.59374,-23.59375 l 0,0 0,-47.265625 C 572.57812,12.5 562.03125,1.875 548.98438,1.875 l 0,0 -70.85938,0 c -13.04688,0 -23.67188,10.625 -23.67188,23.671875 l 0,0 0,47.265625 c 0,13.046875 10.625,23.59375 23.67188,23.59375 l 70.85938,0 z"
-         style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <text
-         id="text3383"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="467.5"
-         xml:space="preserve">Crossbar</text>
-      <text
-         id="text3385"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="540"
-         xml:space="preserve">.</text>
-      <text
-         id="text3387"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="545"
-         xml:space="preserve">io</text>
-      <text
-         id="text3389"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="63.75"
-         x="493.75"
-         xml:space="preserve">Node</text>
-      <path
-         id="path3391"
-         d="m 690.70312,96.40625 c 13.04688,0 23.59376,-10.546875 23.59376,-23.59375 l 0,0 0,-47.265625 C 714.29688,12.5 703.75,1.875 690.70312,1.875 l 0,0 -70.85937,0 c -13.04687,0 -23.67187,10.625 -23.67187,23.671875 l 0,0 0,47.265625 c 0,13.046875 10.625,23.59375 23.67187,23.59375 l 70.85937,0 z"
-         style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <text
-         id="text3393"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="608.75"
-         xml:space="preserve">Crossbar</text>
-      <text
-         id="text3395"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="682.5"
-         xml:space="preserve">.</text>
-      <text
-         id="text3397"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="686.25"
-         xml:space="preserve">io</text>
-      <text
-         id="text3399"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="63.75"
-         x="635"
-         xml:space="preserve">Node</text>
-      <path
-         id="path3401"
-         d="m 311.5625,238.125 -14.14062,10.625 9.29687,0 0,12.96875 9.6875,0 0,-12.96875 9.29687,0 -14.14062,-10.625 z"
+         id="path3148"
+         d="m 319.60938,238.125 -14.14063,10.625 9.375,0 0,12.96875 9.60937,0 0,-12.96875 9.375,0 -14.21874,-10.625 z"
          style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3403"
-         d="m 370.625,96.40625 -14.21875,14.14063 9.375,0 0,151.17187 9.6875,0 0,-151.17187 9.29687,0 L 370.625,96.40625 z"
+         id="path3150"
+         d="m 461.32812,238.125 -14.14062,10.625 9.375,0 0,12.96875 9.60938,0 0,-12.96875 9.375,0 -14.21876,-10.625 z"
          style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3405"
-         d="m 481.64062,332.65625 -14.14062,10.625 9.29688,0 0,12.96875 9.6875,0 0,-12.96875 9.29687,0 -14.14063,-10.625 z"
+         id="path3152"
+         d="m 675.3125,332.65625 -14.14062,10.625 9.375,0 0,12.96875 9.60937,0 0,-12.96875 9.375,0 -14.21875,-10.625 z"
          style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3407"
-         d="m 453.28125,238.125 -14.14063,10.625 9.29688,0 0,12.96875 9.6875,0 0,-12.96875 9.375,0 -14.21875,-10.625 z"
+         id="path3154"
+         d="m 674.76562,238.125 -14.21874,10.625 9.375,0 0,12.96875 9.6875,0 0,-12.96875 9.29687,0 -14.14063,-10.625 z"
          style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3409"
-         d="m 512.34375,96.40625 -14.14063,14.14063 9.29688,0 0,151.17187 9.6875,0 0,-151.17187 9.29688,0 -14.14063,-14.14063 z"
-         style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3411"
-         d="m 623.35938,332.65625 -14.14063,10.625 9.29687,0 0,12.96875 9.6875,0 0,-12.96875 9.375,0 -14.21874,-10.625 z"
-         style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3413"
-         d="m 595,238.125 -14.14062,10.625 9.375,0 0,12.96875 9.60937,0 0,-12.96875 9.375,0 L 595,238.125 z"
-         style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3415"
-         d="m 654.0625,96.40625 -14.14062,14.14063 9.375,0 0,151.17187 9.60937,0 0,-151.17187 9.375,0 -14.21875,-14.14063 z"
-         style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3417"
-         d="m 765.07812,332.65625 -14.14062,10.625 9.375,0 0,12.96875 9.60938,0 0,-12.96875 9.375,0 -14.21876,-10.625 z"
-         style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3419"
-         d="m 736.71875,238.125 -14.14063,10.625 9.375,0 0,12.96875 9.60938,0 0,-12.96875 9.375,0 -14.21875,-10.625 z"
-         style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3421"
-         d="m 795.78125,96.40625 -14.14063,14.14063 9.375,0 0,151.17187 9.60938,0 0,-151.17187 9.375,0 -14.21875,-14.14063 z"
-         style="fill:#737373;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <path
-         id="path3423"
-         d="m 824.14062,238.125 c 13.04688,0 23.67188,-10.54688 23.67188,-23.59375 l 0,0 0,0 c 0,-13.04687 -10.625,-23.67187 -23.67188,-23.67187 l 0,0 -543.28124,0 c -13.04688,0 -23.59376,10.625 -23.59376,23.67187 l 0,0 c 0,13.04687 10.54688,23.59375 23.59376,23.59375 l 0,0 543.28124,0 z"
+         id="path3156"
+         d="m 803.51562,238.125 c 13.04688,0 23.59376,-10.54688 23.59376,-23.59375 l 0,0 0,0 c 0,-13.04687 -10.54688,-23.67187 -23.59376,-23.67187 l -543.35937,0 c -13.04687,0 -23.59375,10.625 -23.59375,23.67187 l 0,0 c 0,13.04687 10.54688,23.59375 23.59375,23.59375 l 0,0 543.35937,0 z"
          style="fill:#ffc000;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3425"
+         id="text3158"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
          y="218.75"
-         x="291.25"
-         xml:space="preserve">Each Worker connects via WAMP</text>
+         x="352.5"
+         xml:space="preserve">WAMP over Unix Domain Socket or Loopback TCP</text>
       <text
-         id="text3427"
+         id="text3160"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
          y="218.75"
-         x="516.25"
-         xml:space="preserve">-</text>
+         x="692.5"
+         xml:space="preserve">/</text>
       <text
-         id="text3429"
+         id="text3162"
          style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
          y="218.75"
-         x="521.25"
-         xml:space="preserve">over</text>
+         x="697.5"
+         xml:space="preserve">IP</text>
       <text
-         id="text3431"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="218.75"
-         x="550"
-         xml:space="preserve">-</text>
-      <text
-         id="text3433"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="218.75"
-         x="555"
-         xml:space="preserve">Unix</text>
-      <text
-         id="text3435"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="218.75"
-         x="585"
-         xml:space="preserve">-</text>
-      <text
-         id="text3437"
-         style="font-size:15px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="218.75"
-         x="590"
-         xml:space="preserve">Domain Sockets to other Workers</text>
-      <path
-         id="path3439"
-         d="m 831.25,96.40625 c 13.04688,0 23.59375,-10.546875 23.59375,-23.59375 l 0,0 0,-47.265625 C 854.84375,12.5 844.29688,1.875 831.25,1.875 l 0,0 -70.85938,0 c -13.04687,0 -23.67187,10.625 -23.67187,23.671875 l 0,0 0,47.265625 c 0,13.046875 10.625,23.59375 23.67187,23.59375 l 0,0 70.85938,0 z"
-         style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         inkscape:connector-curvature="0" />
-      <text
-         id="text3441"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="750"
-         xml:space="preserve">Crossbar</text>
-      <text
-         id="text3443"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="822.5"
-         xml:space="preserve">.</text>
-      <text
-         id="text3445"
-         style="font-size:16.25px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="43.75"
-         x="827.5"
-         xml:space="preserve">io</text>
-      <text
-         id="text3447"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#595959;font-family:Arial"
-         y="63.75"
-         x="776.25"
-         xml:space="preserve">Node</text>
-      <text
-         id="text3449"
+         id="text3164"
          style="font-size:23.75px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
          y="590"
-         x="463.75"
+         x="587.5"
          xml:space="preserve">Application Clients</text>
       <path
-         id="path3451"
-         d="m 2.109375,74.21875 0,-27.421875 273.984375,0 0,73.203125 L 167.5,120 228.90625,167.26562 110.78125,120 2.109375,120 l 0,-45.78125 z"
+         id="path3166"
+         d="m 2.109375,104.84375 0,-36.40625 284.453125,0 0,97.03125 -113.90625,0 87.5,131.71875 -144.14063,-131.71875 -113.906245,0 0,-60.625 z"
          style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none"
          inkscape:connector-curvature="0" />
       <path
-         id="path3453"
-         d="m 2.109375,74.21875 0,-27.421875 273.984375,0 0,73.203125 L 167.5,120 228.90625,167.26562 110.78125,120 2.109375,120 l 0,-45.78125 z"
+         id="path3168"
+         d="m 2.109375,104.84375 0,-36.40625 284.453125,0 0,97.03125 -113.90625,0 87.5,131.71875 -144.14063,-131.71875 -113.906245,0 0,-60.625 z"
          style="fill:none;stroke:#000000;stroke-width:0.390625px;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-dasharray:none"
          inkscape:connector-curvature="0" />
       <text
-         id="text3455"
+         id="text3170"
          style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="78.75"
-         x="52.5"
-         xml:space="preserve">Scale</text>
+         y="102.5"
+         x="8.75"
+         xml:space="preserve">Multiple application components can </text>
       <text
-         id="text3457"
+         id="text3172"
          style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="78.75"
-         x="93.75"
-         xml:space="preserve">-</text>
+         y="122.5"
+         x="8.75"
+         xml:space="preserve">be run in workers together with </text>
       <text
-         id="text3459"
+         id="text3174"
          style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="78.75"
-         x="100"
-         xml:space="preserve">up and Scale</text>
-      <text
-         id="text3461"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="78.75"
-         x="197.5"
-         xml:space="preserve">-</text>
-      <text
-         id="text3463"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="78.75"
-         x="202.5"
-         xml:space="preserve">out </text>
-      <text
-         id="text3465"
-         style="font-size:16.25px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
-         y="98.75"
-         x="52.5"
-         xml:space="preserve">architectures supported</text>
+         y="142.5"
+         x="8.75"
+         xml:space="preserve">routers in a single node</text>
     </g>
   </g>
 </svg>
