@@ -32,15 +32,13 @@ Crossbar.io is an [open-source](https://github.com/crossbario/crossbar/blob/mast
 
 ![Crossbar.io clients overview - languages/environments: javascript/browser, javascript/node.js, Python, C++, under development: Java/Android, PL/SQL - PostgreSQL](docs/figures/gen/crossbar_integration.png)
 
+### Unified Routing
+
 At its core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other. This communication infrastructure is based on **Unified Routing** and **WAMP**:
 
->[**Unified Routing**](http://wamp.ws/why/#unified_routing) provides applications components with two communication patterns to use: **remote procedure calls** and **publish & subscribe**. In both patterns, the application components involved are fully decoupled by Crossbar.io which dynamically routes calls and events between them. [**WAMP**](http://wamp.ws) is an open, standardized protocol for Unified Routing that runs natively on WebSocket.
+[Unified Routing](http://wamp.ws/why/#unified_routing) provides applications components with two communication patterns to use: **remote procedure calls** and **publish & subscribe**. In both patterns, the application components involved are fully decoupled by Crossbar.io which dynamically routes calls and events between them. [WAMP](http://wamp.ws) is an open, standardized protocol for Unified Routing that runs natively on WebSocket.
 
-In addition to the core application routing service, Crossbar.io features:
-
- * **application component hosting**
- * **multi-process architecture**
- * **full-stack services**
+### Component Hosting
 
 Crossbar.io is a **component host** able to dynamically load, run and monitor **application components** written in different languages, and running under their native run-time.
 
@@ -48,7 +46,13 @@ Want to have component **A** written in JavaScript and running on NodeJS, compon
 
 >To get you started quickly, the command line tool of Crossbar.io is able to generate complete, ready-to-run application templates for different languages.
 
+### Multi-process Architecture
+
 Crossbar.io has a **multi-process architecture** where a node controller process spawns and monitors worker processes. Worker types include router, application component host and arbitrary guest processes. *The multi-process architecture enables scaling up on multi-core systems and supports secure and robust operation.*
+
+You can read more about Crossbar's architecture [here](https://github.com/crossbario/crossbar/wiki/Architecture).
+
+### Full-stack Services
 
 Crossbar.io also includes a whole set of **full-stack services**, such as authentication and authorization, serving static Web files, HTTP long-poll fallback, HTTP push bridge, CGI scripts and hosting WSGI applications. This will often make Crossbar.io all the infrastructure you need besides your database.
 
