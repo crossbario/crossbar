@@ -9,8 +9,8 @@ ___________
 *This README:*
 
 1. [What is Crossbar.io?](#what-is-crossbario)
-2. [Things you can do](#things-you-can-do)
-3. [Benefits](#benefits)
+2. [Benefits](#benefits)
+3. [Things you can do](#things-you-can-do)
 
 
 *Related articles:*
@@ -52,6 +52,15 @@ Crossbar.io has a **multi-process architecture** where a node controller process
 Crossbar.io also includes a whole set of **full-stack services**, such as authentication and authorization, serving static Web files, HTTP long-poll fallback, HTTP push bridge, CGI scripts and hosting WSGI applications. This will often make Crossbar.io all the infrastructure you need besides your database.
 
 
+## Benefits
+
+We think that application developers and system operators should be freed from the burden and compexity of old architectures.
+
+Crossbar.io is made for *DevOps*: it allows *developers* to easily **compose** a system from self-contained, independent services or application components and *operators* to **distribute** application components freely across system resources like nodes without breaking application communication.
+
+We believe the above approach is scalable in terms of development and deployment, and in particular allows to create and operate more advanced systems with less complexity and in less time.
+
+
 ## Things you can do
 
 Here are a couple of demos and applications built with Crossbar.io
@@ -77,15 +86,6 @@ In other words: we want a real-time enabled user interface.
 From a developer point of view, what seems natural is having the frontend issue a remote procedure call to get the total number of votes initially. Then subscribe to a topic to get updates on the total number of votes. And finally issue a remote procedure call for actually voting. The backend should note each vote, and publish updated numbers for total votes. These patterns, remote procedure calls and publish & subscribe are exactly those provided by WAMP.
 
 To summarize, above "Vote Game" app would be a good fit for Crossbar.io and is [easy to implement](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp/wamplet/votegame). 
-
-
-## Benefits
-
-We think that application developers and system operators should be freed from the burden and compexity of old architectures.
-
-Crossbar.io is made for *DevOps*: it allows *developers* to easily **compose** a system from self-contained, independent services or application components and *operators* to **distribute** application components freely across system resources like nodes without breaking application communication.
-
-We believe the above approach is scalable in terms of development and deployment, and in particular allows to create and operate more advanced systems with less complexity and in less time.
 
 
 ----------
