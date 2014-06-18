@@ -21,7 +21,7 @@ ___________
 *More Resources:*
 
 * [Homepage](http://crossbar.io)
-* **[Quick Start](https://github.com/crossbario/crossbar/wiki#quick-start)**
+* **[Quick Start](https://github.com/crossbario/crossbar/wiki/Quick-Start)**
 * [Documentation](https://github.com/crossbario/crossbar/wiki)
 * [Ask a Question](http://stackoverflow.com/questions/ask?tags=crossbar,wamp)
 
