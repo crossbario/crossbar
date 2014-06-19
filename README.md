@@ -32,25 +32,43 @@ Crossbar.io is an [open-source](https://github.com/crossbario/crossbar/blob/mast
 
 ![Crossbar.io clients overview - languages/environments: javascript/browser, javascript/node.js, Python, C++, under development: Java/Android, PL/SQL - PostgreSQL](docs/figures/gen/crossbar_integration.png)
 
+Crossbar.io features **cross-language integration**: you can have application components implemented in different languages and run under different run-times. E.g. a frontend component might be implemented in JavaScript/HTML5 and run in the browser, while a backend component might be implemented in Python and run under PyPy.
+
+Crossbar.io also features **cross-layer integration**: application components can be freely deployed across layers, and transparently talk to each other no matter in what layer the components reside. E.g. you can call a remote procedure residing in a backend component from a frontend component running in the browser, but you can also call into code running inside the browser from a backend component!
+
+Read more::
+
+ * [Free Your Code - Backends in the Browser](http://tavendo.com/blog/post/free-your-code-backends-in-the-browser/)
+
+
 ### Unified Routing
 
 At its core, Crossbar.io provides a flexible and scalable communication infrastructure for application components to talk to each other. This communication infrastructure is based on **Unified Routing** and **WAMP**:
 
 [Unified Routing](http://wamp.ws/why/#unified_routing) provides applications components with two communication patterns to use: **remote procedure calls** and **publish & subscribe**. In both patterns, the application components involved are fully decoupled by Crossbar.io which dynamically routes calls and events between them. [WAMP](http://wamp.ws) is an open, standardized protocol for Unified Routing that runs natively on WebSocket.
 
+Read more:
+
+ * [Why WAMP?](http://wamp.ws/why/)
+
+
 ### Component Hosting
 
-Crossbar.io is a **component host** able to dynamically load, run and monitor **application components** written in different languages, and running under their native run-time.
+Crossbar.io also is a **component host** able to dynamically load, run and monitor **application components** written in different languages, and running under their native run-time.
 
 Want to have component **A** written in JavaScript and running on NodeJS, component **B** written in Python and running on PyPy, and component **C** written and running on C++ natively? No problem - Crossbar.io has you covered.
 
 >To get you started quickly, the command line tool of Crossbar.io is able to generate complete, ready-to-run application templates for different languages.
 
+
 ### Multi-process Architecture
 
-Crossbar.io has a **multi-process architecture** where a node controller process spawns and monitors worker processes. Worker types include router, application component host and arbitrary guest processes. *The multi-process architecture enables scaling up on multi-core systems and supports secure and robust operation.*
+Crossbar.io has a **multi-process architecture** where a single node controller process spawns and monitors multiple worker processes. Worker process types include router, application component host and arbitrary guest processes. *The multi-process architecture enables scaling up on multi-core systems and supports secure and robust operation.*
 
-You can read more about Crossbar's architecture [here](https://github.com/crossbario/crossbar/wiki/Architecture).
+Read more:
+
+* [Crossbar.io Architecture](https://github.com/crossbario/crossbar/wiki/Architecture).
+
 
 ### Full-stack Services
 
@@ -63,7 +81,7 @@ We think that application developers and system operators should be freed from t
 
 Crossbar.io is made for *DevOps*: it allows *developers* to easily **compose** a system from self-contained, independent services or application components and *operators* to **distribute** application components freely across system resources like nodes without breaking application communication.
 
-We believe the above approach is scalable in terms of development and deployment, and in particular allows to create and operate more advanced systems with less complexity and in less time.
+We believe the above approach is scalable in terms of development and deployment, and in particular allows you to create and operate more advanced systems with less complexity and in less time.
 
 
 ## Things you can do
