@@ -10,3 +10,4 @@ crossbar/dist
 dropin.cache
 crossbardata
 .sconsign.dblite
+*.~vsd
