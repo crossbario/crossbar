@@ -16,7 +16,8 @@
 ##
 ###############################################################################
 
-SVG_FILES = ['crossbar_deployment_01.svg',
+SVG_FILES = ['crossbar_deployment_00.svg',
+             'crossbar_deployment_01.svg',
              'crossbar_deployment_02.svg',
              'crossbar_deployment_03.svg',
              'crossbar_deployment_04.svg',
