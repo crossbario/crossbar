@@ -26,6 +26,7 @@ SVG_FILES = ['crossbar_deployment_00.svg',
              'crossbar_deployment_05.svg',
              'crossbar_deployment_06.svg',
              'crossbar_deployment_07.svg',
+             'crossbar_application_scenario_1.svg',
              'crossbar_clients.svg',
              'crossbar_integration.svg'
              ]
