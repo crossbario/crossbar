@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 880.33 550.1">
+<g transform="translate(616.64 -58.001)">
+<g transform="translate(-608.52 66.125)">
+<path d="m838.6 474.64c13.054 0 23.607-10.631 23.607-23.685v-283.6c0-13.054-10.553-23.607-23.607-23.607h-813.04c-13.054 0-23.685 10.553-23.685 23.607v283.6c0 13.054 10.631 23.685 23.685 23.685h813.04z" fill-rule="evenodd" fill="#d9d9d9"/>
+<path d="m27.75 307.2v70.899h118.11v-70.899h-118.11z" fill-rule="evenodd" fill="#404040"/>
+<text font-weight="bold" xml:space="preserve" font-size="16.259px" y="337.68985" x="62.535156" font-family="Arial" fill="#ffc000">Guest</text>
+<text xml:space="preserve" font-size="16.259px" y="357.70108" x="60.033749" font-family="Arial" fill="#ffc000">Worker</text>
+<path d="m805.53 403.74c13.054 0 23.607-10.631 23.607-23.685s-10.553-23.607-23.607-23.607h-118.19c-13.054 0-23.607 10.553-23.607 23.607s10.553 23.685 23.607 23.685h118.19z" fill-rule="evenodd" fill="#8c8c8c"/>
+<text xml:space="preserve" font-size="15.008px" y="383.96585" x="679.13177" font-family="Arial" fill="#ffffff">Key </text>
+<text xml:space="preserve" font-size="15.008px" y="383.96585" x="709.14868" font-family="Arial" fill="#ffffff">&amp; </text>
+<text xml:space="preserve" font-size="15.008px" y="383.96585" x="724.1571" font-family="Arial" fill="#ffffff">Configuration</text>
+<path d="m169.55 307.2v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text font-weight="bold" xml:space="preserve" font-size="16.259px" y="337.68985" x="190.10687" font-family="Arial" fill="#ffc000">Container</text>
+<text xml:space="preserve" font-size="16.259px" y="357.70108" x="201.3632" font-family="Arial" fill="#ffc000">Worker</text>
+<path d="m311.35 307.2v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text font-weight="bold" xml:space="preserve" font-size="16.259px" y="337.68985" x="331.43631" font-family="Arial" fill="#ffc000">Container</text>
+<text xml:space="preserve" font-size="16.259px" y="357.70108" x="343.94336" font-family="Arial" fill="#ffc000">Worker</text>
+<path d="m453.15 307.2v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text font-weight="bold" xml:space="preserve" font-size="16.259px" y="337.68985" x="485.2728" font-family="Arial" fill="#ffc000">Router</text>
+<text xml:space="preserve" font-size="16.259px" y="357.70108" x="485.2728" font-family="Arial" fill="#ffc000">Worker</text>
+<path d="m661.31 190.97v141.88h167.83v-141.88h-167.83z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="20.011px" y="256.39413" x="721.6557" font-family="Arial" fill="#ffc000">Node</text>
+<text xml:space="preserve" font-size="20.011px" y="280.1575" x="701.64447" font-family="Arial" fill="#ffc000">Controller</text>
+<path d="m814.99 96.46c13.054 0 23.607-10.553 23.607-23.607v-47.292c0-13.054-10.553-23.685-23.607-23.685h-139.45c-13.054 0-23.685 10.631-23.685 23.685v47.292c0 13.054 10.631 23.607 23.685 23.607h139.45z" fill-rule="evenodd" fill="#f60"/>
+<text xml:space="preserve" font-size="20.011px" y="42.523907" x="686.63599" font-family="Arial" fill="#ffffff">Management</text>
+<text xml:space="preserve" font-size="20.011px" y="67.537964" x="711.65009" font-family="Arial" fill="#ffffff">Service</text>
+<text font-weight="bold" xml:space="preserve" font-size="23.763px" y="457.75732" x="629.10364" font-family="Arial" fill="#404040">Crossbar</text>
+<text font-weight="bold" xml:space="preserve" font-size="23.763px" y="457.75732" x="731.66132" font-family="Arial" fill="#404040">.</text>
+<text font-weight="bold" xml:space="preserve" font-size="23.763px" y="457.75732" x="737.91486" font-family="Arial" fill="#404040">io </text>
+<text xml:space="preserve" font-size="23.763px" y="457.75732" x="765.4303" font-family="Arial" fill="#404040">Node</text>
+<path d="m745.26 96.46-12.976 12.976h8.5204v81.53h8.8331v-81.53h8.5986l-12.976-12.976z" fill-rule="evenodd" fill="#f60"/>
+<path stroke-linejoin="round" d="m745.26 96.46-12.976 12.976h8.5204v81.53h8.8331v-81.53h8.5986l-12.976-12.976z" stroke="#f60" stroke-linecap="round" stroke-width=".39084px" fill="none"/>
+<path stroke-linejoin="round" d="m512.24 290.16v-28.297h149.07" stroke="#404040" stroke-linecap="round" stroke-width="2.0324px" fill="none"/>
+<path d="m518.42 288.6-6.1753 18.604-6.1754-18.604h12.351z" fill-rule="evenodd" fill="#404040"/>
+<path stroke-linejoin="round" d="m370.44 290.16v-28.297h290.87" stroke="#404040" stroke-linecap="round" stroke-width="2.0324px" fill="none"/>
+<path d="m376.62 288.6-6.1754 18.604-6.1753-18.604h12.351z" fill-rule="evenodd" fill="#404040"/>
+<path stroke-linejoin="round" d="m228.64 290.16v-28.297h432.67" stroke="#404040" stroke-linecap="round" stroke-width="2.0324px" fill="none"/>
+<path d="m234.82 288.6-6.1754 18.604-6.2535-18.604h12.429z" fill-rule="evenodd" fill="#404040"/>
+<path stroke-linejoin="round" d="m86.846 290.16v-28.297h574.46" stroke="#404040" stroke-linecap="round" stroke-width="2.0324px" fill="none"/>
+<path d="m93.021 288.6-6.1753 18.604-6.2535-18.604h12.429z" fill-rule="evenodd" fill="#404040"/>
+<path d="m91.536 82.937v-23.92h300.17v63.864h-121.71l169 138.98-225.75-138.98h-121.71v-39.944z" fill-rule="evenodd" fill="#fff"/>
+<path stroke-linejoin="round" d="m91.536 82.937v-23.92h300.17v63.864h-121.71l169 138.98-225.75-138.98h-121.71v-39.944z" stroke="#000" stroke-linecap="round" stroke-width=".39084px" fill="none"/>
+<text xml:space="preserve" font-size="16.259px" y="86.298515" x="97.55484" font-family="Arial" fill="#000000">The node controller spawns</text>
+<text xml:space="preserve" font-size="16.259px" y="86.298515" x="302.67014" font-family="Arial" fill="#000000">, </text>
+<text xml:space="preserve" font-size="16.259px" y="86.298515" x="312.67578" font-family="Arial" fill="#000000">monitors </text>
+<text xml:space="preserve" font-size="16.259px" y="106.30976" x="97.55484" font-family="Arial" fill="#000000">and manages worker processes</text>
+<text font-weight="bold" xml:space="preserve" font-size="40.022px" y="345.19406" x="585.32904" font-family="Arial" fill="#404040">...</text>
+<path d="m67.929 493.32v-23.06h164.23l-3.5176-92.161 60.268 92.161h164.23v61.519h-385.22v-38.459z" fill-rule="evenodd" fill="#fff"/>
+<path stroke-linejoin="round" d="m67.929 493.32v-23.06h164.23l-3.5176-92.161 60.268 92.161h164.23v61.519h-385.22v-38.459z" stroke="#000" stroke-linecap="round" stroke-width=".39084px" fill="none"/>
+<text xml:space="preserve" font-size="16.259px" y="496.52914" x="75.042183" font-family="Arial" fill="#000000">While there is exactly </text>
+<text xml:space="preserve" font-size="16.259px" y="496.52914" x="236.38289" font-family="Arial" fill="#000000">1 </text>
+<text xml:space="preserve" font-size="16.259px" y="496.52914" x="250.14063" font-family="Arial" fill="#000000">node controller process</text>
+<text xml:space="preserve" font-size="16.259px" y="496.52914" x="423.98834" font-family="Arial" fill="#000000">, </text>
+<text xml:space="preserve" font-size="16.259px" y="516.54041" x="75.042183" font-family="Arial" fill="#000000">there can be any number of workers </text>
+<text xml:space="preserve" font-size="16.259px" y="516.54041" x="346.44476" font-family="Arial" fill="#000000">..</text>
+</g>
+</g>
+</svg>
