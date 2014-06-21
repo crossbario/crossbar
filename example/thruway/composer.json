@@ -1,0 +1,6 @@
+{
+    "require": {
+        "ratchet/pawl": "dev-master",
+        "voryx/thruway": "dev-master"
+    }
+}
