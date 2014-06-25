@@ -14,7 +14,7 @@ class AppSession(ApplicationSession):
         ## SUBSCRIBE to a topic and receive events
         ##
         def onhello(msg):
-            print("onhello(): {}".format(msg))
+            print("event for 'onhello' received: {}".format(msg))
 
         sub = yield self.subscribe(onhello, 'com.example.onhello')
         print("subscribed to topic 'onhello'")
@@ -46,7 +46,7 @@ class AppSession(ApplicationSession):
             ##
             try:
                 res = yield self.call('com.example.mul2', counter, 3)
-                print("mul2() result: {}".format(res))
+                print("mul2() called with result: {}".format(res))
             except ApplicationError as e:
                 ## ignore errors due to the frontend not yet having
                 ## registered the procedure we would like to call
