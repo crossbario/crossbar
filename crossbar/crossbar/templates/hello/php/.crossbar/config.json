@@ -41,6 +41,12 @@
                }
             }
          ]
+      },
+      {
+         "type": "guest",
+         "executable": "/usr/bin/php",
+         "arguments": ["client.php"],
+         "workdir": ".."
       }
    ]
 }

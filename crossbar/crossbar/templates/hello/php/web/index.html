@@ -19,14 +19,16 @@
 
          var connection = new autobahn.Connection({
             url: wsuri,
-            realm: "{{ realm }}"
+            realm: "realm1"
          });
 
          connection.onopen = function (session) {
 
             console.log("Connected");
 
-            session.call('com.{{ appname }}.hello').then(
+            session.publish('com.myapp.hello', ["Hello from JavaScript"]);
+
+            session.call('com.myapp.add2', [4, 11]).then(
                function (res) {
                   console.log(res);
                },
