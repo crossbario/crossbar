@@ -67,6 +67,14 @@ class Templates:
          "params": {
             "appname": "hello",
             "realm": "realm1",
+         },
+         "jinja": {
+            "block_start_string": "@@",
+            "block_stop_string": "@@",
+            "variable_start_string": "@=",
+            "variable_stop_string": "=@",
+            "comment_start_string": "@#",
+            "comment_end_string": "#@",
          }
       },
    }
@@ -103,8 +111,13 @@ class Templates:
 
       appdir = os.path.abspath(appdir)
 
+      if 'jinja' in template:
+         kwargs = template['jinja']
+      else:
+         kwargs = {}
+
       jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(basedir),
-         keep_trailing_newline = True)
+         keep_trailing_newline = True, **kwargs)
 
       _params = template['params'].copy()
       if params:
