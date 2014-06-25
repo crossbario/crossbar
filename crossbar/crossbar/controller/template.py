@@ -38,12 +38,14 @@ class Templates:
          "params": {
          }
       },
+
       "pusher": {
          "help": "A WAMP router with a HTTP gateway for pushing events.",
          "basedir": "templates/pusher",
          "params": {
          }
       },
+
       "hello:python": {
          "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
          "basedir": "templates/hello/python",
@@ -52,6 +54,7 @@ class Templates:
             "realm": "realm1",
          }
       },
+
       "hello:nodejs": {
          "help": "A minimal NodeJS WAMP application hosted in a router and a HTML5 client.",
          "basedir": "templates/hello/nodejs",
@@ -62,6 +65,7 @@ class Templates:
             "nodejs": "/usr/bin/node"
          }
       },
+
       "hello:erwa": {
          "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
          "get_started_hint": "Now build the Erlang/Erwa client by entering 'make', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
@@ -83,6 +87,14 @@ class Templates:
          ## we need to skip binary files from being processed by Jinja
          ##
          "skip_jinja": ["relx"]
+      },
+
+      "hello:php": {
+         "help": "A minimal PHP/Thruway WAMP application hosted in a router and a HTML5 client.",
+         "get_started_hint": "Now install dependencies for the PHP/Thruway client by entering 'make install', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
+         "basedir": "templates/hello/php",
+         "params": {
+         },
       },
    }
 
