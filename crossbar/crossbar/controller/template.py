@@ -66,6 +66,14 @@ class Templates:
          }
       },
 
+      "hello:cpp": {
+         "help": "A minimal C++11/AutobahnCpp WAMP application hosted in a router and a HTML5 client.",
+         "get_started_hint": "Now build the example by doing 'scons', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
+         "basedir": "templates/hello/php",
+         "params": {
+         },
+      },
+
       "hello:erwa": {
          "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
          "get_started_hint": "Now build the Erlang/Erwa client by entering 'make', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
