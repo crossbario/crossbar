@@ -1,4 +1,4 @@
-PROJECT = simple_client
+PROJECT = crossbar_client
 ERLC_OPTS = +debug_info
 
 DEPS = erwa

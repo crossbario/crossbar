@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
    <body>
-      <h1>hello</h1>
+      <h1>Hello WAMP</h1>
       <p>Open JavaScript console to watch output.</p>
       <script>AUTOBAHN_DEBUG = true;</script>
       <script src="autobahn.min.js"></script>
 
       <script>
          // the URL of the WAMP Router (Crossbar.io)
+         //
          var wsuri;
          if (document.location.origin == "file://") {
             wsuri = "ws://127.0.0.1:8080/ws";
@@ -17,39 +18,108 @@
                         document.location.host + "/ws";
          }
 
+
+         // the WAMP connection to the Router
+         //
          var connection = new autobahn.Connection({
             url: wsuri,
-            realm: "ws.wamp.test"
+            realm: "realm1"
          });
 
-         connection.onopen = function (session) {
+
+         // timers
+         //
+         var t1, t2;
+
+
+         // fired when connection is established and session attached
+         //
+         connection.onopen = function (session, details) {
 
             console.log("Connected");
 
-            session.register('ws.wamp.test.square', function (args) {
-               var x = args[0];
-               var res = x * x;
-               console.log("I am called", x, res);
-               return res;
-            });
-
-            session.publish('ws.wamp.test.info', ["Hello"], {a: 2, b: 3});
-
-            session.call('ws.wamp.test.echo', ["Hello"]).then(
-               function (res) {
-                  console.log(res);
+            // SUBSCRIBE to a topic and receive events
+            //
+            function on_counter (args) {
+               var counter = args[0];
+               console.log("on_counter() event received with counter " + counter);
+            }
+            session.subscribe('com.example.oncounter', on_counter).then(
+               function (sub) {
+                  console.log('subscribed to topic');
                },
                function (err) {
-                  console.log(err);
+                  console.log('failed to subscribe to topic', err);
                }
             );
+
+
+            // PUBLISH an event every second
+            //
+            t1 = setInterval(function () {
+
+               session.publish('com.example.onhello', ['Hello from JavaScript (browser)']);
+               console.log("published to topic 'com.example.onhello'");
+            }, 1000);
+
+
+            // REGISTER a procedure for remote calling
+            //
+            function mul2 (args) {
+               var x = args[0];
+               var y = args[1];
+               console.log("mul2() called with " + x + " and " + y);
+               return x * y;
+            }
+            session.register('com.example.mul2', mul2).then(
+               function (reg) {
+                  console.log('procedure registered');
+               },
+               function (err) {
+                  console.log('failed to register procedure', err);
+               }
+            );
+
+
+            // CALL a remote procedure every second
+            //
+            var x = 0;
+
+            t2 = setInterval(function () {
+
+               session.call('com.example.add2', [x, 18]).then(
+                  function (res) {
+                     console.log("add2() result:", res);
+                  },
+                  function (err) {
+                     console.log("add2() error:", err);
+                  }
+               );
+
+               x += 3;
+            }, 1000);
          };
 
-         connection.onclose = function () {
-            console.log("Connection lost", arguments);
+
+         // fired when connection was lost (or could not be established)
+         //
+         connection.onclose = function (reason, details) {
+            console.log("Connection lost: " + reason);
+            if (t1) {
+               clearInterval(t1);
+               t1 = null;
+            }
+            if (t2) {
+               clearInterval(t2);
+               t2 = null;
+            }
          }
 
+
+         // now actually open the connection
+         //
          connection.open();
+
       </script>
    </body>
 </html>

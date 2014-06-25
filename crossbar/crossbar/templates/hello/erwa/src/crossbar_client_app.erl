@@ -2,7 +2,7 @@
 %% Bas Wegh
 
 %% @private
--module(simple_client_app).
+-module(crossbar_client_app).
 -behaviour(application).
 
 %% API.
@@ -12,7 +12,7 @@
 %% API.
 
 start(_Type, _Args) ->
-  simple_client:start_link().
+  crossbar_client:start_link().
 
 stop(_State) ->
 	ok.
