@@ -1,4 +1,3 @@
-
 {
    "controller": {
    },
@@ -7,7 +6,7 @@
          "type": "router",
          "realms": [
             {
-               "name": "{{ realm }}",
+               "name": "realm1",
                "roles": [
                   {
                      "name": "anonymous",
@@ -34,26 +33,22 @@
                "paths": {
                   "/": {
                      "type": "static",
-                     "directory": "../web"
+                     "directory": "../web/"
                   },
                   "ws": {
                      "type": "websocket"
                   }
                }
+            },
+            {
+               "type": "rawsocket",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8090
+               },
+               "serializer": "msgpack"
             }
          ]
-      },
-      {
-         "type": "guest",
-         "executable": "{{ nodejs }}",
-         "arguments": ["{{ appname }}.js"],
-         "options": {
-            "workdir": "../node",
-            "watch": {
-               "directories": ["../node"],
-               "action": "restart"
-            }
-         }
       }
    ]
 }

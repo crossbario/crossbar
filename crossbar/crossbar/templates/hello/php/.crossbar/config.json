@@ -39,16 +39,14 @@
                      "type": "websocket"
                   }
                }
-            },
-            {
-               "type": "rawsocket",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8090
-               },
-               "serializer": "msgpack"
             }
          ]
+      },
+      {
+         "type": "guest",
+         "executable": "/usr/bin/php",
+         "arguments": ["client.php"],
+         "workdir": ".."
       }
    ]
 }
