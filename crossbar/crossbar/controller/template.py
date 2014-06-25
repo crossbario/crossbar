@@ -126,7 +126,7 @@ class Templates:
 
             for f in files:
                ## FIXME
-               if not f.endswith(".pyc"):
+               if not f.endswith(".pyc") and f not in ['relx']:
                   src_file = os.path.abspath(os.path.join(root, f))
                   src_file_rel_path = os.path.relpath(src_file, basedir)
                   reldir = os.path.relpath(root, basedir)
