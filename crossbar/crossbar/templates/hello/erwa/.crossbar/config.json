@@ -6,7 +6,7 @@
          "type": "router",
          "realms": [
             {
-               "name": "realm1",
+               "name": "ws.wamp.test",
                "roles": [
                   {
                      "name": "anonymous",
@@ -49,6 +49,11 @@
                }
             }
          ]
+      },
+      {
+         "type": "guest",
+         "executable": "../_rel/simple_client/bin/simple_client",
+         "arguments": ["foreground"]
       }
    ]
 }

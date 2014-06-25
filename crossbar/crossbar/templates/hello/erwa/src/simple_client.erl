@@ -58,9 +58,9 @@ handle_info({erwa,{event,SubId,_PublicationId,_Details,Arguments,ArgumentsKw}},#
   {ok,Details,ResA,ResAKw} = erwa:call(Con,[{}],?RPC_SQUARE_URL,Params),
   io:format("result is: ~p ~p [~p]~n",[ResA,ResAKw,Details]),
   ResA = [9],
-  io:format("unsubscribing from ~p ... ",[SubId]),
-  ok = erwa:unsubscribe(Con,SubId),
-  io:format("unsubscribed.~n"),
+  %%io:format("unsubscribing from ~p ... ",[SubId]),
+  %%ok = erwa:unsubscribe(Con,SubId),
+  %%io:format("unsubscribed.~n"),
   {noreply,State};
 
 
@@ -68,9 +68,9 @@ handle_info({erwa,{invocation,RequestId,RpcId,_Details,Arguments,ArgumentsKw}},#
   %invocation of the echo rpc
   io:format("been called [~p] with params ~p ~p ... will just send them back ...",[RpcId,Arguments,ArgumentsKw]),
   ok = erwa:yield(Con,RequestId,[{}],Arguments,ArgumentsKw),
-  io:format("sent.~nunregistering ~p ... ",[RpcId]),
-  ok = erwa:unregister(Con,RpcId),
-  io:format("unregistered.~n"),
+  %%io:format("sent.~nunregistering ~p ... ",[RpcId]),
+  %%ok = erwa:unregister(Con,RpcId),
+  %%io:format("unregistered.~n"),
   {noreply,State};
 
 handle_info(Msg,State) ->
