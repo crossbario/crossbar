@@ -156,9 +156,9 @@ def run_command_init(options):
 
    print("Application template initialized")
    if get_started_hint:
-      print("\n{}".format(get_started_hint))
+      print("\n{}\n".format(get_started_hint))
    else:
-      print("\nTo start your node, run 'crossbar start --cbdir {}'".format(os.path.abspath(os.path.join(options.appdir, '.crossbar'))))
+      print("\nTo start your node, run 'crossbar start --cbdir {}'\n".format(os.path.abspath(os.path.join(options.appdir, '.crossbar'))))
 
 
 
