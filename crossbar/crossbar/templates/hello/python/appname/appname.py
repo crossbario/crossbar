@@ -2,6 +2,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.util import sleep
 from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import ApplicationError
 
 
 
@@ -37,6 +38,7 @@ class AppSession(ApplicationSession):
             ## PUBLISH an event
             ##
             yield self.publish('com.example.oncounter', counter)
+            print("published to 'oncounter' with counter {}".format(counter))
             counter += 1
 
 
@@ -45,9 +47,11 @@ class AppSession(ApplicationSession):
             try:
                 res = yield self.call('com.example.mul2', counter, 3)
                 print("mul2() result: {}".format(res))
-            except Exception as e:
-                print("mul2() error: {}".format(e))
+            except ApplicationError as e:
+                ## ignore errors due to the frontend not yet having
+                ## registered the procedure we would like to call
+                if e.error != 'wamp.error.no_such_procedure':
+                    raise e
 
 
             yield sleep(1)
-            print("tick")
