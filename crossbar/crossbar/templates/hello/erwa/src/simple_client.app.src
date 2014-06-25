@@ -1,0 +1,19 @@
+
+{application, simple_client, [
+	{id, "simple_client"},
+	{description, "a simple wamp tcp client"},
+	{vsn, "0.0.1"},
+	{modules, []},
+	{registered, []},
+	{applications, [
+		kernel,
+    sasl,
+		stdlib,
+		crypto,
+    erwa
+
+     ,debugger,  tv, runtime_tools
+	]},
+	{mod, {simple_client_app, []}},
+	{env, []}
+]}.
