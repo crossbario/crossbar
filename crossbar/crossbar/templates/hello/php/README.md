@@ -1,15 +1,15 @@
-# Erlang/Erwa
+# Hello WAMP with PHP/Thruway
 
-An [Erlang](http://www.erlang.org/)/[Erwa](https://github.com/bwegh/erwa)-based "Hello world!" example WAMP application.
+A [PHP](http://www.php.net/)/[Thruway](https://github.com/voryx/Thruway)-based "Hello world!" example WAMP application.
 
-**See: [Getting started with Erlang](https://github.com/crossbario/crossbar/wiki/Getting-started-with-Erlang)**
+**See: [Getting started with PHP](https://github.com/crossbario/crossbar/wiki/Getting-started-with-PHP)**
 
 ## How to run
 
-Build the app by doing:
+Install dependencies (once):
 
 ```shell
-make
+make install
 ```
 
 Start Crossbar by doing:
@@ -22,4 +22,4 @@ Open [`http://localhost:8080/`](http://localhost:8080/) (or wherever Crossbar ru
 
 ## How to hack
 
-All Erlang backend code is in `./src/*`. All JavaScript frontend code is in `./web/index.html`.
+All PHP backend code is in `client.php`. All JavaScript frontend code is in `./web/index.html`.
