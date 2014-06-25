@@ -66,9 +66,10 @@ class Templates:
          "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
          "basedir": "templates/hello/erwa",
          "params": {
-            "appname": "hello",
-            "realm": "realm1",
          },
+
+         ## due to Erlang's common use of "{{" and "}}" in syntax, we reconfigure
+         ## the escape characters used in Jinja templates
          "jinja": {
             "block_start_string": "@@",
             "block_end_string": "@@",
@@ -76,7 +77,11 @@ class Templates:
             "variable_end_string": "=@",
             "comment_start_string": "@#",
             "comment_end_string": "#@",
-         }
+         },
+
+         ## we need to skip binary files from being processed by Jinja
+         ##
+         "skip_jinja": ["relx"]
       },
    }
 
@@ -159,7 +164,7 @@ class Templates:
 
                         ## FIXME: template pre-processed or copied verbatim
                         ##
-                        if f not in ['relx']:
+                        if f not in template.get('skip_jinja', []):
                            if IS_WIN:
                               # Jinja need forward slashes even on Windows
                               src_file_rel_path = src_file_rel_path.replace('\\', '/')
