@@ -70,9 +70,9 @@ class Templates:
          },
          "jinja": {
             "block_start_string": "@@",
-            "block_stop_string": "@@",
+            "block_end_string": "@@",
             "variable_start_string": "@=",
-            "variable_stop_string": "=@",
+            "variable_end_string": "=@",
             "comment_start_string": "@#",
             "comment_end_string": "#@",
          }
