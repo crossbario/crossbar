@@ -160,20 +160,18 @@ class Templates:
 
                   print("Creating file      {}".format(dst_file))
                   if not dryrun:
-                     with open(dst_file, 'wb') as dst_file_fd:
-
-                        ## FIXME: template pre-processed or copied verbatim
-                        ##
-                        if f not in template.get('skip_jinja', []):
+                     ## FIXME: copied verbatim or template pre-processed
+                     ##
+                     if f in template.get('skip_jinja', []):
+                        shutil.copyfile(src_file, dst_file)
+                     else:
+                        with open(dst_file, 'wb') as dst_file_fd:
                            if IS_WIN:
                               # Jinja need forward slashes even on Windows
                               src_file_rel_path = src_file_rel_path.replace('\\', '/')
                            page = jinja_env.get_template(src_file_rel_path)
                            contents = page.render(**_params).encode('utf8')
                            dst_file_fd.write(contents)
-                        else:
-                           with open(src_file, 'rb') as src_file_fd:
-                              shutil.copyfileobj(src_file_fd, dst_file_fd)
 
                   created.append(('file', dst_file))
 
