@@ -1,28 +1,25 @@
-Erwa simple client example
-==========================
+# Erlang/Erwa
 
-To try this example, you need GNU `make` and `git` in your PATH.
-And you need a running wamp v2 router, listening at port 5555 for
-incomming TCP connections with msgpack format (e.g. simple_router).
+An [Erlang](http://www.erlang.org/)/[Erwa](https://github.com/bwegh/erwa)-based "Hello world!" example WAMP application.
 
-The client will connect to the realm _ws.wamp.test_ and will subscribe
-to _ws.wamp.test.info_ and register the procedure _ws.wamp.test.echo_.
+**See: [Getting started with Erlang](https://github.com/crossbario/crossbar/wiki/Getting-started-with-Erlang)**
 
-After receiving one event it will unsubsribe.
-After receiving one call it will unregister the procedure.
+## How to run
 
-To build the example, run the following command:
+Build the app by doing:
 
-``` bash
-$ make
+```shell
+make
 ```
 
-To start the release in the foreground:
+Start Crossbar by doing:
 
-``` bash
-$ ./_rel/simple_client/bin/simple_client console
+```shell
+crossbar start
 ```
 
+Open [`http://localhost:8080/`](http://localhost:8080/) (or wherever Crossbar runs) in your browser.
 
-Also have a look at simple_client.erl to see the implementation and
-play around with it.
+## How to hack
+
+All Erlang backend code is in `./src/*`. All JavaScript frontend code is in `./web/index.html`.
