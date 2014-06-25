@@ -49,6 +49,11 @@
                "serializer": "msgpack"
             }
          ]
+      },
+      {
+         "type": "guest",
+         "executable": "../hello",
+         "arguments": []
       }
    ]
 }
