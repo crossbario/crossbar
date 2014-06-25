@@ -61,6 +61,14 @@ class Templates:
             "nodejs": "/usr/bin/node"
          }
       },
+      "hello:erwa": {
+         "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
+         "basedir": "templates/hello/erwa",
+         "params": {
+            "appname": "hello",
+            "realm": "realm1",
+         }
+      },
    }
 
 
