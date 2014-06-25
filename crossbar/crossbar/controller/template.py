@@ -21,6 +21,7 @@ __all__ = ['Templates']
 
 import sys
 import os
+import shutil
 import pkg_resources
 import jinja2
 
@@ -138,8 +139,11 @@ class Templates:
                created.append(('dir', create_dir_path))
 
             for f in files:
-               ## FIXME
-               if not f.endswith(".pyc") and f not in ['relx']:
+
+               ## FIXME: exclude files
+               ##
+               if not f.endswith(".pyc"):
+
                   src_file = os.path.abspath(os.path.join(root, f))
                   src_file_rel_path = os.path.relpath(src_file, basedir)
                   reldir = os.path.relpath(root, basedir)
@@ -152,12 +156,19 @@ class Templates:
                   print("Creating file      {}".format(dst_file))
                   if not dryrun:
                      with open(dst_file, 'wb') as dst_file_fd:
-                        if IS_WIN:
-                           # Jinja need forward slashes even on Windows
-                           src_file_rel_path = src_file_rel_path.replace('\\', '/')
-                        page = jinja_env.get_template(src_file_rel_path)
-                        contents = page.render(**_params).encode('utf8')
-                        dst_file_fd.write(contents)
+
+                        ## FIXME: template pre-processed or copied verbatim
+                        ##
+                        if f not in ['relx']:
+                           if IS_WIN:
+                              # Jinja need forward slashes even on Windows
+                              src_file_rel_path = src_file_rel_path.replace('\\', '/')
+                           page = jinja_env.get_template(src_file_rel_path)
+                           contents = page.render(**_params).encode('utf8')
+                           dst_file_fd.write(contents)
+                        else:
+                           with open(src_file, 'rb') as src_file_fd:
+                              shutil.copyfileobj(src_file_fd, dst_file_fd)
 
                   created.append(('file', dst_file))
 
