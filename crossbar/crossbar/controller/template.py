@@ -64,6 +64,7 @@ class Templates:
       },
       "hello:erwa": {
          "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
+         "get_started_hint": "Now build the Erlang/Erwa client by entering 'make', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
          "basedir": "templates/hello/erwa",
          "params": {
          },
@@ -163,7 +164,7 @@ class Templates:
                      ## FIXME: copied verbatim or template pre-processed
                      ##
                      if f in template.get('skip_jinja', []):
-                        shutil.copyfile(src_file, dst_file)
+                        shutil.copy(src_file, dst_file)
                      else:
                         with open(dst_file, 'wb') as dst_file_fd:
                            if IS_WIN:
@@ -177,6 +178,8 @@ class Templates:
 
          # force exception to test rollback
          #a = 1/0
+
+         return template.get('get_started_hint', None)
 
       except Exception as e:
          print("Error encountered ({}) - rolling back".format(e))

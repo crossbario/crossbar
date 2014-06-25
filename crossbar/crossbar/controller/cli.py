@@ -143,7 +143,7 @@ def run_command_init(options):
    options.appdir = os.path.abspath(options.appdir)
 
    print("Initializing application template '{}' in directory '{}'".format(options.template, options.appdir))
-   templates.init(options.appdir, options.template)
+   get_started_hint = templates.init(options.appdir, options.template)
 
    # try:
    #    templates.init(options.appdir, options.template)
@@ -155,7 +155,10 @@ def run_command_init(options):
    #    raise e
 
    print("Application template initialized")
-   print("\nTo start your node, run 'crossbar start --cbdir {}'".format(os.path.abspath(os.path.join(options.appdir, '.crossbar'))))
+   if get_started_hint:
+      print("\n{}".format(get_started_hint))
+   else:
+      print("\nTo start your node, run 'crossbar start --cbdir {}'".format(os.path.abspath(os.path.join(options.appdir, '.crossbar'))))
 
 
 
