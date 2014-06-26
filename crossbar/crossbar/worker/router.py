@@ -534,15 +534,15 @@ class RouterWorkerSession(NativeWorkerSession):
 
                try:
                   mod = importlib.import_module(root_config['package'])
-               except ImportError:
-                  emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+               except ImportError as e:
+                  emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(root_config['resource'], root_config['package'], e)
                   log.msg(emsg)
                   raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                else:
                   try:
                      root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['package'], root_config['resource']))
                   except Exception as e:
-                     emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+                     emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(root_config['resource'], root_config['package'], e)
                      log.msg(emsg)
                      raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                   else:
