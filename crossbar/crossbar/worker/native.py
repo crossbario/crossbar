@@ -22,6 +22,7 @@ __all__ = ['NativeWorkerSession']
 
 import os
 import sys
+import pkg_resources
 
 from datetime import datetime
 
@@ -230,6 +231,16 @@ class NativeWorkerSession(NativeProcessSession):
          sys.path = paths_added_resolved + sys.path
       else:
          sys.path.extend(paths_added_resolved)
+
+      ## "It’s important to note that the global working_set object is initialized from
+      ## sys.path when pkg_resources is first imported, but is only updated if you do all
+      ## future sys.path manipulation via pkg_resources APIs. If you manually modify sys.path,
+      ## you must invoke the appropriate methods on the working_set instance to keep it in sync."
+      ##
+      ## @see: https://pythonhosted.org/setuptools/pkg_resources.html#workingset-objects
+      ##
+      for p in paths_added_resolved:
+         pkg_resources.working_set.add_entry(p)
 
       ## publish event "on_pythonpath_add" to all but the caller
       ##
