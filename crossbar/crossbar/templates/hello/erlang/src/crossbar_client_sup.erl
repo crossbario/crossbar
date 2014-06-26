@@ -2,7 +2,7 @@
 %% Bas Wegh
 
 %% @private
--module(simple_client_sup).
+-module(crossbar_client_sup).
 -behaviour(supervisor).
 
 %% API.
@@ -20,5 +20,5 @@ start_link() ->
 %% supervisor.
 
 init([]) ->
-  Procs = [{simple_client,{simple_client,start_link,[]},permanent,5000,worker,[]}],
+  Procs = [{crossbar_client,{crossbar_client,start_link,[]},permanent,5000,worker,[]}],
   {ok, {{one_for_one, 10, 10}, Procs}}.

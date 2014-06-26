@@ -74,10 +74,10 @@ class Templates:
          },
       },
 
-      "hello:erwa": {
+      "hello:erlang": {
          "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
          "get_started_hint": "Now build the Erlang/Erwa client by entering 'make', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
-         "basedir": "templates/hello/erwa",
+         "basedir": "templates/hello/erlang",
          "params": {
          },
 

@@ -1,7 +1,7 @@
 
-{application, simple_client, [
-	{id, "simple_client"},
-	{description, "a simple wamp tcp client"},
+{application, crossbar_client, [
+	{id, "crossbar_client"},
+	{description, "a simple wamp tcp client for crossbar"},
 	{vsn, "0.0.1"},
 	{modules, []},
 	{registered, []},
@@ -14,6 +14,6 @@
 
      ,debugger,  tv, runtime_tools
 	]},
-	{mod, {simple_client_app, []}},
+	{mod, {crossbar_client_app, []}},
 	{env, []}
 ]}.
