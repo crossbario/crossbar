@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 719.61 436.02">
+<g transform="translate(-302.91 -333.07)">
+<g transform="translate(311.04 341.19)">
+<path d="m1.8761 1.8761v94.584h699.61v-94.584h-699.61z" fill-rule="evenodd" fill="#d9d9d9"/>
+<path d="m214.65 13.758v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="16.259px" y="53.780231" x="251.39133" font-family="Arial" fill="#ffc000">JSON</text>
+<path d="m380.06 13.758v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="16.259px" y="53.780231" x="405.22781" font-family="Arial" fill="#ffc000">MsgPack</text>
+<text font-weight="bold" xml:space="preserve" font-size="20.011px" y="57.532341" x="32.51828" font-family="Arial" fill="#000000">Serialization</text>
+<path d="m1.8761 161.42v94.584h699.61v-94.584h-699.61z" fill-rule="evenodd" fill="#d9d9d9"/>
+<text font-weight="bold" xml:space="preserve" font-size="20.011px" y="217.62234" x="32.51828" font-family="Arial" fill="#000000">Framing</text>
+<path d="m214.65 173.3v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="16.259px" y="213.87022" x="231.38007" font-family="Arial" fill="#ffc000">WebSocket</text>
+<path d="m380.06 173.3v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="16.259px" y="213.87022" x="396.47287" font-family="Arial" fill="#ffc000">RawSocket</text>
+<path d="m545.54 173.3v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="16.259px" y="203.86459" x="580.32623" font-family="Arial" fill="#ffc000">HTTP</text>
+<text xml:space="preserve" font-size="16.259px" y="203.86459" x="624.10083" font-family="Arial" fill="#ffc000">/</text>
+<text xml:space="preserve" font-size="16.259px" y="223.87585" x="572.82202" font-family="Arial" fill="#ffc000">Longpoll</text>
+<path d="m1.8761 323.38v94.506h699.61v-94.506h-699.61z" fill-rule="evenodd" fill="#d9d9d9"/>
+<text font-weight="bold" xml:space="preserve" font-size="20.011px" y="378.96304" x="32.51828" font-family="Arial" fill="#000000">Transmission</text>
+<path d="m214.65 335.19v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="16.259px" y="375.21094" x="238.88429" font-family="Arial" fill="#ffc000">TCP</text>
+<text xml:space="preserve" font-size="16.259px" y="375.21094" x="272.65329" font-family="Arial" fill="#ffc000">/</text>
+<text xml:space="preserve" font-size="16.259px" y="375.21094" x="277.6561" font-family="Arial" fill="#ffc000">TLS</text>
+<path d="m380.06 335.19v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="16.259px" y="365.20529" x="391.47006" font-family="Arial" fill="#ffc000">Unix Domain </text>
+<text xml:space="preserve" font-size="16.259px" y="385.21655" x="408.97992" font-family="Arial" fill="#ffc000">Sockets</text>
+<path d="m545.54 335.19v70.899h118.19v-70.899h-118.19z" fill-rule="evenodd" fill="#404040"/>
+<text xml:space="preserve" font-size="16.259px" y="375.21094" x="584.07837" font-family="Arial" fill="#ffc000">Pipes</text>
+<text xml:space="preserve" font-size="20.011px" y="132.57452" x="256.39413" font-family="Arial" fill="#000000">combined with any of</text>
+<text xml:space="preserve" font-size="20.011px" y="296.41663" x="253.89273" font-family="Arial" fill="#000000">combined with any of</text>
+</g>
+</g>
+</svg>

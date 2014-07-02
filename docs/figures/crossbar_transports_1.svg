@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="719.61206"
+   height="436.01511"
+   id="svg3065"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="corssbar_transports_1.svg">
+  <defs
+     id="defs3067" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="417.94078"
+     inkscape:cy="187.81512"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="10"
+     fit-margin-left="10"
+     fit-margin-bottom="10"
+     fit-margin-right="10"
+     inkscape:window-width="1680"
+     inkscape:window-height="988"
+     inkscape:window-x="-8"
+     inkscape:window-y="320"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata3070">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-302.91237,-333.06765)">
+    <g
+       id="g3060"
+       transform="translate(311.03632,341.1916)">
+      <path
+         id="path3062"
+         d="m 1.8760546,1.8760546 0,94.5844214 699.6120454,0 0,-94.5844214 -699.6120454,0 z"
+         style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <path
+         id="path3064"
+         d="m 214.65192,13.757734 0,70.899232 118.19144,0 0,-70.899232 -118.19144,0 z"
+         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3066"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="53.780231"
+         x="251.39133"
+         xml:space="preserve">JSON</text>
+      <path
+         id="path3068"
+         d="m 380.0574,13.757734 0,70.899232 118.19145,0 0,-70.899232 -118.19145,0 z"
+         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3070"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="53.780231"
+         x="405.22781"
+         xml:space="preserve">MsgPack</text>
+      <text
+         id="text3072"
+         style="font-size:20.01124954px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
+         y="57.532341"
+         x="32.51828"
+         xml:space="preserve">Serialization</text>
+      <path
+         id="path3074"
+         d="m 1.8760546,161.41887 0,94.58442 699.6120454,0 0,-94.58442 -699.6120454,0 z"
+         style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3076"
+         style="font-size:20.01124954px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
+         y="217.62234"
+         x="32.51828"
+         xml:space="preserve">Framing</text>
+      <path
+         id="path3078"
+         d="m 214.65192,173.30055 0,70.89923 118.19144,0 0,-70.89923 -118.19144,0 z"
+         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3080"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="213.87022"
+         x="231.38007"
+         xml:space="preserve">WebSocket</text>
+      <path
+         id="path3082"
+         d="m 380.0574,173.30055 0,70.89923 118.19145,0 0,-70.89923 -118.19145,0 z"
+         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3084"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="213.87022"
+         x="396.47287"
+         xml:space="preserve">RawSocket</text>
+      <path
+         id="path3086"
+         d="m 545.54106,173.30055 0,70.89923 118.19144,0 0,-70.89923 -118.19144,0 z"
+         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3088"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="203.86459"
+         x="580.32623"
+         xml:space="preserve">HTTP</text>
+      <text
+         id="text3090"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="203.86459"
+         x="624.10083"
+         xml:space="preserve">/</text>
+      <text
+         id="text3092"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="223.87585"
+         x="572.82202"
+         xml:space="preserve">Longpoll</text>
+      <path
+         id="path3094"
+         d="m 1.8760546,323.38492 0,94.50625 699.6120454,0 0,-94.50625 -699.6120454,0 z"
+         style="fill:#d9d9d9;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3096"
+         style="font-size:20.01124954px;font-style:normal;font-weight:bold;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
+         y="378.96304"
+         x="32.51828"
+         xml:space="preserve">Transmission</text>
+      <path
+         id="path3098"
+         d="m 214.65192,335.18843 0,70.89923 118.19144,0 0,-70.89923 -118.19144,0 z"
+         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3100"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="375.21094"
+         x="238.88429"
+         xml:space="preserve">TCP</text>
+      <text
+         id="text3102"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="375.21094"
+         x="272.65329"
+         xml:space="preserve">/</text>
+      <text
+         id="text3104"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="375.21094"
+         x="277.6561"
+         xml:space="preserve">TLS</text>
+      <path
+         id="path3106"
+         d="m 380.0574,335.18843 0,70.89923 118.19145,0 0,-70.89923 -118.19145,0 z"
+         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3108"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="365.20529"
+         x="391.47006"
+         xml:space="preserve">Unix Domain </text>
+      <text
+         id="text3110"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="385.21655"
+         x="408.97992"
+         xml:space="preserve">Sockets</text>
+      <path
+         id="path3112"
+         d="m 545.54106,335.18843 0,70.89923 118.19144,0 0,-70.89923 -118.19144,0 z"
+         style="fill:#404040;fill-opacity:1;fill-rule:evenodd;stroke:none"
+         inkscape:connector-curvature="0" />
+      <text
+         id="text3114"
+         style="font-size:16.25914001px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#ffc000;font-family:Arial"
+         y="375.21094"
+         x="584.07837"
+         xml:space="preserve">Pipes</text>
+      <text
+         id="text3116"
+         style="font-size:20.01124954px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
+         y="132.57452"
+         x="256.39413"
+         xml:space="preserve">combined with any of</text>
+      <text
+         id="text3118"
+         style="font-size:20.01124954px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:#000000;font-family:Arial"
+         y="296.41663"
+         x="253.89273"
+         xml:space="preserve">combined with any of</text>
+    </g>
+  </g>
+</svg>
