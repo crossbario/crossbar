@@ -784,7 +784,7 @@ class RouterWorkerSession(NativeWorkerSession):
                      queueLimitBytes = path_options.get('queue_limit_bytes', 128 * 1024),
                      queueLimitMessages = path_options.get('queue_limit_messages', 100),
                      debug = path_options.get('debug', False),
-                     debug_session_id = path_options.get('debug_session_id', None)
+                     debug_transport_id = path_options.get('debug_transport_id', None)
                   )
                   lp_resource._templates = self._templates
 

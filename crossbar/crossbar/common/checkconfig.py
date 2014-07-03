@@ -494,7 +494,7 @@ def check_web_path_service_longpoll(config):
    if 'options' in config:
       check_dict_args({
          'debug': (False, [bool]),
-         'debug_session_id': (False, [six.text_type]),
+         'debug_transport_id': (False, [six.text_type]),
          'request_timeout': (False, six.integer_types),
          'session_timeout': (False, six.integer_types),
          'queue_limit_bytes': (False, six.integer_types),
