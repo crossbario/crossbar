@@ -66,7 +66,7 @@ from autobahn.twisted.resource import WebSocketResource, \
                                       WSGIRootResource, \
                                       HTTPChannelHixie76Aware
 
-from autobahn.twisted.longpoll import WampLongPollResource
+from crossbar.twisted.resource import WampLongPollResource
 
 import importlib
 import pkg_resources
@@ -784,8 +784,9 @@ class RouterWorkerSession(NativeWorkerSession):
                      queueLimitBytes = path_options.get('queue_limit_bytes', 128 * 1024),
                      queueLimitMessages = path_options.get('queue_limit_messages', 100),
                      debug = path_options.get('debug', False),
-                     #debug_session_id = path_options.get('debug_session_id', None)
+                     debug_session_id = path_options.get('debug_session_id', None)
                   )
+                  lp_resource._templates = self._templates
 
                   root.putChild(path, lp_resource)
 

@@ -232,7 +232,7 @@ class NativeWorkerSession(NativeProcessSession):
       else:
          sys.path.extend(paths_added_resolved)
 
-      ## "It’s important to note that the global working_set object is initialized from
+      ## "It is important to note that the global working_set object is initialized from
       ## sys.path when pkg_resources is first imported, but is only updated if you do all
       ## future sys.path manipulation via pkg_resources APIs. If you manually modify sys.path,
       ## you must invoke the appropriate methods on the working_set instance to keep it in sync."

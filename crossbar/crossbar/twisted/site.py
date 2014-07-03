@@ -30,6 +30,12 @@ def patchFileContentTypes(root):
    respective content type is written.
 
    We work around by patching the map.
+
+   See also: https://twistedmatrix.com/trac/ticket/7461
+
+   Update: the origin is http://bugs.python.org/issue21652
+
+   It is specific to CPython 2.7.7 on Windows. It is fixed in 2.7.8.
    """
    if six.PY2:
       c = 0
@@ -37,7 +43,8 @@ def patchFileContentTypes(root):
          if type(v) == unicode:
             root.contentTypes[k] = root.contentTypes[k].encode('ascii')
             c += 1
-      print("Monkey-patched MIME table ({} of {} entries)".format(c, len(root.contentTypes)))
+      if c:
+         print("Monkey-patched MIME table ({} of {} entries)".format(c, len(root.contentTypes)))
 
 
 

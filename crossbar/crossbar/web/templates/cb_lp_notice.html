@@ -1,0 +1,19 @@
+{% extends "cb_base.html" %}
+
+{% block content %}
+
+   <p>
+      This is a <b>WAMP-over-LongPoll</b> transport endpoint on your <a href="http://crossbar.io">Crossbar.io</a> server.
+
+      Applications talk to me speaking the <a href="https://github.com/tavendo/WAMP/blob/master/spec/advanced.md#long-poll-transport">WAMP-over-LongPoll</a> protocol.
+   </p>
+   <p>
+      If you are a human, this is likely not what you want to do;) Try <a href="/">here</a> instead.
+   </p>
+   <br>
+   <center style="font-size: 12px;">
+      Served for {{ peer }} from Crossbar.io node worker with PID {{ workerPid }}.
+   </center>
+   <br>
+
+{% endblock %}

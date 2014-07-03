@@ -158,6 +158,27 @@ if _HAS_CGI:
 
 
 
+import os
+import crossbar
+from autobahn.twisted import longpoll
+
+class WampLongPollResource(longpoll.WampLongPollResource):
+
+   def getNotice(self, peer, redirectUrl = None, redirectAfter = 0):
+      try:
+         page = self._templates.get_template('cb_lp_notice.html')
+         content = page.render(redirectUrl = redirectUrl,
+                               redirectAfter = redirectAfter,
+                               cbVersion = crossbar.__version__,
+                               peer = peer,
+                               workerPid = os.getpid())
+         content = content.encode('utf8')
+         return content
+      except Exception as e:         
+         log.msg("Error rendering LongPoll notice page template: {}".format(e))
+
+
+
 class PusherResource(Resource):
    """
    A HTTP/POST to WAMP PubSub bridge.
