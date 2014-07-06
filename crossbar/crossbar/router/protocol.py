@@ -641,7 +641,9 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
       else:
          raise Exception("invalid WAMP serializer '{}'".format(serid))
 
-      WampRawSocketServerFactory.__init__(self, factory, serializer)
+      debug = config.get('debug', False)
+
+      WampRawSocketServerFactory.__init__(self, factory, serializer, debug = debug)
 
 
 
