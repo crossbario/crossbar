@@ -17,42 +17,52 @@ $connection = new Connection(
     )
 );
 
-$connection->on('open',function (ClientSession $session) {
+$connection->on('open', function (ClientSession $session) use ($connection) {
 
-        // 1) subscribe to a topic
-        $onevent = function ($args) {
-            echo "Event {$args[0]}\n";
+
+        // SUBSCRIBE to a topic and receive events
+        $onHello = function ($args) {
+            echo "event for 'onhello' received: {$args[0]}\n";
         };
-        $session->subscribe('com.myapp.hello', $onevent);
+        $session->subscribe('com.example.onhello', $onHello);
+        echo "subscribed to topic 'onhello'";
 
-        // 2) publish an event
-        $session->publish('com.myapp.hello', array('Hello, world from PHP!!!'), [], ["acknowledge" => true])->then(
-            function () {
-                echo "Publish Acknowledged!\n";
-            },
-            function ($error) {
-                // publish failed
-                echo "Publish Error {$error}\n";
-            }
-        );
 
-        // 3) register a procedure for remoting
+        // REGISTER a procedure for remote calling
         $add2 = function ($args) {
+            echo "add2() called with {$args[0]} and {$args[1]}\n";
             return $args[0] + $args[1];
         };
-        $session->register('com.myapp.add2', $add2);
+        $session->register('com.example.add2', $add2);
+        echo "procedure add2() registered\n";
 
-        // 4) call a remote procedure
-        $session->call('com.myapp.add2', array(2, 3))->then(
-            function ($res) {
-                echo "Result: {$res}\n";
-            },
-            function ($error) {
-                echo "Call Error: {$error}\n";
-            }
-        );
+
+        // PUBLISH and CALL every second .. forever
+        $counter = 0;
+        while (true) {
+
+            // PUBLISH an event
+            $session->publish('com.example.oncounter', array($counter));
+            echo "published to 'oncounter' with counter {$counter}\n";
+            $counter++;
+
+            // CALL a remote procedure
+            $session->call('com.example.mul2', array($counter, 3))->then(
+                function ($res) {
+                    echo "mul2() called with result: {$res}\n";
+                },
+                function ($error) {
+                    if ($error !== 'wamp.error.no_such_procedure') {
+                        echo "call of mul2() failed: {$error}\n";
+                    }
+                }
+            );
+
+            // Tell the connection to process the events every second
+            $connection->doEvents(1);
+
+        }
     }
-
 );
 
 $connection->open();
