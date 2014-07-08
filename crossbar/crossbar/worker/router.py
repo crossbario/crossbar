@@ -619,6 +619,24 @@ class RouterWorkerSession(NativeWorkerSession):
             root = RedirectResource(redirect_url)
 
 
+         ## Pusher resource
+         ##
+         elif root_type == 'pusher':
+
+            ## create a vanilla session: the pusher will use this to inject events
+            ##
+            pusher_session_config = ComponentConfig(realm = root_config['realm'], extra = None)
+            pusher_session = ApplicationSession(pusher_session_config)
+
+            ## add the pushing session to the router
+            ##
+            self.session_factory.add(pusher_session)
+
+            ## now create the pusher Twisted Web resource and add it to resource tree
+            ##
+            root = PusherResource(root_config.get('options', {}), pusher_session)
+
+
          ## Invalid root resource
          ##
          else:

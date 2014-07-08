@@ -575,7 +575,7 @@ def check_web_path_service(path, config):
 
    ptype = config['type']
    if path == '/':
-      if ptype not in ['static', 'wsgi', 'redirect']:
+      if ptype not in ['static', 'wsgi', 'redirect', 'pusher']:
          raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
    else:
       if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher']:
