@@ -290,14 +290,15 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
 
          ## Activate ECDH(E)
          ##
-         ## This needs pyOpenSSL 0.14
+         ## This needs pyOpenSSL 0.15
          ##
          try:
             ## without setting a curve, ECDH won't be available even if listed
             ## in SSL_DEFAULT_CIPHERS!
+            ## curve must be one of OpenSSL.crypto.get_elliptic_curves()
             ##
-            #print OpenSSL.SSL.ELLIPTIC_CURVE_DESCRIPTIONS
-            ctx.set_tmp_ecdh_curve(ECDH_DEFAULT_CURVE_NAME)
+            curve = crypto.get_elliptic_curve(ECDH_DEFAULT_CURVE_NAME)
+            ctx.set_tmp_ecdh(curve)
          except Exception as e:
             log.msg("Warning: OpenSSL failed to set ECDH default curve [{}]".format(e))
          else:
