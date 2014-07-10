@@ -120,27 +120,6 @@ EXTRA_MIME_TYPES = {
 
 
 
-class RouterRealm:
-   """
-   A realm managed by a router.
-   """
-   def __init__(self, id, realm, config):
-      """
-      Ctor.
-
-      :param id: The realm index within the router.
-      :type id: int
-      :param realm: The realm name.
-      :type realm: str
-      :param config: The realm configuration.
-      :type config: str
-      """
-      self.id = id
-      self.realm = realm
-      self.config = config
-
-
-
 class RouterTransport:
    """
    A transport attached to a router.
@@ -183,6 +162,28 @@ class RouterComponent:
       self.id = id
       self.config = config
       self.session = session
+      self.created = datetime.utcnow()
+
+
+
+class RouterRealm:
+   """
+   A realm managed by a router.
+   """
+
+   def __init__(self, id, config):
+      """
+      Ctor.
+
+      :param id: The realm index within the router.
+      :type id: int
+      :param realm: The realm name.
+      :type realm: str
+      :param config: The realm configuration.
+      :type config: str
+      """
+      self.id = id
+      self.config = config
       self.created = datetime.utcnow()
 
 
@@ -288,7 +289,8 @@ class RouterWorkerSession(NativeWorkerSession):
       if True or self.debug:
          log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
 
-      #raise NotImplementedError()
+      self.realms[id] = RouterRealm(id, config)
+      self.factory.start(config['name'])
 
 
 

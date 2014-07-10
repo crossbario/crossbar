@@ -343,3 +343,9 @@ class CrossbarRouterFactory(RouterFactory):
       RouterFactory.__init__(self, options, debug)
 
       self._authorizer = CrossbarRouterAuthorizer()
+
+   def start(self, realm):
+      pass
+
+   def stop(self, realm):
+      pass
