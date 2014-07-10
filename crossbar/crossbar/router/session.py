@@ -36,6 +36,7 @@ from autobahn.websocket.compress import *
 
 from autobahn.wamp import types
 from autobahn.wamp import message
+from autobahn.wamp.interfaces import IRouter
 from autobahn.wamp.router import Router, RouterFactory
 from autobahn.twisted.wamp import RouterSession, RouterSessionFactory
 
@@ -77,12 +78,19 @@ class CrossbarRouterSession(RouterSession):
 
    def onHello(self, realm, details):
 
+      authorizer = self._router_factory._authorizer
+
       if self._transport._authid is not None:
          ## already authenticated .. e.g. via cookie
          ##
-         return types.Accept(authid = self._transport._authid,
-                             authrole = self._transport._authrole,
-                             authmethod = self._transport._authmethod)
+         allow = authorizer.authorize_join(realm, self._transport._authrole)
+
+         if allow:
+            return types.Accept(authid = self._transport._authid,
+                                authrole = self._transport._authrole,
+                                authmethod = self._transport._authmethod)
+         else:
+            return types.Deny()
       else:
          ## if authentication is enabled on the transport ..
          ##
@@ -142,9 +150,14 @@ class CrossbarRouterSession(RouterSession):
 
                      self._transport._authid = authid
                      self._transport._authrole = authrole
-                     self._transport._authmethod = "anonymous"
+                     self._transport._authmethod = authmethod
 
-                     return types.Accept(authid = authid, authrole = authrole, authmethod = self._transport._authmethod)
+                     allow = authorizer.authorize_join(realm, self._transport._authrole)
+
+                     if allow:
+                        return types.Accept(authid = authid, authrole = authrole, authmethod = self._transport._authmethod)
+                     else:
+                        return Deny()
 
                   elif authmethod == "cookie":
                      pass
@@ -164,7 +177,7 @@ class CrossbarRouterSession(RouterSession):
             ##
             return types.Deny()
          else:
-            ## FIXME: if not "auth" key present, allow anyone
+            ## if authentication is not configured, by default, allow anyone.
             return types.Accept(authid = "anonymous", authrole = "anonymous", authmethod = "anonymous")
 
 
@@ -295,12 +308,29 @@ class CrossbarRouterSessionFactory(RouterSessionFactory):
    session = CrossbarRouterSession
 
 
+from collections import namedtuple
+
+#AuthorizationInfo = namedtuple('AuthorizationInfo', ['session', 'authid', 'authrole', 'authmethod', 'authprovider', 'uri', 'action'])
+
+
+class CrossbarRouterAuthorizer:
+
+   def authorize_join(self, realm, authrole):
+      return True
+
+   def authorize_action(self, realm, authrole, uri, action):
+      return True
+
+
 
 class CrossbarRouter(Router):
 
    def authorize(self, session, uri, action):
-      print("CrossbarRouter.authorize: {} {} {}".format(session._session_id, uri, action))
-      return True
+      action = IRouter.ACTION_TO_STRING[action]
+      authorized = self.factory._authorizer.authorize_action(self.realm, session._authrole, uri, action)
+      if True or self.debug:
+         print("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
+      return authorized
 
 
 
@@ -311,3 +341,5 @@ class CrossbarRouterFactory(RouterFactory):
    def __init__(self, options = None, debug = False):
       options = types.RouterOptions(uri_check = types.RouterOptions.URI_CHECK_LOOSE)
       RouterFactory.__init__(self, options, debug)
+
+      self._authorizer = CrossbarRouterAuthorizer()
