@@ -234,6 +234,9 @@ class RouterWorkerSession(NativeWorkerSession):
          'get_router_realms',
          'start_router_realm',
          'stop_router_realm',
+         'get_router_realm_permissions',
+         'add_router_realm_permission',
+         'drop_router_realm_permission',
          'get_router_components',
          'start_router_component',
          'stop_router_component',
@@ -282,10 +285,10 @@ class RouterWorkerSession(NativeWorkerSession):
       :param config: The realm configuration.
       :type config: dict
       """
-      if self.debug:
+      if True or self.debug:
          log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
 
-      raise NotImplementedError()
+      #raise NotImplementedError()
 
 
 
@@ -305,6 +308,31 @@ class RouterWorkerSession(NativeWorkerSession):
          log.msg("{}.stop_router_realm".format(self.__class__.__name__), id, close_sessions)
 
       raise NotImplementedError()
+
+
+
+   def get_router_realm_permissions(self, id, details = None):
+      """
+
+      :param id: The ID of the router realm to list permissions for.
+      :type id: str
+      """
+      print "get_router_realm_permissions", id
+      return []
+
+
+
+   def add_router_realm_permission(self, id, permission_id, permission, details = None):
+      """
+
+      :param id: The ID of the 
+      """
+      print "add_router_realm_permission", id, permission_id, permission
+
+
+
+   def drop_router_realm_permission(self, id, permission_id, details = None):
+      print "drop_router_realm_permission", id, permission_id
 
 
 
