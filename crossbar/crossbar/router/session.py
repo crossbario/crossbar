@@ -300,6 +300,7 @@ class CrossbarRouter(Router):
 
    def authorize(self, session, uri, action):
       print("CrossbarRouter.authorize: {} {} {}".format(session._session_id, uri, action))
+      return True
 
 
 

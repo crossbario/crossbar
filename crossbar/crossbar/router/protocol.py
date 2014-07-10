@@ -704,14 +704,14 @@ class CrossbarWampWebSocketClientFactory(WampWebSocketClientFactory):
    """
    protocol = CrossbarWampWebSocketClientProtocol
 
-   def __init2__(self, factory, config):
+   # def __init__(self, factory, config):
 
-      ## transport configuration
-      self._config = config
+   #    ## transport configuration
+   #    self._config = config
 
-      WampWebSocketClientFactory.__init__(self, config)
+   #    WampWebSocketClientFactory.__init__(self, config)
 
-      self.setProtocolOptions(failByDrop = False)
+   #    self.setProtocolOptions(failByDrop = False)
 
 
 
