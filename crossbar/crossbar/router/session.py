@@ -36,7 +36,7 @@ from autobahn.websocket.compress import *
 
 from autobahn.wamp import types
 from autobahn.wamp import message
-from autobahn.wamp.router import RouterFactory
+from autobahn.wamp.router import Router, RouterFactory
 from autobahn.twisted.wamp import RouterSession, RouterSessionFactory
 
 import crossbar
@@ -44,7 +44,9 @@ import crossbar
 
 
 class PendingAuth:
-   pass
+   """
+   Base class for pending WAMP authentications.
+   """
 
 
 
@@ -294,52 +296,17 @@ class CrossbarRouterSessionFactory(RouterSessionFactory):
 
 
 
+class CrossbarRouter(Router):
+
+   def authorize(self, session, uri, action):
+      print("CrossbarRouter.authorize: {} {} {}".format(session._session_id, uri, action))
+
+
+
 class CrossbarRouterFactory(RouterFactory):
+
+   router = CrossbarRouter
+
    def __init__(self, options = None, debug = False):
       options = types.RouterOptions(uri_check = types.RouterOptions.URI_CHECK_LOOSE)
       RouterFactory.__init__(self, options, debug)
-
-
-
-# from autobahn.wamp.interfaces import IRouter, IRouterFactory
-
-
-# class CrossbarRouterFactory:
-#    """
-#    Basic WAMP Router factory.
-
-#    This class implements :class:`autobahn.wamp.interfaces.IRouterFactory`.
-#    """
-
-#    def __init__(self, options = None, debug = False):
-#       """
-#       Ctor.
-
-#       :param options: Default router options.
-#       :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.      
-#       """
-#       self._routers = {}
-#       self.debug = debug
-#       self._options = options or types.RouterOptions()
-
-
-#    def get(self, realm):
-#       """
-#       Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
-#       """
-#       if not realm in self._routers:
-#          self._routers[realm] = Router(self, realm, self._options)
-#          if self.debug:
-#             print("Router created for realm '{}'".format(realm))
-#       return self._routers[realm]
-
-
-#    def onLastDetach(self, router):
-#       assert(router.realm in self._routers)
-#       del self._routers[router.realm]
-#       if self.debug:
-#          print("Router destroyed for realm '{}'".format(router.realm))
-
-
-
-# IRouterFactory.register(CrossbarRouterFactory)
