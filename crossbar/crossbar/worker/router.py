@@ -128,8 +128,8 @@ class RouterTransport:
       """
       Ctor.
 
-      :param id: The transport index within the router.
-      :type id: int
+      :param id: The transport ID within the router.
+      :type id: str
       :param config: The transport's configuration.
       :type config: dict
       :param factory: The transport factory in use.
@@ -152,8 +152,8 @@ class RouterComponent:
       """
       Ctor.
 
-      :param id: The component index within the router instance.
-      :type id: int
+      :param id: The component ID within the router instance.
+      :type id: str
       :param config: The component's configuration.
       :type config: dict
       :param session: The component application session.
@@ -175,16 +175,32 @@ class RouterRealm:
       """
       Ctor.
 
-      :param id: The realm index within the router.
-      :type id: int
-      :param realm: The realm name.
-      :type realm: str
+      :param id: The realm ID within the router.
+      :type id: str
       :param config: The realm configuration.
-      :type config: str
+      :type config: dict
       """
       self.id = id
       self.config = config
       self.created = datetime.utcnow()
+      self.roles = {}
+
+
+
+class RouterRealmRole:
+   """
+   A role in a realm managed by a router.
+   """
+
+   def __init__(self, id, config):
+      """
+      Ctor.
+
+      :param id: The role ID within the realm.
+      :type id: str
+      :param config: The role configuration.
+      :type config: dict
+      """
 
 
 
@@ -235,9 +251,9 @@ class RouterWorkerSession(NativeWorkerSession):
          'get_router_realms',
          'start_router_realm',
          'stop_router_realm',
-         'get_router_realm_permissions',
-         'add_router_realm_permission',
-         'drop_router_realm_permission',
+         'get_router_realm_roles',
+         'add_router_realm_role',
+         'drop_router_realm_role',
          'get_router_components',
          'start_router_component',
          'stop_router_component',
@@ -290,7 +306,7 @@ class RouterWorkerSession(NativeWorkerSession):
          log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
 
       self.realms[id] = RouterRealm(id, config)
-      self.factory.start(config['name'])
+      self.factory.start_realm(config['name'])
 
 
 
@@ -313,28 +329,72 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def get_router_realm_permissions(self, id, details = None):
+   def get_router_realm_roles(self, id, details = None):
       """
 
-      :param id: The ID of the router realm to list permissions for.
+      :param id: The ID of the router realm to list roles for.
       :type id: str
+
+      :returns: list -- A list of roles.
       """
-      print "get_router_realm_permissions", id
-      return []
+      if True or self.debug:
+         log.msg("{}.get_router_realm_roles".format(self.__class__.__name__), id)
+
+      if id not in self.realms:
+         raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+
+      return self.realms[id].roles.values()
 
 
 
-   def add_router_realm_permission(self, id, permission_id, permission, details = None):
+   def add_router_realm_role(self, id, role_id, config, details = None):
       """
+      Adds a role to a realm.
 
-      :param id: The ID of the 
+      :param id: The ID of the realm the role should be added to.
+      :type id: str
+      :param role_id: The ID of the role to add.
+      :type role_id: str
+      :param config: The role configuration.
+      :type config: dict
       """
-      print "add_router_realm_permission", id, permission_id, permission
+      if True or self.debug:
+         log.msg("{}.add_router_realm_role".format(self.__class__.__name__), id, role_id, config)
+
+      if id not in self.realms:
+         raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+
+      if role_id in self.realms[id].roles:
+         raise ApplicationError("crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, id))
+
+      self.realms[id].roles[role_id] = RouterRealmRole(role_id, config)
+
+      realm_name = self.realms[id].config['name']
+      role_name = config['name']
+      self.factory.add_role(realm_name, config)
 
 
 
-   def drop_router_realm_permission(self, id, permission_id, details = None):
-      print "drop_router_realm_permission", id, permission_id
+   def drop_router_realm_role(self, id, role_id, details = None):
+      """
+      Drop a role from a realm.
+
+      :param id: The ID of the realm to drop a role from.
+      :type id: str
+      :param role_id: The ID of the role within the realm to drop.
+      :type role_id: str
+      """
+      if True or self.debug:
+         log.msg("{}.drop_router_realm_role".format(self.__class__.__name__), id, role_id)
+
+      if id not in self.realms:
+         raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+
+      if role_id not in self.realms[id].roles:
+         raise ApplicationError("crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, id))
+
+      del self.realms[id].roles[role_id]
+
 
 
 

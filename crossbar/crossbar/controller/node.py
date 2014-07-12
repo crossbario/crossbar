@@ -300,26 +300,40 @@ class Node:
                   yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm)
                   log.msg("{}: realm '{}' started".format(worker_logname, realm_id))
 
-                  ## add permissions on realm
+
+                  ## add roles to realm
                   ##
-                  perm_no = 1
+                  role_no = 1
                   for role in realm.get('roles', []):
-                     for permission in role.get('permissions', []):
-                        if 'id' in permission:
-                           perm_id = permission['id']
-                        else:
-                           perm_id = 'perm{}'.format(perm_no)
-                           perm_no += 1
-                        perm = {
-                           'role': role['name'],
-                           'uri': permission['uri'],
-                           'call': permission.get('call', False),
-                           'register': permission.get('register', False),
-                           'publish': permission.get('publish', False),
-                           'subscribe': permission.get('subscribe', False)
-                        }
-                        yield self._controller.call('crossbar.node.{}.worker.{}.add_router_realm_permission'.format(self._node_id, worker_id), realm_id, perm_id, perm)
-                        log.msg("{}: permission '{}'' added on realm '{}'".format(worker_logname, perm_id, realm_id))
+                     if 'id' in role:
+                        role_id = role.pop('id')
+                     else:
+                        role_id = 'role{}'.format(role_no)
+                        role_no += 1
+
+                     yield self._controller.call('crossbar.node.{}.worker.{}.add_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role)
+                     log.msg("{}: role '{}' added to realm '{}'".format(worker_logname, role_id, realm_id))
+
+                  # ## add permissions on realm
+                  # ##
+                  # perm_no = 1
+                  # for role in realm.get('roles', []):
+                  #    for permission in role.get('permissions', []):
+                  #       if 'id' in permission:
+                  #          perm_id = permission['id']
+                  #       else:
+                  #          perm_id = 'perm{}'.format(perm_no)
+                  #          perm_no += 1
+                  #       perm = {
+                  #          'role': role['name'],
+                  #          'uri': permission['uri'],
+                  #          'call': permission.get('call', False),
+                  #          'register': permission.get('register', False),
+                  #          'publish': permission.get('publish', False),
+                  #          'subscribe': permission.get('subscribe', False)
+                  #       }
+                  #       yield self._controller.call('crossbar.node.{}.worker.{}.add_router_realm_permission'.format(self._node_id, worker_id), realm_id, perm_id, perm)
+                  #       log.msg("{}: permission '{}'' added on realm '{}'".format(worker_logname, perm_id, realm_id))
 
 
                ## start components to run embedded in the router

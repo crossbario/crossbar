@@ -323,13 +323,48 @@ class CrossbarRouterAuthorizer:
 
 
 
+class CrossbarRouterRole:
+
+   def __init__(self, uri):
+      self.uri = uri
+
+   def authorize(self, uri, action):
+      print("CrossbarRouterRole.authorize", uri, action)
+      return True
+
+
+class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
+
+   def __init__(self, uri, permissions):
+      CrossbarRouterRole.__init__(self, uri)
+      self.permissions = permissions
+
+
+
 class CrossbarRouter(Router):
 
+   def __init__(self, *args, **kwargs):
+      Router.__init__(self, *args, **kwargs)
+      self._roles = {}
+
+
+   def add_role(self, role):
+      print("CrossbarRouter.add_role", role)
+      self._roles[role.uri] = role
+
+
    def authorize(self, session, uri, action):
+      role = session._authrole
       action = IRouter.ACTION_TO_STRING[action]
-      authorized = self.factory._authorizer.authorize_action(self.realm, session._authrole, uri, action)
+
+      authorized = False
+      if role in self._roles:
+         #authorized = self.factory._authorizer.authorize_action(self.realm, role, uri, action)
+         authorized = self._roles[role].authorize(uri, action)
+
       if True or self.debug:
          print("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
+
       return authorized
 
 
@@ -344,8 +379,42 @@ class CrossbarRouterFactory(RouterFactory):
 
       self._authorizer = CrossbarRouterAuthorizer()
 
-   def start(self, realm):
-      pass
 
-   def stop(self, realm):
-      pass
+   def get(self, realm):
+      """
+      Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
+      """
+      return self._routers[realm]
+
+
+   def start_realm(self, realm):
+      print("CrossbarRouterFactory.start_realm", realm)
+      try:
+         assert(realm not in self._routers)
+
+         self._routers[realm] = self.router(self, realm, self._options)
+         if self.debug:
+            print("Router created for realm '{}'".format(realm))
+      except Exception as e:
+         print "YYYYY", e
+
+
+   def stop_realm(self, realm):
+      print("CrossbarRouterFactory.stop_realm", realm)
+
+
+   def add_role(self, realm, config):
+      print("CrossbarRouterFactory.add_role", realm, config)
+      assert(realm in self._routers)
+
+      if 'permissions' in config:
+         role = CrossbarRouterRoleStaticAuth(config['name'], config['permissions'])
+      else:
+         role = CrossbarRouterRole(config['name'])
+
+      self._routers[realm].add_role(role)
+
+
+
+   def drop_role(self, realm, role):
+      print("CrossbarRouterFactory.drop_role", realm, role)
