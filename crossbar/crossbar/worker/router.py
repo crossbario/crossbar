@@ -306,7 +306,7 @@ class RouterWorkerSession(NativeWorkerSession):
          log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
 
       self.realms[id] = RouterRealm(id, config)
-      self.factory.start_realm(config['name'])
+      self.factory.start_realm(config['uri'])
 
 
 
@@ -369,9 +369,8 @@ class RouterWorkerSession(NativeWorkerSession):
 
       self.realms[id].roles[role_id] = RouterRealmRole(role_id, config)
 
-      realm_name = self.realms[id].config['name']
-      role_name = config['name']
-      self.factory.add_role(realm_name, config)
+      realm = self.realms[id].config['uri']
+      self.factory.add_role(realm, config)
 
 
 
