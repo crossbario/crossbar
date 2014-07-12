@@ -21,14 +21,15 @@ from __future__ import absolute_import
 __all__ = ['CrossbarRouterSessionFactory',
            'CrossbarRouterFactory']
 
+import json
 import datetime
+from pytrie import StringTrie
+from collections import namedtuple
+
+from six.moves import urllib
 
 from twisted.python import log
 from twisted.internet.defer import Deferred
-
-import json
-
-from six.moves import urllib
 
 from autobahn import util
 from autobahn.websocket import http
@@ -53,6 +54,9 @@ class PendingAuth:
 
 
 class PendingAuthPersona(PendingAuth):
+   """
+   Pending Mozilla Persona authentication.
+   """
    def __init__(self, provider, audience, role = None):
       self.provider = provider
       self.audience = audience
@@ -66,6 +70,9 @@ class CrossbarRouterSession(RouterSession):
    """
 
    def onOpen(self, transport):
+      """
+      Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onOpen`
+      """
       RouterSession.onOpen(self, transport)
 
       if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
@@ -278,18 +285,16 @@ class CrossbarRouterSession(RouterSession):
          'session': details.session
       }
 
-      ## FIXME: dispatch metaevent
-      #self.publish('wamp.metaevent.session.on_join', evt)
-
+      ## dispatch session metaevent from WAMP AP
+      ##
       msg = message.Publish(0, u'wamp.metaevent.session.on_join', [self._session_details])
       self._router.process(self, msg)
 
 
    def onLeave(self, details):
 
-      ## FIXME: dispatch metaevent
-      #self.publish('wamp.metaevent.session.on_join', evt)
-
+      ## dispatch session metaevent from WAMP AP
+      ##
       msg = message.Publish(0, u'wamp.metaevent.session.on_leave', [self._session_details])
       self._router.process(self, msg)
       self._session_details = None
@@ -312,23 +317,45 @@ class CrossbarRouterSessionFactory(RouterSessionFactory):
 
 
 
+CrossbarRouterPermissions = namedtuple('CrossbarRouterPermissions', ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
+
+
 
 class CrossbarRouterRole:
+   """
+   A role on a router realm that is authorized to do anything.
+   """
 
-   def __init__(self, uri, debug = False):
+   def __init__(self, router, uri, debug = False):
+      """
+      Ctor.
+
+      :param uri: The URI of the role.
+      :type uri: str
+      :param debug: Enable debug logging.
+      :type debug: bool
+      """
+      self.router = router
       self.uri = uri
       self.debug = debug
 
+
    def authorize(self, uri, action):
-      print("CrossbarRouterRole.authorize", uri, action)
+      """
+      Authorize a session connected under this role to perform the given action
+      on the given URI.
+
+      :param uri: The URI on which to perform the action.
+      :type uri: str
+      :param action: The action to be performed.
+      :type action: str
+
+      :return: bool -- Flag indicating whether session is authorized or not.
+      """
+      if self.debug:
+         log.msg("CrossbarRouterRole.authorize", uri, action)
       return True
 
-
-
-from pytrie import StringTrie
-from collections import namedtuple
-
-Permissions = namedtuple('Permissions', ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
 
 
 class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
@@ -336,7 +363,7 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
    A role on a router realm that is authorized using a static configuration.
    """
 
-   def __init__(self, uri, permissions, debug = False):
+   def __init__(self, router, uri, permissions, debug = False):
       """
       Ctor.
 
@@ -345,8 +372,10 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
       :param permissions: A permissions configuration, e.g. a list
          of permission dicts like `{'uri': 'com.example.*', 'call': True}`
       :type permissions: list
+      :param debug: Enable debug logging.
+      :type debug: bool
       """
-      CrossbarRouterRole.__init__(self, uri, debug)
+      CrossbarRouterRole.__init__(self, router, uri, debug)
       self.permissions = permissions
 
       self._urimap = StringTrie()
@@ -360,7 +389,7 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
          else:
             match_by_prefix = False
 
-         self._urimap[uri] = Permissions(uri, match_by_prefix,
+         self._urimap[uri] = CrossbarRouterPermissions(uri, match_by_prefix,
             call = p.get('call', False),
             register = p.get('register', False),
             publish = p.get('publish', False),
@@ -393,17 +422,57 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
 
 
 
+class CrossbarRouterRoleDynamicAuth(CrossbarRouterRole):
+   """
+   A role on a router realm that is authorized by calling (via WAMP RPC)
+   an authorizer function provided by the app.
+   """
+
+   def __init__(self, router, uri, authorizer, debug = False):
+      """
+      Ctor.
+
+      :param uri: The URI of the role.
+      :type uri: str
+      :param debug: Enable debug logging.
+      :type debug: bool
+      """
+      CrossbarRouterRole.__init__(self, router, uri, debug)
+      self._authorizer = authorizer
+      self._session = router._realm.session
+
+
+   def authorize(self, uri, action):
+      """
+      Authorize a session connected under this role to perform the given action
+      on the given URI.
+
+      :param uri: The URI on which to perform the action.
+      :type uri: str
+      :param action: The action to be performed.
+      :type action: str
+
+      :return: bool -- Flag indicating whether session is authorized or not.
+      """
+      if self.debug:
+         log.msg("CrossbarRouterRole.authorize", self.uri, uri, action)
+      return self._session.call(self._authorizer, uri, action)
+
+
+
 class CrossbarRouter(Router):
    """
    Crossbar.io core router class.
    """
 
-   def __init__(self, *args, **kwargs):
+   def __init__(self, factory, realm, options = None):
       """
       Ctor.
       """
-      Router.__init__(self, *args, **kwargs)
+      uri = realm.config['uri']
+      Router.__init__(self, factory, uri, options)
       self._roles = {}
+      self._realm = realm
 
 
    def has_role(self, uri):
@@ -478,8 +547,6 @@ class CrossbarRouterFactory(RouterFactory):
    Crossbar.io core router factory.
    """
 
-   router = CrossbarRouter
-
    def __init__(self, options = None, debug = True):
       """
       Ctor.
@@ -505,15 +572,22 @@ class CrossbarRouterFactory(RouterFactory):
       return self._routers[realm]
 
 
-
-
    def start_realm(self, realm):
-      print("CrossbarRouterFactory.start_realm", realm)
-      assert(realm not in self._routers)
+      """
+      Starts a realm on this router.
 
-      self._routers[realm] = self.router(self, realm, self._options)
+      :param realm: The realm to start.
+      :type realm: instance of :class:`crossbar.worker.router.RouterRealm`.
+      """
       if self.debug:
-         print("Router created for realm '{}'".format(realm))
+         log.msg("CrossbarRouterFactory.start_realm", realm)
+
+      uri = realm.config['uri']
+      assert(uri not in self._routers)
+
+      self._routers[uri] = CrossbarRouter(self, realm, self._options)
+      if self.debug:
+         print("Router created for realm '{}'".format(uri))
 
 
    def stop_realm(self, realm):
@@ -524,12 +598,16 @@ class CrossbarRouterFactory(RouterFactory):
       print("CrossbarRouterFactory.add_role", realm, config)
       assert(realm in self._routers)
 
-      if 'permissions' in config:
-         role = CrossbarRouterRoleStaticAuth(config['uri'], config['permissions'], debug = self.debug)
-      else:
-         role = CrossbarRouterRole(config['uri'], debug = self.debug)
+      router = self._routers[realm]
 
-      self._routers[realm].add_role(role)
+      if 'permissions' in config:
+         role = CrossbarRouterRoleStaticAuth(router, config['uri'], config['permissions'], debug = self.debug)
+      elif 'authorizer' in config:
+         role = CrossbarRouterRoleDynamicAuth(router, config['uri'], config['authorizer'], debug = self.debug)
+      else:
+         role = CrossbarRouterRole(router, config['uri'], debug = self.debug)
+
+      router.add_role(role)
 
 
    def drop_role(self, realm, role):

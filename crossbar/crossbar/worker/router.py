@@ -171,7 +171,7 @@ class RouterRealm:
    A realm managed by a router.
    """
 
-   def __init__(self, id, config):
+   def __init__(self, id, config, session):
       """
       Ctor.
 
@@ -182,6 +182,7 @@ class RouterRealm:
       """
       self.id = id
       self.config = config
+      self.session = session
       self.created = datetime.utcnow()
       self.roles = {}
 
@@ -201,6 +202,13 @@ class RouterRealmRole:
       :param config: The role configuration.
       :type config: dict
       """
+
+
+
+class CrossbarRouterClientSession(ApplicationSession):
+
+   def onJoin(self, details):
+      print("CrossbarRouterClientSession.onJoin")
 
 
 
@@ -305,8 +313,19 @@ class RouterWorkerSession(NativeWorkerSession):
       if True or self.debug:
          log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
 
-      self.realms[id] = RouterRealm(id, config)
-      self.factory.start_realm(config['uri'])
+      try:
+         realm = config['uri']
+         cfg = ComponentConfig(realm)
+         session = CrossbarRouterClientSession(cfg)
+
+         rlm = RouterRealm(id, config, session)
+
+         self.realms[id] = rlm
+         self.factory.start_realm(rlm)
+
+         self.session_factory.add(session)
+      except Exception as e:
+         print "XXXXXXXXXX", e
 
 
 
