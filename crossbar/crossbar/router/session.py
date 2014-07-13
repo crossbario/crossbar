@@ -375,7 +375,8 @@ class CrossbarRouterServiceSession(ApplicationSession):
    """
 
    def onJoin(self, details):
-      print("CrossbarRouterServiceSession.onJoin({})".format(details))
+      if self.debug:
+         log.msg("CrossbarRouterServiceSession.onJoin({})".format(details))
 
 
 
@@ -631,7 +632,8 @@ class CrossbarRouter(Router):
       if role in self._roles:
          authorized = self._roles[role].authorize(session, uri, action)
 
-      if self.debug:
+      if True or self.debug:
+         print "zzz", role, self._roles[role]._urimap
          print("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
 
       return authorized
@@ -643,7 +645,7 @@ class CrossbarRouterFactory(RouterFactory):
    Crossbar.io core router factory.
    """
 
-   def __init__(self, options = None, debug = True):
+   def __init__(self, options = None, debug = False):
       """
       Ctor.
       """
@@ -656,8 +658,6 @@ class CrossbarRouterFactory(RouterFactory):
 
 
    def __contains__(self, realm):
-      if self.debug:
-         log.msg("CrossbarRouterFactory.__contains__", realm)
       return realm in self._routers
 
 
@@ -676,7 +676,7 @@ class CrossbarRouterFactory(RouterFactory):
       :type realm: instance of :class:`crossbar.worker.router.RouterRealm`.
       """
       if self.debug:
-         log.msg("CrossbarRouterFactory.start_realm", realm)
+         log.msg("CrossbarRouterFactory.start_realm(realm = {})".format(realm))
 
       uri = realm.config['uri']
       assert(uri not in self._routers)
@@ -687,11 +687,14 @@ class CrossbarRouterFactory(RouterFactory):
 
 
    def stop_realm(self, realm):
-      print("CrossbarRouterFactory.stop_realm", realm)
+      if self.debug:
+         log.msg("CrossbarRouterFactory.stop_realm(realm = {})".format(realm))
 
 
    def add_role(self, realm, config):
-      print("CrossbarRouterFactory.add_role", realm, config)
+      if self.debug:
+         log.msg("CrossbarRouterFactory.add_role(realm = {}, config = {})".format(realm, config))
+
       assert(realm in self._routers)
 
       router = self._routers[realm]
@@ -707,4 +710,5 @@ class CrossbarRouterFactory(RouterFactory):
 
 
    def drop_role(self, realm, role):
-      print("CrossbarRouterFactory.drop_role", realm, role)
+      if self.debug:
+         log.msg("CrossbarRouterFactory.drop_role(realm = {}, role = {})".format(realm, role))

@@ -304,22 +304,19 @@ class RouterWorkerSession(NativeWorkerSession):
       :param config: The realm configuration.
       :type config: dict
       """
-      if True or self.debug:
+      if self.debug:
          log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
 
-      try:
-         realm = config['uri']
-         cfg = ComponentConfig(realm)
-         session = CrossbarRouterServiceSession(cfg)
+      realm = config['uri']
+      cfg = ComponentConfig(realm)
+      session = CrossbarRouterServiceSession(cfg)
 
-         rlm = RouterRealm(id, config, session)
+      rlm = RouterRealm(id, config, session)
 
-         self.realms[id] = rlm
-         self.factory.start_realm(rlm)
+      self.realms[id] = rlm
+      self.factory.start_realm(rlm)
 
-         self.session_factory.add(session, authrole = 'trusted')
-      except Exception as e:
-         print "XXXXXXXXXX", e
+      self.session_factory.add(session, authrole = 'trusted')
 
 
 
@@ -350,7 +347,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
       :returns: list -- A list of roles.
       """
-      if True or self.debug:
+      if self.debug:
          log.msg("{}.get_router_realm_roles".format(self.__class__.__name__), id)
 
       if id not in self.realms:
@@ -371,7 +368,7 @@ class RouterWorkerSession(NativeWorkerSession):
       :param config: The role configuration.
       :type config: dict
       """
-      if True or self.debug:
+      if self.debug:
          log.msg("{}.add_router_realm_role".format(self.__class__.__name__), id, role_id, config)
 
       if id not in self.realms:
@@ -396,7 +393,7 @@ class RouterWorkerSession(NativeWorkerSession):
       :param role_id: The ID of the role within the realm to drop.
       :type role_id: str
       """
-      if True or self.debug:
+      if self.debug:
          log.msg("{}.drop_router_realm_role".format(self.__class__.__name__), id, role_id)
 
       if id not in self.realms:
@@ -514,7 +511,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
       self.components[id] = RouterComponent(id, config, session)
-      self.session_factory.add(session, authrole = config.get('authrole', 'anonymous'))
+      self.session_factory.add(session, authrole = config.get('role', 'anonymous'))
 
 
 
@@ -731,7 +728,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             ## add the pushing session to the router
             ##
-            self.session_factory.add(pusher_session)
+            self.session_factory.add(pusher_session, root_config.get('role', 'anonymous'))
 
             ## now create the pusher Twisted Web resource and add it to resource tree
             ##
@@ -921,7 +918,8 @@ class RouterWorkerSession(NativeWorkerSession):
 
                   ## add the pushing session to the router
                   ##
-                  self.session_factory.add(pusher_session)
+                  print "XX"*100, path_config, path_config.get('role', 'anonymous')
+                  self.session_factory.add(pusher_session, path_config.get('role', 'anonymous'))
 
                   ## now create the pusher Twisted Web resource and add it to resource tree
                   ##
