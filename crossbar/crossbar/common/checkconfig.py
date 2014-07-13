@@ -678,7 +678,7 @@ def check_listening_transport_websocket(transport):
    :type transport: dict
    """
    for k in transport:
-      if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options']:
+      if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options', 'auth']:
          raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
    if 'id' in transport:
@@ -711,6 +711,8 @@ def check_listening_transport_websocket(transport):
       except Exception as e:
          raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
+   ## FIXME: check auth
+
 
 
 def check_listening_transport_rawsocket(transport):
@@ -721,7 +723,7 @@ def check_listening_transport_rawsocket(transport):
    :type transport: dict
    """
    for k in transport:
-      if k not in ['id', 'type', 'endpoint', 'serializer', 'debug']:
+      if k not in ['id', 'type', 'endpoint', 'serializer', 'debug', 'auth']:
          raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
    if 'id' in transport:
@@ -746,6 +748,8 @@ def check_listening_transport_rawsocket(transport):
       debug = transport['debug']
       if type(debug) != bool:
          raise Exception("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+   ## FIXME: check auth
 
 
 

@@ -86,21 +86,29 @@ class CrossbarRouterSession(RouterSession):
 
    def onHello(self, realm, details):
 
+      ## check if the realm the session wants to join actually exists
+      ##
       if realm not in self._router_factory:
-         return Deny(ApplicationError.NO_SUCH_REALM)
+         return types.Deny(ApplicationError.NO_SUCH_REALM, message = "no realm '{}' exists on this router".format(realm))
 
+      ## perform authentication
+      ##
       if self._transport._authid is not None:
 
          ## already authenticated .. e.g. via cookie
+
+         ## check if role still exists on realm
          ##
          allow = self._router_factory[realm].has_role(self._transport._authrole)
 
          if allow:
             return types.Accept(authid = self._transport._authid,
                                 authrole = self._transport._authrole,
-                                authmethod = self._transport._authmethod)
+                                authmethod = self._transport._authmethod,
+                                authprovider = 'transport')
          else:
-            return types.Deny()
+            return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'".format(self._transport._authrole, realm))
+
       else:
          ## if authentication is enabled on the transport ..
          ##
@@ -114,7 +122,8 @@ class CrossbarRouterSession(RouterSession):
                ## announced, process ..
                if authmethod in self._transport_config["auth"]:
 
-                  ## Mozilla Persona
+
+                  ## "Mozilla Persona" authentication
                   ##
                   if authmethod == "mozilla_persona":
                      cfg = self._transport_config['auth']['mozilla_persona']
@@ -124,7 +133,7 @@ class CrossbarRouterSession(RouterSession):
 
                      ## authrole mapping
                      ##
-                     authrole = None
+                     authrole = "anonymous"
                      try:
                         if 'role' in cfg:
                            if cfg['role']['type'] == 'static':
@@ -132,10 +141,18 @@ class CrossbarRouterSession(RouterSession):
                      except Exception as e:
                         log.msg("error processing 'role' part of 'auth' config: {}".format(e))
 
+                     ## check if role exists on realm anyway
+                     ##
+                     if not self._router_factory[realm].has_role(authrole):
+                        return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
+
+                     ## ok, now challenge the client for doing Mozilla Persona auth.
+                     ##
                      self._pending_auth = PendingAuthPersona(provider, audience, authrole)
                      return types.Challenge("mozilla-persona")
 
-                  ## Anonymous
+
+                  ## "Anonymous" authentication
                   ##
                   elif authmethod == "anonymous":
                      cfg = self._transport_config['auth']['anonymous']
@@ -150,25 +167,31 @@ class CrossbarRouterSession(RouterSession):
                      except Exception as e:
                         log.msg("error processing 'role' part of 'auth' config: {}".format(e))
 
+                     ## check if role exists on realm anyway
+                     ##
+                     if not self._router_factory[realm].has_role(authrole):
+                        return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
+
                      ## authid generation
                      ##
                      if self._transport._cbtid:
-                        ## set authid to cookie value
+                        ## if cookie tracking is enabled, set authid to cookie value
+                        ##
                         authid = self._transport._cbtid
                      else:
+                        ## if no cookie tracking, generate a random value for authid
+                        ##
                         authid = util.newid(24)
 
                      self._transport._authid = authid
                      self._transport._authrole = authrole
                      self._transport._authmethod = authmethod
 
-                     allow = self._router_factory[realm].has_role(self._transport._authrole)
+                     return types.Accept(authid = authid, authrole = authrole, authmethod = self._transport._authmethod)
 
-                     if allow:
-                        return types.Accept(authid = authid, authrole = authrole, authmethod = self._transport._authmethod)
-                     else:
-                        return Deny()
 
+                  ## "Cookie" authentication
+                  ##
                   elif authmethod == "cookie":
                      pass
                      # if self._transport._cbtid:
@@ -179,16 +202,34 @@ class CrossbarRouterSession(RouterSession):
                      #    return types.Accept(authid = authid, authrole = authrole, authmethod = authmethod)
                      # else:
                      #    return types.Deny()
+
                   else:
                      log.msg("unknown authmethod '{}'".format(authmethod))
+                     return types.Deny(message = "unknown authentication method {}".format(authmethod))
 
 
             ## if authentication is configured, by default, deny.
             ##
-            return types.Deny()
+            return types.Deny(message = "authentication using method '{}' denied by configuration".format(authmethod))
+
+
          else:
-            ## if authentication is not configured, by default, allow anyone.
-            return types.Accept(authid = "anonymous", authrole = "anonymous", authmethod = "anonymous")
+            ## if authentication is _not_ configured, by default, allow anyone.
+            ##
+
+            ## authid generation
+            ##
+            if self._transport._cbtid:
+               ## if cookie tracking is enabled, set authid to cookie value
+               ##
+               authid = self._transport._cbtid
+            else:
+               ## if no cookie tracking, generate a random value for authid
+               ##
+               authid = util.newid(24)
+
+
+            return types.Accept(authid = authid, authrole = "anonymous", authmethod = "anonymous")
 
 
    def onAuthenticate(self, signature, extra):
@@ -281,6 +322,7 @@ class CrossbarRouterSession(RouterSession):
          'authid': details.authid,
          'authrole': details.authrole,
          'authmethod': details.authmethod,
+         'authprovider': details.authprovider,
          'realm': details.realm,
          'session': details.session
       }
@@ -299,10 +341,17 @@ class CrossbarRouterSession(RouterSession):
       self._router.process(self, msg)
       self._session_details = None
 
+      ## if asked to explicitly close the session ..
       if details.reason == u"wamp.close.logout":
+
+         ## if cookie was set on transport ..
          if self._transport._cbtid and self._transport.factory._cookiestore:
             cs = self._transport.factory._cookiestore
+
+            ## set cookie to "not authenticated"
             cs.setAuth(self._transport._cbtid, None, None, None)
+
+            ## kick all session for the same auth cookie
             for proto in cs.getProtos(self._transport._cbtid):
                proto.sendClose()
 
