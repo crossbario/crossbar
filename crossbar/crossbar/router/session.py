@@ -19,7 +19,8 @@
 from __future__ import absolute_import
 
 __all__ = ['CrossbarRouterSessionFactory',
-           'CrossbarRouterFactory']
+           'CrossbarRouterFactory',
+           'CrossbarRouterServiceSession']
 
 import json
 import datetime
@@ -40,6 +41,7 @@ from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.interfaces import IRouter
 from autobahn.wamp.router import Router, RouterFactory
+from autobahn.twisted.wamp import ApplicationSession
 from autobahn.twisted.wamp import RouterSession, RouterSessionFactory
 
 import crossbar
@@ -366,13 +368,24 @@ class CrossbarRouterSessionFactory(RouterSessionFactory):
 
 
 
+class CrossbarRouterServiceSession(ApplicationSession):
+   """
+   Router service session which is used internally by a router to
+   issue WAMP calls or publish events.
+   """
+
+   def onJoin(self, details):
+      print("CrossbarRouterServiceSession.onJoin({})".format(details))
+
+
+
 CrossbarRouterPermissions = namedtuple('CrossbarRouterPermissions', ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
 
 
 
 class CrossbarRouterRole:
    """
-   A role on a router realm that is authorized to do anything.
+   Base class for router roles.
    """
 
    def __init__(self, router, uri, debug = False):
@@ -389,11 +402,13 @@ class CrossbarRouterRole:
       self.debug = debug
 
 
-   def authorize(self, uri, action):
+   def authorize(self, session, uri, action):
       """
       Authorize a session connected under this role to perform the given action
       on the given URI.
 
+      :param session: The WAMP session that requests the action.
+      :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
       :param uri: The URI on which to perform the action.
       :type uri: str
       :param action: The action to be performed.
@@ -403,6 +418,19 @@ class CrossbarRouterRole:
       """
       if self.debug:
          log.msg("CrossbarRouterRole.authorize", uri, action)
+      return False
+
+
+
+class CrossbarRouterTrustedRole(CrossbarRouterRole):
+   """
+   A router role that is trusted to do anything. This is used e.g. for the
+   service session run internally run by a router.
+   """
+
+   def authorize(self, session, uri, action):
+      if self.debug:
+         log.msg("CrossbarRouterTrustedRole.authorize", self.uri, uri, action)
       return True
 
 
@@ -445,11 +473,13 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
             subscribe = p.get('subscribe', False))
 
 
-   def authorize(self, uri, action):
+   def authorize(self, session, uri, action):
       """
       Authorize a session connected under this role to perform the given action
       on the given URI.
 
+      :param session: The WAMP session that requests the action.
+      :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
       :param uri: The URI on which to perform the action.
       :type uri: str
       :param action: The action to be performed.
@@ -458,7 +488,7 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
       :return: bool -- Flag indicating whether session is authorized or not.
       """
       if self.debug:
-         log.msg("CrossbarRouterRole.authorize", self.uri, uri, action)
+         log.msg("CrossbarRouterRoleStaticAuth.authorize", self.uri, uri, action)
       #if action == 'publish':
       #   f = 1/0
       try:
@@ -491,11 +521,13 @@ class CrossbarRouterRoleDynamicAuth(CrossbarRouterRole):
       self._session = router._realm.session
 
 
-   def authorize(self, uri, action):
+   def authorize(self, session, uri, action):
       """
       Authorize a session connected under this role to perform the given action
       on the given URI.
 
+      :param session: The WAMP session that requests the action.
+      :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
       :param uri: The URI on which to perform the action.
       :type uri: str
       :param action: The action to be performed.
@@ -504,8 +536,8 @@ class CrossbarRouterRoleDynamicAuth(CrossbarRouterRole):
       :return: bool -- Flag indicating whether session is authorized or not.
       """
       if self.debug:
-         log.msg("CrossbarRouterRole.authorize", self.uri, uri, action)
-      return self._session.call(self._authorizer, uri, action)
+         log.msg("CrossbarRouterRoleDynamicAuth.authorize", self.uri, uri, action)
+      return self._session.call(self._authorizer, session._session_details, uri, action)
 
 
 
@@ -514,13 +546,21 @@ class CrossbarRouter(Router):
    Crossbar.io core router class.
    """
 
+   RESERVED_ROLES = ["trusted"]
+   """
+   Roles with these URIs are built-in and cannot be added/dropped.
+   """
+
+
    def __init__(self, factory, realm, options = None):
       """
       Ctor.
       """
       uri = realm.config['uri']
       Router.__init__(self, factory, uri, options)
-      self._roles = {}
+      self._roles = {
+         "trusted": CrossbarRouterTrustedRole(self, "trusted", debug = True)
+      }
       self._realm = realm
       #self.debug = True
 
@@ -546,6 +586,9 @@ class CrossbarRouter(Router):
       if self.debug:
          log.msg("CrossbarRouter.add_role", role)
 
+      if role.uri in self.RESERVED_ROLES:
+         raise Exception("cannot add reserved role '{}'".format(role.uri))
+
       overwritten = role.uri in self._roles
 
       self._roles[role.uri] = role
@@ -565,6 +608,9 @@ class CrossbarRouter(Router):
       if self.debug:
          log.msg("CrossbarRouter.drop_role", role)
 
+      if role.uri in self.RESERVED_ROLES:
+         raise Exception("cannot drop reserved role '{}'".format(role.uri))
+
       if uri in self._roles:
          del self._roles[uri]
          return True
@@ -581,12 +627,11 @@ class CrossbarRouter(Router):
       role = session._authrole
       action = IRouter.ACTION_TO_STRING[action]
 
-      authorized = True
+      authorized = False
       if role in self._roles:
-         authorized = self._roles[role].authorize(uri, action)
+         authorized = self._roles[role].authorize(session, uri, action)
 
       if self.debug:
-         print "XXX", self._roles.keys()
          print("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
 
       return authorized

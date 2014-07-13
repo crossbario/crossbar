@@ -40,7 +40,8 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 
 from crossbar.router.session import CrossbarRouterSessionFactory, \
-                                    CrossbarRouterFactory
+                                    CrossbarRouterFactory, \
+                                    CrossbarRouterServiceSession
 
 from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
                                      CrossbarWampRawSocketServerFactory
@@ -205,18 +206,6 @@ class RouterRealmRole:
 
 
 
-class CrossbarRouterClientSession(ApplicationSession):
-
-   def onJoin(self, details):
-      print("CrossbarRouterClientSession.onJoin({})".format(details))
-      self.register(self.authorize, 'com.example.auth')
-
-   def authorize(self, uri, action):
-      print("CrossbarRouterClientSession.authorize({}, {})".format(uri, action))
-      return True
-
-
-
 class RouterWorkerSession(NativeWorkerSession):
    """
    A native Crossbar.io worker that runs a WAMP router which can manage
@@ -321,14 +310,14 @@ class RouterWorkerSession(NativeWorkerSession):
       try:
          realm = config['uri']
          cfg = ComponentConfig(realm)
-         session = CrossbarRouterClientSession(cfg)
+         session = CrossbarRouterServiceSession(cfg)
 
          rlm = RouterRealm(id, config, session)
 
          self.realms[id] = rlm
          self.factory.start_realm(rlm)
 
-         self.session_factory.add(session, authrole = 'authorizer')
+         self.session_factory.add(session, authrole = 'trusted')
       except Exception as e:
          print "XXXXXXXXXX", e
 
@@ -417,7 +406,6 @@ class RouterWorkerSession(NativeWorkerSession):
          raise ApplicationError("crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, id))
 
       del self.realms[id].roles[role_id]
-
 
 
 
@@ -526,7 +514,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
       self.components[id] = RouterComponent(id, config, session)
-      self.session_factory.add(session)
+      self.session_factory.add(session, authrole = config.get('authrole', 'anonymous'))
 
 
 
