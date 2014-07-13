@@ -473,6 +473,7 @@ class CrossbarRouter(Router):
       Router.__init__(self, factory, uri, options)
       self._roles = {}
       self._realm = realm
+      #self.debug = True
 
 
    def has_role(self, uri):
@@ -531,11 +532,12 @@ class CrossbarRouter(Router):
       role = session._authrole
       action = IRouter.ACTION_TO_STRING[action]
 
-      authorized = False
+      authorized = True
       if role in self._roles:
          authorized = self._roles[role].authorize(uri, action)
 
       if self.debug:
+         print "XXX", self._roles.keys()
          print("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
 
       return authorized

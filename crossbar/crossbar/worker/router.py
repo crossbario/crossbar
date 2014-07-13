@@ -208,7 +208,12 @@ class RouterRealmRole:
 class CrossbarRouterClientSession(ApplicationSession):
 
    def onJoin(self, details):
-      print("CrossbarRouterClientSession.onJoin")
+      print("CrossbarRouterClientSession.onJoin({})".format(details))
+      self.register(self.authorize, 'com.example.auth')
+
+   def authorize(self, uri, action):
+      print("CrossbarRouterClientSession.authorize({}, {})".format(uri, action))
+      return True
 
 
 
@@ -323,7 +328,7 @@ class RouterWorkerSession(NativeWorkerSession):
          self.realms[id] = rlm
          self.factory.start_realm(rlm)
 
-         self.session_factory.add(session)
+         self.session_factory.add(session, authrole = 'authorizer')
       except Exception as e:
          print "XXXXXXXXXX", e
 
