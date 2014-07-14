@@ -5,3 +5,4 @@ build
 *.zip
 *.egg
 /.crossbar
+_trial_temp

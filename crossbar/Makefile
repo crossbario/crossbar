@@ -54,3 +54,7 @@ start_py34:
 publish: clean
 	python setup.py register
 	python setup.py sdist upload
+
+test:
+	trial crossbar
+#	trial crossbar.router.test
