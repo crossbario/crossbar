@@ -457,6 +457,7 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
       self.permissions = permissions
 
       self._urimap = StringTrie()
+      self._default = CrossbarRouterPermissions('', True, False, False, False, False)
 
       for p in permissions:
          uri = p['uri']
@@ -467,11 +468,16 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
          else:
             match_by_prefix = False
 
-         self._urimap[uri] = CrossbarRouterPermissions(uri, match_by_prefix,
+         perms = CrossbarRouterPermissions(uri, match_by_prefix,
             call = p.get('call', False),
             register = p.get('register', False),
             publish = p.get('publish', False),
             subscribe = p.get('subscribe', False))
+
+         if len(uri) > 0:
+            self._urimap[uri] = perms
+         else:
+            self._default = perms
 
 
    def authorize(self, session, uri, action):
@@ -498,7 +504,7 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
             return False
          return getattr(permissions, action)
       except KeyError:
-         return False
+         return getattr(self._default, action)
 
 
 

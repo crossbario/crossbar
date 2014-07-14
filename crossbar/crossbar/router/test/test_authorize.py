@@ -58,5 +58,22 @@ class Test_RouterRoleStaticAuth(unittest.TestCase):
             self.assertEqual(role.authorize(None, uri, action), allow)
 
 
+   def test_ruleset_2(self):
+      permissions = [
+         {
+            'uri': '*',
+            'call': True,
+            'register': True,
+            'publish': True,
+            'subscribe': True
+         }
+      ]
+      role = CrossbarRouterRoleStaticAuth(None, "testrole", permissions)
+      actions = ['call', 'register', 'publish', 'subscribe']
+      uris = [('com.example.1', True), ('myuri', True), ('', True)]
+      for uri, allow in uris:
+         for action in actions:
+            self.assertEqual(role.authorize(None, uri, action), allow)
+
 if __name__ == '__main__':
    unittest.main()
