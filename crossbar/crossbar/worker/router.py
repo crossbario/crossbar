@@ -254,8 +254,8 @@ class RouterWorkerSession(NativeWorkerSession):
          'start_router_realm',
          'stop_router_realm',
          'get_router_realm_roles',
-         'add_router_realm_role',
-         'drop_router_realm_role',
+         'start_router_realm_role',
+         'stop_router_realm_role',
          'get_router_components',
          'start_router_component',
          'stop_router_component',
@@ -357,7 +357,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def add_router_realm_role(self, id, role_id, config, details = None):
+   def start_router_realm_role(self, id, role_id, config, details = None):
       """
       Adds a role to a realm.
 
@@ -384,7 +384,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def drop_router_realm_role(self, id, role_id, details = None):
+   def stop_router_realm_role(self, id, role_id, details = None):
       """
       Drop a role from a realm.
 

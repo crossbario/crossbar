@@ -887,7 +887,8 @@ def check_router_component(component, silence = False):
          'id': (False, [six.text_type]),
          'type': (True, [six.text_type]),
          'realm': (True, [six.text_type]),
-         'authrole': (False, [six.text_type]),
+         'role': (False, [six.text_type]),
+
          'package': (True, [six.text_type]),
          'entrypoint': (True, [six.text_type]),
          'extra': (False, None),
@@ -898,7 +899,8 @@ def check_router_component(component, silence = False):
          'id': (False, [six.text_type]),
          'type': (True, [six.text_type]),
          'realm': (True, [six.text_type]),
-         'authrole': (False, [six.text_type]),
+         'role': (False, [six.text_type]),
+         
          'classname': (True, [six.text_type]),
          'extra': (False, None),
          }, component, "invalid component configuration")
