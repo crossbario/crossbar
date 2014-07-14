@@ -557,7 +557,7 @@ class CrossbarRouter(Router):
       """
       Ctor.
       """
-      uri = realm.config['uri']
+      uri = realm.config['name']
       Router.__init__(self, factory, uri, options)
       self._roles = {
          "trusted": CrossbarRouterTrustedRole(self, "trusted", debug = True)
@@ -678,7 +678,7 @@ class CrossbarRouterFactory(RouterFactory):
       if self.debug:
          log.msg("CrossbarRouterFactory.start_realm(realm = {})".format(realm))
 
-      uri = realm.config['uri']
+      uri = realm.config['name']
       assert(uri not in self._routers)
 
       self._routers[uri] = CrossbarRouter(self, realm, self._options)
@@ -698,13 +698,14 @@ class CrossbarRouterFactory(RouterFactory):
       assert(realm in self._routers)
 
       router = self._routers[realm]
+      uri = config['name']
 
       if 'permissions' in config:
-         role = CrossbarRouterRoleStaticAuth(router, config['uri'], config['permissions'], debug = self.debug)
+         role = CrossbarRouterRoleStaticAuth(router, uri, config['permissions'], debug = self.debug)
       elif 'authorizer' in config:
-         role = CrossbarRouterRoleDynamicAuth(router, config['uri'], config['authorizer'], debug = self.debug)
+         role = CrossbarRouterRoleDynamicAuth(router, uri, config['authorizer'], debug = self.debug)
       else:
-         role = CrossbarRouterRole(router, config['uri'], debug = self.debug)
+         role = CrossbarRouterRole(router, uri, debug = self.debug)
 
       router.add_role(role)
 

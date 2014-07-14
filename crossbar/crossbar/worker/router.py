@@ -307,7 +307,7 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
 
-      realm = config['uri']
+      realm = config['name']
       cfg = ComponentConfig(realm)
       session = CrossbarRouterServiceSession(cfg)
 
@@ -379,7 +379,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
       self.realms[id].roles[role_id] = RouterRealmRole(role_id, config)
 
-      realm = self.realms[id].config['uri']
+      realm = self.realms[id].config['name']
       self.factory.add_role(realm, config)
 
 
