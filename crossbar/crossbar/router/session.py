@@ -638,9 +638,8 @@ class CrossbarRouter(Router):
       if role in self._roles:
          authorized = self._roles[role].authorize(session, uri, action)
 
-      if True or self.debug:
-         print "zzz", role, self._roles[role]._urimap
-         print("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
+      if self.debug:
+         log.msg("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
 
       return authorized
 
@@ -689,7 +688,7 @@ class CrossbarRouterFactory(RouterFactory):
 
       self._routers[uri] = CrossbarRouter(self, realm, self._options)
       if self.debug:
-         print("Router created for realm '{}'".format(uri))
+         log.msg("Router created for realm '{}'".format(uri))
 
 
    def stop_realm(self, realm):
