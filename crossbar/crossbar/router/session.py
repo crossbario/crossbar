@@ -135,13 +135,7 @@ class CrossbarRouterSession(RouterSession):
 
                      ## authrole mapping
                      ##
-                     authrole = "anonymous"
-                     try:
-                        if 'role' in cfg:
-                           if cfg['role']['type'] == 'static':
-                              authrole = cfg['role']['value']
-                     except Exception as e:
-                        log.msg("error processing 'role' part of 'auth' config: {}".format(e))
+                     authrole = cfg.get('role', 'anonymous')
 
                      ## check if role exists on realm anyway
                      ##
@@ -161,13 +155,7 @@ class CrossbarRouterSession(RouterSession):
 
                      ## authrole mapping
                      ##
-                     authrole = "anonymous"
-                     try:
-                        if 'role' in cfg:
-                           if cfg['role']['type'] == 'static':
-                              authrole = cfg['role']['value']
-                     except Exception as e:
-                        log.msg("error processing 'role' part of 'auth' config: {}".format(e))
+                     authrole = cfg.get('role', 'anonymous')
 
                      ## check if role exists on realm anyway
                      ##
