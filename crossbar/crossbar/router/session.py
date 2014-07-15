@@ -554,7 +554,7 @@ class CrossbarRouter(Router):
       uri = realm.config['name']
       Router.__init__(self, factory, uri, options)
       self._roles = {
-         "trusted": CrossbarRouterTrustedRole(self, "trusted", debug = True)
+         "trusted": CrossbarRouterTrustedRole(self, "trusted", debug = self.debug)
       }
       self._realm = realm
       #self.debug = True
