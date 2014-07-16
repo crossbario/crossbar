@@ -22,6 +22,7 @@ __all__ = ['Node']
 
 
 import os
+import re
 import sys
 import json
 import traceback
@@ -297,7 +298,29 @@ class Node:
                      realm_id = 'realm{}'.format(realm_no)
                      realm_no += 1
 
-                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm)
+                  ## extract declarations from WAMP-flavored Markdown
+                  ##
+                  decls = None
+                  if 'decls' in realm:
+                     decls = {}
+                     decl_pat = re.compile(r"```javascript(.*?)```", re.DOTALL)
+                     cnt_files = 0
+                     cnt_uris = 0
+                     for decl_file in realm.pop('decls'):
+                        decl_file = os.path.join(self.options.cbdir, decl_file)
+                        with open(decl_file, 'r') as f:
+                           cnt_files += 1
+                           for d in decl_pat.findall(f.read()):
+                              try:
+                                 o = json.loads(d)
+                                 if type(o) == dict and 'uri' in o:
+                                    decls[o['uri']] = o
+                                    cnt_uris += 1
+                              except:
+                                 pass
+                     log.msg("{}: processed {} WAMP-flavored Markdown files and extracted {} URIs".format(worker_logname, cnt_files, cnt_uris))
+
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, decls)
                   log.msg("{}: realm '{}' started".format(worker_logname, realm_id))
 
 

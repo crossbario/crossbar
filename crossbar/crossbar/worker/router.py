@@ -295,7 +295,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def start_router_realm(self, id, config, details = None):
+   def start_router_realm(self, id, config, decls = None, details = None):
       """
       Starts a realm managed by this router.
 
@@ -309,7 +309,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
       realm = config['name']
       cfg = ComponentConfig(realm)
-      session = CrossbarRouterServiceSession(cfg)
+      session = CrossbarRouterServiceSession(cfg, decls)
 
       rlm = RouterRealm(id, config, session)
 

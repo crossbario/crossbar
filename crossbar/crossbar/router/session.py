@@ -30,12 +30,13 @@ from collections import namedtuple
 from six.moves import urllib
 
 from twisted.python import log
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from autobahn import util
 from autobahn.websocket import http
 from autobahn.websocket.compress import *
 
+from autobahn import wamp
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
@@ -362,9 +363,58 @@ class CrossbarRouterServiceSession(ApplicationSession):
    issue WAMP calls or publish events.
    """
 
+   def __init__(self, config, decls = None):
+      ApplicationSession.__init__(self, config)
+      self._decls = {}
+      if decls:
+         self._decls.update(decls)
+         print("CrossbarRouterServiceSession: initialized decls cache with {} entries".format(len(self._decls)))
+
+
+   @inlineCallbacks
    def onJoin(self, details):
       if self.debug:
          log.msg("CrossbarRouterServiceSession.onJoin({})".format(details))
+
+      regs = yield self.register(self)
+      if self.debug:
+         log.msg("CrossbarRouterServiceSession: registered {} procedures".format(len(regs)))
+
+
+   @wamp.register('wamp.reflect.describe')
+   def describe(self, uri = None):
+      if uri:
+         return self._decls.get(uri, None)
+      else:
+         return self._decls
+
+
+   @wamp.register('wamp.reflect.declare')
+   def declare(self, uri, decl):
+      if not decl:
+         if uri in self._decls:
+            del self._decls
+            self.publish('wamp.reflect.on_undeclare', uri)
+            return uri
+         else:
+            return None
+
+      if uri not in self._decls:
+         was_new = True
+         was_modified = False
+      else:
+         was_new = False
+         if json.dumps(decl) != json.dumps(self._decls[uri]):
+            was_modified = True
+         else:
+            was_modified = False
+
+      if was_new or was_modified:
+         self._decls[uri] = decl
+         self.publish('wamp.reflect.on_declare', uri, decl, was_new)
+         return was_new
+      else:
+         return None
 
 
 
