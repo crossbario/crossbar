@@ -67,7 +67,7 @@ else:
 setup (
    name = 'crossbar',
    version = verstr,
-   description = 'Crossbar.io - Polyglot application router',
+   description = 'Crossbar.io - The Unified Application Router',
    long_description = docstr,
    author = 'Tavendo GmbH',
    author_email = 'autobahnws@googlegroups.com',
@@ -78,9 +78,11 @@ setup (
       'zope.interface>=3.6.0',      # Zope Public license
       'twisted>=twisted-13.2',      # MIT license
       'autobahn[twisted]>=0.8.10',  # Apache license
-      'jinja2>=2.7.2',              # BSD license
       'netaddr>=0.7.11',            # BSD license
       'pytrie>=0.2',                # BSD license
+      'jinja2>=2.7.2',              # BSD license
+      'mistune>=0.3.0',             # BSD license
+      'pygments>=1.6',              # BSD license
    ],
    extras_require = {
       'tls': [

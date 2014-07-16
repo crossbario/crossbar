@@ -476,3 +476,25 @@ class PusherResource(Resource):
       except Exception as e:
          ## catch all .. should not happen (usually)
          return self._deny_request(request, 500, "internal server error ('{0}')".format(e))
+
+
+
+
+class SchemaDocResource(Resource):
+   """
+   """
+
+   isLeaf = True
+
+   def __init__(self, templates, realm, schemas = None):
+      Resource.__init__(self)
+      self._templates = templates
+      self._realm = realm
+      self._schemas = schemas or {}
+
+
+   def render_GET(self, request):
+      request.setHeader('content-type', 'text/html; charset=UTF-8')
+      page = self._templates.get_template('cb_schema_overview.html')
+      content = page.render(realm = self._realm, schemas = self._schemas)
+      return content.encode('utf8')

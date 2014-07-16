@@ -67,7 +67,8 @@ from autobahn.twisted.resource import WebSocketResource, \
                                       WSGIRootResource, \
                                       HTTPChannelHixie76Aware
 
-from crossbar.twisted.resource import WampLongPollResource
+from crossbar.twisted.resource import WampLongPollResource, \
+                                      SchemaDocResource
 
 import importlib
 import pkg_resources
@@ -238,6 +239,9 @@ class RouterWorkerSession(NativeWorkerSession):
       ## map: realm ID -> RouterRealm
       self.realms = {}
 
+      ## map: realm URI -> realm ID
+      self.realm_to_id = {}
+
       ## map: transport ID -> RouterTransport
       self.transports = {}
 
@@ -316,6 +320,8 @@ class RouterWorkerSession(NativeWorkerSession):
       rlm = RouterRealm(id, config, session)
 
       self.realms[id] = rlm
+      self.realm_to_id[realm] = id
+
       self.factory.start_realm(rlm)
 
       self.session_factory.add(session, authrole = 'trusted')
@@ -920,7 +926,6 @@ class RouterWorkerSession(NativeWorkerSession):
 
                   ## add the pushing session to the router
                   ##
-                  print "XX"*100, path_config, path_config.get('role', 'anonymous')
                   self.session_factory.add(pusher_session, path_config.get('role', 'anonymous'))
 
                   ## now create the pusher Twisted Web resource and add it to resource tree
@@ -928,6 +933,22 @@ class RouterWorkerSession(NativeWorkerSession):
                   pusher_resource = PusherResource(path_config.get('options', {}), pusher_session)
                   root.putChild(path, pusher_resource)
 
+
+               ## Schema Docs resource
+               ##
+               elif path_config['type'] == 'schemadoc':
+
+                  realm = path_config['realm']
+
+                  if not realm in self.realm_to_id:
+                     raise ApplicationError("crossbar.error.no_such_object", "No realm with URI '{}' configured".format(realm))
+
+                  realm_id = self.realm_to_id[realm]
+
+                  realm_schemas = self.realms[realm_id].session._schemas
+
+                  schemadoc_resource = SchemaDocResource(self._templates, realm, realm_schemas)
+                  root.putChild(path, schemadoc_resource)
 
                else:
                   raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web path type '{}'".format(path_config['type']))

@@ -298,7 +298,7 @@ class Node:
                      realm_id = 'realm{}'.format(realm_no)
                      realm_no += 1
 
-                  ## extract schemaarations from WAMP-flavored Markdown
+                  ## extract schema information from WAMP-flavored Markdown
                   ##
                   schemas = None
                   if 'schemas' in realm:
@@ -307,8 +307,8 @@ class Node:
                      cnt_files = 0
                      cnt_decls = 0
                      for schema_file in realm.pop('schemas'):
-                        print "XXX", schema_file
                         schema_file = os.path.join(self.options.cbdir, schema_file)
+                        log.msg("{}: processing WAMP-flavored Markdown file {} for WAMP schema declarations".format(worker_logname, schema_file))
                         with open(schema_file, 'r') as f:
                            cnt_files += 1
                            for d in schema_pat.findall(f.read()):
@@ -320,9 +320,9 @@ class Node:
                                        schemas[uri] = {}
                                     schemas[uri].update(o)
                                     cnt_decls += 1
-                              except:
-                                 pass
-                     log.msg("{}: processed {} WAMP-flavored Markdown files and extracted {} declarations and {} URIs".format(worker_logname, cnt_files, cnt_decls, len(schemas)))
+                              except Exception as e:
+                                 log.msg("{}: WARNING - failed to process declaration in {} - {}".format(worker_logname, schema_file, e))
+                     log.msg("{}: processed {} files extracting {} schema declarations and {} URIs".format(worker_logname, cnt_files, cnt_decls, len(schemas)))
 
                   yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas)
                   log.msg("{}: realm '{}' started".format(worker_logname, realm_id))

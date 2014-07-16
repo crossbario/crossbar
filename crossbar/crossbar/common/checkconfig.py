@@ -563,6 +563,12 @@ def check_web_path_service_pusher(config):
 
 
 
+def check_web_path_service_schemadoc(config):
+   ## FIXME
+   pass
+
+
+
 def check_web_path_service(path, config):
    """
    Check a single path service on Web transport.
@@ -578,7 +584,7 @@ def check_web_path_service(path, config):
       if ptype not in ['static', 'wsgi', 'redirect', 'pusher']:
          raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
    else:
-      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher']:
+      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher', 'schemadoc']:
          raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
    checkers = {
@@ -590,6 +596,7 @@ def check_web_path_service(path, config):
       'cgi': check_web_path_service_cgi,
       'longpoll': check_web_path_service_longpoll,
       'pusher': check_web_path_service_pusher,
+      'schemadoc': check_web_path_service_schemadoc
    }
 
    checkers[ptype](config)
