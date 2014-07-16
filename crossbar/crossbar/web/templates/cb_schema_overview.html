@@ -74,10 +74,8 @@
       {% endif %}
 
       {% if "result" in decl %}
-         <h3>Result</h3>
-
          {% if "args" in decl.result %}
-            <h4>Positional Results</h4>
+            <h3>Positional Results</h3>
             <ol>
                {% for arg in decl.result.args["items"] %}
                   <li>
@@ -89,7 +87,7 @@
          {% endif %}
 
          {% if "kwargs" in decl.result %}
-            <h4>Keyword Results</h4>
+            <h3>Keyword Results</h3>
             <ul>
                {% for kwarg_key, kwarg_value in decl.result.kwargs["properties"].items() %}
                   <li>
