@@ -295,7 +295,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
 
 
-   def start_router_realm(self, id, config, decls = None, details = None):
+   def start_router_realm(self, id, config, schemas = None, details = None):
       """
       Starts a realm managed by this router.
 
@@ -303,13 +303,15 @@ class RouterWorkerSession(NativeWorkerSession):
       :type id: str
       :param config: The realm configuration.
       :type config: dict
+      :param schemas: An (optional) initial schema dictionary to load.
+      :type schemas: dict
       """
       if self.debug:
-         log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config)
+         log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config, schemas)
 
       realm = config['name']
       cfg = ComponentConfig(realm)
-      session = CrossbarRouterServiceSession(cfg, decls)
+      session = CrossbarRouterServiceSession(cfg, schemas)
 
       rlm = RouterRealm(id, config, session)
 

@@ -298,29 +298,33 @@ class Node:
                      realm_id = 'realm{}'.format(realm_no)
                      realm_no += 1
 
-                  ## extract declarations from WAMP-flavored Markdown
+                  ## extract schemaarations from WAMP-flavored Markdown
                   ##
-                  decls = None
-                  if 'decls' in realm:
-                     decls = {}
-                     decl_pat = re.compile(r"```javascript(.*?)```", re.DOTALL)
+                  schemas = None
+                  if 'schemas' in realm:
+                     schemas = {}
+                     schema_pat = re.compile(r"```javascript(.*?)```", re.DOTALL)
                      cnt_files = 0
-                     cnt_uris = 0
-                     for decl_file in realm.pop('decls'):
-                        decl_file = os.path.join(self.options.cbdir, decl_file)
-                        with open(decl_file, 'r') as f:
+                     cnt_decls = 0
+                     for schema_file in realm.pop('schemas'):
+                        print "XXX", schema_file
+                        schema_file = os.path.join(self.options.cbdir, schema_file)
+                        with open(schema_file, 'r') as f:
                            cnt_files += 1
-                           for d in decl_pat.findall(f.read()):
+                           for d in schema_pat.findall(f.read()):
                               try:
                                  o = json.loads(d)
-                                 if type(o) == dict and 'uri' in o:
-                                    decls[o['uri']] = o
-                                    cnt_uris += 1
+                                 if type(o) == dict and '$schema' in o and o['$schema'] == u'http://wamp.ws/schema#':
+                                    uri = o['uri']
+                                    if not uri in schemas:
+                                       schemas[uri] = {}
+                                    schemas[uri].update(o)
+                                    cnt_decls += 1
                               except:
                                  pass
-                     log.msg("{}: processed {} WAMP-flavored Markdown files and extracted {} URIs".format(worker_logname, cnt_files, cnt_uris))
+                     log.msg("{}: processed {} WAMP-flavored Markdown files and extracted {} declarations and {} URIs".format(worker_logname, cnt_files, cnt_decls, len(schemas)))
 
-                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, decls)
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas)
                   log.msg("{}: realm '{}' started".format(worker_logname, realm_id))
 
 

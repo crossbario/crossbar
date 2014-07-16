@@ -363,12 +363,20 @@ class CrossbarRouterServiceSession(ApplicationSession):
    issue WAMP calls or publish events.
    """
 
-   def __init__(self, config, decls = None):
+   def __init__(self, config, schemas = None):
+      """
+      Ctor.
+
+      :param config: WAMP application component configuration.
+      :type config: Instance of :class:`autobahn.wamp.types.ComponentConfig`.
+      :param schemas: An (optional) initial schema dictionary to load.
+      :type schemas: dict
+      """
       ApplicationSession.__init__(self, config)
-      self._decls = {}
-      if decls:
-         self._decls.update(decls)
-         print("CrossbarRouterServiceSession: initialized decls cache with {} entries".format(len(self._decls)))
+      self._schemas = {}
+      if schemas:
+         self._schemas.update(schemas)
+         print("CrossbarRouterServiceSession: initialized schemas cache with {} entries".format(len(self._schemas)))
 
 
    @inlineCallbacks
@@ -383,34 +391,54 @@ class CrossbarRouterServiceSession(ApplicationSession):
 
    @wamp.register('wamp.reflect.describe')
    def describe(self, uri = None):
+      """
+      Describe a given URI or all URIs.
+
+      :param uri: The URI to describe or `None` to retrieve all declarations.
+      :type uri: str
+
+      :returns: list -- A list of WAMP declarations.
+      """
       if uri:
-         return self._decls.get(uri, None)
+         return self._schemas.get(uri, None)
       else:
-         return self._decls
+         return self._schemas
 
 
    @wamp.register('wamp.reflect.declare')
    def declare(self, uri, decl):
+      """
+      Declare metadata for a given URI.
+
+      :param uri: The URI for which to declare metadata.
+      :type uri: str
+      :param decl: The WAMP schema declaration for
+         the URI or `None` to remove any declarations for the URI.
+      :type decl: dict
+
+      :returns: bool -- `None` if declaration was unchanged, `True` if
+         declaration was new, `False` if declaration existed, but was modified.
+      """
       if not decl:
-         if uri in self._decls:
-            del self._decls
+         if uri in self._schemas:
+            del self._schemas
             self.publish('wamp.reflect.on_undeclare', uri)
             return uri
          else:
             return None
 
-      if uri not in self._decls:
+      if uri not in self._schemas:
          was_new = True
          was_modified = False
       else:
          was_new = False
-         if json.dumps(decl) != json.dumps(self._decls[uri]):
+         if json.dumps(decl) != json.dumps(self._schemas[uri]):
             was_modified = True
          else:
             was_modified = False
 
       if was_new or was_modified:
-         self._decls[uri] = decl
+         self._schemas[uri] = decl
          self.publish('wamp.reflect.on_declare', uri, decl, was_new)
          return was_new
       else:
