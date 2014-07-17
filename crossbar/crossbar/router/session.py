@@ -405,8 +405,8 @@ class CrossbarRouterServiceSession(ApplicationSession):
          return self._schemas
 
 
-   @wamp.register('wamp.reflect.declare')
-   def declare(self, uri, decl):
+   @wamp.register('wamp.reflect.define')
+   def define(self, uri, schema):
       """
       Declare metadata for a given URI.
 
@@ -419,10 +419,10 @@ class CrossbarRouterServiceSession(ApplicationSession):
       :returns: bool -- `None` if declaration was unchanged, `True` if
          declaration was new, `False` if declaration existed, but was modified.
       """
-      if not decl:
+      if not schema:
          if uri in self._schemas:
             del self._schemas
-            self.publish('wamp.reflect.on_undeclare', uri)
+            self.publish('wamp.reflect.on_undefine', uri)
             return uri
          else:
             return None
@@ -432,14 +432,14 @@ class CrossbarRouterServiceSession(ApplicationSession):
          was_modified = False
       else:
          was_new = False
-         if json.dumps(decl) != json.dumps(self._schemas[uri]):
+         if json.dumps(schema) != json.dumps(self._schemas[uri]):
             was_modified = True
          else:
             was_modified = False
 
       if was_new or was_modified:
-         self._schemas[uri] = decl
-         self.publish('wamp.reflect.on_declare', uri, decl, was_new)
+         self._schemas[uri] = schema
+         self.publish('wamp.reflect.on_define', uri, schema, was_new)
          return was_new
       else:
          return None
