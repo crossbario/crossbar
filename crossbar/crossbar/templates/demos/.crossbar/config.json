@@ -1,0 +1,64 @@
+{
+   "controller": {
+   },
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "crossbardemo",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "components": [
+            {
+               "type": "class",
+               "realm": "crossbardemo",
+               "classname": "crossbardemo.basic.TimeService"
+            },
+            {
+               "type": "class",
+               "realm": "crossbardemo",
+               "classname": "crossbardemo.basic.TickService"
+            },
+            {
+               "type": "class",
+               "realm": "crossbardemo",
+               "classname": "crossbardemo.basic.MathService"
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "package": "crossbardemo",
+                     "resource": "web"
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      }
+   ]
+}
