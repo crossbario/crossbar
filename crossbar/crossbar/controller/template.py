@@ -45,6 +45,13 @@ class Templates:
          }
       },
 
+      "demos": {
+         "help": "A Crossbar.io node running the crossbardemo package.",
+         "basedir": "templates/demos",
+         "params": {
+         }
+      },
+
       "pusher": {
          "help": "A WAMP router with a HTTP gateway for pushing events.",
          "basedir": "templates/pusher",

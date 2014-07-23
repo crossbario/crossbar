@@ -36,8 +36,8 @@ from twisted.internet.defer import Deferred, \
 
 from autobahn import wamp
 from autobahn.wamp.types import CallDetails
-from autobahn.wamp.router import RouterFactory
-from autobahn.twisted.wamp import RouterSessionFactory
+from autobahn.twisted.wamp import RouterFactory, \
+                                  RouterSessionFactory
 
 from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession

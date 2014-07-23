@@ -41,7 +41,7 @@ from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.interfaces import IRouter
-from autobahn.wamp.router import Router, RouterFactory
+from autobahn.twisted.wamp import Router, RouterFactory
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.twisted.wamp import RouterSession, RouterSessionFactory
 
