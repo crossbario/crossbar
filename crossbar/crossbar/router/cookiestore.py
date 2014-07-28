@@ -34,6 +34,9 @@ except ImportError:
    _HAS_ADBAPI = False
 
 
+from autobahn import util
+
+
 
 class CookieStore:
    """

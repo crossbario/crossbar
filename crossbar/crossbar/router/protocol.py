@@ -50,7 +50,6 @@ from autobahn.twisted.rawsocket import WampRawSocketServerProtocol, \
 
 from twisted.internet.defer import Deferred
 
-from autobahn import util
 from autobahn.websocket import http
 from autobahn.websocket.compress import *
 
