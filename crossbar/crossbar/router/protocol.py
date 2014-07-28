@@ -162,8 +162,6 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
    def onConnect(self, request):
 
-      self.debug = True
-
       if self.factory.debug_traffic:
          from twisted.internet import reactor
 
