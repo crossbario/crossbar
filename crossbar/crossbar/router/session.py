@@ -24,6 +24,7 @@ __all__ = ['CrossbarRouterSessionFactory',
 
 import json
 import datetime
+import traceback
 from pytrie import StringTrie
 from collections import namedtuple
 
@@ -89,138 +90,145 @@ class CrossbarRouterSession(RouterSession):
 
    def onHello(self, realm, details):
 
-      ## check if the realm the session wants to join actually exists
-      ##
-      if realm not in self._router_factory:
-         return types.Deny(ApplicationError.NO_SUCH_REALM, message = "no realm '{}' exists on this router".format(realm))
+      try:
 
-      ## perform authentication
-      ##
-      if self._transport._authid is not None:
-
-         ## already authenticated .. e.g. via cookie
-
-         ## check if role still exists on realm
+         ## check if the realm the session wants to join actually exists
          ##
-         allow = self._router_factory[realm].has_role(self._transport._authrole)
+         if realm not in self._router_factory:
+            return types.Deny(ApplicationError.NO_SUCH_REALM, message = "no realm '{}' exists on this router".format(realm))
 
-         if allow:
-            return types.Accept(authid = self._transport._authid,
-                                authrole = self._transport._authrole,
-                                authmethod = self._transport._authmethod,
-                                authprovider = 'transport')
-         else:
-            return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'".format(self._transport._authrole, realm))
-
-      else:
-         ## if authentication is enabled on the transport ..
+         ## perform authentication
          ##
-         if "auth" in self._transport_config:
+         if self._transport._authid is not None:
 
-            ## iterate over authentication methods announced by client ..
+            ## already authenticated .. e.g. via cookie
+
+            ## check if role still exists on realm
             ##
-            for authmethod in details.authmethods or ["anonymous"]:
+            allow = self._router_factory[realm].has_role(self._transport._authrole)
 
-               ## .. and if the configuration has an entry for the authmethod
-               ## announced, process ..
-               if authmethod in self._transport_config["auth"]:
-
-
-                  ## "Mozilla Persona" authentication
-                  ##
-                  if authmethod == "mozilla_persona":
-                     cfg = self._transport_config['auth']['mozilla_persona']
-
-                     audience = cfg.get('audience', self._transport._origin)
-                     provider = cfg.get('provider', "https://verifier.login.persona.org/verify")
-
-                     ## authrole mapping
-                     ##
-                     authrole = cfg.get('role', 'anonymous')
-
-                     ## check if role exists on realm anyway
-                     ##
-                     if not self._router_factory[realm].has_role(authrole):
-                        return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
-
-                     ## ok, now challenge the client for doing Mozilla Persona auth.
-                     ##
-                     self._pending_auth = PendingAuthPersona(provider, audience, authrole)
-                     return types.Challenge("mozilla-persona")
-
-
-                  ## "Anonymous" authentication
-                  ##
-                  elif authmethod == "anonymous":
-                     cfg = self._transport_config['auth']['anonymous']
-
-                     ## authrole mapping
-                     ##
-                     authrole = cfg.get('role', 'anonymous')
-
-                     ## check if role exists on realm anyway
-                     ##
-                     if not self._router_factory[realm].has_role(authrole):
-                        return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
-
-                     ## authid generation
-                     ##
-                     if self._transport._cbtid:
-                        ## if cookie tracking is enabled, set authid to cookie value
-                        ##
-                        authid = self._transport._cbtid
-                     else:
-                        ## if no cookie tracking, generate a random value for authid
-                        ##
-                        authid = util.newid(24)
-
-                     self._transport._authid = authid
-                     self._transport._authrole = authrole
-                     self._transport._authmethod = authmethod
-
-                     return types.Accept(authid = authid, authrole = authrole, authmethod = self._transport._authmethod)
-
-
-                  ## "Cookie" authentication
-                  ##
-                  elif authmethod == "cookie":
-                     pass
-                     # if self._transport._cbtid:
-                     #    cookie = self._transport.factory._cookies[self._transport._cbtid]
-                     #    authid = cookie['authid']
-                     #    authrole = cookie['authrole']
-                     #    authmethod = "cookie.{}".format(cookie['authmethod'])
-                     #    return types.Accept(authid = authid, authrole = authrole, authmethod = authmethod)
-                     # else:
-                     #    return types.Deny()
-
-                  else:
-                     log.msg("unknown authmethod '{}'".format(authmethod))
-                     return types.Deny(message = "unknown authentication method {}".format(authmethod))
-
-
-            ## if authentication is configured, by default, deny.
-            ##
-            return types.Deny(message = "authentication using method '{}' denied by configuration".format(authmethod))
-
-
-         else:
-            ## if authentication is _not_ configured, by default, allow anyone.
-            ##
-
-            ## authid generation
-            ##
-            if self._transport._cbtid:
-               ## if cookie tracking is enabled, set authid to cookie value
-               ##
-               authid = self._transport._cbtid
+            if allow:
+               return types.Accept(authid = self._transport._authid,
+                                   authrole = self._transport._authrole,
+                                   authmethod = self._transport._authmethod,
+                                   authprovider = 'transport')
             else:
-               ## if no cookie tracking, generate a random value for authid
+               return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'".format(self._transport._authrole, realm))
+
+         else:
+            ## if authentication is enabled on the transport ..
+            ##
+            if "auth" in self._transport_config:
+
+               ## iterate over authentication methods announced by client ..
                ##
-               authid = util.newid(24)
+               for authmethod in details.authmethods or ["anonymous"]:
+
+                  ## .. and if the configuration has an entry for the authmethod
+                  ## announced, process ..
+                  if authmethod in self._transport_config["auth"]:
 
 
-            return types.Accept(authid = authid, authrole = "anonymous", authmethod = "anonymous")
+                     ## "Mozilla Persona" authentication
+                     ##
+                     if authmethod == "mozilla_persona":
+                        cfg = self._transport_config['auth']['mozilla_persona']
+
+                        audience = cfg.get('audience', self._transport._origin)
+                        provider = cfg.get('provider', "https://verifier.login.persona.org/verify")
+
+                        ## authrole mapping
+                        ##
+                        authrole = cfg.get('role', 'anonymous')
+
+                        ## check if role exists on realm anyway
+                        ##
+                        if not self._router_factory[realm].has_role(authrole):
+                           return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
+
+                        ## ok, now challenge the client for doing Mozilla Persona auth.
+                        ##
+                        self._pending_auth = PendingAuthPersona(provider, audience, authrole)
+                        return types.Challenge("mozilla-persona")
+
+
+                     ## "Anonymous" authentication
+                     ##
+                     elif authmethod == "anonymous":
+                        cfg = self._transport_config['auth']['anonymous']
+
+                        ## authrole mapping
+                        ##
+                        authrole = cfg.get('role', 'anonymous')
+
+                        ## check if role exists on realm anyway
+                        ##
+                        if not self._router_factory[realm].has_role(authrole):
+                           return types.Deny(ApplicationError.NO_SUCH_ROLE, message = "authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
+
+                        ## authid generation
+                        ##
+                        if self._transport._cbtid:
+                           ## if cookie tracking is enabled, set authid to cookie value
+                           ##
+                           authid = self._transport._cbtid
+                        else:
+                           ## if no cookie tracking, generate a random value for authid
+                           ##
+                           authid = util.newid(24)
+
+                        self._transport._authid = authid
+                        self._transport._authrole = authrole
+                        self._transport._authmethod = authmethod
+
+                        return types.Accept(authid = authid, authrole = authrole, authmethod = self._transport._authmethod)
+
+
+                     ## "Cookie" authentication
+                     ##
+                     elif authmethod == "cookie":
+                        pass
+                        # if self._transport._cbtid:
+                        #    cookie = self._transport.factory._cookies[self._transport._cbtid]
+                        #    authid = cookie['authid']
+                        #    authrole = cookie['authrole']
+                        #    authmethod = "cookie.{}".format(cookie['authmethod'])
+                        #    return types.Accept(authid = authid, authrole = authrole, authmethod = authmethod)
+                        # else:
+                        #    return types.Deny()
+
+                     else:
+                        log.msg("unknown authmethod '{}'".format(authmethod))
+                        return types.Deny(message = "unknown authentication method {}".format(authmethod))
+
+
+               ## if authentication is configured, by default, deny.
+               ##
+               return types.Deny(message = "authentication using method '{}' denied by configuration".format(authmethod))
+
+
+            else:
+               ## if authentication is _not_ configured, by default, allow anyone.
+               ##
+
+               ## authid generation
+               ##
+               if self._transport._cbtid:
+                  ## if cookie tracking is enabled, set authid to cookie value
+                  ##
+                  authid = self._transport._cbtid
+               else:
+                  ## if no cookie tracking, generate a random value for authid
+                  ##
+                  authid = util.newid(24)
+
+
+               return types.Accept(authid = authid, authrole = "anonymous", authmethod = "anonymous")
+
+      except Exception as e:
+         traceback.print_exc()
+         return types.Deny(message = "internal error: {}".format(e))
+
 
 
    def onAuthenticate(self, signature, extra):
