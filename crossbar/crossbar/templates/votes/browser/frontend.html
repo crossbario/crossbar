@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <link rel="shortcut icon" href="img/favicon.ico">
+   <title>Vote</title>
+   <link rel="stylesheet" href="css/vote.css">
+</head>
+<body>
+
+   <header>
+      <div id="header_inner">
+         <div id="demo_title">
+            <span>Vote</span>
+         </div>
+         <a class="navbar-brand" href="/">
+            <img src="img/crossbar_icon_inverted.png" alt="crossbar logo inverted" width="60" height="60">
+            <span class="fontFace">
+               <span>Crossbar</span><span>.io</span>
+            </span>
+         </a>
+      </div>
+   </header>
+
+   <div class="demo_links">
+      <p>
+         Synchronizes votes across all demo instances in real-time, using a Node.js backend.
+      </p>
+      <div>
+         <a id="secondInstance" href="" target="_blank">
+            Open additional instance
+         </a>
+         <a href="http://crossbar.io">
+            Crossbar.io Homepage
+         </a>
+      </div>
+
+   </div>
+
+   <div id="demo_body">
+
+      <h1>Vote for your favourite flavour of ice cream!</h1>
+      <div id="voteContainer">
+         <div>
+            <img src="img/banana_small.png" alt="CC attribution license, Evan-Amos/EABanner">
+            <span>
+               Banana
+            </span>
+            <div>
+               <input type="text" id="votesBanana" disabled>
+               </input>
+            </div>
+            <br>
+            <button id="Banana">
+               Vote
+            </button>
+         </div>
+         <div>
+            <img src="img/chocolate_small.png" alt="CC attribution license, John Loo, http://www.flickr.com/photos/johnloo/">
+            <span>
+               Chocolate
+            </span>
+            <div>
+               <input type="text" id="votesChocolate" disabled>
+               </input>
+            </div>
+            <br>
+            <button id="Chocolate">
+               Vote
+            </button>
+         </div>
+         <div>
+            <img src="img/lemon_small.png" alt="CC attribution license, Lauren Silverman / Healing and Eating, http://www.flickr.com/photos/healingandeating/">
+            <span>
+               Lemon
+            </span>
+            <div>
+               <input type="text" id="votesLemon" disabled>
+               </input>
+            </div>
+            <br>
+            <button id="Lemon">
+               Vote
+            </button>
+         </div>
+      </div>
+      <div id="resetVotesContainer">
+         <button id="resetVotes">
+            Reset Votes
+         </button>
+      </div>
+   </div>
+
+   <script>AUTOBAHN_DEBUG = true;</script>
+   <script src="js/autobahn.min.js"></script>
+   <script src="js/frontend.js"></script>
+
+</body>
+</html>

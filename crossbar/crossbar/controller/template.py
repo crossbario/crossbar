@@ -117,6 +117,23 @@ class Templates:
          "params": {
          },
       },
+
+      "votes:browser": {
+         "help": "A minimal application to cast live votes synchronized across HTML5 clients. Backend runs in the browser.",
+         "basedir": "templates/votes/browser",
+         "params": {
+         },
+         "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
+      },
+
+      "votes:nodejs": {
+         "help": "A minimal application to cast live votes synchronized across HTML5 clients. Backend runs in NodeJS.",
+         "basedir": "templates/votes/nodejs",
+         "params": {
+            "nodejs": "C:/Program Files (x86)/nodejs/node.exe"
+         },
+         "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
+      }
    }
    """
    Application template definitions.
