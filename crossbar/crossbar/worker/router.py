@@ -736,7 +736,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             ## add the pushing session to the router
             ##
-            self.session_factory.add(pusher_session, root_config.get('role', 'anonymous'))
+            self.session_factory.add(pusher_session, authrole = root_config.get('role', 'anonymous'))
 
             ## now create the pusher Twisted Web resource and add it to resource tree
             ##
@@ -926,7 +926,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
                   ## add the pushing session to the router
                   ##
-                  self.session_factory.add(pusher_session, path_config.get('role', 'anonymous'))
+                  self.session_factory.add(pusher_session, authrole = path_config.get('role', 'anonymous'))
 
                   ## now create the pusher Twisted Web resource and add it to resource tree
                   ##
