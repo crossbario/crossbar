@@ -36,6 +36,20 @@ init_hello_python:
 start_hello_python:
 	PYTHONPATH=. python -m crossbar.controller.cli start --cbdir ${HOME}/cbtest_hello/.crossbar
 
+init_votes_browser:
+	rm -rf ${HOME}/cbtest_votes_browser
+	PYTHONPATH=. python -m crossbar.controller.cli init --template votes:browser --appdir ${HOME}/cbtest_votes_browser
+
+start_votes_browser:
+	PYTHONPATH=. python -m crossbar.controller.cli start --cbdir ${HOME}/cbtest_votes_browser/.crossbar
+
+init_votes_nodejs:
+	rm -rf ${HOME}/cbtest_votes_nodejs
+	PYTHONPATH=. python -m crossbar.controller.cli init --template votes:nodejs --appdir ${HOME}/cbtest_votes_nodejs
+
+start_votes_nodejs:
+	PYTHONPATH=. python -m crossbar.controller.cli start --cbdir ${HOME}/cbtest_votes_nodejs/.crossbar
+
 init_demos:
 	PYTHONPATH=. python -m crossbar.controller.cli init --template demos
 
