@@ -22,6 +22,7 @@ __all__ = ['Node']
 
 
 import os
+import re
 import sys
 import json
 import traceback
@@ -35,8 +36,8 @@ from twisted.internet.defer import Deferred, \
 
 from autobahn import wamp
 from autobahn.wamp.types import CallDetails
-from autobahn.wamp.router import RouterFactory
-from autobahn.twisted.wamp import RouterSessionFactory
+from autobahn.twisted.wamp import RouterFactory, \
+                                  RouterSessionFactory
 
 from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
@@ -297,29 +298,48 @@ class Node:
                      realm_id = 'realm{}'.format(realm_no)
                      realm_no += 1
 
-                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm)
+                  ## extract schema information from WAMP-flavored Markdown
+                  ##
+                  schemas = None
+                  if 'schemas' in realm:
+                     schemas = {}
+                     schema_pat = re.compile(r"```javascript(.*?)```", re.DOTALL)
+                     cnt_files = 0
+                     cnt_decls = 0
+                     for schema_file in realm.pop('schemas'):
+                        schema_file = os.path.join(self.options.cbdir, schema_file)
+                        log.msg("{}: processing WAMP-flavored Markdown file {} for WAMP schema declarations".format(worker_logname, schema_file))
+                        with open(schema_file, 'r') as f:
+                           cnt_files += 1
+                           for d in schema_pat.findall(f.read()):
+                              try:
+                                 o = json.loads(d)
+                                 if type(o) == dict and '$schema' in o and o['$schema'] == u'http://wamp.ws/schema#':
+                                    uri = o['uri']
+                                    if not uri in schemas:
+                                       schemas[uri] = {}
+                                    schemas[uri].update(o)
+                                    cnt_decls += 1
+                              except Exception as e:
+                                 log.msg("{}: WARNING - failed to process declaration in {} - {}".format(worker_logname, schema_file, e))
+                     log.msg("{}: processed {} files extracting {} schema declarations and {} URIs".format(worker_logname, cnt_files, cnt_decls, len(schemas)))
+
+                  yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas)
                   log.msg("{}: realm '{}' started".format(worker_logname, realm_id))
 
-                  ## add permissions on realm
+
+                  ## add roles to realm
                   ##
-                  perm_no = 1
+                  role_no = 1
                   for role in realm.get('roles', []):
-                     for permission in role.get('permissions', []):
-                        if 'id' in permission:
-                           perm_id = permission['id']
-                        else:
-                           perm_id = 'perm{}'.format(perm_no)
-                           perm_no += 1
-                        perm = {
-                           'role': role['name'],
-                           'uri': permission['uri'],
-                           'call': permission.get('call', False),
-                           'register': permission.get('register', False),
-                           'publish': permission.get('publish', False),
-                           'subscribe': permission.get('subscribe', False)
-                        }
-                        yield self._controller.call('crossbar.node.{}.worker.{}.add_router_realm_permission'.format(self._node_id, worker_id), realm_id, perm_id, perm)
-                        log.msg("{}: permission '{}'' added on realm '{}'".format(worker_logname, perm_id, realm_id))
+                     if 'id' in role:
+                        role_id = role.pop('id')
+                     else:
+                        role_id = 'role{}'.format(role_no)
+                        role_no += 1
+
+                     yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role)
+                     log.msg("{}: role '{}' started on realm '{}'".format(worker_logname, role_id, realm_id))
 
 
                ## start components to run embedded in the router

@@ -29,12 +29,25 @@ import jinja2
 
 class Templates:
    """
+   Crossbar.io application templates.
+   """
+
+   SKIP_FILES = ('.pyc', '.pyo', '.exe')
+   """
+   File extensions of files to skip when instantiating an application template.
    """
 
    TEMPLATES = {
       "default": {
          "help": "A WAMP router speaking WebSocket plus Web server.",
          "basedir": "templates/default",
+         "params": {
+         }
+      },
+
+      "demos": {
+         "help": "A Crossbar.io node running the crossbardemo package.",
+         "basedir": "templates/demos",
          "params": {
          }
       },
@@ -105,10 +118,14 @@ class Templates:
          },
       },
    }
+   """
+   Application template definitions.
+   """
 
 
    def help(self):
       """
+      Print CLI help.
       """
       print("\nAvailable Crossbar.io node templates:\n")
       for t in self.TEMPLATES:
@@ -119,6 +136,10 @@ class Templates:
 
    def __contains__(self, template):
       """
+      Check if template exists.
+
+      :param template: The name of the application template to check.
+      :type template: str
       """
       return template in self.TEMPLATES
 
@@ -126,15 +147,23 @@ class Templates:
 
    def init(self, appdir, template, params = None, dryrun = False):
       """
+      Ctor.
+
+
+      :param appdir: The path of the directory to instantiate the application template in.
+      :type appdir: str
+      :param template: The name of the application template to instantiate.
+      :type template: str
+      :param dryrun: If `True`, only perform a dry run (don't actually do anything, only prepare).
+      :type dryrun: bool
       """
       IS_WIN = sys.platform.startswith("win")
 
       template = self.TEMPLATES[template]
-#      basedir = os.path.abspath(pkg_resources.resource_filename("crossbar", template['basedir']))
       basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
       if IS_WIN:
          basedir = basedir.replace('\\', '/') # Jinja need forward slashes even on Windows
-      #print("Using templates from '{}'".format(basedir))
+      print("Using templates from '{}'".format(basedir))
 
       appdir = os.path.abspath(appdir)
 
@@ -166,9 +195,7 @@ class Templates:
 
             for f in files:
 
-               ## FIXME: exclude files
-               ##
-               if not f.endswith(".pyc"):
+               if not f.endswith(Templates.SKIP_FILES):
 
                   src_file = os.path.abspath(os.path.join(root, f))
                   src_file_rel_path = os.path.relpath(src_file, basedir)
@@ -181,8 +208,6 @@ class Templates:
 
                   print("Creating file      {}".format(dst_file))
                   if not dryrun:
-                     ## FIXME: copied verbatim or template pre-processed
-                     ##
                      if f in template.get('skip_jinja', []):
                         shutil.copy(src_file, dst_file)
                      else:

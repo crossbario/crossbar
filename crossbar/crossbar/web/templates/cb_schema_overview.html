@@ -1,0 +1,105 @@
+{% extends "cb_base.html" %}
+
+{% block header %}
+   <style>
+      .schema_decl {
+         background-color: #d4d4d4;
+         padding: 8px 20px 8px 20px;
+         margin: 24px auto 24px auto;
+         border-radius: 4px;
+      }
+
+      .schema_decl_procedure {
+         background-color: #8888d4;
+      }
+
+      .schema_decl_topic {
+         background-color: #88d488;
+      }
+
+      .schema_decl_error {
+         background-color: #d48888;
+      }
+
+      pre {
+         color: #000;
+      }
+   </style>
+{% endblock %}
+
+{% block content %}
+   <h1>
+      Schema Overview
+   </h1>
+   <p>
+      The schema for realm <b>{{ realm }}</b> contains <b>{{ schemas|count }}</b> declarations:
+   </p>
+   <ol>
+      {% for decl in schemas.values() %}
+      <li><a href="#{{ decl.uri }}">{{ decl.uri }}</a> &nbsp; <b>{{ decl.type }}</b></li>
+      {% endfor %}
+   </ol>
+
+   <h1>Schema Declarations</h1>
+
+   {% for decl in schemas.values() %}
+   <div class="schema_decl schema_decl_{{ decl.type }}">
+      <a id="{{ decl.uri }}"></a>
+      <b>{{ decl.type|capitalize }}</b> &nbsp; <pre style="display: inline;">{{ decl.uri }}</pre>
+      <h2>{{ decl.title }}</h2>
+      <p class="schema_decl_desc">{{ decl.description }}</p>
+
+      {% if "args" in decl %}
+         <h3>Positional Arguments</h3>
+         <ol>
+            {% for arg in decl.args["items"] %}
+               <li>
+                  {{ arg.title }} (<b>{{ arg.type }}</b>):
+                  {{ arg.description }}
+               </li>
+            {% endfor %}
+         </ol>
+      {% endif %}
+
+      {% if "kwargs" in decl %}
+         <h3>Keyword Arguments</h3>
+         <ul>
+            {% for kwarg_key, kwarg_value in decl.kwargs["properties"].items() %}
+               <li>
+                  {{ kwarg_key }} (<b>{{ kwarg_value.type }}</b>):
+                  {{ kwarg_value.description }}
+               </li>
+            {% endfor %}
+         </ul>
+      {% endif %}
+
+      {% if "result" in decl %}
+         {% if "args" in decl.result %}
+            <h3>Positional Results</h3>
+            <ol>
+               {% for arg in decl.result.args["items"] %}
+                  <li>
+                     {{ arg.title }} (<b>{{ arg.type }}</b>):
+                     {{ arg.description }}
+                  </li>
+               {% endfor %}
+            </ol>
+         {% endif %}
+
+         {% if "kwargs" in decl.result %}
+            <h3>Keyword Results</h3>
+            <ul>
+               {% for kwarg_key, kwarg_value in decl.result.kwargs["properties"].items() %}
+                  <li>
+                     {{ kwarg_key }} (<b>{{ kwarg_value.type }}</b>):
+                     {{ kwarg_value.description }}
+                  </li>
+               {% endfor %}
+            </ul>
+         {% endif %}
+      {% endif %}
+
+   </div>
+   {% endfor %}
+
+{% endblock %}

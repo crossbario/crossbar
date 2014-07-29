@@ -563,6 +563,12 @@ def check_web_path_service_pusher(config):
 
 
 
+def check_web_path_service_schemadoc(config):
+   ## FIXME
+   pass
+
+
+
 def check_web_path_service(path, config):
    """
    Check a single path service on Web transport.
@@ -578,7 +584,7 @@ def check_web_path_service(path, config):
       if ptype not in ['static', 'wsgi', 'redirect', 'pusher']:
          raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
    else:
-      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher']:
+      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher', 'schemadoc']:
          raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
    checkers = {
@@ -590,6 +596,7 @@ def check_web_path_service(path, config):
       'cgi': check_web_path_service_cgi,
       'longpoll': check_web_path_service_longpoll,
       'pusher': check_web_path_service_pusher,
+      'schemadoc': check_web_path_service_schemadoc
    }
 
    checkers[ptype](config)
@@ -678,7 +685,7 @@ def check_listening_transport_websocket(transport):
    :type transport: dict
    """
    for k in transport:
-      if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options']:
+      if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options', 'auth']:
          raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
    if 'id' in transport:
@@ -711,6 +718,8 @@ def check_listening_transport_websocket(transport):
       except Exception as e:
          raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
+   ## FIXME: check auth
+
 
 
 def check_listening_transport_rawsocket(transport):
@@ -721,7 +730,7 @@ def check_listening_transport_rawsocket(transport):
    :type transport: dict
    """
    for k in transport:
-      if k not in ['id', 'type', 'endpoint', 'serializer', 'debug']:
+      if k not in ['id', 'type', 'endpoint', 'serializer', 'debug', 'auth']:
          raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
    if 'id' in transport:
@@ -746,6 +755,8 @@ def check_listening_transport_rawsocket(transport):
       debug = transport['debug']
       if type(debug) != bool:
          raise Exception("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+   ## FIXME: check auth
 
 
 
@@ -883,6 +894,8 @@ def check_router_component(component, silence = False):
          'id': (False, [six.text_type]),
          'type': (True, [six.text_type]),
          'realm': (True, [six.text_type]),
+         'role': (False, [six.text_type]),
+
          'package': (True, [six.text_type]),
          'entrypoint': (True, [six.text_type]),
          'extra': (False, None),
@@ -893,6 +906,8 @@ def check_router_component(component, silence = False):
          'id': (False, [six.text_type]),
          'type': (True, [six.text_type]),
          'realm': (True, [six.text_type]),
+         'role': (False, [six.text_type]),
+         
          'classname': (True, [six.text_type]),
          'extra': (False, None),
          }, component, "invalid component configuration")
