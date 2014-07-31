@@ -65,6 +65,10 @@ int main () {
       //
       tcp::socket socket(io);
 
+      // setting this option minimizes latency at some cost
+      //
+      socket.set_option(tcp::no_delay(true));
+
       // connect to this server/port
       //
       tcp::resolver resolver(io);
@@ -104,7 +108,7 @@ int main () {
 
                   // register a free standing function for remoting
                   //
-                  auto r1 = session.provide("com.myapp.cpp.add2", &add2);
+                  auto r1 = session.provide("com.myapp.add2", &add2);
 
                   r1.then([](future<registration> reg) {
                      cerr << "Registered with registration ID " << reg.get().id << endl;
@@ -113,7 +117,7 @@ int main () {
 
                   // register a lambda for remoting
                   //
-                  session.provide("com.myapp.cpp.square",
+                  session.provide("com.myapp.square",
 
                      [](const anyvec& args, const anymap& kwargs) {
 
