@@ -125,7 +125,8 @@ def run_command_init(options):
    templates = Templates()
 
    if not options.template in templates:
-      raise Exception("no node template '{}' - use the command 'crossbar templates' to list templates available".format(options.template))
+      print("Huh, sorry. There is no template named '{}'. Try 'crossbar templates' to list the templates available.".format(options.template))
+      sys.exit(1)
 
    if options.appdir is None:
       options.appdir = '.'

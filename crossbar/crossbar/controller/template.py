@@ -37,29 +37,33 @@ class Templates:
    File extensions of files to skip when instantiating an application template.
    """
 
-   TEMPLATES = {
-      "default": {
-         "help": "A WAMP router speaking WebSocket plus Web server.",
+   TEMPLATES = [
+      {
+         "name": "default",
+         "help": "A WAMP router speaking WebSocket plus a static Web server.",
          "basedir": "templates/default",
          "params": {
          }
       },
 
-      "demos": {
-         "help": "A Crossbar.io node running the crossbardemo package.",
+      {
+         "name": "demos",
+         "help": "A Crossbar.io node running the crossbardemo package. Requires 'pip install crossbardemo'.",
          "basedir": "templates/demos",
          "params": {
          }
       },
 
-      "pusher": {
+      {
+         "name": "pusher",
          "help": "A WAMP router with a HTTP gateway for pushing events.",
          "basedir": "templates/pusher",
          "params": {
          }
       },
 
-      "hello:python": {
+      {
+         "name": "hello:python",
          "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
          "basedir": "templates/hello/python",
          "params": {
@@ -68,7 +72,8 @@ class Templates:
          }
       },
 
-      "hello:nodejs": {
+      {
+         "name": "hello:nodejs",
          "help": "A minimal NodeJS WAMP application hosted in a router and a HTML5 client.",
          "basedir": "templates/hello/nodejs",
          "params": {
@@ -79,7 +84,8 @@ class Templates:
          }
       },
 
-      "hello:cpp": {
+      {
+         "name": "hello:cpp",
          "help": "A minimal C++11/AutobahnCpp WAMP application hosted in a router and a HTML5 client.",
          "get_started_hint": "Now build the example by doing 'scons', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
          "basedir": "templates/hello/cpp",
@@ -87,7 +93,8 @@ class Templates:
          },
       },
 
-      "hello:erlang": {
+      {
+         "name": "hello:erlang",
          "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
          "get_started_hint": "Now build the Erlang/Erwa client by entering 'make', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
          "basedir": "templates/hello/erlang",
@@ -110,7 +117,8 @@ class Templates:
          "skip_jinja": ["relx"]
       },
 
-      "hello:php": {
+      {
+         "name": "hello:php",
          "help": "A minimal PHP/Thruway WAMP application hosted in a router and a HTML5 client.",
          "get_started_hint": "Now install dependencies for the PHP/Thruway client by entering 'make install', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
          "basedir": "templates/hello/php",
@@ -118,23 +126,25 @@ class Templates:
          },
       },
 
-      "votes:browser": {
-         "help": "A minimal application to cast live votes synchronized across HTML5 clients. Backend runs in the browser.",
+      {
+         "name": "votes:browser",
+         "help": "Demo that casts live votes synchronized across HTML5 clients. Backend runs in the browser.",
          "basedir": "templates/votes/browser",
          "params": {
          },
          "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
       },
 
-      "votes:nodejs": {
-         "help": "A minimal application to cast live votes synchronized across HTML5 clients. Backend runs in NodeJS.",
+      {
+         "name": "votes:nodejs",
+         "help": "Demo that casts live votes synchronized across HTML5 clients. Backend runs in NodeJS.",
          "basedir": "templates/votes/nodejs",
          "params": {
             "nodejs": "C:/Program Files (x86)/nodejs/node.exe"
          },
          "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
       }
-   }
+   ]
    """
    Application template definitions.
    """
@@ -146,7 +156,7 @@ class Templates:
       """
       print("\nAvailable Crossbar.io node templates:\n")
       for t in self.TEMPLATES:
-         print("  {} {}".format(t.ljust(20, ' '), self.TEMPLATES[t]['help']))
+         print("  {} {}".format(t['name'].ljust(16, ' '), t['help']))
       print("")
 
 
@@ -158,7 +168,24 @@ class Templates:
       :param template: The name of the application template to check.
       :type template: str
       """
-      return template in self.TEMPLATES
+      for t in self.TEMPLATES:
+         if t['name'] == template:
+            return True
+      return False
+
+
+
+   def __getitem__(self, template):
+      """
+      Get template by name.
+
+      :param template: The name of the application template to get.
+      :type template: str
+      """
+      for t in self.TEMPLATES:
+         if t['name'] == template:
+            return t
+      raise KeyError
 
 
 
@@ -176,7 +203,7 @@ class Templates:
       """
       IS_WIN = sys.platform.startswith("win")
 
-      template = self.TEMPLATES[template]
+      template = self.__getitem__(template)
       basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
       if IS_WIN:
          basedir = basedir.replace('\\', '/') # Jinja need forward slashes even on Windows
