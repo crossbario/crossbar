@@ -102,6 +102,15 @@ def set_websocket_options(factory, options):
    if closeHandshakeTimeout:
       closeHandshakeTimeout = closeHandshakeTimeout / 1000.
 
+   autoPingInterval = None
+   if "auto_ping_interval" in c:
+      autoPingInterval = float(c["auto_ping_interval"]) / 1000.
+
+   autoPingTimeout = None
+   if "auto_ping_timeout" in c:
+      autoPingTimeout = float(c["auto_ping_timeout"]) / 1000.
+
+
    factory.setProtocolOptions(versions = versions,
                               allowHixie76 = c.get("enable_hixie76", True),
                               webStatus = c.get("enable_webstatus", True),
@@ -116,7 +125,10 @@ def set_websocket_options(factory, options):
                               echoCloseCodeReason = c.get("echo_close_codereason", False),
                               openHandshakeTimeout = openHandshakeTimeout,
                               closeHandshakeTimeout = closeHandshakeTimeout,
-                              tcpNoDelay = c.get("tcp_nodelay", True))
+                              tcpNoDelay = c.get("tcp_nodelay", True),
+                              autoPingInterval = autoPingInterval,
+                              autoPingTimeout = autoPingTimeout,
+                              autoPingSize = c.get("auto_ping_size", None))
 
    ## WebSocket compression
    ##

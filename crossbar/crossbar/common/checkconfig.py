@@ -357,6 +357,9 @@ def check_websocket_options(options):
                    'fail_by_drop',
                    'echo_close_codereason',
                    'tcp_nodelay',
+                   'auto_ping_interval',
+                   'auto_ping_timeout',
+                   'auto_ping_size',
                    'compression'
                    ]:
          raise Exception("encountered unknown attribute '{}' in WebSocket options".format(k))
