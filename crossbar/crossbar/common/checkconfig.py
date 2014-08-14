@@ -35,6 +35,22 @@ from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
                                   _URI_PAT_LOOSE_NON_EMPTY
 
 
+
+import yaml
+from yaml import Loader, SafeLoader
+
+## Hack: force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
+##
+## http://stackoverflow.com/a/2967461/884770
+##
+def construct_yaml_str(self, node):
+   return self.construct_scalar(node)
+
+Loader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
+SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
+
+
+
 def check_id(id):
    return
 
@@ -1477,13 +1493,20 @@ def check_config_file(configfile, silence = False):
    :param configfile: The file to check.
    :type configfile: str
    """
+   configext = os.path.splitext(configfile)[1]
    configfile = os.path.abspath(configfile)
 
    with open(configfile, 'rb') as infile:
-      try:
-         config = json.load(infile)
-      except ValueError as e:
-         raise Exception("configuration file does not seem to be proper JSON ('{}'')".format(e))
+      if configext == '.yaml':
+         try:
+            config = yaml.safe_load(infile)
+         except Exception as e:
+            raise Exception("configuration file does not seem to be proper YAML ('{}'')".format(e))
+      else:
+         try:
+            config = json.load(infile)
+         except ValueError as e:
+            raise Exception("configuration file does not seem to be proper JSON ('{}'')".format(e))
 
    check_config(config, silence)
 

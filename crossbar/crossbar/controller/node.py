@@ -173,7 +173,6 @@ class Node:
 
       try:
          config = controller.config.check_config_file(configfile, silence = True)
-         #config = json.loads(open(configfile, 'rb').read())
       except Exception as e:
          log.msg("Fatal: {}".format(e))
          sys.exit(1)

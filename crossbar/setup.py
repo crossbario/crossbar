@@ -83,6 +83,7 @@ setup (
       'jinja2>=2.7.2',              # BSD license
       'mistune>=0.3.0',             # BSD license
       'pygments>=1.6',              # BSD license
+      'pyyaml>=3.11',               # MIT license
    ],
    extras_require = {
       'tls': [

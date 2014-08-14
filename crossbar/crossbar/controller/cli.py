@@ -300,7 +300,7 @@ def run():
 
    parser_start.add_argument('--config',
                              type = str,
-                             default = 'config.json',
+                             default = None,
                              help = "Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
    parser_start.add_argument('--logdir',
@@ -353,8 +353,15 @@ def run():
    ##
    if hasattr(options, 'config'):
       if not options.config:
-         options.config = 'config.json'
-      options.config = os.path.join(options.cbdir, options.config)
+         for f in ['config.json', 'config.yaml']:
+            f = os.path.join(options.cbdir, f)
+            if os.path.isfile(f) and os.access(f, os.R_OK):
+               options.config = f
+               break
+         if not options.config:
+            raise Exception("No config file specified, and neither CBDIR/config.json nor CBDIR/config.yaml exists")
+      else:
+         options.config = os.path.join(options.cbdir, options.config)
 
 
    ## Log directory
