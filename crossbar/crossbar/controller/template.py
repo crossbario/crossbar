@@ -143,7 +143,16 @@ class Templates:
             "nodejs": "C:/Program Files (x86)/nodejs/node.exe"
          },
          "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
-      }
+      },
+
+      {
+         "name": "votes:python",
+         "help": "Demo that casts live votes synchronized across HTML5 clients. Backend runs in Python.",
+         "basedir": "templates/votes/python",
+         "params": {
+         },
+         "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
+      },
    ]
    """
    Application template definitions.
