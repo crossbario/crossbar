@@ -77,7 +77,7 @@ setup (
       'setuptools>=2.2',            # Python Software Foundation license
       'zope.interface>=3.6.0',      # Zope Public license
       'twisted>=twisted-13.2',      # MIT license
-      'autobahn[twisted]>=0.8.12',  # Apache license
+      'autobahn[twisted]>=0.8.14',  # Apache license
       'netaddr>=0.7.11',            # BSD license
       'pytrie>=0.2',                # BSD license
       'jinja2>=2.7.2',              # BSD license
