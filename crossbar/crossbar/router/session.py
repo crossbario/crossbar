@@ -397,7 +397,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
          log.msg("CrossbarRouterServiceSession: registered {} procedures".format(len(regs)))
 
 
-   @wamp.register('wamp.reflect.describe')
+   @wamp.register(u'wamp.reflect.describe')
    def describe(self, uri = None):
       """
       Describe a given URI or all URIs.
@@ -413,7 +413,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
          return self._schemas
 
 
-   @wamp.register('wamp.reflect.define')
+   @wamp.register(u'wamp.reflect.define')
    def define(self, uri, schema):
       """
       Declare metadata for a given URI.

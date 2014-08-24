@@ -46,19 +46,19 @@ class VotesBackend(ApplicationSession):
             'Lemon': 0
         }
 
-    @wamp.register('io.crossbar.demo.vote.get')
+    @wamp.register(u'io.crossbar.demo.vote.get')
     def getVotes(self):
         return [{'subject': key, 'votes': value} for key, value in self._votes.items()]
 
 
-    @wamp.register('io.crossbar.demo.vote.vote')
+    @wamp.register(u'io.crossbar.demo.vote.vote')
     def submitVote(self, subject):
         self._votes[subject] += 1
         result = {'subject': subject, 'votes': self._votes[subject]}
         self.publish('io.crossbar.demo.vote.onvote', result)
         return result
 
-    @wamp.register('io.crossbar.demo.vote.reset')
+    @wamp.register(u'io.crossbar.demo.vote.reset')
     def resetVotes(self):
         self.init()
         self.publish('io.crossbar.demo.vote.onreset')
