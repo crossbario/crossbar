@@ -18,9 +18,11 @@
 
 from __future__ import absolute_import
 
-__all__ = ['CrossbarRouterSessionFactory',
-           'CrossbarRouterFactory',
-           'CrossbarRouterServiceSession']
+__all__ = (
+   'CrossbarRouterSessionFactory',
+   'CrossbarRouterFactory',
+   'CrossbarRouterServiceSession'
+)
 
 import json
 import datetime
@@ -48,23 +50,8 @@ from autobahn.twisted.wamp import RouterSession, RouterSessionFactory
 
 import crossbar
 
+from crossbar.router.auth import PendingAuthPersona, PendingAuthWampCra
 
-
-class PendingAuth:
-   """
-   Base class for pending WAMP authentications.
-   """
-
-
-
-class PendingAuthPersona(PendingAuth):
-   """
-   Pending Mozilla Persona authentication.
-   """
-   def __init__(self, provider, audience, role = None):
-      self.provider = provider
-      self.audience = audience
-      self.role = role
 
 
 
@@ -128,10 +115,35 @@ class CrossbarRouterSession(RouterSession):
                   ## announced, process ..
                   if authmethod in self._transport_config["auth"]:
 
+                     ## "WAMP-Challenge-Response" authentication
+                     ##
+                     if authmethod == u"wampcra":
+                        cfg = self._transport_config['auth']['wampcra']
+
+                        print "X"*100, details, cfg
+
+                        if cfg['type'] == 'static':
+                           if details.authid in cfg.get('users', {}):
+                              user = cfg['users'][details.authid]
+                              print "Y"*100, user['secret'], user['role']
+
+                              self._pending_auth = PendingAuthWampCra(None, details.authid, user['role'], u'static', user['secret'])
+
+                              ## send challenge to client
+                              ##
+                              extra = {
+                                 u'challenge': self._pending_auth.challenge
+                              }
+                              return types.Challenge(u'wampcra', extra)
+
+                           else:
+                              return types.Deny(message = "no user with authid '{}' in user database".format(details.authid))
+
+
 
                      ## "Mozilla Persona" authentication
                      ##
-                     if authmethod == "mozilla_persona":
+                     elif authmethod == u"mozilla_persona":
                         cfg = self._transport_config['auth']['mozilla_persona']
 
                         audience = cfg.get('audience', self._transport._origin)
@@ -154,7 +166,7 @@ class CrossbarRouterSession(RouterSession):
 
                      ## "Anonymous" authentication
                      ##
-                     elif authmethod == "anonymous":
+                     elif authmethod == u"anonymous":
                         cfg = self._transport_config['auth']['anonymous']
 
                         ## authrole mapping
@@ -186,7 +198,7 @@ class CrossbarRouterSession(RouterSession):
 
                      ## "Cookie" authentication
                      ##
-                     elif authmethod == "cookie":
+                     elif authmethod == u"cookie":
                         pass
                         # if self._transport._cbtid:
                         #    cookie = self._transport.factory._cookies[self._transport._cbtid]
