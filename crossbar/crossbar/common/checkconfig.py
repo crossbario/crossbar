@@ -926,7 +926,7 @@ def check_router_component(component, silence = False):
          'type': (True, [six.text_type]),
          'realm': (True, [six.text_type]),
          'role': (False, [six.text_type]),
-         
+
          'classname': (True, [six.text_type]),
          'extra': (False, None),
          }, component, "invalid component configuration")
@@ -1061,8 +1061,8 @@ def check_router_realm(realm, silence = False):
       for component in components:
          if not silence:
             print("Checking component item {} ..".format(i))
-            check_component(component)
-            i += 1
+         check_component(component)
+         i += 1
 
 
 
