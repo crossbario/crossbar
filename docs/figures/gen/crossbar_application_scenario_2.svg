@@ -55,7 +55,7 @@
 <text xml:space="preserve" font-size="20.011px" y="405.22781" x="822.96265" font-family="Arial" fill="#000000">Database</text>
 <path stroke-linejoin="round" d="m866.03 315.96v-27.75" stroke="#262626" stroke-linecap="round" stroke-width="2.0324px" fill="none"/>
 <path d="m872.21 314.4-6.1753 18.604-6.1754-18.604h12.351z" fill-rule="evenodd" fill="#262626"/>
-<path d="m340.66 399.21v56.672h259.99v-56.672h-259.99z" fill-rule="evenodd" fill="#f2f2f2"/>
+<path d="m340.66 399.21v56.672h259.99v-56.672h-259.99z" fill-rule="evenodd" fill="#fff"/>
 <path stroke-linejoin="round" d="m340.66 455.88h259.99v-56.672h-259.99v56.672z" stroke="#000" stroke-linecap="round" stroke-width=".39084px" fill="none"/>
 <text xml:space="preserve" font-size="20.011px" y="421.48694" x="375.21094" font-family="Arial" fill="#000000">Use JavaScript for </text>
 <text font-weight="bold" xml:space="preserve" font-size="20.011px" y="421.48694" x="544.05585" font-family="Arial" fill="#000000">all </text>
