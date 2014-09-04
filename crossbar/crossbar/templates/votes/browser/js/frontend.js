@@ -14,7 +14,7 @@ if (document.location.origin == "file://") {
 //
 var connection = new autobahn.Connection({
    url: wsuri,
-   realm: "realm1"
+   realm: "votesapp"
 });
 
 

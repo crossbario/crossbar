@@ -7,7 +7,7 @@
          "type": "router",
          "realms": [
             {
-               "name": "realm1",
+               "name": "votesapp",
                "roles": [
                   {
                      "name": "anonymous",

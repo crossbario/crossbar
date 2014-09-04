@@ -22,7 +22,7 @@ try {
 
 var connection = new autobahn.Connection({
    url: wsuri,
-   realm: 'realm1'}
+   realm: 'votesapp'}
 );
 
 var votes = {
