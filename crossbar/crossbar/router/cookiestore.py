@@ -203,9 +203,8 @@ class PersistentCookieStore(CookieStore):
 
 
    def _iter_persisted(self):
-
       with open(self._cookie_file_name, 'r') as f:
-         for line in  f.readlines():
+         for line in f.readlines():
             yield line
 
 
@@ -253,7 +252,7 @@ class PersistentCookieStore(CookieStore):
    def setAuth(self, id, authid, authrole, authmethod):
 
       CookieStore.setAuth(self, id, authid, authrole, authmethod)
-
+      
       if id in self._cookies:
 
          tmp_file_name = self._cookie_file_name + '.tmp'
