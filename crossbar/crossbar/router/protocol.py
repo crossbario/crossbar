@@ -441,7 +441,6 @@ class CrossbarWampWebSocketClientProtocol(WampWebSocketClientProtocol):
 
 
 
-
 class CrossbarWampWebSocketClientFactory(WampWebSocketClientFactory):
    """
    Crossbar.io WAMP-over-WebSocket client factory.
@@ -460,7 +459,6 @@ class CrossbarWampRawSocketClientProtocol(WampRawSocketClientProtocol):
    """
    Crossbar.io WAMP-over-RawSocket client protocol.
    """
-
 
 
 

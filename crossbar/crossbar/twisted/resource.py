@@ -162,7 +162,18 @@ import os
 import crossbar
 from autobahn.twisted import longpoll
 
+
+class WampLongPollResourceSession(longpoll.WampLongPollResourceSession):
+
+   def __init__(self, *args, **kwargs):
+      longpoll.WampLongPollResourceSession.__init__(self, *args, **kwargs)
+      self._cbtid = None
+
+
+
 class WampLongPollResource(longpoll.WampLongPollResource):
+
+   protocol = WampLongPollResourceSession
 
    def getNotice(self, peer, redirectUrl = None, redirectAfter = 0):
       try:
