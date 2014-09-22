@@ -19,7 +19,7 @@
 from __future__ import absolute_import
 
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 ## Get package version and docstring from crossbar/__init__.py
@@ -104,7 +104,7 @@ setup (
       'console_scripts': [
          'crossbar = crossbar.controller.cli:run'
       ]},
-   packages = ['crossbar'],
+   packages = find_packages(),
    include_package_data = True,
    data_files = [('.', ['LICENSE'])],
    zip_safe = False,
