@@ -37,7 +37,7 @@
                "paths": {
                   "/": {
                      "type": "static",
-                     "directory": "C:\\Users\\oberstet\\scm\\tavendo\\autobahn\\AutobahnJS"
+                     "directory": "../web"
                   },
                   "ws": {
                      "type": "websocket"
@@ -45,7 +45,8 @@
                   "lp": {
                      "type": "longpoll",
                      "options": {
-                        "debug": true
+                        "debug": true,
+                        "session_timeout": 30
                      }
                   }
                }

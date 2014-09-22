@@ -47,22 +47,6 @@ class Templates:
       },
 
       {
-         "name": "demos",
-         "help": "A Crossbar.io node running the crossbardemo package. Requires 'pip install crossbardemo'.",
-         "basedir": "templates/demos",
-         "params": {
-         }
-      },
-
-      {
-         "name": "pusher",
-         "help": "A WAMP router with a HTTP gateway for pushing events.",
-         "basedir": "templates/pusher",
-         "params": {
-         }
-      },
-
-      {
          "name": "hello:python",
          "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
          "basedir": "templates/hello/python",
@@ -152,6 +136,30 @@ class Templates:
          "params": {
          },
          "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
+      },
+
+      {
+         "name": "demos",
+         "help": "A Crossbar.io node running the crossbardemo package. Requires 'pip install crossbardemo'.",
+         "basedir": "templates/demos",
+         "params": {
+         }
+      },
+
+      {
+         "name": "pusher",
+         "help": "A WAMP router with a HTTP gateway for pushing events.",
+         "basedir": "templates/pusher",
+         "params": {
+         }
+      },
+
+      {
+         "name": "longpoll",
+         "help": "Demonstrates WAMP longpoll transport for old browsers.",
+         "basedir": "templates/longpoll",
+         "params": {
+         }
       },
    ]
    """
