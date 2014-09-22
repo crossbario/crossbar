@@ -19,15 +19,7 @@
 from __future__ import absolute_import
 
 import sys
-from distutils import log
-
-try:
-   import setuptools
-except ImportError:
-   from ez_setup import use_setuptools
-   use_setuptools()
-
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 ## Get package version and docstring from crossbar/__init__.py
@@ -112,8 +104,7 @@ setup (
       'console_scripts': [
          'crossbar = crossbar.controller.cli:run'
       ]},
-   #packages = ['crossbar'],
-   packages = find_packages(),
+   packages = ['crossbar'],
    include_package_data = True,
    data_files = [('.', ['LICENSE'])],
    zip_safe = False,
