@@ -161,6 +161,14 @@ class Templates:
          "params": {
          }
       },
+
+      {
+         "name": "expressjs",
+         "help": "Using Crossbar.io, Node and Express.",
+         "basedir": "templates/expressjs",
+         "params": {
+         }
+      },
    ]
    """
    Application template definitions.
