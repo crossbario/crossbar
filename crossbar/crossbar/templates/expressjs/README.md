@@ -2,11 +2,23 @@
 
 This example shows how to use Crossbar.io together with [Express](http://expressjs.com/), a more classic Web application framework for Node.
 
-## Running the Demo
+## Prerequisites
 
-Install requirements by doing
+Obviously you will need Node. Then install required Node modules by doing
 
 	npm install -g express nunjucks autobahn
+
+Make sure Node can find your globally installed modules by setting `NODE_PATH` appropriately.
+
+E.g. on Windows (replacing "oberstet" with you username)
+
+	export NODE_PATH="C:\Users\oberstet\AppData\Roaming\npm\node_modules
+
+and Linux
+
+	export NODE_PATH=/usr/local/lib/node_modules
+
+## Running the Demo
 
 Start Crossbar.io by doing
 

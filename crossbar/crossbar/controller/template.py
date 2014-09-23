@@ -167,7 +167,8 @@ class Templates:
          "help": "Using Crossbar.io, Node and Express.",
          "basedir": "templates/expressjs",
          "params": {
-         }
+         },
+         "skip_jinja": ["index.html", "base.html", "monitor.html"]
       },
    ]
    """
