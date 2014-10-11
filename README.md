@@ -1,8 +1,10 @@
-# Crossbar.io
+![](docs/crossbar_icon_and_text_vectorized.png) 
 
-**Crossbar.io** - Unified application router.
+Welcome to **Crossbar.io**, the open-source **unified application router**.
 
-**Join the [mailing list](http://groups.google.com/group/autobahnws), follow us on [Twitter](https://twitter.com/crossbario) and [Quick Start](https://github.com/crossbario/crossbar/wiki/Quick-Start) with Crossbar.io!**
+![](docs/agplv3-155x51.png)
+
+*Join the [mailing list](http://groups.google.com/group/autobahnws), follow us on [Twitter](https://twitter.com/crossbario) and [Quick Start](https://github.com/crossbario/crossbar/wiki/Quick-Start) with Crossbar.io!*
 
 ___________
 
