@@ -14,7 +14,7 @@ clean:
 	rm -rf ./build
 	rm -rf ./dist
 	rm -rf ./crossbar.egg-info
-	#rm -rf ./.crossbar
+	rm -rf ./.crossbar
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
@@ -28,6 +28,9 @@ templates:
 
 init:
 	PYTHONPATH=. python -m crossbar.controller.cli init
+
+start_test_flash:
+	PYTHONPATH=. python -m crossbar.controller.cli start --cbdir ./crossbar/templates/flash/.crossbar
 
 init_hello_python:
 	rm -rf ${HOME}/cbtest_hello

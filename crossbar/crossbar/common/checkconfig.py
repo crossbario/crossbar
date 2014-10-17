@@ -98,7 +98,7 @@ def check_endpoint_backlog(backlog):
 
 
 
-def check_endpoint_port(port):
+def check_endpoint_port(port, message = "listening/connection endpoint"):
    """
    Check a listening/connecting endpoint TCP port.
 
@@ -106,9 +106,9 @@ def check_endpoint_port(port):
    :type port: int
    """
    if type(port) not in six.integer_types:
-      raise Exception("'port' attribute in endpoint must be integer ({} encountered)".format(type(port)))
+      raise Exception("'port' attribute in {} must be integer ({} encountered)".format(message, type(port)))
    if port < 1 or port > 65535:
-      raise Exception("invalid value {} for 'port' attribute in endpoint".format(port))
+      raise Exception("invalid value {} for 'port' attribute in {}".format(port, message))
 
 
 
@@ -376,6 +376,8 @@ def check_websocket_options(options):
                    'auto_ping_interval',
                    'auto_ping_timeout',
                    'auto_ping_size',
+                   'enable_flash_policy',
+                   'flash_policy',
                    'compression'
                    ]:
          raise Exception("encountered unknown attribute '{}' in WebSocket options".format(k))
@@ -615,7 +617,7 @@ def check_web_path_service(path, config):
       'cgi': check_web_path_service_cgi,
       'longpoll': check_web_path_service_longpoll,
       'pusher': check_web_path_service_pusher,
-      'schemadoc': check_web_path_service_schemadoc
+      'schemadoc': check_web_path_service_schemadoc,
    }
 
    checkers[ptype](config)
@@ -738,6 +740,44 @@ def check_listening_transport_websocket(transport):
          raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
    ## FIXME: check auth
+
+
+
+def check_listening_transport_flashpolicy(transport):
+   """
+   Check a Flash-policy file serving pseudo-transport.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
+   for k in transport:
+      if k not in ['id', 'type', 'endpoint', 'allowed_domain', 'allowed_ports', 'debug']:
+         raise Exception("encountered unknown attribute '{}' in Flash-policy transport configuration".format(k))
+
+   if 'id' in transport:
+      check_id(transport['id'])
+
+   if not 'endpoint' in transport:
+      raise Exception("missing mandatory attribute 'endpoint' in Flash-policy transport item\n\n{}".format(pformat(transport)))
+
+   check_listening_endpoint(transport['endpoint'])
+
+   if 'debug' in transport:
+      debug = transport['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in Flash-policy transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+   if 'allowed_domain' in transport:
+      allowed_domain = transport['allowed_domain']
+      if type(allowed_domain) != six.text_type:
+         raise Exception("'allowed_domain' in Flash-policy transport configuration must be str ({} encountered)".format(type(allowed_domain)))
+
+   if 'allowed_ports' in transport:
+      allowed_ports = transport['allowed_ports']
+      if type(allowed_ports) != list:
+         raise Exception("'allowed_ports' in Flash-policy transport configuration must be list of integers ({} encountered)".format(type(allowed_ports)))
+      for port in allowed_ports:
+         check_endpoint_port(port, "Flash-policy allowed_ports")
 
 
 
@@ -874,7 +914,7 @@ def check_router_transport(transport, silence = False):
       raise Exception("missing mandatory attribute 'type' in component")
 
    ttype = transport['type']
-   if ttype not in ['web', 'websocket', 'rawsocket']:
+   if ttype not in ['web', 'websocket', 'rawsocket', 'flashpolicy']:
       raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
    if ttype  == 'websocket':
@@ -885,6 +925,9 @@ def check_router_transport(transport, silence = False):
 
    elif ttype == 'web':
       check_listening_transport_web(transport)
+
+   elif ttype == 'flashpolicy':
+      check_listening_transport_flashpolicy(transport)
 
    else:
       raise Exception("logic error")

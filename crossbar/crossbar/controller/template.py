@@ -170,6 +170,15 @@ class Templates:
          },
          "skip_jinja": ["index.html", "base.html", "monitor.html"]
       },
+
+      {
+         "name": "flash",
+         "help": "Demonstrates using the Flash WebSocket implementation for old browsers.",
+         "basedir": "templates/flash",
+         "params": {
+         }
+      },
+
    ]
    """
    Application template definitions.

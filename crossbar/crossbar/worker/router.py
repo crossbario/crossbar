@@ -98,6 +98,8 @@ from crossbar.twisted.resource import JsonResource, \
                                       RedirectResource, \
                                       PusherResource
 
+from autobahn.twisted.flashpolicy import FlashPolicyFactory
+
 from crossbar.twisted.resource import _HAS_STATIC, _HAS_CGI
 
 if _HAS_CGI:
@@ -611,6 +613,13 @@ class RouterWorkerSession(NativeWorkerSession):
          transport_factory.noisy = False
 
 
+      ## Flash-policy file server pseudo transport
+      ##
+      elif config['type'] == 'flashpolicy':
+
+         transport_factory = FlashPolicyFactory(config.get('allowed_domain', None), config.get('allowed_ports', None))
+
+
       ## Twisted Web based transport
       ##
       elif config['type'] == 'web':
@@ -983,6 +992,9 @@ class RouterWorkerSession(NativeWorkerSession):
          if options.get('hixie76_aware', False):
             transport_factory.protocol = HTTPChannelHixie76Aware # needed if Hixie76 is to be supported
 
+
+      ## Unknown transport type
+      ##
       else:
          ## should not arrive here, since we did check_transport() in the beginning
          raise Exception("logic error")
