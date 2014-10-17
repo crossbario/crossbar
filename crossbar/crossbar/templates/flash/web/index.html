@@ -3,16 +3,20 @@
    <body>
       <h1>Hello WAMP</h1>
       <p>Open JavaScript console to watch output.</p>
+
+      <!-- Adobe Flash implementation of WebSocket: https://github.com/gimite/web-socket-js -->
       <script>
          WEB_SOCKET_SWF_LOCATION = "WebSocketMain.swf";
          WEB_SOCKET_FORCE_FLASH = true;
          WEB_SOCKET_DEBUG = true;
-
-         AUTOBAHN_DEBUG = false;
       </script>
       <script src="swfobject.js"></script>
       <script src="web_socket.js"></script>
 
+      <!-- AutobahnJS -->
+      <script>
+         AUTOBAHN_DEBUG = false;
+      </script>
       <script src="autobahn.min.js"></script>
 
       <script>
@@ -20,8 +24,7 @@
          //
          var wsuri;
          if (document.location.origin == "file://") {
-            wsuri = "ws://127.0.0.1:8090";
-//            wsuri = "ws://127.0.0.1:8080/ws";
+            wsuri = "ws://127.0.0.1:8080/ws";
 
          } else {
             wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
@@ -82,7 +85,6 @@
          // now actually open the connection
          //
          connection.open();
-
       </script>
    </body>
 </html>
