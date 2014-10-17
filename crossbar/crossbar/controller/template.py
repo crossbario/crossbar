@@ -176,7 +176,8 @@ class Templates:
          "help": "Demonstrates using the Flash WebSocket implementation for old browsers.",
          "basedir": "templates/flash",
          "params": {
-         }
+         },
+         "skip_jinja": ["WebSocketMain.swf"]
       },
 
    ]
