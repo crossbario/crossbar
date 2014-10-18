@@ -78,6 +78,16 @@ class Templates:
       },
 
       {
+         "name": "hello:csharp",
+         "help": "A minimal C#/WampSharp WAMP application hosted in a router and a HTML5 client.",
+         "get_started_hint": "Now build by opening 'src/Hello/Hello.sln' in Visual Studio, start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
+         "basedir": "templates/hello/csharp",
+         "params": {
+         },
+         "skip_jinja": []
+      },
+
+      {
          "name": "hello:erlang",
          "help": "A minimal Erlang/Erwa WAMP application hosted in a router and a HTML5 client.",
          "get_started_hint": "Now build the Erlang/Erwa client by entering 'make', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",

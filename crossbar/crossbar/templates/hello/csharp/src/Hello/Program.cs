@@ -42,17 +42,30 @@ namespace Hello
     {
         static void Main(string[] args)
         {
-            Task runTask = Run();
+            Console.WriteLine("WampSharp Hello demo starting ...");
+
+            string wsuri = "ws://127.0.0.1:8080/ws";
+            string realm = "realm1";
+            if (args.Length > 0) {
+               wsuri = args[0];
+               if (args.Length > 1) {
+                  realm = args[1];
+               }
+            }
+            
+            Task runTask = Run(wsuri, realm);
 
             Console.ReadLine();
         }
 
-        private async static Task Run()
+        private async static Task Run(string wsuri, string realm)
         {
+            Console.WriteLine("Connecting to {0}, realm {1}", wsuri, realm);
+
             DefaultWampChannelFactory factory = new DefaultWampChannelFactory();
 
             IWampChannel channel =
-                factory.CreateJsonChannel("ws://127.0.0.1:8080/ws", "realm1");
+                factory.CreateJsonChannel(wsuri, realm);
 
             IWampClientConnectionMonitor monitor = channel.RealmProxy.Monitor;
             

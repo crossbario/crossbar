@@ -705,18 +705,18 @@ class NodeControllerSession(NativeProcessSession):
 
       options = config.get('options', {})
 
-      ## guest process executable and command line arguments
-      ##
-      exe = config['executable']
-      args = [exe]
-      args.extend(config.get('arguments', []))
-
       ## guest process working directory
       ##
       workdir = self._node._cbdir
       if 'workdir' in options:
          workdir = os.path.join(workdir, options['workdir'])
       workdir = os.path.abspath(workdir)
+
+      ## guest process executable and command line arguments
+      ##
+      exe = os.path.abspath(os.path.join(workdir, config['executable']))
+      args = [exe]
+      args.extend(config.get('arguments', []))
 
       ## guest process environment
       ##
