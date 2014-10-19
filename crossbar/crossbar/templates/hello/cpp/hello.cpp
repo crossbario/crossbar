@@ -43,10 +43,11 @@ using boost::asio::ip::tcp;
 
 any add2(const anyvec& args, const anymap& kwargs) {
 
-   cerr << "Someone is calling add2() .." << endl;
-
    uint64_t x = any_cast<uint64_t> (args[0]);
    uint64_t y = any_cast<uint64_t> (args[1]);
+
+   cerr << "add2() called with " << x << " and " << y << endl;
+
    return x + y;
 }
 
@@ -63,7 +64,8 @@ int main () {
 
       // the TCP socket we connect
       //
-      tcp::socket socket(io);
+//      tcp::socket socket(io);
+      tcp::socket socket(io, tcp::v4());
 
       // setting this option minimizes latency at some cost
       //
@@ -84,6 +86,13 @@ int main () {
       // does not run out of scope (being destructed prematurely ..)
       //
       future<void> session_future;
+
+      // same for other vars we need to keep alive ..
+      //
+      int counter = 0;
+      asio::deadline_timer timer(io, posix_time::seconds(1));
+      std::function<void ()> loop;
+      future<void> c1;
 
       // now do an asynchronous connect ..
       //
@@ -106,27 +115,59 @@ int main () {
 
                   cerr << "Session joined to realm with session ID " << s.get() << endl;
 
-                  // register a free standing function for remoting
+                  // SUBSCRIBE to a topic and receive events
                   //
-                  auto r1 = session.provide("com.myapp.add2", &add2);
+                  auto s1 = session.subscribe("com.example.onhello",
+                     [](const anyvec& args, const anymap& kwargs) {
+                        cerr << "event for 'onhello' received: " << any_cast<string>(args[0]) << endl;
+                     }
+                  );
 
-                  r1.then([](future<registration> reg) {
-                     cerr << "Registered with registration ID " << reg.get().id << endl;
+                  s1.then([](future<subscription> sub) {
+                     cerr << "subscribed to topic 'onhello' with subscription ID " << sub.get().id << endl;
                   }).wait();
 
 
-                  // register a lambda for remoting
+                  // REGISTER a procedure for remote calling
                   //
-                  session.provide("com.myapp.square",
+                  auto r1 = session.provide("com.example.add2", &add2);
 
-                     [](const anyvec& args, const anymap& kwargs) {
+                  r1.then([](future<registration> reg) {
+                     cerr << "procedure add2() registered with registration ID " << reg.get().id << endl;
+                  }).wait();
 
-                        cerr << "Someone is calling my lambda function .." << endl;
+                  // PUBLISH and CALL every second .. forever
+                  //
+                  loop = [&]() {
+                     timer.async_wait([&](system::error_code) {
 
-                        uint64_t x = any_cast<uint64_t> (args[0]);
-                        return x * x;
-                     }
-                  ).wait();
+                        // PUBLISH an event
+                        //
+                        session.publish("com.example.oncounter", {counter});
+                        cerr << "published to 'oncounter' with counter " << counter << endl;
+                        counter += 1;
+
+                        // CALL a remote procedure
+                        //
+                        c1 = session.call("com.example.mul2", {counter, 3})
+                           .then([&](future<any> f) {
+                              try {
+                                 uint64_t result = any_cast<uint64_t> (f.get());
+                                 cerr << "mul2() called with result: " << result << endl;
+
+                              } catch (...) {
+                                 // FIXME: only skip 'wamp.error.no_such_procedure' ..
+                              }
+                           }
+                        );
+                        //c1.wait();
+
+                        timer.expires_at(timer.expires_at() + posix_time::seconds(1));
+                        loop();
+                     });
+                  };
+
+                  loop();
                });
 
             } else {
