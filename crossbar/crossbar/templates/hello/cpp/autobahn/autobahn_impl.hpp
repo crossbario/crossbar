@@ -513,6 +513,9 @@ namespace autobahn {
 
    template<typename IStream, typename OStream>
    void session<IStream, OStream>::unpack_anymap(std::map<std::string, msgpack::object>& raw_kwargs, anymap& kwargs) {
+       for (auto& raw_args : raw_kwargs) {
+           kwargs[raw_args.first] = unpack_any(raw_args.second);
+       }
    }
 
 
@@ -539,20 +542,25 @@ namespace autobahn {
             return boost::any();
 
          case msgpack::type::ARRAY:
-            // FIXME
             {
                anyvec out_vec;
                std::vector<msgpack::object> in_vec;
+
                obj.convert(&in_vec);
-               for (int i = 0; i < in_vec.size(); ++i) {
-                  out_vec.push_back(unpack_any(in_vec[i]));
-               }
+               unpack_anyvec(in_vec, out_vec);
+
                return out_vec;
-               //std::cerr << "unprocess ARRAY" << std::endl;
             }
 
          case msgpack::type::MAP:
-            // FIXME
+            {
+               anymap out_map;
+               std::map<std::string, msgpack::object> in_map;
+
+               obj.convert(&in_map);
+               unpack_anymap(in_map, out_map);
+               return out_map;
+            }
 
          default:
             return boost::any();
@@ -766,7 +774,7 @@ namespace autobahn {
 
          uint64_t subscription_id = msg[2].as<uint64_t>();
 
-         m_handlers[subscription_id] = subscribe_request->second.m_handler;
+         m_handlers.insert(std::make_pair(subscription_id, subscribe_request->second.m_handler));
 
          subscribe_request->second.m_res.set_value(subscription(subscription_id));
 
@@ -795,9 +803,11 @@ namespace autobahn {
 
       uint64_t subscription_id = msg[1].as<uint64_t>();
 
-      typename handlers_t::iterator handler = m_handlers.find(subscription_id);
+      typename handlers_t::iterator handlersBegin = m_handlers.lower_bound(subscription_id);
+      typename handlers_t::iterator handlersEnd = m_handlers.upper_bound(subscription_id);
 
-      if (handler != m_handlers.end()) {
+      if (handlersBegin != m_handlers.end()
+              && handlersBegin != handlersEnd) {
 
          if (msg[2].type != msgpack::type::POSITIVE_INTEGER) {
             throw protocol_error("invalid EVENT message structure - PUBLISHED.Publication|id must be an integer");
@@ -838,7 +848,10 @@ namespace autobahn {
 
             // now trigger the user supplied event handler ..
             //
-            (handler->second)(args, kwargs);
+            while (handlersBegin != handlersEnd) {
+                (handlersBegin->second)(args, kwargs);
+                ++handlersBegin;
+            }
 
          } catch (...) {
             if (m_debug) {

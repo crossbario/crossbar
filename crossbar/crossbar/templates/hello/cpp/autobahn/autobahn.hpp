@@ -298,7 +298,7 @@ namespace autobahn {
          subscribe_requests_t m_subscribe_requests;
 
          /// Map of subscribed handlers (subscription ID -> handler)
-         typedef std::map<uint64_t, handler_t> handlers_t;
+         typedef std::multimap<uint64_t, handler_t> handlers_t;
 
          /// Map of WAMP subscription ID -> handler
          handlers_t m_handlers;
