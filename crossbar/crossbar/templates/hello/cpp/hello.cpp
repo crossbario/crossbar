@@ -154,9 +154,8 @@ int main () {
                               try {
                                  uint64_t result = any_cast<uint64_t> (f.get());
                                  cerr << "mul2() called with result: " << result << endl;
-
                               } catch (...) {
-                                 // FIXME: only skip 'wamp.error.no_such_procedure' ..
+                                 cerr << "mul2() call failed" << endl;
                               }
                            }
                         );

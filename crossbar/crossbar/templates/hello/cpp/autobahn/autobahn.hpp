@@ -327,13 +327,12 @@ namespace autobahn {
          /// Map of WAMP registration ID -> endpoint
          endpoints_t m_endpoints;
 
-
-
          /// An unserialized, raw WAMP message.
          typedef std::vector<msgpack::object> wamp_msg_t;
 
 
-
+         /// Process a WAMP ERROR message.
+         inline void process_error(const wamp_msg_t& msg);
 
          /// Process a WAMP HELLO message.
          inline void process_welcome(const wamp_msg_t& msg);
