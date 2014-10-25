@@ -45,13 +45,13 @@ from autobahn.twisted.util import sleep
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.common import checkconfig
-from crossbar.twisted.process import WorkerProcessEndpoint
+from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
 from crossbar.controller.guest import create_guest_worker_client_factory
 
-from crossbar.controller.types import RouterWorkerProcess, \
-                                      ContainerWorkerProcess, \
-                                      GuestWorkerProcess
+from crossbar.controller.processtypes import RouterWorkerProcess, \
+                                             ContainerWorkerProcess, \
+                                             GuestWorkerProcess
 from crossbar.common.process import NativeProcessSession
 
 

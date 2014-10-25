@@ -16,6 +16,10 @@
 ##
 ###############################################################################
 
+from __future__ import absolute_import
+
+__all__ = ('WorkerProcessEndpoint', 'BareFormatFileLogObserver', 'DefaultSystemFileLogObserver')
+
 
 import os
 from collections import deque

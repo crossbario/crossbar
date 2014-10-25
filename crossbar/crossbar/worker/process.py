@@ -79,7 +79,7 @@ def run():
    ## make sure logging to something else than stdio is setup _first_
    ##
    from twisted.python import log
-   from crossbar.twisted.process import BareFormatFileLogObserver
+   from crossbar.twisted.processutil import BareFormatFileLogObserver
    flo = BareFormatFileLogObserver(sys.stderr)
    log.startLoggingWithObserver(flo.emit)
 

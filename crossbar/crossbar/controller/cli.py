@@ -55,6 +55,7 @@ def run_command_version(options):
    tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
    if options.debug:
       tx_ver += " [%s]" % qual(reactor.__class__)
+   tx_ver = "?-?"
 
    ## Autobahn
    ##
@@ -163,7 +164,6 @@ def run_command_init(options):
 
 
 
-
 def run_command_start(options):
    """
    Subcommand "crossbar start".
@@ -176,7 +176,7 @@ def run_command_start(options):
       from twisted.python.logfile import DailyLogFile
       logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
 
-   from crossbar.twisted.process import DefaultSystemFileLogObserver
+   from crossbar.twisted.processutil import DefaultSystemFileLogObserver
    flo = DefaultSystemFileLogObserver(logfd, system = "{:<10} {:>6}".format("Controller", os.getpid()))
    log.startLoggingWithObserver(flo.emit)
 
@@ -193,14 +193,17 @@ def run_command_start(options):
    log.msg("Running on {} using {} reactor".format(platform.python_implementation(), qual(reactor.__class__).split('.')[-1]))
    log.msg("Starting from node directory {}".format(options.cbdir))
 
-
    ## create and start Crossbar.io node
    ##
    from crossbar.controller.node import Node
    node = Node(reactor, options)
    node.start()
 
-   reactor.run()
+   try:
+      log.msg("Entering reactor event loop ...")
+      reactor.run()
+   except Exception as e:
+      log.msg("Could not start reactor: {0}".format(e))
 
 
 
