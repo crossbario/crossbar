@@ -202,6 +202,25 @@ Now build the example by doing 'scons', start Crossbar using 'crossbar start'
 and open http://localhost:8080 in your browser.         
          """
       },
+
+      {
+         "name": "oracle:publisher",
+         "help": "Demonstrates how to publish WAMP events from within Oracle database.",
+         "basedir": "templates/oracle/publisher",
+         "params": {
+            "cbadapter": "cbadapter",
+            "cbadapter_password": "crossbar",
+            "cbdb": "cbdb",
+            "cbdb_password": "crossbar",
+            "cbdb_tablespace": "users",
+            "cbadapter": "cbadapter",
+            "nchar_maxlen": 2000,
+            "pipe_onpublish": "",
+            "pipe_onexport": ""
+         },
+         "get_started_hint": """
+         """
+      },
    ]
    """
    Application template definitions.
