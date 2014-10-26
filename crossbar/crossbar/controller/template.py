@@ -190,6 +190,18 @@ class Templates:
          "skip_jinja": ["WebSocketMain.swf"]
       },
 
+      {
+         "name": "pg:publisher",
+         "help": "Demonstrates how to publish WAMP events from within PostgreSQL.",
+         "basedir": "templates/pg/publisher",
+         "params": {
+            "schema": "crossbar"
+         },
+         "get_started_hint": """
+Now build the example by doing 'scons', start Crossbar using 'crossbar start'
+and open http://localhost:8080 in your browser.         
+         """
+      },
    ]
    """
    Application template definitions.
@@ -253,7 +265,7 @@ class Templates:
       basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
       if IS_WIN:
          basedir = basedir.replace('\\', '/') # Jinja need forward slashes even on Windows
-      print("Using templates from '{}'".format(basedir))
+      print("Using template from '{}'".format(basedir))
 
       appdir = os.path.abspath(appdir)
 

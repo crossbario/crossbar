@@ -16,6 +16,9 @@
 ##
 ###############################################################################
 
+from __future__ import absolute_import
+
+
 import json
 import six
 from txpostgres import txpostgres
@@ -29,11 +32,20 @@ from autobahn.twisted.wamp import ApplicationSession
 
 
 
-class PgPusher(ApplicationSession):
+class PostgreSQLDatabasePublisher(ApplicationSession):
    """
-   PostgreSQL publishing bridge.
+   PostgreSQL database adapter that allows publishing of WAMP real-time
+   events from within the database, e.g. from SQL or PL/pgSQL.
 
-   Direct testing:
+   WAMP Publish & Subscribe events can be issued from SQL or PL/pgSQL (or
+   any other PostgreSQL procedural language) and is dispatched in real-time
+   by Crossbar.io to all subscribers authorized and eligible to receiving
+   the event.
+
+   Effectively, this adapter implements a WAMP Publisher Role for PostgreSQL.
+
+   A WAMP Publish & Subcribe event can be issued from a PostgreSQL database
+   session like this:
 
    SELECT pg_notify('crossbar_pubsub_event',
       json_build_object(
@@ -42,9 +54,20 @@ class PgPusher(ApplicationSession):
          'args', json_build_array(23, 7, 'hello world!'),
          'kwargs', json_build_object('foo', 'bar', 'baz', 42)
       )::text
-   );   
+   );
 
-   See also: http://www.postgresql.org/docs/devel/static/functions-json.html
+   Above is bypassing the wrapper API that comes with Crossbar.io, which could
+   be used to do the same as above like this:
+
+   SELECT cb_publish(
+      'com.example.topic1',
+      json_build_array(23, 7, 'hello world!'),
+      json_build_object('foo', 'bar', 'baz', 42))
+   );
+
+   See also:
+
+      * http://www.postgresql.org/docs/devel/static/functions-json.html
    """
 
    CHANNEL_PUBSUB_EVENT = "crossbar_pubsub_event"
@@ -171,7 +194,10 @@ class PgPusher(ApplicationSession):
 
 
 if __name__ == '__main__':
+   from autobahn.twisted.choosereactor import install_reactor
    from autobahn.twisted.wamp import ApplicationRunner
+
+   install_reactor()
 
    config = {
       'database': {
@@ -185,4 +211,4 @@ if __name__ == '__main__':
 
    runner = ApplicationRunner(url = "ws://127.0.0.1:8080/ws",
       realm = "realm1", extra = config)
-   runner.run(PgPusher)
+   runner.run(PostgreSQLDatabasePublisher)

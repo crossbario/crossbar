@@ -1303,13 +1303,18 @@ def check_native_worker_options(options, silence = False):
       raise Exception("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
    for k in options:
-      if k not in ['title', 'python', 'pythonpath', 'cpu_affinity', 'env']:
+      if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env']:
          raise Exception("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
 
    if 'title' in options:
       title = options['title']
       if type(title) != six.text_type:
          raise Exception("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
+
+   if 'reactor' in options:
+      _reactor = options['reactor']
+      if type(_reactor) != dict:
+         raise Exception("'reactor' in 'options' in worker configuration must be a dict ({} encountered)".format(type(_reactor)))
 
    if 'python' in options:
       python = options['python']
