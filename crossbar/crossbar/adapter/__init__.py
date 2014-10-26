@@ -18,4 +18,4 @@
 
 from __future__ import absolute_import
 
-from crossbar.adapter.postgres.pusher import PostgreSQLDatabasePublisher
+from crossbar.adapter.postgres.publisher import PostgreSQLDatabasePublisher
