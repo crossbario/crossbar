@@ -28,11 +28,11 @@ AS
    REPOUSER              CONSTANT VARCHAR2(30) := sys_context('USERENV', 'CURRENT_SCHEMA');
 
 
-   FUNCTION publish(p_topic      IN NVARCHAR2,
+   FUNCTION publish(p_uri        IN NVARCHAR2,
                     p_args       IN json_list,
                     p_kwargs     IN json,
                     p_exclude    IN crossbar_sessionids,
-                    p_eligible   IN crossbar_sessionids) RETURN NUMBER
+                    p_eligible   IN crossbar_sessionids) RETURN INTEGER
    AS
       PRAGMA AUTONOMOUS_TRANSACTION;
 
@@ -55,7 +55,7 @@ AS
       END IF;
 */
       l_payload := json();
-      l_payload.put('topic', p_topic);
+      l_payload.put('topic', p_uri);
 
       IF p_args IS NOT NULL THEN
          l_payload.put('args', p_args);
@@ -70,7 +70,7 @@ AS
       BEGIN
          -- try serializing into VARCHAR2 with target column length limit
          --
-         l_payload_str := p_args.to_char();
+         l_payload_str := l_payload.to_char();
          l_id := 0;
 
          -- notify pipe
@@ -110,13 +110,13 @@ AS
             DBMS_LOB.createtemporary(lob_loc => l_payload_lob,
                                      cache => true,
                                      dur => DBMS_LOB.call);
-            p_args.to_clob(l_payload_lob);
+            l_payload.to_clob(l_payload_lob);
 
             -- persist event
             --
             INSERT INTO event (id, published_at, published_by, topic, qos, payload_type, payload_str, payload_lob, exclude_sids, eligible_sids)
                VALUES
-                  (l_id, l_now, l_user, p_topic, QOS_BEST_EFFORT, PAYLOAD_TYPE_JSON, NULL, l_payload_lob, p_exclude, p_eligible);
+                  (l_id, l_now, l_user, p_uri, crossbar.QOS_BEST_EFFORT, crossbar.PAYLOAD_TYPE_JSON, NULL, l_payload_lob, p_exclude, p_eligible);
 
             DBMS_LOB.freetemporary(l_payload_lob);
 
@@ -138,6 +138,39 @@ AS
       END;
 
    END publish;
+
+
+   FUNCTION register(p_schema    IN VARCHAR2,
+                     p_package   IN VARCHAR2,
+                     p_proc      IN VARCHAR2,
+                     p_uri       IN NVARCHAR2) RETURN INTEGER
+   IS
+   BEGIN
+      RETURN 0;
+   END register;
+
+
+   PROCEDURE unregister(p_registration IN INTEGER)
+   IS
+   BEGIN
+      NULL;
+   END unregister;
+
+
+   FUNCTION subscribe(p_schema    IN VARCHAR2,
+                      p_package   IN VARCHAR2,
+                      p_proc      IN VARCHAR2,
+                      p_uri       IN NVARCHAR2) RETURN INTEGER
+   IS
+   BEGIN
+      RETURN 0;
+   END subscribe;
+
+   PROCEDURE unsubscribe(p_subscription IN INTEGER)
+   IS
+   BEGIN
+      NULL;
+   END unsubscribe;
 
 END crossbar;
 /
