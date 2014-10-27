@@ -1,12 +1,12 @@
 CREATE OR REPLACE PACKAGE crossbar
 AS
    /**
-    * crossbar.io Oracle PL/SQL API.
+    * Crossbar.io Oracle PL/SQL API.
     *
-    * Copyright (C) 2011-2013 Tavendo GmbH.
+    * Copyright (C) 2011-2014 Tavendo GmbH.
     * Licensed under Apache 2.0 license (http://www.apache.org/licenses/LICENSE-2.0.html)
     *
-    * Publish & Subscribe:
+    * Publish and Subscribe:
     *
     *   The package provides functions to publish events to crossbar.io from within
     *   Oracle which are dispatched to any clients subscribed and authorized
@@ -380,7 +380,4 @@ AS
                     p_kill_session    IN BOOLEAN DEFAULT FALSE);
 
 END crossbar;
-/
-
-CREATE PUBLIC SYNONYM crossbar FOR crossbar;
 /
