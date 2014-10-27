@@ -215,8 +215,8 @@ and open http://localhost:8080 in your browser.
             "cbdb_tablespace": "users",
             "cbadapter": "cbadapter",
             "nchar_maxlen": 2000,
-            "pipe_onpublish": "",
-            "pipe_onexport": ""
+            "pipe_onpublish": "crossbar_on_publish",
+            "pipe_onexport": "crossbar_on_export"
          },
          "get_started_hint": """
          """

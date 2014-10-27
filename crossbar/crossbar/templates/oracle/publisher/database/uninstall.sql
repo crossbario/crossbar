@@ -1,3 +1,10 @@
+--
+-- Uninstall Crossbar.io Oracle database integration.
+--
+-- To run, connect as CBDB and run the script using SQL*Plus:
+--
+-- sqlplus cbdb/crossbar@localhost:1521/orcl @uninstall.sql
+--
 
 
 -- Gracefully remove all objects previously installed.
@@ -208,4 +215,8 @@ BEGIN
       END;
    END LOOP;
 END;
+/
+
+show errors;
+exit;
 /

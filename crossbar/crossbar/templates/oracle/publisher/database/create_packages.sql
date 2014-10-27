@@ -15,5 +15,5 @@ END;
 @@crossbar/crossbar_spec.sql
 @@crossbar/crossbar_body.sql
 
-CREATE PUBLIC SYNONYM crossbar FOR crossbar;
+CREATE PUBLIC SYNONYM crossbar FOR crossbar
 /
