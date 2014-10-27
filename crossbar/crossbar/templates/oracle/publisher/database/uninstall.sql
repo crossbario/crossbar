@@ -7,9 +7,11 @@
 --
 -- Pipes
 --
+DECLARE
+   l_id INTEGER;
 BEGIN
-   SYS.DBMS_PIPE.remove_pipe(pipename => 'crossbar_on_publish');
-   SYS.DBMS_PIPE.remove_pipe(pipename => 'crossbar_on_export');
+   l_id := SYS.DBMS_PIPE.remove_pipe(pipename => 'crossbar_on_publish');
+   l_id := SYS.DBMS_PIPE.remove_pipe(pipename => 'crossbar_on_export');
 END;
 /
 

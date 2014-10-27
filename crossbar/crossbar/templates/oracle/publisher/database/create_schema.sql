@@ -1,6 +1,12 @@
 CREATE TYPE crossbar_sessionids IS TABLE OF VARCHAR2(16) NOT NULL;
+/
+
 CREATE TYPE crossbar_authkeys IS TABLE OF VARCHAR2(30);
+/
+
 CREATE TYPE t_arg_types IS TABLE OF VARCHAR2(96);
+/
+
 CREATE TYPE t_arg_inouts IS TABLE OF VARCHAR2(9);
 /
 
@@ -13,6 +19,8 @@ CREATE OR REPLACE TYPE crossbar_session AS OBJECT
 /
 
 CREATE SEQUENCE event_id;
+/
+
 CREATE SEQUENCE endpoint_id;
 /
 
@@ -74,8 +82,14 @@ NESTED TABLE eligible_sids STORE AS event_eligible_sids;
 /
 
 ALTER TABLE event ADD CONSTRAINT cstr_event_payload_type CHECK (payload_type IN (1, 2)) ENABLE;
+/
+
 ALTER TABLE event ADD CONSTRAINT cstr_event_qos CHECK (qos IN (1)) ENABLE;
+/
+
 ALTER TABLE event ADD CONSTRAINT cstr_event_processed_status CHECK (processed_status IN (0, 1, 2, 3, 4, 5)) ENABLE;
+/
+
 ALTER TABLE event ADD CONSTRAINT cstr_event_dispatch_status CHECK (dispatch_status IN (0, 1)) ENABLE;
 /
 
@@ -103,13 +117,23 @@ END;
 /
 
 CREATE PUBLIC SYNONYM crossbar_event FOR crossbar_event;
+/
+
 CREATE PUBLIC SYNONYM crossbar_endpoint FOR crossbar_endpoint;
+/
+
 CREATE PUBLIC SYNONYM crossbar_session FOR crossbar_session;
+/
+
 CREATE PUBLIC SYNONYM crossbar_sessionids FOR crossbar_sessionids;
+/
+
 CREATE PUBLIC SYNONYM crossbar_authkeys FOR crossbar_authkeys;
 /
 
 GRANT SELECT ON crossbar_event TO {{ cbadapter }};
+/
+
 GRANT SELECT ON crossbar_endpoint TO {{ cbadapter }};
 /
 
