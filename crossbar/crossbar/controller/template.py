@@ -121,6 +121,15 @@ class Templates:
       },
 
       {
+         "name": "hello:java",
+         "help": "A minimal Java/jawampa WAMP application hosted in a router and a HTML5 client.",
+         "get_started_hint": "Please follow the README.md to build the Java component first, then start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
+         "basedir": "templates/hello/java",
+         "params": {
+         },
+      },
+
+      {
          "name": "votes:browser",
          "help": "Demo that casts live votes synchronized across HTML5 clients. Backend runs in the browser.",
          "basedir": "templates/votes/browser",
