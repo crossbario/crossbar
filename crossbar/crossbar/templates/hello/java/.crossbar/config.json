@@ -45,11 +45,11 @@
       },
       {
          "type": "guest",
-         "executable": "C:\\apache-maven-3.0.3\\bin\\mvn.bat",
+         "executable": "/usr/bin/java",
          "arguments": [
-            "exec:java",
-            "-Dexec.mainClass='ws.wamp.jawampa.CrossbarExample'",
-            "-Dexec.args='ws://127.0.0.1:8080/ws realm1'"
+            "-classpath", "./target/classes:./target/dependency/*",
+            "ws.wamp.jawampa.CrossbarExample",
+            "ws://127.0.0.1:8080/ws", "realm1"
          ],
          "options": {
             "workdir": ".."
