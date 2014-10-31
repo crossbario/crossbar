@@ -524,7 +524,7 @@ namespace autobahn {
    boost::any session<IStream, OStream>::unpack_any(msgpack::object& obj) {
       switch (obj.type) {
 
-         case msgpack::type::RAW:
+         case msgpack::type::STR:
             return boost::any(obj.as<std::string>());
 
          case msgpack::type::POSITIVE_INTEGER:
@@ -613,7 +613,7 @@ namespace autobahn {
 
       // Error|uri
       //
-      if (msg[4].type != msgpack::type::RAW) {
+      if (msg[4].type != msgpack::type::STR) {
          throw protocol_error("invalid ERROR message - Error must be a string (URI)");
       }
       std::string error = msg[4].as<std::string>();
@@ -647,7 +647,7 @@ namespace autobahn {
 
                   // FIXME: forward all error info .. also not sure if this is the correct
                   // way to use set_exception()
-                  call->second.m_res.set_exception(std::copy_exception(std::runtime_error(error)));
+                  call->second.m_res.set_exception(boost::copy_exception(std::runtime_error(error)));
 
                } else {
                   throw protocol_error("bogus ERROR message for non-pending CALL request ID");
