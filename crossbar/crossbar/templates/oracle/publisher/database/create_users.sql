@@ -3,7 +3,13 @@
 --
 -- To run, connect as SYS and run the script using SQL*Plus:
 --
+-- Password provided in command (not recommended):
+--
 -- sqlplus sys/oracle@localhost:1521/orcl as sysdba @create_users.sql
+--
+-- Or password prompted for (see: http://blog.oracle48.nl/sqlplus-and-easy-connect-without-password-on-the-command-line/)
+--
+-- sqlplus sys@\"localhost:1521/orcl\" as sysdba @create_users.sql
 --
 
 --

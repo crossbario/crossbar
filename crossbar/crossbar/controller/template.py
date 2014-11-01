@@ -227,7 +227,17 @@ and open http://localhost:8080 in your browser.
             "pipe_onpublish": "crossbar_on_publish",
             "pipe_onexport": "crossbar_on_export"
          },
-         "get_started_hint": """
+         "get_started_hint": """Now install the Crossbar.io Oracle database integration by doing:
+
+   cd database
+   make create_users
+   make install
+
+Then start Crossbar.io (from the current directory):
+
+   crossbar start
+
+and open your browser pointing to http://localhost:8080.
          """
       },
    ]
