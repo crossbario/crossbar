@@ -127,7 +127,7 @@ class CrossbarRouterSession(RouterSession):
                               user = cfg['users'][details.authid]
                               print "Y"*100, user['secret'], user['role']
 
-                              self._pending_auth = PendingAuthWampCra(None, details.authid, user['role'], u'static', user['secret'])
+                              self._pending_auth = PendingAuthWampCra(None, details.authid, user['role'], u'static', user['secret'].encode('utf8'))
 
                               ## send challenge to client
                               ##
@@ -245,7 +245,21 @@ class CrossbarRouterSession(RouterSession):
 
    def onAuthenticate(self, signature, extra):
 
-      if isinstance(self._pending_auth, PendingAuthPersona):
+      if isinstance(self._pending_auth, PendingAuthWampCra):
+
+         if signature == self._pending_auth.signature:
+
+            ## accept the client
+            return types.Accept(authid = self._pending_auth.authid,
+               authrole = self._pending_auth.authrole,
+               authmethod = self._pending_auth.authmethod,
+               authprovider = self._pending_auth.authprovider)
+         else:
+
+            ## deny client
+            return types.Deny(message = u"signature is invalid")
+
+      elif isinstance(self._pending_auth, PendingAuthPersona):
 
          dres = Deferred()
 

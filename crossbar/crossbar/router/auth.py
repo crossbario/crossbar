@@ -45,6 +45,7 @@ class PendingAuthPersona(PendingAuth):
    """
 
    def __init__(self, provider, audience, role = None):
+      self.authmethod = u"mozilla_persona"
       self.provider = provider
       self.audience = audience
       self.role = role
@@ -72,6 +73,7 @@ class PendingAuthWampCra(PendingAuth):
       :type secret: str
       """
       self.session = session
+      self.authmethod = u"wampcra"
       self.authid = authid
       self.authrole = authrole
       self.authprovider = authprovider
