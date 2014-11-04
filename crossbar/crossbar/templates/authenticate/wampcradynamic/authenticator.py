@@ -36,38 +36,33 @@ from autobahn.wamp.exception import ApplicationError
 
 
 
-USERDB = {
-   'joe': {
-      'secret': 'secret2',
-      'role': 'frontend'
-   },
-   'peter': {
-      # auth.derive_key(secret.encode('utf8'), salt.encode('utf8')).decode('ascii')
-      'secret': 'prq7+YkJ1/KlW1X0YczMHw==',
-      'role': 'frontend',
-      'salt': 'salt123',
-      'iterations': 100,
-      'keylen': 16
-   }
-}
-
-
 class MyAuthenticator(ApplicationSession):
 
-    @inlineCallbacks
-    def onJoin(self, details):
+   USERDB = {
+      'joe': {
+         'secret': 'secret2',
+         'role': 'frontend'
+      },
+      'peter': {
+         # auth.derive_key(secret.encode('utf8'), salt.encode('utf8')).decode('ascii')
+         'secret': 'prq7+YkJ1/KlW1X0YczMHw==',
+         'role': 'frontend',
+         'salt': 'salt123',
+         'iterations': 100,
+         'keylen': 16
+      }
+   }
+
+   @inlineCallbacks
+   def onJoin(self, details):
 
       def authenticate(realm, authid):
-         ## returns an object with challenge, signature and role
+         print("authenticate called: realm = '{}', authid = '{}'".format(realm, authid))
 
-         print("authenticate called: realm = '{}', authid = '{}'".format(relam, authid))
-         if authid in USERDB:
-            res = {
-               'challenge': '123',
-               'signature': '456',
-               'role': USERDB['role']
-            }
-            return res
+         if authid in self.USERDB:
+            return self.USERDB[authid]
+         else:
+            raise Exception("no such user")
 
       try:
          yield self.register(authenticate, 'com.example.authenticate')

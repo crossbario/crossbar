@@ -124,7 +124,7 @@ class CrossbarRouterSession(RouterSession):
                            if details.authid in cfg.get('users', {}):
                               user = cfg['users'][details.authid]
 
-                              self._pending_auth = PendingAuthWampCra(None, details.authid, user['role'], u'static', user['secret'].encode('utf8'))
+                              self._pending_auth = PendingAuthWampCra(details.pending_session, details.authid, user['role'], u'static', user['secret'].encode('utf8'))
 
                               ## send challenge to client
                               ##
@@ -156,7 +156,9 @@ class CrossbarRouterSession(RouterSession):
 
                            def on_authenticate_ok(user):
 
-                              self._pending_auth = PendingAuthWampCra(None, details.authid, user['role'], u'dynamic', user['secret'].encode('utf8'))
+                              ## construct a pending WAMP-CRA authentication
+                              ##
+                              self._pending_auth = PendingAuthWampCra(details.pending_session, details.authid, user['role'], u'dynamic', user['secret'].encode('utf8'))
 
                               ## send challenge to client
                               ##
@@ -165,7 +167,8 @@ class CrossbarRouterSession(RouterSession):
                               }
 
                               ## when using salted passwords, provide the client with
-                              ## the salt and then PBKDF2 parameters used
+                              ## the salt and the PBKDF2 parameters used
+                              ##
                               if 'salt' in user:
                                  extra[u'salt'] = user['salt']
                                  extra[u'iterations'] = user.get('iterations', 1000)
@@ -183,7 +186,7 @@ class CrossbarRouterSession(RouterSession):
 
                         else:
 
-                           return types.Deny(message = "illegal wampcra config")
+                           return types.Deny(message = "illegal WAMP-CRA config (type '{0}' is unknown)".format(cfg['type']))
 
                      ## "Mozilla Persona" authentication
                      ##

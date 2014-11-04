@@ -62,6 +62,8 @@ def check_realm_name(name):
 
 
 def check_dict_args(spec, config, msg):
+   if type(config) != dict:
+      raise Exception("{} - invalid type for configuration item - expected dict, got {}".format(msg, type(config)))
    for k in config:
       if not k in spec:
          raise Exception("{} - encountered unknown attribute '{}'".format(msg, k))
@@ -82,6 +84,52 @@ def check_or_raise_uri(value, message):
       raise Exception("{}: invalid value '{}' for URI".format(message, value))
    return value
 
+
+
+def check_transport_auth_wampcra(config):
+   """
+   Check a WAMP-CRA configuration item.
+   """
+   if 'type' not in config:
+      raise Exception("missing mandatory attribute 'type' in WAMP-CRA configuration")
+
+   if config['type'] not in ['static', 'dynamic']:
+      raise Exception("invalid type '{}' for WAMP-CRA authentication type - must be one of 'static', 'dynamic'".format(config['type']))
+
+   if config['type'] == 'static':
+      if 'users' not in config:
+         raise Exception("missing mandatory attribute 'users' in static WAMP-CRA config")
+      if type(config['users']) != dict:
+         raise Exception("invalid type for attribute 'users' in static WAMP-CRA config - expected dict, got {}".format(type(config['users'])))
+      for u, user in config['users'].items():
+         check_dict_args({
+            'secret': (True, [six.text_type]),
+            'role': (False, [six.text_type]),
+            'salt': (False, [six.text_type]),
+            'iterations': (False, six.integer_types),
+            'keylen': (False, six.integer_types)
+            }, user, "WAMP-CRA user '{}' configuration".format(u))
+
+   elif config['type'] == 'dynamic':
+      if 'authenticator' not in config:
+         raise Exception("missing mandatory attribute 'authenticator' in dynamic WAMP-CRA config")
+      check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in realm permissions".format(config['authenticator']))
+   else:
+      raise Exception("logic error")
+
+
+
+def check_transport_auth(auth):
+   """
+   Check a WAMP transport authentication configuration.
+   """
+   if type(auth) != dict:
+      raise Exception("invalid type {} for authentication configuration item (dict expected)".format(type(auth)))
+   CHECKS = {'wampcra': check_transport_auth_wampcra}
+   for k in auth:
+      if k not in CHECKS:
+         raise Exception("invalid authentication method key '{0}' - must be one of: wampcra".format(k))
+      CHECKS[k](auth[k])
 
 
 def check_endpoint_backlog(backlog):
@@ -393,6 +441,13 @@ def check_web_path_service_websocket(config):
    :param config: The path service configuration.
    :type config: dict
    """
+   check_dict_args({
+      'type': (True, [six.text_type]),
+      'url': (False, [six.text_type]),
+      'auth': (False, [dict]),
+      'options': (False, [dict])
+      }, config, "Web transport 'WebSocket' path service")
+
    if 'options' in config:
       check_websocket_options(config['options'])
 
@@ -409,6 +464,9 @@ def check_web_path_service_websocket(config):
          u = parseWsUrl(url)
       except Exception as e:
          raise Exception("invalid 'url' in WebSocket configuration : {}".format(e))
+
+   if 'auth' in config:
+      check_transport_auth(config['auth'])
 
 
 
@@ -706,7 +764,15 @@ def check_listening_transport_websocket(transport):
    :type transport: dict
    """
    for k in transport:
-      if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'options', 'auth']:
+      if k not in [
+         'id',
+         'type',
+         'endpoint',
+         'url',
+         'serializers',
+         'debug',
+         'options',
+         'auth']:
          raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
    if 'id' in transport:
@@ -739,7 +805,8 @@ def check_listening_transport_websocket(transport):
       except Exception as e:
          raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
-   ## FIXME: check auth
+   if 'auth' in transport:
+      check_transport_auth(transport['auth'])
 
 
 
@@ -815,7 +882,8 @@ def check_listening_transport_rawsocket(transport):
       if type(debug) != bool:
          raise Exception("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
-   ## FIXME: check auth
+   if 'auth' in transport:
+      check_transport_auth(transport['auth'])
 
 
 
@@ -1056,7 +1124,9 @@ def check_container_component(component, silence = False):
 
 
 def check_router_realm(realm, silence = False):
+   ## FIXME
    return
+
    ## permissions
    ##
    if 'permissions' in realm:
