@@ -243,8 +243,16 @@ and open your browser pointing to http://localhost:8080.
 
       {
          "name": "authenticate:wampcra",
-         "help": "Demonstrates authentication via WAMP-CRA from a static user database from the node configuration.",
+         "help": "Demonstrates authentication via WAMP-CRA from a static user database defined in the node configuration.",
          "basedir": "templates/authenticate/wampcra",
+         "params": {
+         }
+      },
+
+      {
+         "name": "authenticate:wampcradynamic",
+         "help": "Demonstrates authentication via WAMP-CRA from a user-defined authenticator procedure.",
+         "basedir": "templates/authenticate/wampcradynamic",
          "params": {
          }
       },

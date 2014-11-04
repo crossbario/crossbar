@@ -146,7 +146,13 @@ class CrossbarRouterSession(RouterSession):
 
                         elif cfg['type'] == 'dynamic':
 
-                           d = self.call(cfg['authenticate'], realm, details.authid)
+                           ## Get the Crossbar.io service session on the router/realm
+                           ## to issue the WAMP call to the custom authorizer
+                           ##
+                           router = self._router_factory.get(realm)
+                           service_session = router._realm.session
+
+                           d = service_session.call(cfg['authenticator'], realm, details.authid)
 
                            def on_authenticate_ok(user):
 
