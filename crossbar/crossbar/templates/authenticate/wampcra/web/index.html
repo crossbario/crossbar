@@ -7,7 +7,7 @@
       <h1>WAMP Challenge-Response Authentication</h1>
       <p>Open JavaScript console to watch output.</p>
 
-      <script>AUTOBAHN_DEBUG = true;</script>
+      <script>AUTOBAHN_DEBUG = false;</script>
       <script src="autobahn.min.js"></script>
       <script>
          console.log("Ok, Autobahn loaded", autobahn.version);
@@ -50,14 +50,52 @@
             console.log("authenticated using method '" + details.authmethod + "' and provider '" + details.authprovider + "'");
             console.log("authenticated with authid '" + details.authid + "' and authrole '" + details.authrole + "'");
 
-            session.call('com.timeservice.now').then(
-               function (now) {
-                  console.log("call result", now);
+            // call a procedure we are allowed to call (so this should succeed)
+            //
+            session.call('com.example.add2', [2, 3]).then(
+               function (res) {
+                  console.log("call result", res);
                },
                function (error) {
                   console.log("call error", error);
                }
             );
+
+            // (try to) register a procedure where we are not allowed to (so this should fail)
+            //
+            session.register('com.example.mul2', function (args, kwargs) {})
+               .then(
+                  function () {
+                     console.log("huh, function registered!");
+                  },
+                  function (err) {
+                     console.log("registration failed - this is expected", err);
+                  }
+               );
+
+            // publish
+            var topics = [
+               'com.example.topic1',
+               'com.example.topic2',
+               'com.foobar.topic1',
+               'com.foobar.topic2'
+            ];
+
+            for (var i = 0; i < topics.length; ++i) {
+
+               (function (j) {
+                  session.publish(topics[j], null, null, {acknowledge: true})
+                     .then(
+                        function (pub) {
+                           console.log("event published to topic", topics[j]);
+                        },
+                        function (err) {
+                           console.log("publication to topic " + topics[j] + " failed", err);
+                        }
+                     );
+               })(i);
+            }
+
          };
 
          connection.onclose = function (reason, details) {

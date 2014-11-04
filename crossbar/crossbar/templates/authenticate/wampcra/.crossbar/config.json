@@ -28,11 +28,20 @@
                      "name": "frontend",
                      "permissions": [
                         {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
+                           "uri": "com.example.add2",
+                           "call": true
+                        },
+                        {
+                           "uri": "com.example.*",
+                           "publish": true
+                        },
+                        {
+                           "uri": "com.example.topic2",
+                           "publish": false
+                        },
+                        {
+                           "uri": "com.foobar.topic1",
+                           "publish": true
                         }
                      ]
                   }
