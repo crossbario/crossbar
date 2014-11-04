@@ -120,12 +120,9 @@ class CrossbarRouterSession(RouterSession):
                      if authmethod == u"wampcra":
                         cfg = self._transport_config['auth']['wampcra']
 
-                        print "X"*100, details, cfg
-
                         if cfg['type'] == 'static':
                            if details.authid in cfg.get('users', {}):
                               user = cfg['users'][details.authid]
-                              print "Y"*100, user['secret'], user['role']
 
                               self._pending_auth = PendingAuthWampCra(None, details.authid, user['role'], u'static', user['secret'].encode('utf8'))
 
@@ -134,12 +131,53 @@ class CrossbarRouterSession(RouterSession):
                               extra = {
                                  u'challenge': self._pending_auth.challenge
                               }
+
+                              ## when using salted passwords, provide the client with
+                              ## the salt and then PBKDF2 parameters used
+                              if 'salt' in user:
+                                 extra[u'salt'] = user['salt']
+                                 extra[u'iterations'] = user.get('iterations', 1000)
+                                 extra[u'keylen'] = user.get('keylen', 32)
+
                               return types.Challenge(u'wampcra', extra)
 
                            else:
                               return types.Deny(message = "no user with authid '{}' in user database".format(details.authid))
 
+                        elif cfg['type'] == 'dynamic':
 
+                           d = self.call(cfg['authenticate'], realm, details.authid)
+
+                           def on_authenticate_ok(user):
+
+                              self._pending_auth = PendingAuthWampCra(None, details.authid, user['role'], u'dynamic', user['secret'].encode('utf8'))
+
+                              ## send challenge to client
+                              ##
+                              extra = {
+                                 u'challenge': self._pending_auth.challenge
+                              }
+
+                              ## when using salted passwords, provide the client with
+                              ## the salt and then PBKDF2 parameters used
+                              if 'salt' in user:
+                                 extra[u'salt'] = user['salt']
+                                 extra[u'iterations'] = user.get('iterations', 1000)
+                                 extra[u'keylen'] = user.get('keylen', 32)
+
+                              return types.Challenge(u'wampcra', extra)
+
+                           def on_authenticate_error(err):
+                              return types.Deny(message = "authentication failed: {0}".format(err))
+
+
+                           d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+                           return d
+
+                        else:
+
+                           return types.Deny(message = "illegal wampcra config")
 
                      ## "Mozilla Persona" authentication
                      ##
@@ -244,101 +282,115 @@ class CrossbarRouterSession(RouterSession):
 
 
    def onAuthenticate(self, signature, extra):
+      """
+      Callback fired when a client responds to an authentication challenge.
+      """
+      print("onAuthenticate: {} {}".format(signature, extra))
 
-      if isinstance(self._pending_auth, PendingAuthWampCra):
+      ## if there is a pending auth, and the signature provided by client matches ..
+      if self._pending_auth:
 
-         if signature == self._pending_auth.signature:
+         if isinstance(self._pending_auth, PendingAuthWampCra):
 
-            ## accept the client
-            return types.Accept(authid = self._pending_auth.authid,
-               authrole = self._pending_auth.authrole,
-               authmethod = self._pending_auth.authmethod,
-               authprovider = self._pending_auth.authprovider)
+            if signature == self._pending_auth.signature:
+
+               ## accept the client
+               return types.Accept(authid = self._pending_auth.authid,
+                  authrole = self._pending_auth.authrole,
+                  authmethod = self._pending_auth.authmethod,
+                  authprovider = self._pending_auth.authprovider)
+            else:
+
+               ## deny client
+               return types.Deny(message = u"signature is invalid")
+
+         elif isinstance(self._pending_auth, PendingAuthPersona):
+
+            dres = Deferred()
+
+            ## The client did it's Mozilla Persona authentication thing
+            ## and now wants to verify the authentication and login.
+            assertion = signature
+            audience = str(self._pending_auth.audience) # eg "http://192.168.1.130:8080/"
+            provider = str(self._pending_auth.provider) # eg "https://verifier.login.persona.org/verify"
+
+            ## To verify the authentication, we need to send a HTTP/POST
+            ## to Mozilla Persona. When successful, Persona will send us
+            ## back something like:
+
+            # {
+            #    "audience": "http://192.168.1.130:8080/",
+            #    "expires": 1393681951257,
+            #    "issuer": "gmail.login.persona.org",
+            #    "email": "tobias.oberstein@gmail.com",
+            #    "status": "okay"
+            # }
+
+            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            body = urllib.urlencode({'audience': audience, 'assertion': assertion})
+
+            from twisted.web.client import getPage
+            d = getPage(url = provider,
+                        method = 'POST',
+                        postdata = body,
+                        headers = headers)
+
+            log.msg("Authentication request sent.")
+
+            def done(res):
+               res = json.loads(res)
+               try:
+                  if res['status'] == 'okay':
+
+                     ## awesome: Mozilla Persona successfully authenticated the user
+                     self._transport._authid = res['email']
+                     self._transport._authrole = self._pending_auth.role
+                     self._transport._authmethod = 'mozilla_persona'
+
+                     log.msg("Authenticated user {} with role {}".format(self._transport._authid, self._transport._authrole))
+                     dres.callback(types.Accept(authid = self._transport._authid, authrole = self._transport._authrole, authmethod = self._transport._authmethod))
+
+                     ## remember the user's auth info (this marks the cookie as authenticated)
+                     if self._transport._cbtid and self._transport.factory._cookiestore:
+                        cs = self._transport.factory._cookiestore
+                        cs.setAuth(self._transport._cbtid, self._transport._authid, self._transport._authrole, self._transport._authmethod)
+
+                        ## kick all sessions using same cookie (but not _this_ connection)
+                        if True:
+                           for proto in cs.getProtos(self._transport._cbtid):
+                              if proto and proto != self._transport:
+                                 try:
+                                    proto.close()
+                                 except Exception as e:
+                                    pass
+                  else:
+                     log.msg("Authentication failed!")
+                     log.msg(res)
+                     dres.callback(types.Deny(reason = "wamp.error.authorization_failed", message = res.get("reason", None)))
+               except Exception as e:
+                  log.msg("internal error during authentication verification: {}".format(e))
+                  dres.callback(types.Deny(reason = "wamp.error.internal_error", message = str(e)))
+
+            def error(err):
+               log.msg("Authentication request failed: {}".format(err.value))
+               dres.callback(types.Deny(reason = "wamp.error.authorization_request_failed", message = str(err.value)))
+
+            d.addCallbacks(done, error)
+
+            return dres
+
          else:
 
-            ## deny client
-            return types.Deny(message = u"signature is invalid")
+            log.msg("don't know how to authenticate")
 
-      elif isinstance(self._pending_auth, PendingAuthPersona):
-
-         dres = Deferred()
-
-         ## The client did it's Mozilla Persona authentication thing
-         ## and now wants to verify the authentication and login.
-         assertion = signature
-         audience = str(self._pending_auth.audience) # eg "http://192.168.1.130:8080/"
-         provider = str(self._pending_auth.provider) # eg "https://verifier.login.persona.org/verify"
-
-         ## To verify the authentication, we need to send a HTTP/POST
-         ## to Mozilla Persona. When successful, Persona will send us
-         ## back something like:
-
-         # {
-         #    "audience": "http://192.168.1.130:8080/",
-         #    "expires": 1393681951257,
-         #    "issuer": "gmail.login.persona.org",
-         #    "email": "tobias.oberstein@gmail.com",
-         #    "status": "okay"
-         # }
-
-         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-         body = urllib.urlencode({'audience': audience, 'assertion': assertion})
-
-         from twisted.web.client import getPage
-         d = getPage(url = provider,
-                     method = 'POST',
-                     postdata = body,
-                     headers = headers)
-
-         log.msg("Authentication request sent.")
-
-         def done(res):
-            res = json.loads(res)
-            try:
-               if res['status'] == 'okay':
-
-                  ## awesome: Mozilla Persona successfully authenticated the user
-                  self._transport._authid = res['email']
-                  self._transport._authrole = self._pending_auth.role
-                  self._transport._authmethod = 'mozilla_persona'
-
-                  log.msg("Authenticated user {} with role {}".format(self._transport._authid, self._transport._authrole))
-                  dres.callback(types.Accept(authid = self._transport._authid, authrole = self._transport._authrole, authmethod = self._transport._authmethod))
-
-                  ## remember the user's auth info (this marks the cookie as authenticated)
-                  if self._transport._cbtid and self._transport.factory._cookiestore:
-                     cs = self._transport.factory._cookiestore
-                     cs.setAuth(self._transport._cbtid, self._transport._authid, self._transport._authrole, self._transport._authmethod)
-
-                     ## kick all sessions using same cookie (but not _this_ connection)
-                     if True:
-                        for proto in cs.getProtos(self._transport._cbtid):
-                           if proto and proto != self._transport:
-                              try:
-                                 proto.close()
-                              except Exception as e:
-                                 pass
-               else:
-                  log.msg("Authentication failed!")
-                  log.msg(res)
-                  dres.callback(types.Deny(reason = "wamp.error.authorization_failed", message = res.get("reason", None)))
-            except Exception as e:
-               log.msg("internal error during authentication verification: {}".format(e))
-               dres.callback(types.Deny(reason = "wamp.error.internal_error", message = str(e)))
-
-         def error(err):
-            log.msg("Authentication request failed: {}".format(err.value))
-            dres.callback(types.Deny(reason = "wamp.error.authorization_request_failed", message = str(err.value)))
-
-         d.addCallbacks(done, error)
-
-         return dres
+            return types.Deny()
 
       else:
 
-         log.msg("don't know how to authenticate")
+         ## deny client
+         return types.Deny(message = u"no pending authentication")
 
-         return types.Deny()
+
 
 
    def onJoin(self, details):

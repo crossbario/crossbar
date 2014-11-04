@@ -240,6 +240,14 @@ Then start Crossbar.io (from the current directory):
 and open your browser pointing to http://localhost:8080.
          """
       },
+
+      {
+         "name": "authenticate:wampcra",
+         "help": "Demonstrates authentication via WAMP-CRA from a static user database from the node configuration.",
+         "basedir": "templates/authenticate/wampcra",
+         "params": {
+         }
+      },
    ]
    """
    Application template definitions.
