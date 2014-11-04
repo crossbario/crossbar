@@ -39,47 +39,32 @@ class AppSession(ApplicationSession):
     @inlineCallbacks
     def onJoin(self, details):
 
-        ## SUBSCRIBE to a topic and receive events
-        ##
-        def onhello(msg):
-            print("event for 'onhello' received: {}".format(msg))
+      ## SUBSCRIBE to a couple of topics
+      ##
+      for topic in [
+         'com.example.topic1',
+         'com.example.topic2',
+         'com.foobar.topic1',
+         'com.foobar.topic2']:
 
-        sub = yield self.subscribe(onhello, 'com.example.onhello')
-        print("subscribed to topic 'onhello'")
+         def onhello(msg):
+            print("event received on {}: {}".format(topic, msg))
 
-
-        ## REGISTER a procedure for remote calling
-        ##
-        def add2(x, y):
-            print("add2() called with {} and {}".format(x, y))
-            return x + y
-
-        reg = yield self.register(add2, 'com.example.add2')
-        print("procedure add2() registered")
-
-
-        ## PUBLISH and CALL every second .. forever
-        ##
-        counter = 0
-        while True:
-
-            ## PUBLISH an event
-            ##
-            yield self.publish('com.example.oncounter', counter)
-            print("published to 'oncounter' with counter {}".format(counter))
-            counter += 1
+         try:
+            sub = yield self.subscribe(onhello, topic)
+            print("ok, subscribed to topic {}".format(topic))
+         except Exception as e:
+            print("could not subscribe to {}: {}".format(topic, e))
 
 
-            ## CALL a remote procedure
-            ##
-            try:
-                res = yield self.call('com.example.mul2', counter, 3)
-                print("mul2() called with result: {}".format(res))
-            except ApplicationError as e:
-                ## ignore errors due to the frontend not yet having
-                ## registered the procedure we would like to call
-                if e.error != 'wamp.error.no_such_procedure':
-                    raise e
+      ## REGISTER a procedure for remote calling
+      ##
+      def add2(x, y):
+         print("add2() called with {} and {}".format(x, y))
+         return x + y
 
-
-            yield sleep(1)
+      try:
+         reg = yield self.register(add2, 'com.example.add2')
+         print("procedure add2() registered")
+      except Exception as e:
+         print("could not register procedure: {}".format(e))

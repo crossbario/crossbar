@@ -10,20 +10,23 @@
       <script>AUTOBAHN_DEBUG = false;</script>
       <script src="autobahn.min.js"></script>
       <script>
-         console.log("Ok, Autobahn loaded", autobahn.version);
+         console.log("Ok, AutobahnJS loaded", autobahn.version);
 
          if (false) {
-            var user = "peter";
-            var key = autobahn.auth_cra.derive_key("secret1", "salt123");
-         } else {
+            // authenticate using authid "joe"
             var user = "joe";
             var key = "secret2";
+         } else {
+            // authenticate using authid "peter", and using a salted password
+            var user = "peter";
+            var key = autobahn.auth_cra.derive_key("secret1", "salt123", 100, 16);
          }
 
+         // this callback is fired during WAMP-CRA authentication
+         //
          function onchallenge (session, method, extra) {
 
-            console.log(method);
-            console.log(extra);
+            console.log("onchallenge", method, extra);
 
             if (method === "wampcra") {
 
@@ -39,6 +42,9 @@
          var connection = new autobahn.Connection({
             url: 'ws://127.0.0.1:8080/ws',
             realm: 'realm1',
+
+            // the following attributes must be set of WAMP-CRA authentication
+            //
             authmethods: ["wampcra"],
             authid: user,
             onchallenge: onchallenge
@@ -73,7 +79,8 @@
                   }
                );
 
-            // publish
+            // (try to) publish to some topics
+            //
             var topics = [
                'com.example.topic1',
                'com.example.topic2',

@@ -21,6 +21,10 @@
                            "subscribe": true,
                            "call": true,
                            "register": true
+                        },
+                        {
+                           "uri": "com.example.topic2",
+                           "subscribe": false
                         }
                      ]
                   },
@@ -69,6 +73,13 @@
                               "joe": {
                                  "secret": "secret2",
                                  "role": "frontend"
+                              },
+                              "peter": {
+                                 "secret": "prq7+YkJ1/KlW1X0YczMHw==",
+                                 "role": "frontend",
+                                 "salt": "salt123",
+                                 "iterations": 100,
+                                 "keylen": 16
                               }
                            }
                         }
