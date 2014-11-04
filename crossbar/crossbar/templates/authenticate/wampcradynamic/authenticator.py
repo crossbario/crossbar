@@ -26,11 +26,8 @@
 ##
 ###############################################################################
 
-from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 
-from autobahn.twisted.util import sleep
-from autobahn.wamp import auth
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 
@@ -44,7 +41,7 @@ class MyAuthenticator(ApplicationSession):
          'role': 'frontend'
       },
       'peter': {
-         # auth.derive_key(secret.encode('utf8'), salt.encode('utf8')).decode('ascii')
+         # autobahn.wamp.auth.derive_key(secret.encode('utf8'), salt.encode('utf8')).decode('ascii')
          'secret': 'prq7+YkJ1/KlW1X0YczMHw==',
          'role': 'frontend',
          'salt': 'salt123',
@@ -62,7 +59,7 @@ class MyAuthenticator(ApplicationSession):
          if authid in self.USERDB:
             return self.USERDB[authid]
          else:
-            raise Exception("no such user")
+            raise ApplicationError("com.example.no_such_user", "could not authenticate session - no such user {}".format(authid))
 
       try:
          yield self.register(authenticate, 'com.example.authenticate')
