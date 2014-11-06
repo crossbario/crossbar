@@ -1,0 +1,74 @@
+{
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080,
+                  "tls": {
+                     "key": "server_key.pem",
+                     "certificate": "server_cert.pem",
+                     "dhparam": "dhparam.pem",
+                     "ciphers": "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS"
+                  }
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": "../web"
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": [".."]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "backend.MyComponent",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080,
+                     "tls": {
+                     }
+                  },
+                  "url": "wss://localhost:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}

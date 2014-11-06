@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+   <body>
+      <h1>Hello WAMP</h1>
+      <p>Open JavaScript console to watch output.</p>
+
+      <button onclick="test1()">Test 1</button>
+      <button onclick="test2()">Test 2</button>
+
+      <script>AUTOBAHN_DEBUG = true;</script>
+      <script src="autobahn.min.js"></script>
+
+      <script>
+         // the URL of the WAMP Router (Crossbar.io)
+         //
+         var wsuri;
+         if (document.location.origin == "file://") {
+            wsuri = "wss://127.0.0.1:8080/ws";
+
+         } else {
+            wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+                        document.location.host + "/ws";
+         }
+
+         var session = null;
+
+         function test1 () {
+            if (session) {
+               session.call('com.example.test1', ["Hello, world!"]).then(
+                  function (res) {
+                     console.log("test1() result:", res);
+                  },
+                  function (err) {
+                     console.log("test1() error:", err);
+                  }
+               );               
+            } else {
+               console.log("cannot call test1: not connected");
+            }
+         }
+
+         function test2 () {
+            if (session) {
+               session.call('com.example.test2', ["Another awesome test message"]).then(
+                  function (res) {
+                     console.log("test2() result:", res);
+                  },
+                  function (err) {
+                     console.log("test2() error:", err);
+                  }
+               );               
+            } else {
+               console.log("cannot call test2: not connected");
+            }
+         }
+
+         var connection = new autobahn.Connection({
+            url: wsuri,
+            realm: "realm1"
+         });
+
+         connection.onopen = function (new_session, details) {
+
+            console.log("Connected");
+            session = new_session;
+         };
+
+         connection.onclose = function (reason, details) {
+            console.log("Connection lost: " + reason);
+            session = null;
+         }
+
+         connection.open();
+
+      </script>
+   </body>
+</html>
