@@ -260,7 +260,7 @@ and open your browser pointing to http://localhost:8080.
       {
          "name": "wss:python",
          "help": "Using secure WebSocket transports (wss) with JavaScript frontend and Python backend.",
-         "basedir": "templates/wss",
+         "basedir": "templates/wss/python",
          "params": {
          },
          "get_started_hint": """Start Crossbar using 'crossbar start' and open https://localhost:8080 in your browser (note the 'https' in the URL).
