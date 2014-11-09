@@ -38,6 +38,7 @@ import datetime
 import traceback
 
 from twisted.python import log
+
 from autobahn.twisted.websocket import WampWebSocketServerProtocol, \
                                        WampWebSocketServerFactory, \
                                        WampWebSocketClientProtocol, \
@@ -245,8 +246,20 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
             if self.debug:
                log.msg("Cookie tracking disabled on WebSocket connection {}".format(self))
 
+         ## remember transport level info for later forwarding in
+         ## WAMP metaevent "wamp.metaevent.session.on_join"
+         ##
+         self._transport_info = {
+            'type': 'websocket',
+            'protocol': protocol,
+            'peer': self.peer,
+            'http_headers_received': request.headers,
+            'http_headers_sent': headers
+         }
+
          ## accept the WebSocket connection, speaking subprotocol `protocol`
          ## and setting HTTP headers `headers`
+         ##
          return (protocol, headers)
 
       except Exception as e:
@@ -391,6 +404,15 @@ class CrossbarWampRawSocketServerProtocol(WampRawSocketServerProtocol):
       ## cookie tracking
       ##
       self._cbtid = None
+
+      ## remember transport level info for later forwarding in
+      ## WAMP metaevent "wamp.metaevent.session.on_join"
+      ##
+      self._transport_info = {
+         'type': 'rawsocket',
+         'protocol': None, # FIXME
+         'peer': self.peer
+      }
 
 
    def lengthLimitExceeded(self, length):

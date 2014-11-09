@@ -298,7 +298,6 @@ class CrossbarRouterSession(RouterSession):
          return types.Deny(message = "internal error: {}".format(e))
 
 
-
    def onAuthenticate(self, signature, extra):
       """
       Callback fired when a client responds to an authentication challenge.
@@ -409,8 +408,6 @@ class CrossbarRouterSession(RouterSession):
          return types.Deny(message = u"no pending authentication")
 
 
-
-
    def onJoin(self, details):
 
       self._session_details = {
@@ -419,7 +416,8 @@ class CrossbarRouterSession(RouterSession):
          'authmethod': details.authmethod,
          'authprovider': details.authprovider,
          'realm': details.realm,
-         'session': details.session
+         'session': details.session,
+         'transport': self._transport._transport_info
       }
 
       ## dispatch session metaevent from WAMP AP
