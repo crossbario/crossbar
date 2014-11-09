@@ -418,6 +418,7 @@ def check_websocket_options(options):
    for k in options:
       if k not in [
                    ## WebSocket options
+                   'allowed_origins',
                    'external_port',
                    'enable_hixie76',
                    'enable_hybi10',
