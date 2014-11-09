@@ -43,7 +43,9 @@ else:
    raise RuntimeError("Unable to find doc string in {}.".format(PACKAGE_FILE))
 
 
-extra_require_system = [
+## requirements for install variants
+##
+extras_require_system = [
    'psutil>=2.1.1',        # BSD license
    'setproctitle>=1.1.8'   # BSD license
 ]
@@ -54,6 +56,26 @@ elif sys.platform.startswith('win'):
    pass
 else:
    pass
+
+extras_require_manhole = [
+   'pyasn1>=0.1.7',        # BSD license
+   'pycrypto>=2.6.1'       # Public Domain license
+]
+
+extras_require_msgpack = [
+   'msgpack-python>=0.4.2' # Apache license
+]
+
+extras_require_tls = [
+   'cryptography>=0.4',    # Apache license
+   'pyOpenSSL>=0.14',      # Apache license
+   'pyasn1',               # BSD license
+   'pyasn1-modules',       # BSD license
+   'service_identity',     # MIT license
+]
+
+extras_require_complete = extras_require_system + extras_require_manhole + \
+   extras_require_msgpack + extras_require_tls + ['autobahn[twisted,accelerate,serialization]']
 
 
 setup (
@@ -78,27 +100,17 @@ setup (
       'pyyaml>=3.11',               # MIT license
    ],
    extras_require = {
-      'tls': [
-         'cryptography>=0.4',    # Apache license
-         'pyOpenSSL>=0.14',      # Apache license
-         'pyasn1',               # BSD license
-         'pyasn1-modules',       # BSD license
-         'service_identity',     # MIT license
-      ],
+      'complete': extras_require_complete,
+      'tls': extras_require_tls,
+      'manhole': extras_require_manhole,
+      'msgpack': extras_require_msgpack,
+      'system': extras_require_system,
       'oracle': [
-         'cx_Oracle>=5.1.2'      # Python Software Foundation license
+         'cx_Oracle>=5.1.2'         # Python Software Foundation license
       ],
       'postgres': [
-         'psycopg2>=2.5.1'       # LGPL license
+         'psycopg2>=2.5.1'          # LGPL license
       ],
-      'manhole': [
-         'pyasn1>=0.1.7',        # BSD license
-         'pycrypto>=2.6.1'       # Public Domain license
-      ],
-      'msgpack': [
-         'msgpack-python>=0.4.2' # Apache license
-      ],
-      'system': extra_require_system
    },
    entry_points = {
       'console_scripts': [
