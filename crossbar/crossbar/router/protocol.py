@@ -393,6 +393,12 @@ class CrossbarWampRawSocketServerProtocol(WampRawSocketServerProtocol):
       self._cbtid = None
 
 
+   def lengthLimitExceeded(self, length):
+      if self.factory.debug:
+         log.msg("failing RawSocket connection - message length exceeded: message was {0} bytes, but current maximum is {1} bytes".format(length, self.MAX_LENGTH))
+      self.transport.loseConnection()
+
+
 
 class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
    """
@@ -403,7 +409,8 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
 
    def __init__(self, factory, config):
 
-      ## transport configuration
+      ## remember transport configuration
+      ##
       self._config = config
 
       ## WAMP serializer
@@ -430,9 +437,26 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
       else:
          raise Exception("invalid WAMP serializer '{}'".format(serid))
 
+      ## Maximum message size
+      ##
+      self._max_message_size = config.get('max_message_size', 128 * 1024) # default is 128kB
+
+      ## transport debugging
+      ##
       debug = config.get('debug', False)
 
       WampRawSocketServerFactory.__init__(self, factory, serializer, debug = debug)
+
+      if self.debug:
+         log.msg("RawSocket transport factory created using {0} serializer, max. message size {1}".format(serid, self._max_message_size))
+
+
+
+   def buildProtocol(self, addr):
+      p = self.protocol()
+      p.factory = self
+      p.MAX_LENGTH = self._max_message_size
+      return p
 
 
 

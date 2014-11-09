@@ -188,6 +188,20 @@ def check_endpoint_timeout(timeout):
 
 
 
+def check_transport_max_message_size(max_message_size):
+   """
+   Check maxmimum message size parameter in RawSocket and WebSocket transports.
+
+   :param max_message_size: The maxmimum message size parameter to check.
+   :type max_message_size: int
+   """
+   if type(max_message_size) not in six.integer_types:
+      raise Exception("'max_message_size' attribute in transport must be int ({} encountered)".format(type(max_message_size)))
+   if max_message_size < 1 or max_message_size > 64 * 1024 * 1024:
+      raise Exception("invalid value {} for 'max_message_size' attribute in transport (must be from [1, 64MB])".format(max_message_size))
+
+
+
 def check_listening_endpoint_tls(tls):
    """
    Check a listening endpoint TLS configuration.
@@ -856,7 +870,7 @@ def check_listening_transport_rawsocket(transport):
    :type transport: dict
    """
    for k in transport:
-      if k not in ['id', 'type', 'endpoint', 'serializer', 'debug', 'auth']:
+      if k not in ['id', 'type', 'endpoint', 'serializer', 'max_message_size', 'debug', 'auth']:
          raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
    if 'id' in transport:
@@ -876,6 +890,9 @@ def check_listening_transport_rawsocket(transport):
 
    if serializer not in ['json', 'msgpack']:
       raise Exception("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
+
+   if 'max_message_size' in transport:
+      check_transport_max_message_size(transport['max_message_size'])
 
    if 'debug' in transport:
       debug = transport['debug']
