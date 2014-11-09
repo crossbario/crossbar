@@ -73,7 +73,8 @@ def run_command_version(options):
    elif s.startswith('autobahn'):
       utf8_ver = 'autobahn'
    else:
-      raise Exception("could not detect UTF8 validator type/version")
+      # could not detect UTF8 validator type/version
+      utf8_ver = '?'
    if options.debug:
       utf8_ver += " [%s]" % qual(Utf8Validator)
 
@@ -86,7 +87,8 @@ def run_command_version(options):
    elif s.startswith('autobahn'):
       xor_ver = 'autobahn'
    else:
-      raise Exception("could not detect XOR masker type/version")
+      # could not detect XOR masker type/version
+      xor_ver = '?'
    if options.debug:
       xor_ver += " [%s]" % qual(XorMaskerNull)
 
