@@ -50,7 +50,7 @@ extras_require_system = [
    'setproctitle>=1.1.8'   # BSD license
 ]
 if sys.platform.startswith('linux'):
-   extra_require_system.append('pyinotify>=0.9.4') ## MIT license
+   extras_require_system.append('pyinotify>=0.9.4') ## MIT license
 elif sys.platform.startswith('win'):
    ## PyWin32 - Python Software Foundation License
    pass
