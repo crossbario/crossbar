@@ -55,7 +55,6 @@ def run_command_version(options):
    tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
    if options.debug:
       tx_ver += " [%s]" % qual(reactor.__class__)
-   tx_ver = "?-?"
 
    ## Autobahn
    ##
@@ -92,16 +91,19 @@ def run_command_version(options):
       xor_ver += " [%s]" % qual(XorMaskerNull)
 
    import crossbar
+   import platform
 
    print("")
-   print("Crossbar.io software versions:")
+   print("Crossbar.io package versions and platform information:")
    print("")
    print("Crossbar.io     : {0}".format(crossbar.__version__))
    print("Autobahn        : {0}".format(ab_ver))
-   print("Twisted         : {0}".format(tx_ver))
-   print("Python          : {0}".format(py_ver))
    print("UTF8 Validator  : {0}".format(utf8_ver))
    print("XOR Masker      : {0}".format(xor_ver))
+   print("Twisted         : {0}".format(tx_ver))
+   print("Python          : {0}-{1}".format(py_ver, platform.python_implementation()))
+   print("OS              : {0}".format(platform.platform()))
+   print("Machine         : {0}".format(platform.processor()))
    print("")
 
 
