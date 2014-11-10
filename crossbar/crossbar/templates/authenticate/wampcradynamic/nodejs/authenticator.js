@@ -28,14 +28,50 @@
 
 var autobahn = require('autobahn');
 
+var USERDB = {
+   'joe': {
+      'secret': 'secret2',
+      'role': 'frontend'
+   },
+   'peter': {
+      // autobahn.auth_cra.derive_key("secret1", "salt123", 100, 16);
+      'secret': 'prq7+YkJ1/KlW1X0YczMHw==',
+      'role': 'frontend',
+      'salt': 'salt123',
+      'iterations': 100,
+      'keylen': 16
+   }
+};
+
+function authenticate (args) {
+   var realm = args[0];
+   var authid = args[1];
+
+   console.log("authenticate called:", realm, authid);
+
+   if (USERDB[authid] !== undefined) {
+      return USERDB[authid];
+   } else {
+      throw "no such user";
+   }
+}
+
 var connection = new autobahn.Connection({
-   url: 'ws://127.0.0.1:8080/ws',
-   realm: 'realm1'}
-);
+   url: process.argv[2],
+   realm: process.argv[3]
+});
 
 connection.onopen = function (session) {
 
    console.log("connected");
+   session.register('com.example.authenticate', authenticate).then(
+      function () {
+         console.log("Ok, custom WAMP-CRA authenticator procedure registered");
+      },
+      function (err) {
+         console.log("Uups, could not register custom WAMP-CRA authenticator", err);
+      }
+   );
 };
 
 connection.open();

@@ -9,7 +9,7 @@
                "name": "realm1",
                "roles": [
                   {
-                     "name": "authenticator",
+                     "name": "anonymous",
                      "permissions": [
                         {
                            "uri": "com.example.authenticate",
@@ -59,6 +59,13 @@
          ],
          "transports": [
             {
+               "type": "websocket",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 9000
+               }
+            },
+            {
                "type": "web",
                "endpoint": {
                   "type": "tcp",
@@ -85,14 +92,9 @@
       {
          "type": "guest",
          "executable": "/usr/bin/node",
-         "arguments": ["authenticator.js"],
+         "arguments": ["authenticator.js", "ws://127.0.0.1:9000", "realm1"],
          "options": {
-            "workdir": "..",
-            "env": {
-               "vars": {
-                  "NODE_PATH": "/usr/local/lib/node_modules"
-               }
-            }
+            "workdir": ".."
          }
       }
    ]
