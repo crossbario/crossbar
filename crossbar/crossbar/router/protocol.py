@@ -131,7 +131,8 @@ def set_websocket_options(factory, options):
                               autoPingTimeout = autoPingTimeout,
                               autoPingSize = c.get("auto_ping_size", None),
                               serveFlashSocketPolicy = c.get("enable_flash_policy", None),
-                              flashSocketPolicy = c.get("flash_policy", None))
+                              flashSocketPolicy = c.get("flash_policy", None),
+                              allowedOrigins = c.get("allowed_origins", ["*"]))
 
    ## WebSocket compression
    ##
