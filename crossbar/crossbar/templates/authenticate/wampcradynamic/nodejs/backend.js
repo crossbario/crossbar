@@ -28,67 +28,72 @@
 
 var autobahn = require('autobahn');
 
-var USERDB = {
-   'joe': {
-      'secret': 'secret2',
-      'role': 'frontend'
-   },
-   'peter': {
-      // autobahn.auth_cra.derive_key("secret1", "salt123", 100, 16);
-      'secret': 'prq7+YkJ1/KlW1X0YczMHw==',
-      'role': 'frontend',
-      'salt': 'salt123',
-      'iterations': 100,
-      'keylen': 16
-   }
-};
-
-function authenticate (args) {
-   var realm = args[0];
-   var authid = args[1];
-
-   console.log("authenticate called:", realm, authid);
-
-   if (USERDB[authid] !== undefined) {
-      return USERDB[authid];
-   } else {
-      throw "no such user";
-   }
-}
-
-function onchallenge (session, method, extra) {
-
-   console.log("onchallenge", method, extra);
-
-   if (method === "wampcra") {
-
-      console.log("authenticating via '" + method + "' and challenge '" + extra.challenge + "'");
-
-      return autobahn.auth_cra.sign(process.argv[5], extra.challenge);
-
-   } else {
-      throw "don't know how to authenticate using '" + method + "'";
-   }
-}
-
 var connection = new autobahn.Connection({
-   url: process.argv[2],
-   realm: process.argv[3],
-   authid: process.argv[4],
-   onchallenge: onchallenge
-});
+   url: '{{ url }}',
+   realm: '{{ realm }}'}
+);
 
 connection.onopen = function (session) {
 
-   console.log("connected");
-   session.register('com.example.authenticate', authenticate).then(
-      function () {
-         console.log("Ok, custom WAMP-CRA authenticator procedure registered");
+   // SUBSCRIBE to a topic and receive events
+   //
+   function onhello (args) {
+      var msg = args[0];
+      console.log("event for 'onhello' received: " + msg);
+   }
+   session.subscribe('com.example.onhello', onhello).then(
+      function (sub) {
+         console.log("subscribed to topic 'onhello'");
       },
       function (err) {
-         console.log("Uups, could not register custom WAMP-CRA authenticator", err);
+         console.log("failed to subscribed: " + err);
       }
    );
+
+
+   // REGISTER a procedure for remote calling
+   //
+   function add2 (args) {
+      var x = args[0];
+      var y = args[1];
+      console.log("add2() called with " + x + " and " + y);
+      return x + y;
+   }
+   session.register('com.example.add2', add2).then(
+      function (reg) {
+         console.log("procedure add2() registered");
+      },
+      function (err) {
+         console.log("failed to register procedure: " + err);
+      }
+   );
+
+
+   // PUBLISH and CALL every second .. forever
+   //
+   var counter = 0;
+   setInterval(function () {
+
+      // PUBLISH an event
+      //
+      session.publish('com.example.oncounter', [counter]);
+      console.log("published to 'oncounter' with counter " + counter);
+
+      // CALL a remote procedure
+      //
+      session.call('com.example.mul2', [counter, 3]).then(
+         function (res) {
+            console.log("mul2() called with result: " + res);
+         },
+         function (err) {
+            if (err.error !== 'wamp.error.no_such_procedure') {
+               console.log('call of mul2() failed: ' + err);
+            }
+         }
+      );
+
+      counter += 1;
+   }, 1000);
 };
 
 connection.open();

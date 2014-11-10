@@ -9,7 +9,7 @@
                "name": "realm1",
                "roles": [
                   {
-                     "name": "anonymous",
+                     "name": "authenticator",
                      "permissions": [
                         {
                            "uri": "com.example.authenticate",
@@ -62,7 +62,23 @@
                "type": "websocket",
                "endpoint": {
                   "type": "tcp",
-                  "port": 9000
+                  "port": 9000,
+                  "interface": "127.0.0.1"
+               },
+               "auth": {
+                  "wampcra": {
+                     "type": "static",
+                     "users": {
+                        "authenticator1": {
+                           "secret": "secret123",
+                           "role": "authenticator"
+                        },
+                        "backend1": {
+                           "secret": "secret456",
+                           "role": "backend"
+                        }
+                     }
+                  }
                }
             },
             {
@@ -92,7 +108,13 @@
       {
          "type": "guest",
          "executable": "/usr/bin/node",
-         "arguments": ["authenticator.js", "ws://127.0.0.1:9000", "realm1"],
+         "arguments": [
+            "authenticator.js",
+            "ws://127.0.0.1:9000",
+            "realm1",
+            "authenticator1",
+            "secret123"
+         ],
          "options": {
             "workdir": ".."
          }
