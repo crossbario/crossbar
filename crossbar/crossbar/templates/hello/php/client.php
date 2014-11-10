@@ -94,7 +94,9 @@ $connection->on('open', function (ClientSession $session) use ($connection, $loo
 );
 
 $connection->on('close', function ($reason) use ($loop, &$timer) {
-    $loop->cancelTimer($timer);
+    if ($timer) {
+        $loop->cancelTimer($timer);
+    }
     echo "The connected has closed with reason: {$reason}\n";
 
 });
