@@ -101,4 +101,8 @@ $connection->on('close', function ($reason) use ($loop, &$timer) {
 
 });
 
+$connection->on('error', function ($reason) {
+    echo "The connected has closed with error: {$reason}\n";
+});
+
 $connection->open();
