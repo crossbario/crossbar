@@ -4,8 +4,7 @@ all:
 	@echo "start:    Run Crossbar.io"
 
 install:
-	composer require "ratchet/pawl":"dev-master"
-	composer require "voryx/thruway":"dev-master"
+	composer require "voryx/thruway":"0.2.*"
 
 start:
 	crossbar start

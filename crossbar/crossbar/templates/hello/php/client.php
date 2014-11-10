@@ -28,25 +28,27 @@
 ##
 ###############################################################################
 
+use Psr\Log\NullLogger;
 use Thruway\ClientSession;
 use Thruway\Connection;
+use Thruway\Logging\Logger;
 
 require __DIR__ . '/vendor/autoload.php';
 
-$onClose = function ($msg) {
-    echo $msg;
-};
+//Uncomment to disable logging
+//Logger::set(new NullLogger());
 
+$timer      = null;
+$loop       = React\EventLoop\Factory::create();
 $connection = new Connection(
-    array(
+    [
         "realm" => 'realm1',
-        "onClose" => $onClose,
-        "url" => 'ws://127.0.0.1:8080/ws',
-    )
+        "url"   => 'ws://127.0.0.1:8080/ws'
+    ],
+    $loop
 );
 
-$connection->on('open', function (ClientSession $session) use ($connection) {
-
+$connection->on('open', function (ClientSession $session) use ($connection, $loop, &$timer) {
 
         // SUBSCRIBE to a topic and receive events
         $onHello = function ($args) {
@@ -54,7 +56,6 @@ $connection->on('open', function (ClientSession $session) use ($connection) {
         };
         $session->subscribe('com.example.onhello', $onHello);
         echo "subscribed to topic 'onhello'";
-
 
         // REGISTER a procedure for remote calling
         $add2 = function ($args) {
@@ -64,18 +65,17 @@ $connection->on('open', function (ClientSession $session) use ($connection) {
         $session->register('com.example.add2', $add2);
         echo "procedure add2() registered\n";
 
-
-        // PUBLISH and CALL every second .. forever
         $counter = 0;
-        while (true) {
+
+        $publishAndCall = function () use ($session, &$counter) {
 
             // PUBLISH an event
-            $session->publish('com.example.oncounter', array($counter));
+            $session->publish('com.example.oncounter', [$counter]);
             echo "published to 'oncounter' with counter {$counter}\n";
             $counter++;
 
             // CALL a remote procedure
-            $session->call('com.example.mul2', array($counter, 3))->then(
+            $session->call('com.example.mul2', [$counter, 3])->then(
                 function ($res) {
                     echo "mul2() called with result: {$res}\n";
                 },
@@ -86,11 +86,23 @@ $connection->on('open', function (ClientSession $session) use ($connection) {
                 }
             );
 
-            // Tell the connection to process the events every second
-            $connection->doEvents(1);
+        };
 
-        }
+        // PUBLISH and CALL every second .. forever
+        $timer = $loop->addPeriodicTimer(1, $publishAndCall);
     }
 );
+
+$connection->on('close', function ($reason) use ($loop, &$timer) {
+    if ($timer) {
+        $loop->cancelTimer($timer);
+    }
+    echo "The connected has closed with reason: {$reason}\n";
+
+});
+
+$connection->on('error', function ($reason) {
+    echo "The connected has closed with error: {$reason}\n";
+});
 
 $connection->open();
