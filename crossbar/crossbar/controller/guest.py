@@ -104,7 +104,7 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
          else:
             ## should not arrive here
-            log.msg("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here")
+            log.msg("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {}".format(reason))
       except Exception as e:
          log.msg("GuestWorkerClientProtocol: INTERNAL ERROR - {}".format(e))
 
