@@ -29,45 +29,18 @@
 var autobahn = require('autobahn');
 
 
-// A poor man's user database.
-//
-var USERDB = {
-   // A user with an unsalted password
-   'joe': {
-      'secret': 'secret2',
-      'role': 'frontend'
-   },
-   // A user with a salted password
-   'peter': {
-      // autobahn.auth_cra.derive_key("secret1", "salt123", 100, 16);
-      'secret': 'prq7+YkJ1/KlW1X0YczMHw==',
-      'role': 'frontend',
-      'salt': 'salt123',
-      'iterations': 100,
-      'keylen': 16
-   }
-};
-
-
-// This is our custom authenticator procedure that we register
-// under URI "com.example.authenticate", and that will be called
-// by Crossbar.io to authenticate other WAMP session (e.g. browser frontends)
-//
-function authenticate (args) {
-   var realm = args[0];
-   var authid = args[1];
-
-   console.log("authenticate called:", realm, authid);
-
-   if (USERDB[authid] !== undefined) {
-      return USERDB[authid];
-   } else {
-      throw "no such user";
-   }
+if (true) {
+   // authenticate using authid "joe"
+   var user = "joe";
+   var key = "secret2";
+} else {
+   // authenticate using authid "peter", and using a salted password
+   var user = "peter";
+   var key = autobahn.auth_cra.derive_key("secret1", "salt123", 100, 16);
 }
 
 
-// This challenge callback will authenticate our custom authenticator above _itself_
+// This challenge callback will authenticate our frontend component
 //
 function onchallenge (session, method, extra) {
 
@@ -77,7 +50,7 @@ function onchallenge (session, method, extra) {
 
       console.log("authenticating via '" + method + "' and challenge '" + extra.challenge + "'");
 
-      return autobahn.auth_cra.sign(process.argv[5], extra.challenge);
+      return autobahn.auth_cra.sign(key, extra.challenge);
 
    } else {
       throw "don't know how to authenticate using '" + method + "'";
@@ -86,13 +59,13 @@ function onchallenge (session, method, extra) {
 
 
 var connection = new autobahn.Connection({
-   url: process.argv[2],
-   realm: process.argv[3],
+   url: 'ws://127.0.0.1:8080/ws',
+   realm: 'realm1',
 
-   // The following authentication information is for authenticating the
-   // custom authenticator component _itself_
+   // The following authentication information is for authenticating
+   // our frontend component
    //
-   authid: process.argv[4],
+   authid: user,
    authmethods: ["wampcra"],
    onchallenge: onchallenge
 });
@@ -100,13 +73,59 @@ var connection = new autobahn.Connection({
 
 connection.onopen = function (session) {
 
-   console.log("custom authenticator connected");
-   session.register('com.example.authenticate', authenticate).then(
-      function () {
-         console.log("Ok, custom WAMP-CRA authenticator procedure registered");
+   console.log("frontend connected");
+
+   var done = [];
+
+   // call a procedure we are allowed to call (so this should succeed)
+   //
+   done.push(session.call('com.example.add2', [2, 3]).then(
+      function (res) {
+         console.log("call result: " + res);
       },
-      function (err) {
-         console.log("Uups, could not register custom WAMP-CRA authenticator", err);
+      function (e) {
+         console.log("call error: " + e.error);
+      }
+   ));
+
+   // (try to) register a procedure where we are not allowed to (so this should fail)
+   //
+   done.push(session.register('com.example.mul2', function (args) { return args[0] * args[1]; }).then(
+      function () {
+         console.log("Uups, procedure registered .. but that should have failed!");
+      },
+      function (e) {
+         console.log("registration failed - this is expected: " + e.error);
+      }
+   ));
+
+   // (try to) publish to some topics
+   //
+   var topics = [
+      'com.example.topic1',
+      'com.example.topic2',
+      'com.foobar.topic1',
+      'com.foobar.topic2'   
+   ];
+
+   topics.forEach(function (topic) {
+      done.push(session.publish(topic, null, null, {acknowledge: true}).then(
+         function () {
+            console.log("ok, published to topic " + topic);
+         },
+         function (e) {
+            console.log("could not publish to topic " + topic + ": " + e.error);
+         }
+      ));
+   });
+
+   // close the session when everything is done. we have to
+   // use this construct, since all ops run asynch and might
+   // not yet be completed when we reach this line ..
+   //
+   autobahn.when.all(done).then(
+      function () {
+         session.leave();
       }
    );
 };

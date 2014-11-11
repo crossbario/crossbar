@@ -118,6 +118,20 @@
          "options": {
             "workdir": ".."
          }
+      },
+      {
+         "type": "guest",
+         "executable": "/usr/bin/node",
+         "arguments": [
+            "backend.js",
+            "ws://127.0.0.1:9000",
+            "realm1",
+            "backend1",
+            "secret456"
+         ],
+         "options": {
+            "workdir": ".."
+         }
       }
    ]
 }
