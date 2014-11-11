@@ -259,8 +259,16 @@ and open your browser pointing to http://localhost:8080.
 
       {
          "name": "authenticate:wampcradynamic:nodejs",
-         "help": "Demonstrates authentication via WAMP-CRA from a user-defined authenticator procedure written in JavaScript (NodeJS).",
+         "help": "Demonstrates authentication via WAMP-CRA from a user-defined authenticator procedure written in JavaScript.",
          "basedir": "templates/authenticate/wampcradynamic/nodejs",
+         "params": {
+         }
+      },
+
+      {
+         "name": "authenticate:wampcradynamic:php",
+         "help": "Demonstrates authentication via WAMP-CRA from a user-defined authenticator procedure written in PHP.",
+         "basedir": "templates/authenticate/wampcradynamic/php",
          "params": {
          }
       },
