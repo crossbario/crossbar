@@ -173,6 +173,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
    """
    Crossbar.io WAMP-over-WebSocket server protocol.
    """
+   STRICT_PROTOCOL_NEGOTIATION = False
 
    ## authid -> cookie -> set(connection)
 
