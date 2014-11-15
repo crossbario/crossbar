@@ -19,7 +19,10 @@
 from __future__ import absolute_import
 
 import sys
+import platform
 from setuptools import setup, find_packages
+
+CPY = platform.python_implementation() == 'CPython'
 
 
 ## Get package version and docstring from crossbar/__init__.py
@@ -43,8 +46,10 @@ else:
    raise RuntimeError("Unable to find doc string in {}.".format(PACKAGE_FILE))
 
 
-## requirements for install variants
 ##
+## extra requirements for install variants
+##
+
 extras_require_system = [
    'psutil>=2.1.1',        # BSD license
    'setproctitle>=1.1.8'   # BSD license
@@ -74,8 +79,13 @@ extras_require_tls = [
    'service_identity',     # MIT license
 ]
 
-extras_require_complete = extras_require_system + extras_require_manhole + \
-   extras_require_msgpack + extras_require_tls + ['autobahn[twisted,accelerate,serialization]']
+extras_require_accelerate = [
+   "wsaccel>=0.6.2",       # Apache license
+   "ujson>=1.33"           # BSD License
+] if CPY else []
+
+extras_require_all = extras_require_system + extras_require_manhole + \
+   extras_require_msgpack + extras_require_tls + extras_require_accelerate
 
 
 setup (
@@ -91,7 +101,7 @@ setup (
       'setuptools>=2.2',            # Python Software Foundation license
       'zope.interface>=3.6.0',      # Zope Public license
       'twisted>=twisted-13.2',      # MIT license
-      'autobahn[twisted]>=0.9.3',   # Apache license
+      'autobahn[twisted]>=0.9.3-2', # Apache license
       'netaddr>=0.7.11',            # BSD license
       'pytrie>=0.2',                # BSD license
       'jinja2>=2.7.2',              # BSD license
@@ -100,11 +110,12 @@ setup (
       'pyyaml>=3.11',               # MIT license
    ],
    extras_require = {
-      'complete': extras_require_complete,
+      'all': extras_require_all,
       'tls': extras_require_tls,
       'manhole': extras_require_manhole,
       'msgpack': extras_require_msgpack,
       'system': extras_require_system,
+      'accelerate': extras_require_accelerate,
       'oracle': [
          'cx_Oracle>=5.1.2'         # Python Software Foundation license
       ],
