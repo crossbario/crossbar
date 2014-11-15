@@ -92,20 +92,41 @@ def run_command_version(options):
    if options.debug:
       xor_ver += " [%s]" % qual(XorMaskerNull)
 
+   ## JSON Serializer
+   ##
+   from autobahn.wamp.serializer import JsonObjectSerializer
+   s = str(JsonObjectSerializer.JSON_MODULE)
+   if 'ujson' in s:
+      json_ver = 'ujson-%s' % pkg_resources.require('ujson')[0].version
+   else:
+      json_ver = 'stdlib'
+
+   ## MsgPack Serializer
+   ##
+   try:
+      import msgpack
+      msgpack_ver = 'msgpack-python-%s' % pkg_resources.require('msgpack-python')[0].version
+   except ImportError:
+      msgpack_ver = '-'
+
    import crossbar
    import platform
 
    print("")
    print("Crossbar.io package versions and platform information:")
    print("")
-   print("Crossbar.io     : {0}".format(crossbar.__version__))
-   print("Autobahn        : {0}".format(ab_ver))
-   print("UTF8 Validator  : {0}".format(utf8_ver))
-   print("XOR Masker      : {0}".format(xor_ver))
-   print("Twisted         : {0}".format(tx_ver))
-   print("Python          : {0}-{1}".format(py_ver, platform.python_implementation()))
-   print("OS              : {0}".format(platform.platform()))
-   print("Machine         : {0}".format(platform.processor()))
+   print("Crossbar.io                  : {0}".format(crossbar.__version__))
+   print("")
+   print("  Autobahn|Python            : {0}".format(ab_ver))
+   print("    WebSocket UTF8 Validator : {0}".format(utf8_ver))
+   print("    WebSocket XOR Masker     : {0}".format(xor_ver))
+   print("    WAMP JSON Codec          : {0}".format(json_ver))
+   print("    WAMP MsgPack Codec       : {0}".format(msgpack_ver))
+   print("  Twisted                    : {0}".format(tx_ver))
+   print("  Python                     : {0}-{1}".format(py_ver, platform.python_implementation()))
+   print("")
+   print("OS                           : {0}".format(platform.platform()))
+   print("Machine                      : {0}".format(platform.machine()))
    print("")
 
 
