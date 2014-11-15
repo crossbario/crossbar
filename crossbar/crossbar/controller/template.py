@@ -285,6 +285,15 @@ For more info, please visit http://crossbar.io/docs/Secure-WebSocket-and-HTTPS/
       },
 
       {
+         "name": "device:pi:monitor",
+         "help": "Demonstrates running Crossbar on the RaspberryPi and running a WAMP component monitoring the SoC temperature.",
+         "basedir": "templates/device/pi/monitor",
+         "params": {
+         },
+         "get_started_hint": """Start Crossbar (on the Pi) using 'crossbar start' and open http://<Your Pi's IP>:8080 in your browser."""
+      },
+
+      {
          "name": "device:pi:gpio",
          "help": "Demonstrates running Crossbar on the RaspberryPi and hooking up the GPIO in a WAMP component.",
          "basedir": "templates/device/pi/gpio",
