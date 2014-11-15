@@ -283,6 +283,15 @@ and open your browser pointing to http://localhost:8080.
 For more info, please visit http://crossbar.io/docs/Secure-WebSocket-and-HTTPS/
 """
       },
+
+      {
+         "name": "device:pi:gpio",
+         "help": "Demonstrates running Crossbar on the RaspberryPi and hooking up the GPIO in a WAMP component.",
+         "basedir": "templates/device/pi/gpio",
+         "params": {
+         },
+         "get_started_hint": """Start Crossbar (on the Pi) using 'sudo crossbar start' and open http://<Your Pi's IP>:8080 in your browser."""
+      },
    ]
    """
    Application template definitions.

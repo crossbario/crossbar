@@ -34,16 +34,7 @@
       <script>
          // the URL of the WAMP Router (Crossbar.io)
          //
-         var wsuri;
-         if (document.location.origin == "file://") {
-            //wsuri = "ws://127.0.0.1:8080/ws";
-            wsuri = "ws://192.168.1.133:8080/ws";
-
-         } else {
-            wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
-                        document.location.host + "/ws";
-         }
-         wsuri = "ws://192.168.1.133:8080/ws";
+         var wsuri = "ws://" + document.location.host + "/ws";
 
 
          // the WAMP connection to the Router
