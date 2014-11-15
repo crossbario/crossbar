@@ -81,6 +81,11 @@ def set_websocket_options(factory, options):
    """
    c = options
 
+   ## we need to pop() this, since it is not a WebSocket option to be consumed
+   ## by setProtocolOption(), but will get used in onConnect() ("STRICT_PROTOCOL_NEGOTIATION")
+   ## 
+   factory._requireWebSocketSubprotocol = c.pop("require_websocket_subprotocol", True)
+
    versions = []
    if c.get("enable_hixie76", True):
       versions.append(0)
@@ -173,9 +178,6 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
    """
    Crossbar.io WAMP-over-WebSocket server protocol.
    """
-   STRICT_PROTOCOL_NEGOTIATION = False
-
-   ## authid -> cookie -> set(connection)
 
    def onConnect(self, request):
 
@@ -192,6 +194,12 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
          print_traffic()
 
+      ## if WebSocket client did not set WS subprotocol, assume "wamp.2.json"
+      ##
+      self.STRICT_PROTOCOL_NEGOTIATION = self.factory._requireWebSocketSubprotocol
+
+      ## handle WebSocket opening handshake
+      ##
       protocol, headers = WampWebSocketServerProtocol.onConnect(self, request)
 
       try:

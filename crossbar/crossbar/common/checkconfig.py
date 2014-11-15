@@ -441,7 +441,8 @@ def check_websocket_options(options):
                    'auto_ping_size',
                    'enable_flash_policy',
                    'flash_policy',
-                   'compression'
+                   'compression',
+                   'require_websocket_subprotocol'
                    ]:
          raise Exception("encountered unknown attribute '{}' in WebSocket options".format(k))
 
