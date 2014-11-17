@@ -18,9 +18,10 @@
 
 from __future__ import absolute_import
 
-__all__ = ['check_config',
+__all__ = ('check_config',
            'check_config_file',
-           'check_guest']
+           'convert_config_file',
+           'check_guest')
 
 import os
 import json
@@ -1648,3 +1649,40 @@ def check_config_file(configfile, silence = False):
    check_config(config, silence)
 
    return config
+
+
+
+def convert_config_file(configfile):
+   """
+   Converts a Crossbar.io configuration file from JSON to YAML or from
+   YAML to JSON.
+
+   :param configfile: The Crossbar.io node configuration file to convert.
+   :type configfile: str
+   """
+   configbase, configext = os.path.splitext(configfile)
+   configfile = os.path.abspath(configfile)
+
+   with open(configfile, 'rb') as infile:
+      if configext == '.yaml':
+         print("converting YAML configuration {} to JSON ...".format(configfile))
+         try:
+            config = yaml.safe_load(infile)
+         except Exception as e:
+            raise Exception("configuration file does not seem to be proper YAML ('{}'')".format(e))
+         else:
+            newconfig = os.path.abspath(configbase + '.json')
+            with open(newconfig, 'wb') as outfile:
+               json.dump(config, outfile, ensure_ascii = False, separators = (', ', ': '), indent = 3, sort_keys = False)
+               print("ok, JSON formatted configuration written to {}".format(newconfig))
+      else:
+         print("converting JSON formatted configuration {} to YAML format ...".format(configfile))
+         try:
+            config = json.load(infile)
+         except ValueError as e:
+            raise Exception("configuration file does not seem to be proper JSON ('{}'')".format(e))
+         else:
+            newconfig = os.path.abspath(configbase + '.yaml')
+            with open(newconfig, 'wb') as outfile:
+               yaml.safe_dump(config, outfile)
+               print("ok, YAML formatted configuration written to {}".format(newconfig))
