@@ -1,0 +1,20 @@
+{
+  "name": "hello_tessel",
+  "version": "1.0.0",
+  "description": "Demo app for WAMP on Tessel. Communicates with a browser frontend served by Crossbar.io.",
+  "main": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "tessel",
+    "wamp",
+    "crossbar.io",
+    "autobahn"
+  ],
+  "author": "Tavendo GmbH",
+  "license": "MIT",
+  "dependencies": {
+    "wamp-tessel": "^0.1.0"
+  }
+}

@@ -130,6 +130,15 @@ class Templates:
       },
 
       {
+         "name": "hello:tessel",
+         "help": "A minimal JavaScript/wamp-tessel WAMP application running on a Tessel and with a HTML5 client.",
+         "get_started_hint": "Please follow the README.md to install npm dependencies, then start Crossbar using 'crossbar start', open http://localhost:8080 in your browser, and do 'tessel run tessel/hello.js'.",
+         "basedir": "templates/hello/tessel",
+         "params": {
+         },
+      },
+
+      {
          "name": "votes:browser",
          "help": "Demo that casts live votes synchronized across HTML5 clients. Backend runs in the browser.",
          "basedir": "templates/votes/browser",
