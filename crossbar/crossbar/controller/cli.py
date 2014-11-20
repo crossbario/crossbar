@@ -252,6 +252,25 @@ def run_command_check(options):
 
 
 
+def run_command_convert(options):
+   """
+   Subcommand "crossbar convert".
+   """
+   from crossbar.common.checkconfig import convert_config_file
+   configfile = os.path.join(options.cbdir, options.config)
+
+   print("Converting local configuration file {}".format(configfile))
+
+   try:
+     convert_config_file(configfile)
+   except Exception as e:
+      print("\nError: {}\n".format(e))
+      sys.exit(1)
+   else:
+      sys.exit(0)
+
+
+
 def run():
    """
    Entry point of Crossbar.io CLI.
@@ -349,6 +368,24 @@ def run():
                                         help = 'Check a Crossbar.io node`s local configuration file.')
 
    parser_check.set_defaults(func = run_command_check)
+
+   parser_check.add_argument('--cbdir',
+                             type = str,
+                             default = None,
+                             help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_check.add_argument('--config',
+                             type = str,
+                             default = None,
+                             help = "Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+
+   ## "convert" command
+   ##
+   parser_check = subparsers.add_parser('convert',
+                                        help = 'Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
+
+   parser_check.set_defaults(func = run_command_convert)
 
    parser_check.add_argument('--cbdir',
                              type = str,
