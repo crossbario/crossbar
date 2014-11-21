@@ -665,22 +665,42 @@ def check_web_path_service_schemadoc(config):
 
 
 
-def check_web_path_service(path, config):
+def check_web_path_service_path(config):
+   """
+   Check a "path" path service on Web transport.
+
+   :param config: The path service configuration.
+   :type config: dict
+   """
+   check_dict_args({
+      'type': (True, [six.text_type]),
+      'paths': (True, [dict]),
+   }, config, "Web transport 'path' path service")
+
+   ## check nested paths
+   ##
+   check_paths(config['paths'], nested=True)
+
+
+
+def check_web_path_service(path, config, nested):
    """
    Check a single path service on Web transport.
 
    :param config: The path service configuration.
    :type config: dict
+   :param nested: Whether this is a nested path.
+   :type nested: bool
    """
    if not 'type' in config:
       raise Exception("missing mandatory attribute 'type' in Web transport path service '{}' configuration\n\n{}".format(path, config))
 
    ptype = config['type']
-   if path == '/':
+   if path == '/' and not nested:
       if ptype not in ['static', 'wsgi', 'redirect', 'pusher']:
          raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
    else:
-      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher', 'schemadoc']:
+      if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher', 'schemadoc', 'path']:
          raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
    checkers = {
@@ -693,6 +713,7 @@ def check_web_path_service(path, config):
       'longpoll': check_web_path_service_longpoll,
       'pusher': check_web_path_service_pusher,
       'schemadoc': check_web_path_service_schemadoc,
+      'path': check_web_path_service_path,
    }
 
    checkers[ptype](config)
@@ -728,16 +749,7 @@ def check_listening_transport_web(transport):
    if not '/' in paths:
       raise Exception("missing mandatory path '/' in 'paths' in Web transport configuration")
 
-   pat = re.compile("^([a-z0-9A-Z]+|/)$")
-
-   for p in paths:
-      if type(p) != six.text_type:
-         raise Exception("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
-
-      if not pat.match(p):
-         raise Exception("invalid value '{}' for path in Web transport configuration".format(p))
-
-      check_web_path_service(p, paths[p])
+   check_paths(paths)
 
    if 'options' in transport:
       options = transport['options']
@@ -770,6 +782,28 @@ def check_listening_transport_web(transport):
          hixie76_aware = options['hixie76_aware']
          if type(hixie76_aware) != bool:
             raise Exception("'hixie76_aware' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hixie76_aware)))
+
+
+
+def check_paths(paths, nested=False):
+   """
+   Checks all configured paths.
+
+   :param paths: Configured paths to check.
+   :type paths: dict
+   :param nested: Whether this is a nested path.
+   :type nested: bool
+   """
+   pat = re.compile("^([a-z0-9A-Z]+|/)$")
+
+   for p in paths:
+      if type(p) != six.text_type:
+         raise Exception("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
+
+      if not pat.match(p):
+         raise Exception("invalid value '{}' for path in Web transport configuration".format(p))
+
+      check_web_path_service(p, paths[p], nested)
 
 
 
