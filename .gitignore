@@ -12,3 +12,4 @@ crossbardata
 .sconsign.dblite
 *.~vsd
 node_modules
+.idea
