@@ -41,6 +41,7 @@ from autobahn.websocket import http
 from autobahn.websocket.compress import *
 
 from autobahn import wamp
+from autobahn.wamp import auth
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
@@ -125,7 +126,16 @@ class CrossbarRouterSession(RouterSession):
                            if details.authid in cfg.get('users', {}):
                               user = cfg['users'][details.authid]
 
-                              self._pending_auth = PendingAuthWampCra(details.pending_session, details.authid, user['role'], u'static', user['secret'].encode('utf8'))
+                              ## when using salted passwords, computes a derived cryptographic key from a password according to PBKDF2.
+                              if 'salt' in user:
+                                 secret = auth.derive_key(
+                                    user['secret'].encode('utf8'),
+                                    user['salt'].encode('utf-8'),
+                                    user.get('iterations', 1000),
+                                    user.get('keylen', 32)).encode('utf-8')
+                              else:
+                                 secret = user['secret'].encode('utf-8')
+                              self._pending_auth = PendingAuthWampCra(details.pending_session, details.authid, user['role'], u'static', secret)
 
                               ## send challenge to client
                               ##
