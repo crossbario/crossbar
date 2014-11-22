@@ -25,6 +25,8 @@ __all__ = ['NodeControllerSession', 'create_process_env']
 import os
 import sys
 import pkg_resources
+import shutilwhich # Python 3 backport of shutil.which
+import shutil
 from datetime import datetime, timedelta
 
 from twisted.python import log
@@ -61,6 +63,13 @@ from autobahn.twisted.websocket import WampWebSocketServerFactory
 
 from crossbar.platform import HAS_FSNOTIFY, DirWatcher
 
+
+
+def check_executable(fn):
+   """
+   Check whether the given path is an executable.
+   """
+   return os.path.exists(fn) and os.access(fn, os.F_OK | os.X_OK) and not os.path.isdir(fn)
 
 
 
@@ -696,7 +705,7 @@ class NodeControllerSession(NativeProcessSession):
       ## prohibit starting a worker twice
       ##
       if id in self._workers:
-         emsg = "ERROR: could not start worker - a worker with ID '{}'' is already running (or starting)".format(id)
+         emsg = "ERROR: could not start worker - a worker with ID '{}' is already running (or starting)".format(id)
          log.msg(emsg)
          raise ApplicationError('crossbar.error.worker_already_running', emsg)
 
@@ -716,7 +725,26 @@ class NodeControllerSession(NativeProcessSession):
 
       ## guest process executable and command line arguments
       ##
+
+      ## first try to configure the fully qualified path for the guest
+      ## executable by joining workdir and configured exectuable ..
       exe = os.path.abspath(os.path.join(workdir, config['executable']))
+
+      if check_executable(exe):
+         log.msg("Using guest worker executable '{}' (executable path taken from configuration)".format(exe))
+      else:
+         ## try to detect the fully qualified path for the guest
+         ## executable by doing a "which" on the configured executable name
+         exe = shutil.which(config['executable'])
+         if check_executable(exe):
+            log.msg("Using guest worker executable '{}' (executable path detected from environment)".format(exe))
+         else:
+            emsg = "ERROR: could not start worker - could not find and executable for '{}'".format(config['executable'])
+            log.msg(emsg)
+            raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+
+      ## guest process command line arguments
+      ##
       args = [exe]
       args.extend(config.get('arguments', []))
 

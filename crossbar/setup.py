@@ -108,6 +108,7 @@ setup (
       'mistune>=0.3.0',             # BSD license
       'pygments>=1.6',              # BSD license
       'pyyaml>=3.11',               # MIT license
+      'shutilwhich>=1.0.1',         # PSF license
    ],
    extras_require = {
       'all': extras_require_all,
