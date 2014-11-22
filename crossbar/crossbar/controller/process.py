@@ -736,7 +736,7 @@ class NodeControllerSession(NativeProcessSession):
          ## try to detect the fully qualified path for the guest
          ## executable by doing a "which" on the configured executable name
          exe = shutil.which(config['executable'])
-         if check_executable(exe):
+         if exe is not None and check_executable(exe):
             log.msg("Using guest worker executable '{}' (executable path detected from environment)".format(exe))
          else:
             emsg = "ERROR: could not start worker - could not find and executable for '{}'".format(config['executable'])
