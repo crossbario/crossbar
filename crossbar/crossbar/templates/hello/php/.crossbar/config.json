@@ -44,7 +44,7 @@
       },
       {
          "type": "guest",
-         "executable": "/usr/bin/php",
+         "executable": "php",
          "arguments": ["../client.php"]
       }
    ]

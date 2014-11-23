@@ -59,13 +59,12 @@ class Templates:
       {
          "name": "hello:nodejs",
          "help": "A minimal NodeJS WAMP application hosted in a router and a HTML5 client.",
-         "get_started_hint": "Now install AutobahnJS by doing 'npm install autobahn', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
+         "get_started_hint": "Now install dependencies by doing 'npm install', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
          "basedir": "templates/hello/nodejs",
          "params": {
             "appname": "hello",
             "realm": "realm1",
-            "url": "ws://127.0.0.1:8080/ws",
-            "nodejs": "node"
+            "url": "ws://127.0.0.1:8080/ws"
          }
       },
 
@@ -151,10 +150,9 @@ class Templates:
       {
          "name": "votes:nodejs",
          "help": "Demo that casts live votes synchronized across HTML5 clients. Backend runs in NodeJS.",
-         "get_started_hint": "Now install AutobahnJS by doing 'npm install autobahn', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
+         "get_started_hint": "Now install dependencies by doing 'npm install', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
          "basedir": "templates/votes/nodejs",
          "params": {
-            "nodejs": "node"
          },
          "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
       },
