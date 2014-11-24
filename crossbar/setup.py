@@ -108,6 +108,7 @@ setup (
       'mistune>=0.3.0',             # BSD license
       'pygments>=1.6',              # BSD license
       'pyyaml>=3.11',               # MIT license
+      'shutilwhich>=1.0.1',         # PSF license
    ],
    extras_require = {
       'all': extras_require_all,
@@ -120,7 +121,8 @@ setup (
          'cx_Oracle>=5.1.2'         # Python Software Foundation license
       ],
       'postgres': [
-         'psycopg2>=2.5.1'          # LGPL license
+         'psycopg2>=2.5.1',         # LGPL license
+         'txpostgres>=1.2.0'        # MIT license
       ],
    },
    entry_points = {

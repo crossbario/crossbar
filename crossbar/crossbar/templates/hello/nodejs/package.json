@@ -1,0 +1,18 @@
+{
+  "name": "hello_nodejs",
+  "version": "1.0.0",
+  "description": "Demo app for using Crossbar.io with Node.js",
+  "main": "node/hello.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "crossbario",
+    "wamp"
+  ],
+  "author": "Tavendo GmbH",
+  "license": "Apache 2.0",
+  "dependencies": {
+    "autobahn": "^0.9.5"
+  }
+}

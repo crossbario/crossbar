@@ -21,6 +21,8 @@ from __future__ import absolute_import
 
 import json
 import six
+import re
+import os
 from txpostgres import txpostgres
 
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -79,19 +81,41 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
    @inlineCallbacks
    def onJoin(self, details):
 
-      print("session joined")
-      config = self.config.extra
+      print("PostgreSQL database adapter [publisher role] connected to router")
+
+      dbconfig = self.config.extra['database']
+
+      ## check if the config contains environment variables instead of
+      ## straight strings (e.g. $DBNAME), and if so, try to fill in the actual
+      ## value from environment
+      ##
+      pat = re.compile("^\$([A-Z0-9_]+)$")
+      for k in ['host', 'port', 'database', 'user', 'password']:
+         if k in dbconfig:
+            if type(dbconfig[k]) in (str, unicode):
+               match = pat.match(dbconfig[k])
+               if match and match.groups():
+                  envvar = match.groups()[0]
+                  if envvar in os.environ:
+                     dbconfig[k] = os.environ[envvar]
+                     if k != 'password':
+                        val = dbconfig[k]
+                     else:
+                        val = len(dbconfig[k]) * '*'
+                     print("database configuration parameter '{}' set to '{}' from environment variable {}".format(k, val, envvar))
+                  else:
+                     print("warning: database configuration parameter '{}' should have been read from enviroment variable {}, but the latter is not set".format(k, envvar))
 
       conn = txpostgres.Connection()
 
       try:
-         yield conn.connect(**config['database'])
+         yield conn.connect(**dbconfig)
       except Exception as e:
          print("could not connect to database: {0}".format(e))
          self.leave()
          return
       else:
-         print("connected to database")
+         print("PostgreSQL database adapter [publisher role] connected to database")
 
       conn.addNotifyObserver(self._on_notify)
       try:
@@ -197,15 +221,23 @@ if __name__ == '__main__':
    from autobahn.twisted.choosereactor import install_reactor
    from autobahn.twisted.wamp import ApplicationRunner
 
-   install_reactor()
+   import sys
+   if sys.platform == 'win32':
+      # IOCPReactor does did not implement addWriter: use select reactor
+      install_reactor('select')
+   else:
+      install_reactor()
 
    config = {
       'database': {
-         'host': '127.0.0.1',
+         'host': u'127.0.0.1',
          'port': 5432,
-         'database': 'test',
-         'user': 'testuser',
-         'password': 'testuser'      
+         'port': u'$DBPORT',
+         'database': u'test',
+#         'user': u'$DBUSER',
+         'user': u'testuser',
+         'password': u'$DBPASSWORD'
+#         'password': u'testuser'
       }
    }
 

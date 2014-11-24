@@ -45,7 +45,7 @@
       },
       {
          "type": "guest",
-         "executable": "/usr/bin/java",
+         "executable": "java",
          "arguments": [
             "-classpath", "./target/classes:./target/dependency/*",
             "ws.wamp.jawampa.CrossbarExample",

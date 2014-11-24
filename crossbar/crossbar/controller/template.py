@@ -59,12 +59,12 @@ class Templates:
       {
          "name": "hello:nodejs",
          "help": "A minimal NodeJS WAMP application hosted in a router and a HTML5 client.",
+         "get_started_hint": "Now install dependencies by doing 'npm install', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
          "basedir": "templates/hello/nodejs",
          "params": {
             "appname": "hello",
             "realm": "realm1",
-            "url": "ws://127.0.0.1:8080/ws",
-            "nodejs": "/usr/bin/node"
+            "url": "ws://127.0.0.1:8080/ws"
          }
       },
 
@@ -130,6 +130,15 @@ class Templates:
       },
 
       {
+         "name": "hello:tessel",
+         "help": "A minimal JavaScript/wamp-tessel WAMP application running on a Tessel and with a HTML5 client.",
+         "get_started_hint": "Please follow the README.md to install npm dependencies, then start Crossbar using 'crossbar start', open http://localhost:8080 in your browser, and do 'tessel run tessel/hello.js'.",
+         "basedir": "templates/hello/tessel",
+         "params": {
+         },
+      },
+
+      {
          "name": "votes:browser",
          "help": "Demo that casts live votes synchronized across HTML5 clients. Backend runs in the browser.",
          "basedir": "templates/votes/browser",
@@ -141,9 +150,9 @@ class Templates:
       {
          "name": "votes:nodejs",
          "help": "Demo that casts live votes synchronized across HTML5 clients. Backend runs in NodeJS.",
+         "get_started_hint": "Now install dependencies by doing 'npm install', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
          "basedir": "templates/votes/nodejs",
          "params": {
-            "nodejs": "C:/Program Files (x86)/nodejs/node.exe"
          },
          "skip_jinja": ['banana_small.png', 'chocolate_small.png', 'crossbar_icon_inverted.png', 'lemon_small.png', 'favicon.ico']
       },

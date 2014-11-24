@@ -1,3 +1,4 @@
+
 {
    "controller": {
    },
@@ -36,23 +37,14 @@
                      "directory": "../web"
                   },
                   "ws": {
-                     "type": "websocket"
+                     "type": "websocket",
+                     "options": {
+                        "require_websocket_subprotocol": false   
+                     }
                   }
                }
             }
          ]
-      },
-      {
-         "type": "guest",
-         "executable": "node",
-         "arguments": ["backend.js"],
-         "options": {
-            "workdir": "../node",
-            "watch": {
-               "directories": ["../node"],
-               "action": "restart"
-            }
-         }
       }
    ]
 }
