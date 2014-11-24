@@ -183,6 +183,8 @@ class RouterRealm:
       :type id: str
       :param config: The realm configuration.
       :type config: dict
+      :param session: The realm service session.
+      :type session: instance of CrossbarRouterServiceSession
       """
       self.id = id
       self.config = config

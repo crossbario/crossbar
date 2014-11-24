@@ -410,6 +410,15 @@ class CrossbarRouterSession(RouterSession):
 
    def onJoin(self, details):
 
+      ## Router/Realm service session
+      ##
+      self._service_session = self._router._realm.session
+
+      # self._router:                  crossbar.router.session.CrossbarRouter
+      # self._router_factory:          crossbar.router.session.CrossbarRouterFactory
+      # self._router._realm:           crossbar.worker.router.RouterRealm
+      # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
+
       self._session_details = {
          'authid': details.authid,
          'authrole': details.authrole,
@@ -422,16 +431,15 @@ class CrossbarRouterSession(RouterSession):
 
       ## dispatch session metaevent from WAMP AP
       ##
-      msg = message.Publish(0, u'wamp.metaevent.session.on_join', [self._session_details])
-      self._router.process(self, msg)
+      self._service_session.publish(u'wamp.metaevent.session.on_join', self._session_details)
 
 
    def onLeave(self, details):
 
       ## dispatch session metaevent from WAMP AP
       ##
-      msg = message.Publish(0, u'wamp.metaevent.session.on_leave', [self._session_details])
-      self._router.process(self, msg)
+      self._service_session.publish(u'wamp.metaevent.session.on_leave', self._session_details)
+
       self._session_details = None
 
       ## if asked to explicitly close the session ..
