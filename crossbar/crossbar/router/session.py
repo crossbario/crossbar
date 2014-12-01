@@ -75,6 +75,15 @@ class CrossbarRouterSession(RouterSession):
       self._pending_auth = None
       self._session_details = None
 
+      ## Router/Realm service session
+      ##
+      self._service_session = self._router._realm.session
+
+      # self._router:                  crossbar.router.session.CrossbarRouter
+      # self._router_factory:          crossbar.router.session.CrossbarRouterFactory
+      # self._router._realm:           crossbar.worker.router.RouterRealm
+      # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
+
 
    def onHello(self, realm, details):
 
@@ -147,13 +156,10 @@ class CrossbarRouterSession(RouterSession):
 
                         elif cfg['type'] == 'dynamic':
 
-                           ## Get the Crossbar.io service session on the router/realm
-                           ## to issue the WAMP call to the custom authorizer
+                           ## call the configured dynamic authenticator procedure
+                           ## via the router's service session
                            ##
-                           router = self._router_factory.get(realm)
-                           service_session = router._realm.session
-
-                           d = service_session.call(cfg['authenticator'], realm, details.authid)
+                           d = self._service_session.call(cfg['authenticator'], realm, details.authid)
 
                            def on_authenticate_ok(user):
 
@@ -409,15 +415,6 @@ class CrossbarRouterSession(RouterSession):
 
 
    def onJoin(self, details):
-
-      ## Router/Realm service session
-      ##
-      self._service_session = self._router._realm.session
-
-      # self._router:                  crossbar.router.session.CrossbarRouter
-      # self._router_factory:          crossbar.router.session.CrossbarRouterFactory
-      # self._router._realm:           crossbar.worker.router.RouterRealm
-      # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
       self._session_details = {
          'authid': details.authid,
