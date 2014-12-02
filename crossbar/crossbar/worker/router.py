@@ -762,207 +762,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
          ## create Twisted Web resources on all non-root paths configured
          ##
-         for path in sorted(config.get('paths', [])):
-
-            if path != "/":
-
-               path_config = config['paths'][path]
-
-               ## websocket_echo
-               ## websocket_testee
-               ## s3mirror
-               ## websocket_stdio
-               ##
-
-               ## WAMP-WebSocket resource
-               ##
-               if path_config['type'] == 'websocket':
-
-                  ws_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, path_config, self._templates)
-
-                  ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
-                  ws_factory.startFactory()
-
-                  ws_resource = WebSocketResource(ws_factory)
-                  root.putChild(path, ws_resource)
-
-
-               ## Static file hierarchy resource
-               ##
-               elif path_config['type'] == 'static':
-
-                  static_options = path_config.get('options', {})
-
-                  if 'directory' in path_config:
-
-                     static_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
-
-                  elif 'package' in path_config:
-
-                     if not 'resource' in path_config:
-                        raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
-
-                     try:
-                        mod = importlib.import_module(path_config['package'])
-                     except ImportError as e:
-                        emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
-                        log.msg(emsg)
-                        raise ApplicationError("crossbar.error.invalid_configuration", emsg)
-                     else:
-                        try:
-                           static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
-                        except Exception as e:
-                           emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
-                           log.msg(emsg)
-                           raise ApplicationError("crossbar.error.invalid_configuration", emsg)
-
-                  else:
-
-                     raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
-
-                  static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
-
-                  ## create resource for file system hierarchy
-                  ##
-                  if static_options.get('enable_directory_listing', False):
-                     static_resource = File(static_dir)
-                  else:
-                     static_resource = FileNoListing(static_dir)
-
-                  ## set extra MIME types
-                  ##
-                  static_resource.contentTypes.update(EXTRA_MIME_TYPES)
-                  if 'mime_types' in static_options:
-                     static_resource.contentTypes.update(static_options['mime_types'])
-                  patchFileContentTypes(static_resource)
-
-                  ## render 404 page on any concrete path not found
-                  ##
-                  static_resource.childNotFound = Resource404(self._templates, static_dir)
-
-                  root.putChild(path, static_resource)
-
-
-               ## WSGI resource
-               ##
-               elif path_config['type'] == 'wsgi':
-
-                  if not _HAS_WSGI:
-                     raise ApplicationError("crossbar.error.invalid_configuration", "WSGI unsupported")
-
-                  wsgi_options = path_config.get('options', {})
-
-                  if not 'module' in path_config:
-                     raise ApplicationError("crossbar.error.invalid_configuration", "missing module")
-
-                  if not 'object' in path_config:
-                     raise ApplicationError("crossbar.error.invalid_configuration", "missing object")
-
-                  try:
-                     mod = importlib.import_module(path_config['module'])
-                  except ImportError as e:
-                     raise ApplicationError("crossbar.error.invalid_configuration", "module import failed - {}".format(e))
-                  else:
-                     if not path_config['object'] in mod.__dict__:
-                        raise ApplicationError("crossbar.error.invalid_configuration", "object not in module")
-                     else:
-                        app = getattr(mod, path_config['object'])
-
-                  ## create a Twisted Web WSGI resource from the user's WSGI application object
-                  try:
-                     wsgi_resource = WSGIResource(reactor, reactor.getThreadPool(), app)
-                  except Exception as e:
-                     raise ApplicationError("crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
-                  else:
-                     root.putChild(path, wsgi_resource)
-
-
-               ## Redirecting resource
-               ##
-               elif path_config['type'] == 'redirect':
-                  redirect_url = path_config['url'].encode('ascii', 'ignore')
-                  redirect_resource = RedirectResource(redirect_url)
-                  root.putChild(path, redirect_resource)
-
-
-               ## JSON value resource
-               ##
-               elif path_config['type'] == 'json':
-                  value = path_config['value']
-
-                  json_resource = JsonResource(value)
-                  root.putChild(path, json_resource)
-
-
-               ## CGI script resource
-               ##
-               elif path_config['type'] == 'cgi':
-
-                  cgi_processor = path_config['processor']
-                  cgi_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
-                  cgi_directory = cgi_directory.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
-
-                  cgi_resource = CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
-
-                  root.putChild(path, cgi_resource)
-
-
-               ## WAMP-Longpoll transport resource
-               ##
-               elif path_config['type'] == 'longpoll':
-
-                  path_options = path_config.get('options', {})
-
-                  lp_resource = WampLongPollResource(self.session_factory,
-                     timeout = path_options.get('request_timeout', 10),
-                     killAfter = path_options.get('session_timeout', 30),
-                     queueLimitBytes = path_options.get('queue_limit_bytes', 128 * 1024),
-                     queueLimitMessages = path_options.get('queue_limit_messages', 100),
-                     debug = path_options.get('debug', False),
-                     debug_transport_id = path_options.get('debug_transport_id', None)
-                  )
-                  lp_resource._templates = self._templates
-
-                  root.putChild(path, lp_resource)
-
-
-               ## Pusher resource
-               ##
-               elif path_config['type'] == 'pusher':
-
-                  ## create a vanilla session: the pusher will use this to inject events
-                  ##
-                  pusher_session_config = ComponentConfig(realm = path_config['realm'], extra = None)
-                  pusher_session = ApplicationSession(pusher_session_config)
-
-                  ## add the pushing session to the router
-                  ##
-                  self.session_factory.add(pusher_session, authrole = path_config.get('role', 'anonymous'))
-
-                  ## now create the pusher Twisted Web resource and add it to resource tree
-                  ##
-                  pusher_resource = PusherResource(path_config.get('options', {}), pusher_session)
-                  root.putChild(path, pusher_resource)
-
-
-               ## Schema Docs resource
-               ##
-               elif path_config['type'] == 'schemadoc':
-
-                  realm = path_config['realm']
-
-                  if not realm in self.realm_to_id:
-                     raise ApplicationError("crossbar.error.no_such_object", "No realm with URI '{}' configured".format(realm))
-
-                  realm_id = self.realm_to_id[realm]
-
-                  realm_schemas = self.realms[realm_id].session._schemas
-
-                  schemadoc_resource = SchemaDocResource(self._templates, realm, realm_schemas)
-                  root.putChild(path, schemadoc_resource)
-
-               else:
-                  raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web path type '{}'".format(path_config['type']))
+         self.add_paths(root, config.get('paths', {}))
 
 
          ## create the actual transport factory
@@ -1019,6 +819,241 @@ class RouterWorkerSession(NativeWorkerSession):
 
       d.addCallbacks(ok, fail)
       return d
+
+
+
+   def add_paths(self, resource, paths):
+      """
+      Add all configured non-root paths under a resource.
+
+      :param resource: The parent resource under which to add paths.
+      :type resource: Resource
+      :param paths: The path configurations.
+      :type paths: dict
+      """
+      for path in sorted(paths):
+
+         if path != "/":
+
+            resource.putChild(path, self.create_resource(paths[path]))
+
+
+
+   def create_resource(self, path_config):
+      """
+      Creates child resource to be added to the parent.
+
+      :param path_config: Configuration for the new child resource.
+      :type path_config: dict
+
+      :returns: Resource -- the new child resource
+      """
+      ## websocket_echo
+      ## websocket_testee
+      ## s3mirror
+      ## websocket_stdio
+      ##
+
+      ## WAMP-WebSocket resource
+      ##
+      if path_config['type'] == 'websocket':
+
+         ws_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, path_config, self._templates)
+
+         ## FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
+         ws_factory.startFactory()
+
+         return WebSocketResource(ws_factory)
+
+
+      ## Static file hierarchy resource
+      ##
+      elif path_config['type'] == 'static':
+
+         static_options = path_config.get('options', {})
+
+         if 'directory' in path_config:
+
+            static_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
+
+         elif 'package' in path_config:
+
+            if not 'resource' in path_config:
+               raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
+
+            try:
+               mod = importlib.import_module(path_config['package'])
+            except ImportError as e:
+               emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+               log.msg(emsg)
+               raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+            else:
+               try:
+                  static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
+               except Exception as e:
+                  emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+                  log.msg(emsg)
+                  raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+
+         else:
+
+            raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
+
+         static_dir = static_dir.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
+
+         ## create resource for file system hierarchy
+         ##
+         if static_options.get('enable_directory_listing', False):
+            static_resource = File(static_dir)
+         else:
+            static_resource = FileNoListing(static_dir)
+
+         ## set extra MIME types
+         ##
+         static_resource.contentTypes.update(EXTRA_MIME_TYPES)
+         if 'mime_types' in static_options:
+            static_resource.contentTypes.update(static_options['mime_types'])
+         patchFileContentTypes(static_resource)
+
+         ## render 404 page on any concrete path not found
+         ##
+         static_resource.childNotFound = Resource404(self._templates, static_dir)
+
+         return static_resource
+
+
+      ## WSGI resource
+      ##
+      elif path_config['type'] == 'wsgi':
+
+         if not _HAS_WSGI:
+            raise ApplicationError("crossbar.error.invalid_configuration", "WSGI unsupported")
+
+         wsgi_options = path_config.get('options', {})
+
+         if not 'module' in path_config:
+            raise ApplicationError("crossbar.error.invalid_configuration", "missing module")
+
+         if not 'object' in path_config:
+            raise ApplicationError("crossbar.error.invalid_configuration", "missing object")
+
+         try:
+            mod = importlib.import_module(path_config['module'])
+         except ImportError as e:
+            raise ApplicationError("crossbar.error.invalid_configuration", "module import failed - {}".format(e))
+         else:
+            if not path_config['object'] in mod.__dict__:
+               raise ApplicationError("crossbar.error.invalid_configuration", "object not in module")
+            else:
+               app = getattr(mod, path_config['object'])
+
+         ## create a Twisted Web WSGI resource from the user's WSGI application object
+         try:
+            wsgi_resource = WSGIResource(reactor, reactor.getThreadPool(), app)
+         except Exception as e:
+            raise ApplicationError("crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
+         else:
+            return wsgi_resource
+
+
+      ## Redirecting resource
+      ##
+      elif path_config['type'] == 'redirect':
+         redirect_url = path_config['url'].encode('ascii', 'ignore')
+         return RedirectResource(redirect_url)
+
+
+      ## JSON value resource
+      ##
+      elif path_config['type'] == 'json':
+         value = path_config['value']
+
+         return JsonResource(value)
+
+
+      ## CGI script resource
+      ##
+      elif path_config['type'] == 'cgi':
+
+         cgi_processor = path_config['processor']
+         cgi_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
+         cgi_directory = cgi_directory.encode('ascii', 'ignore') # http://stackoverflow.com/a/20433918/884770
+
+         return CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
+
+
+      ## WAMP-Longpoll transport resource
+      ##
+      elif path_config['type'] == 'longpoll':
+
+         path_options = path_config.get('options', {})
+
+         lp_resource = WampLongPollResource(self.session_factory,
+            timeout = path_options.get('request_timeout', 10),
+            killAfter = path_options.get('session_timeout', 30),
+            queueLimitBytes = path_options.get('queue_limit_bytes', 128 * 1024),
+            queueLimitMessages = path_options.get('queue_limit_messages', 100),
+            debug = path_options.get('debug', False),
+            debug_transport_id = path_options.get('debug_transport_id', None)
+         )
+         lp_resource._templates = self._templates
+
+         return lp_resource
+
+
+      ## Pusher resource
+      ##
+      elif path_config['type'] == 'pusher':
+
+         ## create a vanilla session: the pusher will use this to inject events
+         ##
+         pusher_session_config = ComponentConfig(realm = path_config['realm'], extra = None)
+         pusher_session = ApplicationSession(pusher_session_config)
+
+         ## add the pushing session to the router
+         ##
+         self.session_factory.add(pusher_session, authrole = path_config.get('role', 'anonymous'))
+
+         ## now create the pusher Twisted Web resource
+         ##
+         return PusherResource(path_config.get('options', {}), pusher_session)
+
+
+      ## Schema Docs resource
+      ##
+      elif path_config['type'] == 'schemadoc':
+
+         realm = path_config['realm']
+
+         if not realm in self.realm_to_id:
+            raise ApplicationError("crossbar.error.no_such_object", "No realm with URI '{}' configured".format(realm))
+
+         realm_id = self.realm_to_id[realm]
+
+         realm_schemas = self.realms[realm_id].session._schemas
+
+         return SchemaDocResource(self._templates, realm, realm_schemas)
+
+
+      ## Nested subpath resource
+      ##
+      elif path_config['type'] == 'path':
+
+         nested_paths = path_config.get('paths', {})
+
+         if '/' in nested_paths:
+            nested_resource = self.create_resource(nested_paths['/'])
+         else:
+            nested_resource = Resource()
+
+         ## nest subpaths under the current entry
+         ##
+         self.add_paths(nested_resource, nested_paths)
+
+         return nested_resource
+
+      else:
+         raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web path type '{}'".format(path_config['type']))
 
 
 
