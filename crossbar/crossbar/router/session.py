@@ -75,15 +75,7 @@ class CrossbarRouterSession(RouterSession):
 
       self._pending_auth = None
       self._session_details = None
-
-      ## Router/Realm service session
-      ##
-      self._service_session = self._router._realm.session
-
-      # self._router:                  crossbar.router.session.CrossbarRouter
-      # self._router_factory:          crossbar.router.session.CrossbarRouterFactory
-      # self._router._realm:           crossbar.worker.router.RouterRealm
-      # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
+      self._service_session = None
 
 
    def onHello(self, realm, details):
@@ -160,7 +152,8 @@ class CrossbarRouterSession(RouterSession):
                            ## call the configured dynamic authenticator procedure
                            ## via the router's service session
                            ##
-                           d = self._service_session.call(cfg['authenticator'], realm, details.authid)
+                           service_session = self._router_factory.get(realm)._realm.session
+                           d = service_session.call(cfg['authenticator'], realm, details.authid)
 
                            def on_authenticate_ok(user):
 
@@ -495,6 +488,14 @@ class CrossbarRouterSession(RouterSession):
 
 
    def onJoin(self, details):
+
+      ## Router/Realm service session
+      ##
+      self._service_session = self._router._realm.session
+      # self._router:                  crossbar.router.session.CrossbarRouter
+      # self._router_factory:          crossbar.router.session.CrossbarRouterFactory
+      # self._router._realm:           crossbar.worker.router.RouterRealm
+      # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
       self._session_details = {
          'authid': details.authid,
