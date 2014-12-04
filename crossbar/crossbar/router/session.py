@@ -51,8 +51,9 @@ from autobahn.twisted.wamp import RouterSession, RouterSessionFactory
 
 import crossbar
 
-from crossbar.router.auth import PendingAuthPersona, PendingAuthWampCra
-
+from crossbar.router.auth import PendingAuthPersona, \
+                                 PendingAuthWampCra, \
+                                 PendingAuthTicket
 
 
 
@@ -201,7 +202,31 @@ class CrossbarRouterSession(RouterSession):
 
                         else:
 
-                           return types.Deny(message = "illegal WAMP-CRA config (type '{0}' is unknown)".format(cfg['type']))
+                           return types.Deny(message = "illegal WAMP-CRA authentication config (type '{0}' is unknown)".format(cfg['type']))
+
+
+                     ## WAMP-Ticket authentication
+                     ##
+                     elif authmethod == u"ticket":
+                        cfg = self._transport_config['auth']['ticket']
+
+                        ## use static principal database from configuration
+                        ##
+                        if cfg['type'] == 'static':
+
+                           if details.authid in cfg.get('principals', {}):
+                              user = cfg['principals'][details.authid]
+                              self._pending_auth = PendingAuthTicket(details.authid, user['role'], u'static', user['ticket'].encode('utf8'))
+                              return types.Challenge(u'ticket')
+                           else:
+                              return types.Deny(message = "no principal with authid '{}' in principal database".format(details.authid))
+
+                        ## use configured procedure to dynamically get a ticket
+                        elif cfg['type'] == 'dynamic':
+                              self._pending_auth = PendingAuthTicket(details.authid, None, cfg['authenticator'], None)
+                              return types.Challenge(u'ticket')
+                        else:
+                           return types.Deny(message = "illegal WAMP-Ticket authentication config (type '{0}' is unknown)".format(cfg['type']))
 
                      ## "Mozilla Persona" authentication
                      ##
@@ -310,22 +335,77 @@ class CrossbarRouterSession(RouterSession):
       """
       print("onAuthenticate: {} {}".format(signature, extra))
 
-      ## if there is a pending auth, and the signature provided by client matches ..
+      ## if there is a pending auth, check the challenge response. The specifics
+      ## of how to check depend on the authentication method
+      ##
       if self._pending_auth:
 
+         ## WAMP-CRA
+         ##
          if isinstance(self._pending_auth, PendingAuthWampCra):
 
             if signature == self._pending_auth.signature:
-
-               ## accept the client
+               ## WAMP-CRA authentication signature was valid: accept the client
+               ##
                return types.Accept(authid = self._pending_auth.authid,
                   authrole = self._pending_auth.authrole,
                   authmethod = self._pending_auth.authmethod,
                   authprovider = self._pending_auth.authprovider)
             else:
-
-               ## deny client
+               ## WAMP-CRA authentication signature was invalid: deny client
+               ##
                return types.Deny(message = u"signature is invalid")
+
+         ## WAMP-Ticket
+         ##
+         elif isinstance(self._pending_auth, PendingAuthTicket):
+
+            ## when doing WAMP-Ticket from static configuration, the ticket we
+            ## expect was store on the pending authentication object and we just compare ..
+            ##
+            if self._pending_auth.authprovider == 'static':
+               if signature == self._pending_auth.ticket:
+                  ## WAMP-Ticket authentication ticket was valid: accept the client
+                  ##
+                  return types.Accept(authid = self._pending_auth.authid,
+                     authrole = self._pending_auth.authrole,
+                     authmethod = self._pending_auth.authmethod,
+                     authprovider = self._pending_auth.authprovider)
+               else:
+                  ## WAMP-Ticket authentication ticket was invalid: deny client
+                  ##
+                  return types.Deny(message = u"ticket is invalid")
+
+            ## WAMP-Ticket dynamic ..
+            ##
+            else:
+               ## call the configured dynamic authenticator procedure
+               ## via the router's service session
+               ##
+               d = self._service_session.call(self._pending_auth.authprovider, self._realm, self._pending_auth.authid)
+
+               def on_authenticate_ok(role):
+                  return types.Accept(authid = self._pending_auth.authid,
+                     authrole = role,
+                     authmethod = self._pending_auth.authmethod,
+                     authprovider = self._pending_auth.authprovider)
+
+               def on_authenticate_error(err):
+                  error = None
+                  message = "dynamic WAMP-Ticket credential getter failed: {}".format(err)
+
+                  if isinstance(err.value, ApplicationError):
+                     error = err.value.error
+                     if err.value.args and len(err.value.args):
+                        message = err.value.args[0]
+
+                  return types.Deny(error, message)
+
+
+               d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+               return d
+
 
          elif isinstance(self._pending_auth, PendingAuthPersona):
 

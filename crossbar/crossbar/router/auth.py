@@ -90,3 +90,28 @@ class PendingAuthWampCra(PendingAuth):
 
       self.challenge = json.dumps(challenge_obj)
       self.signature = auth.compute_wcs(secret, self.challenge)
+
+
+
+class PendingAuthTicket(PendingAuth):
+   """
+   Pending WAMP-CRA authentication.
+   """
+
+   def __init__(self, authid, authrole, authprovider, ticket):
+      """
+      :param authid: The authentication ID of the authenticating principal.
+      :type authid: unicode
+      :param authrole: The role under which the principal will be authenticated when
+         the authentication succeeds.
+      :type authrole: unicode
+      :param authprovider: Optional authentication provider.
+      :type authprovider: unicode or None
+      :param ticket: The secret/ticket the authenticating principal will need to provide.
+      :type ticket: bytes
+      """
+      self.authmethod = u"ticket"
+      self.authid = authid
+      self.authrole = authrole
+      self.authprovider = authprovider
+      self.ticket = ticket
