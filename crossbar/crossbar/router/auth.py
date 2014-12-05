@@ -21,7 +21,8 @@ from __future__ import absolute_import
 __all__ = (
    'PendingAuth',
    'PendingAuthPersona',
-   'PendingAuthWampCra'
+   'PendingAuthWampCra',
+   'PendingAuthTicket'
 )
 
 
@@ -95,7 +96,7 @@ class PendingAuthWampCra(PendingAuth):
 
 class PendingAuthTicket(PendingAuth):
    """
-   Pending WAMP-CRA authentication.
+   Pending Ticket-based authentication.
    """
 
    def __init__(self, authid, authrole, authprovider, ticket):
@@ -105,10 +106,10 @@ class PendingAuthTicket(PendingAuth):
       :param authrole: The role under which the principal will be authenticated when
          the authentication succeeds.
       :type authrole: unicode
-      :param authprovider: Optional authentication provider.
+      :param authprovider: Optional authentication provider (URI of procedure to call).
       :type authprovider: unicode or None
-      :param ticket: The secret/ticket the authenticating principal will need to provide.
-      :type ticket: bytes
+      :param ticket: The secret/ticket the authenticating principal will need to provide (or `None` when using dynamic authenticator).
+      :type ticket: bytes or None
       """
       self.authmethod = u"ticket"
       self.authid = authid
