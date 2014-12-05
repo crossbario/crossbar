@@ -99,7 +99,7 @@ class PendingAuthTicket(PendingAuth):
    Pending Ticket-based authentication.
    """
 
-   def __init__(self, authid, authrole, authprovider, ticket):
+   def __init__(self, realm, authid, authrole, authprovider, ticket):
       """
       :param authid: The authentication ID of the authenticating principal.
       :type authid: unicode
@@ -112,6 +112,7 @@ class PendingAuthTicket(PendingAuth):
       :type ticket: bytes or None
       """
       self.authmethod = u"ticket"
+      self.realm = realm
       self.authid = authid
       self.authrole = authrole
       self.authprovider = authprovider

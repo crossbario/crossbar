@@ -283,6 +283,22 @@ and open your browser pointing to http://localhost:8080.
       },
 
       {
+         "name": "authenticate:ticket",
+         "help": "Demonstrates authentication via Ticket-based authentication from a static principals database defined in the node configuration.",
+         "basedir": "templates/authenticate/ticket",
+         "params": {
+         }
+      },
+
+      {
+         "name": "authenticate:ticketdynamic:python",
+         "help": "Demonstrates authentication via Ticket-based authentication from a user-defined authenticator procedure written in Python.",
+         "basedir": "templates/authenticate/ticketdynamic/python",
+         "params": {
+         }
+      },
+
+      {
          "name": "wss:python",
          "help": "Using secure WebSocket transports (wss) with JavaScript frontend and Python backend.",
          "basedir": "templates/wss/python",

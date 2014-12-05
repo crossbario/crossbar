@@ -209,14 +209,14 @@ class CrossbarRouterSession(RouterSession):
 
                            if details.authid in cfg.get('principals', {}):
                               user = cfg['principals'][details.authid]
-                              self._pending_auth = PendingAuthTicket(details.authid, user['role'], u'static', user['ticket'].encode('utf8'))
+                              self._pending_auth = PendingAuthTicket(realm, details.authid, user['role'], u'static', user['ticket'].encode('utf8'))
                               return types.Challenge(u'ticket')
                            else:
                               return types.Deny(message = "no principal with authid '{}' in principal database".format(details.authid))
 
                         ## use configured procedure to dynamically get a ticket
                         elif cfg['type'] == 'dynamic':
-                              self._pending_auth = PendingAuthTicket(details.authid, None, cfg['authenticator'], None)
+                              self._pending_auth = PendingAuthTicket(realm, details.authid, None, cfg['authenticator'], None)
                               return types.Challenge(u'ticket')
                         else:
                            return types.Deny(message = "illegal WAMP-Ticket authentication config (type '{0}' is unknown)".format(cfg['type']))
@@ -375,7 +375,8 @@ class CrossbarRouterSession(RouterSession):
                ## call the configured dynamic authenticator procedure
                ## via the router's service session
                ##
-               d = self._service_session.call(self._pending_auth.authprovider, self._realm, self._pending_auth.authid)
+               service_session = self._router_factory.get(self._pending_auth.realm)._realm.session
+               d = service_session.call(self._pending_auth.authprovider, self._pending_auth.realm, self._pending_auth.authid, signature)
 
                def on_authenticate_ok(role):
                   return types.Accept(authid = self._pending_auth.authid,
