@@ -37,9 +37,11 @@ from autobahn.twisted.wamp import ApplicationSession
 import os, sys
 import json
 
-from autobahn.twisted.wamp import RouterFactory, RouterSessionFactory
 from autobahn.twisted.websocket import WampWebSocketClientFactory, WampWebSocketClientProtocol
 from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
+
+from crossbar.router.router import RouterFactory, RouterSessionFactory
+
 
 import pkg_resources
 from sys import argv, executable

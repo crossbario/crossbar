@@ -56,9 +56,8 @@ from autobahn.websocket.compress import *
 
 from autobahn.wamp import types
 from autobahn.wamp import message
-from autobahn.twisted.wamp import RouterFactory, \
-                                  RouterSession, \
-                                  RouterSessionFactory
+
+from crossbar.router.router import RouterFactory, RouterSession, RouterSessionFactory
 
 import crossbar
 

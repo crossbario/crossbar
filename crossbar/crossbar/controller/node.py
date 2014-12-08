@@ -36,8 +36,11 @@ from twisted.internet.defer import Deferred, \
 
 from autobahn import wamp
 from autobahn.wamp.types import CallDetails
-from autobahn.twisted.wamp import RouterFactory, \
-                                  RouterSessionFactory
+
+from crossbar.router.router import RouterFactory, \
+                                   RouterSessionFactory
+
+from crossbar.router.types import RouterOptions
 
 from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
@@ -141,7 +144,7 @@ class Node:
       ## router and factory that creates router sessions
       ##
       self._router_factory = RouterFactory(
-         options = wamp.types.RouterOptions(uri_check = wamp.types.RouterOptions.URI_CHECK_LOOSE),
+         options = RouterOptions(uri_check = RouterOptions.URI_CHECK_LOOSE),
          debug = False)
       self._router_session_factory = RouterSessionFactory(self._router_factory)
 

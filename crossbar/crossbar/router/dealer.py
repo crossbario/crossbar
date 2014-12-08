@@ -21,31 +21,33 @@ from __future__ import absolute_import
 __all__ = ('Dealer',)
 
 from autobahn import util
-from autobahn.wamp import types
 from autobahn.wamp import role
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError, ApplicationError
-from autobahn.wamp.interfaces import IDealer, IRouter
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_LOOSE_NON_EMPTY
+from autobahn.twisted.wamp import FutureMixin
+
+from crossbar.router.types import RouterOptions
+from crossbar.router.interfaces import IRouter
 
 
 
-class Dealer:
+class Dealer(FutureMixin):
    """
-   Basic WAMP dealer. This class implements :class:`autobahn.wamp.interfaces.IDealer`.
+   Basic WAMP dealer.
    """
 
    def __init__(self, router, options):
       """
 
       :param router: The router this dealer is part of.
-      :type router: Object that implements :class:`autobahn.wamp.interfaces.IRouter`.
+      :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
       :param options: Router options.
-      :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
+      :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
       """
       self._router = router
-      self._options = options or types.RouterOptions()
+      self._options = options or RouterOptions()
 
       ## map: session -> set(registration)
       ## needed for removeSession
@@ -65,7 +67,7 @@ class Dealer:
       self._invocations = {}
 
       ## check all procedure URIs with strict rules
-      self._option_uri_strict = self._options.uri_check == types.RouterOptions.URI_CHECK_STRICT
+      self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
 
       ## supported features from "WAMP Advanced Profile"
       self._role_features = role.RoleDealerFeatures(caller_identification = True, progressive_call_results = True)
@@ -73,7 +75,7 @@ class Dealer:
 
    def attach(self, session):
       """
-      Implements :func:`autobahn.wamp.interfaces.IDealer.attach`
+      Implements :func:`crossbar.router.interfaces.IDealer.attach`
       """
       assert(session not in self._session_to_registrations)
 
@@ -83,7 +85,7 @@ class Dealer:
 
    def detach(self, session):
       """
-      Implements :func:`autobahn.wamp.interfaces.IDealer.detach`
+      Implements :func:`crossbar.router.interfaces.IDealer.detach`
       """
       assert(session in self._session_to_registrations)
 
@@ -97,7 +99,7 @@ class Dealer:
 
    def processRegister(self, session, register):
       """
-      Implements :func:`autobahn.wamp.interfaces.IDealer.processRegister`
+      Implements :func:`crossbar.router.interfaces.IDealer.processRegister`
       """
       assert(session in self._session_to_registrations)
 
@@ -144,7 +146,7 @@ class Dealer:
 
    def processUnregister(self, session, unregister):
       """
-      Implements :func:`autobahn.wamp.interfaces.IDealer.processUnregister`
+      Implements :func:`crossbar.router.interfaces.IDealer.processUnregister`
       """
       assert(session in self._session_to_registrations)
 
@@ -178,7 +180,7 @@ class Dealer:
 
    def processCall(self, session, call):
       """
-      Implements :func:`autobahn.wamp.interfaces.IDealer.processCall`
+      Implements :func:`crossbar.router.interfaces.IDealer.processCall`
       """
       assert(session in self._session_to_registrations)
 
@@ -260,7 +262,7 @@ class Dealer:
    # noinspection PyUnusedLocal
    def processCancel(self, session, cancel):
       """
-      Implements :func:`autobahn.wamp.interfaces.IDealer.processCancel`
+      Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
       """
       assert(session in self._session_to_registrations)
 
@@ -269,7 +271,7 @@ class Dealer:
 
    def processYield(self, session, yield_):
       """
-      Implements :func:`autobahn.wamp.interfaces.IDealer.processYield`
+      Implements :func:`crossbar.router.interfaces.IDealer.processYield`
       """
       assert(session in self._session_to_registrations)
 
@@ -306,7 +308,7 @@ class Dealer:
 
    def processInvocationError(self, session, error):
       """
-      Implements :func:`autobahn.wamp.interfaces.IDealer.processInvocationError`
+      Implements :func:`crossbar.router.interfaces.IDealer.processInvocationError`
       """
       assert(session in self._session_to_registrations)
 
@@ -337,7 +339,3 @@ class Dealer:
 
       else:
          raise ProtocolError("Dealer.onInvocationError(): ERROR received for non-pending request_type {0} and request ID {1}".format(error.request_type, error.request))
-
-
-
-IDealer.register(Dealer)

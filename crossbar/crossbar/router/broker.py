@@ -21,31 +21,33 @@ from __future__ import absolute_import
 __all__ = ('Broker',)
 
 from autobahn import util
-from autobahn.wamp import types
 from autobahn.wamp import role
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.interfaces import IBroker, IRouter
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_LOOSE_NON_EMPTY
+from autobahn.twisted.wamp import FutureMixin
+
+from crossbar.router.types import RouterOptions
+from crossbar.router.interfaces import IRouter
 
 
 
-class Broker:
+class Broker(FutureMixin):
    """
-   Basic WAMP broker. This class implements :class:`autobahn.wamp.interfaces.IBroker`.
+   Basic WAMP broker.
    """
 
    def __init__(self, router, options = None):
       """
 
       :param router: The router this dealer is part of.
-      :type router: Object that implements :class:`autobahn.wamp.interfaces.IRouter`.
+      :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
       :param options: Router options.
-      :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
+      :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
       """
       self._router = router
-      self._options = options or types.RouterOptions()
+      self._options = options or RouterOptions()
 
       ## map: session -> set(subscription)
       ## needed for removeSession
@@ -64,7 +66,7 @@ class Broker:
       self._subscription_to_sessions = {}
 
       ## check all topic URIs with strict rules
-      self._option_uri_strict = self._options.uri_check == types.RouterOptions.URI_CHECK_STRICT
+      self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
 
       ## supported features from "WAMP Advanced Profile"
       self._role_features = role.RoleBrokerFeatures(publisher_identification = True, subscriber_blackwhite_listing = True, publisher_exclusion = True)
@@ -72,7 +74,7 @@ class Broker:
 
    def attach(self, session):
       """
-      Implements :func:`autobahn.wamp.interfaces.IBroker.attach`
+      Implements :func:`crossbar.router.interfaces.IBroker.attach`
       """
       assert(session not in self._session_to_subscriptions)
 
@@ -82,7 +84,7 @@ class Broker:
 
    def detach(self, session):
       """
-      Implements :func:`autobahn.wamp.interfaces.IBroker.detach`
+      Implements :func:`crossbar.router.interfaces.IBroker.detach`
       """
       assert(session in self._session_to_subscriptions)
 
@@ -102,7 +104,7 @@ class Broker:
 
    def processPublish(self, session, publish):
       """
-      Implements :func:`autobahn.wamp.interfaces.IBroker.processPublish`
+      Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
       """      
       #assert(session in self._session_to_subscriptions)
 
@@ -217,7 +219,7 @@ class Broker:
 
    def processSubscribe(self, session, subscribe):
       """
-      Implements :func:`autobahn.wamp.interfaces.IBroker.processSubscribe`
+      Implements :func:`crossbar.router.interfaces.IBroker.processSubscribe`
       """
       #assert(session in self._session_to_subscriptions)
 
@@ -274,7 +276,7 @@ class Broker:
 
    def processUnsubscribe(self, session, unsubscribe):
       """
-      Implements :func:`autobahn.wamp.interfaces.IBroker.processUnsubscribe`
+      Implements :func:`crossbar.router.interfaces.IBroker.processUnsubscribe`
       """
       #assert(session in self._session_to_subscriptions)
 
@@ -302,7 +304,3 @@ class Broker:
          reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
 
       session._transport.send(reply)
-
-
-
-IBroker.register(Broker)

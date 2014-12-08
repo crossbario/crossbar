@@ -44,12 +44,14 @@ from autobahn import wamp
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.interfaces import IRouter
-from autobahn.twisted.wamp import Router, RouterFactory
 from autobahn.twisted.wamp import ApplicationSession
-from autobahn.twisted.wamp import RouterSession, RouterSessionFactory
+
+from crossbar.router.router import Router, RouterFactory, RouterSession, RouterSessionFactory
 
 import crossbar
+
+from crossbar.router.types import RouterOptions
+from crossbar.router.interfaces import IRouter
 
 from crossbar.router.auth import PendingAuthPersona, \
                                  PendingAuthWampCra, \
@@ -909,7 +911,7 @@ class CrossbarRouterFactory(RouterFactory):
       """
       Ctor.
       """
-      options = types.RouterOptions(uri_check = types.RouterOptions.URI_CHECK_LOOSE)
+      options = RouterOptions(uri_check = RouterOptions.URI_CHECK_LOOSE)
       RouterFactory.__init__(self, options, debug)
 
 
