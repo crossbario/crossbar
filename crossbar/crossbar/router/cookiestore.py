@@ -187,7 +187,6 @@ class CookieStore:
 class PersistentCookieStore(CookieStore):
    """
    A persistent cookie store.
-
    """
 
    def __init__(self, cookie_file_name, config, debug = False):

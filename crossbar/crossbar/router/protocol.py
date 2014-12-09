@@ -62,11 +62,7 @@ from autobahn.twisted.wamp import RouterFactory, \
 
 import crossbar
 
-from crossbar.router.cookiestore import CookieStore, _HAS_ADBAPI
-if _HAS_ADBAPI:
-   from crossbar.router.cookiestore import PersistentCookieStore
-
-
+from crossbar.router.cookiestore import CookieStore, PersistentCookieStore
 
 
 def set_websocket_options(factory, options):
@@ -382,7 +378,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
 
       ## cookie tracking
       if 'cookie' in config:
-         if 'database' in config['cookie'] and _HAS_ADBAPI:
+         if 'database' in config['cookie']:
             dbfile = os.path.abspath(os.path.join(self._cbdir, config['cookie']['database']))
             self._cookiestore = PersistentCookieStore(dbfile, config['cookie'])
             log.msg("Persistent cookie store active: {}".format(dbfile))
