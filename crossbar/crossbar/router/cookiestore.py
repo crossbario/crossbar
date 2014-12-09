@@ -26,13 +26,6 @@ from six.moves import http_cookies
 
 from twisted.python import log
 
-try:
-   from twisted.enterprise import adbapi
-   _HAS_ADBAPI = True
-except ImportError:
-   ## Twisted hasn't ported this to Python 3 yet
-   _HAS_ADBAPI = False
-
 
 from autobahn import util
 
@@ -193,84 +186,83 @@ class CookieStore:
 
 
 
-if _HAS_ADBAPI:
 
-   class PersistentCookieStore(CookieStore):
-      """
-      A persistent cookie store.
-      """
+class PersistentCookieStore(CookieStore):
+  """
+  A persistent cookie store.
+  """
 
-      def __init__(self, dbfile, config, debug = False):
-         CookieStore.__init__(self, config, debug)
-         self._dbfile = dbfile
+  def __init__(self, dbfile, config, debug = False):
+     CookieStore.__init__(self, config, debug)
+     self._dbfile = dbfile
 
-         ## initialize database and create database connection pool
-         self._init_db()
-         self._dbpool = adbapi.ConnectionPool('sqlite3', self._dbfile, check_same_thread = False)
-
-
-      def _init_db(self):
-         if not os.path.isfile(self._dbfile):
-
-            db = sqlite3.connect(self._dbfile)
-            cur = db.cursor()
-
-            cur.execute("""
-                        CREATE TABLE cookies (
-                           id                TEXT     NOT NULL,
-                           created           TEXT     NOT NULL,
-                           max_age           INTEGER  NOT NULL,
-                           authid            TEXT,
-                           authrole          TEXT,
-                           authmethod        TEXT,
-                           PRIMARY KEY (id))
-                        """)
-
-            log.msg("Cookie DB created.")
-
-         else:
-            log.msg("Cookie DB already exists.")
-
-            db = sqlite3.connect(self._dbfile)
-            cur = db.cursor()
-
-            cur.execute("SELECT id, created, max_age, authid, authrole, authmethod FROM cookies")
-            n = 0
-            for row in cur.fetchall():
-               id = row[0]
-               cbtData = {'created': row[1],
-                          'max_age': row[2],
-                          'authid': row[3],
-                          'authrole': row[4],
-                          'authmethod': row[5],
-                          'connections': set()}
-               self._cookies[id] = cbtData
-               n += 1
-            log.msg("Loaded {} cookies into cache.".format(n))
+     ## initialize database and create database connection pool
+     self._init_db()
+     self._dbpool = adbapi.ConnectionPool('sqlite3', self._dbfile, check_same_thread = False)
 
 
-      def create(self):
-         id, header = CookieStore.create(self)
+  def _init_db(self):
+     if not os.path.isfile(self._dbfile):
 
-         def run(txn):
-            c = self._cookies[id]
-            txn.execute("INSERT INTO cookies (id, created, max_age, authid, authrole, authmethod) VALUES (?, ?, ?, ?, ?, ?)",
-               [id, c['created'], c['max_age'], c['authid'], c['authrole'], c['authmethod']])
-            if self.debug:
-               log.msg("Cookie {} stored".format(id))
+        db = sqlite3.connect(self._dbfile)
+        cur = db.cursor()
 
-         self._dbpool.runInteraction(run)
+        cur.execute("""
+                    CREATE TABLE cookies (
+                       id                TEXT     NOT NULL,
+                       created           TEXT     NOT NULL,
+                       max_age           INTEGER  NOT NULL,
+                       authid            TEXT,
+                       authrole          TEXT,
+                       authmethod        TEXT,
+                       PRIMARY KEY (id))
+                    """)
 
-         return id, header
+        log.msg("Cookie DB created.")
+
+     else:
+        log.msg("Cookie DB already exists.")
+
+        db = sqlite3.connect(self._dbfile)
+        cur = db.cursor()
+
+        cur.execute("SELECT id, created, max_age, authid, authrole, authmethod FROM cookies")
+        n = 0
+        for row in cur.fetchall():
+           id = row[0]
+           cbtData = {'created': row[1],
+                      'max_age': row[2],
+                      'authid': row[3],
+                      'authrole': row[4],
+                      'authmethod': row[5],
+                      'connections': set()}
+           self._cookies[id] = cbtData
+           n += 1
+        log.msg("Loaded {} cookies into cache.".format(n))
 
 
-      def setAuth(self, id, authid, authrole, authmethod):
-         CookieStore.setAuth(self, id, authid, authrole, authmethod)
+  def create(self):
+     id, header = CookieStore.create(self)
 
-         def run(txn):
-            txn.execute("UPDATE cookies SET authid = ?, authrole = ?, authmethod = ? WHERE id = ?",
-               [authid, authrole, authmethod, id])
-            if self.debug:
-               log.msg("Cookie {} updated".format(id))
+     def run(txn):
+        c = self._cookies[id]
+        txn.execute("INSERT INTO cookies (id, created, max_age, authid, authrole, authmethod) VALUES (?, ?, ?, ?, ?, ?)",
+           [id, c['created'], c['max_age'], c['authid'], c['authrole'], c['authmethod']])
+        if self.debug:
+           log.msg("Cookie {} stored".format(id))
 
-         self._dbpool.runInteraction(run)
+     self._dbpool.runInteraction(run)
+
+     return id, header
+
+
+  def setAuth(self, id, authid, authrole, authmethod):
+     CookieStore.setAuth(self, id, authid, authrole, authmethod)
+
+     def run(txn):
+        txn.execute("UPDATE cookies SET authid = ?, authrole = ?, authmethod = ? WHERE id = ?",
+           [authid, authrole, authmethod, id])
+        if self.debug:
+           log.msg("Cookie {} updated".format(id))
+
+     self._dbpool.runInteraction(run)
