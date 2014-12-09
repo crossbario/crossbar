@@ -187,6 +187,7 @@ class CookieStore:
 class PersistentCookieStore(CookieStore):
    """
    A persistent cookie store.
+
    """
 
    def __init__(self, cookie_file_name, config, debug = False):
@@ -213,6 +214,7 @@ class PersistentCookieStore(CookieStore):
             # we do not persist the connections
             # here make sure the cookie loaded has a
             # default connections key to avoid key errors
+            # other keys that aren't persisted should be set here
             d['connections'] = set()
 
             yield d
@@ -239,7 +241,7 @@ class PersistentCookieStore(CookieStore):
 
          n += 1
 
-      log.msg("Loaded {} cookies into cache.".format(n))
+      log.msg("Loaded %d cookies into cache." % n)
 
 
    def create(self):
@@ -250,7 +252,7 @@ class PersistentCookieStore(CookieStore):
       self._persist(id, c)
 
       if self.debug:
-         log.msg("Cookie %s stored".format(id))
+         log.msg("Cookie %s stored" % id)
 
       return id, header
 
