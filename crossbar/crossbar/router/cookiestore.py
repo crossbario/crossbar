@@ -18,10 +18,8 @@
 
 
 import os
-import sqlite3
 import json
 
-from six.moves import urllib
 from six.moves import http_cookies
 
 from twisted.python import log
@@ -47,7 +45,7 @@ class CookieStore:
       if self.debug:
          log.msg("CookieStore.__init__()", config)
 
-      self._config = config      
+      self._config = config
       self._cookie_id_field = config.get('name', 'cbtid')
       self._cookie_id_field_length = int(config.get('length', 24))
       self._cookie_max_age = int(config.get('max_age', 86400 * 30 * 12))
@@ -186,83 +184,84 @@ class CookieStore:
 
 
 
-
 class PersistentCookieStore(CookieStore):
-  """
-  A persistent cookie store.
-  """
+   """
+   A persistent cookie store.
+   """
 
-  def __init__(self, dbfile, config, debug = False):
-     CookieStore.__init__(self, config, debug)
-     self._dbfile = dbfile
+   def __init__(self, cookie_file_name, config, debug = False):
+      CookieStore.__init__(self, config, debug)
 
-     ## initialize database and create database connection pool
-     self._init_db()
-     self._dbpool = adbapi.ConnectionPool('sqlite3', self._dbfile, check_same_thread = False)
+      self._cookie_file_name = cookie_file_name
 
+      if not os.path.isfile(self._cookie_file_name):
+         log.msg("Cookie store created.")
+      else:
+         log.msg("Cookie store already exists.")
 
-  def _init_db(self):
-     if not os.path.isfile(self._dbfile):
+      self._cookie_file = open(self._cookie_file_name, 'a')
 
-        db = sqlite3.connect(self._dbfile)
-        cur = db.cursor()
-
-        cur.execute("""
-                    CREATE TABLE cookies (
-                       id                TEXT     NOT NULL,
-                       created           TEXT     NOT NULL,
-                       max_age           INTEGER  NOT NULL,
-                       authid            TEXT,
-                       authrole          TEXT,
-                       authmethod        TEXT,
-                       PRIMARY KEY (id))
-                    """)
-
-        log.msg("Cookie DB created.")
-
-     else:
-        log.msg("Cookie DB already exists.")
-
-        db = sqlite3.connect(self._dbfile)
-        cur = db.cursor()
-
-        cur.execute("SELECT id, created, max_age, authid, authrole, authmethod FROM cookies")
-        n = 0
-        for row in cur.fetchall():
-           id = row[0]
-           cbtData = {'created': row[1],
-                      'max_age': row[2],
-                      'authid': row[3],
-                      'authrole': row[4],
-                      'authmethod': row[5],
-                      'connections': set()}
-           self._cookies[id] = cbtData
-           n += 1
-        log.msg("Loaded {} cookies into cache.".format(n))
+      ## initialize database and create database connection pool
+      self._init_store()
 
 
-  def create(self):
-     id, header = CookieStore.create(self)
+   def _iter_persisted(self):
+      with open(self._cookie_file_name, 'r') as f:
+         for c in f.readlines():
+            d = json.loads(c)
 
-     def run(txn):
-        c = self._cookies[id]
-        txn.execute("INSERT INTO cookies (id, created, max_age, authid, authrole, authmethod) VALUES (?, ?, ?, ?, ?, ?)",
-           [id, c['created'], c['max_age'], c['authid'], c['authrole'], c['authmethod']])
-        if self.debug:
-           log.msg("Cookie {} stored".format(id))
+            # we do not persist the connections
+            # here make sure the cookie loaded has a
+            # default connections key to avoid key errors
+            d['connections'] = set()
 
-     self._dbpool.runInteraction(run)
-
-     return id, header
+            yield d
 
 
-  def setAuth(self, id, authid, authrole, authmethod):
-     CookieStore.setAuth(self, id, authid, authrole, authmethod)
+   def _persist(self, id, c):
 
-     def run(txn):
-        txn.execute("UPDATE cookies SET authid = ?, authrole = ?, authmethod = ? WHERE id = ?",
-           [authid, authrole, authmethod, id])
-        if self.debug:
-           log.msg("Cookie {} updated".format(id))
+      self._cookie_file.write(json.dumps({
+         self._cookie_id_field: id, 'created': c['created'], 'max_age': c['max_age'],
+         'authid': c['authid'], 'authrole': c['authrole'],
+         'authmethod': c['authmethod']
+      }) + '\n')
 
-     self._dbpool.runInteraction(run)
+
+   def _init_store(self):
+
+      n = 0
+
+      for cookie in self._iter_persisted():
+         id = cookie[self._cookie_id_field]
+         del cookie[self._cookie_id_field]
+
+         self._cookies[id] = cookie
+
+         n += 1
+
+      log.msg("Loaded {} cookies into cache.".format(n))
+
+
+   def create(self):
+      id, header = CookieStore.create(self)
+
+      c = self._cookies[id]
+
+      self._persist(id, c)
+
+      if self.debug:
+         log.msg("Cookie %s stored".format(id))
+
+      return id, header
+
+
+   def setAuth(self, id, authid, authrole, authmethod):
+
+      if self.exists(id):
+
+         cookie = self._cookies[id]
+
+         # only set the changes and write them to the file if any of the values changed
+         if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']:
+            CookieStore.setAuth(self, id, authid, authrole, authmethod)
+            self._persist(id, cookie)
