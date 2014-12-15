@@ -1,1 +1,0 @@
-This example shows how to use secure WebSocket transports with Crossbar.io. Please see [here](http://crossbar.io/docs/Secure-WebSocket-and-HTTPS/) for more details.
