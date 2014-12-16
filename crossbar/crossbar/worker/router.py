@@ -255,7 +255,6 @@ class RouterWorkerSession(NativeWorkerSession):
       ## map: component ID -> RouterComponent
       self.components = {}
 
-
       ## the procedures registered
       procs = [
          'get_router_realms',
@@ -347,6 +346,7 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("{}.stop_router_realm".format(self.__class__.__name__), id, close_sessions)
 
+      ## FIXME
       raise NotImplementedError()
 
 
@@ -1067,7 +1067,9 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("{}.stop_router_transport".format(self.__class__.__name__), id)
 
-      if not id in self.transports or self.transports['id'] != 'started':
+      ## FIXME
+      if not id in self.transports:
+#      if not id in self.transports or self.transports[id].status != 'started':
          emsg = "ERROR: cannot stop transport - no transport with ID '{}' (or already stopping)".format(id)
          log.msg(emsg)
          raise ApplicationError('crossbar.error.not_running', emsg)
@@ -1075,10 +1077,10 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("Stopping transport with ID '{}'".format(id))
 
-      d = self._transports[id].port.stopListening()
+      d = self.transports[id].port.stopListening()
 
       def ok(_):
-         del self._transports[id]
+         del self.transports[id]
 
       def fail(err):
          raise ApplicationError("crossbar.error.cannot_stop", "Failed to stop transport: {}".format(str(err.value)))
