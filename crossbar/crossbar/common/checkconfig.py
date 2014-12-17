@@ -150,6 +150,16 @@ def check_transport_auth_wampcra(config):
 
 
 
+def check_transport_auth_anonymous(config):
+   """
+   Check a WAMP-Anonymous configuration item.
+   """
+   check_dict_args({
+      'role': (False, [six.text_type]),
+      }, config, "WAMP-Anonymous configuration")
+
+
+
 def check_transport_auth(auth):
    """
    Check a WAMP transport authentication configuration.
@@ -157,12 +167,13 @@ def check_transport_auth(auth):
    if type(auth) != dict:
       raise Exception("invalid type {} for authentication configuration item (dict expected)".format(type(auth)))
    CHECKS = {
+      'anonymous': check_transport_auth_anonymous,
       'ticket': check_transport_auth_ticket,
       'wampcra': check_transport_auth_wampcra,
    }
    for k in auth:
       if k not in CHECKS:
-         raise Exception("invalid authentication method key '{0}' - must be one of: wampcra".format(k))
+         raise Exception("invalid authentication method key '{0}' - must be one of {}".format(CHECKS.keys()))
       CHECKS[k](auth[k])
 
 
