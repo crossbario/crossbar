@@ -283,7 +283,7 @@ def check_connecting_endpoint_tls(tls):
       raise Exception("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
 
    for k in tls:
-      if k not in []:
+      if k not in ['key', 'certificate', 'dhparam', 'ciphers']:
          raise Exception("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
 
 
