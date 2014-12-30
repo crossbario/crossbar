@@ -52,15 +52,12 @@ else:
 
 extras_require_system = [
    'psutil>=2.1.1',        # BSD license
-   'setproctitle>=1.1.8'   # BSD license
 ]
 if sys.platform.startswith('linux'):
-   extras_require_system.append('pyinotify>=0.9.4') ## MIT license
-elif sys.platform.startswith('win'):
-   ## PyWin32 - Python Software Foundation License
-   pass
-else:
-   pass
+   extras_require_system.append('pyinotify>=0.9.4')      ## MIT license
+if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
+   extras_require_system.append('setproctitle>=1.1.8')   ## BSD license
+
 
 extras_require_manhole = [
    'pyasn1>=0.1.7',        # BSD license

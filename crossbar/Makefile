@@ -9,7 +9,7 @@ all:
 install:
 	#python setup.py install
 	#pip install -e .[tls,msgpack,manhole,system]
-	pip install -e .[complete]
+	pip install -e .[all]
 
 clean:
 	rm -rf ./build
