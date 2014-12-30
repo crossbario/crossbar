@@ -51,6 +51,21 @@ Loader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
 
+_ENV_VAR_PAT_STR = "^\$([A-Z0-9_]+)$"
+_ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
+
+def _readenv(var, msg):
+   match = _ENV_VAR_PAT.match(var)
+   if match and match.groups():
+      envvar = match.groups()[0]
+      if envvar in os.environ:
+         return os.environ[envvar]
+      else:
+         raise Exception("{} - enviroment variable '{}' not set".format(msg, var))
+   else:
+      raise Exception("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
+
+
 
 def check_id(id):
    return
@@ -302,7 +317,15 @@ def check_listening_endpoint_tcp(endpoint):
    if not 'port' in endpoint:
       raise Exception("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
-   check_endpoint_port(endpoint['port'])
+   if type(endpoint['port']) in (str, unicode):
+      port = _readenv(endpoint['port'], "listening endpoint configuration")
+      try:
+         port = int(port)
+      except:
+         pass # we handle this in check_endpoint_port()
+   else:
+      port = endpoint['port']
+   check_endpoint_port(port)
 
    if 'version' in endpoint:
       check_endpoint_ip_version(endpoint['version'])
@@ -1764,3 +1787,33 @@ def convert_config_file(configfile):
             with open(newconfig, 'wb') as outfile:
                yaml.safe_dump(config, outfile)
                print("ok, YAML formatted configuration written to {}".format(newconfig))
+
+
+
+def fill_config_from_env(config, keys = None, debug = False):
+   """
+   Fill in configuration values in a configuration dictionary from
+   environment variables.
+
+   :param config: The configuration item within which to replace values.
+   :type config: dict
+   :param keys: A list of keys for which to try to replace values or `None`
+      to replace values for all keys in the configuration item.
+   :type keys: list of str or None
+   """
+   if keys is None:
+      keys = config.keys()
+
+   for k in keys:
+      if k in config:
+         if type(config[k]) in (str, unicode):
+            match = _ENV_VAR_PAT.match(config[k])
+            if match and match.groups():
+               envvar = match.groups()[0]
+               if envvar in os.environ:
+                  config[k] = os.environ[envvar]
+                  if debug:
+                     print("configuration parameter '{}' set to '{}' from environment variable {}".format(k, val, envvar))
+               else:
+                  if debug:
+                     print("warning: configuration parameter '{}' should have been read from enviroment variable {}, but the latter is not set".format(k, envvar))
