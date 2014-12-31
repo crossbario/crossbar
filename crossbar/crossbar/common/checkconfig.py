@@ -972,6 +972,36 @@ def check_listening_transport_websocket_testee(transport):
 
 
 
+def check_listening_transport_stream_testee(transport):
+   """
+   Check a listening Stream-Testee pseudo transport configuration.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
+   for k in transport:
+      if k not in [
+         'id',
+         'type',
+         'endpoint',
+         'debug']:
+         raise Exception("encountered unknown attribute '{}' in Stream-Testee transport configuration".format(k))
+
+   if 'id' in transport:
+      check_id(transport['id'])
+
+   if not 'endpoint' in transport:
+      raise Exception("missing mandatory attribute 'endpoint' in Stream-Testee transport item\n\n{}".format(pformat(transport)))
+
+   check_listening_endpoint(transport['endpoint'])
+
+   if 'debug' in transport:
+      debug = transport['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in WebSocket-Stream transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+
+
 def check_listening_transport_flashpolicy(transport):
    """
    Check a Flash-policy file serving pseudo-transport.
@@ -1147,7 +1177,14 @@ def check_router_transport(transport, silence = False):
       raise Exception("missing mandatory attribute 'type' in component")
 
    ttype = transport['type']
-   if ttype not in ['web', 'websocket', 'rawsocket', 'flashpolicy', 'websocket.testee']:
+   if ttype not in [
+         'web',
+         'websocket',
+         'rawsocket',
+         'flashpolicy',
+         'websocket.testee',
+         'stream.testee'
+      ]:
       raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
    if ttype  == 'websocket':
@@ -1162,8 +1199,11 @@ def check_router_transport(transport, silence = False):
    elif ttype == 'flashpolicy':
       check_listening_transport_flashpolicy(transport)
 
-   if ttype  == 'websocket.testee':
+   elif ttype  == 'websocket.testee':
       check_listening_transport_websocket_testee(transport)
+
+   elif ttype  == 'stream.testee':
+      check_listening_transport_stream_testee(transport)
 
    else:
       raise Exception("logic error")

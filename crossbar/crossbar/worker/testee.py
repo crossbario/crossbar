@@ -18,13 +18,31 @@
 
 from __future__ import absolute_import
 
-__all__ = ('WebSocketTesteeServerFactory',)
+__all__ = (
+   'WebSocketTesteeServerFactory',
+   'StreamTesteeServerFactory',
+)
+
+from twisted.internet import protocol
 
 from autobahn.twisted.websocket import WebSocketServerFactory, \
                                        WebSocketServerProtocol
 
 import crossbar
 from crossbar.router.protocol import set_websocket_options
+
+
+
+class StreamTesteeServerProtocol(protocol.Protocol):
+
+   def dataReceived(self, data):
+      self.transport.write(data)
+
+
+
+class StreamTesteeServerFactory(protocol.Factory):
+
+   protocol = StreamTesteeServerProtocol
 
 
 

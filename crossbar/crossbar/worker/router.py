@@ -46,7 +46,8 @@ from crossbar.router.session import CrossbarRouterSessionFactory, \
 from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
                                      CrossbarWampRawSocketServerFactory
 
-from crossbar.worker.testee import WebSocketTesteeServerFactory
+from crossbar.worker.testee import WebSocketTesteeServerFactory, \
+                                   StreamTesteeServerFactory
 
 from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
@@ -627,6 +628,13 @@ class RouterWorkerSession(NativeWorkerSession):
       elif config['type'] == 'websocket.testee':
 
          transport_factory = WebSocketTesteeServerFactory(config, self._templates)
+
+
+      ## Stream testee pseudo transport
+      ##
+      elif config['type'] == 'stream.testee':
+
+         transport_factory = StreamTesteeServerFactory()
 
 
       ## Twisted Web based transport
