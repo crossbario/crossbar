@@ -134,7 +134,7 @@ class NativeWorkerSession(NativeProcessSession):
 
       try:
          p = psutil.Process(os.getpid())
-         current_affinity = p.get_cpu_affinity()
+         current_affinity = p.cpu_affinity()
       except Exception as e:
          emsg = "ERROR: could not get CPU affinity ({})".format(e)
          log.msg(emsg)
@@ -162,8 +162,8 @@ class NativeWorkerSession(NativeProcessSession):
 
       try:
          p = psutil.Process(os.getpid())
-         p.set_cpu_affinity(cpus)
-         new_affinity = p.get_cpu_affinity()
+         p.cpu_affinity(cpus)
+         new_affinity = p.cpu_affinity()
       except Exception as e:
          emsg = "ERROR: could not set CPU affinity ({})".format(e)
          log.msg(emsg)
