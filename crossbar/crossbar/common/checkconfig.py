@@ -928,6 +928,50 @@ def check_listening_transport_websocket(transport):
 
 
 
+def check_listening_transport_websocket_testee(transport):
+   """
+   Check a listening WebSocket-Testee pseudo transport configuration.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
+   for k in transport:
+      if k not in [
+         'id',
+         'type',
+         'endpoint',
+         'url',
+         'debug',
+         'options']:
+         raise Exception("encountered unknown attribute '{}' in WebSocket-Testee transport configuration".format(k))
+
+   if 'id' in transport:
+      check_id(transport['id'])
+
+   if not 'endpoint' in transport:
+      raise Exception("missing mandatory attribute 'endpoint' in WebSocket-Testee transport item\n\n{}".format(pformat(transport)))
+
+   check_listening_endpoint(transport['endpoint'])
+
+   if 'options' in transport:
+      check_websocket_options(transport['options'])
+
+   if 'debug' in transport:
+      debug = transport['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in WebSocket-Testee transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+   if 'url' in transport:
+      url = transport['url']
+      if type(url) != six.text_type:
+         raise Exception("'url' in WebSocket-Testee transport configuration must be str ({} encountered)".format(type(url)))
+      try:
+         u = parseWsUrl(url)
+      except Exception as e:
+         raise Exception("invalid 'url' in WebSocket-Testee transport configuration : {}".format(e))
+
+
+
 def check_listening_transport_flashpolicy(transport):
    """
    Check a Flash-policy file serving pseudo-transport.
@@ -1103,7 +1147,7 @@ def check_router_transport(transport, silence = False):
       raise Exception("missing mandatory attribute 'type' in component")
 
    ttype = transport['type']
-   if ttype not in ['web', 'websocket', 'rawsocket', 'flashpolicy']:
+   if ttype not in ['web', 'websocket', 'rawsocket', 'flashpolicy', 'websocket.testee']:
       raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
    if ttype  == 'websocket':
@@ -1117,6 +1161,9 @@ def check_router_transport(transport, silence = False):
 
    elif ttype == 'flashpolicy':
       check_listening_transport_flashpolicy(transport)
+
+   if ttype  == 'websocket.testee':
+      check_listening_transport_websocket_testee(transport)
 
    else:
       raise Exception("logic error")

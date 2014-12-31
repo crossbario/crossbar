@@ -46,7 +46,7 @@ from crossbar.router.session import CrossbarRouterSessionFactory, \
 from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
                                      CrossbarWampRawSocketServerFactory
 
-from crossbar.worker.testee import TesteeServerFactory
+from crossbar.worker.testee import WebSocketTesteeServerFactory
 
 from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
@@ -620,6 +620,13 @@ class RouterWorkerSession(NativeWorkerSession):
       elif config['type'] == 'flashpolicy':
 
          transport_factory = FlashPolicyFactory(config.get('allowed_domain', None), config.get('allowed_ports', None))
+
+
+      ## WebSocket testee pseudo transport
+      ##
+      elif config['type'] == 'websocket.testee':
+
+         transport_factory = WebSocketTesteeServerFactory(config, self._templates)
 
 
       ## Twisted Web based transport
