@@ -840,11 +840,11 @@ def check_web_path_service_fileupload(config):
     if 'file_progress' in config:
         check_or_raise_uri(config['file_progress']['uri'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['file_progress']['uri']))
     
-    # check_dict_args({
-    #     'owner': (True, [six.text_type]),
-    #     'group': (True, [six.text_type]),
-    #     'permissions': (True, six.integer_types)
-    #     }, config['file_owner'], "File upload owner settings")
+    check_dict_args({
+        'owner': (True, [six.text_type]),
+        'group': (True, [six.text_type]),
+        'permissions': (True, [six.text_type])
+        }, config['file_owner'], "File upload owner settings")
 
 def check_web_path_service(path, config, nested):
     """
