@@ -188,7 +188,7 @@ def check_transport_auth(auth):
    }
    for k in auth:
       if k not in CHECKS:
-         raise Exception("invalid authentication method key '{0}' - must be one of {}".format(CHECKS.keys()))
+         raise Exception("invalid authentication method key '{}' - must be one of {}".format(k, CHECKS.keys()))
       CHECKS[k](auth[k])
 
 
