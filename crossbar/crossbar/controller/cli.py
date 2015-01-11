@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2011-2014 Tavendo GmbH
+##  Copyright (C) 2011-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -35,6 +35,73 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.choosereactor import install_reactor
 
+
+try:
+   import psutil
+   _HAS_PSUTIL = True
+except ImportError:
+   _HAS_PSUTIL = False
+
+
+_PID_FILENAME = 'node.pid'
+
+
+
+def check_pid_exists(pid):
+   """
+   Check if a process with given PID exists.
+
+   :returns: ``True`` if a process exists.
+   :rtype: bool
+   """
+   if sys.platform == 'win32':
+      if _HAS_PSUTIL:
+         # http://pythonhosted.org/psutil/#psutil.pid_exists
+         return psutil.pid_exists(pid)
+      else:
+         # On Windows, this can only be done with native code (like via win32com, ctypes or psutil).
+         # We use psutil.
+         raise Exception("cannot check if process with PID exists - package psutil not installed")
+   else:
+      # Unix-like OS
+      # http://stackoverflow.com/a/568285/884770
+      try:
+         os.kill(pid, 0)
+      except OSError:
+         return False
+      else:
+         return True
+
+
+
+def check_is_running(cbdir):
+   """
+   Check if a Crossbar.io node is already running on a Crossbar.io node directory.
+
+   :param cbdir: The Crossbar.io node directory to check.
+   :type cbdir: str
+   """
+   fp = os.path.join(cbdir, _PID_FILENAME)
+   if os.path.isfile(fp):
+      with open(fp) as fd:
+         pid_str = fd.read()
+         try:
+            pid = int(pid_str)
+         except ValueError:
+            print("Removing corrupted Crossbar.io PID file {}".format(fp))
+         else:
+            if sys.platform == 'win32' and not _HAS_PSUTIL:
+               # when on Windows, and we can't actually determine if the PID exists,
+               # just assume it exists
+               return True
+            else:
+               pid_exists = check_pid_exists(pid)
+               if pid_exists:
+                  return True
+               else:
+                  print("Removing stale Crossbar.io PID file {} (pointing to non-existing process with PID {})".format(fp, pid))
+                  return False
+   return False
 
 
 
@@ -193,6 +260,29 @@ def run_command_start(options):
    """
    Subcommand "crossbar start".
    """
+   ## do not allow to run more than one Crossbar.io instance
+   ## from the same Crossbar.io node directory
+   ##
+   if check_is_running(options.cbdir):
+      print("Crossbar.io is already running from node directory {}".format(options.cbdir))
+      sys.exit(1)
+   else:
+      fp = os.path.join(options.cbdir, _PID_FILENAME)
+      with open(fp, 'w') as fd:
+         fd.write("{}".format(os.getpid()))
+
+   ## we use an Autobahn utility to import the "best" available Twisted reactor
+   ##
+   reactor = install_reactor(options.reactor, options.debug)
+
+   ## remove node PID file when reactor exits
+   ##
+   def remove_pid_file():
+      fp = os.path.join(options.cbdir, _PID_FILENAME)
+      if os.path.isfile(fp):
+         os.remove(fp)
+   reactor.addSystemEventTrigger('after', 'shutdown', remove_pid_file)   
+
    ## start Twisted logging
    ##
    if not options.logdir:
@@ -205,14 +295,10 @@ def run_command_start(options):
    flo = DefaultSystemFileLogObserver(logfd, system = "{:<10} {:>6}".format("Controller", os.getpid()))
    log.startLoggingWithObserver(flo.emit)
 
-   log.msg("=" * 30 + " Crossbar.io " + "=" * 30 + "\n")
+   log.msg("=" * 20 + " Crossbar.io " + "=" * 20 + "\n")
 
    import crossbar
    log.msg("Crossbar.io {} starting".format(crossbar.__version__))
-
-   ## we use an Autobahn utility to import the "best" available Twisted reactor
-   ##
-   reactor = install_reactor(options.reactor, options.debug)
 
    from twisted.python.reflect import qual
    log.msg("Running on {} using {} reactor".format(platform.python_implementation(), qual(reactor.__class__).split('.')[-1]))
