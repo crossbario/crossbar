@@ -550,7 +550,8 @@ def check_web_path_service_websocket(config):
       'url': (False, [six.text_type]),
       'serializers': (False, [list]),
       'auth': (False, [dict]),
-      'options': (False, [dict])
+      'options': (False, [dict]),
+      'debug': (False, [bool])
       }, config, "Web transport 'WebSocket' path service")
 
    if 'options' in config:
