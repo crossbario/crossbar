@@ -1,4 +1,0 @@
-include LICENSE
-recursive-include crossbar/web *
-recursive-include crossbar/ddl *
-recursive-include twisted/plugins *
