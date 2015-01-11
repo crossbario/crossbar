@@ -278,7 +278,7 @@ def run_command_status(options):
 
 
 
-def run_command_stop(options):
+def run_command_stop(options, exit = True):
    """
    Subcommand "crossbar stop".
    """
@@ -305,7 +305,10 @@ def run_command_stop(options):
             print("SIGKILL sent to process {}.".format(pid))
          finally:
             print("Process {} terminated.".format(pid))
-      sys.exit(0)
+      if exit:
+         sys.exit(0)
+      else:
+         return
    else:
       print("No Crossbar.io is currently running from node directory {}.".format(options.cbdir))
       sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
@@ -372,6 +375,15 @@ def run_command_start(options):
       reactor.run()
    except Exception as e:
       log.msg("Could not start reactor: {0}".format(e))
+
+
+
+def run_command_restart(options):
+   """
+   Subcommand "crossbar restart".
+   """
+   run_command_stop(options, exit = False)
+   run_command_start(options)
 
 
 
@@ -516,6 +528,19 @@ def run():
                             help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
    parser_stop.set_defaults(func = run_command_stop)
+
+
+   ## "restart" command
+   ##
+   parser_restart = subparsers.add_parser('restart',
+                                        help = 'Restart a Crossbar.io node.')
+
+   parser_restart.add_argument('--cbdir',
+                               type = str,
+                               default = None,
+                               help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_restart.set_defaults(func = run_command_restart)
 
 
    ## "status" command
