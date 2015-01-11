@@ -81,8 +81,16 @@ def check_id(id):
 
 
 
+_REALM_NAME_PAT = re.compile(r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$")
+
 def check_realm_name(name):
-   return
+   """
+   Check a realm name.
+   """
+   if type(name) != six.text_type:
+      raise Exception("invalid realm name '{}' - type must be string, was ".format(name, type(name)))
+   if not _REALM_NAME_PAT.match(name):
+      raise Exception("invalid realm name '{}' - must match regular expression {}".format(name, _REALM_NAME_PAT))
 
 
 
