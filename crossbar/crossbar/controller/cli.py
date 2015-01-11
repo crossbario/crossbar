@@ -88,20 +88,21 @@ def check_is_running(cbdir):
    fp = os.path.join(cbdir, _PID_FILENAME)
    if os.path.isfile(fp):
       with open(fp) as fd:
-         pid_str = fd.read()
+         pid_data_str = fd.read()
          try:
-            pid = int(pid_str)
-         except ValueError:
+            pid_data = json.loads(pid_data_str)
+            pid = int(pid_data['pid'])
+         except ValueError, KeyError:
             print("Removing corrupted Crossbar.io PID file {}".format(fp))
          else:
             if sys.platform == 'win32' and not _HAS_PSUTIL:
                # when on Windows, and we can't actually determine if the PID exists,
                # just assume it exists
-               return pid
+               return pid_data
             else:
                pid_exists = check_pid_exists(pid)
                if pid_exists:
-                  return pid
+                  return pid_data
                else:
                   print("Removing stale Crossbar.io PID file {} (pointing to non-existing process with PID {})".format(fp, pid))
    return None
@@ -266,14 +267,14 @@ def run_command_status(options):
    ## check if there is a Crossbar.io instance currently running from
    ## the Crossbar.io node directory at all
    ##
-   pid = check_is_running(options.cbdir)
-   if pid is None:
+   pid_data = check_is_running(options.cbdir)
+   if pid_data is None:
       # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
       # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
       print("No Crossbar.io instance is currently running from node directory {}.".format(options.cbdir))
       sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
    else:
-      print("A Crossbar.io instance is running from node directory {} (PID {}).".format(options.cbdir, pid))
+      print("A Crossbar.io instance is running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
       sys.exit(0)
 
 
@@ -285,8 +286,9 @@ def run_command_stop(options, exit = True):
    ## check if there is a Crossbar.io instance currently running from
    ## the Crossbar.io node directory at all
    ##
-   pid = check_is_running(options.cbdir)
-   if pid:
+   pid_data = check_is_running(options.cbdir)
+   if pid_data:
+      pid = pid_data['pid']
       print("Stopping Crossbar.io currently running from node directory {} (PID {}) ...".format(options.cbdir, pid))
       if not _HAS_PSUTIL:
          os.kill(pid, signal.SIGINT)
@@ -308,7 +310,7 @@ def run_command_stop(options, exit = True):
       if exit:
          sys.exit(0)
       else:
-         return
+         return pid_data
    else:
       print("No Crossbar.io is currently running from node directory {}.".format(options.cbdir))
       sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
@@ -322,14 +324,24 @@ def run_command_start(options):
    ## do not allow to run more than one Crossbar.io instance
    ## from the same Crossbar.io node directory
    ##
-   pid = check_is_running(options.cbdir)
-   if pid:
-      print("Crossbar.io is already running from node directory {} (PID {}).".format(options.cbdir, pid))
+   pid_data = check_is_running(options.cbdir)
+   if pid_data:
+      print("Crossbar.io is already running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
       sys.exit(1)
    else:
       fp = os.path.join(options.cbdir, _PID_FILENAME)
       with open(fp, 'w') as fd:
-         fd.write("{}".format(os.getpid()))
+         argv = options.argv
+         options_dump = vars(options)
+         del options_dump['func']
+         del options_dump['argv']
+         pid_data = {
+            'pid': os.getpid(),
+            'argv': argv,
+            'options': options_dump
+         }
+         fd.write("{}\n".format(json.dumps(pid_data, sort_keys = False, indent = 3, separators = (',', ': '))))
+
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
    ##
@@ -382,8 +394,13 @@ def run_command_restart(options):
    """
    Subcommand "crossbar restart".
    """
-   run_command_stop(options, exit = False)
-   run_command_start(options)
+   pid_data = run_command_stop(options, exit = False)
+   prog = pid_data['argv'][0]
+   ## remove first item, which is the (fully qualified) path to Python
+   args = pid_data['argv'][1:]
+   ## replace 'restart' with 'start'
+   args = [(lambda x: x if x != 'restart' else 'start')(x) for x in args]
+   run(prog, args)
 
 
 
@@ -426,7 +443,7 @@ def run_command_convert(options):
 
 
 
-def run():
+def run(prog = None, args = None):
    """
    Entry point of Crossbar.io CLI.
    """
@@ -594,7 +611,11 @@ def run():
 
    ## parse cmd line args
    ##
-   options = parser.parse_args()
+   options = parser.parse_args(args)
+   if args:
+      options.argv = [prog] + args
+   else:
+      options.argv = sys.argv
 
 
    ## Crossbar.io node directory
