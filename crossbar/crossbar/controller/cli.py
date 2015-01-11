@@ -310,7 +310,7 @@ def run_command_stop(options, exit = True):
       if exit:
          sys.exit(0)
       else:
-         return cmdline
+         return pid_data
    else:
       print("No Crossbar.io is currently running from node directory {}.".format(options.cbdir))
       sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
@@ -331,14 +331,16 @@ def run_command_start(options):
    else:
       fp = os.path.join(options.cbdir, _PID_FILENAME)
       with open(fp, 'w') as fd:
+         argv = options.argv
          options_dump = vars(options)
          del options_dump['func']
+         del options_dump['argv']
          pid_data = {
             'pid': os.getpid(),
-            'cmd': sys.argv,
+            'argv': argv,
             'options': options_dump
          }
-         fd.write("{}\n".format(json.dumps(pid_data, sort_keys = True, indent = 3, separators = (',', ': '))))
+         fd.write("{}\n".format(json.dumps(pid_data, sort_keys = False, indent = 3, separators = (',', ': '))))
 
 
    ## we use an Autobahn utility to import the "best" available Twisted reactor
@@ -392,9 +394,13 @@ def run_command_restart(options):
    """
    Subcommand "crossbar restart".
    """
-   cmdline = run_command_stop(options, exit = False)
-   print "X"*100, cmdline
-   run_command_start(options)
+   pid_data = run_command_stop(options, exit = False)
+   prog = pid_data['argv'][0]
+   ## remove first item, which is the (fully qualified) path to Python
+   args = pid_data['argv'][1:]
+   ## replace 'restart' with 'start'
+   args = [(lambda x: x if x != 'restart' else 'start')(x) for x in args]
+   run(prog, args)
 
 
 
@@ -437,7 +443,7 @@ def run_command_convert(options):
 
 
 
-def run():
+def run(prog = None, args = None):
    """
    Entry point of Crossbar.io CLI.
    """
@@ -605,7 +611,11 @@ def run():
 
    ## parse cmd line args
    ##
-   options = parser.parse_args()
+   options = parser.parse_args(args)
+   if args:
+      options.argv = [prog] + args
+   else:
+      options.argv = sys.argv
 
 
    ## Crossbar.io node directory
