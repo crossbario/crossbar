@@ -678,6 +678,7 @@ def check_web_path_service_longpoll(config):
          'request_timeout': (False, six.integer_types),
          'session_timeout': (False, six.integer_types),
          'queue_limit_bytes': (False, six.integer_types),
+         'queue_limit_messages': (False, six.integer_types),
          }, config['options'], "Web transport 'longpoll' path service")
 
 
