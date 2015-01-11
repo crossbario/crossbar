@@ -22,6 +22,7 @@ __all__ = ['run']
 
 import os
 import sys
+import signal
 import json
 import argparse
 import pkg_resources
@@ -80,6 +81,9 @@ def check_is_running(cbdir):
 
    :param cbdir: The Crossbar.io node directory to check.
    :type cbdir: str
+
+   :returns: The PID of the running Crossbar.io controller process or ``None``
+   :rtype: int or None
    """
    fp = os.path.join(cbdir, _PID_FILENAME)
    if os.path.isfile(fp):
@@ -93,15 +97,14 @@ def check_is_running(cbdir):
             if sys.platform == 'win32' and not _HAS_PSUTIL:
                # when on Windows, and we can't actually determine if the PID exists,
                # just assume it exists
-               return True
+               return pid
             else:
                pid_exists = check_pid_exists(pid)
                if pid_exists:
-                  return True
+                  return pid
                else:
                   print("Removing stale Crossbar.io PID file {} (pointing to non-existing process with PID {})".format(fp, pid))
-                  return False
-   return False
+   return None
 
 
 
@@ -256,6 +259,40 @@ def run_command_init(options):
 
 
 
+def run_command_stop(options):
+   """
+   Subcommand "crossbar stop".
+   """
+   ## check if there is a Crossbar.io instance currently running from
+   ## the Crossbar.io node directory at all
+   ##
+   pid = check_is_running(options.cbdir)
+   if pid:
+      print("Stopping Crossbar.io currently running from node directory {} (PID {}) ...".format(options.cbdir, pid))
+      if not _HAS_PSUTIL:
+         os.kill(pid, signal.SIGINT)
+         print("SIGINT sent to process {}.".format(pid))
+      else:
+         p = psutil.Process(pid)
+         try:
+            ## first try to terminate (orderly shutdown)
+            _TERMINATE_TIMEOUT = 5
+            p.terminate()
+            print("SIGINT sent to process {} .. waiting for exit ({} seconds) ...".format(pid, _TERMINATE_TIMEOUT))
+            p.wait(timeout = _TERMINATE_TIMEOUT)
+         except psutil.TimeoutExpired:
+            print("... process {} still alive - will kill now.".format(pid))
+            p.kill()
+            print("SIGKILL sent to process {}.".format(pid))
+         finally:
+            print("Process {} terminated.".format(pid))
+      sys.exit(0)
+   else:
+      print("No Crossbar.io is currently running from node directory {}".format(options.cbdir))
+      sys.exit(1)
+
+
+
 def run_command_start(options):
    """
    Subcommand "crossbar start".
@@ -263,8 +300,9 @@ def run_command_start(options):
    ## do not allow to run more than one Crossbar.io instance
    ## from the same Crossbar.io node directory
    ##
-   if check_is_running(options.cbdir):
-      print("Crossbar.io is already running from node directory {}".format(options.cbdir))
+   pid = check_is_running(options.cbdir)
+   if pid:
+      print("Crossbar.io is already running from node directory {} (PID {})".format(options.cbdir, pid))
       sys.exit(1)
    else:
       fp = os.path.join(options.cbdir, _PID_FILENAME)
@@ -446,6 +484,19 @@ def run():
                               default = 'info',
                               choices = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'],
                               help = "Server log level (overrides default 'info')")
+
+
+   ## "stop" command
+   ##
+   parser_stop = subparsers.add_parser('stop',
+                                        help = 'Stop a Crossbar.io node.')
+
+   parser_stop.add_argument('--cbdir',
+                            type = str,
+                            default = None,
+                            help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_stop.set_defaults(func = run_command_stop)
 
 
    ## "check" command
