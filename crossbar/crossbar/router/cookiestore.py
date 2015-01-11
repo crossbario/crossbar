@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+##  Copyright (C) 2014-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -201,7 +201,7 @@ class PersistentCookieStore(CookieStore):
 
       self._cookie_file = open(self._cookie_file_name, 'a')
 
-      ## initialize database and create database connection pool
+      ## initialize cookie database
       self._init_store()
 
 
@@ -222,25 +222,20 @@ class PersistentCookieStore(CookieStore):
    def _persist(self, id, c):
 
       self._cookie_file.write(json.dumps({
-         self._cookie_id_field: id, 'created': c['created'], 'max_age': c['max_age'],
+         'id': id, 'created': c['created'], 'max_age': c['max_age'],
          'authid': c['authid'], 'authrole': c['authrole'],
          'authmethod': c['authmethod']
       }) + '\n')
 
 
    def _init_store(self):
-
       n = 0
-
       for cookie in self._iter_persisted():
-         id = cookie[self._cookie_id_field]
-         del cookie[self._cookie_id_field]
-
+         id = cookie.pop('id')
          self._cookies[id] = cookie
-
          n += 1
 
-      log.msg("Loaded %d cookies into cache." % n)
+      log.msg("Loaded {} cookies into cache.".format(n))
 
 
    def create(self):
@@ -251,7 +246,7 @@ class PersistentCookieStore(CookieStore):
       self._persist(id, c)
 
       if self.debug:
-         log.msg("Cookie %s stored" % id)
+         log.msg("Cookie {} stored".format(id))
 
       return id, header
 

@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+##  Copyright (C) 2014-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -62,6 +62,7 @@ from crossbar.router.router import RouterFactory, RouterSession, RouterSessionFa
 import crossbar
 
 from crossbar.router.cookiestore import CookieStore, PersistentCookieStore
+
 
 
 def set_websocket_options(factory, options):
