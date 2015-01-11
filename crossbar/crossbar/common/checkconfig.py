@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+##  Copyright (C) 2014-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -396,7 +396,7 @@ def check_connecting_endpoint_tcp(endpoint):
    :type endpoint: dict
    """
    for k in endpoint:
-      if k not in ['type', 'host', 'port', 'timeout', 'tls']:
+      if k not in ['type', 'version', 'host', 'port', 'timeout', 'tls']:
          raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
 
    if not 'host' in endpoint:
@@ -406,6 +406,9 @@ def check_connecting_endpoint_tcp(endpoint):
       raise Exception("missing mandatory attribute 'port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
 
    check_endpoint_port(endpoint['port'])
+
+   if 'version' in endpoint:
+      check_endpoint_ip_version(endpoint['version'])
 
    if 'tls' in endpoint:
       check_connecting_endpoint_tls(endpoint['tls'])
