@@ -259,6 +259,25 @@ def run_command_init(options):
 
 
 
+def run_command_status(options):
+   """
+   Subcommand "crossbar status".
+   """
+   ## check if there is a Crossbar.io instance currently running from
+   ## the Crossbar.io node directory at all
+   ##
+   pid = check_is_running(options.cbdir)
+   if pid is None:
+      # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
+      # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
+      print("No Crossbar.io instance is currently running from node directory {}.".format(options.cbdir))
+      sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
+   else:
+      print("A Crossbar.io instance is running from node directory {} (PID {}).".format(options.cbdir, pid))
+      sys.exit(0)
+
+
+
 def run_command_stop(options):
    """
    Subcommand "crossbar stop".
@@ -288,8 +307,8 @@ def run_command_stop(options):
             print("Process {} terminated.".format(pid))
       sys.exit(0)
    else:
-      print("No Crossbar.io is currently running from node directory {}".format(options.cbdir))
-      sys.exit(1)
+      print("No Crossbar.io is currently running from node directory {}.".format(options.cbdir))
+      sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
 
 
 
@@ -302,7 +321,7 @@ def run_command_start(options):
    ##
    pid = check_is_running(options.cbdir)
    if pid:
-      print("Crossbar.io is already running from node directory {} (PID {})".format(options.cbdir, pid))
+      print("Crossbar.io is already running from node directory {} (PID {}).".format(options.cbdir, pid))
       sys.exit(1)
    else:
       fp = os.path.join(options.cbdir, _PID_FILENAME)
@@ -497,6 +516,19 @@ def run():
                             help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
    parser_stop.set_defaults(func = run_command_stop)
+
+
+   ## "status" command
+   ##
+   parser_status = subparsers.add_parser('status',
+                                        help = 'Checks whether a Crossbar.io node is running.')
+
+   parser_status.add_argument('--cbdir',
+                              type = str,
+                              default = None,
+                              help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_status.set_defaults(func = run_command_status)
 
 
    ## "check" command
