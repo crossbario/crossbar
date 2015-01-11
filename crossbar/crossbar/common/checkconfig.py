@@ -51,6 +51,7 @@ Loader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
 
+
 _ENV_VAR_PAT_STR = "^\$([A-Z0-9_]+)$"
 _ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
 
@@ -67,8 +68,16 @@ def _readenv(var, msg):
 
 
 
+_CONFIG_ITEM_ID_PAT = re.compile("^[a-z][a-z0-9_]{2,11}$")
+
 def check_id(id):
-   return
+   """
+   Check a configuration item ID.
+   """
+   if type(id) != six.text_type:
+      raise Exception("invalid configuration item ID '{}' - type must be string, was ".format(id, type(id)))
+   if not _CONFIG_ITEM_ID_PAT.match(id):
+      raise Exception("invalid configuration item ID '{}' - must match regular expression {}".format(id, _CONFIG_ITEM_ID_PAT))
 
 
 
