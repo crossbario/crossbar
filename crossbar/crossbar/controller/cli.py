@@ -93,7 +93,12 @@ def check_is_running(cbdir):
             pid_data = json.loads(pid_data_str)
             pid = int(pid_data['pid'])
          except ValueError, KeyError:
-            print("Removing corrupted Crossbar.io PID file {}".format(fp))
+            try:
+               os.remove(fp)
+            except Exception as e:
+               print("Could not remove corrupted Crossbar.io PID file {} - {}".format(fp, e))
+            else:
+               print("Corrupted Crossbar.io PID file {} removed".format(fp))
          else:
             if sys.platform == 'win32' and not _HAS_PSUTIL:
                # when on Windows, and we can't actually determine if the PID exists,
@@ -104,7 +109,12 @@ def check_is_running(cbdir):
                if pid_exists:
                   return pid_data
                else:
-                  print("Removing stale Crossbar.io PID file {} (pointing to non-existing process with PID {})".format(fp, pid))
+                  try:
+                     os.remove(fp)
+                  except Exception as e:
+                     print("Could not remove stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) - {}".format(fp, pid, e))
+                  else:
+                     print("Stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) removed".format(fp, pid))
    return None
 
 
