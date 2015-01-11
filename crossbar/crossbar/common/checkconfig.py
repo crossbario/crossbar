@@ -548,6 +548,7 @@ def check_web_path_service_websocket(config):
    check_dict_args({
       'type': (True, [six.text_type]),
       'url': (False, [six.text_type]),
+      'serializers': (False, [list]),
       'auth': (False, [dict]),
       'options': (False, [dict])
       }, config, "Web transport 'WebSocket' path service")

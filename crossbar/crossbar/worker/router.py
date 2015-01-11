@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+##  Copyright (C) 2014-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -863,12 +863,6 @@ class RouterWorkerSession(NativeWorkerSession):
 
       :returns: Resource -- the new child resource
       """
-      ## websocket_echo
-      ## websocket_testee
-      ## s3mirror
-      ## websocket_stdio
-      ##
-
       ## WAMP-WebSocket resource
       ##
       if path_config['type'] == 'websocket':
