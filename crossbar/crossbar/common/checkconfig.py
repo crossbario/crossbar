@@ -68,7 +68,8 @@ def _readenv(var, msg):
 
 
 
-_CONFIG_ITEM_ID_PAT = re.compile("^[a-z][a-z0-9_]{2,11}$")
+_CONFIG_ITEM_ID_PAT_STR = "^[a-z][a-z0-9_]{2,11}$"
+_CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
 
 def check_id(id):
    """
@@ -77,11 +78,12 @@ def check_id(id):
    if type(id) != six.text_type:
       raise Exception("invalid configuration item ID '{}' - type must be string, was ".format(id, type(id)))
    if not _CONFIG_ITEM_ID_PAT.match(id):
-      raise Exception("invalid configuration item ID '{}' - must match regular expression {}".format(id, _CONFIG_ITEM_ID_PAT))
+      raise Exception("invalid configuration item ID '{}' - must match regular expression {}".format(id, _CONFIG_ITEM_ID_PAT_STR))
 
 
 
-_REALM_NAME_PAT = re.compile(r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$")
+_REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
+_REALM_NAME_PAT = re.compile(_REALM_NAME_PAT_STR)
 
 def check_realm_name(name):
    """
@@ -90,7 +92,7 @@ def check_realm_name(name):
    if type(name) != six.text_type:
       raise Exception("invalid realm name '{}' - type must be string, was ".format(name, type(name)))
    if not _REALM_NAME_PAT.match(name):
-      raise Exception("invalid realm name '{}' - must match regular expression {}".format(name, _REALM_NAME_PAT))
+      raise Exception("invalid realm name '{}' - must match regular expression {}".format(name, _REALM_NAME_PAT_STR))
 
 
 
@@ -875,6 +877,9 @@ def check_listening_transport_web(transport):
 
 
 
+_WEB_PATH_PAT_STR = "^([a-z0-9A-Z]+|/)$"
+_WEB_PATH_PATH = re.compile(_WEB_PATH_PAT_STR)
+
 def check_paths(paths, nested=False):
    """
    Checks all configured paths.
@@ -884,14 +889,12 @@ def check_paths(paths, nested=False):
    :param nested: Whether this is a nested path.
    :type nested: bool
    """
-   pat = re.compile("^([a-z0-9A-Z]+|/)$")
-
    for p in paths:
       if type(p) != six.text_type:
          raise Exception("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
 
-      if not pat.match(p):
-         raise Exception("invalid value '{}' for path in Web transport configuration".format(p))
+      if not _WEB_PATH_PAT_STR.match(p):
+         raise Exception("invalid value '{}' for path in Web transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
       check_web_path_service(p, paths[p], nested)
 
