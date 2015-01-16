@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+##  Copyright (C) 2014-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -46,7 +46,8 @@ from crossbar.router.session import CrossbarRouterSessionFactory, \
 from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
                                      CrossbarWampRawSocketServerFactory
 
-from crossbar.worker.testee import TesteeServerFactory
+from crossbar.worker.testee import WebSocketTesteeServerFactory, \
+                                   StreamTesteeServerFactory
 
 from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
@@ -622,6 +623,20 @@ class RouterWorkerSession(NativeWorkerSession):
          transport_factory = FlashPolicyFactory(config.get('allowed_domain', None), config.get('allowed_ports', None))
 
 
+      ## WebSocket testee pseudo transport
+      ##
+      elif config['type'] == 'websocket.testee':
+
+         transport_factory = WebSocketTesteeServerFactory(config, self._templates)
+
+
+      ## Stream testee pseudo transport
+      ##
+      elif config['type'] == 'stream.testee':
+
+         transport_factory = StreamTesteeServerFactory()
+
+
       ## Twisted Web based transport
       ##
       elif config['type'] == 'web':
@@ -848,12 +863,6 @@ class RouterWorkerSession(NativeWorkerSession):
 
       :returns: Resource -- the new child resource
       """
-      ## websocket_echo
-      ## websocket_testee
-      ## s3mirror
-      ## websocket_stdio
-      ##
-
       ## WAMP-WebSocket resource
       ##
       if path_config['type'] == 'websocket':

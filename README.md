@@ -1,8 +1,8 @@
-![](docs/crossbar_icon_and_text_vectorized.png) 
+![](legal/crossbar_icon_and_text_vectorized.png) 
 
 Welcome to **Crossbar.io**, the open-source **unified application router**.
 
-![](docs/agplv3-155x51.png)
+![](legal/agplv3-155x51.png)
 
 *Join the [mailing list](http://groups.google.com/group/autobahnws), follow us on [Twitter](https://twitter.com/crossbario) and [Quick Start](https://github.com/crossbario/crossbar/wiki/Quick-Start) with Crossbar.io!*
 

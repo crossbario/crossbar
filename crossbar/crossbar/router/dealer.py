@@ -156,7 +156,7 @@ class Dealer(FutureMixin):
          procedure = self._regs_to_procs[unregister.registration]
 
          ## get the session that originally registered the procedure
-         _, reg_session, _ = self._procs_to_regs[procedure]
+         _, reg_session, _, _ = self._procs_to_regs[procedure]
 
          if session != reg_session:
             ## procedure was registered by a different session!

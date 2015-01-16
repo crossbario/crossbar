@@ -69,6 +69,17 @@ class Templates:
       },
 
       {
+         "name": "hello:browser",
+         "help": "A minimal JavaAScript WAMP application with two components running in the browser.",
+         "get_started_hint": "Start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",
+         "basedir": "templates/hello/browser",
+         "params": {
+            "realm": "realm1",
+         }
+      },
+
+
+      {
          "name": "hello:cpp",
          "help": "A minimal C++11/AutobahnCpp WAMP application hosted in a router and a HTML5 client.",
          "get_started_hint": "Now build the example by doing 'scons', start Crossbar using 'crossbar start' and open http://localhost:8080 in your browser.",

@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2011-2014 Tavendo GmbH
+##  Copyright (C) 2011-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -22,6 +22,7 @@ __all__ = ['run']
 
 import os
 import sys
+import signal
 import json
 import argparse
 import pkg_resources
@@ -35,6 +36,86 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.choosereactor import install_reactor
 
+
+try:
+   import psutil
+   _HAS_PSUTIL = True
+except ImportError:
+   _HAS_PSUTIL = False
+
+
+_PID_FILENAME = 'node.pid'
+
+
+
+def check_pid_exists(pid):
+   """
+   Check if a process with given PID exists.
+
+   :returns: ``True`` if a process exists.
+   :rtype: bool
+   """
+   if sys.platform == 'win32':
+      if _HAS_PSUTIL:
+         # http://pythonhosted.org/psutil/#psutil.pid_exists
+         return psutil.pid_exists(pid)
+      else:
+         # On Windows, this can only be done with native code (like via win32com, ctypes or psutil).
+         # We use psutil.
+         raise Exception("cannot check if process with PID exists - package psutil not installed")
+   else:
+      # Unix-like OS
+      # http://stackoverflow.com/a/568285/884770
+      try:
+         os.kill(pid, 0)
+      except OSError:
+         return False
+      else:
+         return True
+
+
+
+def check_is_running(cbdir):
+   """
+   Check if a Crossbar.io node is already running on a Crossbar.io node directory.
+
+   :param cbdir: The Crossbar.io node directory to check.
+   :type cbdir: str
+
+   :returns: The PID of the running Crossbar.io controller process or ``None``
+   :rtype: int or None
+   """
+   fp = os.path.join(cbdir, _PID_FILENAME)
+   if os.path.isfile(fp):
+      with open(fp) as fd:
+         pid_data_str = fd.read()
+         try:
+            pid_data = json.loads(pid_data_str)
+            pid = int(pid_data['pid'])
+         except ValueError, KeyError:
+            try:
+               os.remove(fp)
+            except Exception as e:
+               print("Could not remove corrupted Crossbar.io PID file {} - {}".format(fp, e))
+            else:
+               print("Corrupted Crossbar.io PID file {} removed".format(fp))
+         else:
+            if sys.platform == 'win32' and not _HAS_PSUTIL:
+               # when on Windows, and we can't actually determine if the PID exists,
+               # just assume it exists
+               return pid_data
+            else:
+               pid_exists = check_pid_exists(pid)
+               if pid_exists:
+                  return pid_data
+               else:
+                  try:
+                     os.remove(fp)
+                  except Exception as e:
+                     print("Could not remove stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) - {}".format(fp, pid, e))
+                  else:
+                     print("Stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) removed".format(fp, pid))
+   return None
 
 
 
@@ -189,10 +270,101 @@ def run_command_init(options):
 
 
 
+def run_command_status(options):
+   """
+   Subcommand "crossbar status".
+   """
+   ## check if there is a Crossbar.io instance currently running from
+   ## the Crossbar.io node directory at all
+   ##
+   pid_data = check_is_running(options.cbdir)
+   if pid_data is None:
+      # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
+      # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
+      print("No Crossbar.io instance is currently running from node directory {}.".format(options.cbdir))
+      sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
+   else:
+      print("A Crossbar.io instance is running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
+      sys.exit(0)
+
+
+
+def run_command_stop(options, exit = True):
+   """
+   Subcommand "crossbar stop".
+   """
+   ## check if there is a Crossbar.io instance currently running from
+   ## the Crossbar.io node directory at all
+   ##
+   pid_data = check_is_running(options.cbdir)
+   if pid_data:
+      pid = pid_data['pid']
+      print("Stopping Crossbar.io currently running from node directory {} (PID {}) ...".format(options.cbdir, pid))
+      if not _HAS_PSUTIL:
+         os.kill(pid, signal.SIGINT)
+         print("SIGINT sent to process {}.".format(pid))
+      else:
+         p = psutil.Process(pid)
+         try:
+            ## first try to terminate (orderly shutdown)
+            _TERMINATE_TIMEOUT = 5
+            p.terminate()
+            print("SIGINT sent to process {} .. waiting for exit ({} seconds) ...".format(pid, _TERMINATE_TIMEOUT))
+            p.wait(timeout = _TERMINATE_TIMEOUT)
+         except psutil.TimeoutExpired:
+            print("... process {} still alive - will kill now.".format(pid))
+            p.kill()
+            print("SIGKILL sent to process {}.".format(pid))
+         finally:
+            print("Process {} terminated.".format(pid))
+      if exit:
+         sys.exit(0)
+      else:
+         return pid_data
+   else:
+      print("No Crossbar.io is currently running from node directory {}.".format(options.cbdir))
+      sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
+
+
+
 def run_command_start(options):
    """
    Subcommand "crossbar start".
    """
+   ## do not allow to run more than one Crossbar.io instance
+   ## from the same Crossbar.io node directory
+   ##
+   pid_data = check_is_running(options.cbdir)
+   if pid_data:
+      print("Crossbar.io is already running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
+      sys.exit(1)
+   else:
+      fp = os.path.join(options.cbdir, _PID_FILENAME)
+      with open(fp, 'w') as fd:
+         argv = options.argv
+         options_dump = vars(options)
+         del options_dump['func']
+         del options_dump['argv']
+         pid_data = {
+            'pid': os.getpid(),
+            'argv': argv,
+            'options': options_dump
+         }
+         fd.write("{}\n".format(json.dumps(pid_data, sort_keys = False, indent = 3, separators = (',', ': '))))
+
+
+   ## we use an Autobahn utility to import the "best" available Twisted reactor
+   ##
+   reactor = install_reactor(options.reactor, options.debug)
+
+   ## remove node PID file when reactor exits
+   ##
+   def remove_pid_file():
+      fp = os.path.join(options.cbdir, _PID_FILENAME)
+      if os.path.isfile(fp):
+         os.remove(fp)
+   reactor.addSystemEventTrigger('after', 'shutdown', remove_pid_file)   
+
    ## start Twisted logging
    ##
    if not options.logdir:
@@ -205,14 +377,10 @@ def run_command_start(options):
    flo = DefaultSystemFileLogObserver(logfd, system = "{:<10} {:>6}".format("Controller", os.getpid()))
    log.startLoggingWithObserver(flo.emit)
 
-   log.msg("=" * 30 + " Crossbar.io " + "=" * 30 + "\n")
+   log.msg("=" * 20 + " Crossbar.io " + "=" * 20 + "\n")
 
    import crossbar
    log.msg("Crossbar.io {} starting".format(crossbar.__version__))
-
-   ## we use an Autobahn utility to import the "best" available Twisted reactor
-   ##
-   reactor = install_reactor(options.reactor, options.debug)
 
    from twisted.python.reflect import qual
    log.msg("Running on {} using {} reactor".format(platform.python_implementation(), qual(reactor.__class__).split('.')[-1]))
@@ -229,6 +397,20 @@ def run_command_start(options):
       reactor.run()
    except Exception as e:
       log.msg("Could not start reactor: {0}".format(e))
+
+
+
+def run_command_restart(options):
+   """
+   Subcommand "crossbar restart".
+   """
+   pid_data = run_command_stop(options, exit = False)
+   prog = pid_data['argv'][0]
+   ## remove first item, which is the (fully qualified) path to Python
+   args = pid_data['argv'][1:]
+   ## replace 'restart' with 'start'
+   args = [(lambda x: x if x != 'restart' else 'start')(x) for x in args]
+   run(prog, args)
 
 
 
@@ -271,7 +453,7 @@ def run_command_convert(options):
 
 
 
-def run():
+def run(prog = None, args = None):
    """
    Entry point of Crossbar.io CLI.
    """
@@ -362,6 +544,45 @@ def run():
                               help = "Server log level (overrides default 'info')")
 
 
+   ## "stop" command
+   ##
+   parser_stop = subparsers.add_parser('stop',
+                                        help = 'Stop a Crossbar.io node.')
+
+   parser_stop.add_argument('--cbdir',
+                            type = str,
+                            default = None,
+                            help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_stop.set_defaults(func = run_command_stop)
+
+
+   ## "restart" command
+   ##
+   parser_restart = subparsers.add_parser('restart',
+                                        help = 'Restart a Crossbar.io node.')
+
+   parser_restart.add_argument('--cbdir',
+                               type = str,
+                               default = None,
+                               help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_restart.set_defaults(func = run_command_restart)
+
+
+   ## "status" command
+   ##
+   parser_status = subparsers.add_parser('status',
+                                        help = 'Checks whether a Crossbar.io node is running.')
+
+   parser_status.add_argument('--cbdir',
+                              type = str,
+                              default = None,
+                              help = "Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+   parser_status.set_defaults(func = run_command_status)
+
+
    ## "check" command
    ##
    parser_check = subparsers.add_parser('check',
@@ -400,7 +621,11 @@ def run():
 
    ## parse cmd line args
    ##
-   options = parser.parse_args()
+   options = parser.parse_args(args)
+   if args:
+      options.argv = [prog] + args
+   else:
+      options.argv = sys.argv
 
 
    ## Crossbar.io node directory

@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2011-2014 Tavendo GmbH
+##  Copyright (C) 2011-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -41,4 +41,4 @@ Open-source licensed under the GNU Affero General Public License version 3.
 Created by Tavendo GmbH. Get in contact at http://tavendo.com
 """
 
-__version__ = "0.9.12"
+__version__ = "0.10.0"

@@ -69,7 +69,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
    """
    endpoint = None
 
-
    ## a TCP endpoint
    ##
    if config['type'] == 'tcp':
@@ -80,7 +79,15 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
       ## the listening port
       ##
-      port = int(config['port'])
+      if type(config['port']) in (str, unicode):
+         ## read port from environment variable ..
+         try:
+            port = int(os.environ[config['port'][1:]])
+         except Exception as e:
+            print("Could not read listening port from env var: {}".format(e))
+            raise e
+      else:
+         port = config['port']
 
       ## the listening interface
       ##
@@ -115,10 +122,10 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
             ##
             if version == 4:
                endpoint = SSL4ServerEndpoint(reactor,
-                                                    port,
-                                                    ctx,
-                                                    backlog = backlog,
-                                                    interface = interface)
+                                             port,
+                                             ctx,
+                                             backlog = backlog,
+                                             interface = interface)
             elif version == 6:
                raise Exception("TLS on IPv6 not implemented")
             else:

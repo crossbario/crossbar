@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2011-2014 Tavendo GmbH
+##  Copyright (C) 2011-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -51,16 +51,13 @@ else:
 ##
 
 extras_require_system = [
-   'psutil>=2.1.1',        # BSD license
-   'setproctitle>=1.1.8'   # BSD license
+   'psutil>=2.1.3',        # BSD license
 ]
 if sys.platform.startswith('linux'):
-   extras_require_system.append('pyinotify>=0.9.4') ## MIT license
-elif sys.platform.startswith('win'):
-   ## PyWin32 - Python Software Foundation License
-   pass
-else:
-   pass
+   extras_require_system.append('pyinotify>=0.9.4')      ## MIT license
+if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
+   extras_require_system.append('setproctitle>=1.1.8')   ## BSD license
+
 
 extras_require_manhole = [
    'pyasn1>=0.1.7',        # BSD license
@@ -101,7 +98,7 @@ setup (
       'setuptools>=2.2',            # Python Software Foundation license
       'zope.interface>=3.6.0',      # Zope Public license
       'twisted>=twisted-13.2',      # MIT license
-      'autobahn[twisted]>=0.9.4',   # Apache license
+      'autobahn[twisted]>=0.9.5',   # Apache license
       'netaddr>=0.7.11',            # BSD license
       'pytrie>=0.2',                # BSD license
       'jinja2>=2.7.2',              # BSD license

@@ -16,18 +16,37 @@
 ##
 ###############################################################################
 
+from __future__ import absolute_import
 
-import crossbar
+__all__ = (
+   'WebSocketTesteeServerFactory',
+   'StreamTesteeServerFactory',
+)
+
+from twisted.internet import protocol
 
 from autobahn.twisted.websocket import WebSocketServerFactory, \
                                        WebSocketServerProtocol
 
-from autobahn.websocket.compress import *
-
+import crossbar
 from crossbar.router.protocol import set_websocket_options
 
 
-class TesteeServerProtocol(WebSocketServerProtocol):
+
+class StreamTesteeServerProtocol(protocol.Protocol):
+
+   def dataReceived(self, data):
+      self.transport.write(data)
+
+
+
+class StreamTesteeServerFactory(protocol.Factory):
+
+   protocol = StreamTesteeServerProtocol
+
+
+
+class WebSocketTesteeServerProtocol(WebSocketServerProtocol):
 
    def onMessage(self, payload, isBinary):
       self.sendMessage(payload, isBinary)
@@ -48,7 +67,7 @@ class TesteeServerProtocol(WebSocketServerProtocol):
 
 
 
-class StreamingTesteeServerProtocol(WebSocketServerProtocol):
+class StreamingWebSocketTesteeServerProtocol(WebSocketServerProtocol):
 
    def onMessageBegin(self, isBinary):
       #print "onMessageBegin"
@@ -75,17 +94,13 @@ class StreamingTesteeServerProtocol(WebSocketServerProtocol):
 
 
 
-class TesteeServerFactory(WebSocketServerFactory):
+class WebSocketTesteeServerFactory(WebSocketServerFactory):
 
-   protocol = TesteeServerProtocol
-   #protocol = StreamingTesteeServerProtocol
+   protocol = WebSocketTesteeServerProtocol
+   #protocol = StreamingWebSocketTesteeServerProtocol
 
    def __init__(self, config, templates):
       """
-      Ctor.
-
-      :param factory: WAMP session factory.
-      :type factory: An instance of ..
       :param config: Crossbar transport configuration.
       :type config: dict 
       """

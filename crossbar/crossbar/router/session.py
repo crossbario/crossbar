@@ -155,7 +155,16 @@ class CrossbarRouterSession(RouterSession):
                            ## via the router's service session
                            ##
                            service_session = self._router_factory.get(realm)._realm.session
-                           d = service_session.call(cfg['authenticator'], realm, details.authid)
+                           session_details = {
+                              ## forward transport level details of the WAMP session that
+                              ## wishes to authenticate
+                              'transport': self._transport._transport_info,
+
+                              ## the following WAMP session ID will be assigned to the session
+                              ## if (and only if) the subsequent authentication succeeds.
+                              'session': self._pending_session_id
+                           }
+                           d = service_session.call(cfg['authenticator'], realm, details.authid, session_details)
 
                            def on_authenticate_ok(user):
 

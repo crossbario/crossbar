@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+##  Copyright (C) 2014-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -52,13 +52,47 @@ SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
 
 
+_ENV_VAR_PAT_STR = "^\$([A-Z0-9_]+)$"
+_ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
+
+def _readenv(var, msg):
+   match = _ENV_VAR_PAT.match(var)
+   if match and match.groups():
+      envvar = match.groups()[0]
+      if envvar in os.environ:
+         return os.environ[envvar]
+      else:
+         raise Exception("{} - enviroment variable '{}' not set".format(msg, var))
+   else:
+      raise Exception("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
+
+
+
+_CONFIG_ITEM_ID_PAT_STR = "^[a-z][a-z0-9_]{2,11}$"
+_CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
+
 def check_id(id):
-   return
+   """
+   Check a configuration item ID.
+   """
+   if type(id) != six.text_type:
+      raise Exception("invalid configuration item ID '{}' - type must be string, was ".format(id, type(id)))
+   if not _CONFIG_ITEM_ID_PAT.match(id):
+      raise Exception("invalid configuration item ID '{}' - must match regular expression {}".format(id, _CONFIG_ITEM_ID_PAT_STR))
 
 
+
+_REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
+_REALM_NAME_PAT = re.compile(_REALM_NAME_PAT_STR)
 
 def check_realm_name(name):
-   return
+   """
+   Check a realm name.
+   """
+   if type(name) != six.text_type:
+      raise Exception("invalid realm name '{}' - type must be string, was ".format(name, type(name)))
+   if not _REALM_NAME_PAT.match(name):
+      raise Exception("invalid realm name '{}' - must match regular expression {}".format(name, _REALM_NAME_PAT_STR))
 
 
 
@@ -173,7 +207,7 @@ def check_transport_auth(auth):
    }
    for k in auth:
       if k not in CHECKS:
-         raise Exception("invalid authentication method key '{0}' - must be one of {}".format(CHECKS.keys()))
+         raise Exception("invalid authentication method key '{}' - must be one of {}".format(k, CHECKS.keys()))
       CHECKS[k](auth[k])
 
 
@@ -302,7 +336,15 @@ def check_listening_endpoint_tcp(endpoint):
    if not 'port' in endpoint:
       raise Exception("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
-   check_endpoint_port(endpoint['port'])
+   if type(endpoint['port']) in (str, unicode):
+      port = _readenv(endpoint['port'], "listening endpoint configuration")
+      try:
+         port = int(port)
+      except:
+         pass # we handle this in check_endpoint_port()
+   else:
+      port = endpoint['port']
+   check_endpoint_port(port)
 
    if 'version' in endpoint:
       check_endpoint_ip_version(endpoint['version'])
@@ -356,7 +398,7 @@ def check_connecting_endpoint_tcp(endpoint):
    :type endpoint: dict
    """
    for k in endpoint:
-      if k not in ['type', 'host', 'port', 'timeout', 'tls']:
+      if k not in ['type', 'version', 'host', 'port', 'timeout', 'tls']:
          raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
 
    if not 'host' in endpoint:
@@ -366,6 +408,9 @@ def check_connecting_endpoint_tcp(endpoint):
       raise Exception("missing mandatory attribute 'port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
 
    check_endpoint_port(endpoint['port'])
+
+   if 'version' in endpoint:
+      check_endpoint_ip_version(endpoint['version'])
 
    if 'tls' in endpoint:
       check_connecting_endpoint_tls(endpoint['tls'])
@@ -505,8 +550,10 @@ def check_web_path_service_websocket(config):
    check_dict_args({
       'type': (True, [six.text_type]),
       'url': (False, [six.text_type]),
+      'serializers': (False, [list]),
       'auth': (False, [dict]),
-      'options': (False, [dict])
+      'options': (False, [dict]),
+      'debug': (False, [bool])
       }, config, "Web transport 'WebSocket' path service")
 
    if 'options' in config:
@@ -638,6 +685,7 @@ def check_web_path_service_longpoll(config):
          'request_timeout': (False, six.integer_types),
          'session_timeout': (False, six.integer_types),
          'queue_limit_bytes': (False, six.integer_types),
+         'queue_limit_messages': (False, six.integer_types),
          }, config['options'], "Web transport 'longpoll' path service")
 
 
@@ -829,6 +877,9 @@ def check_listening_transport_web(transport):
 
 
 
+_WEB_PATH_PAT_STR = "^([a-z0-9A-Z]+|/)$"
+_WEB_PATH_PATH = re.compile(_WEB_PATH_PAT_STR)
+
 def check_paths(paths, nested=False):
    """
    Checks all configured paths.
@@ -838,14 +889,12 @@ def check_paths(paths, nested=False):
    :param nested: Whether this is a nested path.
    :type nested: bool
    """
-   pat = re.compile("^([a-z0-9A-Z]+|/)$")
-
    for p in paths:
       if type(p) != six.text_type:
          raise Exception("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
 
-      if not pat.match(p):
-         raise Exception("invalid value '{}' for path in Web transport configuration".format(p))
+      if not _WEB_PATH_PAT_STR.match(p):
+         raise Exception("invalid value '{}' for path in Web transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
       check_web_path_service(p, paths[p], nested)
 
@@ -902,6 +951,80 @@ def check_listening_transport_websocket(transport):
 
    if 'auth' in transport:
       check_transport_auth(transport['auth'])
+
+
+
+def check_listening_transport_websocket_testee(transport):
+   """
+   Check a listening WebSocket-Testee pseudo transport configuration.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
+   for k in transport:
+      if k not in [
+         'id',
+         'type',
+         'endpoint',
+         'url',
+         'debug',
+         'options']:
+         raise Exception("encountered unknown attribute '{}' in WebSocket-Testee transport configuration".format(k))
+
+   if 'id' in transport:
+      check_id(transport['id'])
+
+   if not 'endpoint' in transport:
+      raise Exception("missing mandatory attribute 'endpoint' in WebSocket-Testee transport item\n\n{}".format(pformat(transport)))
+
+   check_listening_endpoint(transport['endpoint'])
+
+   if 'options' in transport:
+      check_websocket_options(transport['options'])
+
+   if 'debug' in transport:
+      debug = transport['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in WebSocket-Testee transport configuration must be boolean ({} encountered)".format(type(debug)))
+
+   if 'url' in transport:
+      url = transport['url']
+      if type(url) != six.text_type:
+         raise Exception("'url' in WebSocket-Testee transport configuration must be str ({} encountered)".format(type(url)))
+      try:
+         u = parseWsUrl(url)
+      except Exception as e:
+         raise Exception("invalid 'url' in WebSocket-Testee transport configuration : {}".format(e))
+
+
+
+def check_listening_transport_stream_testee(transport):
+   """
+   Check a listening Stream-Testee pseudo transport configuration.
+
+   :param transport: The configuration item to check.
+   :type transport: dict
+   """
+   for k in transport:
+      if k not in [
+         'id',
+         'type',
+         'endpoint',
+         'debug']:
+         raise Exception("encountered unknown attribute '{}' in Stream-Testee transport configuration".format(k))
+
+   if 'id' in transport:
+      check_id(transport['id'])
+
+   if not 'endpoint' in transport:
+      raise Exception("missing mandatory attribute 'endpoint' in Stream-Testee transport item\n\n{}".format(pformat(transport)))
+
+   check_listening_endpoint(transport['endpoint'])
+
+   if 'debug' in transport:
+      debug = transport['debug']
+      if type(debug) != bool:
+         raise Exception("'debug' in WebSocket-Stream transport configuration must be boolean ({} encountered)".format(type(debug)))
 
 
 
@@ -1080,7 +1203,14 @@ def check_router_transport(transport, silence = False):
       raise Exception("missing mandatory attribute 'type' in component")
 
    ttype = transport['type']
-   if ttype not in ['web', 'websocket', 'rawsocket', 'flashpolicy']:
+   if ttype not in [
+         'web',
+         'websocket',
+         'rawsocket',
+         'flashpolicy',
+         'websocket.testee',
+         'stream.testee'
+      ]:
       raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
    if ttype  == 'websocket':
@@ -1094,6 +1224,12 @@ def check_router_transport(transport, silence = False):
 
    elif ttype == 'flashpolicy':
       check_listening_transport_flashpolicy(transport)
+
+   elif ttype  == 'websocket.testee':
+      check_listening_transport_websocket_testee(transport)
+
+   elif ttype  == 'stream.testee':
+      check_listening_transport_stream_testee(transport)
 
    else:
       raise Exception("logic error")
@@ -1764,3 +1900,33 @@ def convert_config_file(configfile):
             with open(newconfig, 'wb') as outfile:
                yaml.safe_dump(config, outfile)
                print("ok, YAML formatted configuration written to {}".format(newconfig))
+
+
+
+def fill_config_from_env(config, keys = None, debug = False):
+   """
+   Fill in configuration values in a configuration dictionary from
+   environment variables.
+
+   :param config: The configuration item within which to replace values.
+   :type config: dict
+   :param keys: A list of keys for which to try to replace values or `None`
+      to replace values for all keys in the configuration item.
+   :type keys: list of str or None
+   """
+   if keys is None:
+      keys = config.keys()
+
+   for k in keys:
+      if k in config:
+         if type(config[k]) in (str, unicode):
+            match = _ENV_VAR_PAT.match(config[k])
+            if match and match.groups():
+               envvar = match.groups()[0]
+               if envvar in os.environ:
+                  config[k] = os.environ[envvar]
+                  if debug:
+                     print("configuration parameter '{}' set to '{}' from environment variable {}".format(k, val, envvar))
+               else:
+                  if debug:
+                     print("warning: configuration parameter '{}' should have been read from enviroment variable {}, but the latter is not set".format(k, envvar))
