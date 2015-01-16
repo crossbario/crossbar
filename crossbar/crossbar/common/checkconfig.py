@@ -893,7 +893,7 @@ def check_paths(paths, nested=False):
       if type(p) != six.text_type:
          raise Exception("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
 
-      if not _WEB_PATH_PAT_STR.match(p):
+      if not _WEB_PATH_PATH.match(p):
          raise Exception("invalid value '{}' for path in Web transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
       check_web_path_service(p, paths[p], nested)
