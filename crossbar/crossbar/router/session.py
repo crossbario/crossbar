@@ -593,20 +593,38 @@ class CrossbarRouterServiceSession(ApplicationSession):
 
 
    @wamp.register(u'wamp.broker.subscriber.list')
-   def list_subscribers(self, topic):
+   def subscriber_list(self, topic):
       """
-      WAMP meta procedure to retrieve list of subscribers.
+      WAMP meta procedure to retrieve list of subscribers with detailed
+      per-subscriber information.
       """
       topic_to_sessions = self._router._broker._topic_to_sessions
-      res = []
 
       if topic in topic_to_sessions:
+         subscribers_list = []
          subscription, subscribers = topic_to_sessions[topic]
          for subscriber in subscribers:
             # subscriber is an instance of crossbar.router.session.CrossbarRouterSession
-            res.append(subscriber._session_details)
+            subscribers_list.append(subscriber._session_details)
+         return {'subscription': subscription, 'subscribers': subscribers_list}
+      else:
+         # FIXME: API design?
+         #return {'subscription': 0, 'subscribers': []}
+         return {}
 
-      return res
+
+   @wamp.register(u'wamp.broker.subscriber.count')
+   def subscriber_count(self, topic):
+      """
+      WAMP meta procedure to get the number of subscribers.
+      """
+      topic_to_sessions = self._router._broker._topic_to_sessions
+
+      if topic in topic_to_sessions:
+         _, subscribers = topic_to_sessions[topic]
+         return len(subscribers)
+      else:
+         return 0
 
 
    @wamp.register(u'wamp.reflect.describe')
