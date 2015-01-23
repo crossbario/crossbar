@@ -429,13 +429,12 @@ class RouterSession(FutureMixin, BaseSession):
          if self.debug:
             print("exception raised in onError callback: {0}".format(e)) 
 
-      self.leave(None, u"Internal server error")
+      self.leave(message = u"Internal server error")
 
     
    def onError(self, err):
       """
       Overwride for custom error handling.
-      Shall return a tuple (reason, message)
       """
       if self.debug:
          print("Catched exception during message processing: {0}".format(err.getTraceback())) # replace with proper logging
