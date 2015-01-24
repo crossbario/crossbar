@@ -429,7 +429,13 @@ class RouterSession(FutureMixin, BaseSession):
          if self.debug:
             print("exception raised in onError callback: {0}".format(e)) 
 
-      self.leave(message = u"Internal server error")
+      reply = message.Abort(u"wamp.error.authorization_failed", u"Internal server error")
+      self._transport.send(reply)
+
+      self._router.detach(self)
+
+      self._session_id = None
+      self._pending_session_id = None
 
     
    def onError(self, err):
