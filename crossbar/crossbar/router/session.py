@@ -189,13 +189,14 @@ class CrossbarRouterSession(RouterSession):
                               return types.Challenge(u'wampcra', extra)
 
                            def on_authenticate_error(err):
+                           
                               error = None
                               message = "dynamic WAMP-CRA credential getter failed: {}".format(err)
 
                               if isinstance(err.value, ApplicationError):
                                  error = err.value.error
                                  if err.value.args and len(err.value.args):
-                                    message = err.value.args[0]
+                                    message = str(err.value.args[0]) # exception does not need to contain a string
 
                               return types.Deny(error, message)
 
