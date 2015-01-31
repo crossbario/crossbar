@@ -17,6 +17,18 @@ If you need further assurance, you can email us at service@tavendo.de for a sign
 
 We release all our client libraries (those provided by the [Autobahn project](http://autobahn.ws/) under non-copyleft licenses, which allow their use for closed-source & commercial software. For other client libraries see their respective licenses (these appear to be universally non-copyleft as well).
 
+## Templates
+
+Crossbar.io is able to generate applications from application templates. The code for application templates within this folder (and folders beneath) is licensed under the [BSD 2-clause open-source license](http://opensource.org/licenses/BSD-2-Clause) or the Apache 2.0 license.
+
+The same licenses applie to the code *generated* from the application templates. E.g., when you do
+
+   crossbar init --template hello:python --appdir $HOME/hello
+
+Crossbar.io will generate a new WAMP application in the `$HOME/hello` directory from the application template in [hello/python](hello/python). All files generated in `$HOME/hello` are licensed under above licenses.
+
+The licenses allow you to use the template code and generated code in your own applications, including closed-source and commercial applications.
+
 ## Documentation
 
 The Crossbar.io [documentation](https://github.com/crossbario/crossbar/wiki) is licensed under a [Creative Commons](http://creativecommons.org/) license: the [CC BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).

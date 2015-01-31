@@ -5,15 +5,15 @@ contains these application templates.
 
 ## Licensing
 
-The code for application templates within this folder (and folders beneath) is licensed under the [BSD 2-clause open-source license](http://opensource.org/licenses/BSD-2-Clause).
+The code for application templates within this folder (and folders beneath) is licensed under the [BSD 2-clause open-source license](http://opensource.org/licenses/BSD-2-Clause) or the Apache 2.0 license.
 
-The same license applies to the code *generated* from the application templates here.
+The same licenses applie to the code *generated* from the application templates here.
 
 E.g., when you do
 
 	crossbar init --template hello:python --appdir $HOME/hello
 
-Crossbar.io will generate a new WAMP application in the `$HOME/hello` directory from the application template in [hello/python](hello/python). All files generated in `$HOME/hello` are licensed under above license.
+Crossbar.io will generate a new WAMP application in the `$HOME/hello` directory from the application template in [hello/python](hello/python). All files generated in `$HOME/hello` are licensed under above licenses.
 
 ### Template Developers
 
