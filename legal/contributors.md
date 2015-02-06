@@ -1,6 +1,7 @@
 Contributors with signed CAAs
 
 * eth3lbert
+* paranaix
 * rlamy
 * si618
 * svpcom
@@ -8,3 +9,7 @@ Contributors with signed CAAs
 * voidfuture
 * wilbertom
 
+Entity CAAs
+
+* Recode Systems
+* Quantum SI Inc
