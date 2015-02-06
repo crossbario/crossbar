@@ -525,14 +525,14 @@ class CrossbarRouterSession(RouterSession):
 
       ## dispatch session metaevent from WAMP AP
       ##
-      self._service_session.publish(u'wamp.metaevent.session.on_join', self._session_details)
+      self._service_session.publish(u'wamp.session.on_join', self._session_details)
 
 
    def onLeave(self, details):
 
       ## dispatch session metaevent from WAMP AP
       ##
-      self._service_session.publish(u'wamp.metaevent.session.on_leave', self._session_details)
+      self._service_session.publish(u'wamp.session.on_leave', self._session_details)
 
       self._session_details = None
 
