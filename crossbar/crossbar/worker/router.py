@@ -22,6 +22,7 @@ __all__ = ['RouterWorker']
 
 
 import os
+import sys
 import jinja2
 import importlib
 import pkg_resources
@@ -718,20 +719,23 @@ class RouterWorkerSession(NativeWorkerSession):
             wsgi_options = root_config.get('options', {})
 
             if not 'module' in root_config:
-               raise ApplicationError("crossbar.error.invalid_configuration", "missing module")
+               raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app module")
 
             if not 'object' in root_config:
-               raise ApplicationError("crossbar.error.invalid_configuration", "missing object")
+               raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app object")
 
+            ## import WSGI app module and object
+            mod_name = root_config['module']
             try:
-               mod = importlib.import_module(root_config['module'])
-            except ImportError:
-               raise ApplicationError("crossbar.error.invalid_configuration", "module import failed")
+               mod = importlib.import_module(mod_name)
+            except ImportError as e:
+               raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
             else:
-               if not root_config['object'] in mod.__dict__:
-                  raise ApplicationError("crossbar.error.invalid_configuration", "object not in module")
+               obj_name = root_config['object']
+               if not obj_name in mod.__dict__:
+                  raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
                else:
-                  app = getattr(mod, root_config['object'])
+                  app = getattr(mod, obj_name)
 
             ## create a Twisted Web WSGI resource from the user's WSGI application object
             try:
@@ -941,20 +945,23 @@ class RouterWorkerSession(NativeWorkerSession):
          wsgi_options = path_config.get('options', {})
 
          if not 'module' in path_config:
-            raise ApplicationError("crossbar.error.invalid_configuration", "missing module")
+            raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app module")
 
          if not 'object' in path_config:
-            raise ApplicationError("crossbar.error.invalid_configuration", "missing object")
+            raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app object")
 
+         ## import WSGI app module and object
+         mod_name = path_config['module']
          try:
-            mod = importlib.import_module(path_config['module'])
+            mod = importlib.import_module(mod_name)
          except ImportError as e:
-            raise ApplicationError("crossbar.error.invalid_configuration", "module import failed - {}".format(e))
+            raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
          else:
-            if not path_config['object'] in mod.__dict__:
-               raise ApplicationError("crossbar.error.invalid_configuration", "object not in module")
+            obj_name = path_config['object']
+            if not obj_name in mod.__dict__:
+               raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
             else:
-               app = getattr(mod, path_config['object'])
+               app = getattr(mod, obj_name)
 
          ## create a Twisted Web WSGI resource from the user's WSGI application object
          try:
