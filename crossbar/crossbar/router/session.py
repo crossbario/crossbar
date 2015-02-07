@@ -393,9 +393,15 @@ class CrossbarRouterSession(RouterSession):
                d = service_session.call(self._pending_auth.authprovider, self._pending_auth.realm, self._pending_auth.authid, signature)
 
                def on_authenticate_ok(response):
-                  authid = response.get("authid", self._pending_auth.authid)
+                  if isinstance(response, dict):
+                     authid = response.get("authid", self._pending_auth.authid)
+                     authrole = response["role"]
+                  else:
+                     authid = self._pending_auth.authid
+                     authrole = response
+
                   return types.Accept(authid = authid,
-                     authrole = response["role"],
+                     authrole = authrole,
                      authmethod = self._pending_auth.authmethod,
                      authprovider = self._pending_auth.authprovider)
 
