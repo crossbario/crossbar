@@ -329,7 +329,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
       self.factory.start_realm(rlm)
 
-      self.session_factory.add(session, authrole = 'trusted')
+      self.session_factory.add(session, authrole = u'trusted')
 
 
 
@@ -480,7 +480,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             if self.debug:
                log.msg("Starting class '{}'".format(klassname))
-           
+
             c = klassname.split('.')
             module_name, klass_name = '.'.join(c[:-1]), c[-1]
             module = importlib.import_module(module_name)

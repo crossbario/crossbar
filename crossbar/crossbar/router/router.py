@@ -77,6 +77,9 @@ class RouterApplicationSession:
       :type authrole: str
       """
 
+      assert(authid is None or isinstance(authid, six.text_type))
+      assert(authrole is None or isinstance(authrole, six.text_type))
+
       ## remember router we are wrapping the app session for
       ##
       self._routerFactory = routerFactory
@@ -611,7 +614,7 @@ class RouterFactory:
       """
 
       :param options: Default router options.
-      :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.      
+      :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
       """
       self._routers = {}
       self.debug = debug
