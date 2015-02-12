@@ -99,7 +99,7 @@ def check_is_running(cbdir):
             try:
                 pid_data = json.loads(pid_data_str)
                 pid = int(pid_data['pid'])
-            except ValueError as KeyError:
+            except ValueError:
                 try:
                     os.remove(fp)
                 except Exception as e:

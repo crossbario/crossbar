@@ -152,8 +152,6 @@ class NodeControllerSession(NativeProcessSession):
 
         self._management_transport = None
 
-        exit = Deferred()
-
     def onConnect(self):
         # self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra.node)
         self._uri_prefix = 'crossbar.node.{}'.format(self._node_id)

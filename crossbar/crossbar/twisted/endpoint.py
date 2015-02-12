@@ -198,19 +198,19 @@ def create_listening_port_from_config(config, factory, cbdir, reactor):
     if config['type'] == 'tcp' and config.get('shared', False):
 
         # the TCP protocol version (v4 or v6)
-        ##
-        version = int(config.get('version', 4))
+        # FIXME: handle v6
+        # version = int(config.get('version', 4))
 
         # the listening port
-        ##
+        #
         port = int(config['port'])
 
         # the listening interface
-        ##
+        #
         interface = str(config.get('interface', '').strip())
 
         # the TCP accept queue depth
-        ##
+        #
         backlog = int(config.get('backlog', 50))
 
         listening_port = SharedPort(port, factory, backlog, interface, reactor, shared=True)

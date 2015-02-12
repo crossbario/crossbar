@@ -265,7 +265,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
             ##
             return (protocol, headers)
 
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
 
     def sendServerStatus(self, redirectUrl=None, redirectAfter=0):

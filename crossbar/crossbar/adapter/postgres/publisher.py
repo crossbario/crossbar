@@ -143,11 +143,11 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
 
     def _on_notify(self, notify):
         # process PostgreSQL notifications sent via NOTIFY
-        ##
+        #
 
         # PID of the PostgreSQL backend that issued the NOTIFY
-        ##
-        pid = notify.pid
+        #
+        # pid = notify.pid
 
         # sanity check that we are processing the correct channel
         ##

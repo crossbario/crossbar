@@ -680,7 +680,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 if not _HAS_WSGI:
                     raise ApplicationError("crossbar.error.invalid_configuration", "WSGI unsupported")
 
-                wsgi_options = root_config.get('options', {})
+                # wsgi_options = root_config.get('options', {})
 
                 if 'module' not in root_config:
                     raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app module")
@@ -892,7 +892,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if not _HAS_WSGI:
                 raise ApplicationError("crossbar.error.invalid_configuration", "WSGI unsupported")
 
-            wsgi_options = path_config.get('options', {})
+            # wsgi_options = path_config.get('options', {})
 
             if 'module' not in path_config:
                 raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app module")

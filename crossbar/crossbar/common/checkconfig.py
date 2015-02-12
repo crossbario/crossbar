@@ -560,7 +560,7 @@ def check_web_path_service_websocket(config):
         if not isinstance(url, six.text_type):
             raise Exception("'url' in WebSocket configuration must be str ({} encountered)".format(type(url)))
         try:
-            u = parseWsUrl(url)
+            parseWsUrl(url)
         except Exception as e:
             raise Exception("invalid 'url' in WebSocket configuration : {}".format(e))
 
@@ -922,7 +922,7 @@ def check_listening_transport_websocket(transport):
         if not isinstance(url, six.text_type):
             raise Exception("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
         try:
-            u = parseWsUrl(url)
+            parseWsUrl(url)
         except Exception as e:
             raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
@@ -968,7 +968,7 @@ def check_listening_transport_websocket_testee(transport):
         if not isinstance(url, six.text_type):
             raise Exception("'url' in WebSocket-Testee transport configuration must be str ({} encountered)".format(type(url)))
         try:
-            u = parseWsUrl(url)
+            parseWsUrl(url)
         except Exception as e:
             raise Exception("invalid 'url' in WebSocket-Testee transport configuration : {}".format(e))
 
@@ -1124,7 +1124,7 @@ def check_connecting_transport_websocket(transport):
     if not isinstance(url, six.text_type):
         raise Exception("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
     try:
-        u = parseWsUrl(url)
+        parseWsUrl(url)
     except Exception as e:
         raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
 

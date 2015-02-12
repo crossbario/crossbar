@@ -91,6 +91,6 @@ class NodeManagementSession(ApplicationSession):
         else:
             pass
 
-        res = yield self.register(self.factory.node_controller_session.get_node_worker_processes, 'crossbar.node.get_node_worker_processes')
+        yield self.register(self.factory.node_controller_session.get_node_worker_processes, 'crossbar.node.get_node_worker_processes')
 
         self.publish('com.myapp.topic1', os.getpid())

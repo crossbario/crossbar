@@ -113,7 +113,7 @@ class NativeWorkerSession(NativeProcessSession):
                                  options=PublishOptions(acknowledge=True))
 
         if self.debug:
-            log.msg("NativeWorker ready event published")
+            log.msg("NativeWorker ready event published ({})".format(pub))
 
     def get_cpu_affinity(self, details=None):
         """

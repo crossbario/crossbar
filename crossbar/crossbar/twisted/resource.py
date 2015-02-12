@@ -293,7 +293,7 @@ class PusherResource(Resource):
         Receives an HTTP/POST request to forward a WAMP event.
         """
         try:
-            path = request.path
+            # path = request.path
             args = request.args
             headers = request.getAllHeaders()
 
@@ -340,7 +340,8 @@ class PusherResource(Resource):
             if 'seq' in args:
                 seq_str = args["seq"][0]
                 try:
-                    seq = int(seq_str)
+                    # FIXME: check sequence
+                    seq = int(seq_str)  # noqa
                 except:
                     return self._deny_request(request, 400, "invalid sequence number '{0}' (must be an integer)".format(seq_str))
             else:
@@ -352,7 +353,8 @@ class PusherResource(Resource):
             if 'nonce' in args:
                 nonce_str = args["nonce"][0]
                 try:
-                    nonce = int(nonce_str)
+                    # FIXME: check nonce
+                    nonce = int(nonce_str)  # noqa
                 except:
                     return self._deny_request(request, 400, "invalid nonce '{0}' (must be an integer)".format(nonce_str))
             else:
@@ -393,7 +395,7 @@ class PusherResource(Resource):
                     if self._debug:
                         log.msg("PusherResource - ok, request signature valid.")
 
-            user_agent = headers.get("user-agent", "unknown")
+            # user_agent = headers.get("user-agent", "unknown")
             client_ip = request.getClientIP()
             is_secure = request.isSecure()
 
