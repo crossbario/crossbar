@@ -137,9 +137,8 @@ class CrossbarRouterSession(RouterSession):
 
                                         user = cfg['users'][details.authid]
 
-                                        # the authid the session will be authenticated as is from the dynamic
-                                        # authenticator response, or when the response doesn't contain an authid,
-                                        # from the HELLO message the client sent
+                                        # the authid the session will be authenticated as is from the user data, or when
+                                        # the user data doesn't contain an authid, from the HELLO message the client sent
                                         #
                                         authid = user.get("authid", details.authid)
 
