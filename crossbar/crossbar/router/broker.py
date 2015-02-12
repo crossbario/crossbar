@@ -240,23 +240,23 @@ class Broker(FutureMixin):
 
                 else:
 
-                    if not subscribe.topic in self._topic_to_sessions:
+                    if subscribe.topic not in self._topic_to_sessions:
                         subscription = util.id()
                         self._topic_to_sessions[subscribe.topic] = (subscription, set())
 
                     subscription, subscribers = self._topic_to_sessions[subscribe.topic]
 
-                    if not session in subscribers:
+                    if session not in subscribers:
                         subscribers.add(session)
 
-                    if not subscription in self._subscription_to_sessions:
+                    if subscription not in self._subscription_to_sessions:
                         self._subscription_to_sessions[subscription] = (subscribe.topic, set())
 
                     _, subscribers = self._subscription_to_sessions[subscription]
-                    if not session in subscribers:
+                    if session not in subscribers:
                         subscribers.add(session)
 
-                    if not subscription in self._session_to_subscriptions[session]:
+                    if subscription not in self._session_to_subscriptions[session]:
                         self._session_to_subscriptions[session].add(subscription)
 
                     reply = message.Subscribed(subscribe.request, subscription)

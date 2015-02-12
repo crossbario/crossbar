@@ -226,7 +226,7 @@ def run_command_init(options):
 
     templates = Templates()
 
-    if not options.template in templates:
+    if options.template not in templates:
         print("Huh, sorry. There is no template named '{}'. Try 'crossbar templates' to list the templates available.".format(options.template))
         sys.exit(1)
 

@@ -113,6 +113,6 @@ class DefaultSystemFileLogObserver(FileLogObserver):
         if 'system' in eventDict and 'override_system' in eventDict and eventDict['override_system']:
             pass
         else:
-            if self._override or (not 'system' in eventDict) or eventDict['system'] == "-":
+            if self._override or ('system' not in eventDict) or eventDict['system'] == "-":
                 eventDict['system'] = self._system
         FileLogObserver.emit(self, eventDict)

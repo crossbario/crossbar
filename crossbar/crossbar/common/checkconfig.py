@@ -100,13 +100,13 @@ def check_dict_args(spec, config, msg):
     if not isinstance(config, dict):
         raise Exception("{} - invalid type for configuration item - expected dict, got {}".format(msg, type(config)))
     for k in config:
-        if not k in spec:
+        if k not in spec:
             raise Exception("{} - encountered unknown attribute '{}'".format(msg, k))
         if spec[k][1] and type(config[k]) not in spec[k][1]:
             raise Exception("{} - invalid {} encountered for attribute '{}'".format(msg, type(config[k]), k))
     mandatory_keys = [k for k in spec if spec[k][0]]
     for k in mandatory_keys:
-        if not k in config:
+        if k not in config:
             raise Exception("{} - missing mandatory attribute '{}'".format(msg, k))
 
 
@@ -321,7 +321,7 @@ def check_listening_endpoint_tcp(endpoint):
         if k not in ['type', 'version', 'port', 'shared', 'interface', 'backlog', 'tls']:
             raise Exception("encountered unknown attribute '{}' in listening endpoint".format(k))
 
-    if not 'port' in endpoint:
+    if 'port' not in endpoint:
         raise Exception("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
     if type(endpoint['port']) in (str, unicode):
@@ -365,7 +365,7 @@ def check_listening_endpoint_unix(endpoint):
         if k not in ['type', 'path', 'backlog']:
             raise Exception("encountered unknown attribute '{}' in listening endpoint".format(k))
 
-    if not 'path' in endpoint:
+    if 'path' not in endpoint:
         raise Exception("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
 
     path = endpoint['path']
@@ -387,10 +387,10 @@ def check_connecting_endpoint_tcp(endpoint):
         if k not in ['type', 'version', 'host', 'port', 'timeout', 'tls']:
             raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
 
-    if not 'host' in endpoint:
+    if 'host' not in endpoint:
         raise Exception("missing mandatory attribute 'host' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
 
-    if not 'port' in endpoint:
+    if 'port' not in endpoint:
         raise Exception("missing mandatory attribute 'port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
 
     check_endpoint_port(endpoint['port'])
@@ -416,7 +416,7 @@ def check_connecting_endpoint_unix(endpoint):
         if k not in ['type', 'path', 'timeout']:
             raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
 
-    if not 'path' in endpoint:
+    if 'path' not in endpoint:
         raise Exception("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
 
     path = endpoint['path']
@@ -437,7 +437,7 @@ def check_listening_endpoint(endpoint):
     if not isinstance(endpoint, dict):
         raise Exception("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
 
-    if not 'type' in endpoint:
+    if 'type' not in endpoint:
         raise Exception("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
@@ -462,7 +462,7 @@ def check_connecting_endpoint(endpoint):
     if not isinstance(endpoint, dict):
         raise Exception("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
 
-    if not 'type' in endpoint:
+    if 'type' not in endpoint:
         raise Exception("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
@@ -577,7 +577,7 @@ def check_web_path_service_static(config):
         if 'package' in config or 'resource' in config:
             raise Exception("Web transport 'static' path service: either 'directory' OR 'package' + 'resource' must be given, not both")
     else:
-        if not 'package' in config or not 'resource' in config:
+        if 'package' not in config or 'resource' not in config:
             raise Exception("Web transport 'static' path service: either 'directory' OR 'package' + 'resource' must be given, not both")
 
     if 'options' in config:
@@ -753,7 +753,7 @@ def check_web_path_service(path, config, nested):
     :param nested: Whether this is a nested path.
     :type nested: bool
     """
-    if not 'type' in config:
+    if 'type' not in config:
         raise Exception("missing mandatory attribute 'type' in Web transport path service '{}' configuration\n\n{}".format(path, config))
 
     ptype = config['type']
@@ -794,19 +794,19 @@ def check_listening_transport_web(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if not 'endpoint' in transport:
+    if 'endpoint' not in transport:
         raise Exception("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
 
-    if not 'paths' in transport:
+    if 'paths' not in transport:
         raise Exception("missing mandatory attribute 'paths' in Web transport item\n\n{}".format(pformat(transport)))
 
     paths = transport['paths']
     if not isinstance(paths, dict):
         raise Exception("'paths' attribute in Web transport configuration must be dictionary ({} encountered)".format(type(paths)))
 
-    if not '/' in paths:
+    if '/' not in paths:
         raise Exception("missing mandatory path '/' in 'paths' in Web transport configuration")
 
     check_paths(paths)
@@ -889,7 +889,7 @@ def check_listening_transport_websocket(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if not 'endpoint' in transport:
+    if 'endpoint' not in transport:
         raise Exception("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
@@ -940,7 +940,7 @@ def check_listening_transport_websocket_testee(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if not 'endpoint' in transport:
+    if 'endpoint' not in transport:
         raise Exception("missing mandatory attribute 'endpoint' in WebSocket-Testee transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
@@ -981,7 +981,7 @@ def check_listening_transport_stream_testee(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if not 'endpoint' in transport:
+    if 'endpoint' not in transport:
         raise Exception("missing mandatory attribute 'endpoint' in Stream-Testee transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
@@ -1006,7 +1006,7 @@ def check_listening_transport_flashpolicy(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if not 'endpoint' in transport:
+    if 'endpoint' not in transport:
         raise Exception("missing mandatory attribute 'endpoint' in Flash-policy transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
@@ -1043,12 +1043,12 @@ def check_listening_transport_rawsocket(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if not 'endpoint' in transport:
+    if 'endpoint' not in transport:
         raise Exception("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
 
-    if not 'serializer' in transport:
+    if 'serializer' not in transport:
         raise Exception("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
     serializer = transport['serializer']
@@ -1084,7 +1084,7 @@ def check_connecting_transport_websocket(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if not 'endpoint' in transport:
+    if 'endpoint' not in transport:
         raise Exception("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
     check_connecting_endpoint(transport['endpoint'])
@@ -1107,7 +1107,7 @@ def check_connecting_transport_websocket(transport):
         if not isinstance(debug_wamp, bool):
             raise Exception("'debug_wamp' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug_wamp)))
 
-    if not 'url' in transport:
+    if 'url' not in transport:
         raise Exception("missing mandatory attribute 'url' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
     url = transport['url']
@@ -1133,12 +1133,12 @@ def check_connecting_transport_rawsocket(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if not 'endpoint' in transport:
+    if 'endpoint' not in transport:
         raise Exception("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
     check_connecting_endpoint(transport['endpoint'])
 
-    if not 'serializer' in transport:
+    if 'serializer' not in transport:
         raise Exception("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
     serializer = transport['serializer']
@@ -1164,7 +1164,7 @@ def check_router_transport(transport, silence=False):
     if not isinstance(transport, dict):
         raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
 
-    if not 'type' in transport:
+    if 'type' not in transport:
         raise Exception("missing mandatory attribute 'type' in component")
 
     ttype = transport['type']
@@ -1210,7 +1210,7 @@ def check_router_component(component, silence=False):
     if not isinstance(component, dict):
         raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
 
-    if not 'type' in component:
+    if 'type' not in component:
         raise Exception("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
@@ -1254,7 +1254,7 @@ def check_container_transport(transport, silence=False):
     if not isinstance(transport, dict):
         raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
 
-    if not 'type' in transport:
+    if 'type' not in transport:
         raise Exception("missing mandatory attribute 'type' in component")
 
     ttype = transport['type']
@@ -1281,7 +1281,7 @@ def check_container_component(component, silence=False):
     if not isinstance(component, dict):
         raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
 
-    if not 'type' in component:
+    if 'type' not in component:
         raise Exception("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
@@ -1484,12 +1484,12 @@ def check_manhole(manhole, silence=False):
         if k not in ['endpoint', 'users']:
             raise Exception("encountered unknown attribute '{}' in Manhole configuration".format(k))
 
-    if not 'endpoint' in manhole:
+    if 'endpoint' not in manhole:
         raise Exception("missing mandatory attribute 'endpoint' in Manhole item\n\n{}".format(pformat(manhole)))
 
     check_listening_endpoint(manhole['endpoint'])
 
-    if not 'users' in manhole:
+    if 'users' not in manhole:
         raise Exception("missing mandatory attribute 'users' in Manhole item\n\n{}".format(pformat(manhole)))
 
     users = manhole['users']
@@ -1504,10 +1504,10 @@ def check_manhole(manhole, silence=False):
             if k not in ['user', 'password']:
                 raise Exception("encountered unknown attribute '{}' in manhole.users.user".format(k))
 
-        if not 'user' in user:
+        if 'user' not in user:
             raise Exception("missing mandatory attribute 'user' in Manhole user item\n\n{}".format(pformat(user)))
 
-        if not 'password' in user:
+        if 'password' not in user:
             raise Exception("missing mandatory attribute 'password' in Manhole user item\n\n{}".format(pformat(user)))
 
 
@@ -1676,7 +1676,7 @@ def check_worker(worker, silence=False):
     if not isinstance(worker, dict):
         raise Exception("worker items must be dictionaries ({} encountered)\n\n{}".format(type(worker), pformat(worker)))
 
-    if not 'type' in worker:
+    if 'type' not in worker:
         raise Exception("missing mandatory attribute 'type' in worker item\n\n{}".format(pformat(worker)))
 
     ptype = worker['type']

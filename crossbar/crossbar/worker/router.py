@@ -632,7 +632,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
                 elif 'package' in root_config:
 
-                    if not 'resource' in root_config:
+                    if 'resource' not in root_config:
                         raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
 
                     try:
@@ -686,10 +686,10 @@ class RouterWorkerSession(NativeWorkerSession):
 
                 wsgi_options = root_config.get('options', {})
 
-                if not 'module' in root_config:
+                if 'module' not in root_config:
                     raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app module")
 
-                if not 'object' in root_config:
+                if 'object' not in root_config:
                     raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app object")
 
                 # import WSGI app module and object
@@ -700,7 +700,7 @@ class RouterWorkerSession(NativeWorkerSession):
                     raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
                 else:
                     obj_name = root_config['object']
-                    if not obj_name in mod.__dict__:
+                    if obj_name not in mod.__dict__:
                         raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
                     else:
                         app = getattr(mod, obj_name)
@@ -846,7 +846,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             elif 'package' in path_config:
 
-                if not 'resource' in path_config:
+                if 'resource' not in path_config:
                     raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
 
                 try:
@@ -898,10 +898,10 @@ class RouterWorkerSession(NativeWorkerSession):
 
             wsgi_options = path_config.get('options', {})
 
-            if not 'module' in path_config:
+            if 'module' not in path_config:
                 raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app module")
 
-            if not 'object' in path_config:
+            if 'object' not in path_config:
                 raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app object")
 
             # import WSGI app module and object
@@ -912,7 +912,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
             else:
                 obj_name = path_config['object']
-                if not obj_name in mod.__dict__:
+                if obj_name not in mod.__dict__:
                     raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
                 else:
                     app = getattr(mod, obj_name)
@@ -989,7 +989,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             realm = path_config['realm']
 
-            if not realm in self.realm_to_id:
+            if realm not in self.realm_to_id:
                 raise ApplicationError("crossbar.error.no_such_object", "No realm with URI '{}' configured".format(realm))
 
             realm_id = self.realm_to_id[realm]
@@ -1029,7 +1029,7 @@ class RouterWorkerSession(NativeWorkerSession):
             log.msg("{}.stop_router_transport".format(self.__class__.__name__), id)
 
         # FIXME
-        if not id in self.transports:
+        if id not in self.transports:
             #      if not id in self.transports or self.transports[id].status != 'started':
             emsg = "ERROR: cannot stop transport - no transport with ID '{}' (or already stopping)".format(id)
             log.msg(emsg)

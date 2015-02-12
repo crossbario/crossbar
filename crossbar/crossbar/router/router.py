@@ -621,7 +621,7 @@ class RouterFactory:
         """
         Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
         """
-        if not realm in self._routers:
+        if realm not in self._routers:
             self._routers[realm] = self.router(self, realm, self._options)
             if self.debug:
                 print("Router created for realm '{0}'".format(realm))

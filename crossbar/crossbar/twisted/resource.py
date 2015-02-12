@@ -422,7 +422,7 @@ class PusherResource(Resource):
                 if not isinstance(event, dict):
                     return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be JSON dict")
 
-                if not 'topic' in event:
+                if 'topic' not in event:
                     return self._deny_request(request, 400, "invalid request event - missing 'topic' in HTTP/POST body")
 
                 topic = event.pop('topic')

@@ -110,7 +110,7 @@ class Dealer(FutureMixin):
 
         else:
 
-            if not register.procedure in self._procs_to_regs:
+            if register.procedure not in self._procs_to_regs:
 
                 # authorize action
                 ##

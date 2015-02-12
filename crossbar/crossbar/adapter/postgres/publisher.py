@@ -152,7 +152,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
 
                 # check for mandatory 'type' attribute
                 ##
-                if not 'type' in obj:
+                if 'type' not in obj:
                     raise Exception("notification payload must have a 'type' attribute")
                 if obj['type'] not in ['direct', 'table']:
                     raise Exception("notification payload 'type' must be one of ['direct', 'table'], was '{0}'".format(obj['type']))

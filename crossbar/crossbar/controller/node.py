@@ -298,7 +298,7 @@ class Node:
                                             o = json.loads(d)
                                             if isinstance(o, dict) and '$schema' in o and o['$schema'] == u'http://wamp.ws/schema#':
                                                 uri = o['uri']
-                                                if not uri in schemas:
+                                                if uri not in schemas:
                                                     schemas[uri] = {}
                                                 schemas[uri].update(o)
                                                 cnt_decls += 1
