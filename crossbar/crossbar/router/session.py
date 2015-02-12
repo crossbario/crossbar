@@ -166,11 +166,13 @@ class CrossbarRouterSession(RouterSession):
                            }
                            d = service_session.call(cfg['authenticator'], realm, details.authid, session_details)
 
-                           def on_authenticate_ok(user):
+                           def on_authenticate_ok(response):
+
+                              authid = response.get("authid", details.authid)
 
                               ## construct a pending WAMP-CRA authentication
                               ##
-                              self._pending_auth = PendingAuthWampCra(details.pending_session, details.authid, user['role'], u'dynamic', user['secret'].encode('utf8'))
+                              self._pending_auth = PendingAuthWampCra(details.pending_session, authid, response['role'], u'dynamic', response['secret'].encode('utf8'))
 
                               ## send challenge to client
                               ##
@@ -181,15 +183,15 @@ class CrossbarRouterSession(RouterSession):
                               ## when using salted passwords, provide the client with
                               ## the salt and the PBKDF2 parameters used
                               ##
-                              if 'salt' in user:
-                                 extra[u'salt'] = user['salt']
-                                 extra[u'iterations'] = user.get('iterations', 1000)
-                                 extra[u'keylen'] = user.get('keylen', 32)
+                              if 'salt' in response:
+                                 extra[u'salt'] = response['salt']
+                                 extra[u'iterations'] = response.get('iterations', 1000)
+                                 extra[u'keylen'] = response.get('keylen', 32)
 
                               return types.Challenge(u'wampcra', extra)
 
                            def on_authenticate_error(err):
-                           
+
                               error = None
                               message = "dynamic WAMP-CRA credential getter failed: {}".format(err)
 
@@ -390,9 +392,16 @@ class CrossbarRouterSession(RouterSession):
                service_session = self._router_factory.get(self._pending_auth.realm)._realm.session
                d = service_session.call(self._pending_auth.authprovider, self._pending_auth.realm, self._pending_auth.authid, signature)
 
-               def on_authenticate_ok(role):
-                  return types.Accept(authid = self._pending_auth.authid,
-                     authrole = role,
+               def on_authenticate_ok(response):
+                  if isinstance(response, dict):
+                     authid = response.get("authid", self._pending_auth.authid)
+                     authrole = response["role"]
+                  else:
+                     authid = self._pending_auth.authid
+                     authrole = response
+
+                  return types.Accept(authid = authid,
+                     authrole = authrole,
                      authmethod = self._pending_auth.authmethod,
                      authprovider = self._pending_auth.authprovider)
 
@@ -403,7 +412,7 @@ class CrossbarRouterSession(RouterSession):
                   if isinstance(err.value, ApplicationError):
                      error = err.value.error
                      if err.value.args and len(err.value.args):
-                        message = err.value.args[0]
+                        message = str(err.value.args[0])
 
                   return types.Deny(error, message)
 
