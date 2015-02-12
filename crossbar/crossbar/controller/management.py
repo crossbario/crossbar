@@ -34,7 +34,8 @@ from twisted.internet.error import ProcessDone, \
 
 from autobahn.twisted.wamp import ApplicationSession
 
-import os, sys
+import os
+import sys
 import json
 
 from autobahn.twisted.websocket import WampWebSocketClientFactory, WampWebSocketClientProtocol
@@ -61,7 +62,8 @@ from twisted.internet.protocol import ProcessProtocol
 from crossbar.process import CustomProcessEndpoint
 
 from twisted.internet import protocol
-import re, json
+import re
+import json
 
 
 class NodeManagementSession(ApplicationSession):

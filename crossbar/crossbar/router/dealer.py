@@ -101,8 +101,8 @@ class Dealer(FutureMixin):
         assert(session in self._session_to_registrations)
 
         # check procedure URI
-        ##
-        if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(register.procedure)) or \
+        #
+        if (not self._option_uri_strict and not _URI_PAT_LOOSE_NON_EMPTY.match(register.procedure)) or \
            (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(register.procedure)):
 
             reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, ["register for invalid procedure URI '{0}'".format(register.procedure)])
@@ -113,7 +113,7 @@ class Dealer(FutureMixin):
             if register.procedure not in self._procs_to_regs:
 
                 # authorize action
-                ##
+                #
                 d = self._as_future(self._router.authorize, session, register.procedure, IRouter.ACTION_REGISTER)
 
                 def on_authorize_success(authorized):
@@ -156,12 +156,12 @@ class Dealer(FutureMixin):
 
             if session != reg_session:
                 # procedure was registered by a different session!
-                ##
+                #
                 reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
             else:
                 # alright. the procedure had been registered by the session
                 # that now wants to unregister it.
-                ##
+                #
                 del self._procs_to_regs[procedure]
                 del self._regs_to_procs[unregister.registration]
 
@@ -180,8 +180,8 @@ class Dealer(FutureMixin):
         assert(session in self._session_to_registrations)
 
         # check procedure URI
-        ##
-        if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(call.procedure)) or \
+        #
+        if (not self._option_uri_strict and not _URI_PAT_LOOSE_NON_EMPTY.match(call.procedure)) or \
            (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(call.procedure)):
 
             reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_URI, ["call with invalid procedure URI '{0}'".format(call.procedure)])
@@ -192,7 +192,7 @@ class Dealer(FutureMixin):
             if call.procedure in self._procs_to_regs:
 
                 # validate payload
-                ##
+                #
                 try:
                     self._router.validate('call', call.procedure, call.args, call.kwargs)
                 except Exception as e:
@@ -201,7 +201,7 @@ class Dealer(FutureMixin):
                     return
 
                 # authorize action
-                ##
+                #
                 d = self._as_future(self._router.authorize, session, call.procedure, IRouter.ACTION_CALL)
 
                 def on_authorize_success(authorized):
@@ -271,11 +271,11 @@ class Dealer(FutureMixin):
         if yield_.request in self._invocations:
 
             # get original call message and calling session
-            ##
+            #
             call_msg, call_session = self._invocations[yield_.request]
 
             # validate payload
-            ##
+            #
             is_valid = True
             try:
                 self._router.validate('call_result', call_msg.procedure, yield_.args, yield_.kwargs)
@@ -286,12 +286,12 @@ class Dealer(FutureMixin):
                 reply = message.Result(call_msg.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
 
             # the calling session might have been lost in the meantime ..
-            ##
+            #
             if call_session._transport:
                 call_session._transport.send(reply)
 
             # the call is done if it's a regular call (non-progressive) or if the payload was invalid
-            ##
+            #
             if not yield_.progress or not is_valid:
                 del self._invocations[yield_.request]
 
@@ -307,11 +307,11 @@ class Dealer(FutureMixin):
         if error.request in self._invocations:
 
             # get original call message and calling session
-            ##
+            #
             call_msg, call_session = self._invocations[error.request]
 
             # validate payload
-            ##
+            #
             try:
                 self._router.validate('call_error', call_msg.procedure, error.args, error.kwargs)
             except Exception as e:
@@ -320,12 +320,12 @@ class Dealer(FutureMixin):
                 reply = message.Error(message.Call.MESSAGE_TYPE, call_msg.request, error.error, args=error.args, kwargs=error.kwargs)
 
             # the calling session might have been lost in the meantime ..
-            ##
+            #
             if call_session._transport:
                 call_session._transport.send(reply)
 
             # the call is done
-            ##
+            #
             del self._invocations[error.request]
 
         else:

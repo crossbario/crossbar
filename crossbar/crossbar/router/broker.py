@@ -106,8 +106,8 @@ class Broker(FutureMixin):
         # assert(session in self._session_to_subscriptions)
 
         # check topic URI
-        ##
-        if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(publish.topic)) or \
+        #
+        if (not self._option_uri_strict and not _URI_PAT_LOOSE_NON_EMPTY.match(publish.topic)) or \
            (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(publish.topic)):
 
             if publish.acknowledge:
@@ -119,7 +119,7 @@ class Broker(FutureMixin):
         if publish.topic in self._topic_to_sessions or publish.acknowledge:
 
             # validate payload
-            ##
+            #
             try:
                 self._router.validate('event', publish.topic, publish.args, publish.kwargs)
             except Exception as e:
@@ -128,7 +128,7 @@ class Broker(FutureMixin):
                 return
 
             # authorize action
-            ##
+            #
             d = self._as_future(self._router.authorize, session, publish.topic, IRouter.ACTION_PUBLISH)
 
             def on_authorize_success(authorized):
@@ -142,15 +142,15 @@ class Broker(FutureMixin):
                 else:
 
                     # continue processing if either a) there are subscribers to the topic or b) the publish is to be acknowledged
-                    ##
+                    #
                     if publish.topic in self._topic_to_sessions and self._topic_to_sessions[publish.topic]:
 
                         # initial list of receivers are all subscribers ..
-                        ##
+                        #
                         subscription, receivers = self._topic_to_sessions[publish.topic]
 
                         # filter by "eligible" receivers
-                        ##
+                        #
                         if publish.eligible:
                             eligible = []
                             for s in publish.eligible:
@@ -160,7 +160,7 @@ class Broker(FutureMixin):
                             receivers = set(eligible) & receivers
 
                         # remove "excluded" receivers
-                        ##
+                        #
                         if publish.exclude:
                             exclude = []
                             for s in publish.exclude:
@@ -170,7 +170,7 @@ class Broker(FutureMixin):
                                 receivers = receivers - set(exclude)
 
                         # remove publisher
-                        ##
+                        #
                         if publish.excludeMe is None or publish.excludeMe:
                             #   receivers.discard(session) # bad: this would modify our actual subscriber list
                             me_also = False
@@ -183,13 +183,13 @@ class Broker(FutureMixin):
                     publication = util.id()
 
                     # send publish acknowledge when requested
-                    ##
+                    #
                     if publish.acknowledge:
                         msg = message.Published(publish.request, publication)
                         session._transport.send(msg)
 
                     # if receivers is non-empty, dispatch event ..
-                    ##
+                    #
                     if receivers:
                         if publish.discloseMe:
                             publisher = session._session_id
@@ -220,8 +220,8 @@ class Broker(FutureMixin):
         # assert(session in self._session_to_subscriptions)
 
         # check topic URI
-        ##
-        if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(subscribe.topic)) or \
+        #
+        if (not self._option_uri_strict and not _URI_PAT_LOOSE_NON_EMPTY.match(subscribe.topic)) or \
            (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(subscribe.topic)):
 
             reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, ["subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
@@ -230,7 +230,7 @@ class Broker(FutureMixin):
         else:
 
             # authorize action
-            ##
+            #
             d = self._as_future(self._router.authorize, session, subscribe.topic, IRouter.ACTION_SUBSCRIBE)
 
             def on_authorize_success(authorized):

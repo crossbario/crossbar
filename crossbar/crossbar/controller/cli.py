@@ -123,19 +123,19 @@ def run_command_version(options):
     reactor = install_reactor(options.reactor, options.debug)
 
     # Python
-    ##
+    #
     py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
     if options.debug:
         py_ver += " [%s]" % sys.version.replace('\n', ' ')
 
-    ## Twisted / Reactor
-    ##
+    # Twisted / Reactor
+    #
     tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
     if options.debug:
         tx_ver += " [%s]" % qual(reactor.__class__)
 
     # Autobahn
-    ##
+    #
     import autobahn
     from autobahn.websocket.protocol import WebSocketProtocol
     ab_ver = pkg_resources.require("autobahn")[0].version
@@ -143,7 +143,7 @@ def run_command_version(options):
         ab_ver += " [%s]" % qual(WebSocketProtocol)
 
     # UTF8 Validator
-    ##
+    #
     from autobahn.websocket.utf8validator import Utf8Validator
     s = str(Utf8Validator)
     if 'wsaccel' in s:
@@ -157,7 +157,7 @@ def run_command_version(options):
         utf8_ver += " [%s]" % qual(Utf8Validator)
 
     # XOR Masker
-    ##
+    #
     from autobahn.websocket.xormasker import XorMaskerNull
     s = str(XorMaskerNull)
     if 'wsaccel' in s:
@@ -171,7 +171,7 @@ def run_command_version(options):
         xor_ver += " [%s]" % qual(XorMaskerNull)
 
     # JSON Serializer
-    ##
+    #
     from autobahn.wamp.serializer import JsonObjectSerializer
     s = str(JsonObjectSerializer.JSON_MODULE)
     if 'ujson' in s:
@@ -180,7 +180,7 @@ def run_command_version(options):
         json_ver = 'stdlib'
 
     # MsgPack Serializer
-    ##
+    #
     try:
         import msgpack
         msgpack_ver = 'msgpack-python-%s' % pkg_resources.require('msgpack-python')[0].version
@@ -270,7 +270,7 @@ def run_command_status(options):
     """
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
-    ##
+    #
     pid_data = check_is_running(options.cbdir)
     if pid_data is None:
         # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
@@ -288,7 +288,7 @@ def run_command_stop(options, exit=True):
     """
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
-    ##
+    #
     pid_data = check_is_running(options.cbdir)
     if pid_data:
         pid = pid_data['pid']
@@ -325,7 +325,7 @@ def run_command_start(options):
     """
     # do not allow to run more than one Crossbar.io instance
     # from the same Crossbar.io node directory
-    ##
+    #
     pid_data = check_is_running(options.cbdir)
     if pid_data:
         print("Crossbar.io is already running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
@@ -345,11 +345,11 @@ def run_command_start(options):
             fd.write("{}\n".format(json.dumps(pid_data, sort_keys=False, indent=3, separators=(',', ': '))))
 
     # we use an Autobahn utility to import the "best" available Twisted reactor
-    ##
+    #
     reactor = install_reactor(options.reactor, options.debug)
 
     # remove node PID file when reactor exits
-    ##
+    #
     def remove_pid_file():
         fp = os.path.join(options.cbdir, _PID_FILENAME)
         if os.path.isfile(fp):
@@ -357,7 +357,7 @@ def run_command_start(options):
     reactor.addSystemEventTrigger('after', 'shutdown', remove_pid_file)
 
     # start Twisted logging
-    ##
+    #
     if not options.logdir:
         logfd = sys.stderr
     else:
@@ -378,7 +378,7 @@ def run_command_start(options):
     log.msg("Starting from node directory {}".format(options.cbdir))
 
     # create and start Crossbar.io node
-    ##
+    #
     from crossbar.controller.node import Node
     node = Node(reactor, options)
     node.start()
@@ -445,12 +445,12 @@ def run(prog=None, args=None):
     Entry point of Crossbar.io CLI.
     """
     # create the top-level parser
-    ##
+    #
     parser = argparse.ArgumentParser(prog='crossbar',
                                      description="Crossbar.io - Polyglot application router - http://crossbar.io")
 
     # top-level options
-    ##
+    #
     parser.add_argument('-d',
                         '--debug',
                         action='store_true',
@@ -462,20 +462,20 @@ def run(prog=None, args=None):
                         help='Explicit Twisted reactor selection')
 
     # create subcommand parser
-    ##
+    #
     subparsers = parser.add_subparsers(dest='command',
                                        title='commands',
                                        help='Crossbar.io command to run')
 
     # "version" command
-    ##
+    #
     parser_version = subparsers.add_parser('version',
                                            help='Print software versions.')
 
     parser_version.set_defaults(func=run_command_version)
 
     # "init" command
-    ##
+    #
     parser_init = subparsers.add_parser('init',
                                         help='Initialize a new Crossbar.io node.')
 
@@ -492,14 +492,14 @@ def run(prog=None, args=None):
                              help="Application base directory where to create app and node from template.")
 
     # "templates" command
-    ##
+    #
     parser_templates = subparsers.add_parser('templates',
                                              help='List templates available for initializing a new Crossbar.io node.')
 
     parser_templates.set_defaults(func=run_command_templates)
 
     # "start" command
-    ##
+    #
     parser_start = subparsers.add_parser('start',
                                          help='Start a Crossbar.io node.')
 
@@ -527,7 +527,7 @@ def run(prog=None, args=None):
                               help="Server log level (overrides default 'info')")
 
     # "stop" command
-    ##
+    #
     parser_stop = subparsers.add_parser('stop',
                                         help='Stop a Crossbar.io node.')
 
@@ -539,7 +539,7 @@ def run(prog=None, args=None):
     parser_stop.set_defaults(func=run_command_stop)
 
     # "restart" command
-    ##
+    #
     parser_restart = subparsers.add_parser('restart',
                                            help='Restart a Crossbar.io node.')
 
@@ -551,7 +551,7 @@ def run(prog=None, args=None):
     parser_restart.set_defaults(func=run_command_restart)
 
     # "status" command
-    ##
+    #
     parser_status = subparsers.add_parser('status',
                                           help='Checks whether a Crossbar.io node is running.')
 
@@ -563,7 +563,7 @@ def run(prog=None, args=None):
     parser_status.set_defaults(func=run_command_status)
 
     # "check" command
-    ##
+    #
     parser_check = subparsers.add_parser('check',
                                          help='Check a Crossbar.io node`s local configuration file.')
 
@@ -580,7 +580,7 @@ def run(prog=None, args=None):
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
     # "convert" command
-    ##
+    #
     parser_check = subparsers.add_parser('convert',
                                          help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
@@ -597,7 +597,7 @@ def run(prog=None, args=None):
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
     # parse cmd line args
-    ##
+    #
     options = parser.parse_args(args)
     if args:
         options.argv = [prog] + args
@@ -605,7 +605,7 @@ def run(prog=None, args=None):
         options.argv = sys.argv
 
     # Crossbar.io node directory
-    ##
+    #
     if hasattr(options, 'cbdir'):
         if not options.cbdir:
             if "CROSSBAR_DIR" in os.environ:
@@ -615,7 +615,7 @@ def run(prog=None, args=None):
         options.cbdir = os.path.abspath(options.cbdir)
 
     # Crossbar.io node configuration file
-    ##
+    #
     if hasattr(options, 'config'):
         if not options.config:
             for f in ['config.json', 'config.yaml']:
@@ -629,7 +629,7 @@ def run(prog=None, args=None):
             options.config = os.path.join(options.cbdir, options.config)
 
     # Log directory
-    ##
+    #
     if hasattr(options, 'logdir'):
         if options.logdir:
             options.logdir = os.path.abspath(os.path.join(options.cbdir, options.logdir))
@@ -641,7 +641,7 @@ def run(prog=None, args=None):
                     sys.exit(1)
 
     # run the subcommand selected
-    ##
+    #
     options.func(options)
 
 

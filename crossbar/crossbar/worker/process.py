@@ -26,7 +26,9 @@ def run():
     Entry point into (native) worker processes. This wires up stuff such that
     a worker instance is talking WAMP-over-stdio to the node controller.
     """
-    import os, sys, platform
+    import os
+    import sys
+    import platform
 
     # create the top-level parser
     #

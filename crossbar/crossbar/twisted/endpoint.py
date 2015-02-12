@@ -25,7 +25,8 @@ __all__ = ['create_listening_endpoint_from_config',
            'create_connecting_port_from_config']
 
 
-import os, sys
+import os
+import sys
 
 from twisted.internet import defer
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
