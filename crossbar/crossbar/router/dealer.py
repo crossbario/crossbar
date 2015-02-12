@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ('Dealer',)
-
 from autobahn import util
 from autobahn.wamp import role
 from autobahn.wamp import message
@@ -42,6 +40,8 @@ from autobahn.twisted.wamp import FutureMixin
 
 from crossbar.router.types import RouterOptions
 from crossbar.router.interfaces import IRouter
+
+__all__ = ('Dealer',)
 
 
 class Dealer(FutureMixin):

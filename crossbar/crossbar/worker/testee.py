@@ -30,11 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = (
-    'WebSocketTesteeServerFactory',
-    'StreamTesteeServerFactory',
-)
-
 from twisted.internet import protocol
 
 from autobahn.twisted.websocket import WebSocketServerFactory, \
@@ -42,6 +37,11 @@ from autobahn.twisted.websocket import WebSocketServerFactory, \
 
 import crossbar
 from crossbar.router.protocol import set_websocket_options
+
+__all__ = (
+    'WebSocketTesteeServerFactory',
+    'StreamTesteeServerFactory',
+)
 
 
 class StreamTesteeServerProtocol(protocol.Protocol):

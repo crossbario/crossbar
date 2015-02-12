@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['NativeProcessSession']
-
-
 import gc
 
 from datetime import datetime
@@ -72,12 +69,14 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, \
     RegisterOptions
 
+from crossbar.common import checkconfig
+from crossbar.twisted.endpoint import create_listening_port_from_config
+
 from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
     from crossbar.common.processinfo import ProcessInfo, SystemInfo
 
-from crossbar.common import checkconfig
-from crossbar.twisted.endpoint import create_listening_port_from_config
+__all__ = ('NativeProcessSession',)
 
 
 if _HAS_MANHOLE:

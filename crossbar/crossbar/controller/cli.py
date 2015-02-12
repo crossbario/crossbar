@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['run']
-
 import os
 import sys
 import signal
@@ -48,12 +46,13 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.choosereactor import install_reactor
 
-
 try:
     import psutil
     _HAS_PSUTIL = True
 except ImportError:
     _HAS_PSUTIL = False
+
+__all__ = ('run',)
 
 
 _PID_FILENAME = 'node.pid'

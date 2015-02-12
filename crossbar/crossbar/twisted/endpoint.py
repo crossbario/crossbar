@@ -30,12 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['create_listening_endpoint_from_config',
-           'create_listening_port_from_config',
-           'create_connecting_endpoint_from_config',
-           'create_connecting_port_from_config']
-
-
 import os
 import sys
 
@@ -58,8 +52,12 @@ else:
     from crossbar.twisted.tlsctx import TlsServerContextFactory, \
         TlsClientContextFactory
 
-
 from crossbar.twisted.sharedport import SharedPort
+
+__all__ = ('create_listening_endpoint_from_config',
+           'create_listening_port_from_config',
+           'create_connecting_endpoint_from_config',
+           'create_connecting_port_from_config')
 
 
 def create_listening_endpoint_from_config(config, cbdir, reactor):

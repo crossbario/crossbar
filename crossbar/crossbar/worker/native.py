@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['NativeWorkerSession']
-
 import os
 import sys
 import pkg_resources
@@ -49,13 +47,15 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, \
     RegisterOptions
 
+from crossbar.common import checkconfig
+from crossbar.common.reloader import TrackingModuleReloader
+from crossbar.common.process import NativeProcessSession
+
 from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
     import psutil
 
-from crossbar.common import checkconfig
-from crossbar.common.reloader import TrackingModuleReloader
-from crossbar.common.process import NativeProcessSession
+__all__ = ('NativeWorkerSession',)
 
 
 class NativeWorkerSession(NativeProcessSession):

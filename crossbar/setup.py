@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import sys
+import re
 import platform
 from setuptools import setup, find_packages
 
@@ -39,7 +40,6 @@ CPY = platform.python_implementation() == 'CPython'
 
 # Get package version and docstring from crossbar/__init__.py
 ##
-import re
 PACKAGE_FILE = "crossbar/__init__.py"
 initfile = open(PACKAGE_FILE, "rt").read()
 

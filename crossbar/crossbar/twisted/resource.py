@@ -34,7 +34,6 @@ import datetime
 import hmac
 import hashlib
 import base64
-
 import six
 
 from netaddr.ip import IPAddress, IPNetwork
@@ -42,6 +41,11 @@ from netaddr.ip import IPAddress, IPNetwork
 from twisted.python import log
 from twisted.web.resource import Resource, NoResource
 from twisted.web import server
+
+from autobahn.wamp.types import PublishOptions
+from autobahn.twisted import longpoll
+
+import crossbar
 
 try:
     # triggers module level reactor import
@@ -61,11 +65,6 @@ try:
 except ImportError:
     # Twisted hasn't ported this to Python 3 yet
     _HAS_CGI = False
-
-
-from autobahn.wamp.types import PublishOptions
-
-import crossbar
 
 
 class JsonResource(Resource):
@@ -166,11 +165,6 @@ if _HAS_CGI:
 
         def render(self, request):
             return self.childNotFound.render(request)
-
-
-import os
-import crossbar
-from autobahn.twisted import longpoll
 
 
 class WampLongPollResourceSession(longpoll.WampLongPollResourceSession):

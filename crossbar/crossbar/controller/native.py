@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['create_native_worker_client_factory']
-
 from twisted.python import log
 
 from autobahn.twisted.websocket import WampWebSocketClientFactory, \
@@ -43,6 +41,8 @@ from twisted.internet.error import ProcessDone, \
     ConnectionClosed, \
     ConnectionLost, \
     ConnectionAborted
+
+__all__ = ('create_native_worker_client_factory',)
 
 
 class NativeWorkerClientProtocol(WampWebSocketClientProtocol):

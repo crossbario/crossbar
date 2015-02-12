@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['RouterWorker']
-
-
 import os
 import sys
 import jinja2
@@ -40,13 +37,10 @@ import importlib
 import pkg_resources
 from datetime import datetime
 
-
 from twisted.internet import reactor
-
 from twisted.python import log
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
-
 from twisted.internet.endpoints import serverFromString
 
 from autobahn.twisted.wamp import ApplicationSession
@@ -89,10 +83,8 @@ import pkg_resources
 
 from twisted.web.server import Site
 
-# monkey patch the Twisted Web server identification
 import twisted
 import crossbar
-twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
 
 try:
     from twisted.web.static import File
@@ -114,12 +106,6 @@ from crossbar.twisted.resource import JsonResource, \
 
 from autobahn.twisted.flashpolicy import FlashPolicyFactory
 
-from crossbar.twisted.resource import _HAS_STATIC, _HAS_CGI
-
-if _HAS_CGI:
-    from crossbar.twisted.resource import CgiDirectory
-
-
 from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
 
@@ -127,6 +113,17 @@ from crossbar.worker.native import NativeWorkerSession
 
 from crossbar.common import checkconfig
 from crossbar.twisted.site import patchFileContentTypes
+
+from crossbar.twisted.resource import _HAS_STATIC, _HAS_CGI
+
+if _HAS_CGI:
+    from crossbar.twisted.resource import CgiDirectory
+
+__all__ = ('RouterWorker',)
+
+
+# monkey patch the Twisted Web server identification
+twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
 
 
 EXTRA_MIME_TYPES = {

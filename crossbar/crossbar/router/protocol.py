@@ -30,21 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = [
-    'CrossbarWampWebSocketServerProtocol',
-    'CrossbarWampWebSocketServerFactory',
-
-    'CrossbarWampRawSocketServerProtocol',
-    'CrossbarWampRawSocketServerFactory',
-
-    'CrossbarWampRawSocketClientProtocol',
-    'CrossbarWampRawSocketClientFactory',
-
-    'CrossbarWampWebSocketClientProtocol',
-    'CrossbarWampWebSocketClientFactory',
-]
-
-
 import os
 import datetime
 import traceback
@@ -74,6 +59,17 @@ from crossbar.router.router import RouterFactory, RouterSession, RouterSessionFa
 import crossbar
 
 from crossbar.router.cookiestore import CookieStore, PersistentCookieStore
+
+__all__ = (
+    'CrossbarWampWebSocketServerProtocol',
+    'CrossbarWampWebSocketServerFactory',
+    'CrossbarWampRawSocketServerProtocol',
+    'CrossbarWampRawSocketServerFactory',
+    'CrossbarWampRawSocketClientProtocol',
+    'CrossbarWampRawSocketClientFactory',
+    'CrossbarWampWebSocketClientProtocol',
+    'CrossbarWampWebSocketClientFactory',
+)
 
 
 def set_websocket_options(factory, options):

@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['Node']
-
-
 import os
 import re
 import sys
@@ -59,6 +56,8 @@ from crossbar.controller.process import NodeControllerSession
 
 
 from autobahn.wamp.types import ComponentConfig
+
+__all__ = ('Node',)
 
 
 class Node:

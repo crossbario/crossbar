@@ -30,11 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ('check_config',
-           'check_config_file',
-           'convert_config_file',
-           'check_guest')
-
 import os
 import json
 import re
@@ -47,16 +42,19 @@ from autobahn.websocket.protocol import parseWsUrl
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
     _URI_PAT_LOOSE_NON_EMPTY
 
-
 import yaml
 from yaml import Loader, SafeLoader
+
+__all__ = ('check_config',
+           'check_config_file',
+           'convert_config_file',
+           'check_guest')
+
 
 # Hack: force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
 ##
 # http://stackoverflow.com/a/2967461/884770
 ##
-
-
 def construct_yaml_str(self, node):
     return self.construct_scalar(node)
 

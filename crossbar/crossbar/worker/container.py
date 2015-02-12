@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['ContainerWorkerSession']
-
-
 import os
 import sys
 import importlib
@@ -62,6 +59,8 @@ from crossbar.router.protocol import CrossbarWampWebSocketClientFactory, \
     CrossbarWampRawSocketClientFactory
 
 from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
+
+__all__ = ('ContainerWorkerSession',)
 
 
 class ContainerComponent:

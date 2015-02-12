@@ -30,10 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['RouterWorkerProcess',
-           'ContainerWorkerProcess',
-           'GuestWorkerProcess']
-
 from datetime import datetime
 from collections import deque
 
@@ -41,6 +37,10 @@ from twisted.python import log
 from twisted.internet.defer import Deferred
 
 from autobahn.util import utcnow
+
+__all__ = ('RouterWorkerProcess',
+           'ContainerWorkerProcess',
+           'GuestWorkerProcess')
 
 
 class WorkerProcess:

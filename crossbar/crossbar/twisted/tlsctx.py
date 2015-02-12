@@ -31,7 +31,7 @@
 import tempfile
 
 from OpenSSL import crypto, SSL
-from twisted.internet.ssl import DefaultOpenSSLContextFactory
+from twisted.internet.ssl import DefaultOpenSSLContextFactory, ClientContextFactory
 
 from twisted.python import log
 
@@ -335,9 +335,6 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             # set cached context
             #
             self._context = ctx
-
-
-from twisted.internet.ssl import ClientContextFactory
 
 
 class TlsClientContextFactory(ClientContextFactory):

@@ -46,8 +46,9 @@
 
 import sys
 import socket
+import platform
 
-from twisted.internet import fdesc
+from twisted.internet import fdesc, tcp
 from twisted.python.runtime import platformType
 
 # Flag indiciating support for creating shared sockets with in-kernel
@@ -56,7 +57,6 @@ from twisted.python.runtime import platformType
 # DragonFly BSD does.
 _HAS_SHARED_LOADBALANCED_SOCKET = False
 
-import platform
 if sys.platform.startswith('linux'):
     try:
         # get Linux kernel version, like: (3, 19)
@@ -101,9 +101,6 @@ def create_stream_socket(addressFamily, shared=False):
             raise Exception("shared sockets unsupported on this system")
 
     return s
-
-
-from twisted.internet import tcp
 
 
 class SharedPort(tcp.Port):

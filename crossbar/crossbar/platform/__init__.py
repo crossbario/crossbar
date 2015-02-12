@@ -28,13 +28,12 @@
 #
 #####################################################################################
 
-__all__ = [
+import sys
+
+__all__ = (
     'HAS_FSNOTIFY',
     'DirWatcher'
-]
-
-
-import sys
+)
 
 HAS_FSNOTIFY = False
 DirWatcher = None

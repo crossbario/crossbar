@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['NodeControllerSession', 'create_process_env']
-
-
 import os
 import sys
 import pkg_resources
@@ -73,6 +70,9 @@ from crossbar.twisted.endpoint import create_listening_port_from_config
 from autobahn.twisted.websocket import WampWebSocketServerFactory
 
 from crossbar.platform import HAS_FSNOTIFY, DirWatcher
+
+
+__all__ = ('NodeControllerSession', 'create_process_env')
 
 
 def check_executable(fn):

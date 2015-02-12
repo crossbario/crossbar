@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ('WorkerProcessEndpoint', 'BareFormatFileLogObserver', 'DefaultSystemFileLogObserver')
-
-
 import os
 from collections import deque
 
@@ -43,6 +40,8 @@ from twisted.python.log import FileLogObserver, textFromEventDict
 from twisted.internet.endpoints import _WrapIProtocol, ProcessEndpoint
 from twisted.internet.address import _ProcessAddress
 from twisted.internet import defer
+
+__all__ = ('WorkerProcessEndpoint', 'BareFormatFileLogObserver', 'DefaultSystemFileLogObserver')
 
 
 class _WorkerWrapIProtocol(_WrapIProtocol):

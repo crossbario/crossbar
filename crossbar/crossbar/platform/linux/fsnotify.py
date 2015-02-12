@@ -30,11 +30,10 @@
 
 from __future__ import absolute_import
 
-__all__ = ['DirWatcher']
-
-
 import os
 import pyinotify
+
+__all__ = ('DirWatcher',)
 
 
 class _EventHandler(pyinotify.ProcessEvent):

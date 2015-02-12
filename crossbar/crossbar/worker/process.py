@@ -30,7 +30,7 @@
 
 from __future__ import absolute_import
 
-__all__ = ['run']
+__all__ = ('run',)
 
 
 def run():

@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['NodeSession']
-
-
 from twisted.python import log
 from twisted.internet.defer import Deferred, DeferredList, returnValue, inlineCallbacks
 
@@ -76,6 +73,8 @@ from crossbar.process import CustomProcessEndpoint
 from twisted.internet import protocol
 import re
 import json
+
+__all__ = ('NodeSession',)
 
 
 class NodeManagementSession(ApplicationSession):

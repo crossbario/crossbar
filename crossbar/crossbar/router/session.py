@@ -30,12 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = (
-    'CrossbarRouterSessionFactory',
-    'CrossbarRouterFactory',
-    'CrossbarRouterServiceSession'
-)
-
 import json
 import datetime
 import traceback
@@ -68,6 +62,13 @@ from crossbar.router.interfaces import IRouter
 from crossbar.router.auth import PendingAuthPersona, \
     PendingAuthWampCra, \
     PendingAuthTicket
+
+
+__all__ = (
+    'CrossbarRouterSessionFactory',
+    'CrossbarRouterFactory',
+    'CrossbarRouterServiceSession'
+)
 
 
 class CrossbarRouterSession(RouterSession):

@@ -30,18 +30,17 @@
 
 from __future__ import absolute_import
 
+import json
+
+from autobahn import util
+from autobahn.wamp import auth
+
 __all__ = (
     'PendingAuth',
     'PendingAuthPersona',
     'PendingAuthWampCra',
     'PendingAuthTicket'
 )
-
-
-import json
-
-from autobahn import util
-from autobahn.wamp import auth
 
 
 class PendingAuth:

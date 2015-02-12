@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['TrackingModuleReloader']
-
 import os
 import sys
 
@@ -40,6 +38,8 @@ try:
 except NameError:
     # Python 3
     from imp import reload
+
+__all__ = ('TrackingModuleReloader',)
 
 
 def get_module_path_and_mtime(m):

@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['SystemInfo', 'ProcessInfo']
-
 import sys
 import socket
 
@@ -43,6 +41,8 @@ except ImportError:
     _HAS_PSUTIL = False
 else:
     _HAS_PSUTIL = True
+
+__all__ = ('SystemInfo', 'ProcessInfo')
 
 
 # http://pythonhosted.org/psutil/

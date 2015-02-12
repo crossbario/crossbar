@@ -30,8 +30,10 @@
 
 from __future__ import absolute_import
 
-
 import os
+
+from autobahn.wamp import types
+
 
 if os.environ.get('USE_TWISTED', False):
     USE_TWISTED = True
@@ -42,8 +44,6 @@ elif os.environ.get('USE_ASYNCIO', False):
 else:
     raise Exception("Neither USE_TWISTED nor USE_ASYNCIO set")
 
-
-from autobahn.wamp import types
 
 if USE_TWISTED:
     from twisted.trial import unittest

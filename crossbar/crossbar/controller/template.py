@@ -28,14 +28,13 @@
 #
 #####################################################################################
 
-__all__ = ['Templates']
-
-
 import sys
 import os
 import shutil
 import pkg_resources
 import jinja2
+
+__all__ = ('Templates',)
 
 
 class Templates:
