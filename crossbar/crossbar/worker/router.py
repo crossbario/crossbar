@@ -106,7 +106,7 @@ from crossbar.twisted.resource import _HAS_CGI
 if _HAS_CGI:
     from crossbar.twisted.resource import CgiDirectory
 
-__all__ = ('RouterWorker',)
+__all__ = ('RouterWorkerSession',)
 
 
 # monkey patch the Twisted Web server identification

@@ -41,10 +41,7 @@ import shutil
 from datetime import datetime
 
 from twisted.python import log
-from twisted.internet.defer import Deferred, \
-    DeferredList, \
-    returnValue, \
-    inlineCallbacks
+from twisted.internet.defer import DeferredList, returnValue, inlineCallbacks
 
 from twisted.internet.threads import deferToThread
 

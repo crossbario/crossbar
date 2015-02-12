@@ -45,7 +45,7 @@ from autobahn.twisted.rawsocket import WampRawSocketServerProtocol, \
     WampRawSocketClientProtocol, \
     WampRawSocketClientFactory
 
-from autobahn.websocket.compress import *
+from autobahn.websocket.compress import *  # noqa
 
 import crossbar
 

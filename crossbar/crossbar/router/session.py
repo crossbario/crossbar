@@ -41,7 +41,7 @@ from twisted.python import log
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from autobahn import util
-from autobahn.websocket.compress import *
+from autobahn.websocket.compress import *  # noqa
 
 from autobahn import wamp
 from autobahn.wamp import types
