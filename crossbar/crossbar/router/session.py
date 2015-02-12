@@ -132,19 +132,31 @@ class CrossbarRouterSession(RouterSession):
                                 cfg = self._transport_config['auth']['wampcra']
 
                                 if cfg['type'] == 'static':
+
                                     if details.authid in cfg.get('users', {}):
+
                                         user = cfg['users'][details.authid]
 
-                                        self._pending_auth = PendingAuthWampCra(details.pending_session, details.authid, user['role'], u'static', user['secret'].encode('utf8'))
+                                        # the authid the session will be authenticated as is from the dynamic
+                                        # authenticator response, or when the response doesn't contain an authid,
+                                        # from the HELLO message the client sent
+                                        #
+                                        authid = user.get("authid", details.authid)
+
+                                        # construct a pending WAMP-CRA authentication
+                                        #
+                                        self._pending_auth = PendingAuthWampCra(details.pending_session,
+                                            authid, user['role'], u'static', user['secret'].encode('utf8'))
 
                                         # send challenge to client
-                                        ##
+                                        #
                                         extra = {
                                             u'challenge': self._pending_auth.challenge
                                         }
 
                                         # when using salted passwords, provide the client with
                                         # the salt and then PBKDF2 parameters used
+                                        #
                                         if 'salt' in user:
                                             extra[u'salt'] = user['salt']
                                             extra[u'iterations'] = user.get('iterations', 1000)
@@ -159,7 +171,7 @@ class CrossbarRouterSession(RouterSession):
 
                                     # call the configured dynamic authenticator procedure
                                     # via the router's service session
-                                    ##
+                                    #
                                     service_session = self._router_factory.get(realm)._realm.session
                                     session_details = {
                                         # forward transport level details of the WAMP session that
@@ -174,19 +186,26 @@ class CrossbarRouterSession(RouterSession):
 
                                     def on_authenticate_ok(user):
 
+                                        # the authid the session will be authenticated as is from the dynamic
+                                        # authenticator response, or when the response doesn't contain an authid,
+                                        # from the HELLO message the client sent
+                                        #
+                                        authid = user.get("authid", details.authid)
+
                                         # construct a pending WAMP-CRA authentication
-                                        ##
-                                        self._pending_auth = PendingAuthWampCra(details.pending_session, details.authid, user['role'], u'dynamic', user['secret'].encode('utf8'))
+                                        #
+                                        self._pending_auth = PendingAuthWampCra(details.pending_session,
+                                            authid, user['role'], u'dynamic', user['secret'].encode('utf8'))
 
                                         # send challenge to client
-                                        ##
+                                        #
                                         extra = {
                                             u'challenge': self._pending_auth.challenge
                                         }
 
                                         # when using salted passwords, provide the client with
                                         # the salt and the PBKDF2 parameters used
-                                        ##
+                                        #
                                         if 'salt' in user:
                                             extra[u'salt'] = user['salt']
                                             extra[u'iterations'] = user.get('iterations', 1000)
