@@ -1,18 +1,18 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+# Copyright (C) 2014 Tavendo GmbH
 ##
-##  This program is free software: you can redistribute it and/or modify
-##  it under the terms of the GNU Affero General Public License, version 3,
-##  as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License, version 3,
+# as published by the Free Software Foundation.
 ##
-##  This program is distributed in the hope that it will be useful,
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-##  GNU Affero General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
 ##
-##  You should have received a copy of the GNU Affero General Public License
-##  along with this program. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 ##
 ###############################################################################
 
@@ -32,275 +32,270 @@ from crossbar.router.types import RouterOptions
 from crossbar.router.interfaces import IRouter
 
 
-
 class Broker(FutureMixin):
-   """
-   Basic WAMP broker.
-   """
 
-   def __init__(self, router, options = None):
-      """
+    """
+    Basic WAMP broker.
+    """
 
-      :param router: The router this dealer is part of.
-      :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
-      :param options: Router options.
-      :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
-      """
-      self._router = router
-      self._options = options or RouterOptions()
+    def __init__(self, router, options=None):
+        """
 
-      ## map: session -> set(subscription)
-      ## needed for removeSession
-      self._session_to_subscriptions = {}
+        :param router: The router this dealer is part of.
+        :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
+        :param options: Router options.
+        :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
+        """
+        self._router = router
+        self._options = options or RouterOptions()
 
-      ## map: session_id -> session
-      ## needed for exclude/eligible
-      self._session_id_to_session = {}
+        # map: session -> set(subscription)
+        # needed for removeSession
+        self._session_to_subscriptions = {}
 
-      ## map: topic -> (subscription, set(session))
-      ## needed for PUBLISH and SUBSCRIBE
-      self._topic_to_sessions = {}
+        # map: session_id -> session
+        # needed for exclude/eligible
+        self._session_id_to_session = {}
 
-      ## map: subscription -> (topic, set(session))
-      ## needed for UNSUBSCRIBE
-      self._subscription_to_sessions = {}
+        # map: topic -> (subscription, set(session))
+        # needed for PUBLISH and SUBSCRIBE
+        self._topic_to_sessions = {}
 
-      ## check all topic URIs with strict rules
-      self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
+        # map: subscription -> (topic, set(session))
+        # needed for UNSUBSCRIBE
+        self._subscription_to_sessions = {}
 
-      ## supported features from "WAMP Advanced Profile"
-      self._role_features = role.RoleBrokerFeatures(publisher_identification = True, subscriber_blackwhite_listing = True, publisher_exclusion = True)
+        # check all topic URIs with strict rules
+        self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
 
+        # supported features from "WAMP Advanced Profile"
+        self._role_features = role.RoleBrokerFeatures(publisher_identification=True, subscriber_blackwhite_listing=True, publisher_exclusion=True)
 
-   def attach(self, session):
-      """
-      Implements :func:`crossbar.router.interfaces.IBroker.attach`
-      """
-      assert(session not in self._session_to_subscriptions)
+    def attach(self, session):
+        """
+        Implements :func:`crossbar.router.interfaces.IBroker.attach`
+        """
+        assert(session not in self._session_to_subscriptions)
 
-      self._session_to_subscriptions[session] = set()
-      self._session_id_to_session[session._session_id] = session
+        self._session_to_subscriptions[session] = set()
+        self._session_id_to_session[session._session_id] = session
 
+    def detach(self, session):
+        """
+        Implements :func:`crossbar.router.interfaces.IBroker.detach`
+        """
+        assert(session in self._session_to_subscriptions)
 
-   def detach(self, session):
-      """
-      Implements :func:`crossbar.router.interfaces.IBroker.detach`
-      """
-      assert(session in self._session_to_subscriptions)
+        for subscription in self._session_to_subscriptions[session]:
+            topic, subscribers = self._subscription_to_sessions[subscription]
+            subscribers.discard(session)
+            if not subscribers:
+                del self._subscription_to_sessions[subscription]
+            _, subscribers = self._topic_to_sessions[topic]
+            subscribers.discard(session)
+            if not subscribers:
+                del self._topic_to_sessions[topic]
 
-      for subscription in self._session_to_subscriptions[session]:
-         topic, subscribers = self._subscription_to_sessions[subscription]
-         subscribers.discard(session)
-         if not subscribers:
-            del self._subscription_to_sessions[subscription]
-         _, subscribers = self._topic_to_sessions[topic]
-         subscribers.discard(session)
-         if not subscribers:
-            del self._topic_to_sessions[topic]
+        del self._session_to_subscriptions[session]
+        del self._session_id_to_session[session._session_id]
 
-      del self._session_to_subscriptions[session]
-      del self._session_id_to_session[session._session_id]
+    def processPublish(self, session, publish):
+        """
+        Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
+        """
+        #assert(session in self._session_to_subscriptions)
 
+        # check topic URI
+        ##
+        if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(publish.topic)) or \
+           (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(publish.topic)):
 
-   def processPublish(self, session, publish):
-      """
-      Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
-      """      
-      #assert(session in self._session_to_subscriptions)
+            if publish.acknowledge:
+                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with invalid topic URI '{0}'".format(publish.topic)])
+                session._transport.send(reply)
 
-      ## check topic URI
-      ##
-      if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(publish.topic)) or \
-         (    self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(publish.topic)):
-
-         if publish.acknowledge:
-            reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with invalid topic URI '{0}'".format(publish.topic)])
-            session._transport.send(reply)
-
-         return
-
-      if publish.topic in self._topic_to_sessions or publish.acknowledge:
-
-         ## validate payload
-         ##
-         try:
-            self._router.validate('event', publish.topic, publish.args, publish.kwargs)
-         except Exception as e:
-            reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, ["publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
-            session._transport.send(reply)
             return
 
-         ## authorize action
-         ##
-         d = self._as_future(self._router.authorize, session, publish.topic, IRouter.ACTION_PUBLISH)
+        if publish.topic in self._topic_to_sessions or publish.acknowledge:
 
-         def on_authorize_success(authorized):
+            # validate payload
+            ##
+            try:
+                self._router.validate('event', publish.topic, publish.args, publish.kwargs)
+            except Exception as e:
+                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, ["publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
+                session._transport.send(reply)
+                return
 
-            if not authorized:
+            # authorize action
+            ##
+            d = self._as_future(self._router.authorize, session, publish.topic, IRouter.ACTION_PUBLISH)
 
-               if publish.acknowledge:
-                  reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, ["session not authorized to publish to topic '{0}'".format(publish.topic)])
-                  session._transport.send(reply)
+            def on_authorize_success(authorized):
 
-            else:
+                if not authorized:
 
-               ## continue processing if either a) there are subscribers to the topic or b) the publish is to be acknowledged
-               ##
-               if publish.topic in self._topic_to_sessions and self._topic_to_sessions[publish.topic]:
+                    if publish.acknowledge:
+                        reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, ["session not authorized to publish to topic '{0}'".format(publish.topic)])
+                        session._transport.send(reply)
 
-                  ## initial list of receivers are all subscribers ..
-                  ##
-                  subscription, receivers = self._topic_to_sessions[publish.topic]
+                else:
 
-                  ## filter by "eligible" receivers
-                  ##
-                  if publish.eligible:
-                     eligible = []
-                     for s in publish.eligible:
-                        if s in self._session_id_to_session:
-                           eligible.append(self._session_id_to_session[s])
-                     
-                     receivers = set(eligible) & receivers
+                    # continue processing if either a) there are subscribers to the topic or b) the publish is to be acknowledged
+                    ##
+                    if publish.topic in self._topic_to_sessions and self._topic_to_sessions[publish.topic]:
 
-                  ## remove "excluded" receivers
-                  ##
-                  if publish.exclude:
-                     exclude = []
-                     for s in publish.exclude:
-                        if s in self._session_id_to_session:
-                           exclude.append(self._session_id_to_session[s])
-                     if exclude:
-                        receivers = receivers - set(exclude)
+                        # initial list of receivers are all subscribers ..
+                        ##
+                        subscription, receivers = self._topic_to_sessions[publish.topic]
 
-                  ## remove publisher
-                  ##
-                  if publish.excludeMe is None or publish.excludeMe:
-                  #   receivers.discard(session) # bad: this would modify our actual subscriber list
-                     me_also = False
-                  else:
-                     me_also = True
+                        # filter by "eligible" receivers
+                        ##
+                        if publish.eligible:
+                            eligible = []
+                            for s in publish.eligible:
+                                if s in self._session_id_to_session:
+                                    eligible.append(self._session_id_to_session[s])
 
-               else:
-                  subscription, receivers, me_also = None, [], False
+                            receivers = set(eligible) & receivers
 
-               publication = util.id()
+                        # remove "excluded" receivers
+                        ##
+                        if publish.exclude:
+                            exclude = []
+                            for s in publish.exclude:
+                                if s in self._session_id_to_session:
+                                    exclude.append(self._session_id_to_session[s])
+                            if exclude:
+                                receivers = receivers - set(exclude)
 
-               ## send publish acknowledge when requested
-               ##
-               if publish.acknowledge:
-                  msg = message.Published(publish.request, publication)
-                  session._transport.send(msg)
+                        # remove publisher
+                        ##
+                        if publish.excludeMe is None or publish.excludeMe:
+                            #   receivers.discard(session) # bad: this would modify our actual subscriber list
+                            me_also = False
+                        else:
+                            me_also = True
 
-               ## if receivers is non-empty, dispatch event ..
-               ##
-               if receivers:
-                  if publish.discloseMe:
-                     publisher = session._session_id
-                  else:
-                     publisher = None
-                  msg = message.Event(subscription,
-                                      publication,
-                                      args = publish.args,
-                                      kwargs = publish.kwargs,
-                                      publisher = publisher)
-                  for receiver in receivers:
-                     if me_also or receiver != session:
-                        ## the subscribing session might have been lost in the meantime ..
-                        if receiver._transport:
-                           receiver._transport.send(msg)
+                    else:
+                        subscription, receivers, me_also = None, [], False
 
-         def on_authorize_error(err):
-            if publish.acknowledge:
-               reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)])
-               session._transport.send(reply)
+                    publication = util.id()
 
-         self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+                    # send publish acknowledge when requested
+                    ##
+                    if publish.acknowledge:
+                        msg = message.Published(publish.request, publication)
+                        session._transport.send(msg)
 
+                    # if receivers is non-empty, dispatch event ..
+                    ##
+                    if receivers:
+                        if publish.discloseMe:
+                            publisher = session._session_id
+                        else:
+                            publisher = None
+                        msg = message.Event(subscription,
+                                            publication,
+                                            args=publish.args,
+                                            kwargs=publish.kwargs,
+                                            publisher=publisher)
+                        for receiver in receivers:
+                            if me_also or receiver != session:
+                                # the subscribing session might have been lost in the meantime ..
+                                if receiver._transport:
+                                    receiver._transport.send(msg)
 
-   def processSubscribe(self, session, subscribe):
-      """
-      Implements :func:`crossbar.router.interfaces.IBroker.processSubscribe`
-      """
-      #assert(session in self._session_to_subscriptions)
+            def on_authorize_error(err):
+                if publish.acknowledge:
+                    reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)])
+                    session._transport.send(reply)
 
-      ## check topic URI
-      ##
-      if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(subscribe.topic)) or \
-         (    self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(subscribe.topic)):
+            self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
 
-         reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, ["subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
-         session._transport.send(reply)
+    def processSubscribe(self, session, subscribe):
+        """
+        Implements :func:`crossbar.router.interfaces.IBroker.processSubscribe`
+        """
+        #assert(session in self._session_to_subscriptions)
 
-      else:
+        # check topic URI
+        ##
+        if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(subscribe.topic)) or \
+           (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(subscribe.topic)):
 
-         ## authorize action
-         ##
-         d = self._as_future(self._router.authorize, session, subscribe.topic, IRouter.ACTION_SUBSCRIBE)
-
-         def on_authorize_success(authorized):
-            if not authorized:
-
-               reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])
-
-            else:
-
-               if not subscribe.topic in self._topic_to_sessions:
-                  subscription = util.id()
-                  self._topic_to_sessions[subscribe.topic] = (subscription, set())
-
-               subscription, subscribers = self._topic_to_sessions[subscribe.topic]
-
-               if not session in subscribers:
-                  subscribers.add(session)
-
-               if not subscription in self._subscription_to_sessions:
-                  self._subscription_to_sessions[subscription] = (subscribe.topic, set())
-
-               _, subscribers = self._subscription_to_sessions[subscription]
-               if not session in subscribers:
-                  subscribers.add(session)
-
-               if not subscription in self._session_to_subscriptions[session]:
-                  self._session_to_subscriptions[session].add(subscription)
-
-               reply = message.Subscribed(subscribe.request, subscription)
-
+            reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, ["subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
             session._transport.send(reply)
 
-         def on_authorize_error(err):
-            reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)])
-            session._transport.send(reply)
+        else:
 
-         self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+            # authorize action
+            ##
+            d = self._as_future(self._router.authorize, session, subscribe.topic, IRouter.ACTION_SUBSCRIBE)
 
+            def on_authorize_success(authorized):
+                if not authorized:
 
-   def processUnsubscribe(self, session, unsubscribe):
-      """
-      Implements :func:`crossbar.router.interfaces.IBroker.processUnsubscribe`
-      """
-      #assert(session in self._session_to_subscriptions)
+                    reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])
 
-      if unsubscribe.subscription in self._subscription_to_sessions:
+                else:
 
-         topic, subscribers = self._subscription_to_sessions[unsubscribe.subscription]
+                    if not subscribe.topic in self._topic_to_sessions:
+                        subscription = util.id()
+                        self._topic_to_sessions[subscribe.topic] = (subscription, set())
 
-         subscribers.discard(session)
+                    subscription, subscribers = self._topic_to_sessions[subscribe.topic]
 
-         if not subscribers:
-            del self._subscription_to_sessions[unsubscribe.subscription]
+                    if not session in subscribers:
+                        subscribers.add(session)
 
-         _, subscribers = self._topic_to_sessions[topic]
+                    if not subscription in self._subscription_to_sessions:
+                        self._subscription_to_sessions[subscription] = (subscribe.topic, set())
 
-         subscribers.discard(session)
+                    _, subscribers = self._subscription_to_sessions[subscription]
+                    if not session in subscribers:
+                        subscribers.add(session)
 
-         if not subscribers:
-            del self._topic_to_sessions[topic]
+                    if not subscription in self._session_to_subscriptions[session]:
+                        self._session_to_subscriptions[session].add(subscription)
 
-         self._session_to_subscriptions[session].discard(unsubscribe.subscription)
+                    reply = message.Subscribed(subscribe.request, subscription)
 
-         reply = message.Unsubscribed(unsubscribe.request)
+                session._transport.send(reply)
 
-      else:
-         reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
+            def on_authorize_error(err):
+                reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)])
+                session._transport.send(reply)
 
-      session._transport.send(reply)
+            self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+
+    def processUnsubscribe(self, session, unsubscribe):
+        """
+        Implements :func:`crossbar.router.interfaces.IBroker.processUnsubscribe`
+        """
+        #assert(session in self._session_to_subscriptions)
+
+        if unsubscribe.subscription in self._subscription_to_sessions:
+
+            topic, subscribers = self._subscription_to_sessions[unsubscribe.subscription]
+
+            subscribers.discard(session)
+
+            if not subscribers:
+                del self._subscription_to_sessions[unsubscribe.subscription]
+
+            _, subscribers = self._topic_to_sessions[topic]
+
+            subscribers.discard(session)
+
+            if not subscribers:
+                del self._topic_to_sessions[topic]
+
+            self._session_to_subscriptions[session].discard(unsubscribe.subscription)
+
+            reply = message.Unsubscribed(unsubscribe.request)
+
+        else:
+            reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
+
+        session._transport.send(reply)

@@ -1,18 +1,18 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+# Copyright (C) 2014 Tavendo GmbH
 ##
-##  This program is free software: you can redistribute it and/or modify
-##  it under the terms of the GNU Affero General Public License, version 3,
-##  as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License, version 3,
+# as published by the Free Software Foundation.
 ##
-##  This program is distributed in the hope that it will be useful,
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-##  GNU Affero General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
 ##
-##  You should have received a copy of the GNU Affero General Public License
-##  along with this program. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 ##
 ###############################################################################
 
@@ -32,310 +32,301 @@ from crossbar.router.types import RouterOptions
 from crossbar.router.interfaces import IRouter
 
 
-
 class Dealer(FutureMixin):
-   """
-   Basic WAMP dealer.
-   """
 
-   def __init__(self, router, options):
-      """
+    """
+    Basic WAMP dealer.
+    """
 
-      :param router: The router this dealer is part of.
-      :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
-      :param options: Router options.
-      :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
-      """
-      self._router = router
-      self._options = options or RouterOptions()
+    def __init__(self, router, options):
+        """
 
-      ## map: session -> set(registration)
-      ## needed for removeSession
-      self._session_to_registrations = {}
+        :param router: The router this dealer is part of.
+        :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
+        :param options: Router options.
+        :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
+        """
+        self._router = router
+        self._options = options or RouterOptions()
 
-      ## map: session_id -> session
-      ## needed for exclude/eligible
-      self._session_id_to_session = {}
+        # map: session -> set(registration)
+        # needed for removeSession
+        self._session_to_registrations = {}
 
-      ## map: procedure -> (registration, session)
-      self._procs_to_regs = {}
+        # map: session_id -> session
+        # needed for exclude/eligible
+        self._session_id_to_session = {}
 
-      ## map: registration -> procedure
-      self._regs_to_procs = {}
+        # map: procedure -> (registration, session)
+        self._procs_to_regs = {}
 
-      ## pending callee invocation requests
-      self._invocations = {}
+        # map: registration -> procedure
+        self._regs_to_procs = {}
 
-      ## check all procedure URIs with strict rules
-      self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
+        # pending callee invocation requests
+        self._invocations = {}
 
-      ## supported features from "WAMP Advanced Profile"
-      self._role_features = role.RoleDealerFeatures(caller_identification = True, progressive_call_results = True)
+        # check all procedure URIs with strict rules
+        self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
 
+        # supported features from "WAMP Advanced Profile"
+        self._role_features = role.RoleDealerFeatures(caller_identification=True, progressive_call_results=True)
 
-   def attach(self, session):
-      """
-      Implements :func:`crossbar.router.interfaces.IDealer.attach`
-      """
-      assert(session not in self._session_to_registrations)
+    def attach(self, session):
+        """
+        Implements :func:`crossbar.router.interfaces.IDealer.attach`
+        """
+        assert(session not in self._session_to_registrations)
 
-      self._session_to_registrations[session] = set()
-      self._session_id_to_session[session._session_id] = session
+        self._session_to_registrations[session] = set()
+        self._session_id_to_session[session._session_id] = session
 
+    def detach(self, session):
+        """
+        Implements :func:`crossbar.router.interfaces.IDealer.detach`
+        """
+        assert(session in self._session_to_registrations)
 
-   def detach(self, session):
-      """
-      Implements :func:`crossbar.router.interfaces.IDealer.detach`
-      """
-      assert(session in self._session_to_registrations)
+        for registration in self._session_to_registrations[session]:
+            del self._procs_to_regs[self._regs_to_procs[registration]]
+            del self._regs_to_procs[registration]
 
-      for registration in self._session_to_registrations[session]:
-         del self._procs_to_regs[self._regs_to_procs[registration]]
-         del self._regs_to_procs[registration]
+        del self._session_to_registrations[session]
+        del self._session_id_to_session[session._session_id]
 
-      del self._session_to_registrations[session]
-      del self._session_id_to_session[session._session_id]
+    def processRegister(self, session, register):
+        """
+        Implements :func:`crossbar.router.interfaces.IDealer.processRegister`
+        """
+        assert(session in self._session_to_registrations)
 
+        # check procedure URI
+        ##
+        if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(register.procedure)) or \
+           (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(register.procedure)):
 
-   def processRegister(self, session, register):
-      """
-      Implements :func:`crossbar.router.interfaces.IDealer.processRegister`
-      """
-      assert(session in self._session_to_registrations)
-
-      ## check procedure URI
-      ##
-      if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(register.procedure)) or \
-         (    self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(register.procedure)):
-
-         reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, ["register for invalid procedure URI '{0}'".format(register.procedure)])
-         session._transport.send(reply)
-
-      else:
-
-         if not register.procedure in self._procs_to_regs:
-
-            ## authorize action
-            ##
-            d = self._as_future(self._router.authorize, session, register.procedure, IRouter.ACTION_REGISTER)
-
-            def on_authorize_success(authorized):
-               if authorized:
-                  registration_id = util.id()
-                  self._procs_to_regs[register.procedure] = (registration_id, session, register.discloseCaller, register.discloseCallerTransport)
-                  self._regs_to_procs[registration_id] = register.procedure
-
-                  self._session_to_registrations[session].add(registration_id)
-
-                  reply = message.Registered(register.request, registration_id)
-               else:
-                  reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to register procedure '{0}'".format(register.procedure)])
-
-               session._transport.send(reply)
-
-            def on_authorize_error(err):
-               reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for registering procedure '{0}': {1}".format(register.procedure, err.value)])
-               session._transport.send(reply)
-
-            self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
-
-         else:
-            reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, ["register for already registered procedure '{0}'".format(register.procedure)])
+            reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, ["register for invalid procedure URI '{0}'".format(register.procedure)])
             session._transport.send(reply)
 
+        else:
 
-   def processUnregister(self, session, unregister):
-      """
-      Implements :func:`crossbar.router.interfaces.IDealer.processUnregister`
-      """
-      assert(session in self._session_to_registrations)
+            if not register.procedure in self._procs_to_regs:
 
-      if unregister.registration in self._regs_to_procs:
+                # authorize action
+                ##
+                d = self._as_future(self._router.authorize, session, register.procedure, IRouter.ACTION_REGISTER)
 
-         ## map registration ID to procedure URI
-         procedure = self._regs_to_procs[unregister.registration]
+                def on_authorize_success(authorized):
+                    if authorized:
+                        registration_id = util.id()
+                        self._procs_to_regs[register.procedure] = (registration_id, session, register.discloseCaller, register.discloseCallerTransport)
+                        self._regs_to_procs[registration_id] = register.procedure
 
-         ## get the session that originally registered the procedure
-         _, reg_session, _, _ = self._procs_to_regs[procedure]
+                        self._session_to_registrations[session].add(registration_id)
 
-         if session != reg_session:
-            ## procedure was registered by a different session!
-            ##
+                        reply = message.Registered(register.request, registration_id)
+                    else:
+                        reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to register procedure '{0}'".format(register.procedure)])
+
+                    session._transport.send(reply)
+
+                def on_authorize_error(err):
+                    reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for registering procedure '{0}': {1}".format(register.procedure, err.value)])
+                    session._transport.send(reply)
+
+                self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+
+            else:
+                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, ["register for already registered procedure '{0}'".format(register.procedure)])
+                session._transport.send(reply)
+
+    def processUnregister(self, session, unregister):
+        """
+        Implements :func:`crossbar.router.interfaces.IDealer.processUnregister`
+        """
+        assert(session in self._session_to_registrations)
+
+        if unregister.registration in self._regs_to_procs:
+
+            # map registration ID to procedure URI
+            procedure = self._regs_to_procs[unregister.registration]
+
+            # get the session that originally registered the procedure
+            _, reg_session, _, _ = self._procs_to_regs[procedure]
+
+            if session != reg_session:
+                # procedure was registered by a different session!
+                ##
+                reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
+            else:
+                # alright. the procedure had been registered by the session
+                # that now wants to unregister it.
+                ##
+                del self._procs_to_regs[procedure]
+                del self._regs_to_procs[unregister.registration]
+
+                self._session_to_registrations[session].discard(unregister.registration)
+
+                reply = message.Unregistered(unregister.request)
+        else:
             reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
-         else:
-            ## alright. the procedure had been registered by the session
-            ## that now wants to unregister it.
+
+        session._transport.send(reply)
+
+    def processCall(self, session, call):
+        """
+        Implements :func:`crossbar.router.interfaces.IDealer.processCall`
+        """
+        assert(session in self._session_to_registrations)
+
+        # check procedure URI
+        ##
+        if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(call.procedure)) or \
+           (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(call.procedure)):
+
+            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_URI, ["call with invalid procedure URI '{0}'".format(call.procedure)])
+            session._transport.send(reply)
+
+        else:
+
+            if call.procedure in self._procs_to_regs:
+
+                # validate payload
+                ##
+                try:
+                    self._router.validate('call', call.procedure, call.args, call.kwargs)
+                except Exception as e:
+                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, ["call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
+                    session._transport.send(reply)
+                    return
+
+                # authorize action
+                ##
+                d = self._as_future(self._router.authorize, session, call.procedure, IRouter.ACTION_CALL)
+
+                def on_authorize_success(authorized):
+                    if authorized:
+                        registration_id, endpoint_session, discloseCaller, discloseCallerTransport = self._procs_to_regs[call.procedure]
+
+                        request_id = util.id()
+
+                        if discloseCaller or call.discloseMe:
+                            caller = session._session_id
+                            caller_transport = None
+                            authid = session._authid
+                            authrole = session._authrole
+                            authmethod = session._authmethod
+                            if discloseCallerTransport and hasattr(session._transport, '_transport_info'):
+                                caller_transport = session._transport._transport_info
+                        else:
+                            caller = None
+                            caller_transport = None
+                            authid = None
+                            authrole = None
+                            authmethod = None
+
+                        invocation = message.Invocation(request_id,
+                                                        registration_id,
+                                                        args=call.args,
+                                                        kwargs=call.kwargs,
+                                                        timeout=call.timeout,
+                                                        receive_progress=call.receive_progress,
+                                                        caller=caller,
+                                                        caller_transport=caller_transport,
+                                                        authid=authid,
+                                                        authrole=authrole,
+                                                        authmethod=authmethod)
+
+                        self._invocations[request_id] = (call, session)
+                        endpoint_session._transport.send(invocation)
+                    else:
+                        reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to call procedure '{0}'".format(call.procedure)])
+                        session._transport.send(reply)
+
+                def on_authorize_error(err):
+                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)])
+                    session._transport.send(reply)
+
+                self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+
+            else:
+                reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, ["no procedure '{0}' registered".format(call.procedure)])
+                session._transport.send(reply)
+
+    # noinspection PyUnusedLocal
+    def processCancel(self, session, cancel):
+        """
+        Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
+        """
+        assert(session in self._session_to_registrations)
+
+        raise Exception("not implemented")
+
+    def processYield(self, session, yield_):
+        """
+        Implements :func:`crossbar.router.interfaces.IDealer.processYield`
+        """
+        assert(session in self._session_to_registrations)
+
+        if yield_.request in self._invocations:
+
+            # get original call message and calling session
             ##
-            del self._procs_to_regs[procedure]
-            del self._regs_to_procs[unregister.registration]
+            call_msg, call_session = self._invocations[yield_.request]
 
-            self._session_to_registrations[session].discard(unregister.registration)
+            # validate payload
+            ##
+            is_valid = True
+            try:
+                self._router.validate('call_result', call_msg.procedure, yield_.args, yield_.kwargs)
+            except Exception as e:
+                is_valid = False
+                reply = message.Error(message.Call.MESSAGE_TYPE, call_msg.request, ApplicationError.INVALID_ARGUMENT, ["call result from procedure '{0}' with invalid application payload: {1}".format(call_msg.procedure, e)])
+            else:
+                reply = message.Result(call_msg.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
 
-            reply = message.Unregistered(unregister.request)
-      else:
-         reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
+            # the calling session might have been lost in the meantime ..
+            ##
+            if call_session._transport:
+                call_session._transport.send(reply)
 
-      session._transport.send(reply)
+            # the call is done if it's a regular call (non-progressive) or if the payload was invalid
+            ##
+            if not yield_.progress or not is_valid:
+                del self._invocations[yield_.request]
 
+        else:
+            raise ProtocolError("Dealer.onYield(): YIELD received for non-pending request ID {0}".format(yield_.request))
 
-   def processCall(self, session, call):
-      """
-      Implements :func:`crossbar.router.interfaces.IDealer.processCall`
-      """
-      assert(session in self._session_to_registrations)
+    def processInvocationError(self, session, error):
+        """
+        Implements :func:`crossbar.router.interfaces.IDealer.processInvocationError`
+        """
+        assert(session in self._session_to_registrations)
 
-      ## check procedure URI
-      ##
-      if (not self._option_uri_strict and not  _URI_PAT_LOOSE_NON_EMPTY.match(call.procedure)) or \
-         (    self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(call.procedure)):
+        if error.request in self._invocations:
 
-         reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_URI, ["call with invalid procedure URI '{0}'".format(call.procedure)])
-         session._transport.send(reply)
+            # get original call message and calling session
+            ##
+            call_msg, call_session = self._invocations[error.request]
 
-      else:
-
-         if call.procedure in self._procs_to_regs:
-
-            ## validate payload
+            # validate payload
             ##
             try:
-               self._router.validate('call', call.procedure, call.args, call.kwargs)
+                self._router.validate('call_error', call_msg.procedure, error.args, error.kwargs)
             except Exception as e:
-               reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, ["call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
-               session._transport.send(reply)
-               return
+                reply = message.Error(message.Call.MESSAGE_TYPE, call_msg.request, ApplicationError.INVALID_ARGUMENT, ["call error from procedure '{0}' with invalid application payload: {1}".format(call_msg.procedure, e)])
+            else:
+                reply = message.Error(message.Call.MESSAGE_TYPE, call_msg.request, error.error, args=error.args, kwargs=error.kwargs)
 
-            ## authorize action
+            # the calling session might have been lost in the meantime ..
             ##
-            d = self._as_future(self._router.authorize, session, call.procedure, IRouter.ACTION_CALL)
+            if call_session._transport:
+                call_session._transport.send(reply)
 
-            def on_authorize_success(authorized):
-               if authorized:
-                  registration_id, endpoint_session, discloseCaller, discloseCallerTransport = self._procs_to_regs[call.procedure]
+            # the call is done
+            ##
+            del self._invocations[error.request]
 
-                  request_id = util.id()
-
-                  if discloseCaller or call.discloseMe:
-                     caller = session._session_id
-                     caller_transport = None
-                     authid = session._authid
-                     authrole = session._authrole
-                     authmethod = session._authmethod
-                     if discloseCallerTransport and hasattr(session._transport, '_transport_info'):
-                        caller_transport = session._transport._transport_info
-                  else:
-                     caller = None
-                     caller_transport = None
-                     authid = None
-                     authrole = None
-                     authmethod = None
-
-                  invocation = message.Invocation(request_id,
-                                                  registration_id,
-                                                  args = call.args,
-                                                  kwargs = call.kwargs,
-                                                  timeout = call.timeout,
-                                                  receive_progress = call.receive_progress,
-                                                  caller = caller,
-                                                  caller_transport = caller_transport,
-                                                  authid = authid,
-                                                  authrole = authrole,
-                                                  authmethod = authmethod)
-
-                  self._invocations[request_id] = (call, session)
-                  endpoint_session._transport.send(invocation)
-               else:
-                  reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to call procedure '{0}'".format(call.procedure)])
-                  session._transport.send(reply)                 
-
-            def on_authorize_error(err):
-               reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)])
-               session._transport.send(reply)
-
-            self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
-
-         else:
-            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, ["no procedure '{0}' registered".format(call.procedure)])
-            session._transport.send(reply)
-
-
-   # noinspection PyUnusedLocal
-   def processCancel(self, session, cancel):
-      """
-      Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
-      """
-      assert(session in self._session_to_registrations)
-
-      raise Exception("not implemented")
-
-
-   def processYield(self, session, yield_):
-      """
-      Implements :func:`crossbar.router.interfaces.IDealer.processYield`
-      """
-      assert(session in self._session_to_registrations)
-
-      if yield_.request in self._invocations:
-
-         ## get original call message and calling session
-         ##
-         call_msg, call_session = self._invocations[yield_.request]
-
-         ## validate payload
-         ##
-         is_valid = True
-         try:
-            self._router.validate('call_result', call_msg.procedure, yield_.args, yield_.kwargs)
-         except Exception as e:
-            is_valid = False
-            reply = message.Error(message.Call.MESSAGE_TYPE, call_msg.request, ApplicationError.INVALID_ARGUMENT, ["call result from procedure '{0}' with invalid application payload: {1}".format(call_msg.procedure, e)])
-         else:
-            reply = message.Result(call_msg.request, args = yield_.args, kwargs = yield_.kwargs, progress = yield_.progress)
-
-         ## the calling session might have been lost in the meantime ..
-         ##
-         if call_session._transport:
-            call_session._transport.send(reply)
-
-         ## the call is done if it's a regular call (non-progressive) or if the payload was invalid
-         ##
-         if not yield_.progress or not is_valid:
-            del self._invocations[yield_.request]
-
-      else:
-         raise ProtocolError("Dealer.onYield(): YIELD received for non-pending request ID {0}".format(yield_.request))
-
-
-   def processInvocationError(self, session, error):
-      """
-      Implements :func:`crossbar.router.interfaces.IDealer.processInvocationError`
-      """
-      assert(session in self._session_to_registrations)
-
-      if error.request in self._invocations:
-
-         ## get original call message and calling session
-         ##
-         call_msg, call_session = self._invocations[error.request]
-
-         ## validate payload
-         ##
-         try:
-            self._router.validate('call_error', call_msg.procedure, error.args, error.kwargs)
-         except Exception as e:
-            reply = message.Error(message.Call.MESSAGE_TYPE, call_msg.request, ApplicationError.INVALID_ARGUMENT, ["call error from procedure '{0}' with invalid application payload: {1}".format(call_msg.procedure, e)])
-         else:
-            reply = message.Error(message.Call.MESSAGE_TYPE, call_msg.request, error.error, args = error.args, kwargs = error.kwargs)
-
-
-         ## the calling session might have been lost in the meantime ..
-         ##
-         if call_session._transport:
-            call_session._transport.send(reply)
-
-         ## the call is done
-         ##
-         del self._invocations[error.request]
-
-      else:
-         raise ProtocolError("Dealer.onInvocationError(): ERROR received for non-pending request_type {0} and request ID {1}".format(error.request_type, error.request))
+        else:
+            raise ProtocolError("Dealer.onInvocationError(): ERROR received for non-pending request_type {0} and request ID {1}".format(error.request_type, error.request))

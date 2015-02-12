@@ -1,18 +1,18 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+# Copyright (C) 2014 Tavendo GmbH
 ##
-##  This program is free software: you can redistribute it and/or modify
-##  it under the terms of the GNU Affero General Public License, version 3,
-##  as published by the Free Software Foundation.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License, version 3,
+# as published by the Free Software Foundation.
 ##
-##  This program is distributed in the hope that it will be useful,
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-##  GNU Affero General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
 ##
-##  You should have received a copy of the GNU Affero General Public License
-##  along with this program. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 ##
 ###############################################################################
 
@@ -39,84 +39,82 @@ import socket
 from twisted.internet import fdesc
 from twisted.python.runtime import platformType
 
-## Flag indiciating support for creating shared sockets with in-kernel
-## load-balancing (!). Note that while FreeBSD had SO_REUSEPORT for ages,
-## it does NOT (currently) implement load-balancing. Linux >= 3.9 and
-## DragonFly BSD does.
+# Flag indiciating support for creating shared sockets with in-kernel
+# load-balancing (!). Note that while FreeBSD had SO_REUSEPORT for ages,
+# it does NOT (currently) implement load-balancing. Linux >= 3.9 and
+# DragonFly BSD does.
 _HAS_SHARED_LOADBALANCED_SOCKET = False
 
 import platform
 if sys.platform.startswith('linux'):
-   try:
-      # get Linux kernel version, like: (3, 19)
-      _LINUX_KERNEL_VERSION = tuple(platform.uname()[2].split('.')[:2])
+    try:
+        # get Linux kernel version, like: (3, 19)
+        _LINUX_KERNEL_VERSION = tuple(platform.uname()[2].split('.')[:2])
 
-      ## SO_REUSEPORT only supported for Linux kernels >= 3.9
-      if _LINUX_KERNEL_VERSION[0] >= 3 and _LINUX_KERNEL_VERSION[1] >= 9:
-         _HAS_SHARED_LOADBALANCED_SOCKET = True
+        # SO_REUSEPORT only supported for Linux kernels >= 3.9
+        if _LINUX_KERNEL_VERSION[0] >= 3 and _LINUX_KERNEL_VERSION[1] >= 9:
+            _HAS_SHARED_LOADBALANCED_SOCKET = True
 
-         ## monkey patch missing constant if needed
-         if not hasattr(socket, 'SO_REUSEPORT'):
-            socket.SO_REUSEPORT = 15
-   except:
-      pass
+            # monkey patch missing constant if needed
+            if not hasattr(socket, 'SO_REUSEPORT'):
+                socket.SO_REUSEPORT = 15
+    except:
+        pass
 
 
+def create_stream_socket(addressFamily, shared=False):
+    """
+    Create a new socket for use with Twisted's IReactor.adoptStreamPort.
 
-def create_stream_socket(addressFamily, shared = False):
-   """
-   Create a new socket for use with Twisted's IReactor.adoptStreamPort.
+    :param addressFamily: The socket address family.
+    :type addressFamily: One of socket.AF_INET, socket.AF_INET6, socket.AF_UNIX
+    :param shared: If `True`, request to create a shared, load-balanced socket.
+                   When this feature is not available, throw an exception.
+    :type shared: bool
+    :returns obj -- A socket.
+    """
+    s = socket.socket(addressFamily, socket.SOCK_STREAM)
+    s.setblocking(0)
+    fdesc._setCloseOnExec(s.fileno())
 
-   :param addressFamily: The socket address family.
-   :type addressFamily: One of socket.AF_INET, socket.AF_INET6, socket.AF_UNIX
-   :param shared: If `True`, request to create a shared, load-balanced socket.
-                  When this feature is not available, throw an exception.
-   :type shared: bool
-   :returns obj -- A socket.
-   """
-   s = socket.socket(addressFamily, socket.SOCK_STREAM)
-   s.setblocking(0)
-   fdesc._setCloseOnExec(s.fileno())   
+    if platformType == "posix" and sys.platform != "cygwin":
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-   if platformType == "posix" and sys.platform != "cygwin":
-      s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if shared:
+        if addressFamily not in [socket.AF_INET, socket.AF_INET6]:
+            raise Exception("shared sockets are only supported for TCP")
 
-   if shared:
-      if addressFamily not in [socket.AF_INET, socket.AF_INET6]:
-         raise Exception("shared sockets are only supported for TCP")
+        if _HAS_SHARED_LOADBALANCED_SOCKET:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        else:
+            raise Exception("shared sockets unsupported on this system")
 
-      if _HAS_SHARED_LOADBALANCED_SOCKET:
-         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-      else:
-         raise Exception("shared sockets unsupported on this system")
-
-   return s
-
+    return s
 
 
 from twisted.internet import tcp
 
 
 class SharedPort(tcp.Port):
-   """
-   A custom port which sets socket options for sharing TCP ports between multiple processes.
 
-   port = SharedPort(9000, factory, shared = True)
-   port.startListening()
-   """
+    """
+    A custom port which sets socket options for sharing TCP ports between multiple processes.
 
-   def __init__(self, port, factory, backlog = 50, interface = '', reactor = None, shared = False):
+    port = SharedPort(9000, factory, shared = True)
+    port.startListening()
+    """
 
-      if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
-         raise Exception("shared sockets unsupported on this system")
+    def __init__(self, port, factory, backlog=50, interface='', reactor=None, shared=False):
 
-      tcp.Port.__init__(self, port, factory, backlog, interface, reactor)
+        if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
+            raise Exception("shared sockets unsupported on this system")
 
-      self._shared = shared
+        tcp.Port.__init__(self, port, factory, backlog, interface, reactor)
 
+        self._shared = shared
 
-   def createInternetSocket(self):
-      s = tcp.Port.createInternetSocket(self)
-      if self._shared:
-         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-      return s
+    def createInternetSocket(self):
+        s = tcp.Port.createInternetSocket(self)
+        if self._shared:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        return s
