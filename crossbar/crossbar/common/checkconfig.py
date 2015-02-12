@@ -1336,7 +1336,7 @@ def check_router_realm(realm, silence=False):
     if 'permissions' in realm:
         permissions = realm['permissions']
         if not isinstance(permissions, dict):
-            raise Exception("'permissions' in 'realm' must be a dictionary ({} encountered)\n\n{}".format(type(components), realm))
+            raise Exception("'permissions' in 'realm' must be a dictionary ({} encountered)\n\n{}".format(type(permissions), realm))
 
         for role in sorted(permissions):
             check_or_raise_uri(role, "invalid role URI '{}' in realm permissions".format(role))
@@ -1378,7 +1378,8 @@ def check_router_realm(realm, silence=False):
         for component in components:
             if not silence:
                 print("Checking component item {} ..".format(i))
-            check_component(component)
+            # FIXME
+            # check_component(component)
             i += 1
 
 
@@ -1645,7 +1646,7 @@ def check_guest(guest, silence=False):
         options = guest['options']
 
         if not isinstance(options, dict):
-            raise Exception("'options' must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(worker)))
+            raise Exception("'options' must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(guest)))
 
         check_dict_args({
             'env': (False, [dict]),
@@ -1879,7 +1880,8 @@ def fill_config_from_env(config, keys=None, debug=False):
                 if match and match.groups():
                     envvar = match.groups()[0]
                     if envvar in os.environ:
-                        config[k] = os.environ[envvar]
+                        val = os.environ[envvar]
+                        config[k] = val
                         if debug:
                             print("configuration parameter '{}' set to '{}' from environment variable {}".format(k, val, envvar))
                     else:

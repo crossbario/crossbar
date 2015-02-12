@@ -37,7 +37,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
 
-__all__ = ('NodeSession',)
+__all__ = ('NodeManagementSession',)
 
 
 class NodeManagementSession(ApplicationSession):

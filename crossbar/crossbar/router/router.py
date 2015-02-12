@@ -34,12 +34,9 @@ import six
 
 from autobahn.wamp import types
 from autobahn.wamp import message
-from autobahn.wamp.exception import ProtocolError
 from autobahn.twisted.wamp import FutureMixin
 from autobahn import util
 from autobahn import wamp
-from autobahn.wamp import message
-from autobahn.wamp import types
 from autobahn.wamp.exception import ProtocolError, SessionNotReady
 from autobahn.wamp.types import SessionDetails
 from autobahn.wamp.interfaces import ITransportHandler

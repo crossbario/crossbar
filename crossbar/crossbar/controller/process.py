@@ -618,7 +618,7 @@ class NodeControllerSession(NativeProcessSession):
         :type kill: bool
         """
         if self.debug:
-            log.msg("NodeControllerSession.start_router", id, kill, options)
+            log.msg("NodeControllerSession.start_router", id, kill)
 
         return self._stop_native_worker('router', id, kill, details=details)
 
@@ -633,7 +633,7 @@ class NodeControllerSession(NativeProcessSession):
         :type kill: bool
         """
         if self.debug:
-            log.msg("NodeControllerSession.stop_container", id, kill, options)
+            log.msg("NodeControllerSession.stop_container", id, kill)
 
         return self._stop_native_worker('container', id, kill, details=details)
 

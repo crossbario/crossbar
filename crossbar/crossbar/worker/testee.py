@@ -72,7 +72,7 @@ class WebSocketTesteeServerProtocol(WebSocketServerProtocol):
                                       cbVersion=crossbar.__version__,
                                       wsUri=self.factory.url))
         except Exception as e:
-            log.msg("Error rendering WebSocket status page template: %s" % e)
+            print("Error rendering WebSocket status page template: {}".format(e))
 
 
 class StreamingWebSocketTesteeServerProtocol(WebSocketServerProtocol):

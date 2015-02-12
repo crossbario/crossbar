@@ -41,9 +41,13 @@ from twisted.internet import reactor
 from twisted.python import log
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
+from twisted.web.static import File
 
+from autobahn.util import utcstr
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
+
+from crossbar.twisted.resource import FileNoListing
 
 from crossbar.router.session import CrossbarRouterSessionFactory, \
     CrossbarRouterFactory, \
@@ -55,7 +59,6 @@ from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
 from crossbar.worker.testee import WebSocketTesteeServerFactory, \
     StreamTesteeServerFactory
 
-from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
 from autobahn.wamp.types import RegisterOptions
@@ -74,9 +77,6 @@ from autobahn.twisted.resource import WebSocketResource, \
 from crossbar.twisted.resource import WampLongPollResource, \
     SchemaDocResource
 
-import importlib
-import pkg_resources
-
 from twisted.web.server import Site
 
 import twisted
@@ -94,7 +94,6 @@ from crossbar.twisted.resource import JsonResource, \
 from autobahn.twisted.flashpolicy import FlashPolicyFactory
 
 from autobahn.wamp.types import ComponentConfig
-from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.worker.native import NativeWorkerSession
 

@@ -47,7 +47,7 @@ from crossbar.router.router import RouterFactory, \
 
 from crossbar.router.types import RouterOptions
 
-from crossbar.common import checkconfig
+from crossbar.common.checkconfig import check_config_file
 from crossbar.controller.process import NodeControllerSession
 
 
@@ -105,7 +105,7 @@ class Node:
         ##
         configfile = os.path.join(self.options.cbdir, self.options.config)
         log.msg("Starting from local configuration '{}'".format(configfile))
-        config = checkconfig.check_config_file(configfile, silence=True)
+        config = check_config_file(configfile, silence=True)
 
         self.start_from_config(config)
 
@@ -170,7 +170,7 @@ class Node:
         log.msg("Starting from local config file '{}'".format(configfile))
 
         try:
-            config = controller.config.check_config_file(configfile, silence=True)
+            config = check_config_file(configfile, silence=True)
         except Exception as e:
             log.msg("Fatal: {}".format(e))
             sys.exit(1)
