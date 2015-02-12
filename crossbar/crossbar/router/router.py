@@ -303,10 +303,7 @@ class RouterSession(FutureMixin, BaseSession):
                if msg:
                   self._transport.send(msg)
 
-            def failed(err):
-               print(err.value)
-
-            self._add_future_callbacks(d, success, failed)
+            self._add_future_callbacks(d, success, self._onError)
 
          elif isinstance(msg, message.Authenticate):
 
@@ -327,10 +324,7 @@ class RouterSession(FutureMixin, BaseSession):
                if msg:
                   self._transport.send(msg)
 
-            def failed(err):
-               print(err.value)
-
-            self._add_future_callbacks(d, success, failed)
+            self._add_future_callbacks(d, success, self._onError)
 
          elif isinstance(msg, message.Abort):
 
@@ -420,12 +414,39 @@ class RouterSession(FutureMixin, BaseSession):
       Implements :func:`autobahn.wamp.interfaces.ISession.leave`
       """
       if not self._goodbye_sent:
-         msg = wamp.message.Goodbye(reason = reason, message = message)
+         if reason:
+            msg = wamp.message.Goodbye(reason, message)
+         else:
+            msg = wamp.message.Goodbye(message = message)
+
          self._transport.send(msg)
          self._goodbye_sent = True
       else:
          raise SessionNotReady(u"Already requested to close the session")
 
+
+   def _onError(self, err):
+      try:
+         self.onError(err)
+      except Exception as e:
+         if self.debug:
+            print("exception raised in onError callback: {0}".format(e)) 
+
+      reply = message.Abort(u"wamp.error.authorization_failed", u"Internal server error")
+      self._transport.send(reply)
+
+      self._router.detach(self)
+
+      self._session_id = None
+      self._pending_session_id = None
+
+    
+   def onError(self, err):
+      """
+      Overwride for custom error handling.
+      """
+      if self.debug:
+         print("Catched exception during message processing: {0}".format(err.getTraceback())) # replace with proper logging
 
 
 ITransportHandler.register(RouterSession)
