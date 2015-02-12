@@ -426,7 +426,6 @@ class CrossbarRouterSession(RouterSession):
 
                         if isinstance(principal, dict):
                             # dynamic ticket authenticator returned a dictionary (new)
-                            authrole = role,
                             authid = principal.get("authid", self._pending_auth.authid)
                             authrole = principal["role"]
                         else:
