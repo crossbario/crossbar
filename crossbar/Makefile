@@ -76,3 +76,20 @@ publish: clean
 test:
 	trial crossbar
 #	trial crossbar.router.test
+
+pyflakes:
+	pyflakes .
+
+pep8:
+	pep8 --statistics --ignore=E501 -qq .
+# pep8 --select=E231 --show-source
+
+autopep8:
+	autopep8 -ri --aggressive .
+
+# This will run pep8, pyflakes and can skip lines that end with # noqa
+flake8:
+	flake8 -v --ignore=E501 crossbar
+
+pylint:
+	pylint -d line-too-long,invalid-name crossbar
