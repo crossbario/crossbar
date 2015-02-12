@@ -38,9 +38,11 @@ if USE_TWISTED:
    #import unittest
 
    from autobahn.twisted.wamp import FutureMixin, \
-                                     RouterFactory, \
-                                     RouterSessionFactory, \
                                      ApplicationSession
+
+   from crossbar.router.router import RouterFactory, \
+                                      RouterSessionFactory
+
 elif USE_ASYNCIO:
    import unittest
 
