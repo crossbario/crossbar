@@ -238,20 +238,34 @@ class CrossbarRouterSession(RouterSession):
                                 cfg = self._transport_config['auth']['ticket']
 
                                 # use static principal database from configuration
-                                ##
+                                #
                                 if cfg['type'] == 'static':
 
                                     if details.authid in cfg.get('principals', {}):
-                                        user = cfg['principals'][details.authid]
-                                        self._pending_auth = PendingAuthTicket(realm, details.authid, user['role'], u'static', user['ticket'].encode('utf8'))
+
+                                        principal = cfg['principals'][details.authid]
+
+                                        # the authid the session will be authenticated as is from the principal data, or when
+                                        # the principal data doesn't contain an authid, from the HELLO message the client sent
+                                        #
+                                        authid = principal.get("authid", details.authid)
+
+                                        self._pending_auth = PendingAuthTicket(realm, authid,
+                                            principal['role'], u'static', principal['ticket'].encode('utf8'))
+
                                         return types.Challenge(u'ticket')
                                     else:
                                         return types.Deny(message="no principal with authid '{}' in principal database".format(details.authid))
 
-                                # use configured procedure to dynamically get a ticket
+                                # use configured procedure to dynamically get a ticket for the principal
+                                #
                                 elif cfg['type'] == 'dynamic':
-                                    self._pending_auth = PendingAuthTicket(realm, details.authid, None, cfg['authenticator'], None)
+
+                                    self._pending_auth = PendingAuthTicket(realm, details.authid,
+                                        None, cfg['authenticator'], None)
+
                                     return types.Challenge(u'ticket')
+
                                 else:
                                     return types.Deny(message="illegal WAMP-Ticket authentication config (type '{0}' is unknown)".format(cfg['type']))
 
@@ -358,36 +372,36 @@ class CrossbarRouterSession(RouterSession):
 
         # if there is a pending auth, check the challenge response. The specifics
         # of how to check depend on the authentication method
-        ##
+        #
         if self._pending_auth:
 
             # WAMP-CRA
-            ##
+            #
             if isinstance(self._pending_auth, PendingAuthWampCra):
 
                 if signature == self._pending_auth.signature:
                     # WAMP-CRA authentication signature was valid: accept the client
-                    ##
+                    #
                     return types.Accept(authid=self._pending_auth.authid,
                                         authrole=self._pending_auth.authrole,
                                         authmethod=self._pending_auth.authmethod,
                                         authprovider=self._pending_auth.authprovider)
                 else:
                     # WAMP-CRA authentication signature was invalid: deny client
-                    ##
+                    #
                     return types.Deny(message=u"signature is invalid")
 
             # WAMP-Ticket
-            ##
+            #
             elif isinstance(self._pending_auth, PendingAuthTicket):
 
                 # when doing WAMP-Ticket from static configuration, the ticket we
                 # expect was store on the pending authentication object and we just compare ..
-                ##
+                #
                 if self._pending_auth.authprovider == 'static':
                     if signature == self._pending_auth.ticket:
                         # WAMP-Ticket authentication ticket was valid: accept the client
-                        ##
+                        #
                         return types.Accept(authid=self._pending_auth.authid,
                                             authrole=self._pending_auth.authrole,
                                             authmethod=self._pending_auth.authmethod,
@@ -398,17 +412,31 @@ class CrossbarRouterSession(RouterSession):
                         return types.Deny(message=u"ticket is invalid")
 
                 # WAMP-Ticket dynamic ..
-                ##
+                #
                 else:
                     # call the configured dynamic authenticator procedure
                     # via the router's service session
-                    ##
+                    #
                     service_session = self._router_factory.get(self._pending_auth.realm)._realm.session
-                    d = service_session.call(self._pending_auth.authprovider, self._pending_auth.realm, self._pending_auth.authid, signature)
 
-                    def on_authenticate_ok(role):
-                        return types.Accept(authid=self._pending_auth.authid,
-                                            authrole=role,
+                    d = service_session.call(self._pending_auth.authprovider,
+                        self._pending_auth.realm, self._pending_auth.authid, signature)
+
+                    def on_authenticate_ok(principal):
+
+                        if isinstance(principal, dict):
+                            # dynamic ticket authenticator returned a dictionary (new)
+                            authrole = role,
+                            authid = principal.get("authid", self._pending_auth.authid)
+                            authrole = principal["role"]
+                        else:
+                            # backwards compatibility: dynamic ticket authenticator
+                            # was expected to return a role directly
+                            authid = self._pending_auth.authid
+                            authrole = principal
+
+                        return types.Accept(authid=authid,
+                                            authrole=authrole,
                                             authmethod=self._pending_auth.authmethod,
                                             authprovider=self._pending_auth.authprovider)
 
