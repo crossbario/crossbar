@@ -78,7 +78,7 @@ test:
 #	trial crossbar.router.test
 
 pyflakes:
-	pyflakes .
+	pyflakes crossbar
 
 pep8:
 	pep8 --statistics --ignore=E501 -qq .
@@ -89,7 +89,7 @@ autopep8:
 
 # This will run pep8, pyflakes and can skip lines that end with # noqa
 flake8:
-	flake8 -v --ignore=E501 crossbar
+	flake8 --ignore=E501 crossbar
 
 pylint:
 	pylint -d line-too-long,invalid-name crossbar

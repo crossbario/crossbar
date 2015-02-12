@@ -39,8 +39,8 @@ from pprint import pformat
 
 from autobahn.websocket.protocol import parseWsUrl
 
-from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
-    _URI_PAT_LOOSE_NON_EMPTY
+from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
+# from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY
 
 import yaml
 from yaml import Loader, SafeLoader

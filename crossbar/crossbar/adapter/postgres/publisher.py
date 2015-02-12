@@ -36,11 +36,8 @@ import re
 import os
 from txpostgres import txpostgres
 
-from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.python import util
+from twisted.internet.defer import inlineCallbacks
 
-
-from autobahn import wamp
 from autobahn.twisted.wamp import ApplicationSession
 
 

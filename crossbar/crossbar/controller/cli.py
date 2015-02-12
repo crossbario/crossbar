@@ -37,12 +37,10 @@ import json
 import argparse
 import pkg_resources
 import platform
-import shutil
 import traceback
 
 from twisted.python import log
 from twisted.python.reflect import qual
-from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.choosereactor import install_reactor
 
@@ -147,7 +145,6 @@ def run_command_version(options):
 
     # Autobahn
     #
-    import autobahn
     from autobahn.websocket.protocol import WebSocketProtocol
     ab_ver = pkg_resources.require("autobahn")[0].version
     if options.debug:
@@ -193,7 +190,7 @@ def run_command_version(options):
     # MsgPack Serializer
     #
     try:
-        import msgpack
+        import msgpack  # noqa
         msgpack_ver = 'msgpack-python-%s' % pkg_resources.require('msgpack-python')[0].version
     except ImportError:
         msgpack_ver = '-'

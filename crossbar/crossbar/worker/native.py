@@ -34,20 +34,13 @@ import os
 import sys
 import pkg_resources
 
-from datetime import datetime
-
 from twisted.python import log
-from twisted.internet.defer import Deferred, \
-    DeferredList, \
-    inlineCallbacks, \
-    returnValue
-
+from twisted.internet.defer import DeferredList, inlineCallbacks
 
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, \
     RegisterOptions
 
-from crossbar.common import checkconfig
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcessSession
 

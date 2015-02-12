@@ -30,24 +30,18 @@
 
 from __future__ import absolute_import
 
-import os
-import sys
 import importlib
 import pkg_resources
 import traceback
 
-from six import StringIO
 from datetime import datetime
 
 from twisted.internet import reactor
 from twisted import internet
 from twisted.python import log
-from twisted.internet.defer import Deferred, \
-    DeferredList, \
-    inlineCallbacks, \
-    returnValue
+from twisted.internet.defer import DeferredList, inlineCallbacks, returnValue
 
-from autobahn.util import utcnow, utcstr
+from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, \
     PublishOptions, \

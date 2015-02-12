@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import os
-import sys
 
 from twisted.internet import defer
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
@@ -42,7 +41,6 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     UNIXClientEndpoint
 
 try:
-    from OpenSSL import crypto, SSL
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
 except ImportError:

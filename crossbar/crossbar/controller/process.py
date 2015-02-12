@@ -33,9 +33,12 @@ from __future__ import absolute_import
 import os
 import sys
 import pkg_resources
-import shutilwhich  # Python 3 backport of shutil.which
+
+# backport of shutil.which
+import shutilwhich  # noqa
 import shutil
-from datetime import datetime, timedelta
+
+from datetime import datetime
 
 from twisted.python import log
 from twisted.internet.defer import Deferred, \
@@ -47,12 +50,8 @@ from twisted.internet.threads import deferToThread
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, \
-    RegisterOptions, \
-    CallDetails
-
+from autobahn.wamp.types import PublishOptions, RegisterOptions
 from autobahn.twisted.util import sleep
-from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint

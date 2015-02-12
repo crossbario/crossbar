@@ -34,13 +34,8 @@ import json
 
 from twisted.python import log
 from twisted.internet import protocol
-from twisted.internet.error import ProcessDone, \
-    ProcessTerminated, \
-    ProcessExitedAlready, \
-    ConnectionDone, \
-    ConnectionClosed, \
-    ConnectionLost, \
-    ConnectionAborted
+from twisted.internet.error import ProcessDone, ProcessTerminated, ProcessExitedAlready
+# from twisted.internet.error import ConnectionDone, ConnectionClosed, ConnectionLost, ConnectionAborted
 
 __all__ = ('create_guest_worker_client_factory',)
 

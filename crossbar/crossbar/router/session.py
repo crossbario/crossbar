@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import json
-import datetime
 import traceback
 from pytrie import StringTrie
 from collections import namedtuple
@@ -39,22 +38,17 @@ from collections import namedtuple
 from six.moves import urllib
 
 from twisted.python import log
-from twisted.python.failure import Failure
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from autobahn import util
-from autobahn.websocket import http
 from autobahn.websocket.compress import *
 
 from autobahn import wamp
 from autobahn.wamp import types
-from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import Router, RouterFactory, RouterSession, RouterSessionFactory
-
-import crossbar
 
 from crossbar.router.types import RouterOptions
 from crossbar.router.interfaces import IRouter

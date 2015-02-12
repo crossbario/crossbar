@@ -41,7 +41,6 @@ from twisted.internet import reactor
 from twisted.python import log
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
-from twisted.internet.endpoints import serverFromString
 
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
@@ -59,9 +58,7 @@ from crossbar.worker.testee import WebSocketTesteeServerFactory, \
 from twisted.internet import reactor
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
-from autobahn.wamp.types import PublishOptions, \
-    RegisterOptions
-
+from autobahn.wamp.types import RegisterOptions
 
 try:
     from twisted.web.wsgi import WSGIResource
@@ -69,7 +66,6 @@ try:
 except ImportError:
     # Twisted hasn't ported this to Python 3 yet
     _HAS_WSGI = False
-
 
 from autobahn.twisted.resource import WebSocketResource, \
     WSGIRootResource, \
@@ -85,15 +81,6 @@ from twisted.web.server import Site
 
 import twisted
 import crossbar
-
-try:
-    from twisted.web.static import File
-    from crossbar.twisted.resource import FileNoListing
-    _HAS_STATIC = True
-except ImportError:
-    # Twisted hasn't ported this to Python 3 yet
-    _HAS_STATIC = False
-
 
 from twisted.web.resource import Resource
 
@@ -114,7 +101,7 @@ from crossbar.worker.native import NativeWorkerSession
 from crossbar.common import checkconfig
 from crossbar.twisted.site import patchFileContentTypes
 
-from crossbar.twisted.resource import _HAS_STATIC, _HAS_CGI
+from crossbar.twisted.resource import _HAS_CGI
 
 if _HAS_CGI:
     from crossbar.twisted.resource import CgiDirectory

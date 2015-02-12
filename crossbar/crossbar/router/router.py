@@ -30,43 +30,24 @@
 
 from __future__ import absolute_import
 
+import six
+
 from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 from autobahn.twisted.wamp import FutureMixin
+from autobahn import util
+from autobahn import wamp
+from autobahn.wamp import message
+from autobahn.wamp import types
+from autobahn.wamp.exception import ProtocolError, SessionNotReady
+from autobahn.wamp.types import SessionDetails
+from autobahn.wamp.interfaces import ITransportHandler
+from autobahn.wamp.protocol import BaseSession
 
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
 from crossbar.router.types import RouterOptions
-
-
-import inspect
-import six
-from six import StringIO
-import abc
-
-
-from autobahn.wamp.interfaces import ISession, \
-    IPublication, \
-    IPublisher, \
-    ISubscription, \
-    ISubscriber, \
-    ICaller, \
-    IRegistration, \
-    ITransportHandler
-
-from autobahn import util
-from autobahn import wamp
-from autobahn.wamp import uri
-from autobahn.wamp import message
-from autobahn.wamp import types
-from autobahn.wamp import role
-from autobahn.wamp import exception
-from autobahn.wamp.exception import ProtocolError, SessionNotReady
-from autobahn.wamp.types import SessionDetails
-
-
-from autobahn.wamp.protocol import BaseSession
 
 
 class RouterApplicationSession:

@@ -36,8 +36,7 @@ from datetime import datetime
 
 from twisted.python import log
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, \
-    DeferredList, \
+from twisted.internet.defer import DeferredList, \
     inlineCallbacks, \
     returnValue
 
@@ -48,8 +47,9 @@ try:
     # Manhole support needs a couple of packages optional for Crossbar.
     # So we catch import errors and note those.
     ##
-    import Crypto  # twisted.conch.manhole_ssh will import even without, but we _need_ SSH
-    import pyasn1
+    # twisted.conch.manhole_ssh will import even without, but we _need_ SSH
+    import Crypto  # noqa
+    import pyasn1  # noqa
     from twisted.cred import checkers, portal
     from twisted.conch.manhole import ColoredManhole
     from twisted.conch.manhole_ssh import ConchFactory, \
@@ -74,7 +74,8 @@ from crossbar.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
-    from crossbar.common.processinfo import ProcessInfo, SystemInfo
+    from crossbar.common.processinfo import ProcessInfo
+    # from crossbar.common.processinfo import SystemInfo
 
 __all__ = ('NativeProcessSession',)
 

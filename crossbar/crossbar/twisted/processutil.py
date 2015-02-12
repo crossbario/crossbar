@@ -31,10 +31,8 @@
 from __future__ import absolute_import
 
 import os
-from collections import deque
 
 from twisted.python import util
-from twisted.python import log
 from twisted.python.log import FileLogObserver, textFromEventDict
 
 from twisted.internet.endpoints import _WrapIProtocol, ProcessEndpoint

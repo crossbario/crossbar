@@ -30,49 +30,12 @@
 
 from __future__ import absolute_import
 
+import os
+
 from twisted.python import log
-from twisted.internet.defer import Deferred, DeferredList, returnValue, inlineCallbacks
-
-from twisted.internet.error import ProcessDone, \
-    ProcessTerminated, \
-    ConnectionDone, \
-    ConnectionClosed, \
-    ConnectionLost, \
-    ConnectionAborted
-
+from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
-
-import os
-import sys
-import json
-
-from autobahn.twisted.websocket import WampWebSocketClientFactory, WampWebSocketClientProtocol
-from twisted.internet.endpoints import ProcessEndpoint, StandardErrorBehavior
-
-from crossbar.router.router import RouterFactory, RouterSessionFactory
-
-
-import pkg_resources
-from sys import argv, executable
-
-from autobahn.twisted.wamp import ApplicationSessionFactory
-from twisted.internet.endpoints import clientFromString
-
-from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp import types
-
-from autobahn.util import utcnow
-
-import socket
-import os
-
-from twisted.internet.protocol import ProcessProtocol
-from crossbar.process import CustomProcessEndpoint
-
-from twisted.internet import protocol
-import re
-import json
 
 __all__ = ('NodeSession',)
 

@@ -38,12 +38,8 @@ import traceback
 import socket
 
 from twisted.python import log
-from twisted.internet.defer import Deferred, \
-    DeferredList, \
-    returnValue, \
-    inlineCallbacks
+from twisted.internet.defer import inlineCallbacks
 
-from autobahn import wamp
 from autobahn.wamp.types import CallDetails
 
 from crossbar.router.router import RouterFactory, \
@@ -54,8 +50,6 @@ from crossbar.router.types import RouterOptions
 from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
 
-
-from autobahn.wamp.types import ComponentConfig
 
 __all__ = ('Node',)
 

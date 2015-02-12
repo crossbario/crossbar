@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import os
-import datetime
 import traceback
 
 from twisted.python import log
@@ -46,15 +45,7 @@ from autobahn.twisted.rawsocket import WampRawSocketServerProtocol, \
     WampRawSocketClientProtocol, \
     WampRawSocketClientFactory
 
-from twisted.internet.defer import Deferred
-
-from autobahn.websocket import http
 from autobahn.websocket.compress import *
-
-from autobahn.wamp import types
-from autobahn.wamp import message
-
-from crossbar.router.router import RouterFactory, RouterSession, RouterSessionFactory
 
 import crossbar
 
