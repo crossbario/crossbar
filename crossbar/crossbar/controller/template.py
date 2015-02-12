@@ -264,7 +264,7 @@ class Templates:
                         created.append(('file', dst_file))
 
             # force exception to test rollback
-            #a = 1/0
+            # a = 1/0
 
             return template.get('get_started_hint', None)
 

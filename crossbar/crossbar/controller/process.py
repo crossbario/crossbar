@@ -123,7 +123,7 @@ class NodeControllerSession(NativeProcessSession):
         :type node: obj
         """
         NativeProcessSession.__init__(self)
-        #self.debug = node.debug
+        # self.debug = node.debug
         self.debug = False
         self.debug_app = False
 
@@ -145,7 +145,7 @@ class NodeControllerSession(NativeProcessSession):
         exit = Deferred()
 
     def onConnect(self):
-        #self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra.node)
+        # self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra.node)
         self._uri_prefix = 'crossbar.node.{}'.format(self._node_id)
 
         NativeProcessSession.onConnect(self, False)

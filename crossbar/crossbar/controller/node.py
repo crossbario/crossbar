@@ -130,7 +130,7 @@ class Node:
 
         # the node controller singleton WAMP application session
         ##
-        #session_config = ComponentConfig(realm = options.realm, extra = options)
+        # session_config = ComponentConfig(realm = options.realm, extra = options)
 
         self._controller = NodeControllerSession(self)
 

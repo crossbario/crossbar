@@ -25,11 +25,11 @@ from twisted.internet.ssl import DefaultOpenSSLContextFactory
 from twisted.python import log
 
 # Monkey patch missing constants
-##
+#
 # See:
 # - https://bugs.launchpad.net/pyopenssl/+bug/1244201
 # - https://www.openssl.org/docs/ssl/SSL_CTX_set_options.html
-##
+#
 SSL.OP_NO_COMPRESSION = 0x00020000
 SSL.OP_CIPHER_SERVER_PREFERENCE = 0x00400000
 SSL.OP_SINGLE_ECDH_USE = 0x00080000
@@ -50,38 +50,38 @@ SSL_DEFAULT_OPTIONS = SSL.OP_NO_SSLv2 | \
     SSL.OP_NO_TICKET
 
 # List of available ciphers
-##
+#
 # Check via: https://www.ssllabs.com/ssltest/analyze.html?d=myserver.com
-##
+#
 # http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
-##
+#
 
 # http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-#SSL_DEFAULT_CIPHERS = 'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS'
+# SSL_DEFAULT_CIPHERS = 'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS'
 
 # We prefer to make every single cipher (6 in total) _explicit_ (to reduce chances either we or the pattern-matching
 # language inside OpenSSL messes up) and drop support for Windows XP (we do WebSocket anyway).
 # We don't use AES256 and SHA384, to reduce number of ciphers and since the additional security gain seems
 # to worth the additional performance drain.
-##
+#
 SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA'
-#SSL_DEFAULT_CIPHERS = 'AES128-GCM-SHA256'
+# SSL_DEFAULT_CIPHERS = 'AES128-GCM-SHA256'
 
 # Resorted to prioritize ECDH (hence favor performance over cipher strength) - no gain in practice, that doesn't
 # change the effectively accepted cipher with common browsers/clients
-#SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA'
+# SSL_DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA'
 
 
 # Named curves built into OpenSSL .. can be listed using:
-##
+#
 # openssl ecparam -list_curves
-##
+#
 # Only some of those are exposed in pyOpenSSL
-##
+#
 # http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
 
 # curves over binary fields
-##
+#
 SSL.SN_X9_62_c2pnb163v1 = "c2pnb163v1"
 SSL.NID_X9_62_c2pnb163v1 = 684
 
@@ -143,7 +143,7 @@ SSL.SN_X9_62_c2tnb431r1 = "c2tnb431r1"
 SSL.NID_X9_62_c2tnb431r1 = 703
 
 # curves over prime fields
-##
+#
 SSL.SN_X9_62_prime192v1 = "prime192v1"
 SSL.NID_X9_62_prime192v1 = 409
 SSL.SN_X9_62_prime192v2 = "prime192v2"
@@ -160,7 +160,7 @@ SSL.SN_X9_62_prime256v1 = "prime256v1"
 SSL.NID_X9_62_prime256v1 = 415
 
 # map of curve name to curve NID
-##
+#
 ELLIPTIC_CURVES = {
     SSL.SN_X9_62_c2pnb163v1: SSL.NID_X9_62_c2pnb163v1,
     SSL.SN_X9_62_c2pnb163v2: SSL.NID_X9_62_c2pnb163v2,
@@ -193,18 +193,18 @@ ELLIPTIC_CURVES = {
 }
 
 # prime256v1: X9.62/SECG curve over a 256 bit prime field
-##
+#
 # This is elliptic curve "NIST P-256" from here
 # http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
-##
+#
 # This seems to be the most widely used curve
-##
+#
 # http://crypto.stackexchange.com/questions/11310/with-openssl-and-ecdhe-how-to-show-the-actual-curve-being-used
-##
+#
 # and researchers think it is "ok" (other than wrt timing attacks etc)
-##
+#
 # https://twitter.com/hyperelliptic/status/394258454342148096
-##
+#
 ECDH_DEFAULT_CURVE_NAME = "prime256v1"
 ECDH_DEFAULT_CURVE = ELLIPTIC_CURVES[ECDH_DEFAULT_CURVE_NAME]
 
@@ -249,7 +249,7 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
         self._ciphers = str(ciphers) if ciphers else None
 
         # do a SSLv2-compatible handshake even for TLS
-        ##
+        #
         self.sslmethod = SSL.SSLv23_METHOD
 
         self._contextFactory = SSL.Context
@@ -260,7 +260,7 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             ctx = self._contextFactory(self.sslmethod)
 
             # SSL hardening
-            ##
+            #
             ctx.set_options(SSL_DEFAULT_OPTIONS)
 
             if self._ciphers:
@@ -271,10 +271,10 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 log.msg("Using default cipher list.")
 
             # Activate DH(E)
-            ##
+            #
             # http://linux.die.net/man/3/ssl_ctx_set_tmp_dh
             # http://linux.die.net/man/1/dhparam
-            ##
+            #
             if self._dhParamFilename:
                 try:
                     ctx.load_tmp_dh(self._dhParamFilename)
@@ -286,14 +286,14 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 log.msg("Warning: OpenSSL DH modes not active - missing DH param file")
 
             # Activate ECDH(E)
-            ##
+            #
             # This needs pyOpenSSL 0.15
-            ##
+            #
             try:
                 # without setting a curve, ECDH won't be available even if listed
                 # in SSL_DEFAULT_CIPHERS!
                 # curve must be one of OpenSSL.crypto.get_elliptic_curves()
-                ##
+                #
                 curve = crypto.get_elliptic_curve(ECDH_DEFAULT_CURVE_NAME)
                 ctx.set_tmp_ecdh(curve)
             except Exception as e:
@@ -302,7 +302,7 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 log.msg("Ok, OpenSSL is using ECDH elliptic curve {}".format(ECDH_DEFAULT_CURVE_NAME))
 
             # load certificate (chain) into context
-            ##
+            #
             if not self._chainedCertificate:
                 cert = crypto.load_certificate(crypto.FILETYPE_PEM, self._certificateString)
                 ctx.use_certificate(cert)
@@ -316,13 +316,13 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 ctx.use_certificate_chain_file(f.name)
 
             # load private key into context
-            ##
+            #
             key = crypto.load_privatekey(crypto.FILETYPE_PEM, self._privateKeyString)
             ctx.use_privatekey(key)
             ctx.check_privatekey()
 
             # set cached context
-            ##
+            #
             self._context = ctx
 
 

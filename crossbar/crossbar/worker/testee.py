@@ -91,7 +91,7 @@ class StreamingWebSocketTesteeServerProtocol(WebSocketServerProtocol):
 class WebSocketTesteeServerFactory(WebSocketServerFactory):
 
     protocol = WebSocketTesteeServerProtocol
-    #protocol = StreamingWebSocketTesteeServerProtocol
+    # protocol = StreamingWebSocketTesteeServerProtocol
 
     def __init__(self, config, templates):
         """

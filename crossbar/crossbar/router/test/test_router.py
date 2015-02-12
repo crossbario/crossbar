@@ -35,7 +35,7 @@ from autobahn.wamp import types
 
 if USE_TWISTED:
     from twisted.trial import unittest
-    #import unittest
+    # import unittest
 
     from autobahn.twisted.wamp import FutureMixin, \
         ApplicationSession
@@ -148,4 +148,4 @@ class TestEmbeddedSessions(unittest.TestCase):
         else:
             raise Exception("logic error")
 
-        #d.addCallback(self.assertEqual, expected)
+        # d.addCallback(self.assertEqual, expected)

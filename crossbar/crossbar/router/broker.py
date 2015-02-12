@@ -103,7 +103,7 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
-        #assert(session in self._session_to_subscriptions)
+        # assert(session in self._session_to_subscriptions)
 
         # check topic URI
         ##
@@ -217,7 +217,7 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processSubscribe`
         """
-        #assert(session in self._session_to_subscriptions)
+        # assert(session in self._session_to_subscriptions)
 
         # check topic URI
         ##
@@ -273,7 +273,7 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processUnsubscribe`
         """
-        #assert(session in self._session_to_subscriptions)
+        # assert(session in self._session_to_subscriptions)
 
         if unsubscribe.subscription in self._subscription_to_sessions:
 

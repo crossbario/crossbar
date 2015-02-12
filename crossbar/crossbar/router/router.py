@@ -133,7 +133,7 @@ class RouterApplicationSession:
             self._session._authrole = self._trusted_authrole
             self._session._authmethod = None
             # FIXME: the following does blow up
-            #self._session._authmethod = u'trusted'
+            # self._session._authmethod = u'trusted'
             self._session._authprovider = None
 
             # add app session to router

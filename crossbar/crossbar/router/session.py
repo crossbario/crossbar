@@ -851,7 +851,7 @@ class CrossbarRouter(Router):
             "trusted": CrossbarRouterTrustedRole(self, "trusted", debug=self.debug)
         }
         self._realm = realm
-        #self.debug = True
+        # self.debug = True
 
     def has_role(self, uri):
         """

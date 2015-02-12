@@ -90,11 +90,11 @@ def set_websocket_options(factory, options):
         versions.append(13)
 
     # FIXME: enforce!!
-    ##
-    #self.connectionCap = c.get("max_connections")
+    #
+    # self.connectionCap = c.get("max_connections")
 
     # convert to seconds
-    ##
+    #
     openHandshakeTimeout = float(c.get("open_handshake_timeout", 0))
     if openHandshakeTimeout:
         openHandshakeTimeout = openHandshakeTimeout / 1000.
