@@ -177,7 +177,7 @@ class RouterRealm:
    A realm managed by a router.
    """
 
-   def __init__(self, id, config, session):
+   def __init__(self, id, config, session = None):
       """
       Ctor.
 
@@ -318,18 +318,21 @@ class RouterWorkerSession(NativeWorkerSession):
       if self.debug:
          log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config, schemas)
 
+      # URI of the realm to start
       realm = config['name']
-      cfg = ComponentConfig(realm)
-      session = CrossbarRouterServiceSession(cfg, schemas)
 
-      rlm = RouterRealm(id, config, session)
-
+      # track realm
+      rlm = RouterRealm(id, config)
       self.realms[id] = rlm
       self.realm_to_id[realm] = id
 
-      self.factory.start_realm(rlm)
+      # create a new router for the realm
+      router = self.factory.start_realm(rlm)
 
-      self.session_factory.add(session, authrole = u'trusted')
+      # add a router/realm service session
+      cfg = ComponentConfig(realm)
+      rlm.session = CrossbarRouterServiceSession(cfg, router, schemas)
+      self.session_factory.add(rlm.session, authrole = u'trusted')
 
 
 

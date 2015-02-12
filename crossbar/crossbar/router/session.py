@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014 Tavendo GmbH
+##  Copyright (C) 2014-2015 Tavendo GmbH
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU Affero General Public License, version 3,
@@ -564,16 +564,19 @@ class CrossbarRouterServiceSession(ApplicationSession):
    issue WAMP calls or publish events.
    """
 
-   def __init__(self, config, schemas = None):
+   def __init__(self, config, router, schemas = None):
       """
       Ctor.
 
       :param config: WAMP application component configuration.
       :type config: Instance of :class:`autobahn.wamp.types.ComponentConfig`.
+      :param router: The router this service session is running for.
+      :type: router: instance of :class:`crossbar.router.session.CrossbarRouter`
       :param schemas: An (optional) initial schema dictionary to load.
       :type schemas: dict
       """
       ApplicationSession.__init__(self, config)
+      self._router = router
       self._schemas = {}
       if schemas:
          self._schemas.update(schemas)
@@ -588,6 +591,41 @@ class CrossbarRouterServiceSession(ApplicationSession):
       regs = yield self.register(self)
       if self.debug:
          log.msg("CrossbarRouterServiceSession: registered {} procedures".format(len(regs)))
+
+
+   @wamp.register(u'wamp.broker.subscriber.list')
+   def subscriber_list(self, topic):
+      """
+      WAMP meta procedure to retrieve list of subscribers with detailed
+      per-subscriber information.
+      """
+      topic_to_sessions = self._router._broker._topic_to_sessions
+
+      if topic in topic_to_sessions:
+         subscribers_list = []
+         subscription, subscribers = topic_to_sessions[topic]
+         for subscriber in subscribers:
+            # subscriber is an instance of crossbar.router.session.CrossbarRouterSession
+            subscribers_list.append(subscriber._session_details)
+         return {'subscription': subscription, 'subscribers': subscribers_list}
+      else:
+         # FIXME: API design?
+         #return {'subscription': 0, 'subscribers': []}
+         return {}
+
+
+   @wamp.register(u'wamp.broker.subscriber.count')
+   def subscriber_count(self, topic):
+      """
+      WAMP meta procedure to get the number of subscribers.
+      """
+      topic_to_sessions = self._router._broker._topic_to_sessions
+
+      if topic in topic_to_sessions:
+         _, subscribers = topic_to_sessions[topic]
+         return len(subscribers)
+      else:
+         return 0
 
 
    @wamp.register(u'wamp.reflect.describe')
@@ -946,6 +984,9 @@ class CrossbarRouterFactory(RouterFactory):
 
       :param realm: The realm to start.
       :type realm: instance of :class:`crossbar.worker.router.RouterRealm`.
+
+      :returns: The router instance for the started realm.
+      :rtype: instance of :class:`crossbar.router.session.CrossbarRouter`
       """
       if self.debug:
          log.msg("CrossbarRouterFactory.start_realm(realm = {})".format(realm))
@@ -953,9 +994,13 @@ class CrossbarRouterFactory(RouterFactory):
       uri = realm.config['name']
       assert(uri not in self._routers)
 
-      self._routers[uri] = CrossbarRouter(self, realm, self._options)
+      router = CrossbarRouter(self, realm, self._options)
+
+      self._routers[uri] = router
       if self.debug:
          log.msg("Router created for realm '{}'".format(uri))
+
+      return router
 
 
    def stop_realm(self, realm):
