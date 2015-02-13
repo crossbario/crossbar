@@ -16,6 +16,8 @@ clean:
 	rm -rf ./dist
 	rm -rf ./crossbar.egg-info
 	rm -rf ./.crossbar
+	rm -rf ./_trial_temp
+	rm -rf ./.tox
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;

@@ -1,0 +1,24 @@
+language: python
+
+install:
+  - pip install tox
+
+env:
+  - TOX_ENV=flake8
+  - TOX_ENV=py27twisted
+  - TOX_ENV=pypy2twisted
+
+script:
+  - tox -c crossbar/tox.ini -e $TOX_ENV
+
+# This reportedly works around an issue downloading packages from pypi on
+# travis. Consider removing this after the underlying issue is fixed.
+# https://github.com/travis-ci/travis-ci/issues/2389
+sudo: false
+
+notifications:
+   irc:
+      channels:
+         - "irc.freenode.org#crossbar"
+      use_notice: true
+      skip_join: true

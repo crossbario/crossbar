@@ -7,3 +7,4 @@ build
 /.crossbar
 _trial_temp
 node_modules
+.tox

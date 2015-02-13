@@ -30,53 +30,14 @@
 
 from __future__ import absolute_import
 
-import os
+from twisted.trial import unittest
 
 from autobahn.wamp import types
+from autobahn.twisted.wamp import FutureMixin, \
+    ApplicationSession
 
-
-if os.environ.get('USE_TWISTED', False):
-    USE_TWISTED = True
-    USE_ASYNCIO = False
-elif os.environ.get('USE_ASYNCIO', False):
-    USE_TWISTED = False
-    USE_ASYNCIO = True
-else:
-    raise Exception("Neither USE_TWISTED nor USE_ASYNCIO set")
-
-
-if USE_TWISTED:
-    from twisted.trial import unittest
-    # import unittest
-
-    from autobahn.twisted.wamp import FutureMixin, \
-        ApplicationSession
-
-    from crossbar.router.router import RouterFactory, \
-        RouterSessionFactory
-
-elif USE_ASYNCIO:
-    import unittest
-
-    import logging
-    logger = logging.getLogger('trollius')
-    logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
-
-    try:
-        import asyncio
-    except ImportError:
-        # noinspection PyUnresolvedReferences
-        import trollius as asyncio
-
-    import gc
-
-    from autobahn.asyncio.wamp import FutureMixin, \
-        RouterFactory, \
-        RouterSessionFactory, \
-        ApplicationSession
+from crossbar.router.router import RouterFactory, \
+    RouterSessionFactory
 
 
 class TestEmbeddedSessions(unittest.TestCase):
@@ -89,18 +50,11 @@ class TestEmbeddedSessions(unittest.TestCase):
         """
         Setup router and router session factories.
         """
-        if USE_ASYNCIO:
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-
         self.router_factory = RouterFactory()
         self.session_factory = RouterSessionFactory(self.router_factory)
 
     def tearDown(self):
-        if USE_ASYNCIO:
-            self.loop.close()
-            asyncio.set_event_loop(None)
-            gc.collect()
+        pass
 
     def test_add(self):
         """
@@ -118,12 +72,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         self.session_factory.add(session)
 
-        if USE_ASYNCIO:
-            self.loop.run_until_complete(d)
-        elif USE_TWISTED:
-            return d
-        else:
-            raise Exception("logic error")
+        return d
 
     def test_add_and_subscribe(self):
         """
@@ -153,11 +102,4 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         self.session_factory.add(session)
 
-        if USE_ASYNCIO:
-            self.loop.run_until_complete(d)
-        elif USE_TWISTED:
-            return d
-        else:
-            raise Exception("logic error")
-
-        # d.addCallback(self.assertEqual, expected)
+        return d

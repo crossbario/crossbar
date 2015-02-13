@@ -145,7 +145,10 @@ class CrossbarRouterSession(RouterSession):
                                         # construct a pending WAMP-CRA authentication
                                         #
                                         self._pending_auth = PendingAuthWampCra(details.pending_session,
-                                            authid, user['role'], u'static', user['secret'].encode('utf8'))
+                                                                                authid,
+                                                                                user['role'],
+                                                                                u'static',
+                                                                                user['secret'].encode('utf8'))
 
                                         # send challenge to client
                                         #
@@ -194,7 +197,10 @@ class CrossbarRouterSession(RouterSession):
                                         # construct a pending WAMP-CRA authentication
                                         #
                                         self._pending_auth = PendingAuthWampCra(details.pending_session,
-                                            authid, user['role'], u'dynamic', user['secret'].encode('utf8'))
+                                                                                authid,
+                                                                                user['role'],
+                                                                                u'dynamic',
+                                                                                user['secret'].encode('utf8'))
 
                                         # send challenge to client
                                         #
@@ -250,8 +256,11 @@ class CrossbarRouterSession(RouterSession):
                                         #
                                         authid = principal.get("authid", details.authid)
 
-                                        self._pending_auth = PendingAuthTicket(realm, authid,
-                                            principal['role'], u'static', principal['ticket'].encode('utf8'))
+                                        self._pending_auth = PendingAuthTicket(realm,
+                                                                               authid,
+                                                                               principal['role'],
+                                                                               u'static',
+                                                                               principal['ticket'].encode('utf8'))
 
                                         return types.Challenge(u'ticket')
                                     else:
@@ -261,8 +270,11 @@ class CrossbarRouterSession(RouterSession):
                                 #
                                 elif cfg['type'] == 'dynamic':
 
-                                    self._pending_auth = PendingAuthTicket(realm, details.authid,
-                                        None, cfg['authenticator'], None)
+                                    self._pending_auth = PendingAuthTicket(realm,
+                                                                           details.authid,
+                                                                           None,
+                                                                           cfg['authenticator'],
+                                                                           None)
 
                                     return types.Challenge(u'ticket')
 
@@ -420,7 +432,9 @@ class CrossbarRouterSession(RouterSession):
                     service_session = self._router_factory.get(self._pending_auth.realm)._realm.session
 
                     d = service_session.call(self._pending_auth.authprovider,
-                        self._pending_auth.realm, self._pending_auth.authid, signature)
+                                             self._pending_auth.realm,
+                                             self._pending_auth.authid,
+                                             signature)
 
                     def on_authenticate_ok(principal):
 
