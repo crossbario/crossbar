@@ -91,7 +91,7 @@ extras_require_tls = [
 extras_require_accelerate = [
     "wsaccel>=0.6.2",       # Apache license
     "ujson>=1.33"           # BSD License
-] if CPY else []
+] if CPY else []  # only for CPy (skip for PyPy)!
 
 extras_require_all = extras_require_system + extras_require_manhole + \
     extras_require_msgpack + extras_require_tls + extras_require_accelerate
@@ -140,17 +140,21 @@ setup(
         ]},
     packages=find_packages(),
     include_package_data=True,
-    data_files=[('.', ['LICENSE'])],
+    data_files=[('.', ['LICENSE', 'COPYRIGHT'])],
     zip_safe=False,
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
     ##
     classifiers=["License :: OSI Approved :: GNU Affero General Public License v3",
                  "Development Status :: 3 - Alpha",
+                 "Environment :: No Input/Output (Daemon)",
                  "Environment :: Console",
                  "Framework :: Twisted",
                  "Intended Audience :: Developers",
                  "Operating System :: OS Independent",
-                 "Programming Language :: Python",
+                 "Programming Language :: Python :: 2.6",
+                 "Programming Language :: Python :: 2.7",
+                 "Programming Language :: Python :: Implementation :: CPython",
+                 "Programming Language :: Python :: Implementation :: PyPy",
                  "Topic :: Internet",
                  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
                  "Topic :: Communications",
@@ -159,6 +163,7 @@ setup(
                  "Topic :: Software Development :: Libraries",
                  "Topic :: Software Development :: Libraries :: Application Frameworks",
                  "Topic :: Software Development :: Embedded Systems",
+                 "Topic :: Software Development :: Object Brokering",
                  "Topic :: System :: Distributed Computing",
                  "Topic :: System :: Networking"],
     keywords='crossbar router autobahn autobahn.ws websocket realtime rfc6455 wamp rpc pubsub oracle postgres postgresql'
