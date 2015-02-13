@@ -29,3 +29,62 @@
 #####################################################################################
 
 from __future__ import absolute_import
+
+from pytrie import StringTrie
+
+from autobahn import util
+from autobahn.wamp.message import Subscribe
+
+
+class Subscription(object):
+
+    def __init__(self):
+        self.id = util.id()
+        self.subs = set()
+
+
+class SubscriptionMap(object):
+    """
+    trial crossbar.router.test.test_subscription
+    """
+
+    def __init__(self):
+        self._subs_exact = {}
+        self._subs_prefix = StringTrie()
+
+    def add_subscriber(self, subscriber, topic, match=Subscribe.MATCH_EXACT):
+        """
+        """
+        if match == Subscribe.MATCH_EXACT:
+            if topic not in self._subs_exact:
+                self._subs_exact[topic] = Subscription()
+            sub = self._subs_exact[topic]
+            if subscriber not in sub.subs:
+                sub.subs.add(subscriber)
+            return sub.id
+
+        elif match == Subscribe.MATCH_PREFIX:
+            if topic not in self._subs_prefix:
+                self._subs_prefix[topic] = Subscription()
+            sub = self._subs_prefix[topic]
+            if subscriber not in sub.subs:
+                sub.subs.add(subscriber)
+            return sub.id
+
+        elif match == Subscribe.MATCH_WILDCARD:
+            raise Exception("not implemented")
+
+        else:
+            raise Exception("invalid match strategy '{}'".format(match))
+
+    def get_subscribers(self, topic):
+        """
+        """
+        subs = set()
+        if topic in self._subs_exact:
+            subs.update(self._subs_exact[topic].subs)
+
+        # for key, value in self._subs_prefix.iter_prefix_items(topic):
+        #    print key, value
+
+        return subs

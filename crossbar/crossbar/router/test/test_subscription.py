@@ -32,6 +32,14 @@ from __future__ import absolute_import
 
 import unittest
 
+from autobahn.wamp.message import Subscribe
+
+from crossbar.router.subscription import SubscriptionMap
+
+
+class FakeSubscriber:
+    pass
+
 
 class TestSubscriptionMap(unittest.TestCase):
 
@@ -46,6 +54,105 @@ class TestSubscriptionMap(unittest.TestCase):
         """
         """
 
+    def test_empty_submap(self):
+        """
+        An empty subscriber map returns an empty subscriber set for any topic.
+        """
+        sub_map = SubscriptionMap()
+
+        for topic in [u"com.example.topic1", u"com.example.topic2", u""]:
+            subs = sub_map.get_subscribers(topic)
+            self.assertEqual(subs, set())
+
+    def test_sub_id(self):
+        """
+        When a subscriber is added, a subscription ID is returned.
+        """
+        sub_map = SubscriptionMap()
+
+        topic1 = u"com.example.topic1"
+        sub1 = FakeSubscriber()
+        sub_id = sub_map.add_subscriber(sub1, topic1)
+
+        self.assertEqual(type(sub_id), int)
+
     def test_match_exact(self):
         """
+        When a subscriber subscribes to a topic (match exact),
+        the subscriber is returned for the topic upon lookup.
         """
+        sub_map = SubscriptionMap()
+
+        topic1 = u"com.example.topic1"
+        sub1 = FakeSubscriber()
+
+        sub_map.add_subscriber(sub1, topic1)
+
+        subs = sub_map.get_subscribers(topic1)
+
+        self.assertEqual(subs, set([sub1]))
+
+    def test_match_exact_same(self):
+        """
+        When multiple subscribers subscriber to the same topic (match exact),
+        all are returned for the topic, and all get the same subscription ID.
+        """
+        sub_map = SubscriptionMap()
+
+        topic1 = u"com.example.topic1"
+        sub1 = FakeSubscriber()
+        sub2 = FakeSubscriber()
+        sub3 = FakeSubscriber()
+
+        sub_id1 = sub_map.add_subscriber(sub1, topic1)
+        sub_id2 = sub_map.add_subscriber(sub2, topic1)
+        sub_id3 = sub_map.add_subscriber(sub3, topic1)
+
+        subs = sub_map.get_subscribers(topic1)
+
+        self.assertEqual(subs, set([sub1, sub2, sub3]))
+
+        self.assertEqual(sub_id1, sub_id2)
+        self.assertEqual(sub_id1, sub_id3)
+
+    def test_match_exact_multi(self):
+        """
+        When the same subscriber is added multiple times to the same topic (match exact),
+        the subscribed is only returned once, and every time the same subscription ID is returned.
+        """
+        sub_map = SubscriptionMap()
+
+        topic1 = u"com.example.topic1"
+        sub1 = FakeSubscriber()
+
+        sub_id1 = sub_map.add_subscriber(sub1, topic1)
+        sub_id2 = sub_map.add_subscriber(sub1, topic1)
+        sub_id3 = sub_map.add_subscriber(sub1, topic1)
+
+        subs = sub_map.get_subscribers(topic1)
+
+        self.assertEqual(subs, set([sub1]))
+
+        self.assertEqual(sub_id1, sub_id2)
+        self.assertEqual(sub_id1, sub_id3)
+
+    def test_match_prefix(self):
+        """
+        When a subscriber subscribes to a topic (match prefix),
+        the subscriber is returned for all topics upon lookup
+        where the subscribed topic is a prefix.
+        """
+        sub_map = SubscriptionMap()
+
+        topic_pat1 = u"com.example"
+        sub1 = FakeSubscriber()
+
+        sub_map.add_subscriber(sub1, topic_pat1, match=Subscribe.MATCH_PREFIX)
+
+        for topic in [u"com.example.topic1", topic_pat1]:
+            subs = sub_map.get_subscribers(topic)
+
+            # self.assertEqual(subs, set([sub1]))
+
+        for topic in [u"com.foobar.topic1"]:
+            subs = sub_map.get_subscribers(topic)
