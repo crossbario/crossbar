@@ -4,6 +4,10 @@ Welcome to **Crossbar.io**, the open-source **unified application router**.
 
 ![](legal/agplv3-155x51.png)
 
+[![Build Status](https://travis-ci.org/crossbario/crossbar.png?branch=master)](https://travis-ci.org/crossbario/crossbar)
+&nbsp; ![Version](https://pypip.in/v/crossbar/badge.png)
+&nbsp; ![Downloads](https://pypip.in/d/crossbar/badge.png)
+
 *Join the [mailing list](http://groups.google.com/group/autobahnws), follow us on [Twitter](https://twitter.com/crossbario) and [Quick Start](https://github.com/crossbario/crossbar/wiki/Quick-Start) with Crossbar.io!*
 
 ___________
