@@ -150,9 +150,9 @@ class TestSubscriptionMap(unittest.TestCase):
         sub_map.add_subscriber(sub1, topic_pat1, match=Subscribe.MATCH_PREFIX)
 
         for topic in [u"com.example.topic1", topic_pat1]:
-            subs = sub_map.get_subscribers(topic)
+            sub_map.get_subscribers(topic)
 
             # self.assertEqual(subs, set([sub1]))
 
         for topic in [u"com.foobar.topic1"]:
-            subs = sub_map.get_subscribers(topic)
+            sub_map.get_subscribers(topic)
