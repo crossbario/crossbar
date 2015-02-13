@@ -23,7 +23,7 @@ Crossbar.io is able to generate applications from application templates. The cod
 
 The same licenses applie to the code *generated* from the application templates. E.g., when you do
 
-   crossbar init --template hello:python --appdir $HOME/hello
+    crossbar init --template hello:python --appdir $HOME/hello
 
 Crossbar.io will generate a new WAMP application in the `$HOME/hello` directory from the application template in [hello/python](hello/python). All files generated in `$HOME/hello` are licensed under above licenses.
 
@@ -35,19 +35,19 @@ The Crossbar.io [documentation](https://github.com/crossbario/crossbar/wiki) is 
 
 # Trademarks
 
-"**Crossbar.io**" and "**Unified Application Router**" are word marks of Tavendo.
+"WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.
 
 The Crossbar.io symbol
 
-![](docs/legal/crossbar_icon.png)
+![](../legal/crossbar_icon.png)
 
 and the Crossbar.io logo
 
-![](docs/legal/crossbar_text_vectorized.png)
+![](../legal/crossbar_text_vectorized.png)
 
-as well as Crossbar.io extended logo
+and the Crossbar.io extended logo
 
-![](docs/legal/crossbar_icon_and_text_vectorized.png)
+![](../legal/crossbar_icon_and_text_vectorized.png)
 
 are design marks of Tavendo.
 

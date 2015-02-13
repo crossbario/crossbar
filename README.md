@@ -2,8 +2,10 @@
 
 **Crossbar.io** is an open-source **application router** speaking [WAMP](http://wamp.ws/).
 
-[![AGPL 3.0 Logo](legal/agplv3.png)](http://www.gnu.org/licenses/agpl-3.0.en.html)
-&nbsp; [![Build Status](https://travis-ci.org/crossbario/crossbar.png?branch=master)](https://travis-ci.org/crossbario/crossbar)
+[![WAMP Logo](legal/wamp.png)](http://wamp.ws)
+&nbsp; [![AGPL 3.0 Logo](legal/agplv3.png)](http://www.gnu.org/licenses/agpl-3.0.en.html)
+
+[![Build Status](https://travis-ci.org/crossbario/crossbar.png?branch=master)](https://travis-ci.org/crossbario/crossbar)
 &nbsp; [![Version](https://pypip.in/v/crossbar/badge.png)](https://pypi.python.org/pypi/crossbar)
 &nbsp; [![Downloads](https://pypip.in/d/crossbar/badge.png)](https://pypi.python.org/pypi/crossbar)
 
@@ -17,6 +19,7 @@
 * **[Quick Start](http://crossbar.io/docs/Quick-Start/)**
 * [Documentation](http://crossbar.io/docs/)
 * [Ask a Question](http://stackoverflow.com/questions/ask?tags=crossbar,wamp)
+* [Legal stuff](LEGAL.md)
 
 *Articles:*
 
@@ -28,4 +31,4 @@
 
 ------------
 
-Copyright (C) 2014-2015 [Tavendo GmbH](http://www.tavendo.com). Licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.
+Copyright (C) 2014-2015 [Tavendo GmbH](http://www.tavendo.com). Documentation licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). Code licensed under the [AGPL 3.0](http://www.gnu.org/licenses/agpl-3.0.en.html). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.
