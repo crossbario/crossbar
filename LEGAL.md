@@ -39,15 +39,15 @@ The Crossbar.io [documentation](https://github.com/crossbario/crossbar/wiki) is 
 
 The Crossbar.io symbol
 
-![](../legal/crossbar_icon.png)
+![](crossbar_icon.png)
 
 and the Crossbar.io logo
 
-![](../legal/crossbar_text_vectorized.png)
+![](crossbar_text_vectorized.png)
 
 and the Crossbar.io extended logo
 
-![](../legal/crossbar_icon_and_text_vectorized.png)
+![](crossbar_icon_and_text_vectorized.png)
 
 are design marks of Tavendo.
 

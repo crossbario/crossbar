@@ -1,15 +1,12 @@
 [![Crossbar.io Logo](legal/crossbar_icon_and_text_vectorized.png)](http://crossbar.io/)
 
-**Crossbar.io** is an open-source **application router** speaking [WAMP](http://wamp.ws/).
-
-[![WAMP Logo](legal/wamp.png)](http://wamp.ws)
-&nbsp; [![AGPL 3.0 Logo](legal/agplv3.png)](http://www.gnu.org/licenses/agpl-3.0.en.html)
+**Crossbar.io** is an open-source **[WAMP](http://wamp.ws/) application router** that allows to build advanced applications from loosely-coupled components that can talk in real-time with each other.
 
 [![Build Status](https://travis-ci.org/crossbario/crossbar.png?branch=master)](https://travis-ci.org/crossbario/crossbar)
 &nbsp; [![Version](https://pypip.in/v/crossbar/badge.png)](https://pypi.python.org/pypi/crossbar)
 &nbsp; [![Downloads](https://pypip.in/d/crossbar/badge.png)](https://pypi.python.org/pypi/crossbar)
 
-*Join the [mailing list](http://groups.google.com/group/autobahnws), follow us on [Twitter](https://twitter.com/crossbario) or jump into the [Quick Start](http://crossbar.io/docs/Quick-Start/)*
+*Join the [mailing list](https://groups.google.com/forum/#!forum/crossbario), follow us on [Twitter](https://twitter.com/crossbario) or jump into the [Quick Start](http://crossbar.io/docs/Quick-Start/)*
 
 ------------
 
