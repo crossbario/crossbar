@@ -1,12 +1,12 @@
-![](legal/crossbar_icon_and_text_vectorized.png) 
+[![Crossbar.io Logo](legal/crossbar_icon_and_text_vectorized.png)](http://crossbar.io/)
 
 Welcome to **Crossbar.io**, the open-source **unified application router**.
 
-![](legal/agplv3-155x51.png)
+[![AGPL 3.0 Logo](legal/agplv3-155x51.png)](http://www.gnu.org/licenses/agpl-3.0.en.html)
 
 [![Build Status](https://travis-ci.org/crossbario/crossbar.png?branch=master)](https://travis-ci.org/crossbario/crossbar)
-&nbsp; ![Version](https://pypip.in/v/crossbar/badge.png)
-&nbsp; ![Downloads](https://pypip.in/d/crossbar/badge.png)
+&nbsp; [![Version](https://pypip.in/v/crossbar/badge.png)](https://pypi.python.org/pypi/crossbar)
+&nbsp; [![Downloads](https://pypip.in/d/crossbar/badge.png)](https://pypi.python.org/pypi/crossbar)
 
 *Join the [mailing list](http://groups.google.com/group/autobahnws), follow us on [Twitter](https://twitter.com/crossbario) and [Quick Start](https://github.com/crossbario/crossbar/wiki/Quick-Start) with Crossbar.io!*
 
