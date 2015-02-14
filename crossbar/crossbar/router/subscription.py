@@ -37,39 +37,70 @@ from autobahn.wamp.message import Subscribe
 
 
 class Subscription(object):
+    """
+    Represents a subscription maintained by the broker.
+    """
 
-    def __init__(self):
+    def __init__(self, topic, match):
+        # topic this subscription is created for
+        self.topic = topic
+
+        # matching method this subscription is created for
+        self.match = match
+
+        # generate a new ID for the subscription
         self.id = util.id()
-        self.subs = set()
+
+        # set of subscribers
+        self.subscribers = set()
 
 
 class SubscriptionMap(object):
     """
+    Represents the current set of subscriptions maintained by the broker.
+
     trial crossbar.router.test.test_subscription
     """
 
     def __init__(self):
-        self._subs_exact = {}
-        self._subs_prefix = StringTrie()
+        self._subscriptions_exact = {}
+        self._subscriptions_prefix = StringTrie()
 
     def add_subscriber(self, subscriber, topic, match=Subscribe.MATCH_EXACT):
         """
+        Adds a subscriber to the subscription set and returns the respective subscription.
+
+        Returns a tuple:
+
+        subscription, was_already_subscribed, was_first_subscriber
         """
         if match == Subscribe.MATCH_EXACT:
-            if topic not in self._subs_exact:
-                self._subs_exact[topic] = Subscription()
-            sub = self._subs_exact[topic]
-            if subscriber not in sub.subs:
-                sub.subs.add(subscriber)
-            return sub.id
+
+            # if the exact-matching topic isn't in our map, create a new subscription
+            #
+            if topic not in self._subscriptions_exact:
+                self._subscriptions_exact[topic] = Subscription(topic, match)
+                is_first_subscriber = True
+            else:
+                is_first_subscriber = False
+
+            # get the subscription
+            #
+            subscription = self._subscriptions_exact[topic]
 
         elif match == Subscribe.MATCH_PREFIX:
-            if topic not in self._subs_prefix:
-                self._subs_prefix[topic] = Subscription()
-            sub = self._subs_prefix[topic]
-            if subscriber not in sub.subs:
-                sub.subs.add(subscriber)
-            return sub.id
+
+            # if the prefix-matching topic isn't in our map, create a new subscription
+            #
+            if topic not in self._subscriptions_prefix:
+                self._subscriptions_prefix[topic] = Subscription(topic, match)
+                is_first_subscriber = True
+            else:
+                is_first_subscriber = False
+
+            # get the subscription
+            #
+            subscription = self._subscriptions_prefix[topic]
 
         elif match == Subscribe.MATCH_WILDCARD:
             raise Exception("not implemented")
@@ -77,15 +108,27 @@ class SubscriptionMap(object):
         else:
             raise Exception("invalid match strategy '{}'".format(match))
 
-    def get_subscribers(self, topic):
+        # add subscriber if not already in subscription
+        #
+        if subscriber not in subscription.subscribers:
+            subscription.subscribers.add(subscriber)
+            was_already_subscribed = False
+        else:
+            was_already_subscribed = True
+
+        return subscription, was_already_subscribed, is_first_subscriber
+
+
+
+    def get_subscriptions(self, topic):
         """
         """
-        subs = set()
+        subscriptions = []
 
-        if topic in self._subs_exact:
-            subs.update(self._subs_exact[topic].subs)
+        if topic in self._subscriptions_exact:
+            subscriptions.append(self._subscriptions_exact[topic])
 
-        for subscription in self._subs_prefix.iter_prefix_values(topic):
-            subs.update(subscription.subs)
+        for subscription in self._subscriptions_prefix.iter_prefix_values(topic):
+            subscriptions.append(subscription)
 
-        return subs
+        return subscriptions
