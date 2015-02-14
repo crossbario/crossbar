@@ -144,15 +144,26 @@ class TestSubscriptionMap(unittest.TestCase):
         """
         sub_map = SubscriptionMap()
 
-        topic_pat1 = u"com.example"
         sub1 = FakeSubscriber()
 
-        sub_map.add_subscriber(sub1, topic_pat1, match=Subscribe.MATCH_PREFIX)
+        sub_map.add_subscriber(sub1, u"com.example", match=Subscribe.MATCH_PREFIX)
 
-        for topic in [u"com.example.topic1", topic_pat1]:
-            sub_map.get_subscribers(topic)
+        # test matches
+        for topic in [u"com.example.topic1.foobar.barbaz",
+                      u"com.example.topic1.foobar",
+                      u"com.example.topic1",
+                      u"com.example.topi",
+                      u"com.example.",
+                      u"com.example2",
+                      u"com.example"]:
+            subs = sub_map.get_subscribers(topic)
+            self.assertEqual(subs, set([sub1]))
 
-            # self.assertEqual(subs, set([sub1]))
-
-        for topic in [u"com.foobar.topic1"]:
-            sub_map.get_subscribers(topic)
+        # test non-matches
+        for topic in [u"com.foobar.topic1",
+                      u"com.exampl.topic1",
+                      u"com.exampl",
+                      u"com",
+                      u""]:
+            subs = sub_map.get_subscribers(topic)
+            self.assertEqual(subs, set())

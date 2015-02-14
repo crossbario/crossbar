@@ -81,10 +81,11 @@ class SubscriptionMap(object):
         """
         """
         subs = set()
+
         if topic in self._subs_exact:
             subs.update(self._subs_exact[topic].subs)
 
-        # for key, value in self._subs_prefix.iter_prefix_items(topic):
-        #    print key, value
+        for subscription in self._subs_prefix.iter_prefix_values(topic):
+            subs.update(subscription.subs)
 
         return subs

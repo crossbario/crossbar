@@ -38,6 +38,7 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_LOOSE_NON_EMPTY
 from autobahn.twisted.wamp import FutureMixin
 
+from crossbar.router.subscription import SubscriptionMap
 from crossbar.router.types import RouterOptions
 from crossbar.router.interfaces import IRouter
 

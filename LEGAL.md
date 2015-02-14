@@ -19,7 +19,7 @@ We release all our client libraries (those provided by the [Autobahn project](ht
 
 ## Templates
 
-Crossbar.io is able to generate applications from application templates. The code for application templates within this folder (and folders beneath) is licensed under the [BSD 2-clause open-source license](http://opensource.org/licenses/BSD-2-Clause) or the Apache 2.0 license.
+Crossbar.io is able to generate applications from application templates. The code for application templates within this folder (and folders beneath) is licensed under the [BSD 2-clause open-source license](http://opensource.org/licenses/BSD-2-Clause) or the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0).
 
 The same licenses applie to the code *generated* from the application templates. E.g., when you do
 
@@ -39,15 +39,15 @@ The Crossbar.io [documentation](https://github.com/crossbario/crossbar/wiki) is 
 
 The Crossbar.io symbol
 
-![](crossbar_icon.png)
+![](legal/crossbar_icon.png)
 
 and the Crossbar.io logo
 
-![](crossbar_text_vectorized.png)
+![](legal/crossbar_text_vectorized.png)
 
 and the Crossbar.io extended logo
 
-![](crossbar_icon_and_text_vectorized.png)
+![](legal/crossbar_icon_and_text_vectorized.png)
 
 are design marks of Tavendo.
 
