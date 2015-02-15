@@ -31,6 +31,10 @@
 from __future__ import absolute_import
 
 import unittest
+import json
+import pickle
+import sys
+from StringIO import StringIO
 
 from autobahn.wamp.message import Subscribe
 
@@ -53,6 +57,27 @@ class TestSubscriptionMap(unittest.TestCase):
     def tearDown(self):
         """
         """
+
+    def test_create_subscription(self):
+        sub1 = Subscription(u"com.example.topic1", u"exact")
+        self.assertEqual(type(sub1.id), int)
+        self.assertEqual(sub1.topic, u"com.example.topic1")
+        self.assertEqual(sub1.match, u"exact")
+        self.assertEqual(sub1.subscribers, set())
+
+    def test_pickle_subscription(self):
+        sub1 = Subscription(u"com.example.topic1", u"exact")
+
+        data = StringIO()
+        pickle.dump(sub1, data)
+        
+        read_fd = StringIO(data.getvalue())
+        sub2 = pickle.load(read_fd)
+
+        self.assertEqual(sub1.id, sub2.id)
+        self.assertEqual(sub1.topic, sub2.topic)
+        self.assertEqual(sub1.match, sub2.match)
+        self.assertEqual(sub2.subscribers, set())
 
     def test_get_subscriptions_empty(self):
         """

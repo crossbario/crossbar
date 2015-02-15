@@ -54,6 +54,19 @@ class Subscription(object):
         # set of subscribers
         self.subscribers = set()
 
+    def __getstate__(self):
+        return {
+            'id': self.id,
+            'topic': self.topic,
+            'match': self.match,
+        }
+
+    def __setstate__(self, state):
+        self.topic = state['topic']
+        self.match = state['match']
+        self.id = state['id']
+        self.subscribers = set()
+
 
 class SubscriptionMap(object):
     """

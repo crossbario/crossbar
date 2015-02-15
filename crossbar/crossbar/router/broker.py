@@ -60,25 +60,34 @@ class Broker(FutureMixin):
         :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
         """
         self._router = router
+        print "$"*10
+        print router, dir(router)
+        print router.realm, dir(router.realm)
+        print router._realm, dir(router._realm)
+        print router.factory, dir(router.factory)
+
         self._options = options or RouterOptions()
 
         self._subscription_map = SubscriptionMap()
-
-        # map: session -> set(subscription)
-        # needed for removeSession
-        self._session_to_subscriptions = {}
 
         # map: session_id -> session
         # needed for exclude/eligible
         self._session_id_to_session = {}
 
+
+
+        # map: session -> set(subscription)
+        # needed for removeSession
+        #self._session_to_subscriptions = {}
+
         # map: topic -> (subscription, set(session))
         # needed for PUBLISH and SUBSCRIBE
-        self._topic_to_sessions = {}
+        #self._topic_to_sessions = {}
 
         # map: subscription -> (topic, set(session))
         # needed for UNSUBSCRIBE
-        self._subscription_to_sessions = {}
+        #self._subscription_to_sessions = {}
+
 
         # check all topic URIs with strict rules
         self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
@@ -90,6 +99,11 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.attach`
         """
+        if session._session_id not in self._session_id_to_session:
+            self._session_id_to_session[session._session_id] = session
+        else:
+            raise Exception("session with ID {} already attached".format(session._session_id))
+
         return
 
         assert(session not in self._session_to_subscriptions)
@@ -101,6 +115,11 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.detach`
         """
+        if session._session_id in self._session_id_to_session:
+            del self._session_id_to_session[session._session_id]
+        else:
+            raise Exception("session with ID {} not attached".format(session._session_id))
+
         return
 
         assert(session in self._session_to_subscriptions)
@@ -122,9 +141,7 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
-        print "processPublish", session, publish
-        # assert(session in self._session_to_subscriptions)
-
+        #print session, publish
         # check topic URI
         #
         if (not self._option_uri_strict and not _URI_PAT_LOOSE_NON_EMPTY.match(publish.topic)) or \
@@ -136,6 +153,8 @@ class Broker(FutureMixin):
 
             return
 
+        # get subscriptions active on the topic published to
+        #
         subscriptions = self._subscription_map.get_subscriptions(publish.topic)
 
         # go on if there are any active subscriptions or the publish is to be acknowledged
@@ -159,13 +178,49 @@ class Broker(FutureMixin):
             else:
                 publisher = None
 
+            # skip publisher
+            #
+            if publish.excludeMe is None or publish.excludeMe:
+                me_also = False
+            else:
+                me_also = True
+
+            #me_also = False
+
             # iterate over all subscriptions ..
             #
             for subscription in subscriptions:
 
-                # FIXME: exclude/eligible
+                # initial list of receivers are all subscribers on a subscription ..
                 #
                 receivers = subscription.subscribers
+
+                # filter by "eligible" receivers
+                #
+                if publish.eligible:
+
+                    # map eligible session IDs to eligible sessions
+                    eligible = []
+                    for session_id in publish.eligible:
+                        if session_id in self._session_id_to_session:
+                            eligible.append(self._session_id_to_session[session_id])
+
+                    # filter receivers for eligible sessions
+                    receivers = set(eligible) & receivers
+
+                # remove "excluded" receivers
+                #
+                if publish.exclude:
+
+                    # map excluded session IDs to excluded sessions
+                    exclude = []
+                    for s in publish.exclude:
+                        if s in self._session_id_to_session:
+                            exclude.append(self._session_id_to_session[s])
+
+                    # filter receivers for excluded sessions
+                    if exclude:
+                        receivers = receivers - set(exclude)
 
                 # if receivers is non-empty, dispatch event ..
                 #
@@ -177,19 +232,9 @@ class Broker(FutureMixin):
                                         publisher=publisher)
                     for receiver in receivers:
                         if me_also or receiver != session:
-                            # the subscribing session might have been lost in the meantime ..
+                            # the receiving subscriber session might have been lost in the meantime ..
                             if receiver._transport:
                                 receiver._transport.send(msg)
-
-        print "x1"*10, subscriptions
-        publication = 1
-
-        # send publish acknowledge when requested
-        #
-        if publish.acknowledge:
-            msg = message.Published(publish.request, publication)
-            session._transport.send(msg)
-
 
         # if publish.topic in self._topic_to_sessions or publish.acknowledge:
 
@@ -292,14 +337,13 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processSubscribe`
         """
-        print "processSubscribe", session, subscribe
-        # assert(session in self._session_to_subscriptions)
-
         # check topic URI
         #
         if (not self._option_uri_strict and not _URI_PAT_LOOSE_NON_EMPTY.match(subscribe.topic)) or \
            (self._option_uri_strict and not _URI_PAT_STRICT_NON_EMPTY.match(subscribe.topic)):
 
+            # invalid URI for topic
+            #
             reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, ["subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
             session._transport.send(reply)
 
@@ -311,20 +355,38 @@ class Broker(FutureMixin):
 
             def on_authorize_success(authorized):
                 if not authorized:
-
+                    # error reply since session is not authorized to subscribe
+                    #
                     reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, ["session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])
 
                 else:
+                    # ok, session authorized to subscribe. now get the subscription
+                    #
+                    subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_subscriber(session, subscribe.topic, subscribe.match)
 
-                    subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_subscriber(session, subscribe.topic)
+                    # publish WAMP meta events
+                    #
+                    if self._router._realm:
+                        service_session = self._router._realm.session
+                        if service_session and not subscribe.topic.startswith(u'wamp.topic'):
+                            if is_first_subscriber:
+                                print "on_first_subscribe"
+                                service_session.publish(u'wamp.topic.on_first_subscribe', session._session_id, subscription.__getstate__())
+                            if not was_already_subscribed:
+                                print "on_subscribe"
+                                service_session.publish(u'wamp.topic.on_subscribe', session._session_id, subscription.id)
 
-                    print "x2"*10, subscription, was_already_subscribed, is_first_subscriber
-
+                    # acknowledge subscribe with subscription ID
+                    #
                     reply = message.Subscribed(subscribe.request, subscription.id)
 
+                # send out reply to subscribe requestor
+                #
                 session._transport.send(reply)
 
             def on_authorize_error(err):
+                # authorization itself failed (not this is different from authorization done, but not authorized)
+                #
                 reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)])
                 session._transport.send(reply)
 

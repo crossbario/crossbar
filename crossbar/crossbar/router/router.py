@@ -505,6 +505,7 @@ class Router(FutureMixin):
         self.factory = factory
         self.realm = realm
         self._options = options or RouterOptions()
+        self._realm = None
         self._broker = self.broker(self, self._options)
         self._dealer = self.dealer(self, self._options)
         self._attached = 0
