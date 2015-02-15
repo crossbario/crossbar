@@ -131,8 +131,6 @@ class SubscriptionMap(object):
 
         return subscription, was_already_subscribed, is_first_subscriber
 
-
-
     def get_subscriptions(self, topic):
         """
         """

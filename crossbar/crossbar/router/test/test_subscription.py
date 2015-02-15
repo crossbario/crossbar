@@ -31,9 +31,7 @@
 from __future__ import absolute_import
 
 import unittest
-import json
 import pickle
-import sys
 from StringIO import StringIO
 
 from autobahn.wamp.message import Subscribe
@@ -43,6 +41,33 @@ from crossbar.router.subscription import Subscription, SubscriptionMap
 
 class FakeSubscriber:
     pass
+
+
+class TestSubscription(unittest.TestCase):
+
+    """
+    """
+
+    def test_create(self):
+        sub1 = Subscription(u"com.example.topic1", u"exact")
+        self.assertEqual(type(sub1.id), int)
+        self.assertEqual(sub1.topic, u"com.example.topic1")
+        self.assertEqual(sub1.match, u"exact")
+        self.assertEqual(sub1.subscribers, set())
+
+    def test_pickle(self):
+        sub1 = Subscription(u"com.example.topic1", u"exact")
+
+        data = StringIO()
+        pickle.dump(sub1, data)
+
+        read_fd = StringIO(data.getvalue())
+        sub2 = pickle.load(read_fd)
+
+        self.assertEqual(sub1.id, sub2.id)
+        self.assertEqual(sub1.topic, sub2.topic)
+        self.assertEqual(sub1.match, sub2.match)
+        self.assertEqual(sub2.subscribers, set())
 
 
 class TestSubscriptionMap(unittest.TestCase):
@@ -57,27 +82,6 @@ class TestSubscriptionMap(unittest.TestCase):
     def tearDown(self):
         """
         """
-
-    def test_create_subscription(self):
-        sub1 = Subscription(u"com.example.topic1", u"exact")
-        self.assertEqual(type(sub1.id), int)
-        self.assertEqual(sub1.topic, u"com.example.topic1")
-        self.assertEqual(sub1.match, u"exact")
-        self.assertEqual(sub1.subscribers, set())
-
-    def test_pickle_subscription(self):
-        sub1 = Subscription(u"com.example.topic1", u"exact")
-
-        data = StringIO()
-        pickle.dump(sub1, data)
-        
-        read_fd = StringIO(data.getvalue())
-        sub2 = pickle.load(read_fd)
-
-        self.assertEqual(sub1.id, sub2.id)
-        self.assertEqual(sub1.topic, sub2.topic)
-        self.assertEqual(sub1.match, sub2.match)
-        self.assertEqual(sub2.subscribers, set())
 
     def test_get_subscriptions_empty(self):
         """
@@ -181,9 +185,9 @@ class TestSubscriptionMap(unittest.TestCase):
         topic1 = u"com.example.topic1"
         sub1 = FakeSubscriber()
 
-        subscription1, _, _  = sub_map.add_subscriber(sub1, topic1)
-        subscription2, _, _  = sub_map.add_subscriber(sub1, topic1)
-        subscription3, _, _  = sub_map.add_subscriber(sub1, topic1)
+        subscription1, _, _ = sub_map.add_subscriber(sub1, topic1)
+        subscription2, _, _ = sub_map.add_subscriber(sub1, topic1)
+        subscription3, _, _ = sub_map.add_subscriber(sub1, topic1)
 
         self.assertEqual(subscription1, subscription2)
         self.assertEqual(subscription1, subscription3)
@@ -203,7 +207,7 @@ class TestSubscriptionMap(unittest.TestCase):
 
         sub1 = FakeSubscriber()
 
-        subscription1, _, _  = sub_map.add_subscriber(sub1, u"com.example", match=Subscribe.MATCH_PREFIX)
+        subscription1, _, _ = sub_map.add_subscriber(sub1, u"com.example", match=Subscribe.MATCH_PREFIX)
 
         # test matches
         for topic in [u"com.example.topic1.foobar.barbaz",

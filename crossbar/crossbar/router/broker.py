@@ -60,34 +60,13 @@ class Broker(FutureMixin):
         :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
         """
         self._router = router
-        print "$"*10
-        print router, dir(router)
-        print router.realm, dir(router.realm)
-        print router._realm, dir(router._realm)
-        print router.factory, dir(router.factory)
-
         self._options = options or RouterOptions()
 
+        # subscription map managed by this broker
         self._subscription_map = SubscriptionMap()
 
-        # map: session_id -> session
-        # needed for exclude/eligible
+        # map: session_id -> session (needed for exclude/eligible)
         self._session_id_to_session = {}
-
-
-
-        # map: session -> set(subscription)
-        # needed for removeSession
-        #self._session_to_subscriptions = {}
-
-        # map: topic -> (subscription, set(session))
-        # needed for PUBLISH and SUBSCRIBE
-        #self._topic_to_sessions = {}
-
-        # map: subscription -> (topic, set(session))
-        # needed for UNSUBSCRIBE
-        #self._subscription_to_sessions = {}
-
 
         # check all topic URIs with strict rules
         self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
@@ -104,13 +83,6 @@ class Broker(FutureMixin):
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
 
-        return
-
-        assert(session not in self._session_to_subscriptions)
-
-        self._session_to_subscriptions[session] = set()
-        self._session_id_to_session[session._session_id] = session
-
     def detach(self, session):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.detach`
@@ -120,28 +92,10 @@ class Broker(FutureMixin):
         else:
             raise Exception("session with ID {} not attached".format(session._session_id))
 
-        return
-
-        assert(session in self._session_to_subscriptions)
-
-        for subscription in self._session_to_subscriptions[session]:
-            topic, subscribers = self._subscription_to_sessions[subscription]
-            subscribers.discard(session)
-            if not subscribers:
-                del self._subscription_to_sessions[subscription]
-            _, subscribers = self._topic_to_sessions[topic]
-            subscribers.discard(session)
-            if not subscribers:
-                del self._topic_to_sessions[topic]
-
-        del self._session_to_subscriptions[session]
-        del self._session_id_to_session[session._session_id]
-
     def processPublish(self, session, publish):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
-        #print session, publish
         # check topic URI
         #
         if (not self._option_uri_strict and not _URI_PAT_LOOSE_NON_EMPTY.match(publish.topic)) or \
@@ -184,8 +138,6 @@ class Broker(FutureMixin):
                 me_also = False
             else:
                 me_also = True
-
-            #me_also = False
 
             # iterate over all subscriptions ..
             #
