@@ -78,6 +78,7 @@ class SubscriptionMap(object):
     def __init__(self):
         self._subscriptions_exact = {}
         self._subscriptions_prefix = StringTrie()
+        self._subscription_id_to_subscription = {}
 
     def add_subscriber(self, subscriber, topic, match=Subscribe.MATCH_EXACT):
         """
@@ -121,6 +122,11 @@ class SubscriptionMap(object):
         else:
             raise Exception("invalid match strategy '{}'".format(match))
 
+        # note subscription in subscription ID map
+        #
+        if is_first_subscriber:
+            self._subscription_id_to_subscription[subscription.id] = subscription
+
         # add subscriber if not already in subscription
         #
         if subscriber not in subscription.subscribers:
@@ -143,3 +149,42 @@ class SubscriptionMap(object):
             subscriptions.append(subscription)
 
         return subscriptions
+
+    def get_subscription_by_id(self, id):
+        return self._subscription_id_to_subscription.get(id, None)
+
+    def drop_subscriber(self, subscriber, subscription):
+        if subscriber in subscription.subscribers:
+
+            was_subscribed = True
+
+            # remove subscriber from subscription
+            #
+            subscription.subscribers.discard(subscriber)
+
+            # no more subscribers on this subscription!
+            #
+            if not subscription.subscribers:
+
+                if subscription.match == Subscribe.MATCH_EXACT:
+                    del self._subscriptions_exact[subscription.topic]
+
+                elif subscription.match == Subscribe.MATCH_PREFIX:
+                    del self._subscriptions_prefix[subscription.topic]
+
+                elif subscription.match == Subscribe.MATCH_WILDCARD:
+                    raise Exception("not implemented")
+
+                else:
+                    raise Exception("logic error")
+
+                was_last_subscriber = True
+
+            else:
+                was_last_subscriber = False
+
+        else:
+            # subscriber wasn't on this subscription
+            was_subscribed = False
+
+        return was_subscribed, was_last_subscriber

@@ -68,6 +68,9 @@ class Broker(FutureMixin):
         # map: session_id -> session (needed for exclude/eligible)
         self._session_id_to_session = {}
 
+        # map: session -> set of subscriptions (needed for detach)
+        self._session_to_subscriptions = {}
+
         # check all topic URIs with strict rules
         self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
 
@@ -80,6 +83,7 @@ class Broker(FutureMixin):
         """
         if session._session_id not in self._session_id_to_session:
             self._session_id_to_session[session._session_id] = session
+            self._session_to_subscriptions[session] = set()
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
 
@@ -88,6 +92,22 @@ class Broker(FutureMixin):
         Implements :func:`crossbar.router.interfaces.IBroker.detach`
         """
         if session._session_id in self._session_id_to_session:
+
+            for subscription in self._session_to_subscriptions[session]:
+
+                was_subscribed, was_last_subscriber = self._subscription_map.drop_subscriber(session, subscription)
+
+                # publish WAMP meta events
+                #
+                if self._router._realm:
+                    service_session = self._router._realm.session
+                    if service_session and not subscription.topic.startswith(u'wamp.topic'):
+                        if was_subscribed:
+                            service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
+                        if was_last_subscriber:
+                            service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.__getstate__())
+
+            del self._session_to_subscriptions[session]
             del self._session_id_to_session[session._session_id]
         else:
             raise Exception("session with ID {} not attached".format(session._session_id))
@@ -316,16 +336,17 @@ class Broker(FutureMixin):
                     #
                     subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_subscriber(session, subscribe.topic, subscribe.match)
 
+                    if not was_already_subscribed:
+                        self._session_to_subscriptions[session].add(subscription)
+
                     # publish WAMP meta events
                     #
                     if self._router._realm:
                         service_session = self._router._realm.session
-                        if service_session and not subscribe.topic.startswith(u'wamp.topic'):
+                        if service_session and not subscription.topic.startswith(u'wamp.topic'):
                             if is_first_subscriber:
-                                print "on_first_subscribe"
                                 service_session.publish(u'wamp.topic.on_first_subscribe', session._session_id, subscription.__getstate__())
                             if not was_already_subscribed:
-                                print "on_subscribe"
                                 service_session.publish(u'wamp.topic.on_subscribe', session._session_id, subscription.id)
 
                     # acknowledge subscribe with subscription ID
@@ -348,31 +369,38 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processUnsubscribe`
         """
-        print "processUnsubscribe"
-        return
-        # assert(session in self._session_to_subscriptions)
+        # get subscription by subscription ID or None (if it doesn't exist on this broker)
+        #
+        subscription = self._subscription_map.get_subscription_by_id(unsubscribe.subscription)
 
-        if unsubscribe.subscription in self._subscription_to_sessions:
+        if subscription:
 
-            topic, subscribers = self._subscription_to_sessions[unsubscribe.subscription]
+            if session in subscription.subscribers:
 
-            subscribers.discard(session)
+                was_subscribed, was_last_subscriber = self._subscription_map.drop_subscriber(session, subscription)
 
-            if not subscribers:
-                del self._subscription_to_sessions[unsubscribe.subscription]
+                if was_subscribed:
+                    self._session_to_subscriptions[session].discard(subscription)
 
-            _, subscribers = self._topic_to_sessions[topic]
+                # publish WAMP meta events
+                #
+                if self._router._realm:
+                    service_session = self._router._realm.session
+                    if service_session and not subscription.topic.startswith(u'wamp.topic'):
+                        if was_subscribed:
+                            service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
+                        if was_last_subscriber:
+                            service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.__getstate__())
 
-            subscribers.discard(session)
-
-            if not subscribers:
-                del self._topic_to_sessions[topic]
-
-            self._session_to_subscriptions[session].discard(unsubscribe.subscription)
-
-            reply = message.Unsubscribed(unsubscribe.request)
+                reply = message.Unsubscribed(unsubscribe.request)
+            else:
+                # subscription exists on this broker, but the session that wanted to unsubscribe wasn't subscribed
+                #
+                reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
 
         else:
+            # subscription doesn't even exist on this broker
+            #
             reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
 
         session._transport.send(reply)
