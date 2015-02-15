@@ -229,3 +229,88 @@ class TestSubscriptionMap(unittest.TestCase):
                       u""]:
             subscriptions = sub_map.get_subscriptions(topic)
             self.assertEqual(subscriptions, [])
+
+    def test_get_subscriptions_match_wildcard_single(self):
+        """
+        """
+        sub_map = SubscriptionMap()
+
+        sub1 = FakeSubscriber()
+
+        subscription1, _, _ = sub_map.add_subscriber(sub1, u"com.example..create", match=Subscribe.MATCH_WILDCARD)
+
+        # test matches
+        for topic in [u"com.example.foobar.create",
+                      u"com.example.1.create"
+                      ]:
+            subscriptions = sub_map.get_subscriptions(topic)
+            self.assertEqual(subscriptions, [subscription1])
+            self.assertEqual(subscriptions[0].subscribers, set([sub1]))
+
+        # test non-matches
+        for topic in [u"com.example.foobar.delete",
+                      u"com.example.foobar.create2",
+                      u"com.example.foobar.create.barbaz"
+                      u"com.example.foobar",
+                      u"com.example.create",
+                      u"com.example"
+                      ]:
+            subscriptions = sub_map.get_subscriptions(topic)
+            self.assertEqual(subscriptions, [])
+
+    def test_get_subscriptions_match_wildcard_multi(self):
+        """
+        """
+        sub_map = SubscriptionMap()
+
+        sub1 = FakeSubscriber()
+
+        subscription1, _, _ = sub_map.add_subscriber(sub1, u"com...create", match=Subscribe.MATCH_WILDCARD)
+
+        # test matches
+        for topic in [u"com.example.foobar.create",
+                      u"com.example.1.create",
+                      u"com.myapp.foobar.create",
+                      u"com.myapp.1.create",
+                      ]:
+            subscriptions = sub_map.get_subscriptions(topic)
+            self.assertEqual(subscriptions, [subscription1])
+            self.assertEqual(subscriptions[0].subscribers, set([sub1]))
+
+        # test non-matches
+        for topic in [u"com.example.foobar.delete",
+                      u"com.example.foobar.create2",
+                      u"com.example.foobar.create.barbaz"
+                      u"com.example.foobar",
+                      u"org.example.foobar.create",
+                      u"org.example.1.create",
+                      u"org.myapp.foobar.create",
+                      u"org.myapp.1.create",
+                      ]:
+            subscriptions = sub_map.get_subscriptions(topic)
+            self.assertEqual(subscriptions, [])
+
+    def test_get_subscriptions_match_multimode(self):
+        """
+        """
+        sub_map = SubscriptionMap()
+
+        sub1 = FakeSubscriber()
+
+        subscription1, _, _ = sub_map.add_subscriber(sub1, u"com.example.product.create", match=Subscribe.MATCH_EXACT)
+        subscription2, _, _ = sub_map.add_subscriber(sub1, u"com.example.product", match=Subscribe.MATCH_PREFIX)
+        subscription3, _, _ = sub_map.add_subscriber(sub1, u"com.example..create", match=Subscribe.MATCH_WILDCARD)
+
+        subscriptions = sub_map.get_subscriptions(u"com.example.product.create")
+        self.assertEqual(subscriptions, [subscription1, subscription2, subscription3])
+        self.assertEqual(subscriptions[0].subscribers, set([sub1]))
+        self.assertEqual(subscriptions[1].subscribers, set([sub1]))
+        self.assertEqual(subscriptions[2].subscribers, set([sub1]))
+
+        subscriptions = sub_map.get_subscriptions(u"com.example.foobar.create")
+        self.assertEqual(subscriptions, [subscription3])
+        self.assertEqual(subscriptions[0].subscribers, set([sub1]))
+
+        subscriptions = sub_map.get_subscriptions(u"com.example.product.delete")
+        self.assertEqual(subscriptions, [subscription2])
+        self.assertEqual(subscriptions[0].subscribers, set([sub1]))

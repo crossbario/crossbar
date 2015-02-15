@@ -78,6 +78,8 @@ class SubscriptionMap(object):
     def __init__(self):
         self._subscriptions_exact = {}
         self._subscriptions_prefix = StringTrie()
+        self._subscriptions_wildcard = {}
+        self._subscriptions_wildcard_patterns = {}
         self._subscription_id_to_subscription = {}
 
     def add_subscriber(self, subscriber, topic, match=Subscribe.MATCH_EXACT):
@@ -117,7 +119,31 @@ class SubscriptionMap(object):
             subscription = self._subscriptions_prefix[topic]
 
         elif match == Subscribe.MATCH_WILDCARD:
-            raise Exception("not implemented")
+
+            # if the prefix-matching topic isn't in our map, create a new subscription
+            #
+            if topic not in self._subscriptions_wildcard:
+
+                self._subscriptions_wildcard[topic] = Subscription(topic, match)
+                is_first_subscriber = True
+
+                pattern = tuple([part == "" for part in topic.split('.')])
+                pattern_len = len(pattern)
+
+                if pattern_len not in self._subscriptions_wildcard_patterns:
+                    self._subscriptions_wildcard_patterns[pattern_len] = {}
+
+                if pattern not in self._subscriptions_wildcard_patterns[pattern_len]:
+                    self._subscriptions_wildcard_patterns[pattern_len][pattern] = 1
+                else:
+                    self._subscriptions_wildcard_patterns[pattern_len][pattern] += 1
+
+            else:
+                is_first_subscriber = False
+
+            # get the subscription
+            #
+            subscription = self._subscriptions_wildcard[topic]
 
         else:
             raise Exception("invalid match strategy '{}'".format(match))
@@ -147,6 +173,14 @@ class SubscriptionMap(object):
 
         for subscription in self._subscriptions_prefix.iter_prefix_values(topic):
             subscriptions.append(subscription)
+
+        topic_parts = tuple(topic.split('.'))
+        topic_parts_len = len(topic_parts)
+        if topic_parts_len in self._subscriptions_wildcard_patterns:
+            for pattern in self._subscriptions_wildcard_patterns[topic_parts_len]:
+                patterned_topic = '.'.join(['' if pattern[i] else topic_parts[i] for i in range(topic_parts_len)])
+                if patterned_topic in self._subscriptions_wildcard:
+                    subscriptions.append(self._subscriptions_wildcard[patterned_topic])
 
         return subscriptions
 
