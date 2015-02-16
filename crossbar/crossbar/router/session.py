@@ -615,7 +615,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
     """
     Router service session which is used internally by a router to
     issue WAMP calls or publish events, and which provides WAMP meta API
-    procedures. 
+    procedures.
     """
 
     def __init__(self, config, router, schemas=None):
@@ -646,7 +646,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
             log.msg("CrossbarRouterServiceSession: registered {} procedures".format(len(regs)))
 
     @wamp.register(u'wamp.broker.subscription.get')
-    def subscription_get(self, topic, options = None):
+    def subscription_get(self, topic, options=None):
         """
         WAMP meta procedure to get a subscription given a topic and subscribe options.
         """
