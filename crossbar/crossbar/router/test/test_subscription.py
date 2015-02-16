@@ -103,14 +103,14 @@ class TestSubscription(unittest.TestCase):
 
 class TestSubscriptionMap(unittest.TestCase):
 
-    def test_get_subscriptions_empty(self):
+    def test_match_subscriptions_empty(self):
         """
         An empty subscriber map returns an empty subscriber set for any topic.
         """
         sub_map = SubscriptionMap()
 
         for topic in [u"com.example.topic1", u"com.example.topic2", u""]:
-            subs = sub_map.get_subscriptions(topic)
+            subs = sub_map.match_subscriptions(topic)
             self.assertEqual(subs, [])
 
     def test_add_subscriber(self):
@@ -162,7 +162,7 @@ class TestSubscriptionMap(unittest.TestCase):
         _, _, is_first_subscriber = sub_map.add_subscriber(sub2, topic1)
         self.assertFalse(is_first_subscriber)
 
-    def test_get_subscriptions_match_exact(self):
+    def test_match_subscriptions_match_exact(self):
         """
         When a subscriber subscribes to a topic (match exact), the subscriber
         is returned for the topic upon lookup.
@@ -174,11 +174,11 @@ class TestSubscriptionMap(unittest.TestCase):
 
         subscription1, _, _ = sub_map.add_subscriber(sub1, topic1)
 
-        subscriptions = sub_map.get_subscriptions(topic1)
+        subscriptions = sub_map.match_subscriptions(topic1)
 
         self.assertEqual(subscriptions, [subscription1])
 
-    def test_get_subscriptions_match_exact_same(self):
+    def test_match_subscriptions_match_exact_same(self):
         """
         When multiple different subscribers subscribe to the same topic (match exact),
         all get the same subscription nevertheless.
@@ -194,12 +194,12 @@ class TestSubscriptionMap(unittest.TestCase):
         subscription2, _, _ = sub_map.add_subscriber(sub2, topic1)
         subscription3, _, _ = sub_map.add_subscriber(sub3, topic1)
 
-        subscriptions = sub_map.get_subscriptions(topic1)
+        subscriptions = sub_map.match_subscriptions(topic1)
 
         self.assertEqual(subscriptions, [subscription1])
         self.assertEqual(subscriptions[0].subscribers, set([sub1, sub2, sub3]))
 
-    def test_get_subscriptions_match_exact_multi(self):
+    def test_match_subscriptions_match_exact_multi(self):
         """
         When the same subscriber is added multiple times to the same topic (match exact),
         the subscribed is only returned once, and every time the same subscription ID is returned.
@@ -216,12 +216,12 @@ class TestSubscriptionMap(unittest.TestCase):
         self.assertEqual(subscription1, subscription2)
         self.assertEqual(subscription1, subscription3)
 
-        subscriptions = sub_map.get_subscriptions(topic1)
+        subscriptions = sub_map.match_subscriptions(topic1)
 
         self.assertEqual(subscriptions, [subscription1])
         self.assertEqual(subscriptions[0].subscribers, set([sub1]))
 
-    def test_get_subscriptions_match_prefix(self):
+    def test_match_subscriptions_match_prefix(self):
         """
         When a subscriber subscribes to a topic (match prefix), the subscriber is
         returned for all topics upon lookup where the subscribed topic is a prefix.
@@ -240,7 +240,7 @@ class TestSubscriptionMap(unittest.TestCase):
                       u"com.example.",
                       u"com.example2",
                       u"com.example"]:
-            subscriptions = sub_map.get_subscriptions(topic)
+            subscriptions = sub_map.match_subscriptions(topic)
             self.assertEqual(subscriptions, [subscription1])
             self.assertEqual(subscriptions[0].subscribers, set([sub1]))
 
@@ -250,10 +250,10 @@ class TestSubscriptionMap(unittest.TestCase):
                       u"com.exampl",
                       u"com",
                       u""]:
-            subscriptions = sub_map.get_subscriptions(topic)
+            subscriptions = sub_map.match_subscriptions(topic)
             self.assertEqual(subscriptions, [])
 
-    def test_get_subscriptions_match_wildcard_single(self):
+    def test_match_subscriptions_match_wildcard_single(self):
         """
         When a subscriber subscribes to a topic (wildcard prefix), the subscriber is
         returned for all topics upon lookup where the subscribed topic matches
@@ -269,7 +269,7 @@ class TestSubscriptionMap(unittest.TestCase):
         for topic in [u"com.example.foobar.create",
                       u"com.example.1.create"
                       ]:
-            subscriptions = sub_map.get_subscriptions(topic)
+            subscriptions = sub_map.match_subscriptions(topic)
             self.assertEqual(subscriptions, [subscription1])
             self.assertEqual(subscriptions[0].subscribers, set([sub1]))
 
@@ -281,10 +281,10 @@ class TestSubscriptionMap(unittest.TestCase):
                       u"com.example.create",
                       u"com.example"
                       ]:
-            subscriptions = sub_map.get_subscriptions(topic)
+            subscriptions = sub_map.match_subscriptions(topic)
             self.assertEqual(subscriptions, [])
 
-    def test_get_subscriptions_match_wildcard_multi(self):
+    def test_match_subscriptions_match_wildcard_multi(self):
         """
         Test with multiple wildcards in wildcard-matching subscription.
         """
@@ -300,7 +300,7 @@ class TestSubscriptionMap(unittest.TestCase):
                       u"com.myapp.foobar.create",
                       u"com.myapp.1.create",
                       ]:
-            subscriptions = sub_map.get_subscriptions(topic)
+            subscriptions = sub_map.match_subscriptions(topic)
             self.assertEqual(subscriptions, [subscription1])
             self.assertEqual(subscriptions[0].subscribers, set([sub1]))
 
@@ -314,10 +314,10 @@ class TestSubscriptionMap(unittest.TestCase):
                       u"org.myapp.foobar.create",
                       u"org.myapp.1.create",
                       ]:
-            subscriptions = sub_map.get_subscriptions(topic)
+            subscriptions = sub_map.match_subscriptions(topic)
             self.assertEqual(subscriptions, [])
 
-    def test_get_subscriptions_match_multimode(self):
+    def test_match_subscriptions_match_multimode(self):
         """
         When a subscriber is subscribed to multiple subscriptions each matching
         a given topic looked up, the subscriber is returned in each subscription.
@@ -330,16 +330,16 @@ class TestSubscriptionMap(unittest.TestCase):
         subscription2, _, _ = sub_map.add_subscriber(sub1, u"com.example.product", match=Subscribe.MATCH_PREFIX)
         subscription3, _, _ = sub_map.add_subscriber(sub1, u"com.example..create", match=Subscribe.MATCH_WILDCARD)
 
-        subscriptions = sub_map.get_subscriptions(u"com.example.product.create")
+        subscriptions = sub_map.match_subscriptions(u"com.example.product.create")
         self.assertEqual(subscriptions, [subscription1, subscription2, subscription3])
         self.assertEqual(subscriptions[0].subscribers, set([sub1]))
         self.assertEqual(subscriptions[1].subscribers, set([sub1]))
         self.assertEqual(subscriptions[2].subscribers, set([sub1]))
 
-        subscriptions = sub_map.get_subscriptions(u"com.example.foobar.create")
+        subscriptions = sub_map.match_subscriptions(u"com.example.foobar.create")
         self.assertEqual(subscriptions, [subscription3])
         self.assertEqual(subscriptions[0].subscribers, set([sub1]))
 
-        subscriptions = sub_map.get_subscriptions(u"com.example.product.delete")
+        subscriptions = sub_map.match_subscriptions(u"com.example.product.delete")
         self.assertEqual(subscriptions, [subscription2])
         self.assertEqual(subscriptions[0].subscribers, set([sub1]))

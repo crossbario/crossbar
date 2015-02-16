@@ -217,7 +217,32 @@ class SubscriptionMap(object):
 
         return subscription, was_already_subscribed, is_first_subscriber
 
-    def get_subscriptions(self, topic):
+    def get_subscription(self, topic, match=Subscribe.MATCH_EXACT):
+        """
+        Get a subscription (if any) for given topic and match policy.
+
+        :param topic: The topic (or topic pattern) to get the subscription for.
+        :type topic: unicode
+        :param match: The matching policy for subscription to retrieve, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
+        :type match: unicode
+
+        :returns: The subscription (instance of one of ``ExactSubscription``, ``PrefixSubscription`` or ``WildcardSubscription``)
+            or ``None``.
+        :rtype: obj or None
+        """
+        if match == Subscribe.MATCH_EXACT:
+
+            return self._subscriptions_exact.get(topic, None)
+
+        elif match == Subscribe.MATCH_PREFIX:
+
+            return self._subscriptions_prefix.get(topic, None)
+
+        elif match == Subscribe.MATCH_WILDCARD:
+
+            return self._subscriptions_wildcard.get(topic, None)
+
+    def match_subscriptions(self, topic):
         """
         Returns the subscriptions matching the given topic. This is the core method called
         by the broker to actually dispatch events being published to receiving sessions.

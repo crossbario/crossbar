@@ -134,7 +134,7 @@ class Broker(FutureMixin):
 
         # get subscriptions active on the topic published to
         #
-        subscriptions = self._subscription_map.get_subscriptions(publish.topic)
+        subscriptions = self._subscription_map.match_subscriptions(publish.topic)
 
         # go on if there are any active subscriptions or the publish is to be acknowledged
         # otherwise there isn't anything to do anyway.

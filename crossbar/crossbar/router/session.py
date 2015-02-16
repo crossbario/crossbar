@@ -614,7 +614,8 @@ class CrossbarRouterServiceSession(ApplicationSession):
 
     """
     Router service session which is used internally by a router to
-    issue WAMP calls or publish events.
+    issue WAMP calls or publish events, and which provides WAMP meta API
+    procedures. 
     """
 
     def __init__(self, config, router, schemas=None):
@@ -644,36 +645,41 @@ class CrossbarRouterServiceSession(ApplicationSession):
         if self.debug:
             log.msg("CrossbarRouterServiceSession: registered {} procedures".format(len(regs)))
 
-    @wamp.register(u'wamp.broker.subscriber.list')
-    def subscriber_list(self, topic):
+    @wamp.register(u'wamp.broker.subscription.get')
+    def subscription_get(self, topic, options = None):
         """
-        WAMP meta procedure to retrieve list of subscribers with detailed
-        per-subscriber information.
+        WAMP meta procedure to get a subscription given a topic and subscribe options.
         """
-        topic_to_sessions = self._router._broker._topic_to_sessions
-
-        if topic in topic_to_sessions:
-            subscribers_list = []
-            subscription, subscribers = topic_to_sessions[topic]
-            for subscriber in subscribers:
-                # subscriber is an instance of crossbar.router.session.CrossbarRouterSession
-                subscribers_list.append(subscriber._session_details)
-            return {'subscription': subscription, 'subscribers': subscribers_list}
+        options = options or {}
+        match = options.get('match', u'exact')
+        subscription = self._router._broker._subscription_map.get_subscription(topic, match)
+        if subscription:
+            return subscription.__getstate__()
         else:
-            # FIXME: API design?
-            # return {'subscription': 0, 'subscribers': []}
-            return {}
+            return None
+
+    @wamp.register(u'wamp.broker.subscriber.list')
+    def subscriber_list(self, subscription_id):
+        """
+        WAMP meta procedure to retrieve list of subscribers (WAMP session IDs) subscribed on a subscription.
+        """
+        subscription = self._router._broker._subscription_map.get_subscription_by_id(subscription_id)
+        if subscription:
+            session_ids = []
+            for subscriber in subscription.subscribers:
+                session_ids.append(subscriber._session_id)
+            return session_ids
+        else:
+            return None
 
     @wamp.register(u'wamp.broker.subscriber.count')
-    def subscriber_count(self, topic):
+    def subscriber_count(self, subscription_id):
         """
-        WAMP meta procedure to get the number of subscribers.
+        WAMP meta procedure to get the number of subscribers on a subscription.
         """
-        topic_to_sessions = self._router._broker._topic_to_sessions
-
-        if topic in topic_to_sessions:
-            _, subscribers = topic_to_sessions[topic]
-            return len(subscribers)
+        subscription = self._router._broker._subscription_map.get_subscription_by_id(subscription_id)
+        if subscription:
+            return len(subscription.subscribers)
         else:
             return 0
 
