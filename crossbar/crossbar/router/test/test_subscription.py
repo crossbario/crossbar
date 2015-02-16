@@ -36,7 +36,8 @@ from StringIO import StringIO
 
 from autobahn.wamp.message import Subscribe
 
-from crossbar.router.subscription import Subscription, SubscriptionMap
+from crossbar.router.subscription import ExactSubscription, \
+    PrefixSubscription, WildcardSubscription, SubscriptionMap
 
 
 class FakeSubscriber:
@@ -45,43 +46,62 @@ class FakeSubscriber:
 
 class TestSubscription(unittest.TestCase):
 
-    """
-    """
-
-    def test_create(self):
-        sub1 = Subscription(u"com.example.topic1", u"exact")
+    def test_create_exact(self):
+        """
+        Create an exact-matching subscription.
+        """
+        sub1 = ExactSubscription(u"com.example.topic1")
         self.assertEqual(type(sub1.id), int)
         self.assertEqual(sub1.topic, u"com.example.topic1")
         self.assertEqual(sub1.match, u"exact")
         self.assertEqual(sub1.subscribers, set())
 
+    def test_create_prefix(self):
+        """
+        Create a prefix-matching subscription.
+        """
+        sub1 = PrefixSubscription(u"com.example.topic1")
+        self.assertEqual(type(sub1.id), int)
+        self.assertEqual(sub1.topic, u"com.example.topic1")
+        self.assertEqual(sub1.match, u"prefix")
+        self.assertEqual(sub1.subscribers, set())
+
+    def test_create_wildcard(self):
+        """
+        Create a wildcard-matching subscription.
+        """
+        sub1 = WildcardSubscription(u"com.example..create")
+        self.assertEqual(type(sub1.id), int)
+        self.assertEqual(sub1.topic, u"com.example..create")
+        self.assertEqual(sub1.match, u"wildcard")
+        self.assertEqual(sub1.subscribers, set())
+        self.assertEqual(sub1.pattern, (False, False, True, False))
+        self.assertEqual(sub1.pattern_len, 4)
+
     def test_pickle(self):
-        sub1 = Subscription(u"com.example.topic1", u"exact")
+        """
+        Test pickling of subscriptions (__getstate__, __setstate__).
+        """
+        subs = [
+            ExactSubscription(u"com.example.topic1"),
+            PrefixSubscription(u"com.example.topic1"),
+            WildcardSubscription(u"com.example..create"),
+        ]
 
-        data = StringIO()
-        pickle.dump(sub1, data)
+        for sub in subs:
+            data = StringIO()
+            pickle.dump(sub, data)
 
-        read_fd = StringIO(data.getvalue())
-        sub2 = pickle.load(read_fd)
+            read_fd = StringIO(data.getvalue())
+            sub2 = pickle.load(read_fd)
 
-        self.assertEqual(sub1.id, sub2.id)
-        self.assertEqual(sub1.topic, sub2.topic)
-        self.assertEqual(sub1.match, sub2.match)
-        self.assertEqual(sub2.subscribers, set())
+            self.assertEqual(sub.id, sub2.id)
+            self.assertEqual(sub.topic, sub2.topic)
+            self.assertEqual(sub.match, sub2.match)
+            self.assertEqual(sub2.subscribers, set())
 
 
 class TestSubscriptionMap(unittest.TestCase):
-
-    """
-    """
-
-    def setUp(self):
-        """
-        """
-
-    def tearDown(self):
-        """
-        """
 
     def test_get_subscriptions_empty(self):
         """
@@ -103,12 +123,14 @@ class TestSubscriptionMap(unittest.TestCase):
         sub1 = FakeSubscriber()
         subscription, was_already_subscribed, is_first_subscriber = sub_map.add_subscriber(sub1, topic1)
 
-        self.assertIsInstance(subscription, Subscription)
+        self.assertIsInstance(subscription, ExactSubscription)
         self.assertFalse(was_already_subscribed)
         self.assertTrue(is_first_subscriber)
 
     def test_add_subscriber_was_already_subscribed(self):
         """
+        When a subscriber is added, the ``was_already_subscribed`` flag in
+        the return is correct.
         """
         sub_map = SubscriptionMap()
 
@@ -125,6 +147,8 @@ class TestSubscriptionMap(unittest.TestCase):
 
     def test_add_subscriber_is_first_subscriber(self):
         """
+        When a subscriber is added, the ``is_first_subscriber`` flag in the
+        return is correct.
         """
         sub_map = SubscriptionMap()
 
@@ -140,8 +164,8 @@ class TestSubscriptionMap(unittest.TestCase):
 
     def test_get_subscriptions_match_exact(self):
         """
-        When a subscriber subscribes to a topic (match exact),
-        the subscriber is returned for the topic upon lookup.
+        When a subscriber subscribes to a topic (match exact), the subscriber
+        is returned for the topic upon lookup.
         """
         sub_map = SubscriptionMap()
 
@@ -199,9 +223,8 @@ class TestSubscriptionMap(unittest.TestCase):
 
     def test_get_subscriptions_match_prefix(self):
         """
-        When a subscriber subscribes to a topic (match prefix),
-        the subscriber is returned for all topics upon lookup
-        where the subscribed topic is a prefix.
+        When a subscriber subscribes to a topic (match prefix), the subscriber is
+        returned for all topics upon lookup where the subscribed topic is a prefix.
         """
         sub_map = SubscriptionMap()
 
@@ -232,6 +255,9 @@ class TestSubscriptionMap(unittest.TestCase):
 
     def test_get_subscriptions_match_wildcard_single(self):
         """
+        When a subscriber subscribes to a topic (wildcard prefix), the subscriber is
+        returned for all topics upon lookup where the subscribed topic matches
+        the wildcard pattern.
         """
         sub_map = SubscriptionMap()
 
@@ -260,6 +286,7 @@ class TestSubscriptionMap(unittest.TestCase):
 
     def test_get_subscriptions_match_wildcard_multi(self):
         """
+        Test with multiple wildcards in wildcard-matching subscription.
         """
         sub_map = SubscriptionMap()
 
@@ -292,6 +319,8 @@ class TestSubscriptionMap(unittest.TestCase):
 
     def test_get_subscriptions_match_multimode(self):
         """
+        When a subscriber is subscribed to multiple subscriptions each matching
+        a given topic looked up, the subscriber is returned in each subscription.
         """
         sub_map = SubscriptionMap()
 
