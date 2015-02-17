@@ -582,7 +582,7 @@ class CrossbarRouterSession(RouterSession):
 
         # dispatch session metaevent from WAMP AP
         ##
-        self._service_session.publish(u'wamp.session.on_leave', self._session_details)
+        self._service_session.publish(u'wamp.session.on_leave', self._session_id)
 
         self._session_details = None
 
@@ -644,6 +644,21 @@ class CrossbarRouterServiceSession(ApplicationSession):
         regs = yield self.register(self)
         if self.debug:
             log.msg("CrossbarRouterServiceSession: registered {} procedures".format(len(regs)))
+
+    @wamp.register(u'wamp.session.list')
+    def session_list(self):
+        """
+        """
+        return self._router._session_id_to_session.keys()
+
+    @wamp.register(u'wamp.session.get')
+    def session_get(self, session_id):
+        """
+        """
+        if session_id in self._router._session_id_to_session:
+            return self._router._session_id_to_session[session_id]._session_details
+        else:
+            return None
 
     @wamp.register(u'wamp.broker.subscription.get')
     def subscription_get(self, topic, options=None):
@@ -715,7 +730,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
         if not schema:
             if uri in self._schemas:
                 del self._schemas
-                self.publish('wamp.reflect.on_undefine', uri)
+                self.publish(u'wamp.reflect.on_undefine', uri)
                 return uri
             else:
                 return None
@@ -732,7 +747,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
 
         if was_new or was_modified:
             self._schemas[uri] = schema
-            self.publish('wamp.reflect.on_define', uri, schema, was_new)
+            self.publish(u'wamp.reflect.on_define', uri, schema, was_new)
             return was_new
         else:
             return None

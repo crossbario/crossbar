@@ -102,7 +102,7 @@ class Broker(FutureMixin):
                 #
                 if self._router._realm:
                     service_session = self._router._realm.session
-                    if service_session and not subscription.topic.startswith(u'wamp.topic'):
+                    if service_session and not subscription.topic.startswith(u'wamp.'):
                         if was_subscribed:
                             service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
                         if was_last_subscriber:
@@ -298,7 +298,7 @@ class Broker(FutureMixin):
                 #
                 if self._router._realm:
                     service_session = self._router._realm.session
-                    if service_session and not subscription.topic.startswith(u'wamp.topic'):
+                    if service_session and not subscription.topic.startswith(u'wamp.'):
                         if is_first_subscriber:
                             service_session.publish(u'wamp.topic.on_first_subscribe', session._session_id, subscription.__getstate__())
                         if not was_already_subscribed:
@@ -342,7 +342,7 @@ class Broker(FutureMixin):
                 #
                 if self._router._realm:
                     service_session = self._router._realm.session
-                    if service_session and not subscription.topic.startswith(u'wamp.topic'):
+                    if service_session and not subscription.topic.startswith(u'wamp.'):
                         if was_subscribed:
                             service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
                         if was_last_subscriber:
