@@ -522,7 +522,8 @@ class Router(FutureMixin):
             if hasattr(session, '_session_details'):
                 self._session_id_to_session[session._session_id] = session
             else:
-                print("attaching non-client session {}".format(session))
+                if self.debug:
+                    print("attaching non-client session {}".format(session))
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
 

@@ -66,9 +66,6 @@ class Broker(FutureMixin):
         # subscription map managed by this broker
         self._subscription_map = SubscriptionMap()
 
-        # map: session_id -> session (needed for exclude/eligible)
-        self._session_id_to_session = {}
-
         # map: session -> set of subscriptions (needed for detach)
         self._session_to_subscriptions = {}
 
@@ -82,8 +79,7 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.attach`
         """
-        if session._session_id not in self._session_id_to_session:
-            self._session_id_to_session[session._session_id] = session
+        if session not in self._session_to_subscriptions:
             self._session_to_subscriptions[session] = set()
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
@@ -92,7 +88,7 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.detach`
         """
-        if session._session_id in self._session_id_to_session:
+        if session in self._session_to_subscriptions:
 
             for subscription in self._session_to_subscriptions[session]:
 
@@ -109,7 +105,7 @@ class Broker(FutureMixin):
                             service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.__getstate__())
 
             del self._session_to_subscriptions[session]
-            del self._session_id_to_session[session._session_id]
+
         else:
             raise Exception("session with ID {} not attached".format(session._session_id))
 
@@ -216,8 +212,8 @@ class Broker(FutureMixin):
                             # map eligible session IDs to eligible sessions
                             eligible = []
                             for session_id in publish.eligible:
-                                if session_id in self._session_id_to_session:
-                                    eligible.append(self._session_id_to_session[session_id])
+                                if session_id in self._router._session_id_to_session:
+                                    eligible.append(self._router._session_id_to_session[session_id])
 
                             # filter receivers for eligible sessions
                             receivers = set(eligible) & receivers
@@ -229,8 +225,8 @@ class Broker(FutureMixin):
                             # map excluded session IDs to excluded sessions
                             exclude = []
                             for s in publish.exclude:
-                                if s in self._session_id_to_session:
-                                    exclude.append(self._session_id_to_session[s])
+                                if s in self._router._session_id_to_session:
+                                    exclude.append(self._router._session_id_to_session[s])
 
                             # filter receivers for excluded sessions
                             if exclude:
