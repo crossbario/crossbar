@@ -120,7 +120,6 @@ class Broker(FutureMixin):
         # check topic URI:
         # for PUBLISH, must be valid URI (either strict or loose), and all
         # URI components must be non-empty
-        #
         if self._option_uri_strict:
             uri_is_valid = _URI_PAT_STRICT_NON_EMPTY.match(publish.topic)
         else:
@@ -128,9 +127,19 @@ class Broker(FutureMixin):
 
         if not uri_is_valid:
             if publish.acknowledge:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with invalid topic URI '{0}'".format(publish.topic)])
+                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with invalid topic URI '{0}' (URI strict checking {})".format(publish.topic, self._option_uri_strict)])
                 session._transport.send(reply)
             return
+
+        # disallow publication to topics starting with "wamp." and
+        # "crossbar." other than for trusted session (that are sessions
+        # built into Crossbar.io)
+        if session._authrole is not None and session._authrole != u"trusted":
+            if publish.topic.startswith(u"wamp.") or publish.topic.startswith(u"crossbar."):
+                if publish.acknowledge:
+                    reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with restricted topic URI '{0}'".format(publish.topic)])
+                    session._transport.send(reply)
+                return
 
         # get subscriptions active on the topic published to
         #

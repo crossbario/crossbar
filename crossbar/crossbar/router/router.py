@@ -519,7 +519,10 @@ class Router(FutureMixin):
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
         """
         if session._session_id not in self._session_id_to_session:
-            self._session_id_to_session[session._session_id] = session
+            if hasattr(session, '_session_details'):
+                self._session_id_to_session[session._session_id] = session
+            else:
+                print("attaching non-client session {}".format(session))
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
 

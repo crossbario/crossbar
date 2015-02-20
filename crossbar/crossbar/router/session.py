@@ -648,12 +648,20 @@ class CrossbarRouterServiceSession(ApplicationSession):
     @wamp.register(u'wamp.session.list')
     def session_list(self):
         """
+        Get list of sessions currently joined on the router.
+
+        :returns: List of WAMP session IDs.
+        :rtype: list
         """
         return self._router._session_id_to_session.keys()
 
     @wamp.register(u'wamp.session.get')
     def session_get(self, session_id):
         """
+        Get details for given session.
+
+        :returns: WAMP session details.
+        :rtype: dict or None
         """
         if session_id in self._router._session_id_to_session:
             return self._router._session_id_to_session[session_id]._session_details
