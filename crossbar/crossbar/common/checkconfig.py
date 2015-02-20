@@ -594,6 +594,7 @@ def check_web_path_service_static(config):
         check_dict_args({
             'enable_directory_listing': (False, [bool]),
             'mime_types': (False, [dict]),
+            'cache_timeout': (False, list(six.integer_types) + [type(None)])
         }, config['options'], "'options' in Web transport 'static' path service")
 
 

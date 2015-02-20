@@ -35,10 +35,12 @@ import hmac
 import hashlib
 import base64
 import six
+import time
 
 from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.python import log
+from twisted.web import http
 from twisted.web.http import NOT_FOUND
 from twisted.web.resource import Resource, NoResource
 from twisted.web import server
@@ -118,7 +120,33 @@ class RedirectResource(Resource):
 
 if _HAS_STATIC:
 
-    class FileNoListing(File):
+    class StaticResource(File):
+
+        """
+        Resource for static assets from file system.
+        """
+
+        def __init__(self, *args, **kwargs):
+            self._cache_timeout = kwargs.pop('cache_timeout', None)
+
+            File.__init__(self, *args, **kwargs)
+
+        def render_GET(self, request):
+            if self._cache_timeout is not None:
+                request.setHeader('cache-control', 'max-age={}, public'.format(self._cache_timeout))
+                request.setHeader('expires', http.datetimeToString(time.time() + self._cache_timeout))
+
+            return File.render_GET(self, request)
+
+        def createSimilarFile(self, *args, **kwargs):
+            similar_file = File.createSimilarFile(self, *args, **kwargs)
+
+            # need to manually set this - above explicitly enumerates constructor args
+            similar_file._cache_timeout = self._cache_timeout
+
+            return similar_file
+
+    class StaticResourceNoListing(StaticResource):
 
         """
         A file hierarchy resource with directory listing disabled.
