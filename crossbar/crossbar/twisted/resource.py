@@ -39,6 +39,7 @@ import six
 from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.python import log
+from twisted.web.http import NOT_FOUND
 from twisted.web.resource import Resource, NoResource
 from twisted.web import server
 
@@ -94,6 +95,8 @@ class Resource404(Resource):
         self._directory = directory
 
     def render_GET(self, request):
+        request.setResponseCode(NOT_FOUND)
+
         s = self._page.render(cbVersion=crossbar.__version__,
                               directory=self._directory)
         return s.encode('utf8')
