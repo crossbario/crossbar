@@ -113,9 +113,8 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
-        # check topic URI:
-        # for PUBLISH, must be valid URI (either strict or loose), and all
-        # URI components must be non-empty
+        # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
+        # all URI components must be non-empty
         if self._option_uri_strict:
             uri_is_valid = _URI_PAT_STRICT_NON_EMPTY.match(publish.topic)
         else:
@@ -123,7 +122,7 @@ class Broker(FutureMixin):
 
         if not uri_is_valid:
             if publish.acknowledge:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with invalid topic URI '{0}' (URI strict checking {})".format(publish.topic, self._option_uri_strict)])
+                reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, ["publish with invalid topic URI '{0}' (URI strict checking {1})".format(publish.topic, self._option_uri_strict)])
                 session._transport.send(reply)
             return
 
@@ -261,8 +260,7 @@ class Broker(FutureMixin):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processSubscribe`
         """
-        # check topic URI:
-        # for SUBSCRIBE, must be valid URI (either strict or loose), and all
+        # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
         # URI components must be non-empty other than for wildcard subscriptions
         #
         if self._option_uri_strict:
@@ -332,7 +330,7 @@ class Broker(FutureMixin):
         """
         # get subscription by subscription ID or None (if it doesn't exist on this broker)
         #
-        subscription = self._subscription_map.get_subscription_by_id(unsubscribe.subscription)
+        subscription = self._subscription_map.get_observation_by_id(unsubscribe.subscription)
 
         if subscription:
 
