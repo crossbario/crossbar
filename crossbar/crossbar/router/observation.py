@@ -43,7 +43,7 @@ class UriObservation(object):
     """
     match = None
 
-    def __init__(self, uri):
+    def __init__(self, uri, extra=None):
         """
 
         :param uri: The URI (or URI pattern) for this observation.
@@ -51,6 +51,9 @@ class UriObservation(object):
         """
         # URI (or URI pattern) this observation is created for
         self.uri = uri
+
+        # arbitrary, opaque extra data attached to the observation
+        self.extra = extra
 
         # generate a new ID for the observation
         self.id = util.id()
@@ -94,8 +97,8 @@ class WildcardUriObservation(UriObservation):
     """
     match = u"wildcard"
 
-    def __init__(self, uri):
-        UriObservation.__init__(self, uri)
+    def __init__(self, uri, extra=None):
+        UriObservation.__init__(self, uri, extra)
 
         # an URI pattern like "com.example..create" will have a pattern (False, False, True, False)
         self.pattern = tuple([part == "" for part in self.uri.split('.')])
@@ -127,7 +130,7 @@ class UriObservationMap(object):
         # map: observation ID => UriObservation
         self._observation_id_to_observation = {}
 
-    def add_observer(self, observer, uri, match=u"exact"):
+    def add_observer(self, observer, uri, match=u"exact", extra=None):
         """
         Adds a observer to the observation set and returns the respective observation.
 
@@ -147,7 +150,7 @@ class UriObservationMap(object):
             # if the exact-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_exact:
-                self._observations_exact[uri] = ExactUriObservation(uri)
+                self._observations_exact[uri] = ExactUriObservation(uri, extra)
                 is_first_observer = True
             else:
                 is_first_observer = False
@@ -161,7 +164,7 @@ class UriObservationMap(object):
             # if the prefix-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_prefix:
-                self._observations_prefix[uri] = PrefixUriObservation(uri)
+                self._observations_prefix[uri] = PrefixUriObservation(uri, extra)
                 is_first_observer = True
             else:
                 is_first_observer = False
@@ -176,7 +179,7 @@ class UriObservationMap(object):
             #
             if uri not in self._observations_wildcard:
 
-                observation = WildcardUriObservation(uri)
+                observation = WildcardUriObservation(uri, extra)
 
                 self._observations_wildcard[uri] = observation
                 is_first_observer = True

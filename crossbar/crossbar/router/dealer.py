@@ -152,6 +152,27 @@ class Dealer(FutureMixin):
                 session._transport.send(reply)
                 return
 
+        # get existing registration for procedure / matching strategy - if any
+        #
+        registration = self._registration_map.get_observation(register.procedure, register.match)
+        if registration:
+
+            # there is an existing registration, and that has an invocation strategy that only allows a single callee
+            # on a the given registration
+            #
+            if registration.extra == message.Register.INVOKE_SINGLE:
+                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, ["register for already registered procedure '{0}'".format(register.procedure)])
+                session._transport.send(reply)
+                return
+
+            # there is an existing registration, and that has an invokation strategy different from the one
+            # requested by the new callee
+            #
+            if registration.extra != register.invoke:
+                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, ["register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra, register.invoke)])
+                session._transport.send(reply)
+                return
+
         # authorize action
         #
         d = self._as_future(self._router.authorize, session, register.procedure, IRouter.ACTION_REGISTER)
@@ -165,7 +186,7 @@ class Dealer(FutureMixin):
             else:
                 # ok, session authorized to register. now get the registration
                 #
-                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(session, register.procedure, register.match)
+                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(session, register.procedure, register.match, register.invoke)
 
                 if not was_already_registered:
                     self._session_to_registrations[session].add(registration)
