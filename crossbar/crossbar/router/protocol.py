@@ -250,7 +250,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
                     log.msg("Cookie tracking disabled on WebSocket connection {}".format(self))
 
             # remember transport level info for later forwarding in
-            # WAMP metaevent "wamp.metaevent.session.on_join"
+            # WAMP meta event "wamp.session.on_join"
             ##
             self._transport_info = {
                 'type': 'websocket',
@@ -407,7 +407,7 @@ class CrossbarWampRawSocketServerProtocol(WampRawSocketServerProtocol):
         self._cbtid = None
 
         # remember transport level info for later forwarding in
-        # WAMP metaevent "wamp.metaevent.session.on_join"
+        # WAMP meta event "wamp.session.on_join"
         ##
         self._transport_info = {
             'type': 'rawsocket',

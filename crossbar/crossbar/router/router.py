@@ -505,6 +505,11 @@ class Router(FutureMixin):
         self.factory = factory
         self.realm = realm
         self._options = options or RouterOptions()
+        self._realm = None
+
+        # map: session_id -> session
+        self._session_id_to_session = {}
+
         self._broker = self.broker(self, self._options)
         self._dealer = self.dealer(self, self._options)
         self._attached = 0
@@ -513,8 +518,18 @@ class Router(FutureMixin):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
         """
+        if session._session_id not in self._session_id_to_session:
+            if hasattr(session, '_session_details'):
+                self._session_id_to_session[session._session_id] = session
+            else:
+                if self.debug:
+                    print("attaching non-client session {}".format(session))
+        else:
+            raise Exception("session with ID {} already attached".format(session._session_id))
+
         self._broker.attach(session)
         self._dealer.attach(session)
+
         self._attached += 1
 
         return [self._broker._role_features, self._dealer._role_features]
@@ -525,6 +540,12 @@ class Router(FutureMixin):
         """
         self._broker.detach(session)
         self._dealer.detach(session)
+
+        if session._session_id in self._session_id_to_session:
+            del self._session_id_to_session[session._session_id]
+        else:
+            raise Exception("session with ID {} not attached".format(session._session_id))
+
         self._attached -= 1
         if not self._attached:
             self.factory.onLastDetach(self)

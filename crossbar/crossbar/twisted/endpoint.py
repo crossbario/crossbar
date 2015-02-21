@@ -43,12 +43,12 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
+    from crossbar.twisted.tlsctx import TlsServerContextFactory, \
+        TlsClientContextFactory
 except ImportError:
     _HAS_TLS = False
 else:
     _HAS_TLS = True
-    from crossbar.twisted.tlsctx import TlsServerContextFactory, \
-        TlsClientContextFactory
 
 from crossbar.twisted.sharedport import SharedPort
 

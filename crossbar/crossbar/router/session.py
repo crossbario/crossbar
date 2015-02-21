@@ -582,7 +582,7 @@ class CrossbarRouterSession(RouterSession):
 
         # dispatch session metaevent from WAMP AP
         ##
-        self._service_session.publish(u'wamp.session.on_leave', self._session_details)
+        self._service_session.publish(u'wamp.session.on_leave', self._session_id)
 
         self._session_details = None
 
@@ -614,7 +614,8 @@ class CrossbarRouterServiceSession(ApplicationSession):
 
     """
     Router service session which is used internally by a router to
-    issue WAMP calls or publish events.
+    issue WAMP calls or publish events, and which provides WAMP meta API
+    procedures.
     """
 
     def __init__(self, config, router, schemas=None):
@@ -644,36 +645,64 @@ class CrossbarRouterServiceSession(ApplicationSession):
         if self.debug:
             log.msg("CrossbarRouterServiceSession: registered {} procedures".format(len(regs)))
 
-    @wamp.register(u'wamp.broker.subscriber.list')
-    def subscriber_list(self, topic):
+    @wamp.register(u'wamp.session.list')
+    def session_list(self):
         """
-        WAMP meta procedure to retrieve list of subscribers with detailed
-        per-subscriber information.
-        """
-        topic_to_sessions = self._router._broker._topic_to_sessions
+        Get list of sessions currently joined on the router.
 
-        if topic in topic_to_sessions:
-            subscribers_list = []
-            subscription, subscribers = topic_to_sessions[topic]
-            for subscriber in subscribers:
-                # subscriber is an instance of crossbar.router.session.CrossbarRouterSession
-                subscribers_list.append(subscriber._session_details)
-            return {'subscription': subscription, 'subscribers': subscribers_list}
+        :returns: List of WAMP session IDs.
+        :rtype: list
+        """
+        return self._router._session_id_to_session.keys()
+
+    @wamp.register(u'wamp.session.get')
+    def session_get(self, session_id):
+        """
+        Get details for given session.
+
+        :returns: WAMP session details.
+        :rtype: dict or None
+        """
+        if session_id in self._router._session_id_to_session:
+            return self._router._session_id_to_session[session_id]._session_details
         else:
-            # FIXME: API design?
-            # return {'subscription': 0, 'subscribers': []}
-            return {}
+            return None
+
+    @wamp.register(u'wamp.broker.subscription.get')
+    def subscription_get(self, topic, options=None):
+        """
+        WAMP meta procedure to get a subscription given a topic and subscribe options.
+        """
+        options = options or {}
+        match = options.get('match', u'exact')
+        subscription = self._router._broker._subscription_map.get_subscription(topic, match)
+        if subscription:
+            return subscription.__getstate__()
+        else:
+            return None
+
+    @wamp.register(u'wamp.broker.subscriber.list')
+    def subscriber_list(self, subscription_id):
+        """
+        WAMP meta procedure to retrieve list of subscribers (WAMP session IDs) subscribed on a subscription.
+        """
+        subscription = self._router._broker._subscription_map.get_subscription_by_id(subscription_id)
+        if subscription:
+            session_ids = []
+            for subscriber in subscription.subscribers:
+                session_ids.append(subscriber._session_id)
+            return session_ids
+        else:
+            return None
 
     @wamp.register(u'wamp.broker.subscriber.count')
-    def subscriber_count(self, topic):
+    def subscriber_count(self, subscription_id):
         """
-        WAMP meta procedure to get the number of subscribers.
+        WAMP meta procedure to get the number of subscribers on a subscription.
         """
-        topic_to_sessions = self._router._broker._topic_to_sessions
-
-        if topic in topic_to_sessions:
-            _, subscribers = topic_to_sessions[topic]
-            return len(subscribers)
+        subscription = self._router._broker._subscription_map.get_subscription_by_id(subscription_id)
+        if subscription:
+            return len(subscription.subscribers)
         else:
             return 0
 
@@ -709,7 +738,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
         if not schema:
             if uri in self._schemas:
                 del self._schemas
-                self.publish('wamp.reflect.on_undefine', uri)
+                self.publish(u'wamp.reflect.on_undefine', uri)
                 return uri
             else:
                 return None
@@ -726,7 +755,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
 
         if was_new or was_modified:
             self._schemas[uri] = schema
-            self.publish('wamp.reflect.on_define', uri, schema, was_new)
+            self.publish(u'wamp.reflect.on_define', uri, schema, was_new)
             return was_new
         else:
             return None
