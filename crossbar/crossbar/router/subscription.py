@@ -33,314 +33,316 @@ from __future__ import absolute_import
 from pytrie import StringTrie
 
 from autobahn import util
-from autobahn.wamp.message import Subscribe
 
-__all__ = ('SubscriptionMap',)
+__all__ = ('UriObservationMap',)
 
 
-class Subscription(object):
+class UriObservation(object):
     """
-    Represents a subscription maintained by the broker.
+    Represents an URI observation maintained by a broker/dealer.
     """
     match = None
 
-    def __init__(self, topic):
+    def __init__(self, uri):
         """
 
-        :param topic: The topic (or topic pattern) for this subscription.
-        :type topic: unicode
+        :param uri: The URI (or URI pattern) for this observation.
+        :type uri: unicode
         """
-        # topic (or topic pattern) this subscription is created for
-        self.topic = topic
+        # URI (or URI pattern) this observation is created for
+        self.uri = uri
 
-        # generate a new ID for the subscription
+        # generate a new ID for the observation
         self.id = util.id()
 
-        # set of subscribers
-        self.subscribers = set()
+        # set of observers
+        self.observers = set()
 
     def __getstate__(self):
         return {
             'id': self.id,
-            'topic': self.topic,
+            'uri': self.uri,
             'match': self.match,
         }
 
     def __setstate__(self, state):
-        self.topic = state['topic']
+        self.uri = state['uri']
         self.match = state['match']
         self.id = state['id']
-        self.subscribers = set()
+        self.observers = set()
 
 
-class ExactSubscription(Subscription):
+class ExactUriObservation(UriObservation):
     """
-    Represents an exact-matching subscription.
+    Represents an exact-matching observation.
     """
 
     match = u"exact"
 
 
-class PrefixSubscription(Subscription):
+class PrefixUriObservation(UriObservation):
     """
-    Represents a prefix-matching subscription.
+    Represents a prefix-matching observation.
     """
 
     match = u"prefix"
 
 
-class WildcardSubscription(Subscription):
+class WildcardUriObservation(UriObservation):
     """
-    Represents a wildcard-matching subscription.
+    Represents a wildcard-matching observation.
     """
     match = u"wildcard"
 
-    def __init__(self, topic):
-        Subscription.__init__(self, topic)
+    def __init__(self, uri):
+        UriObservation.__init__(self, uri)
 
-        # a topic pattern like "com.example..create" will have a pattern (False, False, True, False)
-        self.pattern = tuple([part == "" for part in self.topic.split('.')])
+        # an URI pattern like "com.example..create" will have a pattern (False, False, True, False)
+        self.pattern = tuple([part == "" for part in self.uri.split('.')])
 
         # length of the pattern (above would have length 4, as it consists of 4 URI components)
         self.pattern_len = len(self.pattern)
 
 
-class SubscriptionMap(object):
+class UriObservationMap(object):
     """
-    Represents the current set of subscriptions maintained by the broker.
+    Represents the current set of observations maintained by a broker/dealer.
 
     To test: trial crossbar.router.test.test_subscription
     """
 
     def __init__(self):
-        # map: topic => ExactSubscription
-        self._subscriptions_exact = {}
+        # map: URI => ExactUriObservation
+        self._observations_exact = {}
 
-        # map: topic => PrefixSubscription
-        self._subscriptions_prefix = StringTrie()
+        # map: URI => PrefixUriObservation
+        self._observations_prefix = StringTrie()
 
-        # map: topic => WildcardSubscription
-        self._subscriptions_wildcard = {}
+        # map: URI => WildcardUriObservation
+        self._observations_wildcard = {}
 
         # map: pattern length => (map: pattern => pattern count)
-        self._subscriptions_wildcard_patterns = {}
+        self._observations_wildcard_patterns = {}
 
-        # map: subscription ID => Subscription
-        self._subscription_id_to_subscription = {}
+        # map: observation ID => UriObservation
+        self._observation_id_to_observation = {}
 
-    def add_subscriber(self, subscriber, topic, match=Subscribe.MATCH_EXACT):
+    def add_observer(self, observer, uri, match=u"exact"):
         """
-        Adds a subscriber to the subscription set and returns the respective subscription.
+        Adds a observer to the observation set and returns the respective observation.
 
-        :param subscriber: The subscriber to add (this can be any opaque object).
-        :type subscriber: obj
-        :param topic: The topic (or topic pattern) to add the subscriber to add to.
-        :type topic: unicode
-        :param match: The matching policy for subscribing, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
+        :param observer: The observer to add (this can be any opaque object).
+        :type observer: obj
+        :param uri: The URI (or URI pattern) to add the observer to add to.
+        :type uri: unicode
+        :param match: The matching policy for observing, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
         :type match: unicode
 
-        :returns: A tuple ``(subscription, was_already_subscribed, was_first_subscriber)``. Here,
-            ``subscription`` is an instance of one of ``ExactSubscription``, ``PrefixSubscription`` or ``WildcardSubscription``.
+        :returns: A tuple ``(observation, was_already_observed, was_first_observer)``. Here,
+            ``observation`` is an instance of one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``.
         :rtype: tuple
         """
-        if match == Subscribe.MATCH_EXACT:
+        if match == u"exact":
 
-            # if the exact-matching topic isn't in our map, create a new subscription
+            # if the exact-matching URI isn't in our map, create a new observation
             #
-            if topic not in self._subscriptions_exact:
-                self._subscriptions_exact[topic] = ExactSubscription(topic)
-                is_first_subscriber = True
+            if uri not in self._observations_exact:
+                self._observations_exact[uri] = ExactUriObservation(uri)
+                is_first_observer = True
             else:
-                is_first_subscriber = False
+                is_first_observer = False
 
-            # get the subscription
+            # get the observation
             #
-            subscription = self._subscriptions_exact[topic]
+            observation = self._observations_exact[uri]
 
-        elif match == Subscribe.MATCH_PREFIX:
+        elif match == u"prefix":
 
-            # if the prefix-matching topic isn't in our map, create a new subscription
+            # if the prefix-matching URI isn't in our map, create a new observation
             #
-            if topic not in self._subscriptions_prefix:
-                self._subscriptions_prefix[topic] = PrefixSubscription(topic)
-                is_first_subscriber = True
+            if uri not in self._observations_prefix:
+                self._observations_prefix[uri] = PrefixUriObservation(uri)
+                is_first_observer = True
             else:
-                is_first_subscriber = False
+                is_first_observer = False
 
-            # get the subscription
+            # get the observation
             #
-            subscription = self._subscriptions_prefix[topic]
+            observation = self._observations_prefix[uri]
 
-        elif match == Subscribe.MATCH_WILDCARD:
+        elif match == u"wildcard":
 
-            # if the prefix-matching topic isn't in our map, create a new subscription
+            # if the wildcard-matching URI isn't in our map, create a new observation
             #
-            if topic not in self._subscriptions_wildcard:
+            if uri not in self._observations_wildcard:
 
-                subscription = WildcardSubscription(topic)
+                observation = WildcardUriObservation(uri)
 
-                self._subscriptions_wildcard[topic] = subscription
-                is_first_subscriber = True
+                self._observations_wildcard[uri] = observation
+                is_first_observer = True
 
                 # setup map: pattern length -> patterns
-                if subscription.pattern_len not in self._subscriptions_wildcard_patterns:
-                    self._subscriptions_wildcard_patterns[subscription.pattern_len] = {}
+                if observation.pattern_len not in self._observations_wildcard_patterns:
+                    self._observations_wildcard_patterns[observation.pattern_len] = {}
 
                 # setup map: (pattern length, pattern) -> pattern count
-                if subscription.pattern not in self._subscriptions_wildcard_patterns[subscription.pattern_len]:
-                    self._subscriptions_wildcard_patterns[subscription.pattern_len][subscription.pattern] = 1
+                if observation.pattern not in self._observations_wildcard_patterns[observation.pattern_len]:
+                    self._observations_wildcard_patterns[observation.pattern_len][observation.pattern] = 1
                 else:
-                    self._subscriptions_wildcard_patterns[subscription.pattern_len][subscription.pattern] += 1
+                    self._observations_wildcard_patterns[observation.pattern_len][observation.pattern] += 1
 
             else:
-                is_first_subscriber = False
+                is_first_observer = False
 
-            # get the subscription
+            # get the observation
             #
-            subscription = self._subscriptions_wildcard[topic]
+            observation = self._observations_wildcard[uri]
 
         else:
             raise Exception("invalid match strategy '{}'".format(match))
 
-        # note subscription in subscription ID map
+        # note observation in observation ID map
         #
-        if is_first_subscriber:
-            self._subscription_id_to_subscription[subscription.id] = subscription
+        if is_first_observer:
+            self._observation_id_to_observation[observation.id] = observation
 
-        # add subscriber if not already in subscription
+        # add observer if not already in observation
         #
-        if subscriber not in subscription.subscribers:
-            subscription.subscribers.add(subscriber)
-            was_already_subscribed = False
+        if observer not in observation.observers:
+            observation.observers.add(observer)
+            was_already_observed = False
         else:
-            was_already_subscribed = True
+            was_already_observed = True
 
-        return subscription, was_already_subscribed, is_first_subscriber
+        return observation, was_already_observed, is_first_observer
 
-    def get_subscription(self, topic, match=Subscribe.MATCH_EXACT):
+    def get_observation(self, uri, match=u"exact"):
         """
-        Get a subscription (if any) for given topic and match policy.
+        Get a observation (if any) for given URI and match policy.
 
-        :param topic: The topic (or topic pattern) to get the subscription for.
-        :type topic: unicode
-        :param match: The matching policy for subscription to retrieve, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
+        :param uri: The URI (or URI pattern) to get the observation for.
+        :type uri: unicode
+        :param match: The matching policy for observation to retrieve, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
         :type match: unicode
 
-        :returns: The subscription (instance of one of ``ExactSubscription``, ``PrefixSubscription`` or ``WildcardSubscription``)
+        :returns: The observation (instance of one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``)
             or ``None``.
         :rtype: obj or None
         """
-        if match == Subscribe.MATCH_EXACT:
+        if match == u"exact":
 
-            return self._subscriptions_exact.get(topic, None)
+            return self._observations_exact.get(uri, None)
 
-        elif match == Subscribe.MATCH_PREFIX:
+        elif match == u"prefix":
 
-            return self._subscriptions_prefix.get(topic, None)
+            return self._observations_prefix.get(uri, None)
 
-        elif match == Subscribe.MATCH_WILDCARD:
+        elif match == u"wildcard":
 
-            return self._subscriptions_wildcard.get(topic, None)
+            return self._observations_wildcard.get(uri, None)
 
-    def match_subscriptions(self, topic):
+        else:
+            raise Exception("invalid match strategy '{}'".format(match))
+
+    def match_observations(self, uri):
         """
-        Returns the subscriptions matching the given topic. This is the core method called
-        by the broker to actually dispatch events being published to receiving sessions.
+        Returns the observations matching the given URI. This is the core method called
+        by a broker/dealer to actually dispatch events/calls.
 
-        :param topic: The topic to match.
-        :type topic: unicode
+        :param uri: The URI to match.
+        :type uri: unicode
 
-        :returns: A list of subscriptions matching the topic. This is a list of instance of
-            one of ``ExactSubscription``, ``PrefixSubscription`` or ``WildcardSubscription``.
+        :returns: A list of observations matching the URI. This is a list of instance of
+            one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``.
         :rtype: list
         """
-        subscriptions = []
+        observations = []
 
-        if topic in self._subscriptions_exact:
-            subscriptions.append(self._subscriptions_exact[topic])
+        if uri in self._observations_exact:
+            observations.append(self._observations_exact[uri])
 
-        for subscription in self._subscriptions_prefix.iter_prefix_values(topic):
-            subscriptions.append(subscription)
+        for observation in self._observations_prefix.iter_prefix_values(uri):
+            observations.append(observation)
 
-        topic_parts = tuple(topic.split('.'))
-        topic_parts_len = len(topic_parts)
-        if topic_parts_len in self._subscriptions_wildcard_patterns:
-            for pattern in self._subscriptions_wildcard_patterns[topic_parts_len]:
-                patterned_topic = '.'.join(['' if pattern[i] else topic_parts[i] for i in range(topic_parts_len)])
-                if patterned_topic in self._subscriptions_wildcard:
-                    subscriptions.append(self._subscriptions_wildcard[patterned_topic])
+        uri_parts = tuple(uri.split('.'))
+        uri_parts_len = len(uri_parts)
+        if uri_parts_len in self._observations_wildcard_patterns:
+            for pattern in self._observations_wildcard_patterns[uri_parts_len]:
+                patterned_uri = '.'.join(['' if pattern[i] else uri_parts[i] for i in range(uri_parts_len)])
+                if patterned_uri in self._observations_wildcard:
+                    observations.append(self._observations_wildcard[patterned_uri])
 
-        return subscriptions
+        return observations
 
-    def get_subscription_by_id(self, id):
+    def get_observation_by_id(self, id):
         """
-        Get a subscription by ID.
+        Get a observation by ID.
 
-        :param id: The ID of the subscription to retrieve.
+        :param id: The ID of the observation to retrieve.
         :type id: int
 
-        :returns: The subscription for the given ID or ``None``.
+        :returns: The observation for the given ID or ``None``.
         :rtype: obj or None
         """
-        return self._subscription_id_to_subscription.get(id, None)
+        return self._observation_id_to_observation.get(id, None)
 
-    def drop_subscriber(self, subscriber, subscription):
+    def drop_observer(self, observer, observation):
         """
-        Drop a subscriber from a subscription.
+        Drop a observer from a observation.
 
-        :param subscriber: The subscriber to drop from the given subscription.
-        :type subscriber: obj
-        :param subscription: The subscription from which to drop the subscriber. An instance
-            of ``ExactSubscription``, ``PrefixSubscription`` or ``WildcardSubscription`` previously
-            created and handed out by this subscription map.
-        :type subscription: obj
+        :param observer: The observer to drop from the given observation.
+        :type observer: obj
+        :param observation: The observation from which to drop the observer. An instance
+            of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation`` previously
+            created and handed out by this observation map.
+        :type observation: obj
 
-        :returns: A tuple ``(was_subscribed, was_last_subscriber)``.
+        :returns: A tuple ``(was_observed, was_last_observer)``.
         :rtype: tuple
         """
-        if subscriber in subscription.subscribers:
+        if observer in observation.observers:
 
-            was_subscribed = True
+            was_observed = True
 
-            # remove subscriber from subscription
+            # remove observer from observation
             #
-            subscription.subscribers.discard(subscriber)
+            observation.observers.discard(observer)
 
-            # no more subscribers on this subscription!
+            # no more observers on this observation!
             #
-            if not subscription.subscribers:
+            if not observation.observers:
 
-                if subscription.match == Subscribe.MATCH_EXACT:
-                    del self._subscriptions_exact[subscription.topic]
+                if observation.match == u"exact":
+                    del self._observations_exact[observation.uri]
 
-                elif subscription.match == Subscribe.MATCH_PREFIX:
-                    del self._subscriptions_prefix[subscription.topic]
+                elif observation.match == u"prefix":
+                    del self._observations_prefix[observation.uri]
 
-                elif subscription.match == Subscribe.MATCH_WILDCARD:
+                elif observation.match == u"wildcard":
 
-                    # cleanup if this was the last subscription with given pattern
-                    self._subscriptions_wildcard_patterns[subscription.pattern_len][subscription.pattern] -= 1
-                    if not self._subscriptions_wildcard_patterns[subscription.pattern_len][subscription.pattern]:
-                        del self._subscriptions_wildcard_patterns[subscription.pattern_len][subscription.pattern]
+                    # cleanup if this was the last observation with given pattern
+                    self._observations_wildcard_patterns[observation.pattern_len][observation.pattern] -= 1
+                    if not self._observations_wildcard_patterns[observation.pattern_len][observation.pattern]:
+                        del self._observations_wildcard_patterns[observation.pattern_len][observation.pattern]
 
-                    # cleanup if this was the last subscription with given pattern length
-                    if not self._subscriptions_wildcard_patterns[subscription.pattern_len]:
-                        del self._subscriptions_wildcard_patterns[subscription.pattern_len]
+                    # cleanup if this was the last observation with given pattern length
+                    if not self._observations_wildcard_patterns[observation.pattern_len]:
+                        del self._observations_wildcard_patterns[observation.pattern_len]
 
-                    # remove actual subscription
-                    del self._subscriptions_wildcard[subscription.topic]
+                    # remove actual observation
+                    del self._observations_wildcard[observation.uri]
 
                 else:
                     # should not arrive here
                     raise Exception("logic error")
 
-                was_last_subscriber = True
+                was_last_observer = True
 
             else:
-                was_last_subscriber = False
+                was_last_observer = False
 
         else:
-            # subscriber wasn't on this subscription
-            was_subscribed = False
+            # observer wasn't on this observation
+            was_observed = False
 
-        return was_subscribed, was_last_subscriber
+        return was_observed, was_last_observer
