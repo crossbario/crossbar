@@ -46,7 +46,7 @@ Crossbar.io features:
 For more information, please go to
 
  * Homepage: http://crossbar.io/
- * Documentation: https://github.com/crossbario/crossbar/wiki
+ * Documentation: http://crossbar.io/docs
  * Source code: https://github.com/crossbario/crossbar
 
 Open-source licensed under the GNU Affero General Public License version 3.
