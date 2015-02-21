@@ -139,6 +139,11 @@ if _HAS_STATIC:
             return File.render_GET(self, request)
 
         def createSimilarFile(self, *args, **kwargs):
+            ##
+            # File.getChild uses File.createSimilarFile to make a new resource of the same class to serve actual files under
+            # a directory. We need to override that to also set the cache timeout on the child.
+            ##
+
             similar_file = File.createSimilarFile(self, *args, **kwargs)
 
             # need to manually set this - above explicitly enumerates constructor args
