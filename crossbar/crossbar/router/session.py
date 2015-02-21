@@ -675,7 +675,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
         """
         options = options or {}
         match = options.get('match', u'exact')
-        subscription = self._router._broker._subscription_map.get_subscription(topic, match)
+        subscription = self._router._broker._subscription_map.get_observation(topic, match)
         if subscription:
             return subscription.__getstate__()
         else:
@@ -686,10 +686,10 @@ class CrossbarRouterServiceSession(ApplicationSession):
         """
         WAMP meta procedure to retrieve list of subscribers (WAMP session IDs) subscribed on a subscription.
         """
-        subscription = self._router._broker._subscription_map.get_subscription_by_id(subscription_id)
+        subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
         if subscription:
             session_ids = []
-            for subscriber in subscription.subscribers:
+            for subscriber in subscription.observers:
                 session_ids.append(subscriber._session_id)
             return session_ids
         else:
@@ -700,9 +700,9 @@ class CrossbarRouterServiceSession(ApplicationSession):
         """
         WAMP meta procedure to get the number of subscribers on a subscription.
         """
-        subscription = self._router._broker._subscription_map.get_subscription_by_id(subscription_id)
+        subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
         if subscription:
-            return len(subscription.subscribers)
+            return len(subscription.observers)
         else:
             return 0
 

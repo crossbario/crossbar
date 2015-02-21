@@ -39,7 +39,7 @@ from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
     _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY
 from autobahn.twisted.wamp import FutureMixin
 
-from crossbar.router.subscription import SubscriptionMap
+from crossbar.router.observation import UriObservationMap
 from crossbar.router.types import RouterOptions
 from crossbar.router.interfaces import IRouter
 
@@ -64,7 +64,7 @@ class Broker(FutureMixin):
         self._options = options or RouterOptions()
 
         # subscription map managed by this broker
-        self._subscription_map = SubscriptionMap()
+        self._subscription_map = UriObservationMap()
 
         # map: session -> set of subscriptions (needed for detach)
         self._session_to_subscriptions = {}
@@ -92,13 +92,13 @@ class Broker(FutureMixin):
 
             for subscription in self._session_to_subscriptions[session]:
 
-                was_subscribed, was_last_subscriber = self._subscription_map.drop_subscriber(session, subscription)
+                was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
 
                 # publish WAMP meta events
                 #
                 if self._router._realm:
                     service_session = self._router._realm.session
-                    if service_session and not subscription.topic.startswith(u'wamp.'):
+                    if service_session and not subscription.uri.startswith(u'wamp.'):
                         if was_subscribed:
                             service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
                         if was_last_subscriber:
@@ -139,7 +139,7 @@ class Broker(FutureMixin):
 
         # get subscriptions active on the topic published to
         #
-        subscriptions = self._subscription_map.match_subscriptions(publish.topic)
+        subscriptions = self._subscription_map.match_observations(publish.topic)
 
         # go on if there are any active subscriptions or the publish is to be acknowledged
         # otherwise there isn't anything to do anyway.
@@ -203,7 +203,7 @@ class Broker(FutureMixin):
 
                         # initial list of receivers are all subscribers on a subscription ..
                         #
-                        receivers = subscription.subscribers
+                        receivers = subscription.observers
 
                         # filter by "eligible" receivers
                         #
@@ -294,7 +294,7 @@ class Broker(FutureMixin):
             else:
                 # ok, session authorized to subscribe. now get the subscription
                 #
-                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_subscriber(session, subscribe.topic, subscribe.match)
+                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(session, subscribe.topic, subscribe.match)
 
                 if not was_already_subscribed:
                     self._session_to_subscriptions[session].add(subscription)
@@ -303,7 +303,7 @@ class Broker(FutureMixin):
                 #
                 if self._router._realm:
                     service_session = self._router._realm.session
-                    if service_session and not subscription.topic.startswith(u'wamp.'):
+                    if service_session and not subscription.uri.startswith(u'wamp.'):
                         if is_first_subscriber:
                             service_session.publish(u'wamp.topic.on_first_subscribe', session._session_id, subscription.__getstate__())
                         if not was_already_subscribed:
@@ -336,9 +336,9 @@ class Broker(FutureMixin):
 
         if subscription:
 
-            if session in subscription.subscribers:
+            if session in subscription.observers:
 
-                was_subscribed, was_last_subscriber = self._subscription_map.drop_subscriber(session, subscription)
+                was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
 
                 if was_subscribed:
                     self._session_to_subscriptions[session].discard(subscription)
@@ -347,7 +347,7 @@ class Broker(FutureMixin):
                 #
                 if self._router._realm:
                     service_session = self._router._realm.session
-                    if service_session and not subscription.topic.startswith(u'wamp.'):
+                    if service_session and not subscription.uri.startswith(u'wamp.'):
                         if was_subscribed:
                             service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
                         if was_last_subscriber:
