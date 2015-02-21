@@ -44,14 +44,18 @@ class RegistrationMap(object):
     With RPC, normally the only is a single callee on a registration.
     However, there might be more complex policies:
 
+    Implement now:
+
      - default
      - first
      - round-robin
      - random
 
-     - all-gather
-     - all-progressive
-     - shard
+     "Sharded RPC" => later (needs more thinking):
+
+     - shard-single
+     - shard-all-gather
+     - shard-all-progressive
 
      Q: Implement sharded-calls via normal registrations, where the
      inviduals endpoints that process a certain shard use URIs like
