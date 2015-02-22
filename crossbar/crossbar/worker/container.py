@@ -130,7 +130,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             uri = '{}.{}'.format(self._uri_prefix, proc)
             if self.debug:
                 log.msg("Registering procedure '{}'".format(uri))
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details', discloseCaller=True)))
+            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 

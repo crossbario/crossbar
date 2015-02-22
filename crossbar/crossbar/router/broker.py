@@ -100,9 +100,9 @@ class Broker(FutureMixin):
                     service_session = self._router._realm.session
                     if service_session and not subscription.uri.startswith(u'wamp.'):
                         if was_subscribed:
-                            service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
+                            service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
                         if was_last_subscriber:
-                            service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.id)
+                            service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
 
             del self._session_to_subscriptions[session]
 
@@ -182,16 +182,16 @@ class Broker(FutureMixin):
                         msg = message.Published(publish.request, publication)
                         session._transport.send(msg)
 
-                    # publisher disclosure (FIXME: too simplistic)
+                    # publisher disclosure
                     #
-                    if publish.discloseMe:
+                    if publish.disclose_me:
                         publisher = session._session_id
                     else:
                         publisher = None
 
                     # skip publisher
                     #
-                    if publish.excludeMe is None or publish.excludeMe:
+                    if publish.exclude_me is None or publish.exclude_me:
                         me_also = False
                     else:
                         me_also = True
@@ -319,9 +319,9 @@ class Broker(FutureMixin):
                                 'uri': subscription.uri,
                                 'match': subscription.match,
                             }
-                            service_session.publish(u'wamp.topic.on_first_subscribe', session._session_id, subscription.id, subscription_details)
+                            service_session.publish(u'wamp.subscription.on_create', session._session_id, subscription.id, subscription_details)
                         if not was_already_subscribed:
-                            service_session.publish(u'wamp.topic.on_subscribe', session._session_id, subscription.id)
+                            service_session.publish(u'wamp.subscription.on_subscribe', session._session_id, subscription.id)
 
                 # acknowledge subscribe with subscription ID
                 #
@@ -363,9 +363,9 @@ class Broker(FutureMixin):
                     service_session = self._router._realm.session
                     if service_session and not subscription.uri.startswith(u'wamp.'):
                         if was_subscribed:
-                            service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
+                            service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
                         if was_last_subscriber:
-                            service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.id)
+                            service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
 
                 reply = message.Unsubscribed(unsubscribe.request)
             else:

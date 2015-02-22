@@ -120,9 +120,9 @@ class Dealer(FutureMixin):
                     service_session = self._router._realm.session
                     if service_session and not registration.uri.startswith(u'wamp.'):
                         if was_registered:
-                            service_session.publish(u'wamp.procedure.on_unregister', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
                         if was_last_callee:
-                            service_session.publish(u'wamp.procedure.on_last_unregister', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
 
             del self._session_to_registrations[session]
 
@@ -214,9 +214,9 @@ class Dealer(FutureMixin):
                                 'match': registration.match,
                                 'invoke': registration.extra.invoke,
                             }
-                            service_session.publish(u'wamp.procedure.on_first_register', session._session_id, registration.id, registration_details)
+                            service_session.publish(u'wamp.registration.on_create', session._session_id, registration.id, registration_details)
                         if not was_already_registered:
-                            service_session.publish(u'wamp.procedure.on_register', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_register', session._session_id, registration.id)
 
                 # acknowledge register with registration ID
                 #
@@ -258,9 +258,9 @@ class Dealer(FutureMixin):
                     service_session = self._router._realm.session
                     if service_session and not registration.uri.startswith(u'wamp.'):
                         if was_registered:
-                            service_session.publish(u'wamp.procedure.on_unregister', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
                         if was_last_callee:
-                            service_session.publish(u'wamp.procedure.on_last_unregister', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
 
                 reply = message.Unregistered(unregister.request)
             else:
@@ -347,26 +347,12 @@ class Dealer(FutureMixin):
                     #
                     invocation_request_id = util.id()
 
-                    # caller disclosure (FIXME: too simplistic)
+                    # caller disclosure
                     #
-                    disclose_caller = call.discloseMe
-                    disclose_caller_transport = call.discloseMe
-
-                    if disclose_caller:
-                        authid = session._authid
-                        authrole = session._authrole
-                        authmethod = session._authmethod
+                    if call.disclose_me is None or call.disclose_me:
                         caller = session._session_id
-                        if disclose_caller_transport and hasattr(session._transport, '_transport_info'):
-                            caller_transport = session._transport._transport_info
-                        else:
-                            caller_transport = None
                     else:
-                        authid = None
-                        authrole = None
-                        authmethod = None
                         caller = None
-                        caller_transport = None
 
                     # for pattern-based registrations, the INVOCATION must contain
                     # the actual procedure being called
@@ -383,10 +369,6 @@ class Dealer(FutureMixin):
                                                     timeout=call.timeout,
                                                     receive_progress=call.receive_progress,
                                                     caller=caller,
-                                                    caller_transport=caller_transport,
-                                                    authid=authid,
-                                                    authrole=authrole,
-                                                    authmethod=authmethod,
                                                     procedure=procedure)
 
                     self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)

@@ -341,10 +341,6 @@ class RouterSession(FutureMixin, BaseSession):
 
                 # self._transport.close()
 
-            elif isinstance(msg, message.Heartbeat):
-
-                pass  # FIXME
-
             else:
 
                 self._router.process(self, msg)

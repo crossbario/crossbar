@@ -143,7 +143,7 @@ class Node:
         ##
         self._router_factory = RouterFactory(
             options=RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE),
-            debug=False)
+            debug=True)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         # add the node controller singleton session to the router
@@ -194,7 +194,7 @@ class Node:
         # fake call details information when calling into
         # remoted procedure locally
         ##
-        call_details = CallDetails(caller=0, authid='node')
+        call_details = CallDetails(caller=0)
 
         controller = config.get('controller', {})
 

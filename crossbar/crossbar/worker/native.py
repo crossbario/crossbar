@@ -92,7 +92,7 @@ class NativeWorkerSession(NativeProcessSession):
             uri = '{}.{}'.format(self._uri_prefix, proc)
             if self.debug:
                 log.msg("Registering procedure '{}'".format(uri))
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details', discloseCaller=True)))
+            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
@@ -170,7 +170,7 @@ class NativeWorkerSession(NativeProcessSession):
             cpu_affinity_set_topic = 'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.worker)
             cpu_affinity_set_info = {
                 'affinity': new_affinity,
-                'who': details.authid
+                'who': details.caller
             }
             self.publish(cpu_affinity_set_topic, cpu_affinity_set_info, options=PublishOptions(exclude=[details.caller]))
 
@@ -240,7 +240,7 @@ class NativeWorkerSession(NativeProcessSession):
             'paths': sys.path,
             'paths_added': paths_added,
             'prepend': prepend,
-            'who': details.authid
+            'who': details.caller
         }
         self.publish(topic, res, options=PublishOptions(exclude=[details.caller]))
 

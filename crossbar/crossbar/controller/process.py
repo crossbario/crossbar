@@ -203,7 +203,7 @@ class NodeControllerSession(NativeProcessSession):
             uri = '{}.{}'.format(self._uri_prefix, proc)
             if self.debug:
                 log.msg("Registering procedure '{}'".format(uri))
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details', discloseCaller=True)))
+            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
@@ -252,7 +252,7 @@ class NodeControllerSession(NativeProcessSession):
             log.msg(emsg)
             raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
-        self._management_transport = ManagementTransport(config, details.authid)
+        self._management_transport = ManagementTransport(config, details.caller)
 
         factory = WampWebSocketServerFactory(self._node._router_session_factory, debug=False)
         factory.setProtocolOptions(failByDrop=False)
@@ -495,9 +495,9 @@ class NodeControllerSession(NativeProcessSession):
         # add worker tracking instance to the worker map ..
         ##
         if wtype == 'router':
-            worker = RouterWorkerProcess(self, id, details.authid, keeplog=options.get('traceback', None))
+            worker = RouterWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
         elif wtype == 'container':
-            worker = ContainerWorkerProcess(self, id, details.authid, keeplog=options.get('traceback', None))
+            worker = ContainerWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
         else:
             raise Exception("logic error")
 
@@ -729,7 +729,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # add worker tracking instance to the worker map ..
         ##
-        worker = GuestWorkerProcess(self, id, details.authid, keeplog=options.get('traceback', None))
+        worker = GuestWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
 
         self._workers[id] = worker
 

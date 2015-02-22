@@ -186,7 +186,7 @@ class NativeProcessSession(ApplicationSession):
             uri = '{}.{}'.format(self._uri_prefix, proc)
             if self.debug:
                 log.msg("Registering procedure '{}'".format(uri))
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details', discloseCaller=True)))
+            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
@@ -329,7 +329,7 @@ class NativeProcessSession(ApplicationSession):
         factory = ConchFactory(ptl)
         factory.noisy = False
 
-        self._manhole_service = ManholeService(config, details.authid)
+        self._manhole_service = ManholeService(config, details.caller)
 
         starting_topic = '{}.on_manhole_starting'.format(self._uri_prefix)
         starting_info = self._manhole_service.marshal()
