@@ -214,7 +214,7 @@ class Dealer(FutureMixin):
                                 'match': registration.match,
                                 'invoke': registration.extra.invoke,
                             }
-                            service_session.publish(u'wamp.registration.on_create', session._session_id, registration.id, registration_details)
+                            service_session.publish(u'wamp.registration.on_create', session._session_id, registration_details)
                         if not was_already_registered:
                             service_session.publish(u'wamp.registration.on_register', session._session_id, registration.id)
 

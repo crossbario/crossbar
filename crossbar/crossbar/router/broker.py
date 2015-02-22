@@ -319,7 +319,7 @@ class Broker(FutureMixin):
                                 'uri': subscription.uri,
                                 'match': subscription.match,
                             }
-                            service_session.publish(u'wamp.subscription.on_create', session._session_id, subscription.id, subscription_details)
+                            service_session.publish(u'wamp.subscription.on_create', session._session_id, subscription_details)
                         if not was_already_subscribed:
                             service_session.publish(u'wamp.subscription.on_subscribe', session._session_id, subscription.id)
 

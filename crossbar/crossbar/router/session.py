@@ -666,31 +666,72 @@ class CrossbarRouterServiceSession(ApplicationSession):
         if session_id in self._router._session_id_to_session:
             return self._router._session_id_to_session[session_id]._session_details
         else:
-            return None
+            raise ApplicationError(ApplicationError.NO_SUCH_SESSION, message="no session with ID {} exists on this router".format(session_id))
 
     @wamp.register(u'wamp.registration.remove_callee')
     def registration_remove_callee(self, registration_id, callee_id):
+        """
+        """
         raise Exception("not implemented")
 
     @wamp.register(u'wamp.subscription.remove_subscriber')
     def subscription_remove_subscriber(self, subscription_id, subscriber_id):
+        """
+        """
         raise Exception("not implemented")
 
     @wamp.register(u'wamp.registration.list')
     def registration_list(self):
-        pass
+        """
+        """
+        registration_map = self._router._dealer._registration_map
+
+        registrations_exact = []
+        for registration in registration_map._observations_exact.values():
+            registrations_exact.append(registration.id)
+
+        registrations_prefix = []
+        for registration in registration_map._observations_prefix.values():
+            registrations_prefix.append(registration.id)
+
+        registrations_wildcard = []
+        for registration in registration_map._observations_wildcard.values():
+            registrations_wildcard.append(registration.id)
+
+        return {
+            'exact': registrations_exact,
+            'prefix': registrations_prefix,
+            'wildcard': registrations_wildcard,
+        }
 
     @wamp.register(u'wamp.subscription.list')
     def subscription_list(self):
-        pass
+        """
+        """
+        subscription_map = self._router._broker._subscription_map
 
     @wamp.register(u'wamp.registration.match')
     def registration_match(self, procedure):
-        pass
+        """
+        """
+        registration = self._router._dealer._registration_map.best_matching_observation(procedure)
+        if registration:
+            return registration.id
+        else:
+            return None
 
     @wamp.register(u'wamp.subscription.match')
     def subscription_match(self, topic):
-        pass
+        """
+        """
+        subscriptions = self._router._broker._subscription_map.match_observations(topic)
+        if subscriptions:
+            subscription_ids = []
+            for subscription in subscriptions:
+                subscription_ids.append(subscription.id)
+            return subscription_ids
+        else:
+            return None
 
     @wamp.register(u'wamp.registration.get')
     def registration_get(self, procedure, options=None):
