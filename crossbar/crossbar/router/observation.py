@@ -34,7 +34,11 @@ from pytrie import StringTrie
 
 from autobahn import util
 
-__all__ = ('UriObservationMap',)
+__all__ = ('UriObservationMap', 'is_protected_uri')
+
+
+def is_protected_uri(uri):
+    return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
 
 
 class OrderedSet(set):
@@ -403,6 +407,8 @@ class UriObservationMap(object):
                     raise Exception("logic error")
 
                 was_last_observer = True
+
+                del self._observation_id_to_observation[observation.id]
 
             else:
                 was_last_observer = False

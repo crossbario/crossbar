@@ -53,6 +53,7 @@ from autobahn.wamp.exception import ProtocolError, SessionNotReady
 from autobahn.wamp.types import SessionDetails
 from autobahn.wamp.interfaces import ITransportHandler
 
+from crossbar.router.observation import is_protected_uri
 from crossbar.router.auth import PendingAuthPersona, \
     PendingAuthWampCra, \
     PendingAuthTicket
@@ -1080,6 +1081,16 @@ class CrossbarRouterServiceSession(ApplicationSession):
         """
         return self._router._session_id_to_session.keys()
 
+    @wamp.register(u'wamp.session.count')
+    def session_count(self):
+        """
+        Count sessions currently joined on the router.
+
+        :returns: Count of joined sessions.
+        :rtype: int
+        """
+        return len(self._router._session_id_to_session)
+
     @wamp.register(u'wamp.session.get')
     def session_get(self, session_id):
         """
@@ -1105,6 +1116,22 @@ class CrossbarRouterServiceSession(ApplicationSession):
         """
         raise Exception("not implemented")
 
+    @wamp.register(u'wamp.registration.get')
+    def registration_get(self, registration_id):
+        """
+        """
+        registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
+        if registration and not is_protected_uri(registration.uri):
+            return registration
+
+    @wamp.register(u'wamp.subscription.get')
+    def subscription_get(self, subscription_id):
+        """
+        """
+        subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
+        if subscription and not is_protected_uri(subscription.uri):
+            return subscription
+
     @wamp.register(u'wamp.registration.list')
     def registration_list(self):
         """
@@ -1113,15 +1140,18 @@ class CrossbarRouterServiceSession(ApplicationSession):
 
         registrations_exact = []
         for registration in registration_map._observations_exact.values():
-            registrations_exact.append(registration.id)
+            if not is_protected_uri(registration.uri):
+                registrations_exact.append(registration.id)
 
         registrations_prefix = []
         for registration in registration_map._observations_prefix.values():
-            registrations_prefix.append(registration.id)
+            if not is_protected_uri(registration.uri):
+                registrations_prefix.append(registration.id)
 
         registrations_wildcard = []
         for registration in registration_map._observations_wildcard.values():
-            registrations_wildcard.append(registration.id)
+            if not is_protected_uri(registration.uri):
+                registrations_wildcard.append(registration.id)
 
         return {
             'exact': registrations_exact,
@@ -1137,15 +1167,18 @@ class CrossbarRouterServiceSession(ApplicationSession):
 
         subscriptions_exact = []
         for subscription in subscription_map._observations_exact.values():
-            subscriptions_exact.append(subscription.id)
+            if not is_protected_uri(subscription.uri):
+                subscriptions_exact.append(subscription.id)
 
         subscriptions_prefix = []
         for subscription in subscription_map._observations_prefix.values():
-            subscriptions_prefix.append(subscription.id)
+            if not is_protected_uri(subscription.uri):
+                subscriptions_prefix.append(subscription.id)
 
         subscriptions_wildcard = []
         for subscription in subscription_map._observations_wildcard.values():
-            subscriptions_wildcard.append(subscription.id)
+            if not is_protected_uri(subscription.uri):
+                subscriptions_wildcard.append(subscription.id)
 
         return {
             'exact': subscriptions_exact,
@@ -1158,7 +1191,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
         """
         """
         registration = self._router._dealer._registration_map.best_matching_observation(procedure)
-        if registration:
+        if registration and not is_protected_uri(registration.uri):
             return registration.id
         else:
             return None
@@ -1171,20 +1204,21 @@ class CrossbarRouterServiceSession(ApplicationSession):
         if subscriptions:
             subscription_ids = []
             for subscription in subscriptions:
-                subscription_ids.append(subscription.id)
+                if not is_protected_uri(subscription.uri):
+                    subscription_ids.append(subscription.id)
             return subscription_ids
         else:
             return None
 
-    @wamp.register(u'wamp.registration.get')
-    def registration_get(self, procedure, options=None):
+    @wamp.register(u'wamp.registration.lookup')
+    def registration_lookup(self, procedure, options=None):
         """
         WAMP meta procedure to get a registration given a procedure and register options.
         """
         options = options or {}
         match = options.get('match', u'exact')
         registration = self._router._dealer._registration_map.get_observation(procedure, match)
-        if registration:
+        if registration and not is_protected_uri(registration.uri):
             registration_details = {
                 'id': registration.id,
                 'created': registration.created,
@@ -1196,15 +1230,15 @@ class CrossbarRouterServiceSession(ApplicationSession):
         else:
             return None
 
-    @wamp.register(u'wamp.subscription.get')
-    def subscription_get(self, topic, options=None):
+    @wamp.register(u'wamp.subscription.lookup')
+    def subscription_lookup(self, topic, options=None):
         """
         WAMP meta procedure to get a subscription given a topic and subscribe options.
         """
         options = options or {}
         match = options.get('match', u'exact')
         subscription = self._router._broker._subscription_map.get_observation(topic, match)
-        if subscription:
+        if subscription and not is_protected_uri(subscription.uri):
             subscription_details = {
                 'id': subscription.id,
                 'created': subscription.created,
@@ -1216,12 +1250,12 @@ class CrossbarRouterServiceSession(ApplicationSession):
             return None
 
     @wamp.register(u'wamp.registration.list_callees')
-    def callee_list(self, registration_id):
+    def registration_list_callees(self, registration_id):
         """
         WAMP meta procedure to retrieve list of callees (WAMP session IDs) registered on a registration.
         """
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
-        if registration:
+        if registration and not is_protected_uri(registration.uri):
             session_ids = []
             for callee in registration.observers:
                 session_ids.append(callee._session_id)
@@ -1230,12 +1264,12 @@ class CrossbarRouterServiceSession(ApplicationSession):
             raise ApplicationError(ApplicationError.NO_SUCH_REGISTRATION, message="no registration with ID {} exists on this dealer".format(registration_id))
 
     @wamp.register(u'wamp.subscription.list_subscribers')
-    def subscriber_list(self, subscription_id):
+    def subscription_list_subscribers(self, subscription_id):
         """
         WAMP meta procedure to retrieve list of subscribers (WAMP session IDs) subscribed on a subscription.
         """
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
-        if subscription:
+        if subscription and not is_protected_uri(subscription.uri):
             session_ids = []
             for subscriber in subscription.observers:
                 session_ids.append(subscriber._session_id)
@@ -1244,29 +1278,29 @@ class CrossbarRouterServiceSession(ApplicationSession):
             raise ApplicationError(ApplicationError.NO_SUCH_SUBSCRIPTION, message="no subscription with ID {} exists on this broker".format(subscription_id))
 
     @wamp.register(u'wamp.registration.count_callees')
-    def callee_count(self, registration_id):
+    def registration_count_callees(self, registration_id):
         """
         WAMP meta procedure to get the number of callees on a registration.
         """
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
-        if registration:
+        if registration and not is_protected_uri(registration.uri):
             return len(registration.observers)
         else:
             raise ApplicationError(ApplicationError.NO_SUCH_REGISTRATION, message="no registration with ID {} exists on this dealer".format(registration_id))
 
     @wamp.register(u'wamp.subscription.count_subscribers')
-    def subscriber_count(self, subscription_id):
+    def subscription_count_subscribers(self, subscription_id):
         """
         WAMP meta procedure to get the number of subscribers on a subscription.
         """
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
-        if subscription:
+        if subscription and not is_protected_uri(subscription.uri):
             return len(subscription.observers)
         else:
             raise ApplicationError(ApplicationError.NO_SUCH_SUBSCRIPTION, message="no subscription with ID {} exists on this broker".format(subscription_id))
 
     @wamp.register(u'wamp.reflect.describe')
-    def describe(self, uri=None):
+    def reflect_describe(self, uri=None):
         """
         Describe a given URI or all URIs.
 
@@ -1281,7 +1315,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
             return self._schemas
 
     @wamp.register(u'wamp.reflect.define')
-    def define(self, uri, schema):
+    def reflect_define(self, uri, schema):
         """
         Declare metadata for a given URI.
 
