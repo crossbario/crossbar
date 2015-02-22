@@ -86,24 +86,14 @@ class UriObservation(object):
         # generate a new ID for the observation
         self.id = util.id()
 
+        # UTC timestamp this observation was created
+        self.created = util.utcnow()
+
         # set of observers
         if self.ordered:
             self.observers = OrderedSet()
         else:
             self.observers = set()
-
-    def __getstate__(self):
-        return {
-            'id': self.id,
-            'uri': self.uri,
-            'match': self.match,
-        }
-
-    def __setstate__(self, state):
-        self.uri = state['uri']
-        self.match = state['match']
-        self.id = state['id']
-        self.observers = set()
 
 
 class ExactUriObservation(UriObservation):

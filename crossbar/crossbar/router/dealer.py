@@ -122,7 +122,7 @@ class Dealer(FutureMixin):
                         if was_registered:
                             service_session.publish(u'wamp.procedure.on_unregister', session._session_id, registration.id)
                         if was_last_callee:
-                            service_session.publish(u'wamp.procedure.on_last_unregister', session._session_id, registration.__getstate__())
+                            service_session.publish(u'wamp.procedure.on_last_unregister', session._session_id, registration.id)
 
             del self._session_to_registrations[session]
 
@@ -207,7 +207,14 @@ class Dealer(FutureMixin):
                     service_session = self._router._realm.session
                     if service_session and not registration.uri.startswith(u'wamp.'):
                         if is_first_callee:
-                            service_session.publish(u'wamp.procedure.on_first_register', session._session_id, registration.__getstate__())
+                            registration_details = {
+                                'id': registration.id,
+                                'created': registration.created,
+                                'uri': registration.uri,
+                                'match': registration.match,
+                                'invoke': registration.extra.invoke,
+                            }
+                            service_session.publish(u'wamp.procedure.on_first_register', session._session_id, registration.id, registration_details)
                         if not was_already_registered:
                             service_session.publish(u'wamp.procedure.on_register', session._session_id, registration.id)
 
@@ -253,7 +260,7 @@ class Dealer(FutureMixin):
                         if was_registered:
                             service_session.publish(u'wamp.procedure.on_unregister', session._session_id, registration.id)
                         if was_last_callee:
-                            service_session.publish(u'wamp.procedure.on_last_unregister', session._session_id, registration.__getstate__())
+                            service_session.publish(u'wamp.procedure.on_last_unregister', session._session_id, registration.id)
 
                 reply = message.Unregistered(unregister.request)
             else:

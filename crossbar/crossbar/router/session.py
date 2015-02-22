@@ -668,6 +668,26 @@ class CrossbarRouterServiceSession(ApplicationSession):
         else:
             return None
 
+    @wamp.register(u'wamp.dealer.registration.get')
+    def registration_get(self, procedure, options=None):
+        """
+        WAMP meta procedure to get a registration given a procedure and register options.
+        """
+        options = options or {}
+        match = options.get('match', u'exact')
+        registration = self._router._dealer._registration_map.get_observation(procedure, match)
+        if registration:
+            registration_details = {
+                'id': registration.id,
+                'created': registration.created,
+                'uri': registration.uri,
+                'match': registration.match,
+                'invoke': registration.extra.invoke,
+            }
+            return registration_details
+        else:
+            return None
+
     @wamp.register(u'wamp.broker.subscription.get')
     def subscription_get(self, topic, options=None):
         """
@@ -677,9 +697,29 @@ class CrossbarRouterServiceSession(ApplicationSession):
         match = options.get('match', u'exact')
         subscription = self._router._broker._subscription_map.get_observation(topic, match)
         if subscription:
-            return subscription.__getstate__()
+            subscription_details = {
+                'id': subscription.id,
+                'created': subscription.created,
+                'uri': subscription.uri,
+                'match': subscription.match,
+            }
+            return subscription_details
         else:
             return None
+
+    @wamp.register(u'wamp.dealer.callee.list')
+    def callee_list(self, registration_id):
+        """
+        WAMP meta procedure to retrieve list of callees (WAMP session IDs) registered on a registration.
+        """
+        registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
+        if registration:
+            session_ids = []
+            for callee in registration.observers:
+                session_ids.append(callee._session_id)
+            return session_ids
+        else:
+            raise ApplicationError(ApplicationError.NO_SUCH_REGISTRATION, message="no registration with ID {} exists on this dealer".format(registration_id))
 
     @wamp.register(u'wamp.broker.subscriber.list')
     def subscriber_list(self, subscription_id):
@@ -693,7 +733,18 @@ class CrossbarRouterServiceSession(ApplicationSession):
                 session_ids.append(subscriber._session_id)
             return session_ids
         else:
-            return None
+            raise ApplicationError(ApplicationError.NO_SUCH_SUBSCRIPTION, message="no subscription with ID {} exists on this broker".format(subscription_id))
+
+    @wamp.register(u'wamp.dealer.callee.count')
+    def callee_count(self, registration_id):
+        """
+        WAMP meta procedure to get the number of callees on a registration.
+        """
+        registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
+        if registration:
+            return len(registration.observers)
+        else:
+            raise ApplicationError(ApplicationError.NO_SUCH_REGISTRATION, message="no registration with ID {} exists on this dealer".format(registration_id))
 
     @wamp.register(u'wamp.broker.subscriber.count')
     def subscriber_count(self, subscription_id):
@@ -704,7 +755,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
         if subscription:
             return len(subscription.observers)
         else:
-            return 0
+            raise ApplicationError(ApplicationError.NO_SUCH_SUBSCRIPTION, message="no subscription with ID {} exists on this broker".format(subscription_id))
 
     @wamp.register(u'wamp.reflect.describe')
     def describe(self, uri=None):

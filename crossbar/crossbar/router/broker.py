@@ -102,7 +102,7 @@ class Broker(FutureMixin):
                         if was_subscribed:
                             service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
                         if was_last_subscriber:
-                            service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.__getstate__())
+                            service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.id)
 
             del self._session_to_subscriptions[session]
 
@@ -303,7 +303,13 @@ class Broker(FutureMixin):
                     service_session = self._router._realm.session
                     if service_session and not subscription.uri.startswith(u'wamp.'):
                         if is_first_subscriber:
-                            service_session.publish(u'wamp.topic.on_first_subscribe', session._session_id, subscription.__getstate__())
+                            subscription_details = {
+                                'id': subscription.id,
+                                'created': subscription.created,
+                                'uri': subscription.uri,
+                                'match': subscription.match,
+                            }
+                            service_session.publish(u'wamp.topic.on_first_subscribe', session._session_id, subscription.id, subscription_details)
                         if not was_already_subscribed:
                             service_session.publish(u'wamp.topic.on_subscribe', session._session_id, subscription.id)
 
@@ -349,7 +355,7 @@ class Broker(FutureMixin):
                         if was_subscribed:
                             service_session.publish(u'wamp.topic.on_unsubscribe', session._session_id, subscription.id)
                         if was_last_subscriber:
-                            service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.__getstate__())
+                            service_session.publish(u'wamp.topic.on_last_unsubscribe', session._session_id, subscription.id)
 
                 reply = message.Unsubscribed(unsubscribe.request)
             else:
