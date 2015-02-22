@@ -234,11 +234,21 @@ class Broker(FutureMixin):
                         # if receivers is non-empty, dispatch event ..
                         #
                         if receivers:
+
+                            # for pattern-based subscriptions, the EVENT must contain
+                            # the actual topic being published to
+                            #
+                            if subscription.match != message.Subscribe.MATCH_EXACT:
+                                topic = publish.topic
+                            else:
+                                topic = None
+
                             msg = message.Event(subscription.id,
                                                 publication,
                                                 args=publish.args,
                                                 kwargs=publish.kwargs,
-                                                publisher=publisher)
+                                                publisher=publisher,
+                                                topic=topic)
                             for receiver in receivers:
                                 if me_also or receiver != session:
                                     # the receiving subscriber session might have been lost in the meantime ..

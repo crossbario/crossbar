@@ -314,15 +314,31 @@ class UriObservationMap(object):
             ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation`` or ``None``.
         :rtype: obj or None
         """
+        # a exact matching observation is always "best", if any
+        #
         if uri in self._observations_exact:
             return self._observations_exact[uri]
 
+        # "second best" is the longest prefix-matching observation, if any
+        # FIXME: do we want this to take precedence over _any_ wildcard (see below)?
+        #
         try:
             return self._observations_prefix.longest_prefix_value(uri)
         except KeyError:
             pass
 
-        # FIXME: wildcard observations
+        # FIXME: for wildcard observations, when there are multiple matching, we'd
+        # like to deterministically select the "most selective one"
+        # We first need a definition of "most selective", and then we need to implement
+        # this here.
+        #
+        uri_parts = tuple(uri.split('.'))
+        uri_parts_len = len(uri_parts)
+        if uri_parts_len in self._observations_wildcard_patterns:
+            for pattern in self._observations_wildcard_patterns[uri_parts_len]:
+                patterned_uri = '.'.join(['' if pattern[i] else uri_parts[i] for i in range(uri_parts_len)])
+                if patterned_uri in self._observations_wildcard:
+                    return self._observations_wildcard[patterned_uri]
 
     def get_observation_by_id(self, id):
         """

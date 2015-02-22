@@ -368,6 +368,14 @@ class Dealer(FutureMixin):
                         caller = None
                         caller_transport = None
 
+                    # for pattern-based registrations, the INVOCATION must contain
+                    # the actual procedure being called
+                    #
+                    if registration.match != message.Register.MATCH_EXACT:
+                        procedure = call.procedure
+                    else:
+                        procedure = None
+
                     invocation = message.Invocation(invocation_request_id,
                                                     registration.id,
                                                     args=call.args,
@@ -378,7 +386,8 @@ class Dealer(FutureMixin):
                                                     caller_transport=caller_transport,
                                                     authid=authid,
                                                     authrole=authrole,
-                                                    authmethod=authmethod)
+                                                    authmethod=authmethod,
+                                                    procedure=procedure)
 
                     self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)
                     callee._transport.send(invocation)
