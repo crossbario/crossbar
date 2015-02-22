@@ -1,0 +1,208 @@
+#####################################################################################
+#
+#  Copyright (C) Tavendo GmbH
+#
+#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
+#  have purchased a commercial license), the license terms below apply.
+#
+#  Should you enter into a separate license agreement after having received a copy of
+#  this software, then the terms of such license agreement replace the terms below at
+#  the time at which such license agreement becomes effective.
+#
+#  In case a separate license agreement ends, and such agreement ends without being
+#  replaced by another separate license agreement, the license terms below apply
+#  from the time at which said agreement ends.
+#
+#  LICENSE TERMS
+#
+#  This program is free software: you can redistribute it and/or modify it under the
+#  terms of the GNU Affero General Public License, version 3, as published by the
+#  Free Software Foundation. This program is distributed in the hope that it will be
+#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+#  See the GNU Affero General Public License Version 3 for more details.
+#
+#  You should have received a copy of the GNU Affero General Public license along
+#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#
+#####################################################################################
+
+from __future__ import absolute_import
+
+from collections import namedtuple
+
+from pytrie import StringTrie
+
+from twisted.python import log
+
+__all__ = (
+    'CrossbarRouterRole',
+    'CrossbarRouterTrustedRole',
+    'CrossbarRouterRoleStaticAuth',
+    'CrossbarRouterRoleDynamicAuth',
+)
+
+
+CrossbarRouterPermissions = namedtuple('CrossbarRouterPermissions', ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
+
+
+class CrossbarRouterRole:
+
+    """
+    Base class for router roles.
+    """
+
+    def __init__(self, router, uri, debug=False):
+        """
+        Ctor.
+
+        :param uri: The URI of the role.
+        :type uri: str
+        :param debug: Enable debug logging.
+        :type debug: bool
+        """
+        self.router = router
+        self.uri = uri
+        self.debug = debug
+
+    def authorize(self, session, uri, action):
+        """
+        Authorize a session connected under this role to perform the given action
+        on the given URI.
+
+        :param session: The WAMP session that requests the action.
+        :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
+        :param uri: The URI on which to perform the action.
+        :type uri: str
+        :param action: The action to be performed.
+        :type action: str
+
+        :return: bool -- Flag indicating whether session is authorized or not.
+        """
+        if self.debug:
+            log.msg("CrossbarRouterRole.authorize", uri, action)
+        return False
+
+
+class CrossbarRouterTrustedRole(CrossbarRouterRole):
+
+    """
+    A router role that is trusted to do anything. This is used e.g. for the
+    service session run internally run by a router.
+    """
+
+    def authorize(self, session, uri, action):
+        if self.debug:
+            log.msg("CrossbarRouterTrustedRole.authorize", self.uri, uri, action)
+        return True
+
+
+class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
+
+    """
+    A role on a router realm that is authorized using a static configuration.
+    """
+
+    def __init__(self, router, uri, permissions, debug=False):
+        """
+        Ctor.
+
+        :param uri: The URI of the role.
+        :type uri: str
+        :param permissions: A permissions configuration, e.g. a list
+           of permission dicts like `{'uri': 'com.example.*', 'call': True}`
+        :type permissions: list
+        :param debug: Enable debug logging.
+        :type debug: bool
+        """
+        CrossbarRouterRole.__init__(self, router, uri, debug)
+        self.permissions = permissions
+
+        self._urimap = StringTrie()
+        self._default = CrossbarRouterPermissions('', True, False, False, False, False)
+
+        for p in permissions:
+            uri = p['uri']
+
+            if len(uri) > 0 and uri[-1] == '*':
+                match_by_prefix = True
+                uri = uri[:-1]
+            else:
+                match_by_prefix = False
+
+            perms = CrossbarRouterPermissions(uri, match_by_prefix,
+                                              call=p.get('call', False),
+                                              register=p.get('register', False),
+                                              publish=p.get('publish', False),
+                                              subscribe=p.get('subscribe', False))
+
+            if len(uri) > 0:
+                self._urimap[uri] = perms
+            else:
+                self._default = perms
+
+    def authorize(self, session, uri, action):
+        """
+        Authorize a session connected under this role to perform the given action
+        on the given URI.
+
+        :param session: The WAMP session that requests the action.
+        :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
+        :param uri: The URI on which to perform the action.
+        :type uri: str
+        :param action: The action to be performed.
+        :type action: str
+
+        :return: bool -- Flag indicating whether session is authorized or not.
+        """
+        if self.debug:
+            log.msg("CrossbarRouterRoleStaticAuth.authorize", self.uri, uri, action)
+        # if action == 'publish':
+        #   f = 1/0
+        try:
+            permissions = self._urimap.longest_prefix_value(uri)
+            if not permissions.match_by_prefix and uri != permissions.uri:
+                return False
+            return getattr(permissions, action)
+        except KeyError:
+            return getattr(self._default, action)
+
+
+class CrossbarRouterRoleDynamicAuth(CrossbarRouterRole):
+
+    """
+    A role on a router realm that is authorized by calling (via WAMP RPC)
+    an authorizer function provided by the app.
+    """
+
+    def __init__(self, router, uri, authorizer, debug=False):
+        """
+        Ctor.
+
+        :param uri: The URI of the role.
+        :type uri: str
+        :param debug: Enable debug logging.
+        :type debug: bool
+        """
+        CrossbarRouterRole.__init__(self, router, uri, debug)
+        self._authorizer = authorizer
+        self._session = router._realm.session
+
+    def authorize(self, session, uri, action):
+        """
+        Authorize a session connected under this role to perform the given action
+        on the given URI.
+
+        :param session: The WAMP session that requests the action.
+        :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
+        :param uri: The URI on which to perform the action.
+        :type uri: str
+        :param action: The action to be performed.
+        :type action: str
+
+        :return: bool -- Flag indicating whether session is authorized or not.
+        """
+        if self.debug:
+            log.msg("CrossbarRouterRoleDynamicAuth.authorize", self.uri, uri, action)
+        return self._session.call(self._authorizer, session._session_details, uri, action)

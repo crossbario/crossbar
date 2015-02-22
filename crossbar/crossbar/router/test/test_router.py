@@ -36,8 +36,8 @@ from autobahn.wamp import types
 from autobahn.twisted.wamp import FutureMixin, \
     ApplicationSession
 
-from crossbar.router.router import RouterFactory, \
-    RouterSessionFactory
+from crossbar.router.router import RouterFactory
+from crossbar.router.session import RouterSessionFactory
 
 
 class TestEmbeddedSessions(unittest.TestCase):

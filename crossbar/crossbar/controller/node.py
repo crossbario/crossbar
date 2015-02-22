@@ -42,8 +42,8 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.wamp.types import CallDetails
 
-from crossbar.router.router import RouterFactory, \
-    RouterSessionFactory
+from crossbar.router.router import RouterFactory
+from crossbar.router.session import RouterSessionFactory
 
 from crossbar.router.types import RouterOptions
 
