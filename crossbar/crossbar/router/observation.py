@@ -37,13 +37,37 @@ from autobahn import util
 __all__ = ('UriObservationMap',)
 
 
+class OrderedSet(set):
+
+    def __init__(self, iter=None):
+        super(set, self).__init__(iter)
+        self._list = []
+
+    def add(self, item):
+        super(OrderedSet, self).add(item)
+        self._list.append(item)
+
+    def discard(self, item):
+        self._list.remove(item)
+        return super(OrderedSet, self).discard(item)
+
+    def __getitem__(self, index):
+        return self._list[index]
+
+    def __iter__(self):
+        return iter(self._list)
+
+    def __reversed__(self):
+        return reversed(self._list)
+
+
 class UriObservation(object):
     """
     Represents an URI observation maintained by a broker/dealer.
     """
     match = None
 
-    def __init__(self, uri, extra=None):
+    def __init__(self, uri, ordered=False, extra=None):
         """
 
         :param uri: The URI (or URI pattern) for this observation.
@@ -52,6 +76,10 @@ class UriObservation(object):
         # URI (or URI pattern) this observation is created for
         self.uri = uri
 
+        # flag indicating whether observers should be maintained
+        # in an ordered set or a regular, unordered set
+        self.ordered = ordered
+
         # arbitrary, opaque extra data attached to the observation
         self.extra = extra
 
@@ -59,7 +87,10 @@ class UriObservation(object):
         self.id = util.id()
 
         # set of observers
-        self.observers = set()
+        if self.ordered:
+            self.observers = OrderedSet()
+        else:
+            self.observers = set()
 
     def __getstate__(self):
         return {
@@ -97,8 +128,8 @@ class WildcardUriObservation(UriObservation):
     """
     match = u"wildcard"
 
-    def __init__(self, uri, extra=None):
-        UriObservation.__init__(self, uri, extra)
+    def __init__(self, uri, ordered=False, extra=None):
+        UriObservation.__init__(self, uri, ordered, extra)
 
         # an URI pattern like "com.example..create" will have a pattern (False, False, True, False)
         self.pattern = tuple([part == "" for part in self.uri.split('.')])
@@ -114,7 +145,11 @@ class UriObservationMap(object):
     To test: trial crossbar.router.test.test_subscription
     """
 
-    def __init__(self):
+    def __init__(self, ordered=False):
+        # flag indicating whether observers should be maintained in a SortedSet
+        # or a regular set (unordered)
+        self._ordered = ordered
+
         # map: URI => ExactUriObservation
         self._observations_exact = {}
 
@@ -150,7 +185,7 @@ class UriObservationMap(object):
             # if the exact-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_exact:
-                self._observations_exact[uri] = ExactUriObservation(uri, extra)
+                self._observations_exact[uri] = ExactUriObservation(uri, ordered=self._ordered, extra=extra)
                 is_first_observer = True
             else:
                 is_first_observer = False
@@ -164,7 +199,7 @@ class UriObservationMap(object):
             # if the prefix-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_prefix:
-                self._observations_prefix[uri] = PrefixUriObservation(uri, extra)
+                self._observations_prefix[uri] = PrefixUriObservation(uri, ordered=self._ordered, extra=extra)
                 is_first_observer = True
             else:
                 is_first_observer = False
@@ -179,7 +214,7 @@ class UriObservationMap(object):
             #
             if uri not in self._observations_wildcard:
 
-                observation = WildcardUriObservation(uri, extra)
+                observation = WildcardUriObservation(uri, ordered=self._ordered, extra=extra)
 
                 self._observations_wildcard[uri] = observation
                 is_first_observer = True
@@ -250,7 +285,7 @@ class UriObservationMap(object):
     def match_observations(self, uri):
         """
         Returns the observations matching the given URI. This is the core method called
-        by a broker/dealer to actually dispatch events/calls.
+        by a broker to actually dispatch events.
 
         :param uri: The URI to match.
         :type uri: unicode
@@ -276,6 +311,28 @@ class UriObservationMap(object):
                     observations.append(self._observations_wildcard[patterned_uri])
 
         return observations
+
+    def best_matching_observation(self, uri):
+        """
+        Returns the observation that best matches the given URI. This is the core method called
+        by a dealer to actually forward calls.
+
+        :param uri: The URI to match.
+        :type uri: unicode
+
+        :returns: The observation best matching the URI. This is an instance of
+            ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation`` or ``None``.
+        :rtype: obj or None
+        """
+        if uri in self._observations_exact:
+            return self._observations_exact[uri]
+
+        try:
+            return self._observations_prefix.longest_prefix_value(uri)
+        except KeyError:
+            pass
+
+        # FIXME: wildcard observations
 
     def get_observation_by_id(self, id):
         """

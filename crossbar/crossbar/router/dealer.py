@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+import random
+
 from autobahn import util
 from autobahn.wamp import role
 from autobahn.wamp import message
@@ -54,6 +56,13 @@ class InvocationRequest(object):
         self.call = call
 
 
+class RegistrationExtra(object):
+
+    def __init__(self, invoke=message.Register.INVOKE_SINGLE):
+        self.invoke = invoke
+        self.roundrobin_current = 0
+
+
 class Dealer(FutureMixin):
 
     """
@@ -72,7 +81,7 @@ class Dealer(FutureMixin):
         self._options = options or RouterOptions()
 
         # registration map managed by this dealer
-        self._registration_map = UriObservationMap()
+        self._registration_map = UriObservationMap(ordered=True)
 
         # map: session -> set of registrations (needed for detach)
         self._session_to_registrations = {}
@@ -160,7 +169,7 @@ class Dealer(FutureMixin):
             # there is an existing registration, and that has an invocation strategy that only allows a single callee
             # on a the given registration
             #
-            if registration.extra == message.Register.INVOKE_SINGLE:
+            if registration.extra.invoke == message.Register.INVOKE_SINGLE:
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, ["register for already registered procedure '{0}'".format(register.procedure)])
                 session._transport.send(reply)
                 return
@@ -168,8 +177,8 @@ class Dealer(FutureMixin):
             # there is an existing registration, and that has an invokation strategy different from the one
             # requested by the new callee
             #
-            if registration.extra != register.invoke:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, ["register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra, register.invoke)])
+            if registration.extra.invoke != register.invoke:
+                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, ["register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra.invoke, register.invoke)])
                 session._transport.send(reply)
                 return
 
@@ -186,7 +195,8 @@ class Dealer(FutureMixin):
             else:
                 # ok, session authorized to register. now get the registration
                 #
-                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(session, register.procedure, register.match, register.invoke)
+                registration_extra = RegistrationExtra(register.invoke)
+                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(session, register.procedure, register.match, registration_extra)
 
                 if not was_already_registered:
                     self._session_to_registrations[session].add(registration)
@@ -276,15 +286,9 @@ class Dealer(FutureMixin):
 
         # get registrations active on the procedure called
         #
-        registrations = self._registration_map.match_observations(call.procedure)
+        registration = self._registration_map.best_matching_observation(call.procedure)
 
-        if registrations:
-
-            # FIXME
-            #
-            registration = list(registrations)[0]
-            callee = list(registration.observers)[0]
-            # print "*" * 10, registrations, registration.observers, callee
+        if registration:
 
             # validate payload
             #
@@ -309,6 +313,28 @@ class Dealer(FutureMixin):
                     session._transport.send(reply)
 
                 else:
+
+                    # determine callee according to invocation policy
+                    #
+                    if registration.extra.invoke == message.Register.INVOKE_SINGLE:
+                        callee = registration.observers[0]
+
+                    elif registration.extra.invoke == message.Register.INVOKE_FIRST:
+                        callee = registration.observers[0]
+
+                    elif registration.extra.invoke == message.Register.INVOKE_LAST:
+                        callee = registration.observers[len(registration.observers) - 1]
+
+                    elif registration.extra.invoke == message.Register.INVOKE_ROUNDROBIN:
+                        callee = registration.observers[registration.extra.roundrobin_current % len(registration.observers)]
+                        registration.extra.roundrobin_current += 1
+
+                    elif registration.extra.invoke == message.Register.INVOKE_RANDOM:
+                        callee = registration.observers[random.randint(0, len(registration.observers) - 1)]
+
+                    else:
+                        # should not arrive here
+                        raise Exception("logic error")
 
                     # new ID for the invocation
                     #
