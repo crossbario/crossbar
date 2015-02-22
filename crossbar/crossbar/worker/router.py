@@ -41,13 +41,12 @@ from twisted.internet import reactor
 from twisted.python import log
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
-from twisted.web.static import File
 
 from autobahn.util import utcstr
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 
-from crossbar.twisted.resource import FileNoListing
+from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
 from crossbar.router.session import CrossbarRouterSessionFactory, \
     CrossbarRouterFactory, \
@@ -111,6 +110,9 @@ __all__ = ('RouterWorkerSession',)
 # monkey patch the Twisted Web server identification
 twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
 
+
+# 12 hours as default cache timeout for static resources
+DEFAULT_CACHE_TIMEOUT = 12 * 60 * 60
 
 EXTRA_MIME_TYPES = {
     '.svg': 'image/svg+xml',
@@ -657,9 +659,13 @@ class RouterWorkerSession(NativeWorkerSession):
                 # create resource for file system hierarchy
                 ##
                 if root_options.get('enable_directory_listing', False):
-                    root = File(root_dir)
+                    static_resource_class = StaticResource
                 else:
-                    root = FileNoListing(root_dir)
+                    static_resource_class = StaticResourceNoListing
+
+                cache_timeout = root_options.get('cache_timeout', DEFAULT_CACHE_TIMEOUT)
+
+                root = static_resource_class(root_dir, cache_timeout=cache_timeout)
 
                 # set extra MIME types
                 ##
@@ -867,9 +873,13 @@ class RouterWorkerSession(NativeWorkerSession):
             # create resource for file system hierarchy
             ##
             if static_options.get('enable_directory_listing', False):
-                static_resource = File(static_dir)
+                static_resource_class = StaticResource
             else:
-                static_resource = FileNoListing(static_dir)
+                static_resource_class = StaticResourceNoListing
+
+            cache_timeout = static_options.get('cache_timeout', DEFAULT_CACHE_TIMEOUT)
+
+            static_resource = static_resource_class(static_dir, cache_timeout=cache_timeout)
 
             # set extra MIME types
             ##

@@ -1,6 +1,9 @@
 Contributors with signed CAAs
 
+* dimddev
 * eth3lbert
+* hawkowl
+* meejah
 * paranaix
 * rlamy
 * si618
@@ -8,6 +11,7 @@ Contributors with signed CAAs
 * taion
 * voidfuture
 * wilbertom
+
 
 Entity CAAs
 
