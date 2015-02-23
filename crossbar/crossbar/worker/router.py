@@ -48,7 +48,8 @@ from autobahn.wamp.exception import ApplicationError
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
-from crossbar.router.session import CrossbarRouterSessionFactory, CrossbarRouterServiceSession
+from crossbar.router.session import CrossbarRouterSessionFactory
+from crossbar.router.service import CrossbarRouterServiceSession
 from crossbar.router.router import CrossbarRouterFactory
 
 from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
