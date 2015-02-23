@@ -93,7 +93,11 @@ class Dealer(FutureMixin):
         self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
 
         # supported features from "WAMP Advanced Profile"
-        self._role_features = role.RoleDealerFeatures(caller_identification=True, progressive_call_results=True)
+        self._role_features = role.RoleDealerFeatures(caller_identification=True,
+                                                      pattern_based_registration=True,
+                                                      registration_meta_api=True,
+                                                      shared_registration=True,
+                                                      progressive_call_results=True)
 
     def attach(self, session):
         """

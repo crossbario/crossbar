@@ -73,7 +73,11 @@ class Broker(FutureMixin):
         self._option_uri_strict = self._options.uri_check == RouterOptions.URI_CHECK_STRICT
 
         # supported features from "WAMP Advanced Profile"
-        self._role_features = role.RoleBrokerFeatures(publisher_identification=True, subscriber_blackwhite_listing=True, publisher_exclusion=True)
+        self._role_features = role.RoleBrokerFeatures(publisher_identification=True,
+                                                      pattern_based_subscription=True,
+                                                      subscription_meta_api=True,
+                                                      subscriber_blackwhite_listing=True,
+                                                      publisher_exclusion=True)
 
     def attach(self, session):
         """
