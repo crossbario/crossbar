@@ -66,6 +66,7 @@ class OrderedSet(set):
 
 
 class UriObservation(object):
+
     """
     Represents an URI observation maintained by a broker/dealer.
     """
@@ -101,6 +102,7 @@ class UriObservation(object):
 
 
 class ExactUriObservation(UriObservation):
+
     """
     Represents an exact-matching observation.
     """
@@ -109,6 +111,7 @@ class ExactUriObservation(UriObservation):
 
 
 class PrefixUriObservation(UriObservation):
+
     """
     Represents a prefix-matching observation.
     """
@@ -117,6 +120,7 @@ class PrefixUriObservation(UriObservation):
 
 
 class WildcardUriObservation(UriObservation):
+
     """
     Represents a wildcard-matching observation.
     """
@@ -133,6 +137,7 @@ class WildcardUriObservation(UriObservation):
 
 
 class UriObservationMap(object):
+
     """
     Represents the current set of observations maintained by a broker/dealer.
 

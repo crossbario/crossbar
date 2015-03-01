@@ -87,7 +87,7 @@ pep8:
 # pep8 --select=E231 --show-source
 
 autopep8:
-	autopep8 -ri --aggressive .
+	autopep8 -ri --aggressive --ignore=E501 .
 
 # This will run pep8, pyflakes and can skip lines that end with # noqa
 flake8:

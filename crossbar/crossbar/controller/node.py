@@ -212,7 +212,7 @@ class Node:
         ##
         worker_no = 1
 
-        call_options = CallOptions(disclose_me = True)
+        call_options = CallOptions(disclose_me=True)
 
         for worker in config.get('workers', []):
 
@@ -257,18 +257,18 @@ class Node:
                 # setup native worker generic stuff
                 ##
                 if 'pythonpath' in worker_options:
-                    added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'], options = call_options)
+                    added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'], options=call_options)
                     if self.debug:
                         log.msg("{}: PYTHONPATH extended for {}".format(worker_logname, added_paths))
                     else:
                         log.msg("{}: PYTHONPATH extended".format(worker_logname))
 
                 if 'cpu_affinity' in worker_options:
-                    new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'], options = call_options)
+                    new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'], options=call_options)
                     log.msg("{}: CPU affinity set to {}".format(worker_logname, new_affinity))
 
                 if 'manhole' in worker:
-                    yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, worker_id), worker['manhole'], options = call_options)
+                    yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, worker_id), worker['manhole'], options=call_options)
                     log.msg("{}: manhole started".format(worker_logname))
 
                 # setup router worker
@@ -313,7 +313,7 @@ class Node:
                                             log.msg("{}: WARNING - failed to process declaration in {} - {}".format(worker_logname, schema_file, e))
                             log.msg("{}: processed {} files extracting {} schema declarations and {} URIs".format(worker_logname, cnt_files, cnt_decls, len(schemas)))
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas, options = call_options)
+                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas, options=call_options)
                         log.msg("{}: realm '{}' started".format(worker_logname, realm_id))
 
                         # add roles to realm
@@ -326,7 +326,7 @@ class Node:
                                 role_id = 'role{}'.format(role_no)
                                 role_no += 1
 
-                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options = call_options)
+                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
                             log.msg("{}: role '{}' started on realm '{}'".format(worker_logname, role_id, realm_id))
 
                     # start components to run embedded in the router
@@ -341,7 +341,7 @@ class Node:
                             component_id = 'component{}'.format(component_no)
                             component_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component_id, component, options = call_options)
+                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
                         log.msg("{}: component '{}' started".format(worker_logname, component_id))
 
                     # start transports on router
@@ -356,7 +356,7 @@ class Node:
                             transport_id = 'transport{}'.format(transport_no)
                             transport_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport, options = call_options)
+                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
                         log.msg("{}: transport '{}' started".format(worker_logname, transport_id))
 
                 # setup container worker
@@ -373,7 +373,7 @@ class Node:
                             component_id = 'component{}'.format(component_no)
                             component_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component, options = call_options)
+                        yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
                         log.msg("{}: component '{}' started".format(worker_logname, component_id))
 
                 else:
