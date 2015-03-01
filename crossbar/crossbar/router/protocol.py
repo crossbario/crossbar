@@ -77,7 +77,7 @@ def set_websocket_options(factory, options):
 
     # we need to pop() this, since it is not a WebSocket option to be consumed
     # by setProtocolOption(), but will get used in onConnect() ("STRICT_PROTOCOL_NEGOTIATION")
-    ##
+    #
     factory._requireWebSocketSubprotocol = c.pop("require_websocket_subprotocol", True)
 
     versions = []
@@ -133,12 +133,12 @@ def set_websocket_options(factory, options):
                                allowedOrigins=c.get("allowed_origins", ["*"]))
 
     # WebSocket compression
-    ##
+    #
     factory.setProtocolOptions(perMessageCompressionAccept=lambda _: None)
     if 'compression' in c:
 
         # permessage-deflate
-        ##
+        #
         if 'deflate' in c['compression']:
 
             log.msg("enabling WebSocket compression (permessage-deflate)")
@@ -188,11 +188,11 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
             print_traffic()
 
         # if WebSocket client did not set WS subprotocol, assume "wamp.2.json"
-        ##
+        #
         self.STRICT_PROTOCOL_NEGOTIATION = self.factory._requireWebSocketSubprotocol
 
         # handle WebSocket opening handshake
-        ##
+        #
         protocol, headers = WampWebSocketServerProtocol.onConnect(self, request)
 
         try:
@@ -200,13 +200,13 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
             self._origin = request.origin
 
             # transport authentication
-            ##
+            #
             self._authid = None
             self._authrole = None
             self._authmethod = None
 
             # cookie tracking
-            ##
+            #
             self._cbtid = None
 
             if self.factory._cookiestore:
@@ -233,7 +233,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
                     log.msg("Cookie tracking enabled on WebSocket connection {}".format(self))
 
                 # if cookie-based authentication is enabled, set auth info from cookie store
-                ##
+                #
                 if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
 
                     self._authid, self._authrole, self._authmethod = self.factory._cookiestore.getAuth(self._cbtid)
@@ -251,7 +251,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
-            ##
+            #
             self._transport_info = {
                 'type': 'websocket',
                 'protocol': protocol,
@@ -262,7 +262,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
             # and setting HTTP headers `headers`
-            ##
+            #
             return (protocol, headers)
 
         except Exception:
@@ -319,7 +319,7 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
         externalPort = options.get('external_port', None)
 
         # explicit list of WAMP serializers
-        ##
+        #
         if 'serializers' in config:
             serializers = []
             sers = set(config['serializers'])
@@ -397,18 +397,18 @@ class CrossbarWampRawSocketServerProtocol(WampRawSocketServerProtocol):
         WampRawSocketServerProtocol.connectionMade(self)
 
         # transport authentication
-        ##
+        #
         self._authid = None
         self._authrole = None
         self._authmethod = None
 
         # cookie tracking
-        ##
+        #
         self._cbtid = None
 
         # remember transport level info for later forwarding in
         # WAMP meta event "wamp.session.on_join"
-        ##
+        #
         self._transport_info = {
             'type': 'rawsocket',
             'protocol': None,  # FIXME
@@ -432,11 +432,11 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
     def __init__(self, factory, config):
 
         # remember transport configuration
-        ##
+        #
         self._config = config
 
         # WAMP serializer
-        ##
+        #
         serid = config.get('serializer', 'msgpack')
 
         if serid == 'json':
@@ -460,11 +460,11 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
             raise Exception("invalid WAMP serializer '{}'".format(serid))
 
         # Maximum message size
-        ##
+        #
         self._max_message_size = config.get('max_message_size', 128 * 1024)  # default is 128kB
 
         # transport debugging
-        ##
+        #
         debug = config.get('debug', False)
 
         WampRawSocketServerFactory.__init__(self, factory, serializer, debug=debug)
@@ -520,7 +520,7 @@ class CrossbarWampRawSocketClientFactory(WampRawSocketClientFactory):
         self._config = config
 
         # WAMP serializer
-        ##
+        #
         serid = config.get('serializer', 'msgpack')
 
         if serid == 'json':

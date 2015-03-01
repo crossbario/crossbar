@@ -127,7 +127,7 @@ class Router(FutureMixin):
             print("Router.process: {0}".format(msg))
 
         # Broker
-        ##
+        #
         if isinstance(msg, message.Publish):
             self._broker.processPublish(session, msg)
 
@@ -138,7 +138,7 @@ class Router(FutureMixin):
             self._broker.processUnsubscribe(session, msg)
 
         # Dealer
-        ##
+        #
         elif isinstance(msg, message.Register):
             self._dealer.processRegister(session, msg)
 

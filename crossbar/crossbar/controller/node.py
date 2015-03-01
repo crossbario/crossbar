@@ -102,7 +102,7 @@ class Node:
         processes as needed.
         """
         # for now, a node is always started from a local configuration
-        ##
+        #
         configfile = os.path.join(self.options.cbdir, self.options.config)
         log.msg("Starting from local configuration '{}'".format(configfile))
         config = check_config_file(configfile, silence=True)
@@ -134,24 +134,24 @@ class Node:
         self._realm = controller_config.get('realm', 'crossbar')
 
         # the node controller singleton WAMP application session
-        ##
+        #
         # session_config = ComponentConfig(realm = options.realm, extra = options)
 
         self._controller = NodeControllerSession(self)
 
         # router and factory that creates router sessions
-        ##
+        #
         self._router_factory = RouterFactory(
             options=RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE),
             debug=True)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         # add the node controller singleton session to the router
-        ##
+        #
         self._router_session_factory.add(self._controller)
 
         # Detect WAMPlets
-        ##
+        #
         wamplets = self._controller._get_wamplets()
         if len(wamplets) > 0:
             log.msg("Detected {} WAMPlets in environment:".format(len(wamplets)))
@@ -193,23 +193,23 @@ class Node:
 
         # fake call details information when calling into
         # remoted procedure locally
-        ##
+        #
         call_details = CallDetails(caller=0)
 
         controller = config.get('controller', {})
 
         # start Manhole in node controller
-        ##
+        #
         if 'manhole' in controller:
             yield self._controller.start_manhole(controller['manhole'], details=call_details)
 
         # start local transport for management router
-        ##
+        #
         if 'transport' in controller:
             yield self._controller.start_management_transport(controller['transport'], details=call_details)
 
         # startup all workers
-        ##
+        #
         worker_no = 1
 
         call_options = CallOptions(disclose_me=True)
@@ -217,7 +217,7 @@ class Node:
         for worker in config.get('workers', []):
 
             # worker ID, type and logname
-            ##
+            #
             if 'id' in worker:
                 worker_id = worker.pop('id')
             else:
@@ -240,11 +240,11 @@ class Node:
                 raise Exception("logic error")
 
             # router/container
-            ##
+            #
             if worker_type in ['router', 'container']:
 
                 # start a new native worker process ..
-                ##
+                #
                 if worker_type == 'router':
                     yield self._controller.start_router(worker_id, worker_options, details=call_details)
 
@@ -255,7 +255,7 @@ class Node:
                     raise Exception("logic error")
 
                 # setup native worker generic stuff
-                ##
+                #
                 if 'pythonpath' in worker_options:
                     added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'], options=call_options)
                     if self.debug:
@@ -272,11 +272,11 @@ class Node:
                     log.msg("{}: manhole started".format(worker_logname))
 
                 # setup router worker
-                ##
+                #
                 if worker_type == 'router':
 
                     # start realms on router
-                    ##
+                    #
                     realm_no = 1
 
                     for realm in worker.get('realms', []):
@@ -288,7 +288,7 @@ class Node:
                             realm_no += 1
 
                         # extract schema information from WAMP-flavored Markdown
-                        ##
+                        #
                         schemas = None
                         if 'schemas' in realm:
                             schemas = {}
@@ -317,7 +317,7 @@ class Node:
                         log.msg("{}: realm '{}' started".format(worker_logname, realm_id))
 
                         # add roles to realm
-                        ##
+                        #
                         role_no = 1
                         for role in realm.get('roles', []):
                             if 'id' in role:
@@ -330,7 +330,7 @@ class Node:
                             log.msg("{}: role '{}' started on realm '{}'".format(worker_logname, role_id, realm_id))
 
                     # start components to run embedded in the router
-                    ##
+                    #
                     component_no = 1
 
                     for component in worker.get('components', []):
@@ -345,7 +345,7 @@ class Node:
                         log.msg("{}: component '{}' started".format(worker_logname, component_id))
 
                     # start transports on router
-                    ##
+                    #
                     transport_no = 1
 
                     for transport in worker['transports']:
@@ -360,7 +360,7 @@ class Node:
                         log.msg("{}: transport '{}' started".format(worker_logname, transport_id))
 
                 # setup container worker
-                ##
+                #
                 elif worker_type == 'container':
 
                     component_no = 1
@@ -382,7 +382,7 @@ class Node:
             elif worker_type == 'guest':
 
                 # start guest worker
-                ##
+                #
                 yield self._controller.start_guest(worker_id, worker, details=call_details)
                 log.msg("{}: started".format(worker_logname))
 

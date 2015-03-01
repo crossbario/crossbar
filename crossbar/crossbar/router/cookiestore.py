@@ -109,7 +109,7 @@ class CookieStore:
 
         # do NOT add the "secure" cookie attribute! "secure" refers to the
         # scheme of the Web page that triggered the WS, not WS itself!!
-        ##
+        #
         return id, '%s=%s;max-age=%d' % (self._cookie_id_field, id, cbtData['max_age'])
 
     def exists(self, id):

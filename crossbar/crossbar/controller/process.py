@@ -164,7 +164,7 @@ class NodeControllerSession(NativeProcessSession):
         # When a (native) worker process has connected back to the router of
         # the node controller, the worker will publish this event
         # to signal it's readyness.
-        ##
+        #
         def on_worker_ready(res):
             id = res['id']
             if id in self._workers:
@@ -183,7 +183,7 @@ class NodeControllerSession(NativeProcessSession):
         yield NativeProcessSession.onJoin(self, details)
 
         # register node controller procedures: 'crossbar.node.<ID>.<PROCEDURE>'
-        ##
+        #
         procs = [
             'shutdown',
             'start_management_transport',
@@ -401,14 +401,14 @@ class NodeControllerSession(NativeProcessSession):
         assert(wtype in ['router', 'container'])
 
         # prohibit starting a worker twice
-        ##
+        #
         if id in self._workers:
             emsg = "ERROR: could not start worker - a worker with ID '{}'' is already running (or starting)".format(id)
             log.msg(emsg)
             raise ApplicationError('crossbar.error.worker_already_running', emsg)
 
         # check worker options
-        ##
+        #
         options = options or {}
         try:
             if wtype == 'router':
@@ -423,19 +423,19 @@ class NodeControllerSession(NativeProcessSession):
             raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
         # allow override Python executable from options
-        ##
+        #
         if 'python' in options:
             exe = options['python']
 
             # the executable must be an absolute path, e.g. /home/oberstet/pypy-2.2.1-linux64/bin/pypy
-            ##
+            #
             if not os.path.isabs(exe):
                 emsg = "ERROR: python '{}' from worker options must be an absolute path".format(exe)
                 log.msg(emsg)
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
             # of course the path must exist and actually be executable
-            ##
+            #
             if not (os.path.isfile(exe) and os.access(exe, os.X_OK)):
                 emsg = "ERROR: python '{}' from worker options does not exist or isn't an executable".format(exe)
                 log.msg(emsg)
@@ -444,11 +444,11 @@ class NodeControllerSession(NativeProcessSession):
             exe = sys.executable
 
         # all native workers (routers and containers for now) start from the same script
-        ##
+        #
         filename = pkg_resources.resource_filename('crossbar', 'worker/process.py')
 
         # assemble command line for forking the worker
-        ##
+        #
         args = [exe, "-u", filename]
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--node", str(self._node_id)])
@@ -457,32 +457,32 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--type", wtype])
 
         # allow override worker process title from options
-        ##
+        #
         if options.get('title', None):
             args.extend(['--title', options['title']])
 
         # allow overriding debug flag from options
-        ##
+        #
         if options.get('debug', self.debug):
             args.append('--debug')
 
         # forward explicit reactor selection
-        ##
+        #
         if 'reactor' in options and sys.platform in options['reactor']:
             args.extend(['--reactor', options['reactor'][sys.platform]])
         elif self._node.options.reactor:
             args.extend(['--reactor', self._node.options.reactor])
 
         # create worker process environment
-        ##
+        #
         worker_env = create_process_env(options)
 
         # log name of worker
-        ##
+        #
         worker_logname = {'router': 'Router', 'container': 'Container'}.get(wtype, 'Worker')
 
         # topic URIs used (later)
-        ##
+        #
         if wtype == 'router':
             starting_topic = 'crossbar.node.{}.on_router_starting'.format(self._node_id)
             started_topic = 'crossbar.node.{}.on_router_started'.format(self._node_id)
@@ -493,7 +493,7 @@ class NodeControllerSession(NativeProcessSession):
             raise Exception("logic error")
 
         # add worker tracking instance to the worker map ..
-        ##
+        #
         if wtype == 'router':
             worker = RouterWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
         elif wtype == 'container':
@@ -504,11 +504,11 @@ class NodeControllerSession(NativeProcessSession):
         self._workers[id] = worker
 
         # create a (custom) process endpoint
-        ##
+        #
         ep = WorkerProcessEndpoint(self._node._reactor, exe, args, env=worker_env, worker=worker)
 
         # ready handling
-        ##
+        #
         def on_ready_success(id):
             log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
 
@@ -544,13 +544,13 @@ class NodeControllerSession(NativeProcessSession):
         worker.exit.addCallbacks(on_exit_success, on_exit_error)
 
         # create a transport factory for talking WAMP to the native worker
-        ##
+        #
         transport_factory = create_native_worker_client_factory(self._node._router_session_factory, worker.ready, worker.exit)
         transport_factory.noisy = False
         self._workers[id].factory = transport_factory
 
         # now (immediately before actually forking) signal the starting of the worker
-        ##
+        #
         starting_info = {
             'id': id,
             'status': worker.status,
@@ -566,7 +566,7 @@ class NodeControllerSession(NativeProcessSession):
         self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
 
         # now actually fork the worker ..
-        ##
+        #
         if self.debug:
             log.msg("Starting {} with ID '{}' using command line '{}' ..".format(worker_logname, id, ' '.join(args)))
         else:
@@ -669,7 +669,7 @@ class NodeControllerSession(NativeProcessSession):
         :returns: int -- The PID of the new process.
         """
         # prohibit starting a worker twice
-        ##
+        #
         if id in self._workers:
             emsg = "ERROR: could not start worker - a worker with ID '{}' is already running (or starting)".format(id)
             log.msg(emsg)
@@ -683,14 +683,14 @@ class NodeControllerSession(NativeProcessSession):
         options = config.get('options', {})
 
         # guest process working directory
-        ##
+        #
         workdir = self._node._cbdir
         if 'workdir' in options:
             workdir = os.path.join(workdir, options['workdir'])
         workdir = os.path.abspath(workdir)
 
         # guest process executable and command line arguments
-        ##
+        #
 
         # first try to configure the fully qualified path for the guest
         # executable by joining workdir and configured exectuable ..
@@ -710,35 +710,35 @@ class NodeControllerSession(NativeProcessSession):
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
         # guest process command line arguments
-        ##
+        #
         args = [exe]
         args.extend(config.get('arguments', []))
 
         # guest process environment
-        ##
+        #
         worker_env = create_process_env(options)
 
         # log name of worker
-        ##
+        #
         worker_logname = 'Guest'
 
         # topic URIs used (later)
-        ##
+        #
         starting_topic = 'crossbar.node.{}.on_guest_starting'.format(self._node_id)
         started_topic = 'crossbar.node.{}.on_guest_started'.format(self._node_id)
 
         # add worker tracking instance to the worker map ..
-        ##
+        #
         worker = GuestWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
 
         self._workers[id] = worker
 
         # create a (custom) process endpoint
-        ##
+        #
         ep = WorkerProcessEndpoint(self._node._reactor, exe, args, path=workdir, env=worker_env, worker=worker)
 
         # ready handling
-        ##
+        #
         def on_ready_success(proto):
 
             worker.pid = proto.transport.pid
@@ -748,7 +748,7 @@ class NodeControllerSession(NativeProcessSession):
             log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
 
             # directory watcher
-            ##
+            #
             if 'watch' in options:
 
                 if HAS_FSNOTIFY:
@@ -784,7 +784,7 @@ class NodeControllerSession(NativeProcessSession):
                     log.msg("Warning: cannot watch directory for changes - feature DirWatcher unavailable")
 
             # assemble guest worker startup information
-            ##
+            #
             started_info = {
                 'id': worker.id,
                 'status': worker.status,
@@ -816,13 +816,13 @@ class NodeControllerSession(NativeProcessSession):
         worker.exit.addCallbacks(on_exit_success, on_exit_error)
 
         # create a transport factory for talking WAMP to the native worker
-        ##
+        #
         transport_factory = create_guest_worker_client_factory(config, worker.ready, worker.exit)
         transport_factory.noisy = False
         self._workers[id].factory = transport_factory
 
         # now (immediately before actually forking) signal the starting of the worker
-        ##
+        #
         starting_info = {
             'id': id,
             'status': worker.status,
@@ -838,7 +838,7 @@ class NodeControllerSession(NativeProcessSession):
         self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
 
         # now actually fork the worker ..
-        ##
+        #
         if self.debug:
             log.msg("Starting {} with ID '{}' using command line '{}' ..".format(worker_logname, id, ' '.join(args)))
         else:

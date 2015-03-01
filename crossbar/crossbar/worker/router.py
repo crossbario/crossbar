@@ -226,7 +226,7 @@ class RouterWorkerSession(NativeWorkerSession):
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
         # Jinja2 templates for Web (like WS status page et al)
-        ##
+        #
         templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
         if self.debug:
             log.msg("Using Web templates from {}".format(templates_dir))
@@ -434,14 +434,14 @@ class RouterWorkerSession(NativeWorkerSession):
             log.msg("{}.start_router_component".format(self.__class__.__name__), id, config)
 
         # prohibit starting a component twice
-        ##
+        #
         if id in self.components:
             emsg = "ERROR: could not start component - a component with ID '{}'' is already running (or starting)".format(id)
             log.msg(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
         # check configuration
-        ##
+        #
         try:
             checkconfig.check_router_component(config)
         except Exception as e:
@@ -495,7 +495,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # .. and create and add an WAMP application session to
         # run the component next to the router
-        ##
+        #
         try:
             session = make(cfg)
         except Exception as e:
@@ -556,14 +556,14 @@ class RouterWorkerSession(NativeWorkerSession):
             log.msg("{}.start_router_transport".format(self.__class__.__name__), id, config)
 
         # prohibit starting a transport twice
-        ##
+        #
         if id in self.transports:
             emsg = "ERROR: could not start transport - a transport with ID '{}'' is already running (or starting)".format(id)
             log.msg(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
         # check configuration
-        ##
+        #
         try:
             checkconfig.check_router_transport(config)
         except Exception as e:
@@ -575,52 +575,52 @@ class RouterWorkerSession(NativeWorkerSession):
                 log.msg("Starting {}-transport on router.".format(config['type']))
 
         # standalone WAMP-RawSocket transport
-        ##
+        #
         if config['type'] == 'rawsocket':
 
             transport_factory = CrossbarWampRawSocketServerFactory(self.session_factory, config)
             transport_factory.noisy = False
 
         # standalone WAMP-WebSocket transport
-        ##
+        #
         elif config['type'] == 'websocket':
 
             transport_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, config, self._templates)
             transport_factory.noisy = False
 
         # Flash-policy file server pseudo transport
-        ##
+        #
         elif config['type'] == 'flashpolicy':
 
             transport_factory = FlashPolicyFactory(config.get('allowed_domain', None), config.get('allowed_ports', None))
 
         # WebSocket testee pseudo transport
-        ##
+        #
         elif config['type'] == 'websocket.testee':
 
             transport_factory = WebSocketTesteeServerFactory(config, self._templates)
 
         # Stream testee pseudo transport
-        ##
+        #
         elif config['type'] == 'stream.testee':
 
             transport_factory = StreamTesteeServerFactory()
 
         # Twisted Web based transport
-        ##
+        #
         elif config['type'] == 'web':
 
             options = config.get('options', {})
 
             # create Twisted Web root resource
-            ##
+            #
             root_config = config['paths']['/']
 
             root_type = root_config['type']
             root_options = root_config.get('options', {})
 
             # Static file hierarchy root resource
-            ##
+            #
             if root_type == 'static':
 
                 if 'directory' in root_config:
@@ -657,7 +657,7 @@ class RouterWorkerSession(NativeWorkerSession):
                     log.msg("Starting Web service at root directory {}".format(root_dir))
 
                 # create resource for file system hierarchy
-                ##
+                #
                 if root_options.get('enable_directory_listing', False):
                     static_resource_class = StaticResource
                 else:
@@ -668,18 +668,18 @@ class RouterWorkerSession(NativeWorkerSession):
                 root = static_resource_class(root_dir, cache_timeout=cache_timeout)
 
                 # set extra MIME types
-                ##
+                #
                 root.contentTypes.update(EXTRA_MIME_TYPES)
                 if 'mime_types' in root_options:
                     root.contentTypes.update(root_options['mime_types'])
                 patchFileContentTypes(root)
 
                 # render 404 page on any concrete path not found
-                ##
+                #
                 root.childNotFound = Resource404(self._templates, root_dir)
 
             # WSGI root resource
-            ##
+            #
             elif root_type == 'wsgi':
 
                 if not _HAS_WSGI:
@@ -716,54 +716,54 @@ class RouterWorkerSession(NativeWorkerSession):
                     root = WSGIRootResource(wsgi_resource, {})
 
             # Redirecting root resource
-            ##
+            #
             elif root_type == 'redirect':
 
                 redirect_url = root_config['url'].encode('ascii', 'ignore')
                 root = RedirectResource(redirect_url)
 
             # Pusher resource
-            ##
+            #
             elif root_type == 'pusher':
 
                 # create a vanilla session: the pusher will use this to inject events
-                ##
+                #
                 pusher_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
                 pusher_session = ApplicationSession(pusher_session_config)
 
                 # add the pushing session to the router
-                ##
+                #
                 self.session_factory.add(pusher_session, authrole=root_config.get('role', 'anonymous'))
 
                 # now create the pusher Twisted Web resource and add it to resource tree
-                ##
+                #
                 root = PusherResource(root_config.get('options', {}), pusher_session)
 
             # Invalid root resource
-            ##
+            #
             else:
                 raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web root path type '{}'".format(root_type))
 
             # create Twisted Web resources on all non-root paths configured
-            ##
+            #
             self.add_paths(root, config.get('paths', {}))
 
             # create the actual transport factory
-            ##
+            #
             transport_factory = Site(root)
             transport_factory.noisy = False
 
             # Web access logging
-            ##
+            #
             if not options.get('access_log', False):
                 transport_factory.log = lambda _: None
 
             # Traceback rendering
-            ##
+            #
             transport_factory.displayTracebacks = options.get('display_tracebacks', False)
 
             # HSTS
-            ##
+            #
             if options.get('hsts', False):
                 if 'tls' in config['endpoint']:
                     hsts_max_age = int(options.get('hsts_max_age', 31536000))
@@ -772,18 +772,18 @@ class RouterWorkerSession(NativeWorkerSession):
                     log.msg("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
 
             # enable Hixie-76 on Twisted Web
-            ##
+            #
             if options.get('hixie76_aware', False):
                 transport_factory.protocol = HTTPChannelHixie76Aware  # needed if Hixie76 is to be supported
 
         # Unknown transport type
-        ##
+        #
         else:
             # should not arrive here, since we did check_transport() in the beginning
             raise Exception("logic error")
 
         # create transport endpoint / listening port from transport factory
-        ##
+        #
         d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, reactor)
 
         def ok(port):
@@ -825,7 +825,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :returns: Resource -- the new child resource
         """
         # WAMP-WebSocket resource
-        ##
+        #
         if path_config['type'] == 'websocket':
 
             ws_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, path_config, self._templates)
@@ -836,7 +836,7 @@ class RouterWorkerSession(NativeWorkerSession):
             return WebSocketResource(ws_factory)
 
         # Static file hierarchy resource
-        ##
+        #
         elif path_config['type'] == 'static':
 
             static_options = path_config.get('options', {})
@@ -871,7 +871,7 @@ class RouterWorkerSession(NativeWorkerSession):
             static_dir = static_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
 
             # create resource for file system hierarchy
-            ##
+            #
             if static_options.get('enable_directory_listing', False):
                 static_resource_class = StaticResource
             else:
@@ -882,20 +882,20 @@ class RouterWorkerSession(NativeWorkerSession):
             static_resource = static_resource_class(static_dir, cache_timeout=cache_timeout)
 
             # set extra MIME types
-            ##
+            #
             static_resource.contentTypes.update(EXTRA_MIME_TYPES)
             if 'mime_types' in static_options:
                 static_resource.contentTypes.update(static_options['mime_types'])
             patchFileContentTypes(static_resource)
 
             # render 404 page on any concrete path not found
-            ##
+            #
             static_resource.childNotFound = Resource404(self._templates, static_dir)
 
             return static_resource
 
         # WSGI resource
-        ##
+        #
         elif path_config['type'] == 'wsgi':
 
             if not _HAS_WSGI:
@@ -931,20 +931,20 @@ class RouterWorkerSession(NativeWorkerSession):
                 return wsgi_resource
 
         # Redirecting resource
-        ##
+        #
         elif path_config['type'] == 'redirect':
             redirect_url = path_config['url'].encode('ascii', 'ignore')
             return RedirectResource(redirect_url)
 
         # JSON value resource
-        ##
+        #
         elif path_config['type'] == 'json':
             value = path_config['value']
 
             return JsonResource(value)
 
         # CGI script resource
-        ##
+        #
         elif path_config['type'] == 'cgi':
 
             cgi_processor = path_config['processor']
@@ -954,7 +954,7 @@ class RouterWorkerSession(NativeWorkerSession):
             return CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
 
         # WAMP-Longpoll transport resource
-        ##
+        #
         elif path_config['type'] == 'longpoll':
 
             path_options = path_config.get('options', {})
@@ -972,24 +972,24 @@ class RouterWorkerSession(NativeWorkerSession):
             return lp_resource
 
         # Pusher resource
-        ##
+        #
         elif path_config['type'] == 'pusher':
 
             # create a vanilla session: the pusher will use this to inject events
-            ##
+            #
             pusher_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
             pusher_session = ApplicationSession(pusher_session_config)
 
             # add the pushing session to the router
-            ##
+            #
             self.session_factory.add(pusher_session, authrole=path_config.get('role', 'anonymous'))
 
             # now create the pusher Twisted Web resource
-            ##
+            #
             return PusherResource(path_config.get('options', {}), pusher_session)
 
         # Schema Docs resource
-        ##
+        #
         elif path_config['type'] == 'schemadoc':
 
             realm = path_config['realm']
@@ -1004,7 +1004,7 @@ class RouterWorkerSession(NativeWorkerSession):
             return SchemaDocResource(self._templates, realm, realm_schemas)
 
         # Nested subpath resource
-        ##
+        #
         elif path_config['type'] == 'path':
 
             nested_paths = path_config.get('paths', {})
@@ -1015,7 +1015,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 nested_resource = Resource()
 
             # nest subpaths under the current entry
-            ##
+            #
             self.add_paths(nested_resource, nested_paths)
 
             return nested_resource

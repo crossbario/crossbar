@@ -156,9 +156,9 @@ class DirWatcher:
                                             self._filter,
                                             overlapped)
 
-            ##
+            #
             # This will block until notification OR timeout.
-            ##
+            #
             rc = win32event.WaitForSingleObject(overlapped.hEvent, self._timeout)
             if rc == win32event.WAIT_OBJECT_0:
                 # got event: determine data length ..

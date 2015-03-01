@@ -108,12 +108,12 @@ class WorkerProcess:
             if msg != "":
 
                 # log entry used for buffered worker log and/or worker log events
-                ##
+                #
                 if self._log is not None or self._log_topic:
                     log_entry = (self._log_lineno, utcnow(), msg)
 
                 # maintain buffered worker log
-                ##
+                #
                 if self._log is not None:
                     self._log_lineno += 1
                     self._log.append(log_entry)
@@ -121,12 +121,12 @@ class WorkerProcess:
                         self._log.popleft()
 
                 # publish worker log event
-                ##
+                #
                 if self._log_topic:
                     self._controller.publish(self._log_topic, log_entry)
 
                 # log to controller
-                ##
+                #
                 log.msg(msg, system="{:<10} {:>6}".format(self.LOGNAME, self.pid), override_system=True)
 
     def getlog(self, limit=None):

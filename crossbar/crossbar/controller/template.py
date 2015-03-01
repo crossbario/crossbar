@@ -129,7 +129,7 @@ class Templates:
             },
 
             # we need to skip binary files from being processed by Jinja
-            ##
+            #
             "skip_jinja": ["relx"]
         },
 

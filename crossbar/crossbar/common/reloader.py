@@ -115,7 +115,7 @@ class TrackingModuleReloader:
         # use tracked mtimes to restrict set of actually reloaded modules, while
         # trying to be conservative (if stuff fails or cannot be determined, opt
         # for reloading the module -- even if it actually hasn't changed)
-        ##
+        #
         if self._use_mtimes:
             for mod_name in maybe_dirty_modules:
                 m = current_modules[mod_name]
@@ -148,7 +148,7 @@ class TrackingModuleReloader:
                 print("Reloading module {}".format(module))
 
                 # this is doing the actual work
-                ##
+                #
                 reload(current_modules[module])
         else:
             if self._debug:

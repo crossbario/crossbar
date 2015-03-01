@@ -39,7 +39,7 @@ CPY = platform.python_implementation() == 'CPython'
 
 
 # Get package version and docstring from crossbar/__init__.py
-##
+#
 PACKAGE_FILE = "crossbar/__init__.py"
 initfile = open(PACKAGE_FILE, "rt").read()
 
@@ -58,9 +58,9 @@ else:
     raise RuntimeError("Unable to find doc string in {}.".format(PACKAGE_FILE))
 
 
-##
+#
 # extra requirements for install variants
-##
+#
 
 extras_require_system = [
     'psutil>=2.1.3',        # BSD license
@@ -143,7 +143,7 @@ setup(
     data_files=[('.', ['LICENSE', 'COPYRIGHT'])],
     zip_safe=False,
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
-    ##
+    #
     classifiers=["License :: OSI Approved :: GNU Affero General Public License v3",
                  "Development Status :: 3 - Alpha",
                  "Environment :: No Input/Output (Daemon)",

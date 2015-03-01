@@ -76,15 +76,15 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
     endpoint = None
 
     # a TCP endpoint
-    ##
+    #
     if config['type'] == 'tcp':
 
         # the TCP protocol version (v4 or v6)
-        ##
+        #
         version = int(config.get('version', 4))
 
         # the listening port
-        ##
+        #
         if type(config['port']) in (str, unicode):
             # read port from environment variable ..
             try:
@@ -96,11 +96,11 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
             port = config['port']
 
         # the listening interface
-        ##
+        #
         interface = str(config.get('interface', '').strip())
 
         # the TCP accept queue depth
-        ##
+        #
         backlog = int(config.get('backlog', 50))
 
         if 'tls' in config:
@@ -118,14 +118,14 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                             dhparam_filepath = None
 
                         # create a TLS context factory
-                        ##
+                        #
                         key = key_file.read()
                         cert = cert_file.read()
                         ciphers = config['tls'].get('ciphers', None)
                         ctx = TlsServerContextFactory(key, cert, ciphers=ciphers, dhParamFilename=dhparam_filepath)
 
                 # create a TLS server endpoint
-                ##
+                #
                 if version == 4:
                     endpoint = SSL4ServerEndpoint(reactor,
                                                   port,
@@ -142,7 +142,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
         else:
             # create a non-TLS server endpoint
-            ##
+            #
             if version == 4:
                 endpoint = TCP4ServerEndpoint(reactor,
                                               port,
@@ -157,19 +157,19 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                 raise Exception("invalid TCP protocol version {}".format(version))
 
     # a Unix Domain Socket endpoint
-    ##
+    #
     elif config['type'] == 'unix':
 
         # the accept queue depth
-        ##
+        #
         backlog = int(config.get('backlog', 50))
 
         # the path
-        ##
+        #
         path = os.path.abspath(os.path.join(cbdir, config['path']))
 
         # create the endpoint
-        ##
+        #
         endpoint = UNIXServerEndpoint(reactor, path, backlog=backlog)
 
     else:
@@ -244,23 +244,23 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
     endpoint = None
 
     # a TCP endpoint
-    ##
+    #
     if config['type'] == 'tcp':
 
         # the TCP protocol version (v4 or v6)
-        ##
+        #
         version = int(config.get('version', 4))
 
         # the host to connect to
-        ##
+        #
         host = str(config['host'])
 
         # the port to connect to
-        ##
+        #
         port = int(config['port'])
 
         # connection timeout in seconds
-        ##
+        #
         timeout = int(config.get('timeout', 10))
 
         if 'tls' in config:
@@ -269,7 +269,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                 ctx = TlsClientContextFactory()
 
                 # create a TLS client endpoint
-                ##
+                #
                 if version == 4:
                     endpoint = SSL4ClientEndpoint(reactor,
                                                   host,
@@ -286,7 +286,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
 
         else:
             # create a non-TLS client endpoint
-            ##
+            #
             if version == 4:
                 endpoint = TCP4ClientEndpoint(reactor,
                                               host,
@@ -301,19 +301,19 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                 raise Exception("invalid TCP protocol version {}".format(version))
 
     # a Unix Domain Socket endpoint
-    ##
+    #
     elif config['type'] == 'unix':
 
         # the path
-        ##
+        #
         path = os.path.abspath(os.path.join(cbdir, config['path']))
 
         # connection timeout in seconds
-        ##
+        #
         timeout = int(config.get('timeout', 10))
 
         # create the endpoint
-        ##
+        #
         endpoint = UNIXClientEndpoint(reactor, path, timeout=timeout)
 
     else:

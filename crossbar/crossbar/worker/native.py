@@ -107,7 +107,7 @@ class NativeWorkerSession(NativeProcessSession):
         # signal that this worker is ready for setup. the actual setup procedure
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
-        ##
+        #
         pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
                                  {'type': self.WORKER_TYPE, 'id': self.config.extra.worker, 'pid': os.getpid()},
                                  options=PublishOptions(acknowledge=True))
@@ -166,7 +166,7 @@ class NativeWorkerSession(NativeProcessSession):
         else:
 
             # publish info to all but the caller ..
-            ##
+            #
             cpu_affinity_set_topic = 'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.worker)
             cpu_affinity_set_info = {
                 'affinity': new_affinity,
@@ -175,7 +175,7 @@ class NativeWorkerSession(NativeProcessSession):
             self.publish(cpu_affinity_set_topic, cpu_affinity_set_info, options=PublishOptions(exclude=[details.caller]))
 
             # .. and return info directly to caller
-            ##
+            #
             return cpu_affinity_set_info
 
     def get_pythonpath(self, details=None):
@@ -206,7 +206,7 @@ class NativeWorkerSession(NativeProcessSession):
         paths_added = []
         for p in paths:
             # transform all paths (relative to cbdir) into absolute paths
-            ##
+            #
             path_to_add = os.path.abspath(os.path.join(self.config.extra.cbdir, p))
             if os.path.isdir(path_to_add):
                 paths_added.append({'requested': p, 'resolved': path_to_add})
@@ -216,7 +216,7 @@ class NativeWorkerSession(NativeProcessSession):
                 raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
 
         # now extend python module search path
-        ##
+        #
         paths_added_resolved = [p['resolved'] for p in paths_added]
         if prepend:
             sys.path = paths_added_resolved + sys.path
@@ -227,14 +227,14 @@ class NativeWorkerSession(NativeProcessSession):
         # sys.path when pkg_resources is first imported, but is only updated if you do all
         # future sys.path manipulation via pkg_resources APIs. If you manually modify sys.path,
         # you must invoke the appropriate methods on the working_set instance to keep it in sync."
-        ##
+        #
         # @see: https://pythonhosted.org/setuptools/pkg_resources.html#workingset-objects
-        ##
+        #
         for p in paths_added_resolved:
             pkg_resources.working_set.add_entry(p)
 
         # publish event "on_pythonpath_add" to all but the caller
-        ##
+        #
         topic = 'crossbar.node.{}.worker.{}.on_pythonpath_add'.format(self.config.extra.node, self.config.extra.worker)
         res = {
             'paths': sys.path,

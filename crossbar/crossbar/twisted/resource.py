@@ -139,10 +139,10 @@ if _HAS_STATIC:
             return File.render_GET(self, request)
 
         def createSimilarFile(self, *args, **kwargs):
-            ##
+            #
             # File.getChild uses File.createSimilarFile to make a new resource of the same class to serve actual files under
             # a directory. We need to override that to also set the cache timeout on the child.
-            ##
+            #
 
             similar_file = File.createSimilarFile(self, *args, **kwargs)
 
@@ -334,22 +334,22 @@ class PusherResource(Resource):
             headers = request.getAllHeaders()
 
             # check content type
-            ##
+            #
             if headers.get("content-type", None) != 'application/json':
                 return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(headers.get("content-type", None)))
 
             # enforce "post_body_limit"
-            ##
+            #
             content_length = int(headers.get("content-length", 0))
             if self._post_body_limit and content_length > self._post_body_limit:
                 return self._deny_request(request, 400, "HTTP/POST body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit))
 
-            ##
+            #
             # parse/check HTTP/POST query parameters
-            ##
+            #
 
             # key
-            ##
+            #
             if 'key' in args:
                 key_str = args["key"][0]
             else:
@@ -357,7 +357,7 @@ class PusherResource(Resource):
                     return self._deny_request(request, 400, "signed request required, but mandatory 'key' field missing")
 
             # timestamp
-            ##
+            #
             if 'timestamp' in args:
                 timestamp_str = args["timestamp"][0]
                 try:
@@ -372,7 +372,7 @@ class PusherResource(Resource):
                     return self._deny_request(request, 400, "signed request required, but mandatory 'timestamp' field missing")
 
             # seq
-            ##
+            #
             if 'seq' in args:
                 seq_str = args["seq"][0]
                 try:
@@ -385,7 +385,7 @@ class PusherResource(Resource):
                     return self._deny_request(request, 400, "signed request required, but mandatory 'seq' field missing")
 
             # nonce
-            ##
+            #
             if 'nonce' in args:
                 nonce_str = args["nonce"][0]
                 try:
@@ -398,7 +398,7 @@ class PusherResource(Resource):
                     return self._deny_request(request, 400, "signed request required, but mandatory 'nonce' field missing")
 
             # signature
-            ##
+            #
             if 'signature' in args:
                 signature_str = args["signature"][0]
             else:
@@ -406,11 +406,11 @@ class PusherResource(Resource):
                     return self._deny_request(request, 400, "signed request required, but mandatory 'signature' field missing")
 
             # read HTTP/POST body
-            ##
+            #
             body = request.content.read()
 
             # do more checks if signed requests are required
-            ##
+            #
             if self._secret:
 
                 if key_str != self._key:
@@ -436,7 +436,7 @@ class PusherResource(Resource):
             is_secure = request.isSecure()
 
             # enforce client IP address
-            ##
+            #
             if self._require_ip:
                 ip = IPAddress(client_ip)
                 allowed = False
@@ -448,7 +448,7 @@ class PusherResource(Resource):
                     return self._deny_request(request, 400, "request denied based on IP address")
 
             # enforce TLS
-            ##
+            #
             if self._require_tls:
                 if not is_secure:
                     return self._deny_request(request, 400, "request denied because not using TLS")

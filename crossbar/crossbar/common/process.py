@@ -46,7 +46,7 @@ from twisted.internet.task import LoopingCall
 try:
     # Manhole support needs a couple of packages optional for Crossbar.
     # So we catch import errors and note those.
-    ##
+    #
     # twisted.conch.manhole_ssh will import even without, but we _need_ SSH
     import Crypto  # noqa
     import pyasn1  # noqa
@@ -304,13 +304,13 @@ class NativeProcessSession(ApplicationSession):
             raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
         # setup user authentication
-        ##
+        #
         checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
         for user in config['users']:
             checker.addUser(user['user'], user['password'])
 
         # setup manhole namespace
-        ##
+        #
         namespace = {'session': self}
 
         class PatchedTerminalSession(TerminalSession):

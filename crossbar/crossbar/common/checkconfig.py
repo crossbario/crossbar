@@ -52,9 +52,9 @@ __all__ = ('check_config',
 
 
 # Hack: force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
-##
+#
 # http://stackoverflow.com/a/2967461/884770
-##
+#
 def construct_yaml_str(self, node):
     return self.construct_scalar(node)
 
@@ -751,7 +751,7 @@ def check_web_path_service_path(config):
     }, config, "Web transport 'path' path service")
 
     # check nested paths
-    ##
+    #
     check_paths(config['paths'], nested=True)
 
 
@@ -1333,7 +1333,7 @@ def check_router_realm(realm, silence=False):
     return
 
     # permissions
-    ##
+    #
     if 'permissions' in realm:
         permissions = realm['permissions']
         if not isinstance(permissions, dict):
@@ -1369,7 +1369,7 @@ def check_router_realm(realm, silence=False):
                     }, grants, "invalid grant in realm permissions")
 
     # components
-    ##
+    #
     if 'components' in realm:
         components = realm['components']
         if not isinstance(components, list):
@@ -1396,7 +1396,7 @@ def check_router(router, silence=False):
             raise Exception("encountered unknown attribute '{}' in router configuration".format(k))
 
     # check stuff common to all native workers
-    ##
+    #
     if 'manhole' in router:
         check_manhole(router['manhole'])
 
@@ -1404,7 +1404,7 @@ def check_router(router, silence=False):
         check_native_worker_options(router['options'])
 
     # realms
-    ##
+    #
     realms = router.get('realms', [])
 
     if not isinstance(realms, list):
@@ -1418,7 +1418,7 @@ def check_router(router, silence=False):
         i += 1
 
     # components
-    ##
+    #
     components = router.get('components', [])
 
     if not isinstance(components, list):
@@ -1432,7 +1432,7 @@ def check_router(router, silence=False):
         i += 1
 
     # transports
-    ##
+    #
     transports = router.get('transports', [])
 
     if not isinstance(transports, list):
@@ -1458,7 +1458,7 @@ def check_container(container, silence=False):
             raise Exception("encountered unknown attribute '{}' in container configuration".format(k))
 
     # check stuff common to all native workers
-    ##
+    #
     if 'manhole' in container:
         check_manhole(container['manhole'])
 
@@ -1466,7 +1466,7 @@ def check_container(container, silence=False):
         check_native_worker_options(container['options'])
 
     # components
-    ##
+    #
     components = container.get('components', [])
 
     if not isinstance(components, list):
@@ -1776,14 +1776,14 @@ def check_config(config, silence=False):
             raise Exception("encountered unknown attribute '{}' in top-level configuration".format(k))
 
     # check contoller config
-    ##
+    #
     if 'controller' in config:
         if not silence:
             print("Checking controller item ..")
         check_controller(config['controller'])
 
     # check workers
-    ##
+    #
     workers = config.get('workers', [])
 
     if not isinstance(workers, list):

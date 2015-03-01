@@ -158,14 +158,14 @@ class ContainerWorkerSession(NativeWorkerSession):
             log.msg("{}.start_container_component".format(self.__class__.__name__), id, config)
 
         # prohibit starting a component twice
-        ##
+        #
         if id in self.components:
             emsg = "ERROR: could not start component - a component with ID '{}'' is already running (or starting)".format(id)
             log.msg(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
         # check configuration
-        ##
+        #
         try:
             checkconfig.check_container_component(config)
         except Exception as e:
@@ -180,7 +180,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         componentcfg = ComponentConfig(realm=realm, extra=config.get('extra', None))
 
         # 1) create WAMP application component factory
-        ##
+        #
         if config['type'] == 'wamplet':
 
             package = config['package']
@@ -188,7 +188,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
             try:
                 # create_component() is supposed to make instances of ApplicationSession later
-                ##
+                #
                 create_component = pkg_resources.load_entry_point(package, 'autobahn.twisted.wamplet', entrypoint)
 
             except Exception as e:
@@ -211,7 +211,7 @@ class ContainerWorkerSession(NativeWorkerSession):
                 module = importlib.import_module(module_name)
 
                 # create_component() is supposed to make instances of ApplicationSession later
-                ##
+                #
                 create_component = getattr(module, class_name)
 
             except Exception as e:
@@ -229,27 +229,27 @@ class ContainerWorkerSession(NativeWorkerSession):
             raise Exception("logic error")
 
         # force reload of modules (user code)
-        ##
+        #
         if reload_modules:
             self._module_tracker.reload()
 
         # WAMP application session factory
-        ##
+        #
         def create_session():
             return create_component(componentcfg)
 
         # 2) create WAMP transport factory
-        ##
+        #
         transport_config = config['transport']
         transport_debug = transport_config.get('debug', False)
         transport_debug_wamp = transport_config.get('debug_wamp', False)
 
         # WAMP-over-WebSocket transport
-        ##
+        #
         if transport_config['type'] == 'websocket':
 
             # create a WAMP-over-WebSocket transport client factory
-            ##
+            #
             transport_factory = CrossbarWampWebSocketClientFactory(create_session,
                                                                    transport_config['url'],
                                                                    debug=transport_debug,
@@ -257,7 +257,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             transport_factory.noisy = False
 
         # WAMP-over-RawSocket transport
-        ##
+        #
         elif transport_config['type'] == 'rawsocket':
 
             transport_factory = CrossbarWampRawSocketClientFactory(create_session,
@@ -269,20 +269,20 @@ class ContainerWorkerSession(NativeWorkerSession):
             raise Exception("logic error")
 
         # 3) create and connect client endpoint
-        ##
+        #
         endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'],
                                                           self.config.extra.cbdir,
                                                           reactor)
 
         # now connect the client
-        ##
+        #
         d = endpoint.connect(transport_factory)
 
         def success(proto):
             self.components[id] = ContainerComponent(id, config, proto, None)
 
             # publish event "on_component_start" to all but the caller
-            ##
+            #
             topic = 'crossbar.node.{}.worker.{}.container.on_component_start'.format(self.config.extra.node, self.config.extra.worker)
             event = {'id': id}
             self.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
@@ -356,7 +356,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         }
 
         # publish event "on_component_stop" to all but the caller
-        ##
+        #
         topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self.config.extra.node, self.config.extra.worker)
         self.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
 

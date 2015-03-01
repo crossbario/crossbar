@@ -96,7 +96,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
         # check if the config contains environment variables instead of
         # straight strings (e.g. $DBNAME), and if so, try to fill in the actual
         # value from environment
-        ##
+        #
         pat = re.compile("^\$([A-Z0-9_]+)$")
         for k in ['host', 'port', 'database', 'user', 'password']:
             if k in dbconfig:
@@ -150,7 +150,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
         # pid = notify.pid
 
         # sanity check that we are processing the correct channel
-        ##
+        #
         if notify.channel == self.CHANNEL_PUBSUB_EVENT:
             try:
                 obj = json.loads(notify.payload)
@@ -159,7 +159,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                     raise Exception("notification payload must be a dictionary, was type {0}".format(type(obj)))
 
                 # check for mandatory 'type' attribute
-                ##
+                #
                 if 'type' not in obj:
                     raise Exception("notification payload must have a 'type' attribute")
                 if obj['type'] not in ['direct', 'table']:
@@ -168,13 +168,13 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                 if obj['type'] == 'direct':
 
                     # check allowed attributes
-                    ##
+                    #
                     for k in obj:
                         if k not in ['type', 'topic', 'args', 'kwargs', 'exclude', 'eligible']:
                             raise Exception("invalid attribute '{0}'' in notification of type 'direct'".format(k))
 
                     # check for mandatory 'topic' attribute
-                    ##
+                    #
                     if 'topic' not in obj:
                         raise Exception("notification payload of type 'direct' must have a 'topic' attribute")
                     topic = obj['topic']
@@ -182,7 +182,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                         raise Exception("notification payload of type 'direct' must have a 'topic' attribute of type string - was {0}".format(type(obj['topic'])))
 
                     # check for optional 'args' attribute
-                    ##
+                    #
                     args = None
                     if 'args' in obj:
                         if not isinstance(obj['args'], list):
@@ -191,7 +191,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                             args = obj['args']
 
                     # check for optional 'args' attribute
-                    ##
+                    #
                     kwargs = None
                     if 'kwargs' in obj:
                         if not isinstance(obj['kwargs'], dict):
@@ -200,7 +200,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                             kwargs = obj['kwargs']
 
                     # now actually publish the WAMP event
-                    ##
+                    #
                     if kwargs:
                         self.publish(topic, *args, **kwargs)
                     elif args:

@@ -87,21 +87,21 @@ class RouterApplicationSession:
         assert(authrole is None or isinstance(authrole, six.text_type))
 
         # remember router we are wrapping the app session for
-        ##
+        #
         self._routerFactory = routerFactory
         self._router = None
 
         # remember wrapped app session
-        ##
+        #
         self._session = session
 
         # remember "trusted" authentication information
-        ##
+        #
         self._trusted_authid = authid
         self._trusted_authrole = authrole
 
         # set fake transport on session ("pass-through transport")
-        ##
+        #
         self._session._transport = self
 
         self._session.onConnect()
@@ -146,7 +146,7 @@ class RouterApplicationSession:
             self._router.attach(self._session)
 
             # fake app session open
-            ##
+            #
             details = SessionDetails(self._session._realm, self._session._session_id,
                                      self._session._authid, self._session._authrole, self._session._authmethod,
                                      self._session._authprovider)
@@ -155,7 +155,7 @@ class RouterApplicationSession:
             # self._session.onJoin(details)
 
         # app-to-router
-        ##
+        #
         elif isinstance(msg, message.Publish) or \
             isinstance(msg, message.Subscribe) or \
             isinstance(msg, message.Unsubscribe) or \
@@ -168,11 +168,11 @@ class RouterApplicationSession:
              msg.request_type == message.Invocation.MESSAGE_TYPE):
 
             # deliver message to router
-            ##
+            #
             self._router.process(self._session, msg)
 
         # router-to-app
-        ##
+        #
         elif isinstance(msg, message.Event) or \
             isinstance(msg, message.Invocation) or \
             isinstance(msg, message.Result) or \
@@ -191,12 +191,12 @@ class RouterApplicationSession:
                 msg.request_type == message.Unsubscribe.MESSAGE_TYPE)):
 
             # deliver message to app session
-            ##
+            #
             self._session.onMessage(msg)
 
         else:
             # should not arrive here
-            ##
+            #
             raise Exception("RouterApplicationSession.send: unhandled message {0}".format(msg))
 
 
@@ -231,7 +231,7 @@ class RouterSession(FutureMixin, BaseSession):
         self._pending_session_id = None
 
         # session authentication information
-        ##
+        #
         self._authid = None
         self._authrole = None
         self._authmethod = None
@@ -514,18 +514,18 @@ class CrossbarRouterSession(RouterSession):
         try:
 
             # check if the realm the session wants to join actually exists
-            ##
+            #
             if realm not in self._router_factory:
                 return types.Deny(ApplicationError.NO_SUCH_REALM, message="no realm '{}' exists on this router".format(realm))
 
             # perform authentication
-            ##
+            #
             if self._transport._authid is not None:
 
                 # already authenticated .. e.g. via cookie
 
                 # check if role still exists on realm
-                ##
+                #
                 allow = self._router_factory[realm].has_role(self._transport._authrole)
 
                 if allow:
@@ -538,11 +538,11 @@ class CrossbarRouterSession(RouterSession):
 
             else:
                 # if authentication is enabled on the transport ..
-                ##
+                #
                 if "auth" in self._transport_config:
 
                     # iterate over authentication methods announced by client ..
-                    ##
+                    #
                     for authmethod in details.authmethods or ["anonymous"]:
 
                         # .. and if the configuration has an entry for the authmethod
@@ -550,7 +550,7 @@ class CrossbarRouterSession(RouterSession):
                         if authmethod in self._transport_config["auth"]:
 
                             # "WAMP-Challenge-Response" authentication
-                            ##
+                            #
                             if authmethod == u"wampcra":
                                 cfg = self._transport_config['auth']['wampcra']
 
@@ -662,7 +662,7 @@ class CrossbarRouterSession(RouterSession):
                                     return types.Deny(message="illegal WAMP-CRA authentication config (type '{0}' is unknown)".format(cfg['type']))
 
                             # WAMP-Ticket authentication
-                            ##
+                            #
                             elif authmethod == u"ticket":
                                 cfg = self._transport_config['auth']['ticket']
 
@@ -705,7 +705,7 @@ class CrossbarRouterSession(RouterSession):
                                     return types.Deny(message="illegal WAMP-Ticket authentication config (type '{0}' is unknown)".format(cfg['type']))
 
                             # "Mozilla Persona" authentication
-                            ##
+                            #
                             elif authmethod == u"mozilla_persona":
                                 cfg = self._transport_config['auth']['mozilla_persona']
 
@@ -713,42 +713,42 @@ class CrossbarRouterSession(RouterSession):
                                 provider = cfg.get('provider', "https://verifier.login.persona.org/verify")
 
                                 # authrole mapping
-                                ##
+                                #
                                 authrole = cfg.get('role', 'anonymous')
 
                                 # check if role exists on realm anyway
-                                ##
+                                #
                                 if not self._router_factory[realm].has_role(authrole):
                                     return types.Deny(ApplicationError.NO_SUCH_ROLE, message="authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
 
                                 # ok, now challenge the client for doing Mozilla Persona auth.
-                                ##
+                                #
                                 self._pending_auth = PendingAuthPersona(provider, audience, authrole)
                                 return types.Challenge("mozilla-persona")
 
                             # "Anonymous" authentication
-                            ##
+                            #
                             elif authmethod == u"anonymous":
                                 cfg = self._transport_config['auth']['anonymous']
 
                                 # authrole mapping
-                                ##
+                                #
                                 authrole = cfg.get('role', 'anonymous')
 
                                 # check if role exists on realm anyway
-                                ##
+                                #
                                 if not self._router_factory[realm].has_role(authrole):
                                     return types.Deny(ApplicationError.NO_SUCH_ROLE, message="authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
 
                                 # authid generation
-                                ##
+                                #
                                 if self._transport._cbtid:
                                     # if cookie tracking is enabled, set authid to cookie value
-                                    ##
+                                    #
                                     authid = self._transport._cbtid
                                 else:
                                     # if no cookie tracking, generate a random value for authid
-                                    ##
+                                    #
                                     authid = util.newid(24)
 
                                 self._transport._authid = authid
@@ -758,7 +758,7 @@ class CrossbarRouterSession(RouterSession):
                                 return types.Accept(authid=authid, authrole=authrole, authmethod=self._transport._authmethod)
 
                             # "Cookie" authentication
-                            ##
+                            #
                             elif authmethod == u"cookie":
                                 pass
                                 # if self._transport._cbtid:
@@ -775,22 +775,22 @@ class CrossbarRouterSession(RouterSession):
                                 return types.Deny(message="unknown authentication method {}".format(authmethod))
 
                     # if authentication is configured, by default, deny.
-                    ##
+                    #
                     return types.Deny(message="authentication using method '{}' denied by configuration".format(authmethod))
 
                 else:
                     # if authentication is _not_ configured, by default, allow anyone.
-                    ##
+                    #
 
                     # authid generation
-                    ##
+                    #
                     if self._transport._cbtid:
                         # if cookie tracking is enabled, set authid to cookie value
-                        ##
+                        #
                         authid = self._transport._cbtid
                     else:
                         # if no cookie tracking, generate a random value for authid
-                        ##
+                        #
                         authid = util.newid(24)
 
                     return types.Accept(authid=authid, authrole="anonymous", authmethod="anonymous")
@@ -843,7 +843,7 @@ class CrossbarRouterSession(RouterSession):
                                             authprovider=self._pending_auth.authprovider)
                     else:
                         # WAMP-Ticket authentication ticket was invalid: deny client
-                        ##
+                        #
                         return types.Deny(message=u"ticket is invalid")
 
                 # WAMP-Ticket dynamic ..
@@ -980,7 +980,7 @@ class CrossbarRouterSession(RouterSession):
     def onJoin(self, details):
 
         # Router/Realm service session
-        ##
+        #
         self._service_session = self._router._realm.session
         # self._router:                  crossbar.router.session.CrossbarRouter
         # self._router_factory:          crossbar.router.session.CrossbarRouterFactory
@@ -998,13 +998,13 @@ class CrossbarRouterSession(RouterSession):
         }
 
         # dispatch session metaevent from WAMP AP
-        ##
+        #
         self._service_session.publish(u'wamp.session.on_join', self._session_details)
 
     def onLeave(self, details):
 
         # dispatch session metaevent from WAMP AP
-        ##
+        #
         self._service_session.publish(u'wamp.session.on_leave', self._session_id)
 
         self._session_details = None
