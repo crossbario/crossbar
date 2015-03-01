@@ -353,7 +353,7 @@ class Dealer(FutureMixin):
 
                     # caller disclosure
                     #
-                    if call.disclose_me is None or call.disclose_me:
+                    if call.disclose_me:
                         caller = session._session_id
                     else:
                         caller = None
