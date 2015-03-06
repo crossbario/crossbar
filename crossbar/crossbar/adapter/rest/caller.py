@@ -1,25 +1,16 @@
 import json
-import datetime
-import hmac
-import hashlib
-import base64
 import six
 
-from netaddr.ip import IPAddress, IPNetwork
-
 from twisted.python import log
-from twisted.web.resource import Resource
 from twisted.web import server
 
-from autobahn.wamp.types import PublishOptions
-
-
 from .common import _CommonResource
+
 
 class CallerResource(_CommonResource):
 
     """
-    A HTTP/POST to WAMP PubSub bridge.
+    A HTTP/POST to WAMP procedure bridge.
 
     Config:
 
@@ -38,13 +29,11 @@ class CallerResource(_CommonResource):
                 "ws": {
                    "type": "websocket"
                 },
-                "push": {
-                   "type": "pusher",
+                "call": {
+                   "type": "caller",
                    "realm": "realm1",
                    "role": "anonymous",
                    "options": {
-                      "key": "foobar",
-                      "secret": "secret",
                       "post_body_limit": 8192,
                       "timestamp_delta_limit": 10,
                       "require_ip": ["192.168.1.1/255.255.255.0", "127.0.0.1"],
@@ -55,20 +44,12 @@ class CallerResource(_CommonResource):
           }
        ]
 
-    Test:
+    Test calling a procedure named `com.example.add2`:
 
-       curl -H "Content-Type: application/json" -d '{"topic": "com.myapp.topic1", "args": ["Hello, world"]}' http://127.0.0.1:8080/push
+       curl -H "Content-Type: application/json" -d '{"procedure": "com.example.add2", "args": [1,2]}' http://127.0.0.1:8080/call
     """
 
-    def _process(self, request, body):
-
-        try:
-            event = json.loads(body)
-        except Exception as e:
-            return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
-
-        if not isinstance(event, dict):
-            return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be JSON dict")
+    def _process(self, request, event):
 
         if 'procedure' not in event:
             return self._deny_request(request, 400, "invalid request event - missing 'procedure' in HTTP/POST body")

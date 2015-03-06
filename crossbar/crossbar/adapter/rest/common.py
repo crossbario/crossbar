@@ -1,18 +1,13 @@
-import json
 import datetime
+import json
 import hmac
 import hashlib
 import base64
-import six
 
 from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.python import log
 from twisted.web.resource import Resource
-from twisted.web import server
-
-from autobahn.wamp.types import PublishOptions
-
 
 
 class _CommonResource(Resource):
@@ -245,7 +240,15 @@ class _CommonResource(Resource):
 
             if authorized:
 
-                return self._process(request, body)
+                try:
+                    event = json.loads(body)
+                except Exception as e:
+                    return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
+
+                if not isinstance(event, dict):
+                    return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be JSON dict")
+
+                return self._process(request, event)
 
             else:
                 return self._deny_request(request, 401, "not authorized")
