@@ -740,7 +740,29 @@ def check_web_path_service_caller(config):
     :param config: The path service configuration.
     :type config: dict
     """
-    pass
+    check_dict_args({
+        'type': (True, [six.text_type]),
+        'realm': (True, [six.text_type]),
+        'role': (True, [six.text_type]),
+        'options': (False, [dict]),
+    }, config, "Web transport 'caller' path service")
+
+    if 'options' in config:
+        check_dict_args({
+            'debug': (False, [bool]),
+            'key': (False, [six.text_type]),
+            'secret': (False, [six.text_type]),
+            'require_tls': (False, [bool]),
+            'require_ip': (False, [list]),
+            'post_body_limit': (False, six.integer_types),
+            'timestamp_delta_limit': (False, six.integer_types),
+        }, config['options'], "Web transport 'caller' path service")
+
+        if 'post_body_limit' in config['options']:
+            check_web_path_service_pusher_post_body_limit(config['options']['post_body_limit'])
+
+        if 'timestamp_delta_limit' in config['options']:
+            check_web_path_service_pusher_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
 def check_web_path_service_schemadoc(config):
