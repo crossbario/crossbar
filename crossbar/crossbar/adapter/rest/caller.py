@@ -14,7 +14,7 @@ from twisted.web import server
 from autobahn.wamp.types import PublishOptions
 
 
-from autobahn.adapter.rest.common import _CommonResource
+from .common import _CommonResource
 
 class CallerResource(_CommonResource):
 
@@ -77,7 +77,6 @@ class CallerResource(_CommonResource):
 
         args = event.pop('args', [])
         kwargs = event.pop('kwargs', {})
-        options = event.pop('options', {})
 
         d = self._session.call(procedure, *args, **kwargs)
 
@@ -89,20 +88,20 @@ class CallerResource(_CommonResource):
             if six.PY3:
                 body = body.encode('utf8')
 
-                request.setHeader('content-type', 'application/json; charset=UTF-8')
-                request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
-                request.setResponseCode(200)
-                request.write(body)
-                request.finish()
+            request.setHeader('content-type', 'application/json; charset=UTF-8')
+            request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+            request.setResponseCode(200)
+            request.write(body)
+            request.finish()
 
         def on_call_error(err):
-            emsg = "PusherResource - request failed with error {0}\n".format(err.value)
+            emsg = "CallerResource - request failed with error {0}\n".format(err.value)
             if self._debug:
                 log.msg(emsg)
             request.setResponseCode(400)
             request.write(emsg)
             request.finish()
 
-            d.addCallbacks(on_call_ok, on_call_error)
+        d.addCallbacks(on_call_ok, on_call_error)
 
         return server.NOT_DONE_YET
