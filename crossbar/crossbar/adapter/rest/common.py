@@ -11,49 +11,9 @@ from twisted.web.resource import Resource
 
 
 class _CommonResource(Resource):
-
     """
-    A HTTP/POST to WAMP PubSub bridge.
-
-    Config:
-
-       "transports": [
-          {
-             "type": "web",
-             "endpoint": {
-                "type": "tcp",
-                "port": 8080
-             },
-             "paths": {
-                "/": {
-                   "type": "static",
-                   "directory": ".."
-                },
-                "ws": {
-                   "type": "websocket"
-                },
-                "push": {
-                   "type": "pusher",
-                   "realm": "realm1",
-                   "role": "anonymous",
-                   "options": {
-                      "key": "foobar",
-                      "secret": "secret",
-                      "post_body_limit": 8192,
-                      "timestamp_delta_limit": 10,
-                      "require_ip": ["192.168.1.1/255.255.255.0", "127.0.0.1"],
-                      "require_tls": false
-                   }
-                }
-             }
-          }
-       ]
-
-    Test:
-
-       curl -H "Content-Type: application/json" -d '{"topic": "com.myapp.topic1", "args": ["Hello, world"]}' http://127.0.0.1:8080/push
+    Shared components between PusherResource and CallerResource.
     """
-
     isLeaf = True
 
     def __init__(self, options, session):
@@ -108,7 +68,8 @@ class _CommonResource(Resource):
 
     def render_POST(self, request):
         """
-        Receives an HTTP/POST request to forward a WAMP event.
+        Receives an HTTP/POST request, and then calls the Pusher/Caller
+        processor.
         """
         try:
             # path = request.path
