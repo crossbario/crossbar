@@ -733,6 +733,16 @@ def check_web_path_service_pusher(config):
             check_web_path_service_pusher_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
+def check_web_path_service_caller(config):
+    """
+    Check a "caller" path service on Web transport.
+
+    :param config: The path service configuration.
+    :type config: dict
+    """
+    pass
+
+
 def check_web_path_service_schemadoc(config):
     # FIXME
     pass
@@ -769,10 +779,10 @@ def check_web_path_service(path, config, nested):
 
     ptype = config['type']
     if path == '/' and not nested:
-        if ptype not in ['static', 'wsgi', 'redirect', 'pusher']:
+        if ptype not in ['static', 'wsgi', 'redirect', 'pusher', 'caller']:
             raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher', 'schemadoc', 'path']:
+        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher', 'caller', 'schemadoc', 'path']:
             raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -784,6 +794,7 @@ def check_web_path_service(path, config, nested):
         'cgi': check_web_path_service_cgi,
         'longpoll': check_web_path_service_longpoll,
         'pusher': check_web_path_service_pusher,
+        'caller': check_web_path_service_caller,
         'schemadoc': check_web_path_service_schemadoc,
         'path': check_web_path_service_path,
     }
