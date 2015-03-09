@@ -87,8 +87,7 @@ from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
     Resource404, \
-    RedirectResource, \
-    PusherResource
+    RedirectResource
 
 from autobahn.twisted.flashpolicy import FlashPolicyFactory
 
@@ -100,6 +99,8 @@ from crossbar.common import checkconfig
 from crossbar.twisted.site import patchFileContentTypes
 
 from crossbar.twisted.resource import _HAS_CGI
+
+from crossbar.adapter.rest import PusherResource, CallerResource
 
 if _HAS_CGI:
     from crossbar.twisted.resource import CgiDirectory
@@ -739,6 +740,23 @@ class RouterWorkerSession(NativeWorkerSession):
                 #
                 root = PusherResource(root_config.get('options', {}), pusher_session)
 
+            # Caller resource
+            #
+            elif root_type == 'caller':
+
+                # create a vanilla session: the caller will use this to inject events
+                #
+                caller_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
+                caller_session = ApplicationSession(caller_session_config)
+
+                # add the pushing session to the router
+                #
+                self.session_factory.add(caller_session, authrole=root_config.get('role', 'anonymous'))
+
+                # now create the caller Twisted Web resource and add it to resource tree
+                #
+                root = CallerResource(root_config.get('options', {}), caller_session)
+
             # Invalid root resource
             #
             else:
@@ -987,6 +1005,23 @@ class RouterWorkerSession(NativeWorkerSession):
             # now create the pusher Twisted Web resource
             #
             return PusherResource(path_config.get('options', {}), pusher_session)
+
+        # Caller resource
+        #
+        elif path_config['type'] == 'caller':
+
+            # create a vanilla session: the caller will use this to inject events
+            #
+            caller_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+            caller_session = ApplicationSession(caller_session_config)
+
+            # add the calling session to the router
+            #
+            self.session_factory.add(caller_session, authrole=path_config.get('role', 'anonymous'))
+
+            # now create the caller Twisted Web resource
+            #
+            return CallerResource(path_config.get('options', {}), caller_session)
 
         # Schema Docs resource
         #

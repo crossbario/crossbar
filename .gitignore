@@ -4,6 +4,8 @@
 *.sublime-workspace
 crossbar/build
 crossbar/dist
+crossbar/.coverage
+crossbar/htmlcov/
 *.egg-info
 *.log
 *.pid
@@ -14,3 +16,4 @@ crossbardata
 node_modules
 .idea
 _trial_temp
+*~
