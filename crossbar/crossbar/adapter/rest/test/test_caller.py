@@ -41,9 +41,11 @@ from crossbar.adapter.rest import CallerResource
 
 
 class MockSession(object):
+    """
+    A mock WAMP session.
+    """
 
     def __init__(self, testCase):
-
         self._procedureName = None
         self._args = None
         self._kwargs = None
@@ -51,14 +53,16 @@ class MockSession(object):
         self._testCase = testCase
 
     def _addProcedureCall(self, procedureName, args, kwargs, response):
-
+        """
+        Add an expected procedure call, which expects a certain args, kwargs,
+        and returns the response if it's okay.
+        """
         self._procedureName = procedureName
         self._args = args
         self._kwargs = kwargs
         self._response = response
 
         def call(procedureName, *args, **kwargs):
-
             self._testCase.assertEqual(procedureName, self._procedureName)
             self._testCase.assertEqual(args, self._args)
             self._testCase.assertEqual(kwargs, self._kwargs)
@@ -71,11 +75,16 @@ class MockSession(object):
 
 
 class CallerTestCase(TestCase):
+    """
+    Unit tests for L{CallerResource}. These tests make no WAMP calls, but test
+    the interaction of the calling HTTP request and the resource.
+    """
 
     @inlineCallbacks
     def test_add2(self):
         """
-        Test a very basic call where you add two numbers together.
+        Test a very basic call where you add two numbers together. This has two
+        args, no kwargs, and no authorisation.
         """
         mockSession = MockSession(self)
         mockSession._addProcedureCall("com.test.add2",
