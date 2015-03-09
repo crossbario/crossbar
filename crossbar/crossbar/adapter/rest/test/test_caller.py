@@ -28,21 +28,21 @@
 #
 #####################################################################################
 
+from __future__ import absolute_import
+
 import json
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
-from .requestMock import testResource
-
 from crossbar.adapter.rest import CallerResource
+from crossbar.adapter.rest.test.requestMock import testResource
 
 
 class MockSession(object):
     """
     A mock WAMP session.
     """
-
     def __init__(self, testCase):
         self._procedureName = None
         self._args = None
@@ -77,7 +77,6 @@ class CallerTestCase(TestCase):
     Unit tests for L{CallerResource}. These tests make no WAMP calls, but test
     the interaction of the calling HTTP request and the resource.
     """
-
     @inlineCallbacks
     def test_add2(self):
         """
