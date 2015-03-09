@@ -32,10 +32,8 @@ from __future__ import absolute_import
 
 import json
 
-from random import randint
-
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import inlineCallbacks, maybeDeferred
+from twisted.internet.defer import inlineCallbacks
 
 from crossbar.adapter.rest import PusherResource
 from crossbar.adapter.rest.test import MockPusherSession, testResource

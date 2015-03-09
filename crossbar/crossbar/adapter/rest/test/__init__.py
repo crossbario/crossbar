@@ -71,7 +71,6 @@ class MockPusherSession(object):
         setattr(self, "publish", _publish)
 
 
-
 def _utcnow():
     now = datetime.utcnow()
     return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -101,8 +100,8 @@ def makeSignedArguments(params, signKey, signSecret, body):
 def testResource(resource, path, params=None, method="GET", body="",
                  headers=None, sign=False, signKey=None, signSecret=None):
 
-    params = {} if params == None else params
-    headers = {} if params == None else headers
+    params = {} if params is None else params
+    headers = {} if params is None else headers
 
     def _cb(result, request):
         return request

@@ -33,9 +33,8 @@ from __future__ import absolute_import
 import json
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import inlineCallbacks, maybeDeferred
+from twisted.internet.defer import inlineCallbacks
 
-from crossbar.adapter.rest.common import _CommonResource
 from crossbar.adapter.rest import PusherResource
 from crossbar.adapter.rest.test import MockPusherSession, testResource
 
@@ -46,7 +45,9 @@ class SignatureTestCase(TestCase):
     """
     @inlineCallbacks
     def test_good_signature(self):
-
+        """
+        A valid, correct signature will mean the request is processed.
+        """
         options = {
             "secret": "foobar",
             "key": "bazapp"
@@ -66,10 +67,12 @@ class SignatureTestCase(TestCase):
         self.assertEqual(json.loads(request.getWrittenData()),
                          {"id": session._published_messages[0]["id"]})
 
-
     @inlineCallbacks
     def test_incorrect_secret(self):
-
+        """
+        An incorrect secret (but an otherwise well-formed signature) will mean
+        the request is rejected.
+        """
         options = {
             "secret": "foobar2",
             "key": "bazapp"
@@ -91,7 +94,9 @@ class SignatureTestCase(TestCase):
 
     @inlineCallbacks
     def test_unknown_key(self):
-
+        """
+        An unknown key in a request should mean the request is rejected.
+        """
         options = {
             "secret": "foobar2",
             "key": "bazapp"
