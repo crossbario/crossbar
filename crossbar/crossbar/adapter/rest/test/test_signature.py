@@ -36,7 +36,14 @@ from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
 
 from crossbar.adapter.rest import PusherResource
-from crossbar.adapter.rest.test import MockPusherSession, testResource
+from crossbar.adapter.rest.test import MockPusherSession, testResource, makeSignedArguments
+
+resourceOptions = {
+    "secret": "foobar",
+    "key": "bazapp"
+}
+
+pushBody = '{"topic": "com.test.messages", "args": [1]}'
 
 
 class SignatureTestCase(TestCase):
@@ -48,19 +55,13 @@ class SignatureTestCase(TestCase):
         """
         A valid, correct signature will mean the request is processed.
         """
-        options = {
-            "secret": "foobar",
-            "key": "bazapp"
-        }
-
         session = MockPusherSession(self)
-        resource = PusherResource(options, session)
+        resource = PusherResource(resourceOptions, session)
 
         request = yield testResource(
-            resource, "/",
-            method="POST",
+            resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body='{"topic": "com.test.messages", "args": [1]}',
+            body=pushBody,
             sign=True, signKey="bazapp", signSecret="foobar")
 
         self.assertEqual(request.code, 202)
@@ -73,20 +74,15 @@ class SignatureTestCase(TestCase):
         An incorrect secret (but an otherwise well-formed signature) will mean
         the request is rejected.
         """
-        options = {
-            "secret": "foobar2",
-            "key": "bazapp"
-        }
-
         session = MockPusherSession(self)
-        resource = PusherResource(options, session)
+        resource = PusherResource(resourceOptions, session)
 
         request = yield testResource(
             resource, "/",
             method="POST",
             headers={"Content-Type": ["application/json"]},
-            body='{"topic": "com.test.messages", "args": [1]}',
-            sign=True, signKey="bazapp", signSecret="foobar")
+            body=pushBody,
+            sign=True, signKey="bazapp", signSecret="foobar2")
 
         self.assertEqual(request.code, 401)
         self.assertIn("invalid request signature",
@@ -97,21 +93,79 @@ class SignatureTestCase(TestCase):
         """
         An unknown key in a request should mean the request is rejected.
         """
-        options = {
-            "secret": "foobar2",
-            "key": "bazapp"
-        }
-
         session = MockPusherSession(self)
-        resource = PusherResource(options, session)
+        resource = PusherResource(resourceOptions, session)
 
         request = yield testResource(
-            resource, "/",
-            method="POST",
+            resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body='{"topic": "com.test.messages", "args": [1]}',
+            body=pushBody,
             sign=True, signKey="spamapp", signSecret="foobar")
 
         self.assertEqual(request.code, 400)
         self.assertIn("unknown key 'spamapp' in signed request",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_no_timestamp(self):
+        """
+        No timestamp in a request should mean the request is rejected.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource(resourceOptions, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        del signedParams['timestamp']
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("signed request required, but mandatory 'timestamp' field missing",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_wrong_timestamp(self):
+        """
+        An invalid timestamp in a request should mean the request is rejected.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource(resourceOptions, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams['timestamp'] = ["notatimestamp"]
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("invalid timestamp 'notatimestamp' (must be UTC/ISO-8601,"
+                      " e.g. '2011-10-14T16:59:51.123Z')",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_outdated_delta(self):
+        """
+        If the delta between now and the timestamp in the request is larger than
+        C{timestamp_delta_limit}, the request is rejected.
+        """
+        custOpts = {"timestamp_delta_limit": 1}
+        custOpts.update(resourceOptions)
+        session = MockPusherSession(self)
+        resource = PusherResource(custOpts, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams['timestamp'] = ["2011-10-14T16:59:51.123Z"]
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("request expired (delta",
                       request.getWrittenData())
