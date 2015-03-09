@@ -45,7 +45,8 @@ from twisted.internet.address import IPv4Address
 
 from mock import Mock
 
-# The following two functions contain code from the Klein and Saratoga projects.
+# The following two functions (_render and _requestMock) contain code from the
+# Klein and Saratoga projects, and are licensed under the MIT license.
 
 # Copyright (c) 2011-2015, Klein Contributors, (c) 2014-2015 HawkOwl
 #
