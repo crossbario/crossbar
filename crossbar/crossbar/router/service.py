@@ -129,7 +129,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
         raise ApplicationError(ApplicationError.NO_SUCH_SESSION, message="no session with ID {} exists on this router".format(session_id))
 
     @wamp.register(u'wamp.session.kill')
-    def session_kill(self, session_id, reason=None):
+    def session_kill(self, session_id, reason=None, message=None):
         """
         Forcefully kill a session.
 
@@ -138,7 +138,12 @@ class CrossbarRouterServiceSession(ApplicationSession):
         :param reason: A reason URI provided to the killed session.
         :type reason: unicode or None
         """
-        raise Exception("not implemented")
+        if session_id in self._router._session_id_to_session:
+            session = self._router._session_id_to_session[session_id]
+            if not is_restricted_session(session):
+                session.leave(reason=reason, message=message)
+                return
+        raise ApplicationError(ApplicationError.NO_SUCH_SESSION, message="no session with ID {} exists on this router".format(session_id))
 
     @wamp.register(u'wamp.registration.remove_callee')
     def registration_remove_callee(self, registration_id, callee_id, reason=None):
