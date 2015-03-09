@@ -77,7 +77,8 @@ class Broker(FutureMixin):
                                                       pattern_based_subscription=True,
                                                       subscription_meta_api=True,
                                                       subscriber_blackwhite_listing=True,
-                                                      publisher_exclusion=True)
+                                                      publisher_exclusion=True,
+                                                      subscription_revocation=True)
 
     def attach(self, session):
         """
@@ -356,20 +357,7 @@ class Broker(FutureMixin):
 
             if session in subscription.observers:
 
-                was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
-
-                if was_subscribed:
-                    self._session_to_subscriptions[session].discard(subscription)
-
-                # publish WAMP meta events
-                #
-                if self._router._realm:
-                    service_session = self._router._realm.session
-                    if service_session and not subscription.uri.startswith(u'wamp.'):
-                        if was_subscribed:
-                            service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
-                        if was_last_subscriber:
-                            service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
+                was_subscribed, was_last_subscriber = self._unsubscribe(subscription, session)
 
                 reply = message.Unsubscribed(unsubscribe.request)
             else:
@@ -383,3 +371,38 @@ class Broker(FutureMixin):
             reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
 
         session._transport.send(reply)
+
+    def _unsubscribe(self, subscription, session):
+
+        # drop session from subscription observers
+        #
+        was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
+
+        # remove subscription from session->subscriptions map
+        #
+        if was_subscribed:
+            self._session_to_subscriptions[session].discard(subscription)
+
+        # publish WAMP meta events
+        #
+        if self._router._realm:
+            service_session = self._router._realm.session
+            if service_session and not subscription.uri.startswith(u'wamp.'):
+                if was_subscribed:
+                    service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
+                if was_last_subscriber:
+                    service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
+
+        return was_subscribed, was_last_subscriber
+
+    def removeSubscriber(self, subscription, session, reason=None):
+        """
+        Actively unsubscribe a subscriber session from a subscription.
+        """
+        was_subscribed, was_last_subscriber = self._unsubscribe(subscription, session)
+
+        if 'subscriber' in session._session_roles and session._session_roles['subscriber'] and session._session_roles['subscriber'].subscription_revocation:
+            reply = message.Unsubscribed(0, subscription=subscription.id, reason=reason)
+            session._transport.send(reply)
+
+        return was_subscribed, was_last_subscriber
