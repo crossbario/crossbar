@@ -28,6 +28,8 @@
 #
 #####################################################################################
 
+from __future__ import absolute_import
+
 import json
 import six
 
@@ -36,11 +38,10 @@ from twisted.web import server
 
 from autobahn.wamp.types import PublishOptions
 
-from .common import _CommonResource
+from crossbar.adapter.rest.common import _CommonResource
 
 
 class PusherResource(_CommonResource):
-
     """
     A HTTP/POST to WAMP PubSub bridge.
 

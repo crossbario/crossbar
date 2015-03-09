@@ -28,17 +28,18 @@
 #
 #####################################################################################
 
+from __future__ import absolute_import
+
 import json
 import six
 
 from twisted.python import log
 from twisted.web import server
 
-from .common import _CommonResource
+from crossbar.adapter.rest.common import _CommonResource
 
 
 class CallerResource(_CommonResource):
-
     """
     A HTTP/POST to WAMP procedure bridge.
 
