@@ -70,11 +70,6 @@ class MockSession(object):
         setattr(self, "call", call)
 
 
-
-
-
-
-
 class CallerTestCase(TestCase):
 
     @inlineCallbacks
@@ -88,7 +83,6 @@ class CallerTestCase(TestCase):
                                       kwargs={},
                                       response=3)
 
-
         resource = CallerResource({}, mockSession)
 
         request = yield testResource(
@@ -96,9 +90,6 @@ class CallerTestCase(TestCase):
             method="POST",
             headers={"Content-Type": ["application/json"]},
             body='{"procedure": "com.test.add2", "args": [1,2]}')
-
-        print request.getWrittenData()
-
 
         self.assertEqual(json.loads(request.getWrittenData()),
                          {"response": 3})

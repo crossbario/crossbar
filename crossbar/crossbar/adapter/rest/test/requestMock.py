@@ -30,8 +30,6 @@ from twisted.internet.address import IPv4Address
 
 from mock import Mock
 
-import json
-
 
 def _render(resource, request):
     result = resource.render(request)
@@ -47,8 +45,9 @@ def _render(resource, request):
     else:
         raise ValueError("Unexpected return value: %r" % (result,))
 
+
 def _requestMock(path, method="GET", host="localhost", port=8080, isSecure=False,
-                body=None, headers=None, args=None, reactor=None):
+                 body=None, headers=None, args=None, reactor=None):
 
     if not headers:
         headers = {}
@@ -117,7 +116,7 @@ def _requestMock(path, method="GET", host="localhost", port=8080, isSecure=False
             request._written.write(data)
         else:
             raise RuntimeError('Request.write called on a request after '
-                'Request.finish was called.')
+                               'Request.finish was called.')
 
     def getWrittenData():
         return request._written.getvalue()
