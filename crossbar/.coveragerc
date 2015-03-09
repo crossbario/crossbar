@@ -1,6 +1,5 @@
 [run]
-include =
-    crossbar/*
+source = crossbar
 branch = True
 
 [report]
