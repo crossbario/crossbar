@@ -114,4 +114,4 @@ class PublisherTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn(
             "invalid request event - missing 'topic' in HTTP/POST body",
-            json.loads(request.getWrittenData()))
+            request.getWrittenData())
