@@ -32,59 +32,82 @@ from __future__ import absolute_import
 
 import json
 
-from random import randint
-
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
+from crossbar.adapter.rest.common import _CommonResource
 from crossbar.adapter.rest import PusherResource
 from crossbar.adapter.rest.test import MockPusherSession
 from crossbar.adapter.rest.test.requestMock import testResource
 
 
-class PublisherTestCase(TestCase):
+class SignatureTestCase(TestCase):
     """
-    Unit tests for L{PusherResource}. These tests publish no real WAMP messages,
-    but test the interation of the HTTP request and the resource.
+    Unit tests for the signature authentication part of L{_CommonResource}.
     """
     @inlineCallbacks
-    def test_basic_publish(self):
-        """
-        Test a very basic publish to a topic.
-        """
+    def test_good_signature(self):
+
+        options = {
+            "secret": "foobar",
+            "key": "bazapp"
+        }
+
         session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        resource = PusherResource(options, session)
 
         request = yield testResource(
             resource, "/",
             method="POST",
             headers={"Content-Type": ["application/json"]},
-            body='{"topic": "com.test.messages", "args": [1]}')
-
-        self.assertEqual(len(session._published_messages), 1)
-        self.assertEqual(session._published_messages[0]["args"], (1,))
+            body='{"topic": "com.test.messages", "args": [1]}',
+            sign=True, signKey="bazapp", signSecret="foobar")
 
         self.assertEqual(request.code, 202)
         self.assertEqual(json.loads(request.getWrittenData()),
                          {"id": session._published_messages[0]["id"]})
 
+
     @inlineCallbacks
-    def test_publish_needs_topic(self):
-        """
-        Test that attempted publishes without a topic will be rejected.
-        """
+    def test_incorrect_secret(self):
+
+        options = {
+            "secret": "foobar2",
+            "key": "bazapp"
+        }
+
         session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        resource = PusherResource(options, session)
 
         request = yield testResource(
             resource, "/",
             method="POST",
             headers={"Content-Type": ["application/json"]},
-            body='{}')
+            body='{"topic": "com.test.messages", "args": [1]}',
+            sign=True, signKey="bazapp", signSecret="foobar")
 
-        self.assertEqual(len(session._published_messages), 0)
+        self.assertEqual(request.code, 401)
+        self.assertIn("invalid request signature",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_unknown_key(self):
+
+        options = {
+            "secret": "foobar2",
+            "key": "bazapp"
+        }
+
+        session = MockPusherSession(self)
+        resource = PusherResource(options, session)
+
+        request = yield testResource(
+            resource, "/",
+            method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body='{"topic": "com.test.messages", "args": [1]}',
+            sign=True, signKey="spamapp", signSecret="foobar")
 
         self.assertEqual(request.code, 400)
-        self.assertIn(
-            "invalid request event - missing 'topic' in HTTP/POST body",
-            request.getWrittenData())
+        self.assertIn("unknown key 'spamapp' in signed request",
+                      request.getWrittenData())

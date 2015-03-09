@@ -247,3 +247,6 @@ class _CommonResource(Resource):
         except Exception as e:
             # catch all .. should not happen (usually)
             return self._deny_request(request, 500, "internal server error ('{0}')".format(e))
+
+    def _process(self, request, event):
+        raise NotImplementedError()
