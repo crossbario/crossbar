@@ -684,7 +684,7 @@ def check_web_path_service_pusher_post_body_limit(limit):
     """
     if type(limit) not in six.integer_types:
         raise Exception("'post_body_limit' attribute in pusher configuration must be integer ({} encountered)".format(type(limit)))
-    if limit < 0 or limit > 2**20:
+    if limit < 0 or limit > 2 ** 20:
         raise Exception("invalid value {} for 'post_body_limit' attribute in pusher configuration".format(limit))
 
 
