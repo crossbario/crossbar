@@ -31,7 +31,7 @@
 import json
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks, maybeDeferred
 
 from twisted.internet import reactor
 
@@ -52,7 +52,7 @@ class MockSession(object):
         self._response = None
         self._testCase = testCase
 
-    def _addProcedureCall(self, procedureName, args, kwargs, response):
+    def _addProcedureCall(self, procedureName, args=(), kwargs={}, response=None):
         """
         Add an expected procedure call, which expects a certain args, kwargs,
         and returns the response if it's okay.
@@ -66,12 +66,13 @@ class MockSession(object):
             self._testCase.assertEqual(procedureName, self._procedureName)
             self._testCase.assertEqual(args, self._args)
             self._testCase.assertEqual(kwargs, self._kwargs)
+            return self._response
 
-            d = Deferred()
-            reactor.callLater(0, d.callback, self._response)
-            return d
 
-        setattr(self, "call", call)
+        def _call(procedureName, *args, **kwargs):
+            return maybeDeferred(call, procedureName, *args, **kwargs)
+
+        setattr(self, "call", _call)
 
 
 class CallerTestCase(TestCase):
@@ -100,5 +101,69 @@ class CallerTestCase(TestCase):
             headers={"Content-Type": ["application/json"]},
             body='{"procedure": "com.test.add2", "args": [1,2]}')
 
+        self.assertEqual(request.code, 200)
         self.assertEqual(json.loads(request.getWrittenData()),
                          {"response": 3})
+
+
+    @inlineCallbacks
+    def test_add2_error(self):
+        """
+        Test the call erroring out, and make sure it handles it gracefully.
+        """
+        mockSession = MockSession(self)
+        mockSession._addProcedureCall("com.test.add2",
+                                      args=(1, 2),
+                                      kwargs={},
+                                      response=3)
+
+        resource = CallerResource({}, mockSession)
+
+        request = yield testResource(
+            resource, "/",
+            method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body='{"procedure": "com.test.add2", "args": [0,2]}')
+
+        self.assertEqual(request.code, 400)
+        self.assertIn(
+            "CallerResource - request failed with error",
+            request.getWrittenData())
+
+
+    @inlineCallbacks
+    def test_no_procedure(self):
+        """
+        Test that calls with no procedure in the request body are rejected.
+        """
+        resource = CallerResource({}, None)
+
+        request = yield testResource(
+            resource, "/",
+            method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body="{}")
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            "invalid request event - missing 'procedure' in HTTP/POST body\n",
+            request.getWrittenData())
+
+
+    @inlineCallbacks
+    def test_no_body(self):
+        """
+        Test that calls with no body are rejected.
+        """
+        resource = CallerResource({}, None)
+
+        request = yield testResource(
+            resource, "/",
+            method="POST",
+            headers={"Content-Type": ["application/json"]})
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            "invalid request event - HTTP/POST body must be valid JSON: "
+            "No JSON object could be decoded\n",
+            request.getWrittenData())
