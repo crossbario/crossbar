@@ -17,3 +17,13 @@ node_modules
 .idea
 _trial_temp
 *~
+dist
+build
+*.egg-info
+*.db
+*.zip
+*.egg
+/.crossbar
+_trial_temp
+node_modules
+.tox
