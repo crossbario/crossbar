@@ -31,9 +31,7 @@
 import json
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import Deferred, inlineCallbacks, maybeDeferred
-
-from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
 from .requestMock import testResource
 
@@ -67,7 +65,6 @@ class MockSession(object):
             self._testCase.assertEqual(args, self._args)
             self._testCase.assertEqual(kwargs, self._kwargs)
             return self._response
-
 
         def _call(procedureName, *args, **kwargs):
             return maybeDeferred(call, procedureName, *args, **kwargs)
@@ -105,7 +102,6 @@ class CallerTestCase(TestCase):
         self.assertEqual(json.loads(request.getWrittenData()),
                          {"response": 3})
 
-
     @inlineCallbacks
     def test_add2_error(self):
         """
@@ -130,7 +126,6 @@ class CallerTestCase(TestCase):
             "CallerResource - request failed with error",
             request.getWrittenData())
 
-
     @inlineCallbacks
     def test_no_procedure(self):
         """
@@ -149,7 +144,6 @@ class CallerTestCase(TestCase):
             "invalid request event - missing 'procedure' in HTTP/POST body\n",
             request.getWrittenData())
 
-
     @inlineCallbacks
     def test_no_body(self):
         """
@@ -163,7 +157,7 @@ class CallerTestCase(TestCase):
             headers={"Content-Type": ["application/json"]})
 
         self.assertEqual(request.code, 400)
-        self.assertEqual(
+        self.assertIn(
             "invalid request event - HTTP/POST body must be valid JSON: "
-            "No JSON object could be decoded\n",
+            "No JSON object could be decoded",
             request.getWrittenData())
