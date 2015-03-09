@@ -38,8 +38,7 @@ from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
 from crossbar.adapter.rest import PusherResource
-from crossbar.adapter.rest.test import MockPusherSession
-from crossbar.adapter.rest.test.requestMock import testResource
+from crossbar.adapter.rest.test import MockPusherSession, testResource
 
 
 class PublisherTestCase(TestCase):
