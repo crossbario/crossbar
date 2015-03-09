@@ -83,13 +83,13 @@ class CallerTestCase(TestCase):
         Test a very basic call where you add two numbers together. This has two
         args, no kwargs, and no authorisation.
         """
-        mockSession = MockSession(self)
-        mockSession._addProcedureCall("com.test.add2",
-                                      args=(1, 2),
-                                      kwargs={},
-                                      response=3)
+        session = MockSession(self)
+        session._addProcedureCall("com.test.add2",
+                                  args=(1, 2),
+                                  kwargs={},
+                                  response=3)
 
-        resource = CallerResource({}, mockSession)
+        resource = CallerResource({}, session)
 
         request = yield testResource(
             resource, "/",
@@ -106,13 +106,13 @@ class CallerTestCase(TestCase):
         """
         Test the call erroring out, and make sure it handles it gracefully.
         """
-        mockSession = MockSession(self)
-        mockSession._addProcedureCall("com.test.add2",
-                                      args=(1, 2),
-                                      kwargs={},
-                                      response=3)
+        session = MockSession(self)
+        session._addProcedureCall("com.test.add2",
+                                  args=(1, 2),
+                                  kwargs={},
+                                  response=3)
 
-        resource = CallerResource({}, mockSession)
+        resource = CallerResource({}, session)
 
         request = yield testResource(
             resource, "/",
