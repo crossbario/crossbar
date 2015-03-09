@@ -4,6 +4,8 @@
 *.sublime-workspace
 crossbar/build
 crossbar/dist
+crossbar/.coverage
+crossbar/htmlcov/
 *.egg-info
 *.log
 *.pid
