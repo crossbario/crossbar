@@ -94,3 +94,24 @@ class PublisherTestCase(TestCase):
         self.assertEqual(request.code, 202)
         self.assertEqual(json.loads(request.getWrittenData()),
                          {"id": session._published_messages[0]["id"]})
+
+    @inlineCallbacks
+    def test_publish_needs_topic(self):
+        """
+        Test that attempted publishes without a topic will be rejected.
+        """
+        session = MockSession(self)
+        resource = PusherResource({}, session)
+
+        request = yield testResource(
+            resource, "/",
+            method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body='{}')
+
+        self.assertEqual(len(session._published_messages), 0)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn(
+            "invalid request event - missing 'topic' in HTTP/POST body",
+            json.loads(request.getWrittenData()))
