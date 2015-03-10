@@ -39,6 +39,58 @@ from crossbar.adapter.rest.test import MockPusherSession, testResource
 pushBody = '{"topic": "com.test.messages", "args": [1]}'
 
 
+class IPWhitelistingTestCase(TestCase):
+    """
+    Unit tests for the IP address checking parts of L{_CommonResource}.
+    """
+    @inlineCallbacks
+    def test_allowed_IP(self):
+        """
+        The client having an allowed IP address allows the request.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource({"require_ip": ["127.0.0.1"]}, session)
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody)
+
+        self.assertEqual(request.code, 202)
+
+    @inlineCallbacks
+    def test_allowed_IP_range(self):
+        """
+        The client having an IP in an allowed address range allows the request.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource({"require_ip": ["127.0.0.0/8"]}, session)
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody)
+
+        self.assertEqual(request.code, 202)
+
+    @inlineCallbacks
+    def test_disallowed_IP_range(self):
+        """
+        The client having an IP not in allowed address range denies the request.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource({"require_ip": ["192.168.0.0/16", "10.0.0.0/8"]}, session)
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("request denied based on IP address",
+                      request.getWrittenData())
+
+
 class SecureTransportTestCase(TestCase):
     """
     Unit tests for the transport security testing parts of L{_CommonResource}.
