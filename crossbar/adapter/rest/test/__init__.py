@@ -97,7 +97,7 @@ def makeSignedArguments(params, signKey, signSecret, body):
     return params
 
 
-def testResource(resource, path, params=None, method="GET", body="",
+def testResource(resource, path, params=None, method="GET", body="", isSecure=False,
                  headers=None, sign=False, signKey=None, signSecret=None):
 
     params = {} if params is None else params
@@ -109,7 +109,7 @@ def testResource(resource, path, params=None, method="GET", body="",
     if sign:
         params = makeSignedArguments(params, signKey, signSecret, body)
 
-    req = _requestMock(path, args=params, method=method,
+    req = _requestMock(path, args=params, method=method, isSecure=isSecure,
                        headers=headers, body=body)
 
     d = _render(resource, req)
