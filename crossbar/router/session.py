@@ -229,6 +229,7 @@ class RouterSession(FutureMixin, BaseSession):
         self._realm = None
         self._session_id = None
         self._pending_session_id = None
+        self._session_roles = None
 
         # session authentication information
         #
@@ -277,6 +278,7 @@ class RouterSession(FutureMixin, BaseSession):
             if isinstance(msg, message.Hello):
 
                 self._realm = msg.realm
+                self._session_roles = msg.roles
 
                 details = types.HelloDetails(msg.roles, msg.authmethods, msg.authid, self._pending_session_id)
 

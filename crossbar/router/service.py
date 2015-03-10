@@ -129,7 +129,7 @@ class CrossbarRouterServiceSession(ApplicationSession):
         raise ApplicationError(ApplicationError.NO_SUCH_SESSION, message="no session with ID {} exists on this router".format(session_id))
 
     @wamp.register(u'wamp.session.kill')
-    def session_kill(self, session_id, reason=None):
+    def session_kill(self, session_id, reason=None, message=None):
         """
         Forcefully kill a session.
 
@@ -138,10 +138,15 @@ class CrossbarRouterServiceSession(ApplicationSession):
         :param reason: A reason URI provided to the killed session.
         :type reason: unicode or None
         """
-        raise Exception("not implemented")
+        if session_id in self._router._session_id_to_session:
+            session = self._router._session_id_to_session[session_id]
+            if not is_restricted_session(session):
+                session.leave(reason=reason, message=message)
+                return
+        raise ApplicationError(ApplicationError.NO_SUCH_SESSION, message="no session with ID {} exists on this router".format(session_id))
 
     @wamp.register(u'wamp.registration.remove_callee')
-    def registration_remove_callee(self, registration_id, callee_id):
+    def registration_remove_callee(self, registration_id, callee_id, reason=None):
         """
         Forcefully remove callee from registration.
 
@@ -150,10 +155,23 @@ class CrossbarRouterServiceSession(ApplicationSession):
         :param callee_id: The WAMP session ID of the callee to remove.
         :type callee_id: int
         """
-        raise Exception("not implemented")
+        callee = self._router._session_id_to_session.get(callee_id, None)
+
+        if not callee:
+            raise ApplicationError(ApplicationError.NO_SUCH_SESSION, message="no session with ID {} exists on this router".format(callee_id))
+
+        registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
+        if registration and not is_protected_uri(registration.uri):
+
+            if callee not in registration.observers:
+                raise ApplicationError(ApplicationError.NO_SUCH_REGISTRATION, message="session {} is not registered on registration {} on this dealer".format(callee_id, registration_id))
+
+            self._router._dealer.removeCallee(registration, callee, reason=reason)
+        else:
+            raise ApplicationError(ApplicationError.NO_SUCH_REGISTRATION, message="no registration with ID {} exists on this dealer".format(registration_id))
 
     @wamp.register(u'wamp.subscription.remove_subscriber')
-    def subscription_remove_subscriber(self, subscription_id, subscriber_id):
+    def subscription_remove_subscriber(self, subscription_id, subscriber_id, reason=None):
         """
         Forcefully remove subscriber from subscription.
 
@@ -162,7 +180,20 @@ class CrossbarRouterServiceSession(ApplicationSession):
         :param subscriber_id: The WAMP session ID of the subscriber to remove.
         :type subscriber_id: int
         """
-        raise Exception("not implemented")
+        subscriber = self._router._session_id_to_session.get(subscriber_id, None)
+
+        if not subscriber:
+            raise ApplicationError(ApplicationError.NO_SUCH_SESSION, message="no session with ID {} exists on this router".format(subscriber_id))
+
+        subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
+        if subscription and not is_protected_uri(subscription.uri):
+
+            if subscriber not in subscription.observers:
+                raise ApplicationError(ApplicationError.NO_SUCH_SUBSCRIPTION, message="session {} is not subscribed on subscription {} on this broker".format(subscriber_id, subscription_id))
+
+            self._router._broker.removeSubscriber(subscription, subscriber, reason=reason)
+        else:
+            raise ApplicationError(ApplicationError.NO_SUCH_SUBSCRIPTION, message="no subscription with ID {} exists on this broker".format(subscription_id))
 
     @wamp.register(u'wamp.registration.get')
     def registration_get(self, registration_id):

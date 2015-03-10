@@ -97,7 +97,8 @@ class Dealer(FutureMixin):
                                                       pattern_based_registration=True,
                                                       registration_meta_api=True,
                                                       shared_registration=True,
-                                                      progressive_call_results=True)
+                                                      progressive_call_results=True,
+                                                      registration_revocation=True)
 
     def attach(self, session):
         """
@@ -251,20 +252,7 @@ class Dealer(FutureMixin):
 
             if session in registration.observers:
 
-                was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
-
-                if was_registered:
-                    self._session_to_registrations[session].discard(registration)
-
-                # publish WAMP meta events
-                #
-                if self._router._realm:
-                    service_session = self._router._realm.session
-                    if service_session and not registration.uri.startswith(u'wamp.'):
-                        if was_registered:
-                            service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
-                        if was_last_callee:
-                            service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
+                was_registered, was_last_callee = self._unregister(registration, session)
 
                 reply = message.Unregistered(unregister.request)
             else:
@@ -278,6 +266,43 @@ class Dealer(FutureMixin):
             reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
 
         session._transport.send(reply)
+
+    def _unregister(self, registration, session):
+
+        # drop session from registration observers
+        #
+        was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
+
+        # remove registration from session->registrations map
+        #
+        if was_registered:
+            self._session_to_registrations[session].discard(registration)
+
+        # publish WAMP meta events
+        #
+        if self._router._realm:
+            service_session = self._router._realm.session
+            if service_session and not registration.uri.startswith(u'wamp.'):
+                if was_registered:
+                    service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
+                if was_last_callee:
+                    service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
+
+        return was_registered, was_last_callee
+
+    def removeCallee(self, registration, session, reason=None):
+        """
+        Actively unregister a callee session from a registration.
+        """
+        was_registered, was_last_callee = self._unregister(registration, session)
+
+        # actively inform the callee that it has been unregistered
+        #
+        if 'callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].registration_revocation:
+            reply = message.Unregistered(0, registration=registration.id, reason=reason)
+            session._transport.send(reply)
+
+        return was_registered, was_last_callee
 
     def processCall(self, session, call):
         """

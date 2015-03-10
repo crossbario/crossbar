@@ -101,7 +101,7 @@ class Router(FutureMixin):
 
         self._attached += 1
 
-        return [self._broker._role_features, self._dealer._role_features]
+        return {u'broker': self._broker._role_features, u'dealer': self._dealer._role_features}
 
     def detach(self, session):
         """
