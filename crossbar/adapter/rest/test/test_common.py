@@ -98,7 +98,7 @@ class RequestBodyTestCase(TestCase):
     def test_not_matching_bodylength(self):
         """
         A body length that is different than the Content-Length header will mean
-        the request is rejected
+        the request is rejected.
         """
         session = MockPusherSession(self)
         resource = PusherResource({"post_body_limit": 1}, session)
