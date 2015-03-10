@@ -102,7 +102,9 @@ class _CommonResource(Resource):
         processor.
         """
         try:
-            # path = request.path
+            # read HTTP/POST body
+            body = request.content.read()
+
             args = request.args
             headers = request.getAllHeaders()
 
@@ -113,7 +115,16 @@ class _CommonResource(Resource):
 
             # enforce "post_body_limit"
             #
-            content_length = int(headers.get("content-length", 0))
+            body_length = len(body)
+            content_length = int(headers.get("content-length", body_length))
+
+            if body_length != content_length:
+                # Prevent the body length from being different to the given
+                # Content-Length. This is so that clients can't lie and bypass
+                # length restrictions by giving an incorrect header with a large
+                # body.
+                return self._deny_request(request, 400, "HTTP/POST body length ({0}) is different to Content-Length ({1})".format(body_length, content_length))
+
             if self._post_body_limit and content_length > self._post_body_limit:
                 return self._deny_request(request, 400, "HTTP/POST body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit))
 
@@ -177,10 +188,6 @@ class _CommonResource(Resource):
             else:
                 if self._secret:
                     return self._deny_request(request, 400, "signed request required, but mandatory 'signature' field missing")
-
-            # read HTTP/POST body
-            #
-            body = request.content.read()
 
             # do more checks if signed requests are required
             #

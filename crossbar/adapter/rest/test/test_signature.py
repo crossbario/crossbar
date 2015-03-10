@@ -169,3 +169,123 @@ class SignatureTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn("request expired (delta",
                       request.getWrittenData())
+
+    @inlineCallbacks
+    def test_invalid_nonce(self):
+        """
+        An invalid nonce in a request should mean the request is rejected.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource(resourceOptions, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams['nonce'] = ["notanonce"]
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("invalid nonce 'notanonce' (must be an integer)",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_no_nonce(self):
+        """
+        A missing nonce in a request should mean the request is rejected.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource(resourceOptions, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        del signedParams['nonce']
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("signed request required, but mandatory 'nonce' field missing",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_no_signature(self):
+        """
+        A missing signature in a request should mean the request is rejected.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource(resourceOptions, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        del signedParams['signature']
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("signed request required, but mandatory 'signature' field missing",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_no_key(self):
+        """
+        A missing key in a request should mean the request is rejected.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource(resourceOptions, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        del signedParams['key']
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("signed request required, but mandatory 'key' field missing",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_no_seq(self):
+        """
+        A missing sequence in a request should mean the request is rejected.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource(resourceOptions, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        del signedParams['seq']
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("signed request required, but mandatory 'seq' field missing",
+                      request.getWrittenData())
+
+    @inlineCallbacks
+    def test_wrong_seq(self):
+        """
+        A missing sequence in a request should mean the request is rejected.
+        """
+        session = MockPusherSession(self)
+        resource = PusherResource(resourceOptions, session)
+
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams['seq'] = ["notaseq"]
+
+        request = yield testResource(
+            resource, "/", method="POST",
+            headers={"Content-Type": ["application/json"]},
+            body=pushBody, params=signedParams)
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("invalid sequence number 'notaseq' (must be an integer)",
+                      request.getWrittenData())

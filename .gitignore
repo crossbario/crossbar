@@ -2,10 +2,10 @@
 *.pyo
 *.dat
 *.sublime-workspace
-crossbar/build
-crossbar/dist
-crossbar/.coverage
-crossbar/htmlcov/
+build
+dist
+.coverage
+htmlcov/
 *.egg-info
 *.log
 *.pid
