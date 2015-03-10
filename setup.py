@@ -145,7 +145,7 @@ setup(
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
     #
     classifiers=["License :: OSI Approved :: GNU Affero General Public License v3",
-                 "Development Status :: 3 - Alpha",
+                 "Development Status :: 4 - Beta",
                  "Environment :: No Input/Output (Daemon)",
                  "Environment :: Console",
                  "Framework :: Twisted",
