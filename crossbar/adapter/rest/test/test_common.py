@@ -143,7 +143,7 @@ class SecureTransportTestCase(TestCase):
 
 class RequestBodyTestCase(TestCase):
     """
-    Unit tests for the validation parts of L{_CommonResource}.
+    Unit tests for the body validation parts of L{_CommonResource}.
     """
     @inlineCallbacks
     def test_bad_content_type(self):
