@@ -30,20 +30,18 @@
 
 from __future__ import absolute_import
 
-from collections import namedtuple
-
 from twisted.trial.unittest import TestCase
 from twisted.web.http_headers import Headers
-from twisted.internet.defer import inlineCallbacks, Deferred
-from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 
-from crossbar.adapter.rest import RESTCallee
+from crossbar.adapter.rest import MessageForwarder
 from crossbar.adapter.rest.test import MockTransport, MockHeaders, MockWebTransport
 
 from autobahn.wamp.types import ComponentConfig
 
 
-class CalleeTestCase(TestCase):
+
+class MessageForwarderTestCase(TestCase):
 
     @inlineCallbacks
     def test_basic_web(self):
@@ -51,54 +49,19 @@ class CalleeTestCase(TestCase):
         Plain request, no params.
         """
         config = ComponentConfig(realm="realm1",
-                                 extra={"baseurl": "https://foo.com/",
-                                        "procedure": "io.crossbar.testrest"})
+                                 extra={"url": "https://foo.com/msg",
+                                        "topic": "io.crossbar.forward1"})
 
         m = MockWebTransport(self)
         m._addResponse(200, "whee")
 
-        c = RESTCallee(config=config, webTransport=m)
+        c = MessageForwarder(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.call(u"io.crossbar.testrest", method="GET", url="baz.html")
+        res = yield c.publish(u"io.crossbar.forward1", "hi")
 
-        self.assertEqual(m.maderequest["args"], ("GET", "https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], ("POST", "https://foo.com/msg"))
         self.assertEqual(m.maderequest["kwargs"], {
-            "data": "",
-            "headers": Headers({}),
-            "params": {}
+            "data": '{"args": ["hi"], "kwargs": {}}',
+            "headers": Headers({"Content-Type": ["application/json"]})
         })
-        self.assertEqual(res,
-                         {"content": "whee",
-                          "code": 200,
-                          "headers": {"foo": ["bar"]}})
-
-    @inlineCallbacks
-    def test_slightlymorecomplex_web(self):
-        """
-        Giving headers, params, a body.
-        """
-        config = ComponentConfig(realm="realm1",
-                                 extra={"baseurl": "https://foo.com/",
-                                        "procedure": "io.crossbar.testrest"})
-
-        m = MockWebTransport(self)
-        m._addResponse(220, "whee!")
-
-        c = RESTCallee(config=config, webTransport=m)
-        MockTransport(c)
-
-        res = yield c.call(u"io.crossbar.testrest", method="POST",
-                           url="baz.html", params={"spam": "ham"},
-                           body="see params", headers={"X-Something": ["baz"]})
-
-        self.assertEqual(m.maderequest["args"], ("POST", "https://foo.com/baz.html"))
-        self.assertEqual(m.maderequest["kwargs"], {
-            "data": "see params",
-            "headers": Headers({"X-Something": ["baz"]}),
-            "params": {"spam": "ham"}
-        })
-        self.assertEqual(res,
-                         {"content": "whee!",
-                          "code": 220,
-                          "headers": {"foo": ["bar"]}})

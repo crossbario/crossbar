@@ -44,6 +44,10 @@ from autobahn.wamp.exception import ApplicationError
 
 class MessageForwarder(ApplicationSession):
 
+    def __init__(self, *args, **kwargs):
+        self._webtransport = kwargs.pop("webTransport", treq)
+        super(MessageForwarder, self).__init__(*args, **kwargs)
+
     @inlineCallbacks
     def onJoin(self, details):
 
@@ -61,7 +65,7 @@ class MessageForwarder(ApplicationSession):
             })
 
             body = json.dumps({"args": args, "kwargs": kwargs})
-            res = yield treq.request(
+            res = yield self._webtransport.request(
                 method, url,
                 data=body,
                 headers=headers
@@ -73,7 +77,7 @@ class MessageForwarder(ApplicationSession):
                         "Request returned {}, not the expected {}".format(res.code, expectedCode))
 
             if debug:
-                content = yield treq.text_content(res)
+                content = yield self._webtransport.text_content(res)
                 log.msg(content)
 
         yield self.subscribe(on_event, topic)

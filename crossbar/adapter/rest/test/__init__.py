@@ -39,7 +39,8 @@ from datetime import datetime
 
 from collections import namedtuple
 
-from twisted.internet.defer import maybeDeferred
+from twisted.internet.defer import maybeDeferred, Deferred
+from twisted.internet import reactor
 
 from crossbar.adapter.rest.test.requestMock import _requestMock, _render
 
@@ -122,6 +123,42 @@ def testResource(resource, path, params=None, method="GET", body="", isSecure=Fa
     return d
 
 
+MockResponse = namedtuple("MockResponse", ["code", "headers"])
+
+
+class MockHeaders(object):
+
+    def getAllRawHeaders(self):
+        return {"foo": ["bar"]}
+
+
+class MockWebTransport(object):
+
+    def __init__(self, testCase):
+        self.testCase = testCase
+        self._code = None
+        self._content = None
+        self.maderequest = None
+
+    def _addResponse(self, code, content):
+        self._code = code
+        self._content = content
+
+    def request(self, *args, **kwargs):
+        self.maderequest = {"args": args, "kwargs": kwargs}
+        resp = MockResponse(headers=MockHeaders(),
+                            code=self._code)
+        d = Deferred()
+        reactor.callLater(0.0, d.callback, resp)
+        return d
+
+    def text_content(self, res):
+        self.testCase.assertEqual(res.code, self._code)
+        d = Deferred()
+        reactor.callLater(0.0, d.callback, self._content)
+        return d
+
+
 class MockTransport(object):
 
     def __init__(self, handler):
@@ -143,6 +180,7 @@ class MockTransport(object):
         self._handler.onMessage(msg)
 
     def send(self, msg):
+
         if self._log:
             payload, isbinary = self._serializer.serialize(msg)
             print("Send: {0}".format(payload))
@@ -150,7 +188,12 @@ class MockTransport(object):
         reply = None
 
         if isinstance(msg, message.Publish):
-            if msg.topic.startswith(u'com.myapp'):
+            if msg.topic.startswith(u'io.crossbar'):
+
+                reg = self._subscription_topics[msg.topic]
+                request = util.id()
+                reply = message.Event(reg, request, args=msg.args, kwargs=msg.kwargs)
+
                 if msg.acknowledge:
                     reply = message.Published(msg.request, util.id())
             elif len(msg.topic) == 0:
