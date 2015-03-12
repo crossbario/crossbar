@@ -87,7 +87,9 @@ class TestLmdb(unittest.TestCase):
         data_read = []
         with self.db.begin() as txn:
             cursor = txn.cursor(db=self.db1)
-            if cursor.set_range('key5'): # Position at first key >= 'key5'.
+
+            # Position at first key >= 'key5'
+            if cursor.set_range('key5'):
                 for key, value in cursor:
                     data_read.append((key, value))
 
