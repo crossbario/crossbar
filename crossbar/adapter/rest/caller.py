@@ -37,6 +37,7 @@ from twisted.python import log
 from twisted.web import server
 
 from autobahn.wamp.types import CallResult
+from autobahn.wamp.exception import ApplicationError
 
 from crossbar.adapter.rest.common import _CommonResource
 
@@ -96,21 +97,7 @@ class CallerResource(_CommonResource):
 
         d = self._session.call(procedure, *args, **kwargs)
 
-        def on_call_ok(value):
-            # a WAMP procedure call result may have a single return value, but also
-            # multiple, positional return values as well as keyword-based return values
-            if isinstance(value, CallResult):
-                res = {}
-                if value.results:
-                    res['results'] = value.results
-                if value.kwresults:
-                    res['kwresults'] = value.kwresults
-            else:
-                res = {'results': [value]}
-
-            if self._debug:
-                log.msg("CallerResource - request succeeded with result {0}".format(res))
-
+        def return_call_result(res):
             body = json.dumps(res, separators=(',', ':'))
             if six.PY3:
                 body = body.encode('utf8')
@@ -121,13 +108,43 @@ class CallerResource(_CommonResource):
             request.write(body)
             request.finish()
 
-        def on_call_error(err):
-            emsg = "CallerResource - request failed with error {0}\n".format(err.value)
+        def on_call_ok(value):
+            # a WAMP procedure call result may have a single return value, but also
+            # multiple, positional return values as well as keyword-based return values
+            #
+            if isinstance(value, CallResult):
+                res = {}
+                if value.results:
+                    res['args'] = value.results
+                if value.kwresults:
+                    res['kwargs'] = value.kwresults
+            else:
+                res = {'args': [value]}
+
             if self._debug:
-                log.msg(emsg)
-            request.setResponseCode(400)
-            request.write(emsg)
-            request.finish()
+                log.msg("CallerResource - WAMP call succeeded with result {0}".format(res))
+
+            return_call_result(res)
+
+        def on_call_error(err):
+            # a WAMP procedure call returning with error should be forwarded
+            # to the HTTP-requestor still successfully
+            #
+            res = {}
+            if isinstance(err.value, ApplicationError):
+                res['error'] = err.value.error
+                if err.value.args:
+                    res['args'] = err.value.args
+                if err.value.kwargs:
+                    res['kwargs'] = err.value.kwargs
+            else:
+                res['error'] = u'wamp.error.runtime_error'
+                res['args'] = ["{}".format(err)]
+
+            if self._debug:
+                log.msg("CallerResource - WAMP call failed with error {0}".format(res))
+
+            return_call_result(res)
 
         d.addCallbacks(on_call_ok, on_call_error)
 
