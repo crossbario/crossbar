@@ -27,7 +27,7 @@ publish: clean
 	python setup.py register
 	python setup.py sdist upload
 
-test:
+test: clean flake8
 	trial crossbar
 
 # This will run pep8, pyflakes and can skip lines that end with # noqa

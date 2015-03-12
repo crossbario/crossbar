@@ -41,7 +41,7 @@ from collections import namedtuple
 
 from twisted.internet.defer import maybeDeferred
 
-from crossbar.adapter.rest.test.requestMock import _requestMock, _render
+from crossbar.adapter.rest.test.request_mock import _requestMock, _render
 
 publishedMessage = namedtuple("pub", ["id"])
 
