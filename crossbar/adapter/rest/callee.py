@@ -43,14 +43,11 @@ from autobahn.twisted.wamp import ApplicationSession
 class RESTCallee(ApplicationSession):
 
     def __init__(self, *args, **kwargs):
-
         self._webtransport = kwargs.pop("webTransport", treq)
-
         super(RESTCallee, self).__init__(*args, **kwargs)
 
     @inlineCallbacks
     def onJoin(self, details):
-
         assert "baseurl" in self.config.extra
         assert "procedure" in self.config.extra
 
