@@ -36,6 +36,8 @@ import six
 from twisted.python import log
 from twisted.web import server
 
+from autobahn.wamp.types import CallResult
+
 from crossbar.adapter.rest.common import _CommonResource
 
 __all__ = ('CallerResource',)
@@ -94,10 +96,21 @@ class CallerResource(_CommonResource):
 
         d = self._session.call(procedure, *args, **kwargs)
 
-        def on_call_ok(res):
-            res = {'response': res}
+        def on_call_ok(value):
+            # a WAMP procedure call result may have a single return value, but also
+            # multiple, positional return values as well as keyword-based return values
+            if isinstance(value, CallResult):
+                res = {}
+                if value.results:
+                    res['results'] = value.results
+                if value.kwresults:
+                    res['kwresults'] = value.kwresults
+            else:
+                res = {'results': [value]}
+
             if self._debug:
                 log.msg("CallerResource - request succeeded with result {0}".format(res))
+
             body = json.dumps(res, separators=(',', ':'))
             if six.PY3:
                 body = body.encode('utf8')
