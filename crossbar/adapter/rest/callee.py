@@ -45,27 +45,35 @@ from autobahn.wamp.exception import ApplicationError
 
 class RESTCallee(ApplicationSession):
 
+    def __init__(self, *args, **kwargs):
+
+        self._webtransport = kwargs.pop("webTransport", treq)
+
+        super(RESTCallee, self).__init__(*args, **kwargs)
+
     @inlineCallbacks
     def onJoin(self, details):
+
+        assert "baseurl" in self.config.extra
+        assert "procedure" in self.config.extra
 
         baseURL = self.config.extra["baseurl"]
         procedure = self.config.extra["procedure"]
         debug = self.config.extra.get("debug", False)
 
-
         @inlineCallbacks
-        def on_call(method=None, url=None, body="", headers={}, params={}):
+        def on_call(method=None, url=None, body=u"", headers={}, params={}):
 
             newURL = urljoin(baseURL, url)
 
-            res = yield treq.request(
+            res = yield self._webtransport.request(
                 method.encode("utf8"),
                 newURL.encode("utf8"),
                 data=body.encode("utf8"),
                 headers=Headers(headers),
                 params=params
             )
-            content = yield treq.text_content(res)
+            content = yield self._webtransport.text_content(res)
 
             resp = {
                 "code": res.code,
