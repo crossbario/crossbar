@@ -31,16 +31,13 @@
 from __future__ import absolute_import
 
 import treq
-import json
 
 from urlparse import urljoin
 
-from twisted.python import log
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.web.http_headers import Headers
 
 from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.exception import ApplicationError
 
 
 class RESTCallee(ApplicationSession):
@@ -59,7 +56,6 @@ class RESTCallee(ApplicationSession):
 
         baseURL = self.config.extra["baseurl"]
         procedure = self.config.extra["procedure"]
-        debug = self.config.extra.get("debug", False)
 
         @inlineCallbacks
         def on_call(method=None, url=None, body=u"", headers={}, params={}):

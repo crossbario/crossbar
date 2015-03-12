@@ -30,115 +30,19 @@
 
 from __future__ import absolute_import
 
-import json
-
 from collections import namedtuple
 
 from twisted.trial.unittest import TestCase
+from twisted.web.http_headers import Headers
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet import reactor
 
 from crossbar.adapter.rest import RESTCallee
+from crossbar.adapter.rest.test import MockTransport
 
 from autobahn.wamp.types import ComponentConfig
 
-from autobahn.twisted.util import sleep
-
-from autobahn.wamp import message
-from autobahn.wamp import serializer
-from autobahn.wamp import role
-from autobahn import util
-from autobahn.wamp.exception import ApplicationError, NotAuthorized, InvalidUri, ProtocolError
-from autobahn.wamp import types
-
 MockResponse = namedtuple("MockResponse", ["code", "headers"])
-
-
-class MockTransport(object):
-
-    def __init__(self, handler):
-        self._log = False
-        self._handler = handler
-        self._serializer = serializer.JsonSerializer()
-        self._registrations = {}
-        self._invocations = {}
-        #: str -> ID
-        self._subscription_topics = {}
-
-        self._handler.onOpen(self)
-
-        self._my_session_id = util.id()
-
-        roles = {u'broker': role.RoleBrokerFeatures(), u'dealer': role.RoleDealerFeatures()}
-
-        msg = message.Welcome(self._my_session_id, roles)
-        self._handler.onMessage(msg)
-
-    def send(self, msg):
-        if self._log:
-            payload, isbinary = self._serializer.serialize(msg)
-            print("Send: {0}".format(payload))
-
-        reply = None
-
-        if isinstance(msg, message.Publish):
-            if msg.topic.startswith(u'com.myapp'):
-                if msg.acknowledge:
-                    reply = message.Published(msg.request, util.id())
-            elif len(msg.topic) == 0:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, u'wamp.error.invalid_uri')
-            else:
-                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, u'wamp.error.not_authorized')
-
-        elif isinstance(msg, message.Call):
-
-            if msg.procedure in self._registrations:
-                registration = self._registrations[msg.procedure]
-                request = util.id()
-                self._invocations[request] = msg.request
-                reply = message.Invocation(request, registration, args=msg.args, kwargs=msg.kwargs)
-            else:
-                reply = message.Error(message.Call.MESSAGE_TYPE, msg.request, u'wamp.error.no_such_procedure')
-
-        elif isinstance(msg, message.Yield):
-            if msg.request in self._invocations:
-                request = self._invocations[msg.request]
-                reply = message.Result(request, args=msg.args, kwargs=msg.kwargs)
-
-        elif isinstance(msg, message.Subscribe):
-            topic = msg.topic
-            if topic in self._subscription_topics:
-                reply_id = self._subscription_topics[topic]
-            else:
-                reply_id = util.id()
-                self._subscription_topics[topic] = reply_id
-            reply = message.Subscribed(msg.request, reply_id)
-
-        elif isinstance(msg, message.Unsubscribe):
-            reply = message.Unsubscribed(msg.request)
-
-        elif isinstance(msg, message.Register):
-            registration = util.id()
-            self._registrations[msg.procedure] = registration
-            reply = message.Registered(msg.request, registration)
-
-        elif isinstance(msg, message.Unregister):
-            reply = message.Unregistered(msg.request)
-
-        if reply:
-            if self._log:
-                payload, isbinary = self._serializer.serialize(reply)
-                print("Receive: {0}".format(payload))
-            self._handler.onMessage(reply)
-
-    def isOpen(self):
-        return True
-
-    def close(self):
-        pass
-
-    def abort(self):
-        pass
 
 
 class MockHeaders(object):
@@ -177,7 +81,9 @@ class CalleeTestCase(TestCase):
 
     @inlineCallbacks
     def test_basic_web(self):
-
+        """
+        Plain request, no params.
+        """
         config = ComponentConfig(realm="realm1",
                                  extra={"baseurl": "https://foo.com/",
                                         "procedure": "io.crossbar.testrest"})
@@ -190,7 +96,43 @@ class CalleeTestCase(TestCase):
 
         res = yield c.call(u"io.crossbar.testrest", method="GET", url="baz.html")
 
+        self.assertEqual(m.request["args"], ("GET", "https://foo.com/baz.html"))
+        self.assertEqual(m.request["kwargs"], {
+            "data": "",
+            "headers": Headers({}),
+            "params": {}
+        })
         self.assertEqual(res,
                          {"content": "whee",
                           "code": 200,
+                          "headers": {"foo": ["bar"]}})
+
+    @inlineCallbacks
+    def test_slightlymorecomplex_web(self):
+        """
+        Giving headers, params, a body.
+        """
+        config = ComponentConfig(realm="realm1",
+                                 extra={"baseurl": "https://foo.com/",
+                                        "procedure": "io.crossbar.testrest"})
+
+        m = MockWebTransport(self)
+        m._addResponse(220, "whee!")
+
+        c = RESTCallee(config=config, webTransport=m)
+        MockTransport(c)
+
+        res = yield c.call(u"io.crossbar.testrest", method="POST",
+                           url="baz.html", params={"spam": "ham"},
+                           body="see params", headers={"X-Something": ["baz"]})
+
+        self.assertEqual(m.request["args"], ("POST", "https://foo.com/baz.html"))
+        self.assertEqual(m.request["kwargs"], {
+            "data": "see params",
+            "headers": Headers({"X-Something": ["baz"]}),
+            "params": {"spam": "ham"}
+        })
+        self.assertEqual(res,
+                         {"content": "whee!",
+                          "code": 220,
                           "headers": {"foo": ["bar"]}})
