@@ -42,7 +42,7 @@ from twisted.web.resource import Resource
 
 class _CommonResource(Resource):
     """
-    Shared components between PusherResource and CallerResource.
+    Shared components between PublisherResource and CallerResource.
     """
     isLeaf = True
 
@@ -83,13 +83,13 @@ class _CommonResource(Resource):
         Called when client request is denied.
         """
         if self._debug:
-            log.msg("PusherResource [request denied] - {0} / {1}".format(code, reason))
+            log.msg("_CommonResource [request denied] - {0} / {1}".format(code, reason))
         request.setResponseCode(code)
         return "{}\n".format(reason)
 
     def render(self, request):
         if self._debug:
-            log.msg("PusherResource [render]", request.method, request.path, request.args)
+            log.msg("_CommonResource [render]", request.method, request.path, request.args)
 
         if request.method != "POST":
             return self._deny_request(request, 405, "HTTP/{0} not allowed".format(request.method))
@@ -98,7 +98,7 @@ class _CommonResource(Resource):
 
     def render_POST(self, request):
         """
-        Receives an HTTP/POST request, and then calls the Pusher/Caller
+        Receives an HTTP/POST request, and then calls the Publisher/Caller
         processor.
         """
         try:
@@ -209,7 +209,7 @@ class _CommonResource(Resource):
                     return self._deny_request(request, 401, "invalid request signature")
                 else:
                     if self._debug:
-                        log.msg("PusherResource - ok, request signature valid.")
+                        log.msg("_CommonResource - ok, request signature valid.")
 
             # user_agent = headers.get("user-agent", "unknown")
             client_ip = request.getClientIP()

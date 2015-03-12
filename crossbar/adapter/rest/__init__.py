@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from crossbar.adapter.rest.publisher import PusherResource
+from crossbar.adapter.rest.publisher import PublisherResource
 from crossbar.adapter.rest.caller import CallerResource
 
-__all__ = ("PusherResource", "CallerResource")
+__all__ = ("PublisherResource", "CallerResource")

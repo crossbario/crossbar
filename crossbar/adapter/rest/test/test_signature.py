@@ -35,15 +35,15 @@ import json
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
 
-from crossbar.adapter.rest import PusherResource
-from crossbar.adapter.rest.test import MockPusherSession, testResource, makeSignedArguments
+from crossbar.adapter.rest import PublisherResource
+from crossbar.adapter.rest.test import MockPublisherSession, testResource, makeSignedArguments
 
 resourceOptions = {
     "secret": "foobar",
     "key": "bazapp"
 }
 
-pushBody = '{"topic": "com.test.messages", "args": [1]}'
+publishBody = '{"topic": "com.test.messages", "args": [1]}'
 
 
 class SignatureTestCase(TestCase):
@@ -55,13 +55,13 @@ class SignatureTestCase(TestCase):
         """
         A valid, correct signature will mean the request is processed.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody,
+            body=publishBody,
             sign=True, signKey="bazapp", signSecret="foobar")
 
         self.assertEqual(request.code, 202)
@@ -74,14 +74,14 @@ class SignatureTestCase(TestCase):
         An incorrect secret (but an otherwise well-formed signature) will mean
         the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
         request = yield testResource(
             resource, "/",
             method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody,
+            body=publishBody,
             sign=True, signKey="bazapp", signSecret="foobar2")
 
         self.assertEqual(request.code, 401)
@@ -93,13 +93,13 @@ class SignatureTestCase(TestCase):
         """
         An unknown key in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody,
+            body=publishBody,
             sign=True, signKey="spamapp", signSecret="foobar")
 
         self.assertEqual(request.code, 400)
@@ -111,16 +111,16 @@ class SignatureTestCase(TestCase):
         """
         No timestamp in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams['timestamp']
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("signed request required, but mandatory 'timestamp' field missing",
@@ -131,16 +131,16 @@ class SignatureTestCase(TestCase):
         """
         An invalid timestamp in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         signedParams['timestamp'] = ["notatimestamp"]
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("invalid timestamp 'notatimestamp' (must be UTC/ISO-8601,"
@@ -155,16 +155,16 @@ class SignatureTestCase(TestCase):
         """
         custOpts = {"timestamp_delta_limit": 1}
         custOpts.update(resourceOptions)
-        session = MockPusherSession(self)
-        resource = PusherResource(custOpts, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(custOpts, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         signedParams['timestamp'] = ["2011-10-14T16:59:51.123Z"]
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("request expired (delta",
@@ -175,16 +175,16 @@ class SignatureTestCase(TestCase):
         """
         An invalid nonce in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         signedParams['nonce'] = ["notanonce"]
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("invalid nonce 'notanonce' (must be an integer)",
@@ -195,16 +195,16 @@ class SignatureTestCase(TestCase):
         """
         A missing nonce in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams['nonce']
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("signed request required, but mandatory 'nonce' field missing",
@@ -215,16 +215,16 @@ class SignatureTestCase(TestCase):
         """
         A missing signature in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams['signature']
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("signed request required, but mandatory 'signature' field missing",
@@ -235,16 +235,16 @@ class SignatureTestCase(TestCase):
         """
         A missing key in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams['key']
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("signed request required, but mandatory 'key' field missing",
@@ -255,16 +255,16 @@ class SignatureTestCase(TestCase):
         """
         A missing sequence in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams['seq']
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("signed request required, but mandatory 'seq' field missing",
@@ -275,16 +275,16 @@ class SignatureTestCase(TestCase):
         """
         A missing sequence in a request should mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource(resourceOptions, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource(resourceOptions, session)
 
-        signedParams = makeSignedArguments({}, "bazapp", "foobar", pushBody)
+        signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         signedParams['seq'] = ["notaseq"]
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, params=signedParams)
+            body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
         self.assertIn("invalid sequence number 'notaseq' (must be an integer)",

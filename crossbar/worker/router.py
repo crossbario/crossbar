@@ -100,7 +100,7 @@ from crossbar.twisted.site import patchFileContentTypes
 
 from crossbar.twisted.resource import _HAS_CGI
 
-from crossbar.adapter.rest import PusherResource, CallerResource
+from crossbar.adapter.rest import PublisherResource, CallerResource
 
 if _HAS_CGI:
     from crossbar.twisted.resource import CgiDirectory
@@ -723,33 +723,33 @@ class RouterWorkerSession(NativeWorkerSession):
                 redirect_url = root_config['url'].encode('ascii', 'ignore')
                 root = RedirectResource(redirect_url)
 
-            # Pusher resource
+            # Publisher resource (part of REST-bridge)
             #
-            elif root_type == 'pusher':
+            elif root_type == 'publisher':
 
-                # create a vanilla session: the pusher will use this to inject events
+                # create a vanilla session: the publisher will use this to inject events
                 #
-                pusher_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
-                pusher_session = ApplicationSession(pusher_session_config)
+                publisher_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
+                publisher_session = ApplicationSession(publisher_session_config)
 
-                # add the pushing session to the router
+                # add the publishing session to the router
                 #
-                self.session_factory.add(pusher_session, authrole=root_config.get('role', 'anonymous'))
+                self.session_factory.add(publisher_session, authrole=root_config.get('role', 'anonymous'))
 
-                # now create the pusher Twisted Web resource and add it to resource tree
+                # now create the publisher Twisted Web resource and add it to resource tree
                 #
-                root = PusherResource(root_config.get('options', {}), pusher_session)
+                root = PublisherResource(root_config.get('options', {}), publisher_session)
 
-            # Caller resource
+            # Caller resource (part of REST-bridge)
             #
             elif root_type == 'caller':
 
-                # create a vanilla session: the caller will use this to inject events
+                # create a vanilla session: the caller will use this to inject calls
                 #
                 caller_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
                 caller_session = ApplicationSession(caller_session_config)
 
-                # add the pushing session to the router
+                # add the calling session to the router
                 #
                 self.session_factory.add(caller_session, authrole=root_config.get('role', 'anonymous'))
 
@@ -989,28 +989,28 @@ class RouterWorkerSession(NativeWorkerSession):
 
             return lp_resource
 
-        # Pusher resource
+        # Publisher resource (part of REST-bridge)
         #
-        elif path_config['type'] == 'pusher':
+        elif path_config['type'] == 'publisher':
 
-            # create a vanilla session: the pusher will use this to inject events
+            # create a vanilla session: the publisher will use this to inject events
             #
-            pusher_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
-            pusher_session = ApplicationSession(pusher_session_config)
+            publisher_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+            publisher_session = ApplicationSession(publisher_session_config)
 
-            # add the pushing session to the router
+            # add the publisher session to the router
             #
-            self.session_factory.add(pusher_session, authrole=path_config.get('role', 'anonymous'))
+            self.session_factory.add(publisher_session, authrole=path_config.get('role', 'anonymous'))
 
-            # now create the pusher Twisted Web resource
+            # now create the publisher Twisted Web resource
             #
-            return PusherResource(path_config.get('options', {}), pusher_session)
+            return PublisherResource(path_config.get('options', {}), publisher_session)
 
-        # Caller resource
+        # Caller resource (part of REST-bridge)
         #
         elif path_config['type'] == 'caller':
 
-            # create a vanilla session: the caller will use this to inject events
+            # create a vanilla session: the caller will use this to inject calls
             #
             caller_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
             caller_session = ApplicationSession(caller_session_config)

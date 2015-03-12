@@ -38,6 +38,8 @@ from twisted.web import server
 
 from crossbar.adapter.rest.common import _CommonResource
 
+__all__ = ('CallerResource',)
+
 
 class CallerResource(_CommonResource):
     """

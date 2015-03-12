@@ -40,8 +40,10 @@ from autobahn.wamp.types import PublishOptions
 
 from crossbar.adapter.rest.common import _CommonResource
 
+__all__ = ('PublisherResource',)
 
-class PusherResource(_CommonResource):
+
+class PublisherResource(_CommonResource):
     """
     A HTTP/POST to WAMP PubSub bridge.
 
@@ -62,8 +64,8 @@ class PusherResource(_CommonResource):
                 "ws": {
                    "type": "websocket"
                 },
-                "push": {
-                   "type": "pusher",
+                "publish": {
+                   "type": "publisher",
                    "realm": "realm1",
                    "role": "anonymous",
                    "options": {
@@ -79,9 +81,9 @@ class PusherResource(_CommonResource):
           }
        ]
 
-    Test:
+    Test publishing to a topic `com.myapp.topic1`:
 
-       curl -H "Content-Type: application/json" -d '{"topic": "com.myapp.topic1", "args": ["Hello, world"]}' http://127.0.0.1:8080/push
+       curl -H "Content-Type: application/json" -d '{"topic": "com.myapp.topic1", "args": ["Hello, world"]}' http://127.0.0.1:8080/publish
     """
 
     def _process(self, request, event):
@@ -108,7 +110,7 @@ class PusherResource(_CommonResource):
         def on_publish_ok(pub):
             res = {'id': pub.id}
             if self._debug:
-                log.msg("PusherResource - request succeeded with result {0}".format(res))
+                log.msg("PublisherResource - request succeeded with result {0}".format(res))
             body = json.dumps(res, separators=(',', ':'))
             if six.PY3:
                 body = body.encode('utf8')
@@ -120,7 +122,7 @@ class PusherResource(_CommonResource):
             request.finish()
 
         def on_publish_error(err):
-            emsg = "PusherResource - request failed with error {0}\n".format(err.value)
+            emsg = "PublisherResource - request failed with error {0}\n".format(err.value)
             if self._debug:
                 log.msg(emsg)
             request.setResponseCode(400)

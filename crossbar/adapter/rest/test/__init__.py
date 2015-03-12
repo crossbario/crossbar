@@ -46,7 +46,7 @@ from crossbar.adapter.rest.test.requestMock import _requestMock, _render
 publishedMessage = namedtuple("pub", ["id"])
 
 
-class MockPusherSession(object):
+class MockPublisherSession(object):
     """
     A mock WAMP session.
     """
