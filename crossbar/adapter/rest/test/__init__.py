@@ -170,6 +170,9 @@ class MockTransport(object):
         #: str -> ID
         self._subscription_topics = {}
 
+        self._publish = {}
+        self._call = {}
+
         self._handler.onOpen(self)
 
         self._my_session_id = util.id()
@@ -179,37 +182,55 @@ class MockTransport(object):
         msg = message.Welcome(self._my_session_id, roles)
         self._handler.onMessage(msg)
 
+    def _s(self, msg):
+        if msg:
+            self._handler.onMessage(msg)
+
     def send(self, msg):
 
         if self._log:
-            payload, isbinary = self._serializer.serialize(msg)
-            print("Send: {0}".format(payload))
+            print "req"
+            print msg
 
         reply = None
 
-        print msg
-
         if isinstance(msg, message.Publish):
-            if msg.topic.startswith(u'io.crossbar'):
+            if msg.topic in self._subscription_topics.keys():
+
+                pubID = util.id()
+
+                def published():
+                    self._s(message.Published(msg.request, pubID))
 
                 reg = self._subscription_topics[msg.topic]
-                request = util.id()
-                self._handler.onMessage(message.Event(reg, request, args=msg.args, kwargs=msg.kwargs))
+                reply = message.Event(reg, pubID, args=msg.args, kwargs=msg.kwargs)
 
                 if msg.acknowledge:
-                    reply = message.Published(msg.request, util.id())
+                    reactor.callLater(0, published)
+
             elif len(msg.topic) == 0:
                 reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, u'wamp.error.invalid_uri')
             else:
                 reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, u'wamp.error.not_authorized')
 
-        elif isinstance(msg, message.Call):
+        elif isinstance(msg, message.Error):
+            # Convert an invocation error into a call error
+            if msg.request_type == 68:
+                msg.request_type = 48
 
+            reply = msg
+
+        elif isinstance(msg, message.Call):
             if msg.procedure in self._registrations:
-                registration = self._registrations[msg.procedure]
                 request = util.id()
-                self._invocations[request] = msg.request
-                reply = message.Invocation(request, registration, args=msg.args, kwargs=msg.kwargs)
+                registration = self._registrations[msg.procedure]
+                self._invocations[msg.request] = msg.request
+
+                def invoke():
+                    self._s(message.Invocation(msg.request, registration, args=msg.args, kwargs=msg.kwargs))
+
+                reactor.callLater(0, invoke)
+
             else:
                 reply = message.Error(message.Call.MESSAGE_TYPE, msg.request, u'wamp.error.no_such_procedure')
 
@@ -239,10 +260,7 @@ class MockTransport(object):
             reply = message.Unregistered(msg.request)
 
         if reply:
-            if self._log:
-                payload, isbinary = self._serializer.serialize(reply)
-                print("Receive: {0}".format(payload))
-            self._handler.onMessage(reply)
+            self._s(reply)
 
     def isOpen(self):
         return True
