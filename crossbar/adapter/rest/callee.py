@@ -28,10 +28,52 @@
 #
 #####################################################################################
 
-from crossbar.adapter.rest.publisher import PublisherResource
-from crossbar.adapter.rest.caller import CallerResource
-from crossbar.adapter.rest.callee import RESTCallee
-from crossbar.adapter.rest.subscriber import MessageForwarder
+from __future__ import absolute_import
 
-__all__ = ("PublisherResource", "CallerResource", "RESTCallee",
-           "MessageForwarder")
+import treq
+
+from urlparse import urljoin
+
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.web.http_headers import Headers
+
+from autobahn.twisted.wamp import ApplicationSession
+
+
+class RESTCallee(ApplicationSession):
+
+    def __init__(self, *args, **kwargs):
+        self._webtransport = kwargs.pop("webTransport", treq)
+        super(RESTCallee, self).__init__(*args, **kwargs)
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        assert "baseurl" in self.config.extra
+        assert "procedure" in self.config.extra
+
+        baseURL = self.config.extra["baseurl"]
+        procedure = self.config.extra["procedure"]
+
+        @inlineCallbacks
+        def on_call(method=None, url=None, body=u"", headers={}, params={}):
+
+            newURL = urljoin(baseURL, url)
+
+            res = yield self._webtransport.request(
+                method.encode("utf8"),
+                newURL.encode("utf8"),
+                data=body.encode("utf8"),
+                headers=Headers(headers),
+                params=params
+            )
+            content = yield self._webtransport.text_content(res)
+
+            resp = {
+                "code": res.code,
+                "content": content,
+                "headers": dict(res.headers.getAllRawHeaders())
+            }
+
+            returnValue(resp)
+
+        yield self.register(on_call, procedure)

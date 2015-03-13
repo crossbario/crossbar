@@ -39,9 +39,15 @@ from datetime import datetime
 
 from collections import namedtuple
 
-from twisted.internet.defer import maybeDeferred
+from twisted.internet.defer import maybeDeferred, Deferred
+from twisted.internet import reactor
 
 from crossbar.adapter.rest.test.request_mock import _requestMock, _render
+
+from autobahn.wamp import message
+from autobahn.wamp import serializer
+from autobahn.wamp import role
+from autobahn import util
 
 publishedMessage = namedtuple("pub", ["id"])
 
@@ -115,3 +121,147 @@ def testResource(resource, path, params=None, method="GET", body="", isSecure=Fa
     d = _render(resource, req)
     d.addCallback(_cb, req)
     return d
+
+
+MockResponse = namedtuple("MockResponse", ["code", "headers"])
+
+
+class MockHeaders(object):
+
+    def getAllRawHeaders(self):
+        return {"foo": ["bar"]}
+
+
+class MockWebTransport(object):
+
+    def __init__(self, testCase):
+        self.testCase = testCase
+        self._code = None
+        self._content = None
+        self.maderequest = None
+
+    def _addResponse(self, code, content):
+        self._code = code
+        self._content = content
+
+    def request(self, *args, **kwargs):
+        self.maderequest = {"args": args, "kwargs": kwargs}
+        resp = MockResponse(headers=MockHeaders(),
+                            code=self._code)
+        d = Deferred()
+        reactor.callLater(0.0, d.callback, resp)
+        return d
+
+    def text_content(self, res):
+        self.testCase.assertEqual(res.code, self._code)
+        d = Deferred()
+        reactor.callLater(0.0, d.callback, self._content)
+        return d
+
+
+class MockTransport(object):
+
+    def __init__(self, handler):
+        self._log = False
+        self._handler = handler
+        self._serializer = serializer.JsonSerializer()
+        self._registrations = {}
+        self._invocations = {}
+        self._subscription_topics = {}
+        self._my_session_id = util.id()
+
+        self._handler.onOpen(self)
+
+        roles = {u'broker': role.RoleBrokerFeatures(), u'dealer': role.RoleDealerFeatures()}
+
+        msg = message.Welcome(self._my_session_id, roles)
+        self._handler.onMessage(msg)
+
+    def _s(self, msg):
+        if msg:
+            self._handler.onMessage(msg)
+
+    def send(self, msg):
+
+        if self._log:
+            print "req"
+            print msg
+
+        reply = None
+
+        if isinstance(msg, message.Publish):
+            if msg.topic in self._subscription_topics.keys():
+
+                pubID = util.id()
+
+                def published():
+                    self._s(message.Published(msg.request, pubID))
+
+                reg = self._subscription_topics[msg.topic]
+                reply = message.Event(reg, pubID, args=msg.args, kwargs=msg.kwargs)
+
+                if msg.acknowledge:
+                    reactor.callLater(0, published)
+
+            elif len(msg.topic) == 0:
+                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, u'wamp.error.invalid_uri')
+            else:
+                reply = message.Error(message.Publish.MESSAGE_TYPE, msg.request, u'wamp.error.not_authorized')
+
+        elif isinstance(msg, message.Error):
+            # Convert an invocation error into a call error
+            if msg.request_type == 68:
+                msg.request_type = 48
+
+            reply = msg
+
+        elif isinstance(msg, message.Call):
+            if msg.procedure in self._registrations:
+                request = util.id()
+                registration = self._registrations[msg.procedure]
+                self._invocations[msg.request] = msg.request
+
+                def invoke():
+                    self._s(message.Invocation(msg.request, registration, args=msg.args, kwargs=msg.kwargs))
+
+                reactor.callLater(0, invoke)
+
+            else:
+                reply = message.Error(message.Call.MESSAGE_TYPE, msg.request, u'wamp.error.no_such_procedure')
+
+        elif isinstance(msg, message.Yield):
+            if msg.request in self._invocations:
+                request = self._invocations[msg.request]
+                reply = message.Result(request, args=msg.args, kwargs=msg.kwargs)
+
+        elif isinstance(msg, message.Subscribe):
+            topic = msg.topic
+            if topic in self._subscription_topics:
+                reply_id = self._subscription_topics[topic]
+            else:
+                reply_id = util.id()
+                self._subscription_topics[topic] = reply_id
+            reply = message.Subscribed(msg.request, reply_id)
+
+        elif isinstance(msg, message.Unsubscribe):
+            reply = message.Unsubscribed(msg.request)
+
+        elif isinstance(msg, message.Register):
+            registration = util.id()
+            self._registrations[msg.procedure] = registration
+            reply = message.Registered(msg.request, registration)
+
+        elif isinstance(msg, message.Unregister):
+            reply = message.Unregistered(msg.request)
+
+        if reply:
+            self._s(reply)
+
+    def isOpen(self):
+        return True
+
+    def close(self):
+        pass
+
+    def abort(self):
+        pass
