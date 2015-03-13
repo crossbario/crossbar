@@ -187,12 +187,14 @@ class MockTransport(object):
 
         reply = None
 
+        print msg
+
         if isinstance(msg, message.Publish):
             if msg.topic.startswith(u'io.crossbar'):
 
                 reg = self._subscription_topics[msg.topic]
                 request = util.id()
-                reply = message.Event(reg, request, args=msg.args, kwargs=msg.kwargs)
+                self._handler.onMessage(message.Event(reg, request, args=msg.args, kwargs=msg.kwargs))
 
                 if msg.acknowledge:
                     reply = message.Published(msg.request, util.id())
