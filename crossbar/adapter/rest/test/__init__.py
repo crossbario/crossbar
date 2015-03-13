@@ -167,15 +167,10 @@ class MockTransport(object):
         self._serializer = serializer.JsonSerializer()
         self._registrations = {}
         self._invocations = {}
-        #: str -> ID
         self._subscription_topics = {}
-
-        self._publish = {}
-        self._call = {}
+        self._my_session_id = util.id()
 
         self._handler.onOpen(self)
-
-        self._my_session_id = util.id()
 
         roles = {u'broker': role.RoleBrokerFeatures(), u'dealer': role.RoleDealerFeatures()}
 
