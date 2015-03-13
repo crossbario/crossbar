@@ -37,7 +37,7 @@ from twisted.internet.defer import inlineCallbacks
 from crossbar.adapter.rest import MessageForwarder
 from crossbar.adapter.rest.test import MockTransport, MockHeaders, MockWebTransport
 
-from autobahn.wamp.types import ComponentConfig
+from autobahn.wamp.types import ComponentConfig, PublishOptions
 
 
 
@@ -58,10 +58,11 @@ class MessageForwarderTestCase(TestCase):
         c = MessageForwarder(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.publish(u"io.crossbar.forward1", "hi")
+        res = yield c.publish(u"io.crossbar.forward1", "hi",
+                              options=PublishOptions(acknowledge=True))
 
         self.assertEqual(m.maderequest["args"], ("POST", "https://foo.com/msg"))
         self.assertEqual(m.maderequest["kwargs"], {
-            "data": '{"args": ["hi"], "kwargs": {}}',
+            "data": '{"args":["hi"],"kwargs":{}}',
             "headers": Headers({"Content-Type": ["application/json"]})
         })
