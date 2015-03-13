@@ -33,6 +33,7 @@ from __future__ import absolute_import
 import treq
 import json
 
+from functools import partial
 
 from twisted.python import log
 from twisted.internet.defer import inlineCallbacks
@@ -40,6 +41,7 @@ from twisted.web.http_headers import Headers
 
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.types import SubscribeOptions
 
 
 class MessageForwarder(ApplicationSession):
@@ -51,23 +53,23 @@ class MessageForwarder(ApplicationSession):
     @inlineCallbacks
     def onJoin(self, details):
 
-        topic = self.config.extra["topic"]
+        subscriptions = self.config.extra["subscriptions"]
+
         debug = self.config.extra.get("debug", False)
-        url = self.config.extra["url"].encode("utf8")
         method = self.config.extra.get("method", u"POST").encode("utf8")
         expectedCode = self.config.extra.get("expectedcode")
 
         @inlineCallbacks
-        def on_event(*args, **kwargs):
+        def on_event(url, *args, **kwargs):
 
             headers = Headers({
                 "Content-Type": ["application/json"]
             })
 
             body = json.dumps({"args": args, "kwargs": kwargs},
-                              sort_keys=True, separators=(',',':'))
+                              sort_keys=True, separators=(',', ':'))
             res = yield self._webtransport.request(
-                method, url,
+                method, url.encode("utf8"),
                 data=body,
                 headers=headers
             )
@@ -81,7 +83,16 @@ class MessageForwarder(ApplicationSession):
                 content = yield self._webtransport.text_content(res)
                 log.msg(content)
 
-        yield self.subscribe(on_event, topic)
+        for s in subscriptions:
+            # Assert that there's "topic" and "url" entries
+            assert "topic" in s
+            assert "url" in s
 
-        if debug:
-            log.msg("MessageForwarder subscribed to {}".format(topic))
+            yield self.subscribe(
+                partial(on_event, s["url"]),
+                s["topic"],
+                options=SubscribeOptions(match=s.get("match", u"exact"))
+            )
+
+            if debug:
+                log.msg("MessageForwarder subscribed to {}".format(s["topic"]))

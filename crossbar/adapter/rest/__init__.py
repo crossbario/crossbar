@@ -33,5 +33,5 @@ from crossbar.adapter.rest.caller import CallerResource
 from crossbar.adapter.rest.callee import RESTCallee
 from crossbar.adapter.rest.subscriber import MessageForwarder
 
-__all__ = ("PublisherResource", "CallerResource","RESTCallee",
+__all__ = ("PublisherResource", "CallerResource", "RESTCallee",
            "MessageForwarder")

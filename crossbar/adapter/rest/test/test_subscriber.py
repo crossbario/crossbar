@@ -49,8 +49,10 @@ class MessageForwarderTestCase(TestCase):
         Plain request, no params.
         """
         config = ComponentConfig(realm="realm1",
-                                 extra={"url": "https://foo.com/msg",
-                                        "topic": "io.crossbar.forward1"})
+                                 extra={"subscriptions": [
+                                     {"url": "https://foo.com/msg",
+                                      "topic": "io.crossbar.forward1"}
+                                 ]})
 
         m = MockWebTransport(self)
         m._addResponse(200, "whee")
