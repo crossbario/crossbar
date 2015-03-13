@@ -35,13 +35,13 @@ import json
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
 
-from crossbar.adapter.rest import PusherResource
-from crossbar.adapter.rest.test import MockPusherSession, testResource
+from crossbar.adapter.rest import PublisherResource
+from crossbar.adapter.rest.test import MockPublisherSession, testResource
 
 
 class PublisherTestCase(TestCase):
     """
-    Unit tests for L{PusherResource}. These tests publish no real WAMP messages,
+    Unit tests for L{PublisherResource}. These tests publish no real WAMP messages,
     but test the interation of the HTTP request and the resource.
     """
     @inlineCallbacks
@@ -49,8 +49,8 @@ class PublisherTestCase(TestCase):
         """
         Test a very basic publish to a topic.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
 
         request = yield testResource(
             resource, "/",
@@ -70,8 +70,8 @@ class PublisherTestCase(TestCase):
         """
         Test that attempted publishes without a topic will be rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
 
         request = yield testResource(
             resource, "/",

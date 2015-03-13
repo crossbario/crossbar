@@ -28,10 +28,4 @@
 #
 #####################################################################################
 
-from crossbar.adapter.rest.publisher import PublisherResource
-from crossbar.adapter.rest.caller import CallerResource
-from crossbar.adapter.rest.callee import RESTCallee
-from crossbar.adapter.rest.subscriber import MessageForwarder
-
-__all__ = ("PublisherResource", "CallerResource","RESTCallee",
-           "MessageForwarder")
+from __future__ import absolute_import

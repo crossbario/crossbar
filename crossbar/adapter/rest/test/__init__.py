@@ -42,7 +42,7 @@ from collections import namedtuple
 from twisted.internet.defer import maybeDeferred, Deferred
 from twisted.internet import reactor
 
-from crossbar.adapter.rest.test.requestMock import _requestMock, _render
+from crossbar.adapter.rest.test.request_mock import _requestMock, _render
 
 from autobahn.wamp import message
 from autobahn.wamp import serializer
@@ -52,7 +52,7 @@ from autobahn import util
 publishedMessage = namedtuple("pub", ["id"])
 
 
-class MockPusherSession(object):
+class MockPublisherSession(object):
     """
     A mock WAMP session.
     """

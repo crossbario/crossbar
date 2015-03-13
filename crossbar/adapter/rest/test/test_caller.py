@@ -99,31 +99,7 @@ class CallerTestCase(TestCase):
 
         self.assertEqual(request.code, 200)
         self.assertEqual(json.loads(request.getWrittenData()),
-                         {"response": 3})
-
-    @inlineCallbacks
-    def test_add2_error(self):
-        """
-        Test the call erroring out, and make sure it handles it gracefully.
-        """
-        session = MockSession(self)
-        session._addProcedureCall("com.test.add2",
-                                  args=(1, 2),
-                                  kwargs={},
-                                  response=3)
-
-        resource = CallerResource({}, session)
-
-        request = yield testResource(
-            resource, "/",
-            method="POST",
-            headers={"Content-Type": ["application/json"]},
-            body='{"procedure": "com.test.add2", "args": [0,2]}')
-
-        self.assertEqual(request.code, 400)
-        self.assertIn(
-            "CallerResource - request failed with error",
-            request.getWrittenData())
+                         {"args": [3]})
 
     @inlineCallbacks
     def test_no_procedure(self):

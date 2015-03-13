@@ -33,10 +33,10 @@ from __future__ import absolute_import
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
 
-from crossbar.adapter.rest import PusherResource
-from crossbar.adapter.rest.test import MockPusherSession, testResource
+from crossbar.adapter.rest import PublisherResource
+from crossbar.adapter.rest.test import MockPublisherSession, testResource
 
-pushBody = '{"topic": "com.test.messages", "args": [1]}'
+publishBody = '{"topic": "com.test.messages", "args": [1]}'
 
 
 class IPWhitelistingTestCase(TestCase):
@@ -48,13 +48,13 @@ class IPWhitelistingTestCase(TestCase):
         """
         The client having an allowed IP address allows the request.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({"require_ip": ["127.0.0.1"]}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({"require_ip": ["127.0.0.1"]}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody)
+            body=publishBody)
 
         self.assertEqual(request.code, 202)
 
@@ -63,13 +63,13 @@ class IPWhitelistingTestCase(TestCase):
         """
         The client having an IP in an allowed address range allows the request.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({"require_ip": ["127.0.0.0/8"]}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({"require_ip": ["127.0.0.0/8"]}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody)
+            body=publishBody)
 
         self.assertEqual(request.code, 202)
 
@@ -78,13 +78,13 @@ class IPWhitelistingTestCase(TestCase):
         """
         The client having an IP not in allowed address range denies the request.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({"require_ip": ["192.168.0.0/16", "10.0.0.0/8"]}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({"require_ip": ["192.168.0.0/16", "10.0.0.0/8"]}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody)
+            body=publishBody)
 
         self.assertEqual(request.code, 400)
         self.assertIn("request denied based on IP address",
@@ -100,13 +100,13 @@ class SecureTransportTestCase(TestCase):
         """
         Required TLS, plus a request over TLS, will allow the request.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({"require_tls": True}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({"require_tls": True}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, isSecure=True)
+            body=publishBody, isSecure=True)
 
         self.assertEqual(request.code, 202)
 
@@ -115,13 +115,13 @@ class SecureTransportTestCase(TestCase):
         """
         A request over TLS even when not required, will allow the request.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, isSecure=True)
+            body=publishBody, isSecure=True)
 
         self.assertEqual(request.code, 202)
 
@@ -130,13 +130,13 @@ class SecureTransportTestCase(TestCase):
         """
         Required TLS, plus a request NOT over TLS, will deny the request.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({"require_tls": True}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({"require_tls": True}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody, isSecure=False)
+            body=publishBody, isSecure=False)
 
         self.assertEqual(request.code, 400)
 
@@ -150,13 +150,13 @@ class RequestBodyTestCase(TestCase):
         """
         An incorrect content type will mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/text"]},
-            body=pushBody)
+            body=publishBody)
 
         self.assertEqual(request.code, 400)
         self.assertIn("bad or missing content type ('application/text')",
@@ -167,13 +167,13 @@ class RequestBodyTestCase(TestCase):
         """
         An incorrect method will mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
 
         request = yield testResource(
             resource, "/", method="PUT",
             headers={"Content-Type": ["application/jsn"]},
-            body=pushBody)
+            body=publishBody)
 
         self.assertEqual(request.code, 405)
         self.assertIn("HTTP/PUT not allowed",
@@ -184,16 +184,16 @@ class RequestBodyTestCase(TestCase):
         """
         A too large body will mean the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({"post_body_limit": 1}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({"post_body_limit": 1}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"]},
-            body=pushBody)
+            body=publishBody)
 
         self.assertEqual(request.code, 400)
-        self.assertIn("HTTP/POST body length ({}) exceeds maximum ({})".format(len(pushBody), 1),
+        self.assertIn("HTTP/POST body length ({}) exceeds maximum ({})".format(len(publishBody), 1),
                       request.getWrittenData())
 
     @inlineCallbacks
@@ -202,17 +202,17 @@ class RequestBodyTestCase(TestCase):
         A body length that is different than the Content-Length header will mean
         the request is rejected.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({"post_body_limit": 1}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({"post_body_limit": 1}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
             headers={"Content-Type": ["application/json"],
                      "Content-Length": [1]},
-            body=pushBody)
+            body=publishBody)
 
         self.assertEqual(request.code, 400)
-        self.assertIn("HTTP/POST body length ({}) is different to Content-Length ({})".format(len(pushBody), 1),
+        self.assertIn("HTTP/POST body length ({}) is different to Content-Length ({})".format(len(publishBody), 1),
                       request.getWrittenData())
 
     @inlineCallbacks
@@ -220,8 +220,8 @@ class RequestBodyTestCase(TestCase):
         """
         A body that is not valid JSON will be rejected by the server.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
 
         request = yield testResource(
             resource, "/", method="POST",
@@ -237,8 +237,8 @@ class RequestBodyTestCase(TestCase):
         """
         A body that is not a JSON dict will be rejected by the server.
         """
-        session = MockPusherSession(self)
-        resource = PusherResource({}, session)
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
 
         request = yield testResource(
             resource, "/", method="POST",

@@ -32,11 +32,12 @@ from __future__ import absolute_import
 
 import sys
 import re
+import os
 import platform
 from setuptools import setup, find_packages
 
 CPY = platform.python_implementation() == 'CPython'
-
+PYPY = platform.python_implementation() == 'PyPy'
 
 # Get package version and docstring from crossbar/__init__.py
 #
@@ -70,6 +71,11 @@ if sys.platform.startswith('linux'):
 if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
     extras_require_system.append('setproctitle>=1.1.8')  # BSD license
 
+extras_require_db = [
+    'lmdb>=0.84',           # OpenLDAP BSD
+]
+if PYPY:
+    os.environ['LMDB_FORCE_CFFI'] = '1'
 
 extras_require_manhole = [
     'pyasn1>=0.1.7',        # BSD license
@@ -93,7 +99,7 @@ extras_require_accelerate = [
     "ujson>=1.33"           # BSD License
 ] if CPY else []  # only for CPy (skip for PyPy)!
 
-extras_require_all = extras_require_system + extras_require_manhole + \
+extras_require_all = extras_require_system + extras_require_db + extras_require_manhole + \
     extras_require_msgpack + extras_require_tls + extras_require_accelerate
 
 
@@ -122,6 +128,7 @@ setup(
     ],
     extras_require={
         'all': extras_require_all,
+        'db': extras_require_db,
         'tls': extras_require_tls,
         'manhole': extras_require_manhole,
         'msgpack': extras_require_msgpack,

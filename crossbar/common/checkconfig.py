@@ -675,35 +675,35 @@ def check_web_path_service_longpoll(config):
         }, config['options'], "Web transport 'longpoll' path service")
 
 
-def check_web_path_service_pusher_post_body_limit(limit):
+def check_web_path_service_rest_post_body_limit(limit):
     """
-    Check a pusher web path service "post_body_limit" parameter.
+    Check a publisher/caller web path service "post_body_limit" parameter.
 
     :param port: The limit to check.
     :type port: int
     """
     if type(limit) not in six.integer_types:
-        raise Exception("'post_body_limit' attribute in pusher configuration must be integer ({} encountered)".format(type(limit)))
+        raise Exception("'post_body_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
     if limit < 0 or limit > 2 ** 20:
-        raise Exception("invalid value {} for 'post_body_limit' attribute in pusher configuration".format(limit))
+        raise Exception("invalid value {} for 'post_body_limit' attribute in publisher/caller configuration".format(limit))
 
 
-def check_web_path_service_pusher_timestamp_delta_limit(limit):
+def check_web_path_service_rest_timestamp_delta_limit(limit):
     """
-    Check a pusher web path service "timestamp_delta_limit" parameter.
+    Check a publisher/caller web path service "timestamp_delta_limit" parameter.
 
     :param port: The limit to check.
     :type port: int
     """
     if type(limit) not in six.integer_types:
-        raise Exception("'timestamp_delta_limit' attribute in pusher configuration must be integer ({} encountered)".format(type(limit)))
+        raise Exception("'timestamp_delta_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
     if limit < 0 or limit > 86400:
-        raise Exception("invalid value {} for 'timestamp_delta_limit' attribute in pusher configuration".format(limit))
+        raise Exception("invalid value {} for 'timestamp_delta_limit' attribute in publisher/caller configuration".format(limit))
 
 
-def check_web_path_service_pusher(config):
+def check_web_path_service_publisher(config):
     """
-    Check a "pusher" path service on Web transport.
+    Check a "publisher" path service on Web transport.
 
     :param config: The path service configuration.
     :type config: dict
@@ -713,7 +713,7 @@ def check_web_path_service_pusher(config):
         'realm': (True, [six.text_type]),
         'role': (True, [six.text_type]),
         'options': (False, [dict]),
-    }, config, "Web transport 'pusher' path service")
+    }, config, "Web transport 'publisher' path service")
 
     if 'options' in config:
         check_dict_args({
@@ -724,13 +724,13 @@ def check_web_path_service_pusher(config):
             'require_ip': (False, [list]),
             'post_body_limit': (False, six.integer_types),
             'timestamp_delta_limit': (False, six.integer_types),
-        }, config['options'], "Web transport 'pusher' path service")
+        }, config['options'], "Web transport 'publisher' path service")
 
         if 'post_body_limit' in config['options']:
-            check_web_path_service_pusher_post_body_limit(config['options']['post_body_limit'])
+            check_web_path_service_rest_post_body_limit(config['options']['post_body_limit'])
 
         if 'timestamp_delta_limit' in config['options']:
-            check_web_path_service_pusher_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
+            check_web_path_service_rest_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
 def check_web_path_service_caller(config):
@@ -759,10 +759,10 @@ def check_web_path_service_caller(config):
         }, config['options'], "Web transport 'caller' path service")
 
         if 'post_body_limit' in config['options']:
-            check_web_path_service_pusher_post_body_limit(config['options']['post_body_limit'])
+            check_web_path_service_rest_post_body_limit(config['options']['post_body_limit'])
 
         if 'timestamp_delta_limit' in config['options']:
-            check_web_path_service_pusher_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
+            check_web_path_service_rest_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
 def check_web_path_service_schemadoc(config):
@@ -801,10 +801,10 @@ def check_web_path_service(path, config, nested):
 
     ptype = config['type']
     if path == '/' and not nested:
-        if ptype not in ['static', 'wsgi', 'redirect', 'pusher', 'caller']:
+        if ptype not in ['static', 'wsgi', 'redirect', 'publisher', 'caller']:
             raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'pusher', 'caller', 'schemadoc', 'path']:
+        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'schemadoc', 'path']:
             raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -815,7 +815,7 @@ def check_web_path_service(path, config, nested):
         'json': check_web_path_service_json,
         'cgi': check_web_path_service_cgi,
         'longpoll': check_web_path_service_longpoll,
-        'pusher': check_web_path_service_pusher,
+        'publisher': check_web_path_service_publisher,
         'caller': check_web_path_service_caller,
         'schemadoc': check_web_path_service_schemadoc,
         'path': check_web_path_service_path,
@@ -888,7 +888,7 @@ def check_listening_transport_web(transport):
                 raise Exception("'hixie76_aware' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hixie76_aware)))
 
 
-_WEB_PATH_PAT_STR = "^([a-z0-9A-Z]+|/)$"
+_WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
 _WEB_PATH_PATH = re.compile(_WEB_PATH_PAT_STR)
 
 
