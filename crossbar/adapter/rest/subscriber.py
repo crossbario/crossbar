@@ -64,7 +64,8 @@ class MessageForwarder(ApplicationSession):
                 "Content-Type": ["application/json"]
             })
 
-            body = json.dumps({"args": args, "kwargs": kwargs})
+            body = json.dumps({"args": args, "kwargs": kwargs},
+                              sort_keys=True, separators=(',',':'))
             res = yield self._webtransport.request(
                 method, url,
                 data=body,
