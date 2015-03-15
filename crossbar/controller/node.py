@@ -314,7 +314,7 @@ class Node:
                             log.msg("{}: processed {} files extracting {} schema declarations and {} URIs".format(worker_logname, cnt_files, cnt_decls, len(schemas)))
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas, options=call_options)
-                        log.msg("{}: realm '{}' started".format(worker_logname, realm_id))
+                        log.msg("{}: realm '{}' (named '{}') started".format(worker_logname, realm_id, realm['name']))
 
                         # add roles to realm
                         #
@@ -327,7 +327,7 @@ class Node:
                                 role_no += 1
 
                             yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
-                            log.msg("{}: role '{}' started on realm '{}'".format(worker_logname, role_id, realm_id))
+                            log.msg("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
 
                     # start components to run embedded in the router
                     #
