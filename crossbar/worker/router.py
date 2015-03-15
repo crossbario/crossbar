@@ -472,6 +472,7 @@ class RouterWorkerSession(NativeWorkerSession):
             except Exception as e:
                 emsg = "Failed to import class '{}' - {}".format(klassname, e)
                 log.msg(emsg)
+                log.msg("PYTHONPATH: {}".format(sys.path))
                 raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
         elif config['type'] == 'wamplet':

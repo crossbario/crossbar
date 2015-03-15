@@ -215,10 +215,10 @@ class ContainerWorkerSession(NativeWorkerSession):
                 create_component = getattr(module, class_name)
 
             except Exception as e:
-                tb = traceback.format_exc()
-                emsg = 'ERROR: failed to import class {} ("{}")'.format(qualified_classname, e)
+                emsg = "Failed to import class '{}' - {}".format(qualified_classname, e)
                 log.msg(emsg)
-                raise ApplicationError("crossbar.error.cannot_import", emsg, tb)
+                log.msg("PYTHONPATH: {}".format(sys.path))
+                raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
             else:
                 if self.debug:
