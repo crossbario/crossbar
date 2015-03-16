@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import
 
+import sys
 import importlib
 import pkg_resources
 import traceback
