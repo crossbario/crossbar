@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import json
-import six
 
 from twisted.python import log
 from twisted.web import server

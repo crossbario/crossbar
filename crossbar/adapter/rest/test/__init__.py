@@ -34,14 +34,13 @@ import hmac
 import hashlib
 import random
 import base64
-import six
 
 from datetime import datetime
 
 from collections import namedtuple
 
 from twisted.internet.defer import maybeDeferred, Deferred
-from twisted.python.compat import unicode, networkString
+from twisted.python.compat import networkString
 from twisted.internet import reactor
 
 from crossbar.adapter.rest.test.request_mock import _requestMock, _render
@@ -106,7 +105,7 @@ def makeSignedArguments(params, signKey, signSecret, body):
 
 
 def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecure=False,
-                 headers=None, sign=False, signKey=None, signSecret=None):
+                   headers=None, sign=False, signKey=None, signSecret=None):
 
     params = {} if params is None else params
     headers = {} if params is None else headers
