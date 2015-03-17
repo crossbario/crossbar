@@ -99,8 +99,7 @@ class CallerResource(_CommonResource):
 
         def return_call_result(res):
             body = json.dumps(res, separators=(',', ':'))
-            if six.PY3:
-                body = body.encode('utf8')
+            body = body.encode('utf8')
 
             request.setHeader('content-type', 'application/json; charset=UTF-8')
             request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')

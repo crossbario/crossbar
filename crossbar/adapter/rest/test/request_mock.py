@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from StringIO import StringIO
+from io import BytesIO as StringIO
 
 from twisted.web import server
 from twisted.web.http_headers import Headers
@@ -34,7 +34,7 @@ from mock import Mock
 
 def _render(resource, request):
     result = resource.render(request)
-    if isinstance(result, str):
+    if isinstance(result, type(b'')):
         request.write(result)
         request.finish()
         return succeed(None)
@@ -47,16 +47,16 @@ def _render(resource, request):
         raise ValueError("Unexpected return value: %r" % (result,))
 
 
-def _requestMock(path, method="GET", host="localhost", port=8080, isSecure=False,
+def _requestMock(path, method=b"GET", host=b"localhost", port=8080, isSecure=False,
                  body=None, headers=None, args=None, reactor=None):
 
     if not headers:
         headers = {}
 
-    headers["Date"] = ["Tue, 01 Jan 2014 01:01:01 GMT"]
+    headers[b"Date"] = ["Tue, 01 Jan 2014 01:01:01 GMT"]
 
     if not body:
-        body = ''
+        body = b''
 
     if not reactor:
         from twisted.internet import reactor
@@ -64,7 +64,7 @@ def _requestMock(path, method="GET", host="localhost", port=8080, isSecure=False
     request = server.Request(DummyChannel(), False)
     request.site = Mock(server.Site)
     request.gotLength(len(body))
-    request.client = IPv4Address("TCP", "127.0.0.1", 80)
+    request.client = IPv4Address("TCP", b"127.0.0.1", 80)
     request.content = StringIO()
     request.content.write(body)
     request.content.seek(0)
@@ -74,9 +74,9 @@ def _requestMock(path, method="GET", host="localhost", port=8080, isSecure=False
     request.uri = path
     request.path = path
     request.prepath = []
-    request.postpath = path.split('/')[1:]
+    request.postpath = path.split(b'/')[1:]
     request.method = method
-    request.clientproto = 'HTTP/1.1'
+    request.clientproto = b'HTTP/1.1'
 
     request.setHeader = Mock(wraps=request.setHeader)
     request.setResponseCode = Mock(wraps=request.setResponseCode)
@@ -103,7 +103,7 @@ def _requestMock(path, method="GET", host="localhost", port=8080, isSecure=False
         request.finishCount += 1
 
         if not request.startedWriting:
-            request.write('')
+            request.write(b'')
 
         if not request.finished:
             request.finished = True

@@ -32,7 +32,7 @@ from __future__ import absolute_import
 
 import unittest
 import pickle
-from StringIO import StringIO
+from io import BytesIO as StringIO
 
 from autobahn.wamp.message import Subscribe
 

@@ -37,6 +37,7 @@ import base64
 from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.python import log
+from twisted.python.compat import nativeString
 from twisted.web.resource import Resource
 
 
@@ -85,14 +86,14 @@ class _CommonResource(Resource):
         if self._debug:
             log.msg("_CommonResource [request denied] - {0} / {1}".format(code, reason))
         request.setResponseCode(code)
-        return "{}\n".format(reason)
+        return u"{}\n".format(reason).encode("utf8")
 
     def render(self, request):
         if self._debug:
             log.msg("_CommonResource [render]", request.method, request.path, request.args)
 
-        if request.method != "POST":
-            return self._deny_request(request, 405, "HTTP/{0} not allowed".format(request.method))
+        if request.method != b"POST":
+            return self._deny_request(request, 405, "HTTP/{0} not allowed".format(nativeString(request.method)))
         else:
             return self.render_POST(request)
 
@@ -110,13 +111,14 @@ class _CommonResource(Resource):
 
             # check content type
             #
-            if headers.get("content-type", None) != 'application/json':
-                return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(headers.get("content-type", None)))
+            content_type = headers.get(b"content-type", None)
+            if content_type != b'application/json':
+                return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(nativeString(content_type)))
 
             # enforce "post_body_limit"
             #
             body_length = len(body)
-            content_length = int(headers.get("content-length", body_length))
+            content_length = int(headers.get(b"content-length", body_length))
 
             if body_length != content_length:
                 # Prevent the body length from being different to the given
@@ -145,11 +147,11 @@ class _CommonResource(Resource):
             if 'timestamp' in args:
                 timestamp_str = args["timestamp"][0]
                 try:
-                    ts = datetime.datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    ts = datetime.datetime.strptime(nativeString(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ")
                     delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
                     if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
                         return self._deny_request(request, 400, "request expired (delta {0} seconds)".format(delta))
-                except:
+                except ValueError:
                     return self._deny_request(request, 400, "invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(timestamp_str))
             else:
                 if self._secret:
@@ -163,7 +165,7 @@ class _CommonResource(Resource):
                     # FIXME: check sequence
                     seq = int(seq_str)  # noqa
                 except:
-                    return self._deny_request(request, 400, "invalid sequence number '{0}' (must be an integer)".format(seq_str))
+                    return self._deny_request(request, 400, "invalid sequence number '{0}' (must be an integer)".format(nativeString(seq_str)))
             else:
                 if self._secret:
                     return self._deny_request(request, 400, "signed request required, but mandatory 'seq' field missing")
@@ -176,7 +178,7 @@ class _CommonResource(Resource):
                     # FIXME: check nonce
                     nonce = int(nonce_str)  # noqa
                 except:
-                    return self._deny_request(request, 400, "invalid nonce '{0}' (must be an integer)".format(nonce_str))
+                    return self._deny_request(request, 400, "invalid nonce '{0}' (must be an integer)".format(nativeString(nonce_str)))
             else:
                 if self._secret:
                     return self._deny_request(request, 400, "signed request required, but mandatory 'nonce' field missing")
@@ -194,7 +196,7 @@ class _CommonResource(Resource):
             if self._secret:
 
                 if key_str != self._key:
-                    return self._deny_request(request, 400, "unknown key '{0}' in signed request".format(key_str))
+                    return self._deny_request(request, 400, "unknown key '{0}' in signed request".format(nativeString(key_str)))
 
                 # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
                 hm = hmac.new(self._secret, None, hashlib.sha256)
@@ -218,7 +220,7 @@ class _CommonResource(Resource):
             # enforce client IP address
             #
             if self._require_ip:
-                ip = IPAddress(client_ip)
+                ip = IPAddress(nativeString(client_ip))
                 allowed = False
                 for net in self._require_ip:
                     if ip in net:
@@ -239,7 +241,7 @@ class _CommonResource(Resource):
             if authorized:
 
                 try:
-                    event = json.loads(body)
+                    event = json.loads(nativeString(body))
                 except Exception as e:
                     return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
 
@@ -252,6 +254,7 @@ class _CommonResource(Resource):
                 return self._deny_request(request, 401, "not authorized")
 
         except Exception as e:
+            raise e
             # catch all .. should not happen (usually)
             return self._deny_request(request, 500, "internal server error ('{0}')".format(e))
 
