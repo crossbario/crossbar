@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import json
 import six
@@ -216,9 +216,9 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                     raise Exception("logic error")
 
             except Exception as e:
-                print e
+                print(e)
         else:
-            print "unknown channel"
+            print("unknown channel")
 
 
 if __name__ == '__main__':
