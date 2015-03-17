@@ -32,11 +32,12 @@ from __future__ import absolute_import
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
+from twisted.python.compat import nativeString
 
 from crossbar.adapter.rest import PublisherResource
-from crossbar.adapter.rest.test import MockPublisherSession, testResource
+from crossbar.adapter.rest.test import MockPublisherSession, renderResource
 
-publishBody = '{"topic": "com.test.messages", "args": [1]}'
+publishBody = b'{"topic": "com.test.messages", "args": [1]}'
 
 
 class IPWhitelistingTestCase(TestCase):
@@ -51,9 +52,9 @@ class IPWhitelistingTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_ip": ["127.0.0.1"]}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
             body=publishBody)
 
         self.assertEqual(request.code, 202)
@@ -66,9 +67,9 @@ class IPWhitelistingTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_ip": ["127.0.0.0/8"]}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
             body=publishBody)
 
         self.assertEqual(request.code, 202)
@@ -81,13 +82,13 @@ class IPWhitelistingTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_ip": ["192.168.0.0/16", "10.0.0.0/8"]}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
             body=publishBody)
 
         self.assertEqual(request.code, 400)
-        self.assertIn("request denied based on IP address",
+        self.assertIn(b"request denied based on IP address",
                       request.getWrittenData())
 
 
@@ -103,9 +104,9 @@ class SecureTransportTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_tls": True}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
             body=publishBody, isSecure=True)
 
         self.assertEqual(request.code, 202)
@@ -118,9 +119,9 @@ class SecureTransportTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
             body=publishBody, isSecure=True)
 
         self.assertEqual(request.code, 202)
@@ -133,9 +134,9 @@ class SecureTransportTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"require_tls": True}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
             body=publishBody, isSecure=False)
 
         self.assertEqual(request.code, 400)
@@ -153,13 +154,13 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/text"]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/text"]},
             body=publishBody)
 
         self.assertEqual(request.code, 400)
-        self.assertIn("bad or missing content type ('application/text')",
+        self.assertIn(b"bad or missing content type ('application/text')",
                       request.getWrittenData())
 
     @inlineCallbacks
@@ -170,13 +171,13 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield testResource(
-            resource, "/", method="PUT",
-            headers={"Content-Type": ["application/jsn"]},
+        request = yield renderResource(
+            resource, b"/", method=b"PUT",
+            headers={b"Content-Type": [b"application/json"]},
             body=publishBody)
 
         self.assertEqual(request.code, 405)
-        self.assertIn("HTTP/PUT not allowed",
+        self.assertIn(b"HTTP/PUT not allowed",
                       request.getWrittenData())
 
     @inlineCallbacks
@@ -187,14 +188,14 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"post_body_limit": 1}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
             body=publishBody)
 
         self.assertEqual(request.code, 400)
         self.assertIn("HTTP/POST body length ({}) exceeds maximum ({})".format(len(publishBody), 1),
-                      request.getWrittenData())
+                      nativeString(request.getWrittenData()))
 
     @inlineCallbacks
     def test_not_matching_bodylength(self):
@@ -205,15 +206,15 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"post_body_limit": 1}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"],
-                     "Content-Length": [1]},
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"],
+                     b"Content-Length": [1]},
             body=publishBody)
 
         self.assertEqual(request.code, 400)
         self.assertIn("HTTP/POST body length ({}) is different to Content-Length ({})".format(len(publishBody), 1),
-                      request.getWrittenData())
+                      nativeString(request.getWrittenData()))
 
     @inlineCallbacks
     def test_invalid_JSON_body(self):
@@ -223,13 +224,13 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
-            body="sometext")
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
+            body=b"sometext")
 
         self.assertEqual(request.code, 400)
-        self.assertIn("invalid request event - HTTP/POST body must be valid JSON:",
+        self.assertIn(b"invalid request event - HTTP/POST body must be valid JSON:",
                       request.getWrittenData())
 
     @inlineCallbacks
@@ -240,11 +241,11 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield testResource(
-            resource, "/", method="POST",
-            headers={"Content-Type": ["application/json"]},
-            body="[{},{}]")
+        request = yield renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
+            body=b"[{},{}]")
 
         self.assertEqual(request.code, 400)
-        self.assertIn("invalid request event - HTTP/POST body must be JSON dict",
+        self.assertIn(b"invalid request event - HTTP/POST body must be JSON dict",
                       request.getWrittenData())

@@ -28,18 +28,20 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import hmac
 import hashlib
 import random
 import base64
+import six
 
 from datetime import datetime
 
 from collections import namedtuple
 
 from twisted.internet.defer import maybeDeferred, Deferred
+from twisted.python.compat import unicode, networkString
 from twisted.internet import reactor
 
 from crossbar.adapter.rest.test.request_mock import _requestMock, _render
@@ -84,18 +86,18 @@ def _utcnow():
 
 def makeSignedArguments(params, signKey, signSecret, body):
 
-    params['timestamp'] = [_utcnow()]
-    params['seq'] = ["1"]
-    params['key'] = [signKey]
-    params['nonce'] = [str(random.randint(0, 9007199254740992))]
+    params['timestamp'] = [networkString(_utcnow())]
+    params['seq'] = [b"1"]
+    params['key'] = [networkString(signKey)]
+    params['nonce'] = [networkString(str(random.randint(0, 9007199254740992)))]
 
     # HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
 
     hm = hmac.new(signSecret.encode('utf8'), None, hashlib.sha256)
-    hm.update(params['key'][0].encode('utf8'))
-    hm.update(params['timestamp'][0].encode('utf8'))
-    hm.update(u"{0}".format(params['seq'][0]).encode('utf8'))
-    hm.update(u"{0}".format(params['nonce'][0]).encode('utf8'))
+    hm.update(params['key'][0])
+    hm.update(params['timestamp'][0])
+    hm.update(params['seq'][0])
+    hm.update(params['nonce'][0])
     hm.update(body)
     signature = base64.urlsafe_b64encode(hm.digest())
     params['signature'] = [signature]
@@ -103,7 +105,7 @@ def makeSignedArguments(params, signKey, signSecret, body):
     return params
 
 
-def testResource(resource, path, params=None, method="GET", body="", isSecure=False,
+def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecure=False,
                  headers=None, sign=False, signKey=None, signSecret=None):
 
     params = {} if params is None else params
@@ -184,8 +186,8 @@ class MockTransport(object):
     def send(self, msg):
 
         if self._log:
-            print "req"
-            print msg
+            print("req")
+            print(msg)
 
         reply = None
 

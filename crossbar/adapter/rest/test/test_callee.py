@@ -30,17 +30,23 @@
 
 from __future__ import absolute_import
 
+from twisted.python.compat import _PY3
+
 from twisted.trial.unittest import TestCase
 from twisted.web.http_headers import Headers
 from twisted.internet.defer import inlineCallbacks
 
-from crossbar.adapter.rest import RESTCallee
+if not _PY3:
+    from crossbar.adapter.rest import RESTCallee
 from crossbar.adapter.rest.test import MockTransport, MockWebTransport
 
 from autobahn.wamp.types import ComponentConfig
 
 
 class CalleeTestCase(TestCase):
+
+    if _PY3:
+        skip = "Not ported to Py3."
 
     @inlineCallbacks
     def test_basic_web(self):

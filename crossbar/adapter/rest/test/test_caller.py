@@ -34,9 +34,10 @@ import json
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
+from twisted.python.compat import nativeString
 
 from crossbar.adapter.rest import CallerResource
-from crossbar.adapter.rest.test import testResource
+from crossbar.adapter.rest.test import renderResource
 
 
 class MockSession(object):
@@ -91,14 +92,14 @@ class CallerTestCase(TestCase):
 
         resource = CallerResource({}, session)
 
-        request = yield testResource(
-            resource, "/",
-            method="POST",
-            headers={"Content-Type": ["application/json"]},
-            body='{"procedure": "com.test.add2", "args": [1,2]}')
+        request = yield renderResource(
+            resource, b"/",
+            method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
+            body=b'{"procedure": "com.test.add2", "args": [1,2]}')
 
         self.assertEqual(request.code, 200)
-        self.assertEqual(json.loads(request.getWrittenData()),
+        self.assertEqual(json.loads(nativeString(request.getWrittenData())),
                          {"args": [3]})
 
     @inlineCallbacks
@@ -108,15 +109,15 @@ class CallerTestCase(TestCase):
         """
         resource = CallerResource({}, None)
 
-        request = yield testResource(
-            resource, "/",
-            method="POST",
-            headers={"Content-Type": ["application/json"]},
-            body="{}")
+        request = yield renderResource(
+            resource, b"/",
+            method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
+            body=b"{}")
 
         self.assertEqual(request.code, 400)
         self.assertEqual(
-            "invalid request event - missing 'procedure' in HTTP/POST body\n",
+            b"invalid request event - missing 'procedure' in HTTP/POST body\n",
             request.getWrittenData())
 
     @inlineCallbacks
@@ -126,13 +127,13 @@ class CallerTestCase(TestCase):
         """
         resource = CallerResource({}, None)
 
-        request = yield testResource(
-            resource, "/",
-            method="POST",
-            headers={"Content-Type": ["application/json"]})
+        request = yield renderResource(
+            resource, b"/",
+            method=b"POST",
+            headers={b"Content-Type": [b"application/json"]})
 
         self.assertEqual(request.code, 400)
         self.assertIn(
-            "invalid request event - HTTP/POST body must be valid JSON: "
-            "No JSON object could be decoded",
+            b"invalid request event - HTTP/POST body must be valid JSON: "
+            b"No JSON object could be decoded",
             request.getWrittenData())

@@ -34,9 +34,10 @@ import json
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
+from twisted.python.compat import nativeString
 
 from crossbar.adapter.rest import PublisherResource
-from crossbar.adapter.rest.test import MockPublisherSession, testResource
+from crossbar.adapter.rest.test import MockPublisherSession, renderResource
 
 
 class PublisherTestCase(TestCase):
@@ -52,17 +53,17 @@ class PublisherTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield testResource(
-            resource, "/",
-            method="POST",
-            headers={"Content-Type": ["application/json"]},
-            body='{"topic": "com.test.messages", "args": [1]}')
+        request = yield renderResource(
+            resource, b"/",
+            method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
+            body=b'{"topic": "com.test.messages", "args": [1]}')
 
         self.assertEqual(len(session._published_messages), 1)
         self.assertEqual(session._published_messages[0]["args"], (1,))
 
         self.assertEqual(request.code, 202)
-        self.assertEqual(json.loads(request.getWrittenData()),
+        self.assertEqual(json.loads(nativeString(request.getWrittenData())),
                          {"id": session._published_messages[0]["id"]})
 
     @inlineCallbacks
@@ -73,15 +74,15 @@ class PublisherTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield testResource(
-            resource, "/",
-            method="POST",
-            headers={"Content-Type": ["application/json"]},
-            body='{}')
+        request = yield renderResource(
+            resource, b"/",
+            method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
+            body=b'{}')
 
         self.assertEqual(len(session._published_messages), 0)
 
         self.assertEqual(request.code, 400)
         self.assertIn(
-            "invalid request event - missing 'topic' in HTTP/POST body",
+            b"invalid request event - missing 'topic' in HTTP/POST body",
             request.getWrittenData())
