@@ -28,10 +28,17 @@
 #
 #####################################################################################
 
+from twisted.python.compat import _PY3
+
 from crossbar.adapter.rest.publisher import PublisherResource
 from crossbar.adapter.rest.caller import CallerResource
-from crossbar.adapter.rest.callee import RESTCallee
-from crossbar.adapter.rest.subscriber import MessageForwarder
 
-__all__ = ("PublisherResource", "CallerResource", "RESTCallee",
-           "MessageForwarder")
+if _PY3:
+    __all__ = ("PublisherResource", "CallerResource")
+
+else:
+    from crossbar.adapter.rest.callee import RESTCallee
+    from crossbar.adapter.rest.subscriber import MessageForwarder
+
+    __all__ = ("PublisherResource", "CallerResource", "RESTCallee",
+               "MessageForwarder")
