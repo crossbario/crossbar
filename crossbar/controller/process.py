@@ -512,6 +512,11 @@ class NodeControllerSession(NativeProcessSession):
         def on_ready_success(id):
             log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
 
+            self._node._reactor.addSystemEventTrigger(
+                'before', 'shutdown',
+                worker.proto.transport.signalProcess, 'TERM',
+            )
+
             worker.status = 'started'
             worker.started = datetime.utcnow()
 
