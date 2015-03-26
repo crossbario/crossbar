@@ -47,10 +47,11 @@ from autobahn.wamp import types
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.protocol import BaseSession
-from autobahn.twisted.wamp import FutureMixin
 from autobahn.wamp.exception import ProtocolError, SessionNotReady
 from autobahn.wamp.types import SessionDetails
 from autobahn.wamp.interfaces import ITransportHandler
+
+import txaio
 
 from crossbar.router.auth import PendingAuthPersona, \
     PendingAuthWampCra, \
@@ -151,7 +152,7 @@ class RouterApplicationSession:
                                      self._session._authid, self._session._authrole, self._session._authmethod,
                                      self._session._authprovider)
 
-            self._session._as_future(self._session.onJoin, details)
+            txaio.as_future(self._session.onJoin, details)
             # self._session.onJoin(details)
 
         # app-to-router
@@ -200,8 +201,7 @@ class RouterApplicationSession:
             raise Exception("RouterApplicationSession.send: unhandled message {0}".format(msg))
 
 
-class RouterSession(FutureMixin, BaseSession):
-
+class RouterSession(BaseSession):
     """
     WAMP router session. This class implements :class:`autobahn.wamp.interfaces.ITransportHandler`.
     """
@@ -282,7 +282,7 @@ class RouterSession(FutureMixin, BaseSession):
 
                 details = types.HelloDetails(msg.roles, msg.authmethods, msg.authid, self._pending_session_id)
 
-                d = self._as_future(self.onHello, self._realm, details)
+                d = txaio.as_future(self.onHello, self._realm, details)
 
                 def success(res):
                     msg = None
@@ -302,11 +302,11 @@ class RouterSession(FutureMixin, BaseSession):
                     if msg:
                         self._transport.send(msg)
 
-                self._add_future_callbacks(d, success, self._onError)
+                txaio.add_callbacks(d, success, self._onError)
 
             elif isinstance(msg, message.Authenticate):
 
-                d = self._as_future(self.onAuthenticate, msg.signature, {})
+                d = txaio.as_future(self.onAuthenticate, msg.signature, {})
 
                 def success(res):
                     msg = None
@@ -323,7 +323,7 @@ class RouterSession(FutureMixin, BaseSession):
                     if msg:
                         self._transport.send(msg)
 
-                self._add_future_callbacks(d, success, self._onError)
+                txaio.add_callbacks(d, success, self._onError)
 
             elif isinstance(msg, message.Abort):
 
@@ -441,8 +441,7 @@ class RouterSession(FutureMixin, BaseSession):
 ITransportHandler.register(RouterSession)
 
 
-class RouterSessionFactory(FutureMixin):
-
+class RouterSessionFactory(object):
     """
     WAMP router session factory.
     """
