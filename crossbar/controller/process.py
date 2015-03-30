@@ -42,6 +42,7 @@ from datetime import datetime
 
 from twisted.python import log
 from twisted.internet.defer import DeferredList, returnValue, inlineCallbacks
+from twisted.internet.error import ProcessExitedAlready
 
 from twisted.internet.threads import deferToThread
 
@@ -512,9 +513,15 @@ class NodeControllerSession(NativeProcessSession):
         def on_ready_success(id):
             log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
 
+            def cleanup_worker():
+                try:
+                    worker.proto.transport.signalProcess('TERM')
+                except ProcessExitedAlready:
+                    pass  # ignore; it's already dead
+
             self._node._reactor.addSystemEventTrigger(
                 'before', 'shutdown',
-                worker.proto.transport.signalProcess, 'TERM',
+                cleanup_worker,
             )
 
             worker.status = 'started'
