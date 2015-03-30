@@ -150,8 +150,7 @@ def run():
                 if reactor.running:
                     reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
                     reactor.stop()
-                else:
-                    sys.exit(1)
+                # if the reactor *isn't* running, we're already shutting down
 
     try:
         # create a WAMP application session factory
