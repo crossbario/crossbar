@@ -114,6 +114,18 @@ def check_is_running(cbdir):
                 else:
                     pid_exists = check_pid_exists(pid)
                     if pid_exists:
+                        if _HAS_PSUTIL:
+                            # additionally check this is actually a crossbar process
+                            p = psutil.Process(pid)
+                            cmdline = p.cmdline()
+                            if len(cmdline) < 2 or not cmdline[1].endswith('crossbar'):
+                                nicecmdline = ' '.join(cmdline)
+                                if len(nicecmdline) > 76:
+                                    nicecmdline = nicecmdline[:38] + ' ... ' + nicecmdline[-38:]
+                                print('"{}" points to PID {} which is not a crossbar process:'.format(fp, pid))
+                                print('  ' + nicecmdline)
+                                print('Verify manually and either kill {} or delete {}'.format(pid, fp))
+                                return None
                         return pid_data
                     else:
                         try:
