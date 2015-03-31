@@ -1081,7 +1081,14 @@ def check_listening_transport_rawsocket(transport):
     :type transport: dict
     """
     for k in transport:
-        if k not in ['id', 'type', 'endpoint', 'serializer', 'max_message_size', 'debug', 'auth']:
+        if k not in [
+            'id',
+            'type',
+            'endpoint',
+            'serializers',
+            'max_message_size',
+            'debug',
+            'auth']:
             raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
     if 'id' in transport:
@@ -1092,15 +1099,13 @@ def check_listening_transport_rawsocket(transport):
 
     check_listening_endpoint(transport['endpoint'])
 
-    if 'serializer' not in transport:
-        raise Exception("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
-
-    serializer = transport['serializer']
-    if not isinstance(serializer, six.text_type):
-        raise Exception("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
-
-    if serializer not in ['json', 'msgpack']:
-        raise Exception("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
+    if 'serializers' in transport:
+        serializers = transport['serializers']
+        if not isinstance(serializers, list):
+            raise Exception("'serializers' in RawSocket transport configuration must be list ({} encountered)".format(type(serializers)))
+        for serializer in serializers:
+            if serializer not in [u'json', u'msgpack']:
+                raise Exception("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
 
     if 'max_message_size' in transport:
         check_transport_max_message_size(transport['max_message_size'])
