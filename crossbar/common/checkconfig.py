@@ -1080,15 +1080,18 @@ def check_listening_transport_rawsocket(transport):
     :param transport: The configuration item to check.
     :type transport: dict
     """
+    known_attrs = [
+        'id',
+        'type',
+        'endpoint',
+        'serializers',
+        'max_message_size',
+        'debug',
+        'auth',
+    ]
+
     for k in transport:
-        if k not in [
-            'id',
-            'type',
-            'endpoint',
-            'serializers',
-            'max_message_size',
-            'debug',
-            'auth']:
+        if k not in known_attrs:
             raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
     if 'id' in transport:
