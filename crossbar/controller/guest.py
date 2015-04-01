@@ -35,6 +35,7 @@ import json
 from twisted.python import log
 from twisted.internet import protocol
 from twisted.internet.error import ProcessDone, ProcessTerminated, ProcessExitedAlready
+from twisted.internet.error import ConnectionDone
 # from twisted.internet.error import ConnectionDone, ConnectionClosed, ConnectionLost, ConnectionAborted
 
 __all__ = ('create_guest_worker_client_factory',)
@@ -94,7 +95,7 @@ class GuestWorkerClientProtocol(protocol.Protocol):
         if self.debug:
             log.msg("GuestWorkerClientProtocol.connectionLost: {}".format(reason))
         try:
-            if isinstance(reason.value, ProcessDone):
+            if isinstance(reason.value, (ProcessDone, ConnectionDone)):
                 if self.debug:
                     log.msg("GuestWorkerClientProtocol: guest ended cleanly")
                 self.factory._on_exit.callback(None)
@@ -105,8 +106,10 @@ class GuestWorkerClientProtocol(protocol.Protocol):
                 self.factory._on_exit.errback(reason)
 
             else:
+                # get this when subprocess has exited early; should we just log error?
                 # should not arrive here
                 log.msg("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {}".format(reason))
+
         except Exception as e:
             log.msg("GuestWorkerClientProtocol: INTERNAL ERROR - {}".format(e))
 
