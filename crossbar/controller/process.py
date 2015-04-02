@@ -639,7 +639,7 @@ class NodeControllerSession(NativeProcessSession):
                 log.msg("waiting for", worker.pid, "to exit...")
                 reactor.callLater(1, timeout, tried + 1)
                 if tried > 20:  # or just wait forever?
-                    log.msg("Sending SIGKILL to", worker.process)
+                    log.msg("Sending SIGKILL to", worker.pid)
                     worker.proto.transport.signalProcess('KILL')
                     d.callback(None)  # or recurse more?
             timeout(0)
