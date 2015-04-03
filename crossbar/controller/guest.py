@@ -125,7 +125,7 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
 class GuestWorkerClientFactory(protocol.Factory):
 
-    def __init__(self, config, on_ready, on_exit, debug=True):
+    def __init__(self, config, on_ready, on_exit, debug=False):
         self.debug = debug
         self.proto = None
         self._config = config
