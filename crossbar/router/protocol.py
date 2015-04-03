@@ -467,7 +467,7 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
         #
         debug = config.get('debug', False)
 
-        WampRawSocketServerFactory.__init__(self, factory, serializer, debug=debug)
+        WampRawSocketServerFactory.__init__(self, factory, (serializer,), debug=debug)
 
         if self.debug:
             log.msg("RawSocket transport factory created using {0} serializer, max. message size {1}".format(serid, self._max_message_size))
