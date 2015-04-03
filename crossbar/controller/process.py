@@ -851,11 +851,11 @@ class NodeControllerSession(NativeProcessSession):
         worker.ready.addCallbacks(on_ready_success, on_ready_error)
 
         def on_exit_success(res):
-            log.msg("Guest excited with success")
+            log.msg("Guest exited with success")
             del self._workers[worker.id]
 
         def on_exit_error(err):
-            log.msg("Guest excited with error", err)
+            log.msg("Guest exited with error", err)
             del self._workers[worker.id]
 
         worker.exit.addCallbacks(on_exit_success, on_exit_error)
