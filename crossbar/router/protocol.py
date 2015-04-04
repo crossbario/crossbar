@@ -435,29 +435,42 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
         #
         self._config = config
 
-        # WAMP serializer
+        # explicit list of WAMP serializers
         #
-        serid = config.get('serializer', 'msgpack')
+        if 'serializers' in config:
+            serializers = []
+            sers = set(config['serializers'])
 
-        if serid == 'json':
-            # try JSON WAMP serializer
-            try:
-                from autobahn.wamp.serializer import JsonSerializer
-                serializer = JsonSerializer()
-            except ImportError:
-                raise Exception("could not load WAMP-JSON serializer")
+            if 'json' in sers:
+                # try JSON WAMP serializer
+                try:
+                    from autobahn.wamp.serializer import JsonSerializer
+                    serializers.append(JsonSerializer())
+                except ImportError:
+                    print("Warning: could not load WAMP-JSON serializer")
+                else:
+                    sers.discard('json')
 
-        elif serid == 'msgpack':
-            # try MsgPack WAMP serializer
-            try:
-                from autobahn.wamp.serializer import MsgPackSerializer
-                serializer = MsgPackSerializer()
-                serializer._serializer.ENABLE_V5 = False  # FIXME
-            except ImportError:
-                raise Exception("could not load WAMP-MsgPack serializer")
+            if 'msgpack' in sers:
+                # try MsgPack WAMP serializer
+                try:
+                    from autobahn.wamp.serializer import MsgPackSerializer
+                    serializer = MsgPackSerializer()
+                    serializer._serializer.ENABLE_V5 = False  # FIXME
+                    serializers.append(serializer)
+                except ImportError:
+                    print("Warning: could not load WAMP-MsgPack serializer")
+                else:
+                    sers.discard('msgpack')
+
+            if not serializers:
+                raise Exception("no valid WAMP serializers specified")
+
+            if len(sers) > 0:
+                raise Exception("invalid WAMP serializers specified: {}".format(sers))
 
         else:
-            raise Exception("invalid WAMP serializer '{}'".format(serid))
+            serializers = None
 
         # Maximum message size
         #
@@ -467,10 +480,10 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
         #
         debug = config.get('debug', False)
 
-        WampRawSocketServerFactory.__init__(self, factory, serializer, debug=debug)
+        WampRawSocketServerFactory.__init__(self, factory, serializers, debug=debug)
 
         if self.debug:
-            log.msg("RawSocket transport factory created using {0} serializer, max. message size {1}".format(serid, self._max_message_size))
+            log.msg("RawSocket transport factory created using {0} serializers, max. message size {1}".format(serializers, self._max_message_size))
 
     def buildProtocol(self, addr):
         p = self.protocol()

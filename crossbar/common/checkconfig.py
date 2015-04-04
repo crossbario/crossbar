@@ -1088,7 +1088,8 @@ def check_listening_transport_rawsocket(transport):
             'serializers',
             'max_message_size',
             'debug',
-            'auth']:
+            'auth',
+        ]:
             raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
     if 'id' in transport:
