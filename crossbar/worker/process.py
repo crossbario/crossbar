@@ -41,6 +41,20 @@ def run():
     import os
     import sys
     import platform
+    import signal
+
+    # Ignore SIGINT so we get consistent behavior on control-C versus
+    # sending SIGINT to the controller process. When the controller is
+    # shutting down, it sends TERM to all its children but ctrl-C
+    # handling will send a SIGINT to all the processes in the group
+    # (so then the controller sends a TERM but the child already or
+    # will very shortly get a SIGINT as well). Twisted installs signal
+    # handlers, but not for SIGINT if there's already a custom one
+    # present.
+
+    def ignore(sig, frame):
+        log.msg("Ignoring SIGINT in worker.")
+    signal.signal(signal.SIGINT, ignore)
 
     # create the top-level parser
     #

@@ -41,7 +41,7 @@ import shutil
 from datetime import datetime
 
 from twisted.python import log
-from twisted.internet.defer import DeferredList, returnValue, inlineCallbacks
+from twisted.internet.defer import Deferred, DeferredList, returnValue, inlineCallbacks
 from twisted.internet.error import ProcessExitedAlready
 
 from twisted.internet.threads import deferToThread
@@ -513,15 +513,9 @@ class NodeControllerSession(NativeProcessSession):
         def on_ready_success(id):
             log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
 
-            def cleanup_worker():
-                try:
-                    worker.proto.transport.signalProcess('TERM')
-                except ProcessExitedAlready:
-                    pass  # ignore; it's already dead
-
             self._node._reactor.addSystemEventTrigger(
                 'before', 'shutdown',
-                cleanup_worker,
+                self._cleanup_worker, self._node._reactor, worker,
             )
 
             worker.status = 'started'
@@ -618,6 +612,40 @@ class NodeControllerSession(NativeProcessSession):
         d.addCallbacks(on_connect_success, on_connect_error)
 
         return worker.ready
+
+    @staticmethod
+    def _cleanup_worker(reactor, worker):
+        """
+        This is called during reactor shutdown and ensures we wait for our
+        subprocesses to shut down nicely.
+        """
+        try:
+            log.msg("sending TERM to subprocess", worker.pid)
+            worker.proto.transport.signalProcess('TERM')
+            # wait for the subprocess to shutdown; could add a timeout
+            # after which we send a KILL maybe?
+            d = Deferred()
+
+            def protocol_closed(_):
+                # log.msg(worker.pid, "exited")
+                d.callback(None)
+
+            # await worker's timely demise
+            worker.exit.addCallback(protocol_closed)
+
+            def timeout(tried):
+                if d.called:
+                    return
+                log.msg("waiting for", worker.pid, "to exit...")
+                reactor.callLater(1, timeout, tried + 1)
+                if tried > 20:  # or just wait forever?
+                    log.msg("Sending SIGKILL to", worker.pid)
+                    worker.proto.transport.signalProcess('KILL')
+                    d.callback(None)  # or recurse more?
+            timeout(0)
+            return d
+        except ProcessExitedAlready:
+            pass  # ignore; it's already dead
 
     def stop_router(self, id, kill=False, details=None):
         """
@@ -759,6 +787,11 @@ class NodeControllerSession(NativeProcessSession):
 
             log.msg("{} with ID '{}' and PID {} started".format(worker_logname, worker.id, worker.pid))
 
+            self._node._reactor.addSystemEventTrigger(
+                'before', 'shutdown',
+                self._cleanup_worker, self._node._reactor, worker,
+            )
+
             # directory watcher
             #
             if 'watch' in options:
@@ -818,11 +851,11 @@ class NodeControllerSession(NativeProcessSession):
         worker.ready.addCallbacks(on_ready_success, on_ready_error)
 
         def on_exit_success(res):
-            log.msg("Guest excited with success")
+            log.msg("Guest exited with success")
             del self._workers[worker.id]
 
         def on_exit_error(err):
-            log.msg("Guest excited with error", err)
+            log.msg("Guest exited with error", err)
             del self._workers[worker.id]
 
         worker.exit.addCallbacks(on_exit_success, on_exit_error)
