@@ -612,6 +612,20 @@ def check_web_path_service_wsgi(config):
     }, config, "Web transport 'wsgi' path service")
 
 
+def check_web_path_service_resource(config):
+    """
+    Check a "resource" path service on Web transport.
+
+    :param config: The path service configuration.
+    :type config: dict
+    """
+    check_dict_args({
+        'type': (True, [six.text_type]),
+        'classname': (True, [six.text_type]),
+        'extra': (False, None)
+    }, config, "Web transport 'resource' path service")
+
+
 def check_web_path_service_redirect(config):
     """
     Check a "redirect" path service on Web transport.
@@ -801,10 +815,10 @@ def check_web_path_service(path, config, nested):
 
     ptype = config['type']
     if path == '/' and not nested:
-        if ptype not in ['static', 'wsgi', 'redirect', 'publisher', 'caller']:
+        if ptype not in ['static', 'wsgi', 'redirect', 'publisher', 'caller', 'resource']:
             raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'schemadoc', 'path']:
+        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'schemadoc', 'path', 'resource']:
             raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -819,6 +833,7 @@ def check_web_path_service(path, config, nested):
         'caller': check_web_path_service_caller,
         'schemadoc': check_web_path_service_schemadoc,
         'path': check_web_path_service_path,
+        'resource': check_web_path_service_resource
     }
 
     checkers[ptype](config)

@@ -758,6 +758,28 @@ class RouterWorkerSession(NativeWorkerSession):
                 #
                 root = CallerResource(root_config.get('options', {}), caller_session)
 
+            # Generic Twisted Web resource
+            #
+            elif root_type == 'resource':
+
+                try:
+                    klassname = root_config['classname']
+
+                    if self.debug:
+                        log.msg("Starting class '{}'".format(klassname))
+
+                    c = klassname.split('.')
+                    module_name, klass_name = '.'.join(c[:-1]), c[-1]
+                    module = importlib.import_module(module_name)
+                    make = getattr(module, klass_name)
+                    root = make(root_config.get('extra', {}))
+
+                except Exception as e:
+                    emsg = "Failed to import class '{}' - {}".format(klassname, e)
+                    log.msg(emsg)
+                    log.msg("PYTHONPATH: {}".format(sys.path))
+                    raise ApplicationError("crossbar.error.class_import_failed", emsg)
+
             # Invalid root resource
             #
             else:
@@ -1023,6 +1045,29 @@ class RouterWorkerSession(NativeWorkerSession):
             # now create the caller Twisted Web resource
             #
             return CallerResource(path_config.get('options', {}), caller_session)
+
+        # Generic Twisted Web resource
+        #
+        elif path_config['type'] == 'resource':
+
+            try:
+                klassname = path_config['classname']
+
+                if self.debug:
+                    log.msg("Starting class '{}'".format(klassname))
+
+                c = klassname.split('.')
+                module_name, klass_name = '.'.join(c[:-1]), c[-1]
+                module = importlib.import_module(module_name)
+                make = getattr(module, klass_name)
+
+                return make(path_config.get('extra', {}))
+
+            except Exception as e:
+                emsg = "Failed to import class '{}' - {}".format(klassname, e)
+                log.msg(emsg)
+                log.msg("PYTHONPATH: {}".format(sys.path))
+                raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
         # Schema Docs resource
         #
