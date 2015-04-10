@@ -374,7 +374,8 @@ class Node:
                     def component_exited(info):
                         dead_comp = info['id']
                         log.msg("Component '{}' failed to start; shutting down node.".format(dead_comp))
-                        self._reactor.stop()
+                        if self._reactor.running:
+                            self._reactor.stop()
                     topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self._node_id, worker_id)
                     component_stop_sub = yield self._controller.subscribe(component_exited, topic)
 
