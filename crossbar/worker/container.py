@@ -34,7 +34,7 @@ import sys
 import importlib
 import pkg_resources
 import traceback
-
+from functools import partial
 from datetime import datetime
 
 from twisted.internet import reactor
@@ -100,7 +100,6 @@ class ContainerComponent:
 
 
 class ContainerWorkerSession(NativeWorkerSession):
-
     """
     A container is a native worker process that hosts application components
     written in Python. A container connects to an application router (creating
@@ -280,11 +279,25 @@ class ContainerWorkerSession(NativeWorkerSession):
         d = endpoint.connect(transport_factory)
 
         def success(proto):
-            self.components[id] = ContainerComponent(id, config, proto, None)
+            component = ContainerComponent(id, config, proto, None)
+            self.components[id] = component
+
+            # note that create_session (above) isn't called until we
+            # reach onOpen() in the client WAMP session, so the
+            # sunderlying ApplicationSession object hasn't yet even
+            # been constructed at this point; see code in
+            # autobahn/wamp/websocket.py:59 or so (in onOpen)
+
+            # is wrapping onClose *really* the best way to do this?
+            def close_wrapper(orig, was_clean, code, reason):
+                self._publish_component_stop(component)
+                del self.components[component.id]
+                return orig(was_clean, code, reason)
+            proto.onClose = partial(close_wrapper, proto.onClose)
 
             # publish event "on_component_start" to all but the caller
             #
-            topic = 'crossbar.node.{}.worker.{}.container.on_component_start'.format(self.config.extra.node, self.config.extra.worker)
+            topic = self._uri_prefix + '.container.on_component_start'
             event = {'id': id}
             self.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
 
@@ -303,6 +316,19 @@ class ContainerWorkerSession(NativeWorkerSession):
         d.addCallbacks(success, error)
 
         return d
+
+    def _publish_component_stop(self, component, exclude=None):
+        """
+        Internal helper to publish details to on_component_stop
+        """
+        kw = dict()
+        if exclude is not None:
+            kw['options'] = PublishOptions(exclude=exclude)
+        event = component.marshal()
+        topic = self._uri_prefix + '.container.on_component_stop'
+        # XXX just ignoring a Deferred here...
+        self.publish(topic, event, **kw)
+        return event
 
     @inlineCallbacks
     def restart_container_component(self, id, reload_modules=False, details=None):
@@ -342,27 +368,13 @@ class ContainerWorkerSession(NativeWorkerSession):
         if id not in self.components:
             raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
-        now = datetime.utcnow()
-
         # FIXME: should we session.leave() first and only close the transport then?
         # This gives the app component a better hook to do any cleanup.
         self.components[id].proto.close()
 
-        c = self.components[id]
-        event = {
-            'id': id,
-            'started': utcstr(c.started),
-            'stopped': utcstr(now),
-            'uptime': (now - c.started).total_seconds()
-        }
-
         # publish event "on_component_stop" to all but the caller
-        #
-        topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self.config.extra.node, self.config.extra.worker)
-        self.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
-
+        event = self._publish_component_stop(self.components[id], exclude=[details.caller])
         del self.components[id]
-
         return event
 
     def get_container_components(self, details=None):
