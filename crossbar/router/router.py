@@ -43,6 +43,7 @@ from crossbar.router.role import CrossbarRouterRole, \
     CrossbarRouterTrustedRole, CrossbarRouterRoleStaticAuth, \
     CrossbarRouterRoleDynamicAuth
 
+
 class Router(object):
     """
     Basic WAMP router.
