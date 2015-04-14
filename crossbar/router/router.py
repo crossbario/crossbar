@@ -33,7 +33,6 @@ from __future__ import absolute_import
 from twisted.python import log
 
 from autobahn.wamp import message
-from autobahn.twisted.wamp import FutureMixin
 from autobahn.wamp.exception import ProtocolError
 
 from crossbar.router.interfaces import IRouter
@@ -44,12 +43,11 @@ from crossbar.router.role import CrossbarRouterRole, \
     CrossbarRouterTrustedRole, CrossbarRouterRoleStaticAuth, \
     CrossbarRouterRoleDynamicAuth
 
-
-class Router(FutureMixin):
-
+class Router(object):
     """
     Basic WAMP router.
     """
+
     broker = Broker
     """
    The broker class this router will use.

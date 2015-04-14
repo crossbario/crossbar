@@ -37,17 +37,17 @@ from autobahn.wamp.exception import ApplicationError
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
     _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY
-from autobahn.twisted.wamp import FutureMixin
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router.types import RouterOptions
 from crossbar.router.interfaces import IRouter
 
+import txaio
+
 __all__ = ('Broker',)
 
 
-class Broker(FutureMixin):
-
+class Broker(object):
     """
     Basic WAMP broker.
     """
@@ -162,7 +162,7 @@ class Broker(FutureMixin):
 
             # authorize PUBLISH action
             #
-            d = self._as_future(self._router.authorize, session, publish.topic, IRouter.ACTION_PUBLISH)
+            d = txaio.as_future(self._router.authorize, session, publish.topic, IRouter.ACTION_PUBLISH)
 
             def on_authorize_success(authorized):
 
@@ -269,7 +269,7 @@ class Broker(FutureMixin):
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)])
                     session._transport.send(reply)
 
-            self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+            txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
     def processSubscribe(self, session, subscribe):
         """
@@ -296,7 +296,7 @@ class Broker(FutureMixin):
 
         # authorize action
         #
-        d = self._as_future(self._router.authorize, session, subscribe.topic, IRouter.ACTION_SUBSCRIBE)
+        d = txaio.as_future(self._router.authorize, session, subscribe.topic, IRouter.ACTION_SUBSCRIBE)
 
         def on_authorize_success(authorized):
             if not authorized:
@@ -343,7 +343,7 @@ class Broker(FutureMixin):
             reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)])
             session._transport.send(reply)
 
-        self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+        txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
     def processUnsubscribe(self, session, unsubscribe):
         """

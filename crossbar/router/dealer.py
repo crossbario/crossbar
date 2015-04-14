@@ -39,11 +39,12 @@ from autobahn.wamp.exception import ProtocolError, ApplicationError
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
     _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY
-from autobahn.twisted.wamp import FutureMixin
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router.types import RouterOptions
 from crossbar.router.interfaces import IRouter
+
+import txaio
 
 __all__ = ('Dealer',)
 
@@ -63,8 +64,7 @@ class RegistrationExtra(object):
         self.roundrobin_current = 0
 
 
-class Dealer(FutureMixin):
-
+class Dealer(object):
     """
     Basic WAMP dealer.
     """
@@ -189,7 +189,7 @@ class Dealer(FutureMixin):
 
         # authorize action
         #
-        d = self._as_future(self._router.authorize, session, register.procedure, IRouter.ACTION_REGISTER)
+        d = txaio.as_future(self._router.authorize, session, register.procedure, IRouter.ACTION_REGISTER)
 
         def on_authorize_success(authorized):
             if not authorized:
@@ -238,7 +238,7 @@ class Dealer(FutureMixin):
             reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for registering procedure '{0}': {1}".format(register.procedure, err.value)])
             session._transport.send(reply)
 
-        self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+        txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
     def processUnregister(self, session, unregister):
         """
@@ -337,7 +337,7 @@ class Dealer(FutureMixin):
 
             # authorize CALL action
             #
-            d = self._as_future(self._router.authorize, session, call.procedure, IRouter.ACTION_CALL)
+            d = txaio.as_future(self._router.authorize, session, call.procedure, IRouter.ACTION_CALL)
 
             def on_authorize_success(authorized):
 
@@ -411,7 +411,7 @@ class Dealer(FutureMixin):
                 reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.AUTHORIZATION_FAILED, ["failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)])
                 session._transport.send(reply)
 
-            self._add_future_callbacks(d, on_authorize_success, on_authorize_error)
+            txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
         else:
             reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, ["no callee registered for procedure '{0}'".format(call.procedure)])
