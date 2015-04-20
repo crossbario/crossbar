@@ -303,7 +303,7 @@ class ContainerWorkerSession(NativeWorkerSession):
                 if was_clean:
                     log.msg("Closed connection to '{}' with code '{}'".format(component.id, code))
                 else:
-                    msg = "Lost connection to container '{}' with code '{}'."
+                    msg = "Lost connection to component '{}' with code '{}'."
                     log.msg(msg.format(component.id, code))
 
                 if reason:
