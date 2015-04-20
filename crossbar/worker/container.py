@@ -43,7 +43,6 @@ from twisted.python import log
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
 
 from autobahn.util import utcstr
-from autobahn.twisted.util import sleep
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, \
     PublishOptions, \
@@ -241,7 +240,11 @@ class ContainerWorkerSession(NativeWorkerSession):
         # ultimately, this gets called once the connection is
         # establised, from onOpen in autobahn/wamp/websocket.py:59
         def create_session():
-            return create_component(componentcfg)
+            try:
+                return create_component(componentcfg)
+            except Exception:
+                log.err(_why="Instantiating component failed")
+                raise
 
         # 2) create WAMP transport factory
         #
