@@ -241,7 +241,12 @@ class ContainerWorkerSession(NativeWorkerSession):
         # ultimately, this gets called once the connection is
         # establised, from onOpen in autobahn/wamp/websocket.py:59
         def create_session():
-            return create_component(componentcfg)
+            try:
+                return create_component(componentcfg)
+            except Exception as e:
+                # AutobahnPython swallows exceptions from onOpen
+                log.err(_why="Instantiating component failed")
+                raise
 
         # 2) create WAMP transport factory
         #
