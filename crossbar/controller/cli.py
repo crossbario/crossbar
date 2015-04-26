@@ -118,7 +118,7 @@ def check_is_running(cbdir):
                             # additionally check this is actually a crossbar process
                             p = psutil.Process(pid)
                             cmdline = p.cmdline()
-                            if len(cmdline) < 2 or not cmdline[1].endswith('crossbar'):
+                            if len(cmdline) < 1 or not cmdline[0] == 'crossbar-controller':
                                 nicecmdline = ' '.join(cmdline)
                                 if len(nicecmdline) > 76:
                                     nicecmdline = nicecmdline[:38] + ' ... ' + nicecmdline[-38:]
