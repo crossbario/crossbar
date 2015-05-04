@@ -34,13 +34,13 @@ import sys
 import importlib
 import pkg_resources
 import traceback
-
+from functools import partial
 from datetime import datetime
 
 from twisted.internet import reactor
 from twisted import internet
 from twisted.python import log
-from twisted.internet.defer import DeferredList, inlineCallbacks, returnValue
+from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
 
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
@@ -86,6 +86,9 @@ class ContainerComponent:
         self.proto = proto
         self.session = session
 
+        # internal use; see e.g. restart_container_component
+        self._stopped = Deferred()
+
     def marshal(self):
         """
         Marshal object information for use with WAMP calls/events.
@@ -100,7 +103,6 @@ class ContainerComponent:
 
 
 class ContainerWorkerSession(NativeWorkerSession):
-
     """
     A container is a native worker process that hosts application components
     written in Python. A container connects to an application router (creating
@@ -235,9 +237,15 @@ class ContainerWorkerSession(NativeWorkerSession):
             self._module_tracker.reload()
 
         # WAMP application session factory
-        #
+        # ultimately, this gets called once the connection is
+        # establised, from onOpen in autobahn/wamp/websocket.py:59
         def create_session():
-            return create_component(componentcfg)
+            try:
+                return create_component(componentcfg)
+            except Exception:
+                # AutobahnPython swallows exceptions from onOpen
+                log.err(_why="Instantiating component failed")
+                raise
 
         # 2) create WAMP transport factory
         #
@@ -280,14 +288,41 @@ class ContainerWorkerSession(NativeWorkerSession):
         d = endpoint.connect(transport_factory)
 
         def success(proto):
-            self.components[id] = ContainerComponent(id, config, proto, None)
+            component = ContainerComponent(id, config, proto, None)
+            self.components[id] = component
+
+            def close_wrapper(orig, was_clean, code, reason):
+                """
+                Wrap our protocol's onClose so we can tell when the component
+                exits.
+                """
+                r = orig(was_clean, code, reason)
+                if component.id not in self.components:
+                    log.msg("Component '{}' closed, but not in set.".format(component.id))
+                    return r
+
+                if was_clean:
+                    log.msg("Closed connection to '{}' with code '{}'".format(component.id, code))
+                else:
+                    msg = "Lost connection to component '{}' with code '{}'."
+                    log.msg(msg.format(component.id, code))
+
+                if reason:
+                    log.msg(str(reason))
+                del self.components[component.id]
+                self._publish_component_stop(component)
+                component._stopped.callback(component.marshal())
+                return r
+            proto.onClose = partial(close_wrapper, proto.onClose)
 
             # publish event "on_component_start" to all but the caller
             #
-            topic = 'crossbar.node.{}.worker.{}.container.on_component_start'.format(self.config.extra.node, self.config.extra.worker)
+            topic = self._uri_prefix + '.container.on_component_start'
             event = {'id': id}
-            self.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
-
+            options = None
+            if details.caller:
+                options = PublishOptions(exclude=[details.caller])
+            self.publish(topic, event, options=options)
             return event
 
         def error(err):
@@ -303,6 +338,15 @@ class ContainerWorkerSession(NativeWorkerSession):
         d.addCallbacks(success, error)
 
         return d
+
+    def _publish_component_stop(self, component):
+        """
+        Internal helper to publish details to on_component_stop
+        """
+        event = component.marshal()
+        topic = self._uri_prefix + '.container.on_component_stop'
+        self.publish(topic, event)
+        return event
 
     @inlineCallbacks
     def restart_container_component(self, id, reload_modules=False, details=None):
@@ -323,11 +367,15 @@ class ContainerWorkerSession(NativeWorkerSession):
         if id not in self.components:
             raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
-        config = self.components[id].config
-        stopped = yield self.stop_component(id, details=details)
-        started = yield self.start_component(config, reload_modules=reload_modules, details=details)
+        component = self.components[id]
+
+        stopped = yield self.stop_container_component(id, details=details)
+        started = yield self.start_container_component(
+            id, component.config, reload_modules=reload_modules, details=details)
+
         returnValue({'stopped': stopped, 'started': started})
 
+    @inlineCallbacks
     def stop_container_component(self, id, details=None):
         """
         Stop a component currently running within this container.
@@ -342,28 +390,16 @@ class ContainerWorkerSession(NativeWorkerSession):
         if id not in self.components:
             raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
-        now = datetime.utcnow()
+        component = self.components[id]
+        try:
+            component.proto.close()
+        except:
+            log.err(_why="Failed to close component '{}':".format(id))
+            raise
 
-        # FIXME: should we session.leave() first and only close the transport then?
-        # This gives the app component a better hook to do any cleanup.
-        self.components[id].proto.close()
-
-        c = self.components[id]
-        event = {
-            'id': id,
-            'started': utcstr(c.started),
-            'stopped': utcstr(now),
-            'uptime': (now - c.started).total_seconds()
-        }
-
-        # publish event "on_component_stop" to all but the caller
-        #
-        topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self.config.extra.node, self.config.extra.worker)
-        self.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
-
-        del self.components[id]
-
-        return event
+        # essentially just waiting for "on_component_stop"
+        yield component._stopped
+        returnValue(component.marshal())
 
     def get_container_components(self, details=None):
         """

@@ -528,7 +528,10 @@ class NodeControllerSession(NativeProcessSession):
                 'who': worker.who
             }
 
-            self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
+            options = None
+            if details.caller is not None:
+                options = PublishOptions(exclude=[details.caller])
+            self.publish(started_topic, started_info, options=options)
 
             return started_info
 
@@ -569,7 +572,10 @@ class NodeControllerSession(NativeProcessSession):
             details.progress(starting_info)
 
         # .. while all others get an event
-        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
+        options = None
+        if details.caller is not None:
+            options = PublishOptions(exclude=[details.caller])
+        self.publish(starting_topic, starting_info, options=options)
 
         # now actually fork the worker ..
         #
@@ -697,7 +703,7 @@ class NodeControllerSession(NativeProcessSession):
         else:
             log.msg("Stopping {} worker with ID '{}'".format(wtype, id))
             self._workers[id].factory.stopFactory()
-            # self._workers[id].proto._session.leave()
+            self._workers[id].proto.transport.signalProcess('TERM')
 
     def start_guest(self, id, config, details=None):
         """
