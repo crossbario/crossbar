@@ -43,7 +43,6 @@ from twisted.python import log
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
 
 from autobahn.util import utcstr
-from autobahn.twisted.util import sleep
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, \
     PublishOptions, \
@@ -243,7 +242,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         def create_session():
             try:
                 return create_component(componentcfg)
-            except Exception as e:
+            except Exception:
                 # AutobahnPython swallows exceptions from onOpen
                 log.err(_why="Instantiating component failed")
                 raise

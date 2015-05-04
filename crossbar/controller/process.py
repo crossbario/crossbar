@@ -572,7 +572,7 @@ class NodeControllerSession(NativeProcessSession):
             details.progress(starting_info)
 
         # .. while all others get an event
-        options=None
+        options = None
         if details.caller is not None:
             options = PublishOptions(exclude=[details.caller])
         self.publish(starting_topic, starting_info, options=options)
