@@ -602,11 +602,11 @@ class CrossbarRouterSession(RouterSession):
                                     session_details = {
                                         # forward transport level details of the WAMP session that
                                         # wishes to authenticate
-                                        'transport': self._transport._transport_info,
+                                        u'transport': self._transport._transport_info,
 
                                         # the following WAMP session ID will be assigned to the session
                                         # if (and only if) the subsequent authentication succeeds.
-                                        'session': self._pending_session_id
+                                        u'session': self._pending_session_id
                                     }
                                     d = service_session.call(cfg['authenticator'], realm, details.authid, session_details)
 
@@ -989,13 +989,13 @@ class CrossbarRouterSession(RouterSession):
         # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
         self._session_details = {
-            'authid': details.authid,
-            'authrole': details.authrole,
-            'authmethod': details.authmethod,
-            'authprovider': details.authprovider,
-            'realm': details.realm,
-            'session': details.session,
-            'transport': self._transport._transport_info
+            u'authid': details.authid,
+            u'authrole': details.authrole,
+            u'authmethod': details.authmethod,
+            u'authprovider': details.authprovider,
+            u'realm': details.realm,
+            u'session': details.session,
+            u'transport': self._transport._transport_info
         }
 
         # dispatch session metaevent from WAMP AP

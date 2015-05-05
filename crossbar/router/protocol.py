@@ -253,11 +253,11 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
             # WAMP meta event "wamp.session.on_join"
             #
             self._transport_info = {
-                'type': 'websocket',
-                'protocol': protocol,
-                'peer': self.peer,
-                'http_headers_received': request.headers,
-                'http_headers_sent': headers
+                u'type': 'websocket',
+                u'protocol': protocol,
+                u'peer': self.peer,
+                u'http_headers_received': request.headers,
+                u'http_headers_sent': headers
             }
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
@@ -410,9 +410,9 @@ class CrossbarWampRawSocketServerProtocol(WampRawSocketServerProtocol):
         # WAMP meta event "wamp.session.on_join"
         #
         self._transport_info = {
-            'type': 'rawsocket',
-            'protocol': None,  # FIXME
-            'peer': self.peer
+            u'type': 'rawsocket',
+            u'protocol': None,  # FIXME
+            u'peer': self.peer
         }
 
     def lengthLimitExceeded(self, length):
