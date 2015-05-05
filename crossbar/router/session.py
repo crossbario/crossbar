@@ -60,7 +60,7 @@ from crossbar.router.auth import PendingAuthPersona, \
 
 __all__ = (
     'CrossbarRouterSessionFactory',
-    'CrossbarRouterFactory',
+    'CrossbarRouterSession',
 )
 
 
