@@ -64,7 +64,6 @@ class TestCrossbarSessions(unittest.TestCase):
         session.onJoin(details)
 
         calls = session._router._realm.session.method_calls
-        print(calls, calls[0][1])
         self.assertEqual(1, len(calls))
         for (k, v) in six.iteritems(calls[0][1][1]):
             self.assertTrue(type(k) == six.text_type)
