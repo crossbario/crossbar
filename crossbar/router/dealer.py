@@ -213,11 +213,11 @@ class Dealer(object):
                     if service_session and not registration.uri.startswith(u'wamp.'):
                         if is_first_callee:
                             registration_details = {
-                                'id': registration.id,
-                                'created': registration.created,
-                                'uri': registration.uri,
-                                'match': registration.match,
-                                'invoke': registration.extra.invoke,
+                                u'id': registration.id,
+                                u'created': registration.created,
+                                u'uri': registration.uri,
+                                u'match': registration.match,
+                                u'invoke': registration.extra.invoke,
                             }
                             service_session.publish(u'wamp.registration.on_create', session._session_id, registration_details)
                         if not was_already_registered:

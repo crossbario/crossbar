@@ -209,11 +209,11 @@ class CrossbarRouterServiceSession(ApplicationSession):
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
         if registration and not is_protected_uri(registration.uri):
             registration_details = {
-                'id': registration.id,
-                'created': registration.created,
-                'uri': registration.uri,
-                'match': registration.match,
-                'invoke': registration.extra.invoke,
+                u'id': registration.id,
+                u'created': registration.created,
+                u'uri': registration.uri,
+                u'match': registration.match,
+                u'invoke': registration.extra.invoke,
             }
             return registration_details
         else:
@@ -233,10 +233,10 @@ class CrossbarRouterServiceSession(ApplicationSession):
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
         if subscription and not is_protected_uri(subscription.uri):
             subscription_details = {
-                'id': subscription.id,
-                'created': subscription.created,
-                'uri': subscription.uri,
-                'match': subscription.match,
+                u'id': subscription.id,
+                u'created': subscription.created,
+                u'uri': subscription.uri,
+                u'match': subscription.match,
             }
             return subscription_details
         else:

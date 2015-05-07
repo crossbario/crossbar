@@ -558,10 +558,10 @@ class NodeControllerSession(NativeProcessSession):
         # now (immediately before actually forking) signal the starting of the worker
         #
         starting_info = {
-            'id': id,
-            'status': worker.status,
-            'created': utcstr(worker.created),
-            'who': worker.who
+            u'id': id,
+            u'status': worker.status,
+            u'created': utcstr(worker.created),
+            u'who': worker.who
         }
 
         # the caller gets a progressive result ..
@@ -831,10 +831,10 @@ class NodeControllerSession(NativeProcessSession):
             # assemble guest worker startup information
             #
             started_info = {
-                'id': worker.id,
-                'status': worker.status,
-                'started': utcstr(worker.started),
-                'who': worker.who
+                u'id': worker.id,
+                u'status': worker.status,
+                u'started': utcstr(worker.started),
+                u'who': worker.who
             }
 
             self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
@@ -869,10 +869,10 @@ class NodeControllerSession(NativeProcessSession):
         # now (immediately before actually forking) signal the starting of the worker
         #
         starting_info = {
-            'id': id,
-            'status': worker.status,
-            'created': utcstr(worker.created),
-            'who': worker.who
+            u'id': id,
+            u'status': worker.status,
+            u'created': utcstr(worker.created),
+            u'who': worker.who
         }
 
         # the caller gets a progressive result ..

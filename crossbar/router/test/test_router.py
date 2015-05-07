@@ -32,13 +32,41 @@ from __future__ import absolute_import
 
 from twisted.trial import unittest
 
+from mock import Mock
+
 import txaio
+
+import six
 
 from autobahn.wamp import types
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar.router.router import RouterFactory
+from crossbar.router.router import RouterFactory, CrossbarRouterFactory
 from crossbar.router.session import RouterSessionFactory
+from crossbar.router.session import CrossbarRouterSession
+
+
+class TestCrossbarSessions(unittest.TestCase):
+    def test_onjoin_metaevent(self):
+        # we're just short-circuiting straight to calling onJoin()
+        # ourselves rather than drive the protocol to that point.
+        factory = CrossbarRouterFactory()
+        session = CrossbarRouterSession(factory)
+        # ...but we therefore have to set up enough internals so the
+        # onJoin() can emit the session-details it wants.
+        session._router = Mock()
+        session._router._realm = Mock()
+        session._router._realm.session = Mock()
+        session._transport = Mock()
+        session._transport._transport_info = 'nothing to see here'
+        details = types.SessionDetails(u'test_realm', 1234)
+
+        session.onJoin(details)
+
+        calls = session._router._realm.session.method_calls
+        self.assertEqual(1, len(calls))
+        for (k, v) in six.iteritems(calls[0][1][1]):
+            self.assertTrue(type(k) == six.text_type)
 
 
 class TestEmbeddedSessions(unittest.TestCase):
