@@ -34,6 +34,7 @@ from datetime import datetime
 from collections import deque
 
 from twisted.python import log
+from twisted.python.compat import _PY3
 from twisted.internet.defer import Deferred
 
 from autobahn.util import utcnow
@@ -102,6 +103,9 @@ class WorkerProcess:
         FIXME: line buffering
         """
         assert(childFD in self._log_fds)
+
+        if _PY3 and type(data) != str:
+            data = data.decode('utf8')
 
         for msg in data.split('\n'):
             msg = msg.strip()

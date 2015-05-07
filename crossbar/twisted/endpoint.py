@@ -32,6 +32,7 @@ from __future__ import absolute_import
 
 import os
 
+
 from twisted.internet import defer
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ServerEndpoint, \
@@ -39,6 +40,7 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ClientEndpoint, \
     UNIXServerEndpoint, \
     UNIXClientEndpoint
+from twisted.python.compat import unicode
 
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \

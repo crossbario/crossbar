@@ -39,6 +39,7 @@ from datetime import datetime
 
 from twisted.internet import reactor
 from twisted.python import log
+from twisted.python.compat import unicode
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
 
@@ -65,7 +66,7 @@ from autobahn.wamp.types import RegisterOptions
 try:
     from twisted.web.wsgi import WSGIResource
     _HAS_WSGI = True
-except ImportError:
+except (ImportError, SyntaxError):
     # Twisted hasn't ported this to Python 3 yet
     _HAS_WSGI = False
 
@@ -852,9 +853,13 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         for path in sorted(paths):
 
-            if path != "/":
+            if isinstance(path, unicode):
+                webPath = path.encode('utf8')
+            else:
+                webPath = path
 
-                resource.putChild(path, self.create_resource(paths[path]))
+            if path != b"/":
+                resource.putChild(webPath, self.create_resource(paths[path]))
 
     def create_resource(self, path_config):
         """

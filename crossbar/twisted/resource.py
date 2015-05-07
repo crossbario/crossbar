@@ -57,7 +57,7 @@ try:
     # https://twistedmatrix.com/trac/ticket/6849#comment:5
     from twisted.web.twcgi import CGIScript, CGIProcessProtocol
     _HAS_CGI = True
-except ImportError:
+except (ImportError, SyntaxError):
     # Twisted hasn't ported this to Python 3 yet
     _HAS_CGI = False
 
@@ -73,7 +73,7 @@ class JsonResource(Resource):
         self._data = json.dumps(value, sort_keys=True, indent=3)
 
     def render_GET(self, request):
-        request.setHeader('content-type', 'application/json; charset=UTF-8')
+        request.setHeader(b'content-type', b'application/json; charset=UTF-8')
         return self._data
 
 
@@ -125,8 +125,8 @@ if _HAS_STATIC:
 
         def render_GET(self, request):
             if self._cache_timeout is not None:
-                request.setHeader('cache-control', 'max-age={}, public'.format(self._cache_timeout))
-                request.setHeader('expires', http.datetimeToString(time.time() + self._cache_timeout))
+                request.setHeader(b'cache-control', 'max-age={}, public'.format(self._cache_timeout))
+                request.setHeader(b'expires', http.datetimeToString(time.time() + self._cache_timeout))
 
             return File.render_GET(self, request)
 
@@ -234,7 +234,7 @@ class SchemaDocResource(Resource):
         self._schemas = schemas or {}
 
     def render_GET(self, request):
-        request.setHeader('content-type', 'text/html; charset=UTF-8')
+        request.setHeader(b'content-type', b'text/html; charset=UTF-8')
         page = self._templates.get_template('cb_schema_overview.html')
         content = page.render(realm=self._realm, schemas=self._schemas)
         return content.encode('utf8')
