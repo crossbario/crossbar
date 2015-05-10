@@ -508,7 +508,7 @@ class RouterWorkerSession(NativeWorkerSession):
             raise ApplicationError("crossbar.error.class_import_failed", "session not derived of ApplicationSession")
 
         self.components[id] = RouterComponent(id, config, session)
-        self.session_factory.add(session, authrole=config.get('role', 'anonymous'))
+        self.session_factory.add(session, authrole=config.get('role', u'anonymous'))
 
     def stop_router_component(self, id, details=None):
         """
