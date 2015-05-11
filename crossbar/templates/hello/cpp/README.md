@@ -2,7 +2,7 @@
 
 A [C++11](http://en.wikipedia.org/wiki/C%2B%2B11) / [AutobahnCpp](https://github.com/tavendo/AutobahnCpp) based "Hello world!" example WAMP application.
 
-**See: [Getting started with C++](https://github.com/crossbario/crossbar/wiki/Getting-started-with-C--)**
+**See: [Getting started with C++](http://crossbar.io/docs/Getting-started-with-Cplusplus/)**
 
 ## How to run
 
