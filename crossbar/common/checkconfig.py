@@ -35,6 +35,8 @@ import json
 import re
 import six
 
+from twisted.python.compat import unicode
+
 from pprint import pformat
 
 from autobahn.websocket.protocol import parseWsUrl
@@ -1861,7 +1863,7 @@ def check_config_file(configfile, silence=False):
     configext = os.path.splitext(configfile)[1]
     configfile = os.path.abspath(configfile)
 
-    with open(configfile, 'rb') as infile:
+    with open(configfile, 'r') as infile:
         if configext == '.yaml':
             try:
                 config = yaml.safe_load(infile)

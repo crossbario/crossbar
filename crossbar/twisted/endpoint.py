@@ -39,6 +39,7 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ClientEndpoint, \
     UNIXServerEndpoint, \
     UNIXClientEndpoint
+from twisted.python.compat import unicode
 
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
