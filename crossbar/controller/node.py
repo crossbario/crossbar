@@ -215,7 +215,6 @@ class Node:
         call_options = CallOptions(disclose_me=True)
 
         for worker in config.get('workers', []):
-
             # worker ID, type and logname
             #
             if 'id' in worker:
@@ -365,6 +364,20 @@ class Node:
 
                     component_no = 1
 
+                    # if components exit "very soon after" we try to
+                    # start them, we consider that a failure and shut
+                    # our node down. We remove this subscription 2
+                    # seconds after we're done starting everything
+                    # (see below). This is necessary as
+                    # start_container_component returns as soon as
+                    # we've established a connection to the component
+                    def component_exited(info):
+                        dead_comp = info['id']
+                        log.msg("Component '{}' failed to start; shutting down node.".format(dead_comp))
+                        self._reactor.stop()
+                    topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self._node_id, worker_id)
+                    component_stop_sub = yield self._controller.subscribe(component_exited, topic)
+
                     for component in worker.get('components', []):
 
                         if 'id' in component:
@@ -375,6 +388,9 @@ class Node:
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
                         log.msg("{}: component '{}' started".format(worker_logname, component_id))
+
+                    # after 2 seconds, consider all the application components running
+                    self._reactor.callLater(2, component_stop_sub.unsubscribe)
 
                 else:
                     raise Exception("logic error")
