@@ -38,20 +38,20 @@ import socket
 
 import twisted
 from twisted.python import log
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred
 
+from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.twisted.util import sleep
-from autobahn.wamp.types import CallDetails, CallOptions
+from autobahn.twisted.wamp import ApplicationRunner
 
 from crossbar.router.router import CrossbarRouterFactory
 from crossbar.router.session import CrossbarRouterSessionFactory
 from crossbar.router.service import CrossbarRouterServiceSession
 from crossbar.worker.router import RouterRealm
-from autobahn.wamp.types import ComponentConfig
-
 from crossbar.common.checkconfig import check_config_file
 from crossbar.controller.process import NodeControllerSession
 from crossbar.controller.management import NodeManagementBridgeSession
+from crossbar.controller.management import NodeManagementSession
 
 
 __all__ = ('Node',)
@@ -125,10 +125,28 @@ class Node:
             setproctitle.setproctitle(controller_title)
 
         # the node's name (must be unique within the management realm)
-        if 'id' in controller_config:
-            self._node_id = controller_config['id']
+        if 'manager' in self._config:
+            self._node_id = self._config['manager']['id']
         else:
-            self._node_id = socket.gethostname()
+            if 'id' in controller_config:
+                self._node_id = controller_config['id']
+            else:
+                self._node_id = socket.gethostname()
+
+
+        if 'manager' in self._config:
+            extra = {
+                'onready': Deferred()
+            }
+            runner = ApplicationRunner(url=u"ws://localhost:9000", realm=u"cdc-oberstet-1", extra=extra)
+            runner.run(NodeManagementSession, start_reactor=False)
+
+            self._management_session = yield extra['onready']
+
+            log.msg("Connected to Crossbar.io Management Cloud: {}".format(self._management_session))
+        else:
+            self._management_session = None
+
 
         # the node's management realm
         self._realm = controller_config.get('realm', 'crossbar')
@@ -149,8 +167,11 @@ class Node:
         rlm.session = CrossbarRouterServiceSession(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
-        bridge_session = NodeManagementBridgeSession(cfg)
-        self._router_session_factory.add(bridge_session, authrole=u'trusted')
+        if self._management_session:
+            self._bridge_session = NodeManagementBridgeSession(cfg, self._management_session)
+            self._router_session_factory.add(self._bridge_session, authrole=u'trusted')
+        else:
+            self._bridge_session = None
 
         # the node controller singleton WAMP application session
         #

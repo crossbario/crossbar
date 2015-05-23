@@ -1828,6 +1828,8 @@ def check_manager(manager, silence=False):
         raise Exception("manager items must be dictionaries ({} encountered)\n\n{}".format(type(manager), pformat(manager)))
 
     check_dict_args({
+        'id': (True, [six.text_type]),
+        'key': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
         'transport': (True, [dict]),
     }, manager, "invalid manager configuration")

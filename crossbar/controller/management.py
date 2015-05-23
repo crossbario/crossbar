@@ -44,17 +44,35 @@ __all__ = ('NodeManagementSession',)
 class NodeManagementSession(ApplicationSession):
 
     def onJoin(self, details):
-        log.msg("Connected to Crossbar.io Management Cloud.")
+        self.config.extra['onready'].callback(self)
 
 
 class NodeManagementBridgeSession(ApplicationSession):
+
+    def __init__(self, config, management_session):
+        ApplicationSession.__init__(self, config)
+        self._management_session = management_session
+
+    def _forward_call(self, *args, **kwargs):
+        return self.call()
 
     @inlineCallbacks
     def onJoin(self, details):
         log.msg("Management bridge attached to node router.")
 
+        self._regs = {}
+
+        @inlineCallbacks
         def on_registration_create(session_id, registration):
+            uri = u'local.' + registration['uri']
+
+            def forward_call(*args, **kwargs):
+                return self.call(uri, *args, **kwargs)
+
+            yield self._management_session.register(forward_call, uri)
+
             log.msg("Node procedure registered: {} ({})".format(registration['uri'], registration['id']))
+
 
         yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
 
@@ -63,14 +81,7 @@ class NodeManagementBridgeSession(ApplicationSession):
 
         yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
 
-        self._connect()
-
         log.msg("Management bridge ready.")
-
-    def _connect(self):
-        log.msg("Management bridge connecting to upstream ..")
-        runner = ApplicationRunner(url=u"ws://localhost:9000", realm=u"cdc-oberstet-1")
-        runner.run(NodeManagementSession, start_reactor=False)
 
 
 class NodeManagementSessionOld(ApplicationSession):
