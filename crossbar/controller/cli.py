@@ -39,10 +39,11 @@ import pkg_resources
 import platform
 import traceback
 
-from twisted.python import log
 from twisted.python.reflect import qual
 
 from autobahn.twisted.choosereactor import install_reactor
+
+from crossbar._logging import log, logPublisher
 
 try:
     import psutil
@@ -294,7 +295,7 @@ def run_command_status(options):
     pid_data = check_is_running(options.cbdir)
     if pid_data is None:
         # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
-        # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
+        # https://www.freebs.odrg/cgi/man.cgi?query=sysexits&sektion=3
         print("No Crossbar.io instance is currently running from node directory {}.".format(options.cbdir))
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
     else:
@@ -378,24 +379,38 @@ def run_command_start(options):
 
     # start Twisted logging
     #
+
+
+    #if not options.logdir:
+    #    logfd = sys.stderr
+    #else:
+    #    from twisted.python.logfile import DailyLogFile
+    #    logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
+    #
+    #from crossbar.twisted.processutil import DefaultSystemFileLogObserver
+    #flo = DefaultSystemFileLogObserver(logfd, system="{:<10} {:>6}".format("Controller", os.getpid()))
+    #log.startLoggingWithObserver(flo.emit)
+
     if not options.logdir:
-        logfd = sys.stderr
-    else:
-        from twisted.python.logfile import DailyLogFile
-        logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
+        from crossbar._logging import StandardOutObserver, StandardErrorObserver
+        observers = [StandardOutObserver, StandardErrorObserver]
 
-    from crossbar.twisted.processutil import DefaultSystemFileLogObserver
-    flo = DefaultSystemFileLogObserver(logfd, system="{:<10} {:>6}".format("Controller", os.getpid()))
-    log.startLoggingWithObserver(flo.emit)
 
-    log.msg("=" * 20 + " Crossbar.io " + "=" * 20 + "\n")
+    for observer in observers:
+        print("adding observer")
+        logPublisher.addObserver(observer)
 
     import crossbar
-    log.msg("Crossbar.io {} starting".format(crossbar.__version__))
-
     from twisted.python.reflect import qual
-    log.msg("Running on {} using {} reactor".format(platform.python_implementation(), qual(reactor.__class__).split('.')[-1]))
-    log.msg("Starting from node directory {}".format(options.cbdir))
+
+    bannerFormat = "=  {:<23} {:>23}  ="
+    log.info("=" * 20 + " Crossbar.io " + "=" * 20)
+    log.info(bannerFormat.format("Version", crossbar.__version__))
+    log.info(bannerFormat.format("Python", platform.python_implementation()))
+    log.info(bannerFormat.format("Reactor", qual(reactor.__class__).split('.')[-1]))
+    log.info("=" * 53)
+
+    log.info("Starting from node directory {}".format(options.cbdir))
 
     # create and start Crossbar.io node
     #
@@ -404,10 +419,10 @@ def run_command_start(options):
     node.start()
 
     try:
-        log.msg("Entering reactor event loop ...")
+        log.info("Entering reactor event loop ...")
         reactor.run()
     except Exception as e:
-        log.msg("Could not start reactor: {0}".format(e))
+        log.error("Could not start reactor")
 
 
 def run_command_restart(options):
