@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 from pytrie import StringTrie
-from collections import MutableSet
 
 from autobahn import util
 
@@ -42,10 +41,10 @@ def is_protected_uri(uri):
     return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
 
 
-class OrderedSet(MutableSet):
+class OrderedSet(set):
 
-    def __init__(self, iter=None):
-        super(set, self).__init__(iter)
+    def __init__(self):
+        super(set, self).__init__()
         self._list = []
 
     def add(self, item):
