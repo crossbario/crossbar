@@ -7,3 +7,5 @@ The Crossbar.io code base:
 * [adapter](adapter) WAMP protocol and system adapters.
 * [platform](platform) Platform-specific code.
 * [twisted](twisted) Twisted auxiliary code.
+* [web](web) Crossbar.io web assets.
+* [templates](templates) Crossbar.op node templates.
