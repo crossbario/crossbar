@@ -31,7 +31,7 @@
 from __future__ import absolute_import
 
 from pytrie import StringTrie
-from ordered_set import OrderedSet
+from oset import oset as OrderedSet
 
 from autobahn import util
 
