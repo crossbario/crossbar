@@ -50,8 +50,8 @@ from autobahn.wamp.exception import ApplicationError
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
 from crossbar.router.session import CrossbarRouterSessionFactory
-from crossbar.router.service import CrossbarRouterServiceSession
-from crossbar.router.router import CrossbarRouterFactory
+from crossbar.router.service import RouterServiceSession
+from crossbar.router.router import RouterFactory
 
 from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
     CrossbarWampRawSocketServerFactory
@@ -235,7 +235,7 @@ class RouterWorkerSession(NativeWorkerSession):
         self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
 
         # factory for producing (per-realm) routers
-        self._router_factory = CrossbarRouterFactory()
+        self._router_factory = RouterFactory()
 
         # factory for producing router sessions
         self._router_session_factory = CrossbarRouterSessionFactory(self._router_factory)
@@ -325,7 +325,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # add a router/realm service session
         cfg = ComponentConfig(realm)
-        rlm.session = CrossbarRouterServiceSession(cfg, router, schemas)
+        rlm.session = RouterServiceSession(cfg, router, schemas)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
     def stop_router_realm(self, id, close_sessions=False, details=None):

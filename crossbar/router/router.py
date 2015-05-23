@@ -39,12 +39,16 @@ from crossbar.router.interfaces import IRouter
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
 from crossbar.router.types import RouterOptions
-from crossbar.router.role import CrossbarRouterRole, \
-    CrossbarRouterTrustedRole, CrossbarRouterRoleStaticAuth, \
-    CrossbarRouterRoleDynamicAuth
+from crossbar.router.role import RouterRole, \
+    RouterTrustedRole, RouterRoleStaticAuth, \
+    RouterRoleDynamicAuth
+
+__all__ = (
+    'RouterFactory',
+)
 
 
-class CrossbarRouter(object):
+class Router(object):
     """
     Crossbar.io core router class.
     """
@@ -88,7 +92,7 @@ class CrossbarRouter(object):
         self._attached = 0
 
         self._roles = {
-            "trusted": CrossbarRouterTrustedRole(self, "trusted", debug=self._debug)
+            "trusted": RouterTrustedRole(self, "trusted", debug=self._debug)
         }
 
     def attach(self, session):
@@ -244,12 +248,12 @@ class CrossbarRouter(object):
             print("Router.validate: {0} {1} {2} {3}".format(payload_type, uri, args, kwargs))
 
 
-class CrossbarRouterFactory:
+class RouterFactory:
     """
     Crossbar.io core router factory.
     """
 
-    router = CrossbarRouter
+    router = Router
     """
     The router class this factory will create router instances from.
     """
@@ -306,7 +310,7 @@ class CrossbarRouterFactory:
         uri = realm.config['name']
         assert(uri not in self._routers)
 
-        router = CrossbarRouter(self, realm, self._options)
+        router = Router(self, realm, self._options)
 
         self._routers[uri] = router
         if self.debug:
@@ -328,11 +332,11 @@ class CrossbarRouterFactory:
         uri = config['name']
 
         if 'permissions' in config:
-            role = CrossbarRouterRoleStaticAuth(router, uri, config['permissions'], debug=self.debug)
+            role = RouterRoleStaticAuth(router, uri, config['permissions'], debug=self.debug)
         elif 'authorizer' in config:
-            role = CrossbarRouterRoleDynamicAuth(router, uri, config['authorizer'], debug=self.debug)
+            role = RouterRoleDynamicAuth(router, uri, config['authorizer'], debug=self.debug)
         else:
-            role = CrossbarRouterRole(router, uri, debug=self.debug)
+            role = RouterRole(router, uri, debug=self.debug)
 
         router.add_role(role)
 

@@ -41,14 +41,14 @@ from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.observation import is_protected_uri
 
-__all__ = ('CrossbarRouterServiceSession',)
+__all__ = ('RouterServiceSession',)
 
 
 def is_restricted_session(session):
     return session._authrole is None or session._authrole == u"trusted"
 
 
-class CrossbarRouterServiceSession(ApplicationSession):
+class RouterServiceSession(ApplicationSession):
 
     """
     Router service session which is used internally by a router to

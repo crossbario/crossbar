@@ -33,7 +33,7 @@ from __future__ import absolute_import
 from twisted.trial import unittest
 # import unittest
 
-from crossbar.router.role import CrossbarRouterRoleStaticAuth
+from crossbar.router.role import RouterRoleStaticAuth
 
 
 class Test_RouterRoleStaticAuth(unittest.TestCase):
@@ -43,7 +43,7 @@ class Test_RouterRoleStaticAuth(unittest.TestCase):
 
     def test_ruleset_empty(self):
         permissions = []
-        role = CrossbarRouterRoleStaticAuth(None, "testrole", permissions)
+        role = RouterRoleStaticAuth(None, "testrole", permissions)
         actions = ['call', 'register', 'publish', 'subscribe']
         uris = ['com.example.1', 'myuri', '']
         for uri in uris:
@@ -60,7 +60,7 @@ class Test_RouterRoleStaticAuth(unittest.TestCase):
                 'subscribe': True
             }
         ]
-        role = CrossbarRouterRoleStaticAuth(None, "testrole", permissions)
+        role = RouterRoleStaticAuth(None, "testrole", permissions)
         actions = ['call', 'register', 'publish', 'subscribe']
         uris = [('com.example.1', True), ('myuri', False), ('', False)]
         for uri, allow in uris:
@@ -77,7 +77,7 @@ class Test_RouterRoleStaticAuth(unittest.TestCase):
                 'subscribe': True
             }
         ]
-        role = CrossbarRouterRoleStaticAuth(None, "testrole", permissions)
+        role = RouterRoleStaticAuth(None, "testrole", permissions)
         actions = ['call', 'register', 'publish', 'subscribe']
         uris = [('com.example.1', True), ('myuri', True), ('', True)]
         for uri, allow in uris:

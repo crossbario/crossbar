@@ -44,9 +44,9 @@ from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.twisted.util import sleep
 from autobahn.twisted.wamp import ApplicationRunner
 
-from crossbar.router.router import CrossbarRouterFactory
+from crossbar.router.router import RouterFactory
 from crossbar.router.session import CrossbarRouterSessionFactory
-from crossbar.router.service import CrossbarRouterServiceSession
+from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
 from crossbar.common.checkconfig import check_config_file
 from crossbar.controller.process import NodeControllerSession
@@ -151,7 +151,7 @@ class Node:
 
         # router and factory that creates router sessions
         #
-        self._router_factory = CrossbarRouterFactory()
+        self._router_factory = RouterFactory()
         self._router_session_factory = CrossbarRouterSessionFactory(self._router_factory)
 
         rlm = RouterRealm(None, {'name': self._realm})
@@ -162,7 +162,7 @@ class Node:
         # add a router/realm service session
         cfg = ComponentConfig(self._realm)
 
-        rlm.session = CrossbarRouterServiceSession(cfg, router)
+        rlm.session = RouterServiceSession(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
         if self._management_session:
