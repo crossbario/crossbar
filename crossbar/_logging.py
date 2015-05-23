@@ -33,21 +33,20 @@ from __future__ import absolute_import, print_function
 import sys, os
 
 from zope.interface import provider
-from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher, globalLogPublisher, LogLevel, textFileLogObserver
-from twisted.python import failure
+from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
+from twisted.logger import LogLevel, globalLogBeginner
 
 
 logPublisher = LogPublisher()
 log = Logger(observer=logPublisher)
 
+
+@provider(ILogObserver)
 def StandardOutObserver(event):
 
+    from colorama import Fore
 
-    from colorama import Fore, Back, Style
-
-
-    if event["log_level"] != LogLevel.info:
-        print(event)
+    if event["log_level"] not in (LogLevel.info, LogLevel.debug):
         return
 
     if event.get("log_system", "-") == "-":
@@ -55,19 +54,28 @@ def StandardOutObserver(event):
     else:
         logSystem = event["log_system"]
 
-    eventString = "{}[{}]{} {}".format(Fore.BLUE, logSystem, Fore.RESET, formatEvent(event))
+
+    if "Controller" in logSystem:
+        fore = Fore.BLUE
+    elif "Router" in logSystem:
+        fore = Fore.YELLOW
+    elif "Container" in logSystem:
+        fore = Fore.CYAN
+    else:
+        fore = Fore.WHITE
+
+    eventString = "{}[{}]{} {}".format(fore, logSystem, Fore.RESET, formatEvent(event))
 
     print(eventString, file=sys.stdout)
 
 
+
+@provider(ILogObserver)
 def StandardErrorObserver(event):
 
+    from colorama import Fore
 
-    from colorama import Fore, Back, Style
-
-
-    if event["log_level"] == LogLevel.info:
-
+    if event["log_level"] in (LogLevel.info, LogLevel.debug):
         return
 
     if event.get("log_system", "-") == "-":
@@ -82,6 +90,7 @@ def StandardErrorObserver(event):
 
 
 def _setup():
-    globalLogPublisher.addObserver(logPublisher)
+
     logPublisher.addObserver(StandardOutObserver)
     logPublisher.addObserver(StandardErrorObserver)
+    globalLogBeginner.beginLoggingTo([logPublisher], redirectStandardIO=False)

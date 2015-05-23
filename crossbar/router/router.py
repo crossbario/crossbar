@@ -43,6 +43,8 @@ from crossbar.router.role import CrossbarRouterRole, \
     CrossbarRouterTrustedRole, CrossbarRouterRoleStaticAuth, \
     CrossbarRouterRoleDynamicAuth
 
+from crossbar._logging import log as newLog
+
 
 class Router(object):
     """
@@ -91,7 +93,7 @@ class Router(object):
                 self._session_id_to_session[session._session_id] = session
             else:
                 if self.debug:
-                    print("attaching non-client session {}".format(session))
+                    newLog.debug("attaching non-client session {}".format(session))
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
 
@@ -123,7 +125,7 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.process`
         """
         if self.debug:
-            print("Router.process: {0}".format(msg))
+            newLog.debug("Router.process: {msg}", msg=msg)
 
         # Broker
         #
@@ -164,7 +166,8 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
         if self.debug:
-            print("Router.authorize: {0} {1} {2}".format(session, uri, action))
+            newLog.debug("Router.authorize: {session} {uri} {action}",
+                         session=session, uri=uri, action=action)
         return True
 
     def validate(self, payload_type, uri, args, kwargs):
@@ -203,7 +206,8 @@ class RouterFactory:
         if realm not in self._routers:
             self._routers[realm] = self.router(self, realm, self._options)
             if self.debug:
-                print("Router created for realm '{0}'".format(realm))
+                newLog.debug("Router created for realm '{realm}'",
+                             realm=realm)
         return self._routers[realm]
 
     def onLastDetach(self, router):
@@ -234,7 +238,7 @@ class CrossbarRouter(Router):
             "trusted": CrossbarRouterTrustedRole(self, "trusted", debug=self.debug)
         }
         self._realm = realm
-        # self.debug = True
+        #self.debug = True
 
     def has_role(self, uri):
         """
@@ -254,7 +258,7 @@ class CrossbarRouter(Router):
         :returns: bool -- `True` if a role under the given URI actually existed before and was overwritten.
         """
         if self.debug:
-            log.msg("CrossbarRouter.add_role", role)
+            newLog.debug("CrossbarRouter.add_role({role})", role=role)
 
         if role.uri in self.RESERVED_ROLES:
             raise Exception("cannot add reserved role '{}'".format(role.uri))
@@ -350,7 +354,8 @@ class CrossbarRouterFactory(RouterFactory):
 
         self._routers[uri] = router
         if self.debug:
-            log.msg("Router created for realm '{}'".format(uri))
+            log.debug("Router created for realm '{uri}'",
+                      uri=uri)
 
         return router
 

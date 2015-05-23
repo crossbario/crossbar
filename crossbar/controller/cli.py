@@ -387,13 +387,32 @@ def run_command_start(options):
     #    from twisted.python.logfile import DailyLogFile
     #    logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
     #
-    #from crossbar.twisted.processutil import DefaultSystemFileLogObserver
-    #flo = DefaultSystemFileLogObserver(logfd, system="{:<10} {:>6}".format("Controller", os.getpid()))
+    #
+    #flo =
     #log.startLoggingWithObserver(flo.emit)
 
     if not options.logdir:
         from crossbar._logging import _setup
         _setup()
+
+    else:
+
+        from crossbar.twisted.processutil import DefaultSystemFileLogObserver
+        from twisted.logger import globalLogBeginner, LegacyLogObserverWrapper
+        from crossbar._logging import logPublisher, StandardOutObserver
+        from twisted.python.logfile import DailyLogFile
+
+        logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
+
+        flo = LegacyLogObserverWrapper(
+            DefaultSystemFileLogObserver(logfd,
+                                         system="{:<10} {:>6}".format(
+                                             "Controller", os.getpid())).emit
+            )
+
+        logPublisher.addObserver(flo)
+        globalLogBeginner.beginLoggingTo([logPublisher])
+
 
     import crossbar
     from twisted.python.reflect import qual
