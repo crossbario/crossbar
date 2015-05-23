@@ -40,19 +40,6 @@ from twisted.python import failure
 logPublisher = LogPublisher()
 log = Logger(observer=logPublisher)
 
-globalLogPublisher.addObserver(logPublisher)
-
-
-def _exceptHook(exctype, value, tb):
-
-    print("a")
-    print(exctype)
-    log.failure("Exception.", failure=failure.Failure(value, exctype, tb))
-    print("b")
-
-#sys.excepthook = _exceptHook
-
-
 def StandardOutObserver(event):
 
 
@@ -83,8 +70,6 @@ def StandardErrorObserver(event):
 
         return
 
-    print("omg")
-
     if event.get("log_system", "-") == "-":
         logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
     else:
@@ -97,5 +82,6 @@ def StandardErrorObserver(event):
 
 
 def _setup():
+    globalLogPublisher.addObserver(logPublisher)
     logPublisher.addObserver(StandardOutObserver)
     logPublisher.addObserver(StandardErrorObserver)

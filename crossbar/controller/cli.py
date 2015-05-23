@@ -392,13 +392,8 @@ def run_command_start(options):
     #log.startLoggingWithObserver(flo.emit)
 
     if not options.logdir:
-        from crossbar._logging import StandardOutObserver, StandardErrorObserver
-        observers = [StandardOutObserver, StandardErrorObserver]
-
-
-    for observer in observers:
-        print("adding observer")
-        logPublisher.addObserver(observer)
+        from crossbar._logging import _setup
+        _setup()
 
     import crossbar
     from twisted.python.reflect import qual
