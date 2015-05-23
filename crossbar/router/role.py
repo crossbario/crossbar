@@ -104,7 +104,7 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
     A role on a router realm that is authorized using a static configuration.
     """
 
-    def __init__(self, router, uri, permissions, debug=False):
+    def __init__(self, router, uri, permissions=None, default_permissions=None, debug=False):
         """
         Ctor.
 
@@ -117,12 +117,12 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
         :type debug: bool
         """
         CrossbarRouterRole.__init__(self, router, uri, debug)
-        self.permissions = permissions
+        self.permissions = permissions or []
 
         self._urimap = StringTrie()
-        self._default = CrossbarRouterPermissions('', True, False, False, False, False)
+        self._default = default_permissions or CrossbarRouterPermissions('', True, False, False, False, False)
 
-        for p in permissions:
+        for p in self.permissions:
             uri = p['uri']
 
             if len(uri) > 0 and uri[-1] == '*':

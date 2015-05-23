@@ -37,8 +37,10 @@ import txaio
 from autobahn.wamp import types
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar.router.router import RouterFactory
-from crossbar.router.session import RouterSessionFactory
+from crossbar.router.router import CrossbarRouterFactory
+from crossbar.router.session import CrossbarRouterSessionFactory
+from crossbar.worker.router import RouterRealm
+from crossbar.router.role import CrossbarRouterRoleStaticAuth, CrossbarRouterPermissions
 
 
 class TestEmbeddedSessions(unittest.TestCase):
@@ -51,8 +53,20 @@ class TestEmbeddedSessions(unittest.TestCase):
         """
         Setup router and router session factories.
         """
-        self.router_factory = RouterFactory()
-        self.session_factory = RouterSessionFactory(self.router_factory)
+
+        # create a router factory
+        self.router_factory = CrossbarRouterFactory()
+
+        # start a realm
+        self.router_factory.start_realm(RouterRealm(None, {u'name': u'realm1'}))
+
+        # allow everything
+        permissions = CrossbarRouterPermissions('', True, True, True, True, True)
+        router = self.router_factory.get(u'realm1')
+        router.add_role(CrossbarRouterRoleStaticAuth(router, None, default_permissions=permissions))
+
+        # create a router session factory
+        self.session_factory = CrossbarRouterSessionFactory(self.router_factory)
 
     def tearDown(self):
         pass
