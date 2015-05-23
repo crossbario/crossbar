@@ -31,14 +31,12 @@
 from __future__ import absolute_import
 
 from twisted.python import log
-
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
-from crossbar.router.interfaces import IRouter
+from crossbar.router import RouterOptions, RouterAction
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
-from crossbar.router.types import RouterOptions
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
@@ -229,7 +227,7 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
         role = session._authrole
-        action = IRouter.ACTION_TO_STRING[action]
+        action = RouterAction.ACTION_TO_STRING[action]
 
         authorized = False
         if role in self._roles:

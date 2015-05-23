@@ -39,8 +39,7 @@ from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
     _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY
 
 from crossbar.router.observation import UriObservationMap
-from crossbar.router.types import RouterOptions
-from crossbar.router.interfaces import IRouter
+from crossbar.router import RouterOptions, RouterAction
 
 import txaio
 
@@ -162,7 +161,7 @@ class Broker(object):
 
             # authorize PUBLISH action
             #
-            d = txaio.as_future(self._router.authorize, session, publish.topic, IRouter.ACTION_PUBLISH)
+            d = txaio.as_future(self._router.authorize, session, publish.topic, RouterAction.ACTION_PUBLISH)
 
             def on_authorize_success(authorized):
 
@@ -296,7 +295,7 @@ class Broker(object):
 
         # authorize action
         #
-        d = txaio.as_future(self._router.authorize, session, subscribe.topic, IRouter.ACTION_SUBSCRIBE)
+        d = txaio.as_future(self._router.authorize, session, subscribe.topic, RouterAction.ACTION_SUBSCRIBE)
 
         def on_authorize_success(authorized):
             if not authorized:

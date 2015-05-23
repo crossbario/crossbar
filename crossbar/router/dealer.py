@@ -41,8 +41,7 @@ from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
     _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY
 
 from crossbar.router.observation import UriObservationMap
-from crossbar.router.types import RouterOptions
-from crossbar.router.interfaces import IRouter
+from crossbar.router import RouterOptions, RouterAction
 
 import txaio
 
@@ -193,7 +192,7 @@ class Dealer(object):
 
         # authorize action
         #
-        d = txaio.as_future(self._router.authorize, session, register.procedure, IRouter.ACTION_REGISTER)
+        d = txaio.as_future(self._router.authorize, session, register.procedure, RouterAction.ACTION_REGISTER)
 
         def on_authorize_success(authorized):
             if not authorized:
@@ -341,7 +340,7 @@ class Dealer(object):
 
             # authorize CALL action
             #
-            d = txaio.as_future(self._router.authorize, session, call.procedure, IRouter.ACTION_CALL)
+            d = txaio.as_future(self._router.authorize, session, call.procedure, RouterAction.ACTION_CALL)
 
             def on_authorize_success(authorized):
 

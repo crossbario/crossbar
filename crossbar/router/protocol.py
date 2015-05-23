@@ -44,14 +44,14 @@ import crossbar
 from crossbar.router.cookiestore import CookieStore, PersistentCookieStore
 
 __all__ = (
-    'WampWebSocketServerProtocol',
     'WampWebSocketServerFactory',
-    'WampRawSocketServerProtocol',
     'WampRawSocketServerFactory',
-    'WampRawSocketClientProtocol',
     'WampRawSocketClientFactory',
-    'WampWebSocketClientProtocol',
     'WampWebSocketClientFactory',
+    # 'WampWebSocketServerProtocol',
+    # 'WampRawSocketServerProtocol',
+    # 'WampRawSocketClientProtocol',
+    # 'WampWebSocketClientProtocol',
 )
 
 
@@ -185,7 +185,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
         # handle WebSocket opening handshake
         #
-        protocol, headers = WampWebSocketServerProtocol.onConnect(self, request)
+        protocol, headers = websocket.WampWebSocketServerProtocol.onConnect(self, request)
 
         try:
 
@@ -345,14 +345,14 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         else:
             serializers = None
 
-        WampWebSocketServerFactory.__init__(self,
-                                            factory,
-                                            serializers=serializers,
-                                            url=config.get('url', None),
-                                            server=server,
-                                            externalPort=externalPort,
-                                            debug=self.debug,
-                                            debug_wamp=self.debug)
+        websocket.WampWebSocketServerFactory.__init__(self,
+                                                      factory,
+                                                      serializers=serializers,
+                                                      url=config.get('url', None),
+                                                      server=server,
+                                                      externalPort=externalPort,
+                                                      debug=self.debug,
+                                                      debug_wamp=self.debug)
 
         # Crossbar.io node directory
         self._cbdir = cbdir
@@ -386,7 +386,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
     """
 
     def connectionMade(self):
-        WampRawSocketServerProtocol.connectionMade(self)
+        rawsocket.WampRawSocketServerProtocol.connectionMade(self)
 
         # transport authentication
         #
@@ -472,7 +472,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
         #
         debug = config.get('debug', False)
 
-        WampRawSocketServerFactory.__init__(self, factory, serializers, debug=debug)
+        rawsocket.WampRawSocketServerFactory.__init__(self, factory, serializers, debug=debug)
 
         if self.debug:
             log.msg("RawSocket transport factory created using {0} serializers, max. message size {1}".format(serializers, self._max_message_size))
@@ -500,7 +500,7 @@ class WampWebSocketClientFactory(websocket.WampWebSocketClientFactory):
     protocol = WampWebSocketClientProtocol
 
     def buildProtocol(self, addr):
-        self._proto = WampWebSocketClientFactory.buildProtocol(self, addr)
+        self._proto = websocket.WampWebSocketClientFactory.buildProtocol(self, addr)
         return self._proto
 
 
@@ -548,4 +548,4 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
         else:
             raise Exception("invalid WAMP serializer '{}'".format(serid))
 
-        WampRawSocketClientFactory.__init__(self, factory, serializer)
+        rawsocket.WampRawSocketClientFactory.__init__(self, factory, serializer)

@@ -27,3 +27,39 @@
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
 #####################################################################################
+
+
+class RouterOptions:
+
+    """
+    Router options for creating routers.
+    """
+
+    URI_CHECK_LOOSE = "loose"
+    URI_CHECK_STRICT = "strict"
+
+    def __init__(self, uri_check=None):
+        """
+
+        :param uri_check: Method which should be applied to check WAMP URIs.
+        :type uri_check: str
+        """
+        self.uri_check = uri_check or RouterOptions.URI_CHECK_STRICT
+
+    def __str__(self):
+        return "RouterOptions(uri_check = {0})".format(self.uri_check)
+
+
+class RouterAction(object):
+
+    ACTION_CALL = 1
+    ACTION_REGISTER = 2
+    ACTION_PUBLISH = 3
+    ACTION_SUBSCRIBE = 4
+
+    ACTION_TO_STRING = {
+        ACTION_CALL: 'call',
+        ACTION_REGISTER: 'register',
+        ACTION_PUBLISH: 'publish',
+        ACTION_SUBSCRIBE: 'subscribe'
+    }
