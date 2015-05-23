@@ -36,11 +36,44 @@ from twisted.python import log
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
+from autobahn.twisted.wamp import ApplicationRunner
 
 __all__ = ('NodeManagementSession',)
 
 
 class NodeManagementSession(ApplicationSession):
+
+    def onJoin(self, details):
+        log.msg("Connected to Crossbar.io Management Cloud.")
+
+
+class NodeManagementBridgeSession(ApplicationSession):
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        log.msg("Management bridge attached to node router.")
+
+        def on_registration_create(session_id, registration):
+            log.msg("Node procedure registered: {} ({})".format(registration['uri'], registration['id']))
+
+        yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
+
+        def on_registration_delete(session_id, registration_id):
+            log.msg("Node procedure unregistered: {}".format(registration_id))
+
+        yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
+
+        self._connect()
+
+        log.msg("Management bridge ready.")
+
+    def _connect(self):
+        log.msg("Management bridge connecting to upstream ..")
+        runner = ApplicationRunner(url=u"ws://localhost:9000", realm=u"cdc-oberstet-1")
+        runner.run(NodeManagementSession, start_reactor=False)
+
+
+class NodeManagementSessionOld(ApplicationSession):
 
     """
     """

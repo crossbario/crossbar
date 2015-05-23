@@ -49,6 +49,14 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         self._pid = self.transport.pid
         self.factory.proto = self
 
+        # native workers are implicitly trusted
+        self._authid = u'dummy'
+        self._authrole = u'trusted'
+        self._authmethod = u'trusted'
+
+        # FIXME
+        self._transport_info = None
+
     def connectionLost(self, reason):
         log.msg("Worker {}: Process connection gone ({})".format(self._pid, reason.value))
 
