@@ -32,7 +32,7 @@ import os
 import json
 import time
 
-from twisted.python import log
+from twisted.python import log, compat
 from twisted.web import http
 from twisted.web.http import NOT_FOUND
 from twisted.web.resource import Resource, NoResource
@@ -53,7 +53,7 @@ except ImportError:
 
 
 try:
-    # trigers module level reactor import
+    # triggers module level reactor import
     # https://twistedmatrix.com/trac/ticket/6849#comment:5
     from twisted.web.twcgi import CGIScript, CGIProcessProtocol
     _HAS_CGI = True
@@ -86,7 +86,7 @@ class Resource404(Resource):
     def __init__(self, templates, directory):
         Resource.__init__(self)
         self._page = templates.get_template('cb_web_404.html')
-        self._directory = directory
+        self._directory = compat.nativeString(directory)
 
     def render_GET(self, request):
         request.setResponseCode(NOT_FOUND)
