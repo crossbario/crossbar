@@ -697,7 +697,7 @@ class NodeControllerSession(NativeProcessSession):
         else:
             log.msg("Stopping {} worker with ID '{}'".format(wtype, id))
             self._workers[id].factory.stopFactory()
-            # self._workers[id].proto._session.leave()
+            self._workers[id].proto.transport.signalProcess('TERM')
 
     def start_guest(self, id, config, details=None):
         """

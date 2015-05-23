@@ -125,7 +125,6 @@ setup(
         'pyyaml>=3.11',               # MIT license
         'shutilwhich>=1.0.1',         # PSF license
         'treq>=15.0.0',               # MIT license
-        'oset>=0.1.3',                # MIT license
     ],
     extras_require={
         'all': extras_require_all,

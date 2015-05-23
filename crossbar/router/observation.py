@@ -31,7 +31,7 @@
 from __future__ import absolute_import
 
 from pytrie import StringTrie
-from oset import oset as OrderedSet
+from collections import MutableSet
 
 from autobahn import util
 
@@ -40,6 +40,30 @@ __all__ = ('UriObservationMap', 'is_protected_uri')
 
 def is_protected_uri(uri):
     return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
+
+
+class OrderedSet(MutableSet):
+
+    def __init__(self, iter=None):
+        super(set, self).__init__(iter)
+        self._list = []
+
+    def add(self, item):
+        super(OrderedSet, self).add(item)
+        self._list.append(item)
+
+    def discard(self, item):
+        self._list.remove(item)
+        return super(OrderedSet, self).discard(item)
+
+    def __getitem__(self, index):
+        return self._list[index]
+
+    def __iter__(self):
+        return iter(self._list)
+
+    def __reversed__(self):
+        return reversed(self._list)
 
 
 class UriObservation(object):
