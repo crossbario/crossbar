@@ -161,7 +161,11 @@ class Dealer(object):
         # "crossbar." other than for trusted session (that are sessions
         # built into Crossbar.io)
         if session._authrole is not None and session._authrole != u"trusted":
-            if register.procedure.startswith(u"wamp.") or register.procedure.startswith(u"crossbar."):
+            is_restricted = False
+            is_restricted = is_restricted or register.procedure.startswith(u"wamp.")
+            # FIXME
+            #is_restricted = is_restricted or register.procedure.startswith(u"crossbar.")
+            if is_restricted:
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, ["register for restricted procedure URI '{0}')".format(register.procedure)])
                 session._transport.send(reply)
                 return

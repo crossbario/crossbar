@@ -64,20 +64,27 @@ class NodeManagementBridgeSession(ApplicationSession):
 
         @inlineCallbacks
         def on_registration_create(session_id, registration):
-            uri = u'local.' + registration['uri']
+            uri = registration['uri']
 
             def forward_call(*args, **kwargs):
                 return self.call(uri, *args, **kwargs)
 
-            yield self._management_session.register(forward_call, uri)
+            reg = yield self._management_session.register(forward_call, uri)
+            self._regs[registration['id']] = reg
 
-            log.msg("Node procedure registered: {} ({})".format(registration['uri'], registration['id']))
-
+            log.msg("Management bridge - forwarding procedure: {}".format(reg.procedure))
 
         yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
 
+        @inlineCallbacks
         def on_registration_delete(session_id, registration_id):
-            log.msg("Node procedure unregistered: {}".format(registration_id))
+            reg = self._regs.pop(registration_id, None)
+
+            if reg:
+                yield reg.unregister()
+                log.msg("Management bridge - removed procedure {}".format(reg.procedure))
+            else:
+                log.msg("Management bridge - WARNING: on_registration_delete() for unmapped registration_id {}".format(registration_id))
 
         yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
 

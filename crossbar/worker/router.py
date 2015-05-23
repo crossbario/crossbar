@@ -296,7 +296,7 @@ class RouterWorkerSession(NativeWorkerSession):
         if self.debug:
             log.msg("{}.get_router_realms".format(self.__class__.__name__))
 
-        raise NotImplementedError()
+        raise Exception("not implemented")
 
     def start_router_realm(self, id, config, schemas=None, details=None):
         """
