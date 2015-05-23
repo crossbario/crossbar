@@ -94,7 +94,7 @@ from autobahn.twisted.flashpolicy import FlashPolicyFactory
 
 from autobahn.wamp.types import ComponentConfig
 
-from crossbar.worker.native import NativeWorkerSession
+from crossbar.worker.worker import NativeWorkerSession
 
 from crossbar.common import checkconfig
 from crossbar.twisted.site import patchFileContentTypes

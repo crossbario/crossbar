@@ -49,7 +49,7 @@ from autobahn.wamp.types import ComponentConfig, \
     RegisterOptions
 
 from crossbar.common import checkconfig
-from crossbar.worker.native import NativeWorkerSession
+from crossbar.worker.worker import NativeWorkerSession
 from crossbar.router.protocol import WampWebSocketClientFactory, \
     WampRawSocketClientFactory
 
