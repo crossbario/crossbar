@@ -133,7 +133,6 @@ class Node:
             else:
                 self._node_id = socket.gethostname()
 
-
         if 'manager' in self._config:
             extra = {
                 'onready': Deferred()
@@ -146,7 +145,6 @@ class Node:
             log.msg("Connected to Crossbar.io Management Cloud: {}".format(self._management_session))
         else:
             self._management_session = None
-
 
         # the node's management realm
         self._realm = controller_config.get('realm', 'crossbar')

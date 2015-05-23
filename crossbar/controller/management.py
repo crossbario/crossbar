@@ -36,7 +36,6 @@ from twisted.python import log
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
-from autobahn.twisted.wamp import ApplicationRunner
 
 __all__ = ('NodeManagementSession',)
 

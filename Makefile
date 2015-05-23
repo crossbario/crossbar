@@ -51,3 +51,6 @@ autopep8:
 
 pylint:
 	pylint -d line-too-long,invalid-name crossbar
+
+find_classes:
+	find crossbar -name "*.py" -exec grep -Hi "^class" {} \; | grep -iv test
