@@ -43,8 +43,8 @@ def is_protected_uri(uri):
 
 class OrderedSet(set):
 
-    def __init__(self, iter=None):
-        super(set, self).__init__(iter)
+    def __init__(self):
+        super(set, self).__init__()
         self._list = []
 
     def add(self, item):
