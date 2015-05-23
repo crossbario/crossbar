@@ -38,6 +38,11 @@ from twisted.python import log
 
 from autobahn import util
 
+__all__ = (
+    'CookieStore',
+    'PersistentCookieStore',
+)
+
 
 class CookieStore:
 

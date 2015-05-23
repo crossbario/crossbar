@@ -38,7 +38,7 @@ from autobahn.wamp import types
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import RouterFactory
-from crossbar.router.session import CrossbarRouterSessionFactory
+from crossbar.router.session import RouterSessionFactory
 from crossbar.worker.router import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 
@@ -66,7 +66,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         router.add_role(RouterRoleStaticAuth(router, None, default_permissions=permissions))
 
         # create a router session factory
-        self.session_factory = CrossbarRouterSessionFactory(self.router_factory)
+        self.session_factory = RouterSessionFactory(self.router_factory)
 
     def tearDown(self):
         pass

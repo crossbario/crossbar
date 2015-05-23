@@ -59,12 +59,11 @@ from crossbar.router.auth import PendingAuthPersona, \
 
 
 __all__ = (
-    'CrossbarRouterSessionFactory',
-    'CrossbarRouterFactory',
+    'RouterSessionFactory',
 )
 
 
-class RouterApplicationSession:
+class _RouterApplicationSession:
 
     """
     Wraps an application session to run directly attached to a WAMP router (broker+dealer).
@@ -201,7 +200,7 @@ class RouterApplicationSession:
             raise Exception("RouterApplicationSession.send: unhandled message {0}".format(msg))
 
 
-class RouterSession(BaseSession):
+class _RouterSession(BaseSession):
     """
     WAMP router session. This class implements :class:`autobahn.wamp.interfaces.ITransportHandler`.
     """
@@ -438,15 +437,15 @@ class RouterSession(BaseSession):
             print("Catched exception during message processing: {0}".format(err.getTraceback()))  # replace with proper logging
 
 
-ITransportHandler.register(RouterSession)
+ITransportHandler.register(_RouterSession)
 
 
-class RouterSessionFactory(object):
+class _RouterSessionFactory(object):
     """
     WAMP router session factory.
     """
 
-    session = RouterSession
+    session = _RouterSession
     """
    WAMP router session class to be used in this factory.
    """
@@ -467,7 +466,7 @@ class RouterSessionFactory(object):
         :param: session: A WAMP application session.
         :type session: A instance of a class that derives of :class:`autobahn.wamp.protocol.WampAppSession`
         """
-        self._app_sessions[session] = RouterApplicationSession(session, self._routerFactory, authid, authrole)
+        self._app_sessions[session] = _RouterApplicationSession(session, self._routerFactory, authid, authrole)
 
     def remove(self, session):
         """
@@ -489,7 +488,7 @@ class RouterSessionFactory(object):
         return session
 
 
-class CrossbarRouterSession(RouterSession):
+class RouterSession(_RouterSession):
 
     """
     Router-side of (non-embedded) Crossbar.io WAMP sessions.
@@ -499,7 +498,7 @@ class CrossbarRouterSession(RouterSession):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onOpen`
         """
-        RouterSession.onOpen(self, transport)
+        _RouterSession.onOpen(self, transport)
 
         if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
             self._transport_config = self._transport.factory._config
@@ -1027,10 +1026,10 @@ class CrossbarRouterSession(RouterSession):
                     proto.sendClose()
 
 
-class CrossbarRouterSessionFactory(RouterSessionFactory):
+class RouterSessionFactory(_RouterSessionFactory):
 
     """
     Factory creating the router side of (non-embedded) Crossbar.io WAMP sessions.
     This is the session factory that will given to router transports.
     """
-    session = CrossbarRouterSession
+    session = RouterSession

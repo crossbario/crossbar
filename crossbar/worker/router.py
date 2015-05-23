@@ -49,12 +49,12 @@ from autobahn.wamp.exception import ApplicationError
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
-from crossbar.router.session import CrossbarRouterSessionFactory
+from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
 from crossbar.router.router import RouterFactory
 
-from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
-    CrossbarWampRawSocketServerFactory
+from crossbar.router.protocol import WampWebSocketServerFactory, \
+    WampRawSocketServerFactory
 
 from crossbar.worker.testee import WebSocketTesteeServerFactory, \
     StreamTesteeServerFactory
@@ -238,7 +238,7 @@ class RouterWorkerSession(NativeWorkerSession):
         self._router_factory = RouterFactory()
 
         # factory for producing router sessions
-        self._router_session_factory = CrossbarRouterSessionFactory(self._router_factory)
+        self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         # map: realm ID -> RouterRealm
         self.realms = {}
@@ -581,14 +581,14 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         if config['type'] == 'rawsocket':
 
-            transport_factory = CrossbarWampRawSocketServerFactory(self._router_session_factory, config)
+            transport_factory = WampRawSocketServerFactory(self._router_session_factory, config)
             transport_factory.noisy = False
 
         # standalone WAMP-WebSocket transport
         #
         elif config['type'] == 'websocket':
 
-            transport_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, config, self._templates)
+            transport_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, config, self._templates)
             transport_factory.noisy = False
 
         # Flash-policy file server pseudo transport
@@ -874,7 +874,7 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         if path_config['type'] == 'websocket':
 
-            ws_factory = CrossbarWampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, path_config, self._templates)
+            ws_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, path_config, self._templates)
 
             # FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
             ws_factory.startFactory()
