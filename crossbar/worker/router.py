@@ -49,12 +49,12 @@ from autobahn.wamp.exception import ApplicationError
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
-from crossbar.router.session import CrossbarRouterSessionFactory
-from crossbar.router.service import CrossbarRouterServiceSession
-from crossbar.router.router import CrossbarRouterFactory
+from crossbar.router.session import RouterSessionFactory
+from crossbar.router.service import RouterServiceSession
+from crossbar.router.router import RouterFactory
 
-from crossbar.router.protocol import CrossbarWampWebSocketServerFactory, \
-    CrossbarWampRawSocketServerFactory
+from crossbar.router.protocol import WampWebSocketServerFactory, \
+    WampRawSocketServerFactory
 
 from crossbar.worker.testee import WebSocketTesteeServerFactory, \
     StreamTesteeServerFactory
@@ -94,7 +94,7 @@ from autobahn.twisted.flashpolicy import FlashPolicyFactory
 
 from autobahn.wamp.types import ComponentConfig
 
-from crossbar.worker.native import NativeWorkerSession
+from crossbar.worker.worker import NativeWorkerSession
 
 from crossbar.common import checkconfig
 from crossbar.twisted.site import patchFileContentTypes
@@ -235,10 +235,10 @@ class RouterWorkerSession(NativeWorkerSession):
         self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
 
         # factory for producing (per-realm) routers
-        self.factory = CrossbarRouterFactory()
+        self._router_factory = RouterFactory()
 
         # factory for producing router sessions
-        self.session_factory = CrossbarRouterSessionFactory(self.factory)
+        self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         # map: realm ID -> RouterRealm
         self.realms = {}
@@ -296,7 +296,7 @@ class RouterWorkerSession(NativeWorkerSession):
         if self.debug:
             log.msg("{}.get_router_realms".format(self.__class__.__name__))
 
-        raise NotImplementedError()
+        raise Exception("not implemented")
 
     def start_router_realm(self, id, config, schemas=None, details=None):
         """
@@ -321,12 +321,12 @@ class RouterWorkerSession(NativeWorkerSession):
         self.realm_to_id[realm] = id
 
         # create a new router for the realm
-        router = self.factory.start_realm(rlm)
+        router = self._router_factory.start_realm(rlm)
 
         # add a router/realm service session
         cfg = ComponentConfig(realm)
-        rlm.session = CrossbarRouterServiceSession(cfg, router, schemas)
-        self.session_factory.add(rlm.session, authrole=u'trusted')
+        rlm.session = RouterServiceSession(cfg, router, schemas)
+        self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
     def stop_router_realm(self, id, close_sessions=False, details=None):
         """
@@ -385,7 +385,7 @@ class RouterWorkerSession(NativeWorkerSession):
         self.realms[id].roles[role_id] = RouterRealmRole(role_id, config)
 
         realm = self.realms[id].config['name']
-        self.factory.add_role(realm, config)
+        self._router_factory.add_role(realm, config)
 
     def stop_router_realm_role(self, id, role_id, details=None):
         """
@@ -508,7 +508,7 @@ class RouterWorkerSession(NativeWorkerSession):
             raise ApplicationError("crossbar.error.class_import_failed", "session not derived of ApplicationSession")
 
         self.components[id] = RouterComponent(id, config, session)
-        self.session_factory.add(session, authrole=config.get('role', u'anonymous'))
+        self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))
 
     def stop_router_component(self, id, details=None):
         """
@@ -581,14 +581,14 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         if config['type'] == 'rawsocket':
 
-            transport_factory = CrossbarWampRawSocketServerFactory(self.session_factory, config)
+            transport_factory = WampRawSocketServerFactory(self._router_session_factory, config)
             transport_factory.noisy = False
 
         # standalone WAMP-WebSocket transport
         #
         elif config['type'] == 'websocket':
 
-            transport_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, config, self._templates)
+            transport_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, config, self._templates)
             transport_factory.noisy = False
 
         # Flash-policy file server pseudo transport
@@ -736,7 +736,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
                 # add the publishing session to the router
                 #
-                self.session_factory.add(publisher_session, authrole=root_config.get('role', 'anonymous'))
+                self._router_session_factory.add(publisher_session, authrole=root_config.get('role', 'anonymous'))
 
                 # now create the publisher Twisted Web resource and add it to resource tree
                 #
@@ -753,7 +753,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
                 # add the calling session to the router
                 #
-                self.session_factory.add(caller_session, authrole=root_config.get('role', 'anonymous'))
+                self._router_session_factory.add(caller_session, authrole=root_config.get('role', 'anonymous'))
 
                 # now create the caller Twisted Web resource and add it to resource tree
                 #
@@ -874,7 +874,7 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         if path_config['type'] == 'websocket':
 
-            ws_factory = CrossbarWampWebSocketServerFactory(self.session_factory, self.config.extra.cbdir, path_config, self._templates)
+            ws_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, path_config, self._templates)
 
             # FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
             ws_factory.startFactory()
@@ -1005,7 +1005,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             path_options = path_config.get('options', {})
 
-            lp_resource = WampLongPollResource(self.session_factory,
+            lp_resource = WampLongPollResource(self._router_session_factory,
                                                timeout=path_options.get('request_timeout', 10),
                                                killAfter=path_options.get('session_timeout', 30),
                                                queueLimitBytes=path_options.get('queue_limit_bytes', 128 * 1024),
@@ -1028,7 +1028,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             # add the publisher session to the router
             #
-            self.session_factory.add(publisher_session, authrole=path_config.get('role', 'anonymous'))
+            self._router_session_factory.add(publisher_session, authrole=path_config.get('role', 'anonymous'))
 
             # now create the publisher Twisted Web resource
             #
@@ -1045,7 +1045,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             # add the calling session to the router
             #
-            self.session_factory.add(caller_session, authrole=path_config.get('role', 'anonymous'))
+            self._router_session_factory.add(caller_session, authrole=path_config.get('role', 'anonymous'))
 
             # now create the caller Twisted Web resource
             #

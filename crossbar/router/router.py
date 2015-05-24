@@ -31,35 +31,40 @@
 from __future__ import absolute_import
 
 from twisted.python import log
-
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
-from crossbar.router.interfaces import IRouter
+from crossbar.router import RouterOptions, RouterAction
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
-from crossbar.router.types import RouterOptions
-from crossbar.router.role import CrossbarRouterRole, \
-    CrossbarRouterTrustedRole, CrossbarRouterRoleStaticAuth, \
-    CrossbarRouterRoleDynamicAuth
+from crossbar.router.role import RouterRole, \
+    RouterTrustedRole, RouterRoleStaticAuth, \
+    RouterRoleDynamicAuth
 
-from crossbar._logging import log as newLog
+__all__ = (
+    'RouterFactory',
+)
 
 
 class Router(object):
     """
-    Basic WAMP router.
+    Crossbar.io core router class.
+    """
+
+    RESERVED_ROLES = ["trusted"]
+    """
+    Roles with these URIs are built-in and cannot be added/dropped.
     """
 
     broker = Broker
     """
-   The broker class this router will use.
-   """
+    The broker class this router will use.
+    """
 
     dealer = Dealer
     """
-   The dealer class this router will use.
-   """
+    The dealer class this router will use.
+    """
 
     def __init__(self, factory, realm, options=None):
         """
@@ -71,11 +76,11 @@ class Router(object):
         :param options: Router options.
         :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
         """
-        self.debug = False
-        self.factory = factory
-        self.realm = realm
+        self._debug = False
+        self._factory = factory
         self._options = options or RouterOptions()
-        self._realm = None
+        self._realm = realm
+        self.realm = realm.config['name']
 
         # map: session_id -> session
         self._session_id_to_session = {}
@@ -83,6 +88,10 @@ class Router(object):
         self._broker = self.broker(self, self._options)
         self._dealer = self.dealer(self, self._options)
         self._attached = 0
+
+        self._roles = {
+            "trusted": RouterTrustedRole(self, "trusted", debug=self._debug)
+        }
 
     def attach(self, session):
         """
@@ -92,8 +101,8 @@ class Router(object):
             if hasattr(session, '_session_details'):
                 self._session_id_to_session[session._session_id] = session
             else:
-                if self.debug:
-                    newLog.debug("attaching non-client session {}".format(session))
+                if self._debug:
+                    print("attaching non-client session {}".format(session))
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
 
@@ -118,14 +127,14 @@ class Router(object):
 
         self._attached -= 1
         if not self._attached:
-            self.factory.onLastDetach(self)
+            self._factory.onLastDetach(self)
 
     def process(self, session, msg):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.process`
         """
-        if self.debug:
-            newLog.debug("Router.process: {msg}", msg=msg)
+        if self._debug:
+            print("Router.process: {0}".format(msg))
 
         # Broker
         #
@@ -161,85 +170,6 @@ class Router(object):
         else:
             raise ProtocolError("Unexpected message {0}".format(msg.__class__))
 
-    def authorize(self, session, uri, action):
-        """
-        Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
-        """
-        if self.debug:
-            newLog.debug("Router.authorize: {session} {uri} {action}",
-                         session=session, uri=uri, action=action)
-        return True
-
-    def validate(self, payload_type, uri, args, kwargs):
-        """
-        Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
-        """
-        if self.debug:
-            print("Router.validate: {0} {1} {2} {3}".format(payload_type, uri, args, kwargs))
-
-
-class RouterFactory:
-
-    """
-    Basic WAMP Router factory.
-    """
-
-    router = Router
-    """
-   The router class this factory will create router instances from.
-   """
-
-    def __init__(self, options=None, debug=False):
-        """
-
-        :param options: Default router options.
-        :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
-        """
-        self._routers = {}
-        self.debug = debug
-        self._options = options or RouterOptions()
-
-    def get(self, realm):
-        """
-        Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
-        """
-        if realm not in self._routers:
-            self._routers[realm] = self.router(self, realm, self._options)
-            if self.debug:
-                newLog.debug("Router created for realm '{realm}'",
-                             realm=realm)
-        return self._routers[realm]
-
-    def onLastDetach(self, router):
-        assert(router.realm in self._routers)
-        del self._routers[router.realm]
-        if self.debug:
-            print("Router destroyed for realm '{0}'".format(router.realm))
-
-
-class CrossbarRouter(Router):
-
-    """
-    Crossbar.io core router class.
-    """
-
-    RESERVED_ROLES = ["trusted"]
-    """
-   Roles with these URIs are built-in and cannot be added/dropped.
-   """
-
-    def __init__(self, factory, realm, options=None):
-        """
-        Ctor.
-        """
-        uri = realm.config['name']
-        Router.__init__(self, factory, uri, options)
-        self._roles = {
-            "trusted": CrossbarRouterTrustedRole(self, "trusted", debug=self.debug)
-        }
-        self._realm = realm
-        #self.debug = True
-
     def has_role(self, uri):
         """
         Check if a role with given URI exists on this router.
@@ -257,8 +187,8 @@ class CrossbarRouter(Router):
 
         :returns: bool -- `True` if a role under the given URI actually existed before and was overwritten.
         """
-        if self.debug:
-            newLog.debug("CrossbarRouter.add_role({role})", role=role)
+        if self._debug:
+            log.msg("CrossbarRouter.add_role", role)
 
         if role.uri in self.RESERVED_ROLES:
             raise Exception("cannot add reserved role '{}'".format(role.uri))
@@ -278,7 +208,7 @@ class CrossbarRouter(Router):
 
         :returns: bool -- `True` if a role under the given URI actually existed and was removed.
         """
-        if self.debug:
+        if self._debug:
             log.msg("CrossbarRouter.drop_role", role)
 
         if role.uri in self.RESERVED_ROLES:
@@ -297,30 +227,58 @@ class CrossbarRouter(Router):
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
         role = session._authrole
-        action = IRouter.ACTION_TO_STRING[action]
+        action = RouterAction.ACTION_TO_STRING[action]
 
         authorized = False
         if role in self._roles:
             authorized = self._roles[role].authorize(session, uri, action)
 
-        if self.debug:
+        if self._debug:
             log.msg("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
 
         return authorized
 
+    def validate(self, payload_type, uri, args, kwargs):
+        """
+        Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
+        """
+        if self._debug:
+            print("Router.validate: {0} {1} {2} {3}".format(payload_type, uri, args, kwargs))
 
-class CrossbarRouterFactory(RouterFactory):
 
+class RouterFactory:
     """
     Crossbar.io core router factory.
     """
 
+    router = Router
+    """
+    The router class this factory will create router instances from.
+    """
+
     def __init__(self, options=None, debug=False):
         """
-        Ctor.
+
+        :param options: Default router options.
+        :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
         """
-        options = RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
-        RouterFactory.__init__(self, options, debug)
+        self._routers = {}
+        self.debug = debug
+        self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
+        self._auto_create_realms = False
+
+    def get(self, realm):
+        """
+        Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
+        """
+        if self._auto_create_realms:
+            if realm not in self._routers:
+                self._routers[realm] = self.router(self, realm, self._options)
+                if self.debug:
+                    print("Router created for realm '{0}'".format(realm))
+            return self._routers[realm]
+        else:
+            return self._routers[realm]
 
     def __getitem__(self, realm):
         return self._routers[realm]
@@ -328,11 +286,11 @@ class CrossbarRouterFactory(RouterFactory):
     def __contains__(self, realm):
         return realm in self._routers
 
-    def get(self, realm):
-        """
-        Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
-        """
-        return self._routers[realm]
+    def onLastDetach(self, router):
+        assert(router.realm in self._routers)
+        del self._routers[router.realm]
+        if self.debug:
+            print("Router destroyed for realm '{0}'".format(router.realm))
 
     def start_realm(self, realm):
         """
@@ -350,12 +308,11 @@ class CrossbarRouterFactory(RouterFactory):
         uri = realm.config['name']
         assert(uri not in self._routers)
 
-        router = CrossbarRouter(self, realm, self._options)
+        router = Router(self, realm, self._options)
 
         self._routers[uri] = router
         if self.debug:
-            log.debug("Router created for realm '{uri}'",
-                      uri=uri)
+            log.msg("Router created for realm '{}'".format(uri))
 
         return router
 
@@ -373,11 +330,11 @@ class CrossbarRouterFactory(RouterFactory):
         uri = config['name']
 
         if 'permissions' in config:
-            role = CrossbarRouterRoleStaticAuth(router, uri, config['permissions'], debug=self.debug)
+            role = RouterRoleStaticAuth(router, uri, config['permissions'], debug=self.debug)
         elif 'authorizer' in config:
-            role = CrossbarRouterRoleDynamicAuth(router, uri, config['authorizer'], debug=self.debug)
+            role = RouterRoleDynamicAuth(router, uri, config['authorizer'], debug=self.debug)
         else:
-            role = CrossbarRouterRole(router, uri, debug=self.debug)
+            role = RouterRole(router, uri, debug=self.debug)
 
         router.add_role(role)
 

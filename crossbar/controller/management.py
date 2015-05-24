@@ -42,6 +42,56 @@ __all__ = ('NodeManagementSession',)
 
 class NodeManagementSession(ApplicationSession):
 
+    def onJoin(self, details):
+        self.config.extra['onready'].callback(self)
+
+
+class NodeManagementBridgeSession(ApplicationSession):
+
+    def __init__(self, config, management_session):
+        ApplicationSession.__init__(self, config)
+        self._management_session = management_session
+
+    def _forward_call(self, *args, **kwargs):
+        return self.call()
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        log.msg("Management bridge attached to node router.")
+
+        self._regs = {}
+
+        @inlineCallbacks
+        def on_registration_create(session_id, registration):
+            uri = registration['uri']
+
+            def forward_call(*args, **kwargs):
+                return self.call(uri, *args, **kwargs)
+
+            reg = yield self._management_session.register(forward_call, uri)
+            self._regs[registration['id']] = reg
+
+            log.msg("Management bridge - forwarding procedure: {}".format(reg.procedure))
+
+        yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
+
+        @inlineCallbacks
+        def on_registration_delete(session_id, registration_id):
+            reg = self._regs.pop(registration_id, None)
+
+            if reg:
+                yield reg.unregister()
+                log.msg("Management bridge - removed procedure {}".format(reg.procedure))
+            else:
+                log.msg("Management bridge - WARNING: on_registration_delete() for unmapped registration_id {}".format(registration_id))
+
+        yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
+
+        log.msg("Management bridge ready.")
+
+
+class NodeManagementSessionOld(ApplicationSession):
+
     """
     """
 

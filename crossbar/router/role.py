@@ -37,17 +37,17 @@ from pytrie import StringTrie
 from twisted.python import log
 
 __all__ = (
-    'CrossbarRouterRole',
-    'CrossbarRouterTrustedRole',
-    'CrossbarRouterRoleStaticAuth',
-    'CrossbarRouterRoleDynamicAuth',
+    'RouterRole',
+    'RouterTrustedRole',
+    'RouterRoleStaticAuth',
+    'RouterRoleDynamicAuth',
 )
 
 
-CrossbarRouterPermissions = namedtuple('CrossbarRouterPermissions', ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
+RouterPermissions = namedtuple('RouterPermissions', ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
 
 
-class CrossbarRouterRole:
+class RouterRole:
 
     """
     Base class for router roles.
@@ -85,7 +85,7 @@ class CrossbarRouterRole:
         return False
 
 
-class CrossbarRouterTrustedRole(CrossbarRouterRole):
+class RouterTrustedRole(RouterRole):
 
     """
     A router role that is trusted to do anything. This is used e.g. for the
@@ -98,13 +98,13 @@ class CrossbarRouterTrustedRole(CrossbarRouterRole):
         return True
 
 
-class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
+class RouterRoleStaticAuth(RouterRole):
 
     """
     A role on a router realm that is authorized using a static configuration.
     """
 
-    def __init__(self, router, uri, permissions, debug=False):
+    def __init__(self, router, uri, permissions=None, default_permissions=None, debug=False):
         """
         Ctor.
 
@@ -116,13 +116,13 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
         :param debug: Enable debug logging.
         :type debug: bool
         """
-        CrossbarRouterRole.__init__(self, router, uri, debug)
-        self.permissions = permissions
+        RouterRole.__init__(self, router, uri, debug)
+        self.permissions = permissions or []
 
         self._urimap = StringTrie()
-        self._default = CrossbarRouterPermissions('', True, False, False, False, False)
+        self._default = default_permissions or RouterPermissions('', True, False, False, False, False)
 
-        for p in permissions:
+        for p in self.permissions:
             uri = p['uri']
 
             if len(uri) > 0 and uri[-1] == '*':
@@ -131,11 +131,11 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
             else:
                 match_by_prefix = False
 
-            perms = CrossbarRouterPermissions(uri, match_by_prefix,
-                                              call=p.get('call', False),
-                                              register=p.get('register', False),
-                                              publish=p.get('publish', False),
-                                              subscribe=p.get('subscribe', False))
+            perms = RouterPermissions(uri, match_by_prefix,
+                                      call=p.get('call', False),
+                                      register=p.get('register', False),
+                                      publish=p.get('publish', False),
+                                      subscribe=p.get('subscribe', False))
 
             if len(uri) > 0:
                 self._urimap[uri] = perms
@@ -169,7 +169,7 @@ class CrossbarRouterRoleStaticAuth(CrossbarRouterRole):
             return getattr(self._default, action)
 
 
-class CrossbarRouterRoleDynamicAuth(CrossbarRouterRole):
+class RouterRoleDynamicAuth(RouterRole):
 
     """
     A role on a router realm that is authorized by calling (via WAMP RPC)
@@ -185,7 +185,7 @@ class CrossbarRouterRoleDynamicAuth(CrossbarRouterRole):
         :param debug: Enable debug logging.
         :type debug: bool
         """
-        CrossbarRouterRole.__init__(self, router, uri, debug)
+        RouterRole.__init__(self, router, uri, debug)
         self._authorizer = authorizer
         self._session = router._realm.session
 

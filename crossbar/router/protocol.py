@@ -35,16 +35,8 @@ import traceback
 
 from twisted.python import log
 
-from autobahn.twisted.websocket import WampWebSocketServerProtocol, \
-    WampWebSocketServerFactory, \
-    WampWebSocketClientProtocol, \
-    WampWebSocketClientFactory
-
-from autobahn.twisted.rawsocket import WampRawSocketServerProtocol, \
-    WampRawSocketServerFactory, \
-    WampRawSocketClientProtocol, \
-    WampRawSocketClientFactory
-
+from autobahn.twisted import websocket
+from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import *  # noqa
 
 import crossbar
@@ -52,14 +44,14 @@ import crossbar
 from crossbar.router.cookiestore import CookieStore, PersistentCookieStore
 
 __all__ = (
-    'CrossbarWampWebSocketServerProtocol',
-    'CrossbarWampWebSocketServerFactory',
-    'CrossbarWampRawSocketServerProtocol',
-    'CrossbarWampRawSocketServerFactory',
-    'CrossbarWampRawSocketClientProtocol',
-    'CrossbarWampRawSocketClientFactory',
-    'CrossbarWampWebSocketClientProtocol',
-    'CrossbarWampWebSocketClientFactory',
+    'WampWebSocketServerFactory',
+    'WampRawSocketServerFactory',
+    'WampRawSocketClientFactory',
+    'WampWebSocketClientFactory',
+    # 'WampWebSocketServerProtocol',
+    # 'WampRawSocketServerProtocol',
+    # 'WampRawSocketClientProtocol',
+    # 'WampWebSocketClientProtocol',
 )
 
 
@@ -166,7 +158,7 @@ def set_websocket_options(factory, options):
             factory.setProtocolOptions(perMessageCompressionAccept=accept)
 
 
-class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
+class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
     """
     Crossbar.io WAMP-over-WebSocket server protocol.
@@ -193,7 +185,7 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
 
         # handle WebSocket opening handshake
         #
-        protocol, headers = WampWebSocketServerProtocol.onConnect(self, request)
+        protocol, headers = websocket.WampWebSocketServerProtocol.onConnect(self, request)
 
         try:
 
@@ -291,13 +283,13 @@ class CrossbarWampWebSocketServerProtocol(WampWebSocketServerProtocol):
             self.factory._cookiestore.dropProto(self._cbtid, self)
 
 
-class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
+class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
 
     """
     Crossbar.io WAMP-over-WebSocket server factory.
     """
 
-    protocol = CrossbarWampWebSocketServerProtocol
+    protocol = WampWebSocketServerProtocol
 
     def __init__(self, factory, cbdir, config, templates):
         """
@@ -353,14 +345,14 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
         else:
             serializers = None
 
-        WampWebSocketServerFactory.__init__(self,
-                                            factory,
-                                            serializers=serializers,
-                                            url=config.get('url', None),
-                                            server=server,
-                                            externalPort=externalPort,
-                                            debug=self.debug,
-                                            debug_wamp=self.debug)
+        websocket.WampWebSocketServerFactory.__init__(self,
+                                                      factory,
+                                                      serializers=serializers,
+                                                      url=config.get('url', None),
+                                                      server=server,
+                                                      externalPort=externalPort,
+                                                      debug=self.debug,
+                                                      debug_wamp=self.debug)
 
         # Crossbar.io node directory
         self._cbdir = cbdir
@@ -387,14 +379,14 @@ class CrossbarWampWebSocketServerFactory(WampWebSocketServerFactory):
         set_websocket_options(self, options)
 
 
-class CrossbarWampRawSocketServerProtocol(WampRawSocketServerProtocol):
+class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
 
     """
     Crossbar.io WAMP-over-RawSocket server protocol.
     """
 
     def connectionMade(self):
-        WampRawSocketServerProtocol.connectionMade(self)
+        rawsocket.WampRawSocketServerProtocol.connectionMade(self)
 
         # transport authentication
         #
@@ -421,13 +413,13 @@ class CrossbarWampRawSocketServerProtocol(WampRawSocketServerProtocol):
         self.transport.loseConnection()
 
 
-class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
+class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
 
     """
     Crossbar.io WAMP-over-RawSocket server factory.
     """
 
-    protocol = CrossbarWampRawSocketServerProtocol
+    protocol = WampRawSocketServerProtocol
 
     def __init__(self, factory, config):
 
@@ -480,7 +472,7 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
         #
         debug = config.get('debug', False)
 
-        WampRawSocketServerFactory.__init__(self, factory, serializers, debug=debug)
+        rawsocket.WampRawSocketServerFactory.__init__(self, factory, serializers, debug=debug)
 
         if self.debug:
             log.msg("RawSocket transport factory created using {0} serializers, max. message size {1}".format(serializers, self._max_message_size))
@@ -492,40 +484,40 @@ class CrossbarWampRawSocketServerFactory(WampRawSocketServerFactory):
         return p
 
 
-class CrossbarWampWebSocketClientProtocol(WampWebSocketClientProtocol):
+class WampWebSocketClientProtocol(websocket.WampWebSocketClientProtocol):
 
     """
     Crossbar.io WAMP-over-WebSocket client protocol.
     """
 
 
-class CrossbarWampWebSocketClientFactory(WampWebSocketClientFactory):
+class WampWebSocketClientFactory(websocket.WampWebSocketClientFactory):
 
     """
     Crossbar.io WAMP-over-WebSocket client factory.
     """
 
-    protocol = CrossbarWampWebSocketClientProtocol
+    protocol = WampWebSocketClientProtocol
 
     def buildProtocol(self, addr):
-        self._proto = WampWebSocketClientFactory.buildProtocol(self, addr)
+        self._proto = websocket.WampWebSocketClientFactory.buildProtocol(self, addr)
         return self._proto
 
 
-class CrossbarWampRawSocketClientProtocol(WampRawSocketClientProtocol):
+class WampRawSocketClientProtocol(rawsocket.WampRawSocketClientProtocol):
 
     """
     Crossbar.io WAMP-over-RawSocket client protocol.
     """
 
 
-class CrossbarWampRawSocketClientFactory(WampRawSocketClientFactory):
+class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
 
     """
     Crossbar.io WAMP-over-RawSocket client factory.
     """
 
-    protocol = CrossbarWampRawSocketClientProtocol
+    protocol = WampRawSocketClientProtocol
 
     def __init__(self, factory, config):
 
@@ -556,4 +548,4 @@ class CrossbarWampRawSocketClientFactory(WampRawSocketClientFactory):
         else:
             raise Exception("invalid WAMP serializer '{}'".format(serid))
 
-        WampRawSocketClientFactory.__init__(self, factory, serializer)
+        rawsocket.WampRawSocketClientFactory.__init__(self, factory, serializer)

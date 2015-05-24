@@ -49,9 +49,9 @@ from autobahn.wamp.types import ComponentConfig, \
     RegisterOptions
 
 from crossbar.common import checkconfig
-from crossbar.worker.native import NativeWorkerSession
-from crossbar.router.protocol import CrossbarWampWebSocketClientFactory, \
-    CrossbarWampRawSocketClientFactory
+from crossbar.worker.worker import NativeWorkerSession
+from crossbar.router.protocol import WampWebSocketClientFactory, \
+    WampRawSocketClientFactory
 
 from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -258,18 +258,18 @@ class ContainerWorkerSession(NativeWorkerSession):
 
             # create a WAMP-over-WebSocket transport client factory
             #
-            transport_factory = CrossbarWampWebSocketClientFactory(create_session,
-                                                                   transport_config['url'],
-                                                                   debug=transport_debug,
-                                                                   debug_wamp=transport_debug_wamp)
+            transport_factory = WampWebSocketClientFactory(create_session,
+                                                           transport_config['url'],
+                                                           debug=transport_debug,
+                                                           debug_wamp=transport_debug_wamp)
             transport_factory.noisy = False
 
         # WAMP-over-RawSocket transport
         #
         elif transport_config['type'] == 'rawsocket':
 
-            transport_factory = CrossbarWampRawSocketClientFactory(create_session,
-                                                                   transport_config)
+            transport_factory = WampRawSocketClientFactory(create_session,
+                                                           transport_config)
             transport_factory.noisy = False
 
         else:

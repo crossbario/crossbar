@@ -1311,7 +1311,7 @@ def check_router_component(component, silence=False):
         raise Exception("logic error")
 
 
-def check_container_transport(transport, silence=False):
+def check_connecting_transport(transport, silence=False):
     """
     Check container transports.
 
@@ -1381,7 +1381,7 @@ def check_container_component(component, silence=False):
     else:
         raise Exception("logic error")
 
-    check_container_transport(component['transport'])
+    check_connecting_transport(component['transport'])
 
 
 def check_router_realm(realm, silence=False):
@@ -1817,6 +1817,26 @@ def check_controller(controller, silence=False):
         check_listening_transport_websocket(controller['transport'])
 
 
+def check_manager(manager, silence=False):
+    """
+    Check a node manager configuration item.
+
+    :param manager: The manager configuration to check.
+    :type manager: dict
+    """
+    if not isinstance(manager, dict):
+        raise Exception("manager items must be dictionaries ({} encountered)\n\n{}".format(type(manager), pformat(manager)))
+
+    check_dict_args({
+        'id': (True, [six.text_type]),
+        'key': (True, [six.text_type]),
+        'realm': (True, [six.text_type]),
+        'transport': (True, [dict]),
+    }, manager, "invalid manager configuration")
+
+    check_connecting_transport(manager['transport'])
+
+
 def check_config(config, silence=False):
     """
     Check a Crossbar.io top-level configuration.
@@ -1828,29 +1848,36 @@ def check_config(config, silence=False):
         raise Exception("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
 
     for k in config:
-        if k not in ['controller', 'workers']:
+        if k not in ['manager', 'controller', 'workers']:
             raise Exception("encountered unknown attribute '{}' in top-level configuration".format(k))
 
-    # check contoller config
-    #
-    if 'controller' in config:
-        if not silence:
-            print("Checking controller item ..")
-        check_controller(config['controller'])
+    if 'manager' in config and ('controller' in config or 'workers' in config):
+        raise Exception("when running in managed mode, no workers/conroller attributes must be present in configuration")
 
-    # check workers
-    #
-    workers = config.get('workers', [])
+    if 'manager' in config:
+        check_manager(config['manager'])
 
-    if not isinstance(workers, list):
-        raise Exception("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
+    else:
+        # check contoller config
+        #
+        if 'controller' in config:
+            if not silence:
+                print("Checking controller item ..")
+            check_controller(config['controller'])
 
-    i = 1
-    for worker in workers:
-        if not silence:
-            print("Checking worker item {} ..".format(i))
-        check_worker(worker, silence)
-        i += 1
+        # check workers
+        #
+        workers = config.get('workers', [])
+
+        if not isinstance(workers, list):
+            raise Exception("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
+
+        i = 1
+        for worker in workers:
+            if not silence:
+                print("Checking worker item {} ..".format(i))
+            check_worker(worker, silence)
+            i += 1
 
 
 def check_config_file(configfile, silence=False):

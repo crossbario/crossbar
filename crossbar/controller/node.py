@@ -32,23 +32,26 @@ from __future__ import absolute_import
 
 import os
 import re
-import sys
 import json
 import traceback
 import socket
 
+import twisted
 from twisted.python import log
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred
 
-from autobahn.wamp.types import CallDetails, CallOptions
+from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
+from autobahn.twisted.util import sleep
+from autobahn.twisted.wamp import ApplicationRunner
 
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
-
-from crossbar.router.types import RouterOptions
-
+from crossbar.router.service import RouterServiceSession
+from crossbar.worker.router import RouterRealm
 from crossbar.common.checkconfig import check_config_file
 from crossbar.controller.process import NodeControllerSession
+from crossbar.controller.management import NodeManagementBridgeSession
+from crossbar.controller.management import NodeManagementSession
 
 
 __all__ = ('Node',)
@@ -96,6 +99,7 @@ class Node:
         # in the node's management router)
         self._controller = None
 
+    @inlineCallbacks
     def start(self):
         """
         Starts this node. This will start a node controller and then spawn new worker
@@ -104,14 +108,10 @@ class Node:
         # for now, a node is always started from a local configuration
         #
         configfile = os.path.join(self.options.cbdir, self.options.config)
-        log.msg("Starting from local configuration '{}'".format(configfile))
-        config = check_config_file(configfile, silence=True)
+        log.msg("Starting from node configuration file '{}'".format(configfile))
+        self._config = check_config_file(configfile, silence=True)
 
-        self.start_from_config(config)
-
-    def start_from_config(self, config):
-
-        controller_config = config.get('controller', {})
+        controller_config = self._config.get('controller', {})
 
         controller_options = controller_config.get('options', {})
 
@@ -125,30 +125,60 @@ class Node:
             setproctitle.setproctitle(controller_title)
 
         # the node's name (must be unique within the management realm)
-        if 'id' in controller_config:
-            self._node_id = controller_config['id']
+        if 'manager' in self._config:
+            self._node_id = self._config['manager']['id']
         else:
-            self._node_id = socket.gethostname()
+            if 'id' in controller_config:
+                self._node_id = controller_config['id']
+            else:
+                self._node_id = socket.gethostname()
+
+        if 'manager' in self._config:
+            extra = {
+                'onready': Deferred()
+            }
+            runner = ApplicationRunner(url=u"ws://localhost:9000", realm=u"cdc-oberstet-1", extra=extra)
+            runner.run(NodeManagementSession, start_reactor=False)
+
+            self._management_session = yield extra['onready']
+
+            log.msg("Connected to Crossbar.io Management Cloud: {}".format(self._management_session))
+        else:
+            self._management_session = None
 
         # the node's management realm
         self._realm = controller_config.get('realm', 'crossbar')
 
+        # router and factory that creates router sessions
+        #
+        self._router_factory = RouterFactory()
+        self._router_session_factory = RouterSessionFactory(self._router_factory)
+
+        rlm = RouterRealm(None, {'name': self._realm})
+
+        # create a new router for the realm
+        router = self._router_factory.start_realm(rlm)
+
+        # add a router/realm service session
+        cfg = ComponentConfig(self._realm)
+
+        rlm.session = RouterServiceSession(cfg, router)
+        self._router_session_factory.add(rlm.session, authrole=u'trusted')
+
+        if self._management_session:
+            self._bridge_session = NodeManagementBridgeSession(cfg, self._management_session)
+            self._router_session_factory.add(self._bridge_session, authrole=u'trusted')
+        else:
+            self._bridge_session = None
+
         # the node controller singleton WAMP application session
         #
         # session_config = ComponentConfig(realm = options.realm, extra = options)
-
         self._controller = NodeControllerSession(self)
-
-        # router and factory that creates router sessions
-        #
-        self._router_factory = RouterFactory(
-            options=RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE),
-            debug=True)
-        self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         # add the node controller singleton session to the router
         #
-        self._router_session_factory.add(self._controller)
+        self._router_session_factory.add(self._controller, authrole=u'trusted')
 
         # Detect WAMPlets
         #
@@ -160,37 +190,33 @@ class Node:
         else:
             log.msg("No WAMPlets detected in enviroment.")
 
-        self.run_node_config(config)
-
-    def _start_from_local_config(self, configfile):
-        """
-        Start Crossbar.io node from local configuration file.
-        """
-        configfile = os.path.abspath(configfile)
-        log.msg("Starting from local config file '{}'".format(configfile))
-
         try:
-            config = check_config_file(configfile, silence=True)
-        except Exception as e:
-            log.msg("Fatal: {}".format(e))
-            sys.exit(1)
-        else:
-            self.run_node_config(config)
-
-    @inlineCallbacks
-    def run_node_config(self, config):
-        try:
-            yield self._run_node_config(config)
+            if 'manager' in self._config:
+                yield self._startup_managed(self._config)
+            else:
+                yield self._startup_standalone(self._config)
         except:
             traceback.print_exc()
-            self._reactor.stop()
+            try:
+                self._reactor.stop()
+            except twisted.internet.error.ReactorNotRunning:
+                pass
 
     @inlineCallbacks
-    def _run_node_config(self, config):
+    def _startup_managed(self, config):
         """
-        Setup node according to config provided.
+        Connect the node to an upstream management application. The node
+        will run in "managed" mode (as opposed to "standalone" mode).
         """
+        print config
+        yield sleep(1)
 
+    @inlineCallbacks
+    def _startup_standalone(self, config):
+        """
+        Setup node according to the local configuration provided. The node
+        will run in "standalone" mode (as opposed to "managed" mode).
+        """
         # fake call details information when calling into
         # remoted procedure locally
         #

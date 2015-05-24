@@ -49,6 +49,14 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         self._pid = self.transport.pid
         self.factory.proto = self
 
+        # native workers are implicitly trusted
+        self._authid = u'dummy'
+        self._authrole = u'trusted'
+        self._authmethod = u'trusted'
+
+        # FIXME
+        self._transport_info = None
+
     def connectionLost(self, reason):
         log.msg("Worker {}: Process connection gone ({})".format(self._pid, reason.value))
 
@@ -115,7 +123,7 @@ def create_native_worker_client_factory(router_session_factory, on_ready, on_exi
 
     # on_ready is resolved in crossbar/controller/process.py:on_worker_ready around 175
     # after crossbar.node.<ID>.on_worker_ready is published to (in the controller session)
-    # that happens in crossbar/worker/native.py:publish_ready which itself happens when
+    # that happens in crossbar/worker/worker.py:publish_ready which itself happens when
     # the native worker joins the realm (part of onJoin)
     factory._on_ready = on_ready
     factory._on_exit = on_exit
