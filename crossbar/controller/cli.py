@@ -447,7 +447,7 @@ def run_command_start(options):
         log.info("Entering reactor event loop...")
         reactor.run()
     except Exception:
-        log.error("Could not start reactor")
+        log.failure("Could not start reactor: {log_failure.value}")
 
 
 def run_command_restart(options):
