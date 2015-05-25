@@ -583,8 +583,8 @@ def run(prog=None, args=None):
     parser_start.add_argument('--loglevel',
                               type=str,
                               default='standard',
-                              choices=['none', 'standard', 'verbose', 'quiet'],
-                              help="Minimum log level to show")
+                              choices=['none', 'quiet', 'standard', 'verbose'],
+                              help="How much Crossbar.io should log to the terminal, in order of verbosity.")
 
     # "stop" command
     #
