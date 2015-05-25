@@ -39,10 +39,12 @@ import pkg_resources
 import platform
 import traceback
 
-from twisted.python import log
 from twisted.python.reflect import qual
 
 from autobahn.twisted.choosereactor import install_reactor
+
+import crossbar
+from crossbar._logging import log, logPublisher
 
 try:
     import psutil
@@ -207,7 +209,6 @@ def run_command_version(options):
     except ImportError:
         msgpack_ver = '-'
 
-    import crossbar
     import platform
 
     print("")
@@ -378,24 +379,63 @@ def run_command_start(options):
 
     # start Twisted logging
     #
-    if not options.logdir:
-        logfd = sys.stderr
-    else:
+    from crossbar._logging import LogLevel, startLogging
+    from crossbar._logging import makeStandardOutObserver
+    from crossbar._logging import makeStandardErrObserver
+
+    if options.logdir:
+        # If a logdir is asked for, *always* log to it.
+        # `--logdir=place/ --loglevel=none` will write nothing to the terminal.
+        from crossbar.twisted.processutil import DefaultSystemFileLogObserver
+        from twisted.logger import LegacyLogObserverWrapper
         from twisted.python.logfile import DailyLogFile
-        logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
 
-    from crossbar.twisted.processutil import DefaultSystemFileLogObserver
-    flo = DefaultSystemFileLogObserver(logfd, system="{:<10} {:>6}".format("Controller", os.getpid()))
-    log.startLoggingWithObserver(flo.emit)
+        logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir,
+                                                       'node.log'))
 
-    log.msg("=" * 20 + " Crossbar.io " + "=" * 20 + "\n")
+        flo = LegacyLogObserverWrapper(
+            DefaultSystemFileLogObserver(logfd,
+                                         system="{:<10} {:>6}".format(
+                                             "Controller", os.getpid())).emit)
 
-    import crossbar
-    log.msg("Crossbar.io {} starting".format(crossbar.__version__))
+        logPublisher.addObserver(flo)
 
-    from twisted.python.reflect import qual
-    log.msg("Running on {} using {} reactor".format(platform.python_implementation(), qual(reactor.__class__).split('.')[-1]))
-    log.msg("Starting from node directory {}".format(options.cbdir))
+    if options.loglevel == "none":
+        # Do no logging!
+        pass
+    elif options.loglevel == "standard":
+        # Standard: For users of Crossbar
+        logPublisher.addObserver(makeStandardOutObserver(
+            (LogLevel.info,)))
+        logPublisher.addObserver(makeStandardErrObserver(
+            (LogLevel.warn, LogLevel.error,
+             LogLevel.critical)))
+    elif options.loglevel == "verbose":
+        # Verbose: for developers
+        logPublisher.addObserver(makeStandardOutObserver(
+            (LogLevel.info, LogLevel.debug)))
+        logPublisher.addObserver(makeStandardErrObserver(
+            (LogLevel.warn, LogLevel.error,
+             LogLevel.critical)))
+    elif options.loglevel == "quiet":
+        # Quiet: Only print warnings and errors to stderr.
+        logPublisher.addObserver(makeStandardErrObserver(
+            (LogLevel.warn, LogLevel.error,
+             LogLevel.critical)))
+    else:
+        assert False, "Shouldn't ever get here."
+
+    # Actually start the logger.
+    startLogging()
+
+    bannerFormat = "=  {:<23} {:>23}  ="
+    log.info("=" * 20 + " Crossbar.io " + "=" * 20)
+    log.info(bannerFormat.format("Version", crossbar.__version__))
+    log.info(bannerFormat.format("Python", platform.python_implementation()))
+    log.info(bannerFormat.format("Reactor", qual(reactor.__class__).split('.')[-1]))
+    log.info("=" * 53)
+
+    log.info("Starting from node directory {}".format(options.cbdir))
 
     # create and start Crossbar.io node
     #
@@ -404,10 +444,10 @@ def run_command_start(options):
     node.start()
 
     try:
-        log.msg("Entering reactor event loop ...")
+        log.info("Entering reactor event loop...")
         reactor.run()
-    except Exception as e:
-        log.msg("Could not start reactor: {0}".format(e))
+    except Exception:
+        log.failure("Could not start reactor: {log_failure.value}")
 
 
 def run_command_restart(options):
@@ -542,9 +582,9 @@ def run(prog=None, args=None):
 
     parser_start.add_argument('--loglevel',
                               type=str,
-                              default='info',
-                              choices=['trace', 'debug', 'info', 'warn', 'error', 'fatal'],
-                              help="Server log level (overrides default 'info')")
+                              default='standard',
+                              choices=['none', 'quiet', 'standard', 'verbose'],
+                              help="How much Crossbar.io should log to the terminal, in order of verbosity.")
 
     # "stop" command
     #
