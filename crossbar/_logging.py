@@ -33,8 +33,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 
-_stderr, _stdout = sys.stderr, sys.stdout
-
 from zope.interface import provider
 
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
@@ -55,6 +53,12 @@ except ImportError:
         RED = ""
         RESET = ""
     Fore = Fore()
+
+# Make our own copies of stdout and stderr, for printing to later
+# When we start logging, the logger will capture all outputs to the *new*
+# sys.stderr and sys.stdout. As we're printing to it, it'll get caught in an
+# infinite loop -- which we don't want.
+_stderr, _stdout = sys.stderr, sys.stdout
 
 
 def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug)):
@@ -84,7 +88,7 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug)):
         eventString = "{}[{}]{} {}".format(fore, logSystem,
                                            Fore.RESET, formatEvent(event))
 
-        print(eventString, file=stdout)
+        print(eventString, file=_stdout)
 
     return StandardOutObserver
 
@@ -108,10 +112,13 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
         eventString = "{}[{}]{} {}".format(Fore.RED, logSystem,
                                            Fore.RESET, formatEvent(event))
 
-        print(eventString, file=stderr)
+        print(eventString, file=_stderr)
 
     return StandardErrorObserver
 
 
 def startLogging():
+    """
+    Start logging to the publishers.
+    """
     globalLogBeginner.beginLoggingTo([logPublisher])
