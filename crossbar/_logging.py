@@ -64,7 +64,7 @@ _stderr, _stdout = sys.stderr, sys.stdout
 
 
 def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
-                            showSource=True):
+                            showSource=False):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
