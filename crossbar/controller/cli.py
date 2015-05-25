@@ -406,23 +406,24 @@ def run_command_start(options):
     elif options.loglevel == "standard":
         # Standard: For users of Crossbar
         logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info,)))
+            (LogLevel.info,), showSource=False, format=options.logformat))
         logPublisher.addObserver(makeStandardErrObserver(
             (LogLevel.warn, LogLevel.error,
-             LogLevel.critical)))
+             LogLevel.critical), showSource=False, format=options.logformat))
     elif options.loglevel == "verbose":
         # Verbose: for developers
         # Adds the class source.
         logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info, LogLevel.debug), showSource=True))
+            (LogLevel.info, LogLevel.debug), showSource=True,
+            format=options.logformat))
         logPublisher.addObserver(makeStandardErrObserver(
             (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=True))
+             LogLevel.critical), showSource=True, format=options.logformat))
     elif options.loglevel == "quiet":
         # Quiet: Only print warnings and errors to stderr.
         logPublisher.addObserver(makeStandardErrObserver(
             (LogLevel.warn, LogLevel.error,
-             LogLevel.critical)))
+             LogLevel.critical), showSource=False, format=options.logformat))
     else:
         assert False, "Shouldn't ever get here."
 
@@ -586,6 +587,12 @@ def run(prog=None, args=None):
                               default='standard',
                               choices=['none', 'quiet', 'standard', 'verbose'],
                               help="How much Crossbar.io should log to the terminal, in order of verbosity.")
+
+    parser_start.add_argument('--logformat',
+                              type=str,
+                              default='colour',
+                              choices=['syslogd', 'nocolour', 'colour'],
+                              help="The format of the logs -- suitable for syslogd, not coloured, or coloured.")
 
     # "stop" command
     #

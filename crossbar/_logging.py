@@ -36,7 +36,7 @@ import sys
 from zope.interface import provider
 
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
-from twisted.logger import LogLevel, globalLogBeginner
+from twisted.logger import LogLevel, globalLogBeginner, formatTime
 
 from twisted.python.reflect import qual
 
@@ -56,6 +56,10 @@ except ImportError:
         RESET = ""
     Fore = Fore()
 
+COLOUR_FORMAT = "{}{} [{}]{} {}"
+NOCOLOUR_FORMAT = "{} [{}] {}"
+SYSLOGD_FORMAT = "[{}] {}"
+
 # Make our own copies of stdout and stderr, for printing to later
 # When we start logging, the logger will capture all outputs to the *new*
 # sys.stderr and sys.stdout. As we're printing to it, it'll get caught in an
@@ -63,8 +67,11 @@ except ImportError:
 _stderr, _stdout = sys.stderr, sys.stdout
 
 
+__all__ = ["log", "logPublisher", "Logger"]
+
+
 def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
-                            showSource=False):
+                            showSource=False, format="colour"):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
@@ -79,20 +86,28 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
         else:
             logSystem = event["log_system"]
 
-        if "Controller" in logSystem:
-            fore = Fore.BLUE
-        elif "Router" in logSystem:
-            fore = Fore.YELLOW
-        elif "Container" in logSystem:
-            fore = Fore.CYAN
-        else:
-            fore = Fore.WHITE
-
         if showSource and event.get("log_source") is not None:
             logSystem += " " + qual(event["log_source"].__class__)
 
-        eventString = "{}[{}]{} {}".format(fore, logSystem,
-                                           Fore.RESET, formatEvent(event))
+        if format == "colour":
+            # Choose a colour depending on where the log came from.
+            if "Controller" in logSystem:
+                fore = Fore.BLUE
+            elif "Router" in logSystem:
+                fore = Fore.YELLOW
+            elif "Container" in logSystem:
+                fore = Fore.CYAN
+            else:
+                fore = Fore.WHITE
+
+            eventString = COLOUR_FORMAT.format(
+                fore, formatTime(event["log_time"]), logSystem, Fore.RESET,
+                formatEvent(event))
+        elif format == "nocolour":
+            eventString = NOCOLOUR_FORMAT.format(
+                formatTime(event["log_time"]), logSystem, formatEvent(event))
+        elif format == "syslogd":
+            eventString = SYSLOGD_FORMAT.format(logSystem, formatEvent(event))
 
         print(eventString, file=_stdout)
 
@@ -101,7 +116,7 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
 
 def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
                                     LogLevel.critical),
-                            showSource=False):
+                            showSource=False, format="colour"):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
@@ -119,8 +134,16 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
         if showSource and event.get("log_source") is not None:
             logSystem += " " + qual(event["log_source"].__class__)
 
-        eventString = "{}[{}]{} {}".format(Fore.RED, logSystem,
-                                           Fore.RESET, formatEvent(event))
+        if format == "colour":
+            # Errors are always red, no matter the system they came from.
+            eventString = COLOUR_FORMAT.format(
+                Fore.RED, formatTime(event["log_time"]), logSystem, Fore.RESET,
+                formatEvent(event))
+        elif format == "nocolour":
+            eventString = NOCOLOUR_FORMAT.format(
+                formatTime(event["log_time"]), logSystem, formatEvent(event))
+        elif format == "syslogd":
+            eventString = SYSLOGD_FORMAT.format(logSystem, formatEvent(event))
 
         print(eventString, file=_stderr)
 
