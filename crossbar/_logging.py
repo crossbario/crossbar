@@ -38,6 +38,8 @@ from zope.interface import provider
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner
 
+from twisted.python.reflect import qual
+
 logPublisher = LogPublisher()
 log = Logger(observer=logPublisher)
 
@@ -61,7 +63,8 @@ except ImportError:
 _stderr, _stdout = sys.stderr, sys.stdout
 
 
-def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug)):
+def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
+                            showSource=False):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
@@ -85,6 +88,9 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug)):
         else:
             fore = Fore.WHITE
 
+        if showSource and event.get("log_source") is not None:
+            logSystem += " " + qual(event["log_source"].__class__)
+
         eventString = "{}[{}]{} {}".format(fore, logSystem,
                                            Fore.RESET, formatEvent(event))
 
@@ -94,7 +100,8 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug)):
 
 
 def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
-                                    LogLevel.critical)):
+                                    LogLevel.critical),
+                            showSource=False):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
@@ -108,6 +115,9 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
             logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
         else:
             logSystem = event["log_system"]
+
+        if showSource and event.get("log_source") is not None:
+            logSystem += " " + qual(event["log_source"].__class__)
 
         eventString = "{}[{}]{} {}".format(Fore.RED, logSystem,
                                            Fore.RESET, formatEvent(event))
