@@ -414,7 +414,7 @@ def run_command_start(options):
         # Verbose: for developers
         # Adds the class source.
         logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info, LogLevel.debug)), showSource=True)
+            (LogLevel.info, LogLevel.debug), showSource=True))
         logPublisher.addObserver(makeStandardErrObserver(
             (LogLevel.warn, LogLevel.error,
              LogLevel.critical), showSource=True))
