@@ -58,9 +58,9 @@ except ImportError:
 __all__ = ('run',)
 
 # http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
-BANNER = r"""     __  __  __  __  __  __      __    __
-    /  `|__)/  \/__`/__`|__) /\ |__) |/  \
-    \__,|  \\__/.__/.__/|__)/~~\|  \.|\__/
+BANNER = r"""     __  __  __  __  __  __      __     __
+    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
+    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
 
 """
 
