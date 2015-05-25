@@ -28,69 +28,79 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, division, print_function
 
-import sys, os
+import os
+import sys
+
+from colorama import Fore
 
 from zope.interface import provider
+
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner
-
 
 logPublisher = LogPublisher()
 log = Logger(observer=logPublisher)
 
 
-@provider(ILogObserver)
-def StandardOutObserver(event):
+def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug)):
+    """
+    Create an observer which prints logs to L{sys.stdout}.
+    """
 
-    from colorama import Fore
+    @provider(ILogObserver)
+    def StandardOutObserver(event):
 
-    if event["log_level"] not in (LogLevel.info, LogLevel.debug):
-        return
+        if event["log_level"] not in levels:
+            return
 
-    if event.get("log_system", "-") == "-":
-        logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
-    else:
-        logSystem = event["log_system"]
+        if event.get("log_system", "-") == "-":
+            logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
+        else:
+            logSystem = event["log_system"]
 
+        if "Controller" in logSystem:
+            fore = Fore.BLUE
+        elif "Router" in logSystem:
+            fore = Fore.YELLOW
+        elif "Container" in logSystem:
+            fore = Fore.CYAN
+        else:
+            fore = Fore.WHITE
 
-    if "Controller" in logSystem:
-        fore = Fore.BLUE
-    elif "Router" in logSystem:
-        fore = Fore.YELLOW
-    elif "Container" in logSystem:
-        fore = Fore.CYAN
-    else:
-        fore = Fore.WHITE
+        eventString = "{}[{}]{} {}".format(fore, logSystem,
+                                           Fore.RESET, formatEvent(event))
 
-    eventString = "{}[{}]{} {}".format(fore, logSystem, Fore.RESET, formatEvent(event))
+        print(eventString, file=sys.stdout)
 
-    print(eventString, file=sys.stdout)
-
-
-
-@provider(ILogObserver)
-def StandardErrorObserver(event):
-
-    from colorama import Fore
-
-    if event["log_level"] in (LogLevel.info, LogLevel.debug):
-        return
-
-    if event.get("log_system", "-") == "-":
-        logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
-    else:
-        logSystem = event["log_system"]
-
-    eventString = "{}[{}]{} {}".format(Fore.RED, logSystem, Fore.RESET, formatEvent(event))
-
-    print(eventString, file=sys.stderr)
+    return StandardOutObserver
 
 
+def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
+                                    LogLevel.critical)):
+    """
+    Create an observer which prints logs to L{sys.stderr}.
+    """
 
-def _setup():
+    @provider(ILogObserver)
+    def StandardErrorObserver(event):
 
-    logPublisher.addObserver(StandardOutObserver)
-    logPublisher.addObserver(StandardErrorObserver)
+        if event["log_level"] not in levels:
+            return
+
+        if event.get("log_system", "-") == "-":
+            logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
+        else:
+            logSystem = event["log_system"]
+
+        eventString = "{}[{}]{} {}".format(Fore.RED, logSystem,
+                                           Fore.RESET, formatEvent(event))
+
+        print(eventString, file=sys.stderr)
+
+    return StandardErrorObserver
+
+
+def startLogging():
     globalLogBeginner.beginLoggingTo([logPublisher], redirectStandardIO=False)

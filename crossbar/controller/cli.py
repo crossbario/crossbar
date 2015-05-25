@@ -379,40 +379,52 @@ def run_command_start(options):
 
     # start Twisted logging
     #
+    from crossbar._logging import LogLevel, startLogging
+    from crossbar._logging import makeStandardOutObserver
+    from crossbar._logging import makeStandardErrObserver
 
-
-    #if not options.logdir:
-    #    logfd = sys.stderr
-    #else:
-    #    from twisted.python.logfile import DailyLogFile
-    #    logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
-    #
-    #
-    #flo =
-    #log.startLoggingWithObserver(flo.emit)
-
-    if not options.logdir:
-        from crossbar._logging import _setup
-        _setup()
-
-    else:
-
+    if options.logdir:
         from crossbar.twisted.processutil import DefaultSystemFileLogObserver
-        from twisted.logger import globalLogBeginner, LegacyLogObserverWrapper
-        from crossbar._logging import logPublisher, StandardOutObserver
+        from twisted.logger import LegacyLogObserverWrapper
         from twisted.python.logfile import DailyLogFile
 
-        logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir, 'node.log'))
+        logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir,
+                                                       'node.log'))
 
         flo = LegacyLogObserverWrapper(
             DefaultSystemFileLogObserver(logfd,
                                          system="{:<10} {:>6}".format(
-                                             "Controller", os.getpid())).emit
-            )
+                                             "Controller", os.getpid())).emit)
 
         logPublisher.addObserver(flo)
-        globalLogBeginner.beginLoggingTo([logPublisher])
 
+    if options.loglevel == "none":
+        # Do no logging!
+        pass
+    elif options.loglevel == "standard":
+        # Standard: For users of Crossbar
+        logPublisher.addObserver(makeStandardOutObserver(
+            (LogLevel.info,)))
+        logPublisher.addObserver(makeStandardErrObserver(
+            (LogLevel.warn, LogLevel.error,
+             LogLevel.critical)))
+    elif options.loglevel == "verbose":
+        # Verbose: for developers
+        logPublisher.addObserver(makeStandardOutObserver(
+            (LogLevel.info, LogLevel.debug)))
+        logPublisher.addObserver(makeStandardErrObserver(
+            (LogLevel.warn, LogLevel.error,
+             LogLevel.critical)))
+    elif options.loglevel == "quiet":
+        # Quiet: Only print warnings and errors to stderr.
+        logPublisher.addObserver(makeStandardErrObserver(
+            (LogLevel.warn, LogLevel.error,
+             LogLevel.critical)))
+    else:
+        assert False, "Shouldn't ever get here."
+
+    # Actually start the logger.
+    startLogging()
 
     import crossbar
     from twisted.python.reflect import qual
@@ -435,7 +447,7 @@ def run_command_start(options):
     try:
         log.info("Entering reactor event loop ...")
         reactor.run()
-    except Exception as e:
+    except Exception:
         log.error("Could not start reactor")
 
 
@@ -571,9 +583,9 @@ def run(prog=None, args=None):
 
     parser_start.add_argument('--loglevel',
                               type=str,
-                              default='info',
-                              choices=['trace', 'debug', 'info', 'warn', 'error', 'fatal'],
-                              help="Server log level (overrides default 'info')")
+                              default='standard',
+                              choices=['none', 'standard', 'verbose', 'quiet'],
+                              help="Minimum log level to show")
 
     # "stop" command
     #
