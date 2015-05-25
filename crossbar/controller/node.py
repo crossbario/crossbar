@@ -184,10 +184,10 @@ class Node(object):
         wamplets = self._controller._get_wamplets()
         if len(wamplets) > 0:
             self.log.info("Detected {wamplets} WAMPlets in environment:",
-                     wamplets=len(wamplets))
+                          wamplets=len(wamplets))
             for wpl in wamplets:
                 self.log.info("WAMPlet {dist}.{name}",
-                         dist=wpl['dist'], name=wpl['name'])
+                              dist=wpl['dist'], name=wpl['name'])
         else:
             self.log.info("No WAMPlets detected in enviroment.")
 
@@ -284,17 +284,17 @@ class Node(object):
                 if 'pythonpath' in worker_options:
                     added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'], options=call_options)
                     self.log.debug("{worker}: PYTHONPATH extended for {paths}",
-                              worker=worker_logname, paths=added_paths)
+                                   worker=worker_logname, paths=added_paths)
 
                 if 'cpu_affinity' in worker_options:
                     new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'], options=call_options)
                     self.log.debug("{worker}: CPU affinity set to {affinity}",
-                             worker=worker_logname, affinity=new_affinity)
+                                   worker=worker_logname, affinity=new_affinity)
 
                 if 'manhole' in worker:
                     yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, worker_id), worker['manhole'], options=call_options)
                     self.log.debug("{worker}: manhole started",
-                             worker=worker_logname)
+                                   worker=worker_logname)
 
                 # setup router worker
                 #
@@ -337,7 +337,7 @@ class Node(object):
                                                 cnt_decls += 1
                                         except Exception:
                                             self.log.failure("{worker}: WARNING - failed to process declaration in {schema_file} - {log_failure.value}",
-                                                        worker=worker_logname, schema_file=schema_file)
+                                                             worker=worker_logname, schema_file=schema_file)
                             self.log.info("{worker}: processed {cnt_files} files extracting {cnt_decls} schema declarations and {len_schemas} URIs",
                                           worker=worker_logname, cnt_files=cnt_files, cnt_decls=cnt_decls, len_schemas=len(schemas))
 

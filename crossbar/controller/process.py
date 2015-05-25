@@ -174,7 +174,7 @@ class NodeControllerSession(NativeProcessSession):
                     ready.callback(id)
                 else:
                     self.log.error("INTERNAL ERROR: on_worker_ready() fired for process {process} - ready already called",
-                              process=id)
+                                   process=id)
             else:
                 self.log.error("INTERNAL ERROR: on_worker_ready() fired for process {process} - no process with that ID",
                                process=id)
