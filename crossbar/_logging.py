@@ -33,8 +33,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 
-from colorama import Fore
-
 from zope.interface import provider
 
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
@@ -43,12 +41,24 @@ from twisted.logger import LogLevel, globalLogBeginner
 logPublisher = LogPublisher()
 log = Logger(observer=logPublisher)
 
+try:
+    from colorama import Fore
+except ImportError:
+    # No colorama, so just mock it out.
+    class Fore(object):
+        BLUE = ""
+        YELLOW = ""
+        CYAN = ""
+        WHITE = ""
+        RED = ""
+        RESET = ""
+    Fore = Fore()
+
 
 def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug)):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
-
     @provider(ILogObserver)
     def StandardOutObserver(event):
 
@@ -82,7 +92,6 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
-
     @provider(ILogObserver)
     def StandardErrorObserver(event):
 
