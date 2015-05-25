@@ -208,7 +208,6 @@ class Node:
         Connect the node to an upstream management application. The node
         will run in "managed" mode (as opposed to "standalone" mode).
         """
-        print config
         yield sleep(1)
 
     @inlineCallbacks
