@@ -43,6 +43,7 @@ from twisted.python.reflect import qual
 
 from autobahn.twisted.choosereactor import install_reactor
 
+import crossbar
 from crossbar._logging import log, logPublisher
 
 try:
@@ -208,7 +209,6 @@ def run_command_version(options):
     except ImportError:
         msgpack_ver = '-'
 
-    import crossbar
     import platform
 
     print("")
@@ -427,9 +427,6 @@ def run_command_start(options):
 
     # Actually start the logger.
     startLogging()
-
-    import crossbar
-    from twisted.python.reflect import qual
 
     bannerFormat = "=  {:<23} {:>23}  ="
     log.info("=" * 20 + " Crossbar.io " + "=" * 20)
