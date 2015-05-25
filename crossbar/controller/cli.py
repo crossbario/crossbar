@@ -218,8 +218,6 @@ def run_command_version(options):
     except ImportError:
         msgpack_ver = '-'
 
-    import platform
-
     print("")
     print("Crossbar.io package versions and platform information:")
     print("")
