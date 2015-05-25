@@ -384,6 +384,8 @@ def run_command_start(options):
     from crossbar._logging import makeStandardErrObserver
 
     if options.logdir:
+        # If a logdir is asked for, *always* log to it.
+        # `--logdir=place/ --loglevel=none` will write nothing to the terminal.
         from crossbar.twisted.processutil import DefaultSystemFileLogObserver
         from twisted.logger import LegacyLogObserverWrapper
         from twisted.python.logfile import DailyLogFile
@@ -445,7 +447,7 @@ def run_command_start(options):
     node.start()
 
     try:
-        log.info("Entering reactor event loop ...")
+        log.info("Entering reactor event loop...")
         reactor.run()
     except Exception:
         log.error("Could not start reactor")
