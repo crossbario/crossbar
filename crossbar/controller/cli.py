@@ -412,11 +412,12 @@ def run_command_start(options):
              LogLevel.critical)))
     elif options.loglevel == "verbose":
         # Verbose: for developers
+        # Adds the class source.
         logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info, LogLevel.debug)))
+            (LogLevel.info, LogLevel.debug)), showSource=True)
         logPublisher.addObserver(makeStandardErrObserver(
             (LogLevel.warn, LogLevel.error,
-             LogLevel.critical)))
+             LogLevel.critical), showSource=True))
     elif options.loglevel == "quiet":
         # Quiet: Only print warnings and errors to stderr.
         logPublisher.addObserver(makeStandardErrObserver(
