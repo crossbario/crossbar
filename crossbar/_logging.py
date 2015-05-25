@@ -33,6 +33,8 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 
+_stderr, _stdout = sys.stderr, sys.stdout
+
 from zope.interface import provider
 
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
@@ -82,7 +84,7 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug)):
         eventString = "{}[{}]{} {}".format(fore, logSystem,
                                            Fore.RESET, formatEvent(event))
 
-        print(eventString, file=sys.stdout)
+        print(eventString, file=stdout)
 
     return StandardOutObserver
 
@@ -106,10 +108,10 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
         eventString = "{}[{}]{} {}".format(Fore.RED, logSystem,
                                            Fore.RESET, formatEvent(event))
 
-        print(eventString, file=sys.stderr)
+        print(eventString, file=stderr)
 
     return StandardErrorObserver
 
 
 def startLogging():
-    globalLogBeginner.beginLoggingTo([logPublisher], redirectStandardIO=False)
+    globalLogBeginner.beginLoggingTo([logPublisher])
