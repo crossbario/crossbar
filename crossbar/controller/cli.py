@@ -295,7 +295,7 @@ def run_command_status(options):
     pid_data = check_is_running(options.cbdir)
     if pid_data is None:
         # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
-        # https://www.freebs.odrg/cgi/man.cgi?query=sysexits&sektion=3
+        # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
         print("No Crossbar.io instance is currently running from node directory {}.".format(options.cbdir))
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
     else:
