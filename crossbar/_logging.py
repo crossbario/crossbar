@@ -154,14 +154,13 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
 
 
 def makeJSONObserver(outFile):
-
+    """
+    Make an observer which writes JSON to C{outfile}.
+    """
     def _make_json(event):
 
-        r = json.dumps({"text": formatEvent(event).replace(u"{", u"{{").replace(u"}", u"}}"),
-                        "level":event.get("log_level", LogLevel.info).name})
-        if not _PY3:
-            r = r.decode("utf8")
-        return r
+        return json.dumps({"text": formatEvent(event).replace(u"{", u"{{").replace(u"}", u"}}"),
+                           "level":event.get("log_level", LogLevel.info).name})
 
     recordSeparator=u"\x1e"
     return FileLogObserver(
