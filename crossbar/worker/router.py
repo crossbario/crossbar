@@ -145,6 +145,7 @@ class RouterTransport:
         self.config = config
         self.factory = factory
         self.port = port
+        self.created = datetime.utcnow()
 
 
 class RouterComponent:
@@ -540,11 +541,14 @@ class RouterWorkerSession(NativeWorkerSession):
         if self.debug:
             log.msg("{}.get_router_transports".format(self.__class__.__name__))
 
-        res = {}
-        for key, transport in self._transports.items():
-            res[key] = transport.config
+        res = []
+        for transport in sorted(self.transports.values(), key=lambda c: c.created):
+            res.append({
+                'id': transport.id,
+                'created': utcstr(transport.created),
+                'config': transport.config,
+            })
         return res
-        # return sorted(self._transports.keys())
 
     def start_router_transport(self, id, config, details=None):
         """

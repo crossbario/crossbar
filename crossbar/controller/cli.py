@@ -39,8 +39,11 @@ import pkg_resources
 import platform
 import traceback
 
+import click
+
 from twisted.python.reflect import qual
 
+from autobahn.util import utcnow
 from autobahn.twisted.choosereactor import install_reactor
 
 import crossbar
@@ -54,6 +57,12 @@ except ImportError:
 
 __all__ = ('run',)
 
+# http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
+BANNER = r"""     __  __  __  __  __  __      __     __
+    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
+    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
+
+"""
 
 _PID_FILENAME = 'node.pid'
 
@@ -208,8 +217,6 @@ def run_command_version(options):
         msgpack_ver = 'msgpack-python-%s' % pkg_resources.require('msgpack-python')[0].version
     except ImportError:
         msgpack_ver = '-'
-
-    import platform
 
     print("")
     print("Crossbar.io package versions and platform information:")
@@ -430,12 +437,15 @@ def run_command_start(options):
     # Actually start the logger.
     startLogging()
 
-    bannerFormat = "=  {:<23} {:>23}  ="
-    log.info("=" * 20 + " Crossbar.io " + "=" * 20)
-    log.info(bannerFormat.format("Version", crossbar.__version__))
-    log.info(bannerFormat.format("Python", platform.python_implementation()))
-    log.info(bannerFormat.format("Reactor", qual(reactor.__class__).split('.')[-1]))
-    log.info("=" * 53)
+    for line in BANNER.splitlines():
+        log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
+
+    bannerFormat = "{:>12} {:<24}"
+    log.info(bannerFormat.format("Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
+    # log.info(bannerFormat.format("Python:", click.style(platform.python_implementation(), fg='yellow', bold=True)))
+    # log.info(bannerFormat.format("Reactor:", click.style(qual(reactor.__class__).split('.')[-1], fg='yellow', bold=True)))
+    log.info(bannerFormat.format("Started:", click.style(utcnow(), fg='yellow', bold=True)))
+    log.info()
 
     log.info("Starting from node directory {}".format(options.cbdir))
 
