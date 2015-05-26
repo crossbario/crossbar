@@ -392,7 +392,8 @@ class NodeControllerSession(NativeProcessSession):
         :param options: The container worker options.
         :type options: dict
         """
-        self.log.debug("NodeControllerSession.start_container", id=id, options=options)
+        self.log.debug("NodeControllerSession.start_container(id = {id}, options = {options})",
+                       id=id, options=options)
 
         return self._start_native_worker('container', id, options, details=details)
 

@@ -78,6 +78,9 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
     @provider(ILogObserver)
     def StandardOutObserver(event):
 
+        if event.get("cb_level") == "trace":
+            return
+
         if event["log_level"] not in levels:
             return
 

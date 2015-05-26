@@ -41,6 +41,8 @@ from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
 
+from crossbar._logging import Logger, logPublisher
+
 __all__ = (
     'RouterFactory',
 )
@@ -50,6 +52,7 @@ class Router(object):
     """
     Crossbar.io core router class.
     """
+    log = Logger(observer=logPublisher)
 
     RESERVED_ROLES = ["trusted"]
     """
@@ -76,7 +79,6 @@ class Router(object):
         :param options: Router options.
         :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
         """
-        self._debug = False
         self._factory = factory
         self._options = options or RouterOptions()
         self._realm = realm
@@ -90,7 +92,7 @@ class Router(object):
         self._attached = 0
 
         self._roles = {
-            "trusted": RouterTrustedRole(self, "trusted", debug=self._debug)
+            "trusted": RouterTrustedRole(self, "trusted")
         }
 
     def attach(self, session):
@@ -101,8 +103,8 @@ class Router(object):
             if hasattr(session, '_session_details'):
                 self._session_id_to_session[session._session_id] = session
             else:
-                if self._debug:
-                    print("attaching non-client session {}".format(session))
+                self.log.debug("attaching non-client session {session}",
+                               session=session)
         else:
             raise Exception("session with ID {} already attached".format(session._session_id))
 
@@ -133,8 +135,7 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.process`
         """
-        if self._debug:
-            print("Router.process: {0}".format(msg))
+        self.log.debug("Router.process: {msg}", msg=msg, cb_level="trace")
 
         # Broker
         #
@@ -187,8 +188,7 @@ class Router(object):
 
         :returns: bool -- `True` if a role under the given URI actually existed before and was overwritten.
         """
-        if self._debug:
-            log.msg("CrossbarRouter.add_role", role)
+        self.log.debug("CrossbarRouter.add_role({role})", role=role)
 
         if role.uri in self.RESERVED_ROLES:
             raise Exception("cannot add reserved role '{}'".format(role.uri))
@@ -208,8 +208,7 @@ class Router(object):
 
         :returns: bool -- `True` if a role under the given URI actually existed and was removed.
         """
-        if self._debug:
-            log.msg("CrossbarRouter.drop_role", role)
+        self.log.debug("CrossbarRouter.drop_role({role})", role=role)
 
         if role.uri in self.RESERVED_ROLES:
             raise Exception("cannot drop reserved role '{}'".format(role.uri))
@@ -233,8 +232,12 @@ class Router(object):
         if role in self._roles:
             authorized = self._roles[role].authorize(session, uri, action)
 
-        if self._debug:
-            log.msg("CrossbarRouter.authorize: {} {} {} {} {} {} {} -> {}".format(session._session_id, uri, action, session._authid, session._authrole, session._authmethod, session._authprovider, authorized))
+        self.log.debug("CrossbarRouter.authorize: {session_id} {uri} {action} {authid} {authrole} {authmethod} {authprovider} -> {authorized}",
+                       session_id=session._session_id, uri=uri, action=action,
+                       authid=session._authid, authrole=session._authrole,
+                       authmethod=session._authmethod,
+                       authprovider=session._authprovider,
+                       authorized=authorized, cb_level="trace")
 
         return authorized
 
@@ -242,28 +245,28 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
-        if self._debug:
-            print("Router.validate: {0} {1} {2} {3}".format(payload_type, uri, args, kwargs))
+        self.log.debug("Router.validate: {payload_type} {uri} {args} {kwargs}",
+                       payload_type=payload_type, uri=uri, args=args,
+                       kwargs=kwargs, cb_level="trace")
 
 
 class RouterFactory:
     """
     Crossbar.io core router factory.
     """
-
+    log = Logger(observer=logPublisher)
     router = Router
     """
     The router class this factory will create router instances from.
     """
 
-    def __init__(self, options=None, debug=False):
+    def __init__(self, options=None):
         """
 
         :param options: Default router options.
         :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
         """
         self._routers = {}
-        self.debug = debug
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False
 
@@ -274,8 +277,8 @@ class RouterFactory:
         if self._auto_create_realms:
             if realm not in self._routers:
                 self._routers[realm] = self.router(self, realm, self._options)
-                if self.debug:
-                    print("Router created for realm '{0}'".format(realm))
+                self.log.debug("Router created for realm '{realm}'",
+                               realm=realm)
             return self._routers[realm]
         else:
             return self._routers[realm]
@@ -289,8 +292,8 @@ class RouterFactory:
     def onLastDetach(self, router):
         assert(router.realm in self._routers)
         del self._routers[router.realm]
-        if self.debug:
-            print("Router destroyed for realm '{0}'".format(router.realm))
+        self.log.debug("Router destroyed for realm '{realm}'",
+                       realm=realm)
 
     def start_realm(self, realm):
         """
@@ -302,8 +305,8 @@ class RouterFactory:
         :returns: The router instance for the started realm.
         :rtype: instance of :class:`crossbar.router.session.CrossbarRouter`
         """
-        if self.debug:
-            log.msg("CrossbarRouterFactory.start_realm(realm = {})".format(realm))
+        self.log.debug("CrossbarRouterFactory.start_realm(realm = {realm})",
+                       realm=realm)
 
         uri = realm.config['name']
         assert(uri not in self._routers)
@@ -311,18 +314,17 @@ class RouterFactory:
         router = Router(self, realm, self._options)
 
         self._routers[uri] = router
-        if self.debug:
-            log.msg("Router created for realm '{}'".format(uri))
+        self.log.debug("Router created for realm '{uri}'", uri=uri)
 
         return router
 
     def stop_realm(self, realm):
-        if self.debug:
-            log.msg("CrossbarRouterFactory.stop_realm(realm = {})".format(realm))
+        self.log.debug("CrossbarRouterFactory.stop_realm(realm = {realm})",
+                       realm=realm)
 
     def add_role(self, realm, config):
-        if self.debug:
-            log.msg("CrossbarRouterFactory.add_role(realm = {}, config = {})".format(realm, config))
+        self.log.debug("CrossbarRouterFactory.add_role(realm = {realm}, config = {config})",
+                       realm=realm, config=config)
 
         assert(realm in self._routers)
 
@@ -330,14 +332,14 @@ class RouterFactory:
         uri = config['name']
 
         if 'permissions' in config:
-            role = RouterRoleStaticAuth(router, uri, config['permissions'], debug=self.debug)
+            role = RouterRoleStaticAuth(router, uri, config['permissions'])
         elif 'authorizer' in config:
-            role = RouterRoleDynamicAuth(router, uri, config['authorizer'], debug=self.debug)
+            role = RouterRoleDynamicAuth(router, uri, config['authorizer'])
         else:
-            role = RouterRole(router, uri, debug=self.debug)
+            role = RouterRole(router, uri)
 
         router.add_role(role)
 
     def drop_role(self, realm, role):
-        if self.debug:
-            log.msg("CrossbarRouterFactory.drop_role(realm = {}, role = {})".format(realm, role))
+        self.log.debug("CrossbarRouterFactory.drop_role(realm = {realm}, role = {role})",
+                       realm=realm, role=role)
