@@ -32,11 +32,13 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+import json
 
 from zope.interface import provider
 
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner, formatTime
+from twisted.logger import FileLogObserver, eventAsJSON
 
 from twisted.python.reflect import qual
 
@@ -71,14 +73,15 @@ __all__ = ["log", "logPublisher", "Logger"]
 
 
 def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
-                            showSource=False, format="colour"):
+                            showSource=False, format="colour", trace=False):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
     @provider(ILogObserver)
     def StandardOutObserver(event):
 
-        if event.get("cb_level") == "trace":
+        if not trace and event.get("cb_level") == "trace":
+            # Don't output 'trace' output
             return
 
         if event["log_level"] not in levels:
@@ -152,6 +155,20 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
 
     return StandardErrorObserver
 
+
+def makeJSONObserver(outFile):
+
+    def _make_json(event):
+
+        r = json.dumps({"text": formatEvent(event).replace("{", "{{").replace("}", "}}"),
+                        "level":event.get("log_level", LogLevel.info).name})
+        return r
+
+    recordSeparator=u"\x1e"
+    return FileLogObserver(
+        outFile,
+        lambda event: u"{0}{1}".format(_make_json(event), recordSeparator)
+    )
 
 def startLogging():
     """

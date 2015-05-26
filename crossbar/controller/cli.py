@@ -410,6 +410,11 @@ def run_command_start(options):
     if options.loglevel == "none":
         # Do no logging!
         pass
+    elif options.loglevel == "quiet":
+        # Quiet: Only print warnings and errors to stderr.
+        logPublisher.addObserver(makeStandardErrObserver(
+            (LogLevel.warn, LogLevel.error,
+             LogLevel.critical), showSource=False, format=options.logformat))
     elif options.loglevel == "standard":
         # Standard: For users of Crossbar
         logPublisher.addObserver(makeStandardOutObserver(
@@ -426,11 +431,15 @@ def run_command_start(options):
         logPublisher.addObserver(makeStandardErrObserver(
             (LogLevel.warn, LogLevel.error,
              LogLevel.critical), showSource=True, format=options.logformat))
-    elif options.loglevel == "quiet":
-        # Quiet: Only print warnings and errors to stderr.
+    elif options.loglevel == "trace":
+        # Verbose: for developers
+        # Adds the class source + "trace" output
+        logPublisher.addObserver(makeStandardOutObserver(
+            (LogLevel.info, LogLevel.debug), showSource=True,
+            format=options.logformat, trace=True))
         logPublisher.addObserver(makeStandardErrObserver(
             (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=False, format=options.logformat))
+             LogLevel.critical), showSource=True, format=options.logformat))
     else:
         assert False, "Shouldn't ever get here."
 
@@ -595,7 +604,7 @@ def run(prog=None, args=None):
     parser_start.add_argument('--loglevel',
                               type=str,
                               default='standard',
-                              choices=['none', 'quiet', 'standard', 'verbose'],
+                              choices=['none', 'quiet', 'standard', 'verbose', 'trace'],
                               help="How much Crossbar.io should log to the terminal, in order of verbosity.")
 
     parser_start.add_argument('--logformat',
