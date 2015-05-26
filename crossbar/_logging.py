@@ -69,9 +69,6 @@ SYSLOGD_FORMAT = "[{}] {}"
 _stderr, _stdout = sys.stderr, sys.stdout
 
 
-__all__ = ["log", "logPublisher", "Logger"]
-
-
 def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
                             showSource=False, format="colour", trace=False):
     """
@@ -160,8 +157,10 @@ def makeJSONObserver(outFile):
 
     def _make_json(event):
 
-        r = json.dumps({"text": formatEvent(event).replace("{", "{{").replace("}", "}}"),
+        r = json.dumps({"text": formatEvent(event).replace(u"{", u"{{").replace(u"}", u"}}"),
                         "level":event.get("log_level", LogLevel.info).name})
+        if not _PY3:
+            r = r.decode("utf8")
         return r
 
     recordSeparator=u"\x1e"

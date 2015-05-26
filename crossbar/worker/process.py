@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 __all__ = ('run',)
 
@@ -105,13 +105,12 @@ def run():
 
     # make sure logging to something else than stdio is setup _first_
     #
-    from crossbar.twisted.processutil import BareFormatFileLogObserver
-    from crossbar._logging import Logger, globalLogBeginner, makeJSONObserver
+    from twisted.logger import globalLogBeginner
+    from crossbar._logging import Logger, makeJSONObserver
 
     log = Logger()
     _stderr = sys.stderr
     flo = makeJSONObserver(_stderr)
-
     globalLogBeginner.beginLoggingTo([flo])
 
     try:
@@ -137,7 +136,7 @@ def run():
 
     from twisted.python.reflect import qual
     log.info("Running under {python} using {reactor} reactor",
-             python=str(platform.python_implementation()),
+             python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
     options.cbdir = os.path.abspath(options.cbdir)
@@ -197,7 +196,7 @@ def run():
 
         # now start reactor loop
         #
-        log.info("Entering event loop ..")
+        log.info("Entering event loop...")
         reactor.run()
 
     except Exception as e:
