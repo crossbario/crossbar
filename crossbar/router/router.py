@@ -47,6 +47,7 @@ from crossbar.router.role import CrossbarRouterRole, \
 def _is_client_session(session):
     return hasattr(session, '_session_details')
 
+
 class Router(object):
     """
     Basic WAMP router.
