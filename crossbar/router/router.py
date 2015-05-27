@@ -40,7 +40,7 @@ from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
 
-from crossbar._logging import Logger, logPublisher
+from crossbar._logging import Logger, log_publisher
 
 __all__ = (
     'RouterFactory',
@@ -51,7 +51,7 @@ class Router(object):
     """
     Crossbar.io core router class.
     """
-    log = Logger(observer=logPublisher)
+    log = Logger(observer=log_publisher)
 
     RESERVED_ROLES = ["trusted"]
     """
@@ -249,11 +249,11 @@ class Router(object):
                        kwargs=kwargs, cb_level="trace")
 
 
-class RouterFactory:
+class RouterFactory(object):
     """
     Crossbar.io core router factory.
     """
-    log = Logger(observer=logPublisher)
+    log = Logger(observer=log_publisher)
     router = Router
     """
     The router class this factory will create router instances from.

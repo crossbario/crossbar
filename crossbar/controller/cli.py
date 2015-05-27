@@ -47,7 +47,7 @@ from autobahn.util import utcnow
 from autobahn.twisted.choosereactor import install_reactor
 
 import crossbar
-from crossbar._logging import log, logPublisher
+from crossbar._logging import log, log_publisher
 
 try:
     import psutil
@@ -386,57 +386,57 @@ def run_command_start(options):
 
     # start Twisted logging
     #
-    from crossbar._logging import LogLevel, startLogging
+    from crossbar._logging import LogLevel, start_logging
 
     if options.logdir:
         # We want to log to a file
-        from crossbar._logging import makeLegacyDailyLogFileObserver
+        from crossbar._logging import make_legacy_daily_logfile_observer
 
-        logPublisher.addObserver(
-            makeLegacyDailyLogFileObserver(options.logdir, options.loglevel))
+        log_publisher.addObserver(
+            make_legacy_daily_logfile_observer(options.logdir, options.loglevel))
     else:
         # We want to log to stdout/stderr.
-        from crossbar._logging import makeStandardOutObserver
-        from crossbar._logging import makeStandardErrObserver
+        from crossbar._logging import make_stdout_observer
+        from crossbar._logging import make_stderr_observer
 
         if options.loglevel == "none":
             # Do no logging!
             pass
         elif options.loglevel == "quiet":
             # Quiet: Only print warnings and errors to stderr.
-            logPublisher.addObserver(makeStandardErrObserver(
+            log_publisher.addObserver(make_stderr_observer(
                 (LogLevel.warn, LogLevel.error,
-                 LogLevel.critical), showSource=False, format=options.logformat))
+                 LogLevel.critical), show_source=False, format=options.logformat))
         elif options.loglevel == "standard":
             # Standard: For users of Crossbar
-            logPublisher.addObserver(makeStandardOutObserver(
-                (LogLevel.info,), showSource=False, format=options.logformat))
-            logPublisher.addObserver(makeStandardErrObserver(
+            log_publisher.addObserver(make_stdout_observer(
+                (LogLevel.info,), show_source=False, format=options.logformat))
+            log_publisher.addObserver(make_stderr_observer(
                 (LogLevel.warn, LogLevel.error,
-                 LogLevel.critical), showSource=False, format=options.logformat))
+                 LogLevel.critical), show_source=False, format=options.logformat))
         elif options.loglevel == "verbose":
             # Verbose: for developers
             # Adds the class source.
-            logPublisher.addObserver(makeStandardOutObserver(
-                (LogLevel.info, LogLevel.debug), showSource=True,
+            log_publisher.addObserver(make_stdout_observer(
+                (LogLevel.info, LogLevel.debug), show_source=True,
                 format=options.logformat))
-            logPublisher.addObserver(makeStandardErrObserver(
+            log_publisher.addObserver(make_stderr_observer(
                 (LogLevel.warn, LogLevel.error,
-                 LogLevel.critical), showSource=True, format=options.logformat))
+                 LogLevel.critical), show_source=True, format=options.logformat))
         elif options.loglevel == "trace":
             # Verbose: for developers
             # Adds the class source + "trace" output
-            logPublisher.addObserver(makeStandardOutObserver(
-                (LogLevel.info, LogLevel.debug), showSource=True,
+            log_publisher.addObserver(make_stdout_observer(
+                (LogLevel.info, LogLevel.debug), show_source=True,
                 format=options.logformat, trace=True))
-            logPublisher.addObserver(makeStandardErrObserver(
+            log_publisher.addObserver(make_stderr_observer(
                 (LogLevel.warn, LogLevel.error,
-                 LogLevel.critical), showSource=True, format=options.logformat))
+                 LogLevel.critical), show_source=True, format=options.logformat))
         else:
             assert False, "Shouldn't ever get here."
 
     # Actually start the logger.
-    startLogging()
+    start_logging()
 
     for line in BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))

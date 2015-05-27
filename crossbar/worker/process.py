@@ -106,11 +106,11 @@ def run():
     # make sure logging to something else than stdio is setup _first_
     #
     from twisted.logger import globalLogBeginner
-    from crossbar._logging import Logger, makeJSONObserver
+    from crossbar._logging import Logger, make_JSON_observer
 
     log = Logger()
     _stderr = sys.stderr
-    flo = makeJSONObserver(_stderr)
+    flo = make_JSON_observer(_stderr)
     globalLogBeginner.beginLoggingTo([flo])
 
     try:

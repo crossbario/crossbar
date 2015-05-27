@@ -38,7 +38,7 @@ from collections import deque
 from twisted.python.compat import unicode
 from twisted.internet.defer import Deferred
 
-from crossbar._logging import Logger, logPublisher, LogLevel
+from crossbar._logging import Logger, log_publisher, LogLevel
 
 __all__ = ('RouterWorkerProcess',
            'ContainerWorkerProcess',
@@ -49,7 +49,7 @@ class WorkerProcess(object):
     """
     Internal run-time representation of a worker process.
     """
-    _logger = Logger(observer=logPublisher)
+    _logger = Logger(observer=log_publisher)
 
     TYPE = 'worker'
     LOGNAME = 'Worker'

@@ -67,7 +67,7 @@ from autobahn.twisted.websocket import WampWebSocketServerFactory
 
 from crossbar.platform import HAS_FSNOTIFY, DirWatcher
 
-from crossbar._logging import Logger, logPublisher
+from crossbar._logging import Logger, log_publisher
 
 
 __all__ = ('NodeControllerSession', 'create_process_env')
@@ -124,7 +124,7 @@ class NodeControllerSession(NativeProcessSession):
 
     This class exposes the node's management API.
     """
-    log = Logger(observer=logPublisher)
+    log = Logger(observer=log_publisher)
 
     def __init__(self, node):
         """
@@ -619,7 +619,7 @@ class NodeControllerSession(NativeProcessSession):
         This is called during reactor shutdown and ensures we wait for our
         subprocesses to shut down nicely.
         """
-        log = Logger(observer=logPublisher)
+        log = Logger(observer=log_publisher)
         try:
             log.info("sending TERM to subprocess {pid}", pid=worker.pid)
             worker.proto.transport.signalProcess('TERM')
