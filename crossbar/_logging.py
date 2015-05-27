@@ -217,6 +217,10 @@ def make_legacy_daily_logfile_observer(path, logoutputlevel):
     return _log
 
 
+def make_logger():
+    return Logger(observer=log_publisher)
+
+
 def start_logging():
     """
     Start logging to the publishers.
