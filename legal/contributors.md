@@ -1,5 +1,6 @@
 Contributors with signed CAAs
 
+* pataelmo
 * dimddev
 * eth3lbert
 * hawkowl
