@@ -16,7 +16,7 @@
 * **[Quick Start](http://crossbar.io/docs/Quick-Start/)**
 * [Documentation](http://crossbar.io/docs/)
 * [Ask a Question](http://stackoverflow.com/questions/ask?tags=crossbar,wamp)
-* [Legal stuff](LEGAL.md)
+* [Legal stuff](legal/README.md)
 
 *Articles:*
 
