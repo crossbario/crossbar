@@ -38,7 +38,7 @@ from zope.interface import provider
 
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner, formatTime
-from twisted.logger import FileLogObserver, eventAsJSON
+from twisted.logger import FileLogObserver
 
 from twisted.python.reflect import qual
 
@@ -160,13 +160,14 @@ def makeJSONObserver(outFile):
     def _make_json(event):
 
         return json.dumps({"text": formatEvent(event).replace(u"{", u"{{").replace(u"}", u"}}"),
-                           "level":event.get("log_level", LogLevel.info).name})
+                           "level": event.get("log_level", LogLevel.info).name})
 
-    recordSeparator=u"\x1e"
+    recordSeparator = u"\x1e"
     return FileLogObserver(
         outFile,
         lambda event: u"{0}{1}".format(_make_json(event), recordSeparator)
     )
+
 
 def makeLegacyDailyLogFileObserver(path, logoutputlevel):
     """
@@ -182,6 +183,7 @@ def makeLegacyDailyLogFileObserver(path, logoutputlevel):
         DefaultSystemFileLogObserver(logfd,
                                      system="{:<10} {:>6}".format(
                                          "Controller", os.getpid())).emit)
+
     def _log(event):
 
         level = event["log_level"]

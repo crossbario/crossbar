@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import
 
-from twisted.python import log
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
@@ -293,7 +292,7 @@ class RouterFactory:
         assert(router.realm in self._routers)
         del self._routers[router.realm]
         self.log.debug("Router destroyed for realm '{realm}'",
-                       realm=realm)
+                       realm=router.realm)
 
     def start_realm(self, realm):
         """

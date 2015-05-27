@@ -35,12 +35,10 @@ import json
 from datetime import datetime
 from collections import deque
 
-from twisted.python.compat import _PY3, unicode
+from twisted.python.compat import unicode
 from twisted.internet.defer import Deferred
 
 from crossbar._logging import Logger, logPublisher, LogLevel
-
-from autobahn.util import utcnow
 
 __all__ = ('RouterWorkerProcess',
            'ContainerWorkerProcess',
@@ -116,8 +114,6 @@ class WorkerProcess(object):
 
         while u"\x1e" in self._log_data:
 
-            from twisted.logger import eventFromJSON, formatEvent
-
             log, self._log_data = self._log_data.split(u"\x1e", 1)
 
             event = json.loads(log)
@@ -128,7 +124,6 @@ class WorkerProcess(object):
 
             if self._log_topic:
                 self._controller.publish(self._log_topic, event["text"])
-
 
     def getlog(self, limit=None):
         """
