@@ -168,6 +168,53 @@ def makeJSONObserver(outFile):
         lambda event: u"{0}{1}".format(_make_json(event), recordSeparator)
     )
 
+def makeLegacyDailyLogFileObserver(path, logoutputlevel):
+    """
+    Make a L{DefaultSystemFileLogObserver}
+    """
+    from crossbar.twisted.processutil import DefaultSystemFileLogObserver
+    from twisted.logger import LegacyLogObserverWrapper
+    from twisted.python.logfile import DailyLogFile
+
+    logfd = DailyLogFile.fromFullPath(os.path.join(path,
+                                                   'node.log'))
+    flo = LegacyLogObserverWrapper(
+        DefaultSystemFileLogObserver(logfd,
+                                     system="{:<10} {:>6}".format(
+                                         "Controller", os.getpid())).emit)
+    def _log(event):
+
+        level = event["log_level"]
+
+        if logoutputlevel == "none":
+            return
+        elif logoutputlevel == "quiet":
+            # Quiet: Only print warnings and errors to stderr.
+            if level not in (LogLevel.warn, LogLevel.error, LogLevel.critical):
+                return
+        elif logoutputlevel == "standard":
+            # Standard: For users of Crossbar
+            if level not in (LogLevel.info, LogLevel.warn, LogLevel.error,
+                             LogLevel.critical):
+                return
+        elif logoutputlevel == "verbose":
+            # Verbose: for developers
+            # Adds the class source.
+            if event.get("cb_level") == "trace":
+                return
+        elif logoutputlevel == "trace":
+            # Verbose: for developers
+            # Adds "trace" output
+            pass
+        else:
+            assert False, "Shouldn't ever get here."
+
+        # Forward the event
+        flo(event)
+
+    return _log
+
+
 def startLogging():
     """
     Start logging to the publishers.

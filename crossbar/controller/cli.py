@@ -387,61 +387,52 @@ def run_command_start(options):
     # start Twisted logging
     #
     from crossbar._logging import LogLevel, startLogging
-    from crossbar._logging import makeStandardOutObserver
-    from crossbar._logging import makeStandardErrObserver
 
     if options.logdir:
-        # If a logdir is asked for, *always* log to it.
-        # `--logdir=place/ --loglevel=none` will write nothing to the terminal.
-        from crossbar.twisted.processutil import DefaultSystemFileLogObserver
-        from twisted.logger import LegacyLogObserverWrapper
-        from twisted.python.logfile import DailyLogFile
+        # We want to log to a file
+        from crossbar._logging import makeLegacyDailyLogFileObserver
 
-        logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir,
-                                                       'node.log'))
-
-        flo = LegacyLogObserverWrapper(
-            DefaultSystemFileLogObserver(logfd,
-                                         system="{:<10} {:>6}".format(
-                                             "Controller", os.getpid())).emit)
-
-        logPublisher.addObserver(flo)
-
-    if options.loglevel == "none":
-        # Do no logging!
-        pass
-    elif options.loglevel == "quiet":
-        # Quiet: Only print warnings and errors to stderr.
-        logPublisher.addObserver(makeStandardErrObserver(
-            (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=False, format=options.logformat))
-    elif options.loglevel == "standard":
-        # Standard: For users of Crossbar
-        logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info,), showSource=False, format=options.logformat))
-        logPublisher.addObserver(makeStandardErrObserver(
-            (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=False, format=options.logformat))
-    elif options.loglevel == "verbose":
-        # Verbose: for developers
-        # Adds the class source.
-        logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info, LogLevel.debug), showSource=True,
-            format=options.logformat))
-        logPublisher.addObserver(makeStandardErrObserver(
-            (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=True, format=options.logformat))
-    elif options.loglevel == "trace":
-        # Verbose: for developers
-        # Adds the class source + "trace" output
-        logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info, LogLevel.debug), showSource=True,
-            format=options.logformat, trace=True))
-        logPublisher.addObserver(makeStandardErrObserver(
-            (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=True, format=options.logformat))
+        logPublisher.addObserver(
+            makeLegacyDailyLogFileObserver(options.logdir, options.loglevel))
     else:
-        assert False, "Shouldn't ever get here."
+        # We want to log to stdout/stderr.
+        from crossbar._logging import makeStandardOutObserver
+        from crossbar._logging import makeStandardErrObserver
+        if options.loglevel == "none":
+            # Do no logging!
+            pass
+        elif options.loglevel == "quiet":
+            # Quiet: Only print warnings and errors to stderr.
+            logPublisher.addObserver(makeStandardErrObserver(
+                (LogLevel.warn, LogLevel.error,
+                 LogLevel.critical), showSource=False, format=options.logformat))
+        elif options.loglevel == "standard":
+            # Standard: For users of Crossbar
+            logPublisher.addObserver(makeStandardOutObserver(
+                (LogLevel.info,), showSource=False, format=options.logformat))
+            logPublisher.addObserver(makeStandardErrObserver(
+                (LogLevel.warn, LogLevel.error,
+                 LogLevel.critical), showSource=False, format=options.logformat))
+        elif options.loglevel == "verbose":
+            # Verbose: for developers
+            # Adds the class source.
+            logPublisher.addObserver(makeStandardOutObserver(
+                (LogLevel.info, LogLevel.debug), showSource=True,
+                format=options.logformat))
+            logPublisher.addObserver(makeStandardErrObserver(
+                (LogLevel.warn, LogLevel.error,
+                 LogLevel.critical), showSource=True, format=options.logformat))
+        elif options.loglevel == "trace":
+            # Verbose: for developers
+            # Adds the class source + "trace" output
+            logPublisher.addObserver(makeStandardOutObserver(
+                (LogLevel.info, LogLevel.debug), showSource=True,
+                format=options.logformat, trace=True))
+            logPublisher.addObserver(makeStandardErrObserver(
+                (LogLevel.warn, LogLevel.error,
+                 LogLevel.critical), showSource=True, format=options.logformat))
+        else:
+            assert False, "Shouldn't ever get here."
 
     # Actually start the logger.
     startLogging()
