@@ -30,25 +30,26 @@
 
 from __future__ import absolute_import
 
+import six
+import json
+
 from datetime import datetime
 from collections import deque
 
-from twisted.python import log
-from twisted.python.compat import _PY3
 from twisted.internet.defer import Deferred
 
-from autobahn.util import utcnow
+from crossbar._logging import make_logger, LogLevel
 
 __all__ = ('RouterWorkerProcess',
            'ContainerWorkerProcess',
            'GuestWorkerProcess')
 
 
-class WorkerProcess:
-
+class WorkerProcess(object):
     """
     Internal run-time representation of a worker process.
     """
+    _logger = make_logger()
 
     TYPE = 'worker'
     LOGNAME = 'Worker'
@@ -92,6 +93,8 @@ class WorkerProcess:
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
 
+        self._log_data = ""
+
         # A deferred that resolves when the worker is ready.
         self.ready = Deferred()
 
@@ -104,34 +107,23 @@ class WorkerProcess:
         """
         assert(childFD in self._log_fds)
 
-        if _PY3 and type(data) != str:
+        if type(data) != six.text_type:
             data = data.decode('utf8')
 
-        for msg in data.split('\n'):
-            msg = msg.strip()
-            if msg != "":
+        self._log_data += data
 
-                # log entry used for buffered worker log and/or worker log events
-                #
-                if self._log is not None or self._log_topic:
-                    log_entry = (self._log_lineno, utcnow(), msg)
+        while u"\x1e" in self._log_data:
 
-                # maintain buffered worker log
-                #
-                if self._log is not None:
-                    self._log_lineno += 1
-                    self._log.append(log_entry)
-                    if self._keeplog > 0 and len(self._log) > self._keeplog:
-                        self._log.popleft()
+            log, self._log_data = self._log_data.split(u"\x1e", 1)
 
-                # publish worker log event
-                #
-                if self._log_topic:
-                    self._controller.publish(self._log_topic, log_entry)
+            event = json.loads(log)
+            level = LogLevel.levelWithName(event["level"])
+            system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
 
-                # log to controller
-                #
-                log.msg(msg, system="{:<10} {:>6}".format(self.LOGNAME, self.pid), override_system=True)
+            self._logger.emit(level, event["text"], log_system=system)
+
+            if self._log_topic:
+                self._controller.publish(self._log_topic, event["text"])
 
     def getlog(self, limit=None):
         """

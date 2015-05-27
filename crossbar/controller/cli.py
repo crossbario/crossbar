@@ -47,7 +47,7 @@ from autobahn.util import utcnow
 from autobahn.twisted.choosereactor import install_reactor
 
 import crossbar
-from crossbar._logging import log, logPublisher
+from crossbar._logging import log, log_publisher
 
 try:
     import psutil
@@ -398,56 +398,57 @@ def run_command_start(options):
 
     # start Twisted logging
     #
-    from crossbar._logging import LogLevel, startLogging
-    from crossbar._logging import makeStandardOutObserver
-    from crossbar._logging import makeStandardErrObserver
+    from crossbar._logging import LogLevel, start_logging
 
     if options.logdir:
-        # If a logdir is asked for, *always* log to it.
-        # `--logdir=place/ --loglevel=none` will write nothing to the terminal.
-        from crossbar.twisted.processutil import DefaultSystemFileLogObserver
-        from twisted.logger import LegacyLogObserverWrapper
-        from twisted.python.logfile import DailyLogFile
+        # We want to log to a file
+        from crossbar._logging import make_legacy_daily_logfile_observer
 
-        logfd = DailyLogFile.fromFullPath(os.path.join(options.logdir,
-                                                       'node.log'))
-
-        flo = LegacyLogObserverWrapper(
-            DefaultSystemFileLogObserver(logfd,
-                                         system="{:<10} {:>6}".format(
-                                             "Controller", os.getpid())).emit)
-
-        logPublisher.addObserver(flo)
-
-    if options.loglevel == "none":
-        # Do no logging!
-        pass
-    elif options.loglevel == "standard":
-        # Standard: For users of Crossbar
-        logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info,), showSource=False, format=options.logformat))
-        logPublisher.addObserver(makeStandardErrObserver(
-            (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=False, format=options.logformat))
-    elif options.loglevel == "verbose":
-        # Verbose: for developers
-        # Adds the class source.
-        logPublisher.addObserver(makeStandardOutObserver(
-            (LogLevel.info, LogLevel.debug), showSource=True,
-            format=options.logformat))
-        logPublisher.addObserver(makeStandardErrObserver(
-            (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=True, format=options.logformat))
-    elif options.loglevel == "quiet":
-        # Quiet: Only print warnings and errors to stderr.
-        logPublisher.addObserver(makeStandardErrObserver(
-            (LogLevel.warn, LogLevel.error,
-             LogLevel.critical), showSource=False, format=options.logformat))
+        log_publisher.addObserver(
+            make_legacy_daily_logfile_observer(options.logdir, options.loglevel))
     else:
-        assert False, "Shouldn't ever get here."
+        # We want to log to stdout/stderr.
+        from crossbar._logging import make_stdout_observer
+        from crossbar._logging import make_stderr_observer
+
+        if options.loglevel == "none":
+            # Do no logging!
+            pass
+        elif options.loglevel == "quiet":
+            # Quiet: Only print warnings and errors to stderr.
+            log_publisher.addObserver(make_stderr_observer(
+                (LogLevel.warn, LogLevel.error,
+                 LogLevel.critical), show_source=False, format=options.logformat))
+        elif options.loglevel == "standard":
+            # Standard: For users of Crossbar
+            log_publisher.addObserver(make_stdout_observer(
+                (LogLevel.info,), show_source=False, format=options.logformat))
+            log_publisher.addObserver(make_stderr_observer(
+                (LogLevel.warn, LogLevel.error,
+                 LogLevel.critical), show_source=False, format=options.logformat))
+        elif options.loglevel == "verbose":
+            # Verbose: for developers
+            # Adds the class source.
+            log_publisher.addObserver(make_stdout_observer(
+                (LogLevel.info, LogLevel.debug), show_source=True,
+                format=options.logformat))
+            log_publisher.addObserver(make_stderr_observer(
+                (LogLevel.warn, LogLevel.error,
+                 LogLevel.critical), show_source=True, format=options.logformat))
+        elif options.loglevel == "trace":
+            # Verbose: for developers
+            # Adds the class source + "trace" output
+            log_publisher.addObserver(make_stdout_observer(
+                (LogLevel.info, LogLevel.debug), show_source=True,
+                format=options.logformat, trace=True))
+            log_publisher.addObserver(make_stderr_observer(
+                (LogLevel.warn, LogLevel.error,
+                 LogLevel.critical), show_source=True, format=options.logformat))
+        else:
+            assert False, "Shouldn't ever get here."
 
     # Actually start the logger.
-    startLogging()
+    start_logging()
 
     for line in BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
@@ -607,7 +608,7 @@ def run(prog=None, args=None):
     parser_start.add_argument('--loglevel',
                               type=str,
                               default='standard',
-                              choices=['none', 'quiet', 'standard', 'verbose'],
+                              choices=['none', 'quiet', 'standard', 'verbose', 'trace'],
                               help="How much Crossbar.io should log to the terminal, in order of verbosity.")
 
     parser_start.add_argument('--logformat',

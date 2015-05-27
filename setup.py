@@ -120,6 +120,7 @@ setup(
     url='http://crossbar.io/',
     platforms=('Any'),
     install_requires=[
+        'click>=4.0',                 # BSD license
         'setuptools>=2.2',            # Python Software Foundation license
         'zope.interface>=3.6.0',      # Zope Public license
         'twisted>=15.2.1',            # MIT license

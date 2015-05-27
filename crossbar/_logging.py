@@ -32,16 +32,18 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+import json
 
 from zope.interface import provider
 
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner, formatTime
+from twisted.logger import FileLogObserver
 
 from twisted.python.reflect import qual
 
-logPublisher = LogPublisher()
-log = Logger(observer=logPublisher)
+log_publisher = LogPublisher()
+log = Logger(observer=log_publisher)
 
 try:
     from colorama import Fore
@@ -67,16 +69,17 @@ SYSLOGD_FORMAT = "[{}] {}"
 _stderr, _stdout = sys.stderr, sys.stdout
 
 
-__all__ = ["log", "logPublisher", "Logger"]
-
-
-def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
-                            showSource=False, format="colour"):
+def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
+                         show_source=False, format="colour", trace=False):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
     @provider(ILogObserver)
     def StandardOutObserver(event):
+
+        if not trace and event.get("cb_level") == "trace":
+            # Don't output 'trace' output
+            return
 
         if event["log_level"] not in levels:
             return
@@ -86,7 +89,7 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
         else:
             logSystem = event["log_system"]
 
-        if showSource and event.get("log_source") is not None:
+        if show_source and event.get("log_source") is not None:
             logSystem += " " + qual(event["log_source"].__class__)
 
         if format == "colour":
@@ -114,9 +117,9 @@ def makeStandardOutObserver(levels=(LogLevel.info, LogLevel.debug),
     return StandardOutObserver
 
 
-def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
-                                    LogLevel.critical),
-                            showSource=False, format="colour"):
+def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
+                                 LogLevel.critical),
+                         show_source=False, format="colour"):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
@@ -131,7 +134,7 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
         else:
             logSystem = event["log_system"]
 
-        if showSource and event.get("log_source") is not None:
+        if show_source and event.get("log_source") is not None:
             logSystem += " " + qual(event["log_source"].__class__)
 
         if format == "colour":
@@ -150,8 +153,76 @@ def makeStandardErrObserver(levels=(LogLevel.warn, LogLevel.error,
     return StandardErrorObserver
 
 
-def startLogging():
+def make_JSON_observer(outFile):
+    """
+    Make an observer which writes JSON to C{outfile}.
+    """
+    def _make_json(event):
+
+        return json.dumps({"text": formatEvent(event).replace(u"{", u"{{").replace(u"}", u"}}"),
+                           "level": event.get("log_level", LogLevel.info).name})
+
+    recordSeparator = u"\x1e"
+    return FileLogObserver(
+        outFile,
+        lambda event: u"{0}{1}".format(_make_json(event), recordSeparator)
+    )
+
+
+def make_legacy_daily_logfile_observer(path, logoutputlevel):
+    """
+    Make a L{DefaultSystemFileLogObserver}.
+    """
+    from crossbar.twisted.processutil import DefaultSystemFileLogObserver
+    from twisted.logger import LegacyLogObserverWrapper
+    from twisted.python.logfile import DailyLogFile
+
+    logfd = DailyLogFile.fromFullPath(os.path.join(path,
+                                                   'node.log'))
+    flo = LegacyLogObserverWrapper(
+        DefaultSystemFileLogObserver(logfd,
+                                     system="{:<10} {:>6}".format(
+                                         "Controller", os.getpid())).emit)
+
+    def _log(event):
+
+        level = event["log_level"]
+
+        if logoutputlevel == "none":
+            return
+        elif logoutputlevel == "quiet":
+            # Quiet: Only print warnings and errors to stderr.
+            if level not in (LogLevel.warn, LogLevel.error, LogLevel.critical):
+                return
+        elif logoutputlevel == "standard":
+            # Standard: For users of Crossbar
+            if level not in (LogLevel.info, LogLevel.warn, LogLevel.error,
+                             LogLevel.critical):
+                return
+        elif logoutputlevel == "verbose":
+            # Verbose: for developers
+            # Adds the class source.
+            if event.get("cb_level") == "trace":
+                return
+        elif logoutputlevel == "trace":
+            # Verbose: for developers
+            # Adds "trace" output
+            pass
+        else:
+            assert False, "Shouldn't ever get here."
+
+        # Forward the event
+        flo(event)
+
+    return _log
+
+
+def make_logger():
+    return Logger(observer=log_publisher)
+
+
+def start_logging():
     """
     Start logging to the publishers.
     """
-    globalLogBeginner.beginLoggingTo([logPublisher])
+    globalLogBeginner.beginLoggingTo([log_publisher])

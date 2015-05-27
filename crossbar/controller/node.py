@@ -52,7 +52,7 @@ from crossbar.controller.process import NodeControllerSession
 from crossbar.controller.management import NodeManagementBridgeSession
 from crossbar.controller.management import NodeManagementSession
 
-from crossbar._logging import logPublisher, Logger
+from crossbar._logging import make_logger
 
 __all__ = ('Node',)
 
@@ -65,7 +65,7 @@ class Node(object):
     A single Crossbar.io node runs exactly one instance of this class, hence
     this class can be considered a system singleton.
     """
-    log = Logger(observer=logPublisher)
+    log = make_logger()
 
     def __init__(self, reactor, options):
         """

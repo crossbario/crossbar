@@ -34,12 +34,8 @@ import gc
 
 from datetime import datetime
 
-from twisted.python import log
 from twisted.internet import reactor
-from twisted.internet.defer import DeferredList, \
-    inlineCallbacks, \
-    returnValue
-
+from twisted.internet.defer import DeferredList, inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
 
 
@@ -66,8 +62,7 @@ else:
 from autobahn.util import utcnow, utcstr, rtime
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, \
-    RegisterOptions
+from autobahn.wamp.types import PublishOptions, RegisterOptions
 
 from crossbar.common import checkconfig
 from crossbar.twisted.endpoint import create_listening_port_from_config
@@ -76,6 +71,8 @@ from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
     from crossbar.common.processinfo import ProcessInfo
     # from crossbar.common.processinfo import SystemInfo
+
+from crossbar._logging import make_logger
 
 __all__ = ('NativeProcessSession',)
 
@@ -122,25 +119,21 @@ if _HAS_MANHOLE:
 
 
 class NativeProcessSession(ApplicationSession):
-
     """
     A native Crossbar.io process (currently: controller, router or container).
     """
+    log = make_logger()
 
     def onConnect(self, do_join=True):
         """
         """
-        if not hasattr(self, 'debug'):
-            self.debug = self.config.extra.debug
-
         if not hasattr(self, 'cbdir'):
             self.cbdir = self.config.extra.cbdir
 
         if not hasattr(self, '_uri_prefix'):
             self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra.node)
 
-        if self.debug:
-            log.msg("Session connected to management router")
+        self.log.debug("Session connected to management router")
 
         self._started = datetime.utcnow()
 
@@ -158,7 +151,7 @@ class NativeProcessSession(ApplicationSession):
             self._pinfo = None
             self._pinfo_monitor = None
             self._pinfo_monitor_seq = None
-            log.msg("Warning: process utilities not available")
+            self.log.info("Warning: process utilities not available")
 
         if do_join:
             self.join(self.config.realm)
@@ -184,14 +177,13 @@ class NativeProcessSession(ApplicationSession):
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            if self.debug:
-                log.msg("Registering procedure '{}'".format(uri))
+            self.log.debug("Registering procedure '{uri}'", uri=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        if self.debug:
-            log.msg("{} registered {} procedures".format(self.__class__.__name__, len(regs)))
+        self.log.debug("{cls} registered {len_reg} procedures",
+                       cls=self.__class__.__name__, len_reg=len(regs))
 
     def get_process_info(self, details=None):
         """
@@ -199,8 +191,8 @@ class NativeProcessSession(ApplicationSession):
 
         :returns: dict -- Dictionary with process information.
         """
-        if self.debug:
-            log.msg("{}.get_process_info".format(self.__class__.__name__))
+        self.log.debug("{cls}.get_process_info",
+                       cls=self.__class__.__name__)
 
         if self._pinfo:
             return self._pinfo.get_info()
@@ -214,8 +206,7 @@ class NativeProcessSession(ApplicationSession):
 
         :returns: dict -- Dictionary with process statistics.
         """
-        if self.debug:
-            log.msg("{}.get_process_stats".format(self.__class__.__name__))
+        self.log.debug("{cls}.get_process_stats", cls=self.__class__.__name__)
 
         if self._pinfo:
             return self._pinfo.get_stats()
@@ -230,8 +221,8 @@ class NativeProcessSession(ApplicationSession):
         :param interval: The monitoring interval in seconds. Set to 0 to disable monitoring.
         :type interval: float
         """
-        if self.debug:
-            log.msg("{}.set_process_stats_monitoring".format(self.__class__.__name__), interval)
+        self.log.debug("{cls}.set_process_stats_monitoring(interval = {interval})",
+                       cls=self.__class__.__name__, interval=interval)
 
         if self._pinfo:
 
@@ -268,8 +259,7 @@ class NativeProcessSession(ApplicationSession):
 
         :returns: float -- Time consumed for GC in ms.
         """
-        if self.debug:
-            log.msg("{}.trigger_gc".format(self.__class__.__name__))
+        self.msg.debug("{cls}.trigger_gc", cls=self.__class__.__name__)
 
         started = rtime()
         gc.collect()
@@ -283,24 +273,24 @@ class NativeProcessSession(ApplicationSession):
         :param config: Manhole configuration.
         :type config: obj
         """
-        if self.debug:
-            log.msg("{}.start_manhole".format(self.__class__.__name__), config)
+        self.log.debug("{cls}.start_manhole(config = {config})",
+                       cls=self.__class__.__name__, config=config)
 
         if not _HAS_MANHOLE:
             emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if self._manhole_service:
             emsg = "ERROR: could not start manhole - already running (or starting)"
-            log.msg(emsg)
+            self.log.warn(emsg)
             raise ApplicationError("crossbar.error.already_started", emsg)
 
         try:
             checkconfig.check_manhole(config)
         except Exception as e:
             emsg = "ERROR: could not start manhole - invalid configuration ({})".format(e)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
         # setup user authentication
@@ -346,7 +336,7 @@ class NativeProcessSession(ApplicationSession):
         except Exception as e:
             self._manhole_service = None
             emsg = "ERROR: manhole service endpoint cannot listen - {}".format(e)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
         # alright, manhole has started
@@ -364,12 +354,11 @@ class NativeProcessSession(ApplicationSession):
         """
         Stop Manhole.
         """
-        if self.debug:
-            log.msg("{}.stop_manhole".format(self.__class__.__name__))
+        self.log.debug("{cls}.stop_manhole", cls=self.__class__.__name__)
 
         if not _HAS_MANHOLE:
             emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if not self._manhole_service or self._manhole_service.status != 'started':
@@ -407,12 +396,11 @@ class NativeProcessSession(ApplicationSession):
 
         :returns: dict -- A dict with service information or `None` if the service is not running.
         """
-        if self.debug:
-            log.msg("{}.get_manhole".format(self.__class__.__name__))
+        self.log.debug("{cls}.get_manhole", cls=self.__class__.__name__)
 
         if not _HAS_MANHOLE:
             emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if not self._manhole_service:
@@ -426,8 +414,7 @@ class NativeProcessSession(ApplicationSession):
 
         :returns str -- Current time (UTC) in UTC ISO 8601 format.
         """
-        if self.debug:
-            log.msg("{}.utcnow".format(self.__class__.__name__))
+        self.log.debug("{cls}.utcnow", cls=self.__class__.__name__)
 
         return utcnow()
 
@@ -437,8 +424,7 @@ class NativeProcessSession(ApplicationSession):
 
         :returns str -- Start time (UTC) in UTC ISO 8601 format.
         """
-        if self.debug:
-            log.msg("{}.started".format(self.__class__.__name__))
+        self.log.debug("{cls}.started", cls=self.__class__.__name__)
 
         return utcstr(self._started)
 
@@ -448,8 +434,7 @@ class NativeProcessSession(ApplicationSession):
 
         :returns float -- Uptime in seconds.
         """
-        if self.debug:
-            log.msg("{}.uptime".format(self.__class__.__name__))
+        self.log.debug("{cls}.uptime", cls=self.__class__.__name__)
 
         now = datetime.utcnow()
         return (now - self._started).total_seconds()
