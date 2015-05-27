@@ -93,6 +93,18 @@ def check_pid_exists(pid):
             return True
 
 
+def _is_crossbar_process(cmdline):
+    """
+    Returns True if the cmdline passed appears to really be a running
+    crossbar instance.
+    """
+    if len(cmdline) > 1 and 'crossbar' in cmdline[1]:
+        return True
+    if cmdline[0] == 'crossbar-controller':
+        return True
+    return False
+
+
 def check_is_running(cbdir):
     """
     Check if a Crossbar.io node is already running on a Crossbar.io node directory.
@@ -129,7 +141,7 @@ def check_is_running(cbdir):
                             # additionally check this is actually a crossbar process
                             p = psutil.Process(pid)
                             cmdline = p.cmdline()
-                            if len(cmdline) < 2 or not cmdline[1].endswith('crossbar'):
+                            if not _is_crossbar_process(cmdline):
                                 nicecmdline = ' '.join(cmdline)
                                 if len(nicecmdline) > 76:
                                     nicecmdline = nicecmdline[:38] + ' ... ' + nicecmdline[-38:]

@@ -47,6 +47,10 @@ __all__ = (
 )
 
 
+def _is_client_session(session):
+    return hasattr(session, '_session_details')
+
+
 class Router(object):
     """
     Crossbar.io core router class.
@@ -99,7 +103,7 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.attach`
         """
         if session._session_id not in self._session_id_to_session:
-            if hasattr(session, '_session_details'):
+            if _is_client_session(session):
                 self._session_id_to_session[session._session_id] = session
             else:
                 self.log.debug("attaching non-client session {session}",
@@ -124,7 +128,8 @@ class Router(object):
         if session._session_id in self._session_id_to_session:
             del self._session_id_to_session[session._session_id]
         else:
-            raise Exception("session with ID {} not attached".format(session._session_id))
+            if _is_client_session(session):
+                raise Exception("session with ID {} not attached".format(session._session_id))
 
         self._attached -= 1
         if not self._attached:
