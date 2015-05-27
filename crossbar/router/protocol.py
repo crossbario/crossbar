@@ -271,7 +271,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                                       peer=self.peer,
                                       workerPid=os.getpid()))
         except Exception as e:
-            self.log.failure("Error rendering WebSocket status page template: {log_failure.value}")
+            self.log.failure("Error rendering WebSocket status page template: {log_failure.value}".format(e))
 
     def onDisconnect(self):
         # remove this WebSocket connection from the set of connections
