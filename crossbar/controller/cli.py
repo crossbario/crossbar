@@ -398,6 +398,7 @@ def run_command_start(options):
         # We want to log to stdout/stderr.
         from crossbar._logging import makeStandardOutObserver
         from crossbar._logging import makeStandardErrObserver
+
         if options.loglevel == "none":
             # Do no logging!
             pass
