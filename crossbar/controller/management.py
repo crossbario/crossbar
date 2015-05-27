@@ -32,10 +32,11 @@ from __future__ import absolute_import
 
 import os
 
-from twisted.python import log
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
+
+from crossbar._logging import make_logger
 
 __all__ = ('NodeManagementSession',)
 
@@ -48,6 +49,8 @@ class NodeManagementSession(ApplicationSession):
 
 class NodeManagementBridgeSession(ApplicationSession):
 
+    log = make_logger()
+
     def __init__(self, config, management_session):
         ApplicationSession.__init__(self, config)
         self._management_session = management_session
@@ -57,7 +60,7 @@ class NodeManagementBridgeSession(ApplicationSession):
 
     @inlineCallbacks
     def onJoin(self, details):
-        log.msg("Management bridge attached to node router.")
+        self.log.info("Management bridge attached to node router.")
 
         self._regs = {}
 
@@ -71,7 +74,8 @@ class NodeManagementBridgeSession(ApplicationSession):
             reg = yield self._management_session.register(forward_call, uri)
             self._regs[registration['id']] = reg
 
-            log.msg("Management bridge - forwarding procedure: {}".format(reg.procedure))
+            self.log.info("Management bridge - forwarding procedure: {procedure}",
+                          procedure=reg.procedure)
 
         yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
 
@@ -81,19 +85,22 @@ class NodeManagementBridgeSession(ApplicationSession):
 
             if reg:
                 yield reg.unregister()
-                log.msg("Management bridge - removed procedure {}".format(reg.procedure))
+                self.log.info("Management bridge - removed procedure {procedure}",
+                              procedure=reg.procedure)
             else:
-                log.msg("Management bridge - WARNING: on_registration_delete() for unmapped registration_id {}".format(registration_id))
+                self.log.warn("Management bridge - WARNING: on_registration_delete() for unmapped registration_id {reg_id}",
+                              reg_id=registration_id)
 
         yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
 
-        log.msg("Management bridge ready.")
+        self.log.info("Management bridge ready.")
 
 
 class NodeManagementSessionOld(ApplicationSession):
 
     """
     """
+    log = make_logger()
 
     def __init__(self):
         ApplicationSession.__init__(self)
@@ -106,7 +113,7 @@ class NodeManagementSessionOld(ApplicationSession):
 
     @inlineCallbacks
     def onJoin(self, details):
-        log.msg("Connected to Crossbar.io Management Cloud.")
+        self.log.info("Connected to Crossbar.io Management Cloud.")
 
         from twisted.internet import reactor
 
@@ -117,10 +124,10 @@ class NodeManagementSessionOld(ApplicationSession):
                 node_info = {}
                 node_publickey = "public key"
                 activation_code = yield self.call('crossbar.cloud.get_activation_code', node_info, node_publickey)
-            except Exception as e:
-                log.msg("internal error: {}".format(e))
+            except Exception:
+                self.log.failure("internal error: {log_failure.value}")
             else:
-                log.msg("Log into https://console.crossbar.io to configure your instance using the activation code: {}".format(activation_code))
+                self.log.info("Log into https://console.crossbar.io to configure your instance using the activation code: {}".format(activation_code))
 
                 reg = None
 
@@ -134,7 +141,7 @@ class NodeManagementSessionOld(ApplicationSession):
 
                     self.publish('crossbar.node.onactivate', node_id)
 
-                    log.msg("Restarting node in 5 seconds ...")
+                    self.log.info("Restarting node in 5 seconds ...")
                     reactor.callLater(5, self.factory.node_controller_session.restart_node)
 
                 reg = yield self.register(activate, 'crossbar.node.activate.{}'.format(activation_code))

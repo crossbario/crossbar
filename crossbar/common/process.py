@@ -34,7 +34,6 @@ import gc
 
 from datetime import datetime
 
-from twisted.python import log
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredList, inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
@@ -152,7 +151,7 @@ class NativeProcessSession(ApplicationSession):
             self._pinfo = None
             self._pinfo_monitor = None
             self._pinfo_monitor_seq = None
-            log.msg("Warning: process utilities not available")
+            self.log.info("Warning: process utilities not available")
 
         if do_join:
             self.join(self.config.realm)

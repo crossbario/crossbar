@@ -33,8 +33,6 @@ from __future__ import absolute_import
 import os
 import traceback
 
-from twisted.python import log
-
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import *  # noqa
@@ -42,6 +40,7 @@ from autobahn.websocket.compress import *  # noqa
 import crossbar
 
 from crossbar.router.cookiestore import CookieStore, PersistentCookieStore
+from crossbar._logging import make_logger, log
 
 __all__ = (
     'WampWebSocketServerFactory',
@@ -133,7 +132,7 @@ def set_websocket_options(factory, options):
         #
         if 'deflate' in c['compression']:
 
-            log.msg("enabling WebSocket compression (permessage-deflate)")
+            log.debug("enabling WebSocket compression (permessage-deflate)")
 
             params = c['compression']['deflate']
 
@@ -163,6 +162,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
     """
     Crossbar.io WAMP-over-WebSocket server protocol.
     """
+    log = make_logger()
 
     def onConnect(self, request):
 
@@ -210,19 +210,17 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
                     self._cbtid, headers['Set-Cookie'] = self.factory._cookiestore.create()
 
-                    if self.debug:
-                        log.msg("Setting new cookie: %s" % headers['Set-Cookie'])
+                    self.log.debug("Setting new cookie: {cookie}",
+                                   cookie=headers['Set-Cookie'])
 
                 else:
-                    if self.debug:
-                        log.msg("Cookie already set")
+                    self.log.debug("Cookie already set")
 
                 # add this WebSocket connection to the set of connections
                 # associated with the same cookie
                 self.factory._cookiestore.addProto(self._cbtid, self)
 
-                if self.debug:
-                    log.msg("Cookie tracking enabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking enabled on WebSocket connection {}".format(self))
 
                 # if cookie-based authentication is enabled, set auth info from cookie store
                 #
@@ -230,16 +228,15 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
                     self._authid, self._authrole, self._authmethod = self.factory._cookiestore.getAuth(self._cbtid)
 
-                    if self.debug:
-                        log.msg("Authenticated client via cookie", self._authid, self._authrole, self._authmethod)
+                    self.log.debug("Authenticated client via cookie id={id}, role={role}, method={method}",
+                                   id=self._authid, role=self._authrole,
+                                   method=self._authmethod)
                 else:
-                    if self.debug:
-                        log.msg("Cookie-based authentication disabled")
+                    self.log.debug("Cookie-based authentication disabled")
 
             else:
 
-                if self.debug:
-                    log.msg("Cookie tracking disabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking disabled on WebSocket connection {}".format(self))
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
@@ -274,7 +271,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                                       peer=self.peer,
                                       workerPid=os.getpid()))
         except Exception as e:
-            log.msg("Error rendering WebSocket status page template: %s" % e)
+            self.log.failure("Error rendering WebSocket status page template: {log_failure.value}")
 
     def onDisconnect(self):
         # remove this WebSocket connection from the set of connections
@@ -290,6 +287,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
     """
 
     protocol = WampWebSocketServerProtocol
+    log = make_logger()
 
     def __init__(self, factory, cbdir, config, templates):
         """
@@ -302,7 +300,6 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         :param config: Crossbar transport configuration.
         :type config: dict
         """
-        self.debug = config.get('debug', False)
         self.debug_traffic = config.get('debug_traffic', False)
 
         options = config.get('options', {})
@@ -322,7 +319,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import JsonSerializer
                     serializers.append(JsonSerializer())
                 except ImportError:
-                    print("Warning: could not load WAMP-JSON serializer")
+                    self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
                     sers.discard('json')
 
@@ -332,7 +329,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                     from autobahn.wamp.serializer import MsgPackSerializer
                     serializers.append(MsgPackSerializer())
                 except ImportError:
-                    print("Warning: could not load WAMP-MsgPack serializer")
+                    self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
                     sers.discard('msgpack')
 
@@ -350,9 +347,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                                                       serializers=serializers,
                                                       url=config.get('url', None),
                                                       server=server,
-                                                      externalPort=externalPort,
-                                                      debug=self.debug,
-                                                      debug_wamp=self.debug)
+                                                      externalPort=externalPort)
 
         # Crossbar.io node directory
         self._cbdir = cbdir
@@ -368,10 +363,10 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
             if 'database' in config['cookie']:
                 dbfile = os.path.abspath(os.path.join(self._cbdir, config['cookie']['database']))
                 self._cookiestore = PersistentCookieStore(dbfile, config['cookie'])
-                log.msg("Persistent cookie store active: {}".format(dbfile))
+                self.log.info("Persistent cookie store active: {}".format(dbfile))
             else:
                 self._cookiestore = CookieStore(config['cookie'])
-                log.msg("Transient cookie store active.")
+                self.log.info("Transient cookie store active.")
         else:
             self._cookiestore = None
 
@@ -384,6 +379,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
     """
     Crossbar.io WAMP-over-RawSocket server protocol.
     """
+    log = make_logger()
 
     def connectionMade(self):
         rawsocket.WampRawSocketServerProtocol.connectionMade(self)
@@ -408,8 +404,8 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         }
 
     def lengthLimitExceeded(self, length):
-        if self.factory.debug:
-            log.msg("failing RawSocket connection - message length exceeded: message was {0} bytes, but current maximum is {1} bytes".format(length, self.MAX_LENGTH))
+        self.log.error("failing RawSocket connection - message length exceeded: message was {len} bytes, but current maximum is {maxlen} bytes",
+                       len=length, maxlen=self.MAX_LENGTH)
         self.transport.loseConnection()
 
 
@@ -420,6 +416,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
     """
 
     protocol = WampRawSocketServerProtocol
+    log = make_logger()
 
     def __init__(self, factory, config):
 
@@ -439,7 +436,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                     from autobahn.wamp.serializer import JsonSerializer
                     serializers.append(JsonSerializer())
                 except ImportError:
-                    print("Warning: could not load WAMP-JSON serializer")
+                    self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
                     sers.discard('json')
 
@@ -451,7 +448,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                     serializer._serializer.ENABLE_V5 = False  # FIXME
                     serializers.append(serializer)
                 except ImportError:
-                    print("Warning: could not load WAMP-MsgPack serializer")
+                    self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
                     sers.discard('msgpack')
 
@@ -468,14 +465,10 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
         #
         self._max_message_size = config.get('max_message_size', 128 * 1024)  # default is 128kB
 
-        # transport debugging
-        #
-        debug = config.get('debug', False)
+        rawsocket.WampRawSocketServerFactory.__init__(self, factory, serializers)
 
-        rawsocket.WampRawSocketServerFactory.__init__(self, factory, serializers, debug=debug)
-
-        if self.debug:
-            log.msg("RawSocket transport factory created using {0} serializers, max. message size {1}".format(serializers, self._max_message_size))
+        self.log.debug("RawSocket transport factory created using {serializers} serializers, max. message size {maxsize}",
+                       serializers=serializers, maxsize=self._max_message_size)
 
     def buildProtocol(self, addr):
         p = self.protocol()
