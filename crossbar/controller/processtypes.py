@@ -30,12 +30,12 @@
 
 from __future__ import absolute_import
 
+import six
 import json
 
 from datetime import datetime
 from collections import deque
 
-from twisted.python.compat import unicode
 from twisted.internet.defer import Deferred
 
 from crossbar._logging import Logger, log_publisher, LogLevel
@@ -107,7 +107,7 @@ class WorkerProcess(object):
         """
         assert(childFD in self._log_fds)
 
-        if type(data) != unicode:
+        if type(data) != six.text_type:
             data = data.decode('utf8')
 
         self._log_data += data
