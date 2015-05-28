@@ -130,12 +130,14 @@ class WorkerProcess(object):
                     self._controller.publish(self._log_topic, event_text)
 
         else:
-            data = escape_formatting(data)
             # Rich logs aren't supported
-            self._logger.emit(LogLevel.info, data, log_system=system)
+            data = escape_formatting(data)
 
-            if self._log_topic:
-                self._controller.publish(self._log_topic, data)
+            for row in data.split(u"\n"):
+                self._logger.emit(LogLevel.info, row, log_system=system)
+
+                if self._log_topic:
+                    self._controller.publish(self._log_topic, row)
 
 
 class NativeWorkerProcess(WorkerProcess):
