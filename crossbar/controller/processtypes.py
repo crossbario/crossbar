@@ -134,6 +134,7 @@ class WorkerProcess(object):
             data = escape_formatting(data)
 
             for row in data.split(u"\n"):
+                row.strip()
                 self._logger.emit(LogLevel.info, row, log_system=system)
 
                 if self._log_topic:
