@@ -34,11 +34,11 @@ import six
 import json
 
 from datetime import datetime
-from collections import deque
 
 from twisted.internet.defer import Deferred
 
-from crossbar._logging import make_logger, LogLevel
+from crossbar._logging import make_logger, LogLevel, record_separator
+from crossbar._logging import cb_logging_aware, escape_formatting
 
 __all__ = ('RouterWorkerProcess',
            'ContainerWorkerProcess',
@@ -79,21 +79,11 @@ class WorkerProcess(object):
         self.created = datetime.utcnow()
         self.connected = None
         self.started = None
-
-        # a buffered log for log messages coming from the worker
-        # native workers will send log messages on stderr, while
-        # guest worker may use stdout/stderr
-        self._keeplog = keeplog
-        if self._keeplog is not None:
-            self._log = deque()
-        else:
-            self._log = None
-
         self._log_fds = [2]
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
 
-        self._log_data = ""
+        self._log_rich = None  # Does not support rich logs
 
         # A deferred that resolves when the worker is ready.
         self.ready = Deferred()
@@ -110,38 +100,49 @@ class WorkerProcess(object):
         if type(data) != six.text_type:
             data = data.decode('utf8')
 
-        self._log_data += data
-
-        while u"\x1e" in self._log_data:
-
-            log, self._log_data = self._log_data.split(u"\x1e", 1)
-
-            event = json.loads(log)
-            level = LogLevel.levelWithName(event["level"])
-            system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
-
-            self._logger.emit(level, event["text"], log_system=system)
-
-            if self._log_topic:
-                self._controller.publish(self._log_topic, event["text"])
-
-    def getlog(self, limit=None):
-        """
-        Get buffered worker log.
-
-        :param limit: Optionally, limit the amount of log entries returned
-           to the last N entries.
-        :type limit: None or int
-
-        :returns: list -- Buffered log.
-        """
-        if self._log:
-            if limit and len(self._log) > limit:
-                return list(self._log)[len(self._log) - limit:]
+        if self._log_rich is None:
+            # If it supports rich logging, it will print just the logger aware
+            # "magic phrase" as its first message.
+            if data == cb_logging_aware + "\n":
+                self._log_rich = True
+                self._log_data = u""  # Log buffer
+                return
             else:
-                return list(self._log)
+                self._log_rich = False
+
+        system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
+
+        if self._log_rich:
+            # This guest supports rich logs.
+            self._log_data += data
+
+            while record_separator in self._log_data:
+
+                log, self._log_data = self._log_data.split(record_separator, 1)
+
+                event = json.loads(log)
+                event_text = event["text"]
+                level = LogLevel.levelWithName(event["level"])
+
+                self._logger.emit(level, event_text, log_system=system)
+
+                if self._log_topic:
+                    self._controller.publish(self._log_topic, event_text)
+
         else:
-            return []
+            # Rich logs aren't supported
+            data = escape_formatting(data)
+
+            for row in data.split(u"\n"):
+                row = row.strip()
+
+                if row == u"":
+                    continue
+
+                self._logger.emit(LogLevel.info, row, log_system=system)
+
+                if self._log_topic:
+                    self._controller.publish(self._log_topic, row)
 
 
 class NativeWorkerProcess(WorkerProcess):
