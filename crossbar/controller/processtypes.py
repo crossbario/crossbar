@@ -136,7 +136,7 @@ class WorkerProcess(object):
             for row in data.split(u"\n"):
                 row.strip()
 
-                if msg == u"":
+                if row == u"":
                     continue
 
                 self._logger.emit(LogLevel.info, row, log_system=system)
