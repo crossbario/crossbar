@@ -134,7 +134,7 @@ class WorkerProcess(object):
             data = escape_formatting(data)
 
             for row in data.split(u"\n"):
-                row.strip()
+                row = row.strip()
 
                 if row == u"":
                     continue
