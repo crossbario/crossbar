@@ -106,10 +106,16 @@ def run():
     # make sure logging to something else than stdio is setup _first_
     #
     from twisted.logger import globalLogBeginner
-    from crossbar._logging import Logger, make_JSON_observer
+    from crossbar._logging import Logger, make_JSON_observer, cb_logging_aware
 
     log = Logger()
     _stderr = sys.stderr
+
+    # Print a magic phrase that tells the capturing logger that it supports
+    # Crossbar's rich logging
+    print(cb_logging_aware, file=_stderr)
+    _stderr.flush()
+
     flo = make_JSON_observer(_stderr)
     globalLogBeginner.beginLoggingTo([flo])
 

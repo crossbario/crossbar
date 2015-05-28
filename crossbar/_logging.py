@@ -45,6 +45,9 @@ from twisted.python.reflect import qual
 log_publisher = LogPublisher()
 log = Logger(observer=log_publisher)
 
+record_separator = u"\x1e"
+cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
+
 try:
     from colorama import Fore
 except ImportError:
@@ -67,6 +70,13 @@ SYSLOGD_FORMAT = "[{}] {}"
 # sys.stderr and sys.stdout. As we're printing to it, it'll get caught in an
 # infinite loop -- which we don't want.
 _stderr, _stdout = sys.stderr, sys.stdout
+
+
+def escape_formatting(text):
+    """
+    Escape things that would otherwise confuse `.format`.
+    """
+    return text.replace(u"{", u"{{").replace(u"}", u"}}")
 
 
 def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
@@ -159,13 +169,13 @@ def make_JSON_observer(outFile):
     """
     def _make_json(event):
 
-        return json.dumps({"text": formatEvent(event).replace(u"{", u"{{").replace(u"}", u"}}"),
+        return json.dumps({"text": escape_formatting(formatEvent(event)),
                            "level": event.get("log_level", LogLevel.info).name})
 
-    recordSeparator = u"\x1e"
+
     return FileLogObserver(
         outFile,
-        lambda event: u"{0}{1}".format(_make_json(event), recordSeparator)
+        lambda event: u"{0}{1}".format(_make_json(event), record_separator)
     )
 
 
