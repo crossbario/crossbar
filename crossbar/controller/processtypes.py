@@ -34,7 +34,6 @@ import six
 import json
 
 from datetime import datetime
-from collections import deque
 
 from twisted.internet.defer import Deferred
 
@@ -84,7 +83,7 @@ class WorkerProcess(object):
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
 
-        self._log_rich = None # Does not support rich logs
+        self._log_rich = None  # Does not support rich logs
 
         # A deferred that resolves when the worker is ready.
         self.ready = Deferred()
@@ -106,7 +105,7 @@ class WorkerProcess(object):
             # "magic phrase" as its first message.
             if data == cb_logging_aware + "\n":
                 self._log_rich = True
-                self._log_data = u"" # Log buffer
+                self._log_data = u""  # Log buffer
                 return
             else:
                 self._log_rich = False
@@ -137,7 +136,6 @@ class WorkerProcess(object):
 
             if self._log_topic:
                 self._controller.publish(self._log_topic, data)
-
 
 
 class NativeWorkerProcess(WorkerProcess):

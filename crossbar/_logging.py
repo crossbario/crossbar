@@ -169,9 +169,9 @@ def make_JSON_observer(outFile):
     """
     def _make_json(event):
 
-        return json.dumps({"text": escape_formatting(formatEvent(event)),
-                           "level": event.get("log_level", LogLevel.info).name})
-
+        return json.dumps({
+            "text": escape_formatting(formatEvent(event)),
+            "level": event.get("log_level", LogLevel.info).name})
 
     return FileLogObserver(
         outFile,
