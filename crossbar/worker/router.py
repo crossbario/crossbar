@@ -88,6 +88,7 @@ from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
     Resource404, \
+    FileUploadResource, \
     RedirectResource
 
 from autobahn.twisted.flashpolicy import FlashPolicyFactory
@@ -1054,6 +1055,40 @@ class RouterWorkerSession(NativeWorkerSession):
             # now create the caller Twisted Web resource
             #
             return CallerResource(path_config.get('options', {}), caller_session)
+
+        # File Upload resource
+        #
+        elif path_config['type'] == 'fileupload':
+
+            fileupload_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
+            fileupload_directory = fileupload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+            
+            temp_dir = '..'
+            if 'temp_directory' in path_config:
+                temp_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
+                temp_dir = temp_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+
+            max_file_size = 1024 * 1024 * 100   # 100MB
+            if 'max_file_size' in path_config:  
+                max_file_size = path_config['max_file_size']
+                
+            mime_types = ''
+            if 'mime_types' in path_config:  
+                mime_types = path_config['mime_types']
+            
+            file_types = ''
+            if 'file_types' in path_config:  
+                file_types = path_config['file_types']
+
+            file_progress_URI = ''
+            if 'file_progress_URI' in path_config:  
+                file_progress_URI = path_config['file_progress_URI']
+
+            post_upload_processor = ''
+            if 'processor' in path_config:  
+                post_upload_processor = path_config['processor']
+
+            return FileUploadResource(fileupload_directory, temp_dir, max_file_size, mime_types, file_types, file_progress_URI)
 
         # Generic Twisted Web resource
         #
