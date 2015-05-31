@@ -39,15 +39,15 @@ The Crossbar.io [documentation](http://crossbar.io/docs/) is licensed under a [C
 
 The Crossbar.io symbol
 
-![](legal/crossbar_icon.png)
+![](https://github.com/crossbario/crossbar/blob/master/legal/crossbar_icon.png)
 
 and the Crossbar.io logo
 
-![](legal/crossbar_text_vectorized.png)
+![](https://github.com/crossbario/crossbar/blob/master/legal/crossbar_icon_and_text_vectorized.png)
 
 and the Crossbar.io extended logo
 
-![](legal/crossbar_icon_and_text_vectorized.png)
+![](https://github.com/crossbario/crossbar/blob/master/legal/crossbar_text_vectorized.png)
 
 are design marks of Tavendo.
 
