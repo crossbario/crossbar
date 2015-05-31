@@ -828,8 +828,8 @@ def check_web_path_service_fileupload(config):
         'directory': (False, [six.text_type]),
         'temp_directory': (False, [six.text_type]),
         'max_file_size': (False, [six.integer_types]),
-        'mime_types': (False, [dict]),
-        'file_types': (False, [dict]),
+        'mime_types': (False, [list]),
+        'file_types': (False, [list]),
         'file_progress_URI': (False, [six.text_type]),
         'processor': (False, [six.text_type]),
     }, config, "Web transport 'fileupload' path service")

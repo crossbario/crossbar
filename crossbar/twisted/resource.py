@@ -44,6 +44,8 @@ from autobahn.twisted import longpoll
 
 import crossbar
 
+from crossbar.adapter.rest.common import _CommonResource
+
 try:
     # triggers module level reactor import
     # https://twistedmatrix.com/trac/ticket/6849#comment:4
@@ -79,8 +81,7 @@ class JsonResource(Resource):
         return self._data
 
 
-class FileUploadResource(Resource):
-
+class FileUploadResource(Resource, _CommonResource):
 
     """
     Twisted Web resource that handles file uploads over HTTP post requests.
@@ -96,10 +97,8 @@ class FileUploadResource(Resource):
         self.fileProgressURI = file_progress_URI
 
     def render_POST(self, request):
-        # request.setHeader(b'content-type', b'text/text; charset=UTF-8')
         log.msg( 'file uploads --------POST--------')
         headers = request.getAllHeaders()
-        log.msg(json.dumps(headers))
 
         content = cgi.FieldStorage(
         fp = request.content,
@@ -120,37 +119,36 @@ class FileUploadResource(Resource):
         totalChunks = int(content['resumableTotalChunks'].value)
         fileContent = content['file'].value
 
-        print fileId,chunkNumber, chunkSize, cchunkSize, totalSize, fileType, filename, relPath, totalChunks
+        # print fileId,chunkNumber, chunkSize, cchunkSize, totalSize, fileType, filename, relPath, totalChunks
 
-        # check request header for file upload
         # check file size
-        print 'max file size', self.max_file_size, 'total', totalChunks
 
         if int(totalSize) > self.max_file_size: 
-            print 'what??'
-            request.setResponseCode(500)
+            request.setResponseCode(413)  #request entity too large
             return 'max filesize exceeded'
 
+        extension = os.path.splitext(filename)[1]
+        if extension not in self.fileTypes:
+            request.setResponseCode(400) 
+            return 'file extension not accepted'
 
-        # check mime type
-        # check file name suffix (file type)
+        # TODO: check mime type
 
-        # if first of many chunks: create temp file in temp_dir for uncomplete uploads.
         fileTempDir = os.path.join(self.tempDir,fileId)
         chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
-        print fileTempDir
-        if not (os.path.exists(os.path.join(self.tempDir, fileId)) or os.path.exists(fileTempDir)):
+
+        if not (os.path.exists(os.path.join(self.dir, fileId)) or os.path.exists(fileTempDir)):
             # first chunk of file
             # publish file upload start to file_progress_URI     
             if totalChunks == 1: 
-                print 'doing first and only chunk'
+                # print 'doing first and only chunk'
                 # only on chunk overall
                 # write file directly
                 chunk = open(os.path.join(self.dir, fileId), 'wb') 
                 chunk.write(fileContent)
                 chunk.close
             else:
-                print 'doing first of more chunks'
+                # print 'doing first of more chunks'
                 # first of more chunks
                 os.makedirs(fileTempDir)
                 chunk = open(chunkName, 'wb') 
@@ -161,70 +159,63 @@ class FileUploadResource(Resource):
         else:
             numExistingChunks = len(os.listdir(fileTempDir))
             # intermediate chunk
-            print 'intermediate chunk' + str(chunkNumber) + ' of existing ' + str(numExistingChunks)
+            # print 'intermediate chunk' + str(chunkNumber) + ' of existing ' + str(numExistingChunks)
             chunk = open(chunkName, 'wb') 
             chunk.write(fileContent)
             chunk.close 
 
             if numExistingChunks == totalChunks - 1:
                 # last chunk
-                print 'last chunk' + str(chunkNumber)
+                # print 'last chunk' + str(chunkNumber)
                 chunk = open(chunkName, 'wb') 
                 chunk.write(fileContent)
                 chunk.close  
 
                 # Now merge all files into one file and remove the temp files
                 finalFile = open(os.path.join(self.dir, fileId), 'wb')
+
                 for tfileName in os.listdir(fileTempDir):
-                    print 'the temp file list name' + tfileName
                     tfile = open(os.path.join(fileTempDir, tfileName),'r')
                     finalFile.write( tfile.read())
+
                 finalFile.close()                
-                # publish file upload progress to file_progress_URI                        
+                # publish file upload progress to file_progress_URI     
+
+                self._session.publish(self.fileProgressURI, *[], **{})                   
                 # remove the file temp folder
+
                 for tfileName in os.listdir(fileTempDir):
                     os.remove(os.path.join(fileTempDir, tfileName))
+
                 os.rmdir(fileTempDir)
 
-        # if middle chunk:
-        # publish file upload progress to file_progress_URI
-
-        # if last or single chunk: create file_name for finished file
-        # move uploaded file to fileupload_directory
-        # publish file complete to file_progress_URI
-
-        # compile request return (for POST not required !?)
-
-        #     print img["upl_file"].name, img["upl_file"].filename,
-        #     print img["upl_file"].type, img["upl_file"].type
-        #     out = open(img["upl_file"].filename, 'wb')
-        #     out.write(img["upl_file"].value)
-        #     out.close()
-        #     request.redirect('/tests')
         request.setResponseCode(200)
+        return ''
 
 
     def render_GET(self, request):
         """
-        This method is used by resumable.js to check wether a chunk has been uploaded already.
+        This method can be used to check wether a chunk has been uploaded already.
         It returns Status 200 if yes and something else if not.
+        The request needs to contain the file identifier and the chunk number to check for
         """
-        request.setHeader(b'content-type', b'text/text; charset=UTF-8')
-        request.setResponseCode(400)
-       
-        # log.msg(request.path)
         log.msg( 'file uploads --------GET--------')
-        log.msg(json.dumps(request.args))
-        # request.write('this is a test')
-        # for key, records in request.files.iteritems():
-        #     print key
-        #     for record in records:
-        #         name, mime, stream = record
-        #         data = stream.read()
-        #         print '   %s %s %s %r' % (name, mime, stream, data)
 
-        return json.dumps(request.args)
+        arg = request.args
 
+        fileId = arg['resumableIdentifier'][0]
+        chunkNumber = int(arg['resumableChunkNumber'][0])
+
+        fileTempDir = os.path.join(self.tempDir,fileId)
+        chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
+
+        if (os.path.exists(chunkName) or os.path.exists(os.path.join(self.dir, fileId))):
+            request.setResponseCode(200)
+            return 'chunk already here'
+            
+        request.setResponseCode(404)  #not found
+       
+        return 'chunk not here yet'
 
 class Resource404(Resource):
 
