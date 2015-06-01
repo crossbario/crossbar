@@ -97,7 +97,6 @@ class FileUploadResource(Resource):
         self._form_fields = form_fields
 
     def render_POST(self, request):
-        log.msg( 'file uploads --------POST--------')
         headers = request.getAllHeaders()
 
         origin = headers['host'].replace(".","_").replace(":","-").replace("/","_")
@@ -119,6 +118,8 @@ class FileUploadResource(Resource):
         totalChunks = int(content[f['total_chunks']].value)
         fileContent = content[f['content']].value
 
+        log.msg( '--------Try POST File--------' + filename)
+
         # check file size
 
         if int(totalSize) > self.max_file_size: 
@@ -131,6 +132,11 @@ class FileUploadResource(Resource):
         if extension not in self.fileTypes:
             request.setResponseCode(401, "File extension not accepted.") 
             return 'file extension not accepted'
+
+        # check if directories exist 
+        if not os.path.exist(self.dir) or not os.path.exist(self.tempDir):
+                request.setResponseCode(404, "File upload directories are not accessible.") 
+                return "File upload directories are not accessible."
 
         # check if another session is uploading this file already
 
@@ -255,7 +261,7 @@ class FileUploadResource(Resource):
         It returns Status 200 if yes and something else if not.
         The request needs to contain the file identifier and the chunk number to check for
         """
-        log.msg( 'file uploads --------GET--------')
+        # log.msg( 'file uploads --------GET--------')
 
         arg = request.args
 
