@@ -85,7 +85,7 @@ class FileUploadResource(Resource):
     Twisted Web resource that handles file uploads over HTTP post requests.
     """
 
-    def __init__(self, session, fileupload_directory='', temp_dir='..', max_file_size=1024 * 1024 * 100, mime_types='', file_types='', file_progress_URI=''):
+    def __init__(self, fileupload_publish, form_fields, fileupload_directory='', temp_dir='..', max_file_size=1024 * 1024 * 100, mime_types='', file_types='', file_progress_URI=''):
         Resource.__init__(self)
         self.max_file_size = max_file_size
         self.dir = fileupload_directory
@@ -93,32 +93,31 @@ class FileUploadResource(Resource):
         self.mimeTypes = mime_types
         self.fileTypes = file_types
         self.fileProgressURI = file_progress_URI
-        self._session = session
+        self._fileupload_publish = fileupload_publish
+        self._form_fields = form_fields
 
     def render_POST(self, request):
         log.msg( 'file uploads --------POST--------')
         headers = request.getAllHeaders()
 
+        origin = headers['host'].replace(".","_").replace(":","-").replace("/","_")
         content = cgi.FieldStorage(
-        fp = request.content,
-        headers = headers,
-        environ = {'REQUEST_METHOD':'POST',
-                 'CONTENT_TYPE': headers['content-type'],
-                 }
-        )
+            fp = request.content,
+            headers = headers,
+            environ = {'REQUEST_METHOD':'POST',
+                     'CONTENT_TYPE': headers['content-type'],
+                     }
+            )
 
-        fileId = content['resumableIdentifier'].value
-        chunkNumber = int(content['resumableChunkNumber'].value)
-        chunkSize = int(content['resumableChunkSize'].value)
-        cchunkSize = int(content['resumableCurrentChunkSize'].value)
-        totalSize = int(content['resumableTotalSize'].value)
-        fileType = content['resumableType'].value
-        filename = content['resumableFilename'].value
-        relPath = content['resumableRelativePath'].value
-        totalChunks = int(content['resumableTotalChunks'].value)
-        fileContent = content['file'].value
-
-        # print fileId,chunkNumber, chunkSize, cchunkSize, totalSize, fileType, filename, relPath, totalChunks
+        f = self._form_fields
+        fileId = content[f['file_id']].value
+        chunkNumber = int(content[f['chunk_number']].value)
+        chunkSize = int(content[f['chunk_size']].value)
+        totalSize = int(content[f['total_size']].value)
+        fileType = content[f['mime_type']].value
+        filename = content[f['file_name']].value
+        totalChunks = int(content[f['total_chunks']].value)
+        fileContent = content[f['content']].value
 
         # check file size
 
@@ -126,45 +125,63 @@ class FileUploadResource(Resource):
             request.setResponseCode(400, "max filesize of " + self.max_file_size + " bytes exceeded.")  #request entity too large
             return 'max filesize exceeded'
 
+        # check file extensions
+
         extension = os.path.splitext(filename)[1]
         if extension not in self.fileTypes:
-            request.setResponseCode(400, "File extension not accepted.") 
+            request.setResponseCode(401, "File extension not accepted.") 
             return 'file extension not accepted'
+
+        # check if another session is uploading this file already
+
+        for e in os.listdir(self.tempDir):
+            common_id = e[0:e.find("#")]
+            existing_origin = e[e.find("#") + 1 :]
+            if common_id == fileId + '_orig' and existing_origin != origin :
+                request.setResponseCode(402, "Upload in progress in other session.") 
+                # Error has to be captured in the calling session. No need to publish.
+                # self._fileupload_publish( {
+                #     "fileId": fileId,
+                #     "fileName": filename,
+                #     "totalSize": totalSize, 
+                #     "status": "ERROR",
+                #     "error_msg": "Upload in Progress in other session.",
+                #     "progress": 0
+                #     }) 
+                return ''
 
         # TODO: check mime type
 
-        fileTempDir = os.path.join(self.tempDir,fileId)
+        fileTempDir = os.path.join(self.tempDir,fileId + '_orig#' + origin)
         chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
 
         if not (os.path.exists(os.path.join(self.dir, fileId)) or os.path.exists(fileTempDir)):
             # first chunk of file
+
             # publish file upload start to file_progress_URI  
-            self._session.publish(self.fileProgressURI, *[{
+            self._fileupload_publish( {
                 "fileId": fileId,
                 "fileName": filename,
                 "totalSize": totalSize, 
                 "status": "START",
                 "progress": 0
-                }], **{})  
+                })  
 
             if totalChunks == 1: 
-                # print 'doing first and only chunk'
-                # only on chunk overall
-                # write file directly
+                # only on chunk overall -> write file directly
                 chunk = open(os.path.join(self.dir, fileId), 'wb') 
                 chunk.write(fileContent)
                 chunk.close
-                 # publish file upload progress to file_progress_URI     
-                
-                self._session.publish(self.fileProgressURI, *[{
+
+                # publish file upload progress to file_progress_URI     
+                self._fileupload_publish( {
                     "fileId": fileId,
                     "fileName": filename,
                     "totalSize": totalSize,
                     "status": "FINISH",
                     "progress": 1
-                    }], **{})     
+                    })     
             else:
-                # print 'doing first of more chunks'
                 # first of more chunks
                 os.makedirs(fileTempDir)
                 chunk = open(chunkName, 'wb') 
@@ -172,36 +189,32 @@ class FileUploadResource(Resource):
                 chunk.close
 
                 # publish file upload progress to file_progress_URI
-
-                self._session.publish(self.fileProgressURI, *[{
+                self._fileupload_publish( {
                     "fileId": fileId,
                     "fileName": filename,
                     "totalSize": totalSize,
                     "status": "PROGRESS",
                     "progress": chunkSize / float(totalSize)
-                    }], **{})
+                    })
         
         else:
-            # numExistingChunks = len(os.listdir(fileTempDir))
             # intermediate chunk
-            # print 'intermediate chunk' + str(chunkNumber) + ' of existing ' + str(numExistingChunks)
             chunk = open(chunkName, 'wb') 
             chunk.write(fileContent)
             chunk.close 
 
             prog = float(sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))) / totalSize
             
-            self._session.publish(self.fileProgressURI, *[{
+            self._fileupload_publish( {
                 "fileId": fileId,
                 "fileName": filename,
                 "totalSize": totalSize,
                 "status": "PROGRESS",
                 "progress": prog
-                }], **{})
+                })
 
             if chunkNumber == totalChunks:
                 # last chunk
-                print 'last chunk' + str(chunkNumber)
                 chunk = open(chunkName, 'wb') 
                 chunk.write(fileContent)
                 chunk.close  
@@ -217,15 +230,13 @@ class FileUploadResource(Resource):
                 
                 # publish file upload progress to file_progress_URI     
 
-                print 'publishing to ' + self.fileProgressURI
-
-                self._session.publish(self.fileProgressURI, *[{
+                self._fileupload_publish( {
                     "fileId": fileId,
                     "fileName": filename,
                     "totalSize": totalSize,
                     "status": "FINISH",
                     "progress": 1
-                    }], **{})
+                    })
 
                 # remove the file temp folder
 
@@ -248,10 +259,13 @@ class FileUploadResource(Resource):
 
         arg = request.args
 
+        headers = request.getAllHeaders()   
+        origin = headers['host'].replace(".","_").replace(":","-").replace("/","_")
+
         fileId = arg['resumableIdentifier'][0]
         chunkNumber = int(arg['resumableChunkNumber'][0])
 
-        fileTempDir = os.path.join(self.tempDir,fileId)
+        fileTempDir = os.path.join(self.tempDir,fileId + '_orig#' + origin)
         chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
 
         if (os.path.exists(chunkName) or os.path.exists(os.path.join(self.dir, fileId))):

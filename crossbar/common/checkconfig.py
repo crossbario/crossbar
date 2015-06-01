@@ -825,20 +825,20 @@ def check_web_path_service_fileupload(config):
     """
     check_dict_args({
         'type': (True, [six.text_type]),
-        'directory': (False, [six.text_type]),
-        'temp_directory': (False, [six.text_type]),
+        'form_fields': (True, [dict]),
+        'directory': (True, [six.text_type]),
+        'temp_directory': (True, [six.text_type]),
         'max_file_size': (False, six.integer_types),
         'mime_types': (False, [list]),
         'file_types': (False, [list]),
-        'realm': (False,[six.text_type]),
-        'file_progress_URI': (False, [six.text_type]),
-        'processor': (False, [six.text_type]),
+        'file_progress': (False, [dict]),
     }, config, "Web transport 'fileupload' path service")
 
-    # if 'max_file_size' in config:
-    #     check_web_path_service_max_file_size(config['max_file_size'])
+    if 'max_file_size' in config:
+        check_web_path_service_max_file_size(config['max_file_size'])
     
-    # check_or_raise_uri(config['file_progress_URI'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['file_progress_URI']))
+    if 'file_progress' in config:
+        check_or_raise_uri(config['file_progress']['uri'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['file_progress']['uri']))
     
 
 def check_web_path_service(path, config, nested):
