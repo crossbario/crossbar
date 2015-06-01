@@ -1088,7 +1088,14 @@ class RouterWorkerSession(NativeWorkerSession):
             if 'processor' in path_config:  
                 post_upload_processor = path_config['processor']
 
-            return FileUploadResource(fileupload_directory, temp_dir, max_file_size, mime_types, file_types, file_progress_URI)
+            fileupload_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+            fileupload_session = ApplicationSession(fileupload_session_config)
+
+            self._router_session_factory.add(fileupload_session, authrole=u'trusted')
+
+            fileupload_session.publish('re.upload',*[], **{})
+
+            return FileUploadResource(fileupload_session, fileupload_directory, temp_dir, max_file_size, mime_types, file_types, file_progress_URI)
 
         # Generic Twisted Web resource
         #

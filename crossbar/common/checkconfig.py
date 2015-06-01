@@ -827,15 +827,16 @@ def check_web_path_service_fileupload(config):
         'type': (True, [six.text_type]),
         'directory': (False, [six.text_type]),
         'temp_directory': (False, [six.text_type]),
-        'max_file_size': (False, [six.integer_types]),
+        'max_file_size': (False, six.integer_types),
         'mime_types': (False, [list]),
         'file_types': (False, [list]),
+        'realm': (False,[six.text_type]),
         'file_progress_URI': (False, [six.text_type]),
         'processor': (False, [six.text_type]),
     }, config, "Web transport 'fileupload' path service")
 
-    if 'max_file_size' in config:
-        check_web_path_service_max_file_size(config['max_file_size'])
+    # if 'max_file_size' in config:
+    #     check_web_path_service_max_file_size(config['max_file_size'])
     
     # check_or_raise_uri(config['file_progress_URI'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['file_progress_URI']))
     

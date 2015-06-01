@@ -44,8 +44,6 @@ from autobahn.twisted import longpoll
 
 import crossbar
 
-from crossbar.adapter.rest.common import _CommonResource
-
 try:
     # triggers module level reactor import
     # https://twistedmatrix.com/trac/ticket/6849#comment:4
@@ -81,13 +79,13 @@ class JsonResource(Resource):
         return self._data
 
 
-class FileUploadResource(Resource, _CommonResource):
+class FileUploadResource(Resource):
 
     """
     Twisted Web resource that handles file uploads over HTTP post requests.
     """
 
-    def __init__(self, fileupload_directory='', temp_dir='..', max_file_size=1024 * 1024 * 100, mime_types='', file_types='', file_progress_URI=''):
+    def __init__(self, session, fileupload_directory='', temp_dir='..', max_file_size=1024 * 1024 * 100, mime_types='', file_types='', file_progress_URI=''):
         Resource.__init__(self)
         self.max_file_size = max_file_size
         self.dir = fileupload_directory
@@ -95,6 +93,7 @@ class FileUploadResource(Resource, _CommonResource):
         self.mimeTypes = mime_types
         self.fileTypes = file_types
         self.fileProgressURI = file_progress_URI
+        self._session = session
 
     def render_POST(self, request):
         log.msg( 'file uploads --------POST--------')
@@ -124,12 +123,12 @@ class FileUploadResource(Resource, _CommonResource):
         # check file size
 
         if int(totalSize) > self.max_file_size: 
-            request.setResponseCode(413)  #request entity too large
+            request.setResponseCode(400, "max filesize of " + self.max_file_size + " bytes exceeded.")  #request entity too large
             return 'max filesize exceeded'
 
         extension = os.path.splitext(filename)[1]
         if extension not in self.fileTypes:
-            request.setResponseCode(400) 
+            request.setResponseCode(400, "File extension not accepted.") 
             return 'file extension not accepted'
 
         # TODO: check mime type
@@ -139,7 +138,15 @@ class FileUploadResource(Resource, _CommonResource):
 
         if not (os.path.exists(os.path.join(self.dir, fileId)) or os.path.exists(fileTempDir)):
             # first chunk of file
-            # publish file upload start to file_progress_URI     
+            # publish file upload start to file_progress_URI  
+            self._session.publish(self.fileProgressURI, *[{
+                "fileId": fileId,
+                "fileName": filename,
+                "totalSize": totalSize, 
+                "status": "START",
+                "progress": 0
+                }], **{})  
+
             if totalChunks == 1: 
                 # print 'doing first and only chunk'
                 # only on chunk overall
@@ -147,6 +154,15 @@ class FileUploadResource(Resource, _CommonResource):
                 chunk = open(os.path.join(self.dir, fileId), 'wb') 
                 chunk.write(fileContent)
                 chunk.close
+                 # publish file upload progress to file_progress_URI     
+                
+                self._session.publish(self.fileProgressURI, *[{
+                    "fileId": fileId,
+                    "fileName": filename,
+                    "totalSize": totalSize,
+                    "status": "FINISH",
+                    "progress": 1
+                    }], **{})     
             else:
                 # print 'doing first of more chunks'
                 # first of more chunks
@@ -154,19 +170,38 @@ class FileUploadResource(Resource, _CommonResource):
                 chunk = open(chunkName, 'wb') 
                 chunk.write(fileContent)
                 chunk.close
-            # publish file upload progress to file_progress_URI
+
+                # publish file upload progress to file_progress_URI
+
+                self._session.publish(self.fileProgressURI, *[{
+                    "fileId": fileId,
+                    "fileName": filename,
+                    "totalSize": totalSize,
+                    "status": "PROGRESS",
+                    "progress": chunkSize / float(totalSize)
+                    }], **{})
         
         else:
-            numExistingChunks = len(os.listdir(fileTempDir))
+            # numExistingChunks = len(os.listdir(fileTempDir))
             # intermediate chunk
             # print 'intermediate chunk' + str(chunkNumber) + ' of existing ' + str(numExistingChunks)
             chunk = open(chunkName, 'wb') 
             chunk.write(fileContent)
             chunk.close 
 
-            if numExistingChunks == totalChunks - 1:
+            prog = float(sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))) / totalSize
+            
+            self._session.publish(self.fileProgressURI, *[{
+                "fileId": fileId,
+                "fileName": filename,
+                "totalSize": totalSize,
+                "status": "PROGRESS",
+                "progress": prog
+                }], **{})
+
+            if chunkNumber == totalChunks:
                 # last chunk
-                # print 'last chunk' + str(chunkNumber)
+                print 'last chunk' + str(chunkNumber)
                 chunk = open(chunkName, 'wb') 
                 chunk.write(fileContent)
                 chunk.close  
@@ -179,9 +214,19 @@ class FileUploadResource(Resource, _CommonResource):
                     finalFile.write( tfile.read())
 
                 finalFile.close()                
+                
                 # publish file upload progress to file_progress_URI     
 
-                self._session.publish(self.fileProgressURI, *[], **{})                   
+                print 'publishing to ' + self.fileProgressURI
+
+                self._session.publish(self.fileProgressURI, *[{
+                    "fileId": fileId,
+                    "fileName": filename,
+                    "totalSize": totalSize,
+                    "status": "FINISH",
+                    "progress": 1
+                    }], **{})
+
                 # remove the file temp folder
 
                 for tfileName in os.listdir(fileTempDir):
@@ -210,12 +255,12 @@ class FileUploadResource(Resource, _CommonResource):
         chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
 
         if (os.path.exists(chunkName) or os.path.exists(os.path.join(self.dir, fileId))):
-            request.setResponseCode(200)
-            return 'chunk already here'
+            request.setResponseCode(200, "Chunk of File already uploaded.")
+            return 'chunk already uploaded'
             
-        request.setResponseCode(404)  #not found
+        request.setResponseCode(404, "Chunk of file not yet uploaded.")  #not found
        
-        return 'chunk not here yet'
+        return 'Chunk of file not yet uploaded.'
 
 class Resource404(Resource):
 
