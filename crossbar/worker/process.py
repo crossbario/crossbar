@@ -105,11 +105,10 @@ def run():
 
     # make sure logging to something else than stdio is setup _first_
     #
-    from twisted.logger import globalLogBeginner
-    from crossbar._logging import Logger, make_JSON_observer, cb_logging_aware
+    from crossbar._logging import make_JSON_observer, cb_logging_aware, _stderr
+    from crossbar._logging import make_logger, log_publisher, start_logging
 
-    log = Logger()
-    _stderr = sys.stderr
+    log = make_logger()
 
     # Print a magic phrase that tells the capturing logger that it supports
     # Crossbar's rich logging
@@ -117,7 +116,8 @@ def run():
     _stderr.flush()
 
     flo = make_JSON_observer(_stderr)
-    globalLogBeginner.beginLoggingTo([flo])
+    log_publisher.addObserver(flo)
+    start_logging()
 
     try:
         import setproctitle
