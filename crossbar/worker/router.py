@@ -1077,7 +1077,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if 'mime_types' in path_config:  
                 mime_types = path_config['mime_types']
             
-            file_types = ''
+            file_types = []
             if 'file_types' in path_config:  
                 file_types = path_config['file_types']
 

@@ -89,12 +89,10 @@ class FileUploadResource(Resource):
 
     def __init__(self, fileupload_publish, file_owner, form_fields, fileupload_directory='', temp_dir='..', max_file_size=1024 * 1024 * 100, mime_types='', file_types='', file_progress_URI=''):
         Resource.__init__(self)
-        self.max_file_size = max_file_size
-        self.dir = fileupload_directory
-        self.tempDir = temp_dir
-        self.mimeTypes = mime_types
-        self.fileTypes = file_types
-        self.fileProgressURI = file_progress_URI
+        self._max_file_size = max_file_size
+        self._dir = fileupload_directory
+        self._tempDir = temp_dir
+        self._fileTypes = file_types
         self._fileupload_publish = fileupload_publish
         self._form_fields = form_fields
         self._owner = file_owner        
@@ -125,25 +123,26 @@ class FileUploadResource(Resource):
 
         # check file size
 
-        if int(totalSize) > self.max_file_size: 
-            request.setResponseCode(500, "max filesize of " + self.max_file_size + " bytes exceeded.")  #request entity too large
+        if int(totalSize) > self._max_file_size: 
+            request.setResponseCode(500, "max filesize of " + self._max_file_size + " bytes exceeded.")  #request entity too large
             return 'max filesize exceeded'
 
         # check file extensions
 
         extension = os.path.splitext(filename)[1]
-        if extension not in self.fileTypes:
+
+        if extension not in self._fileTypes and len(self._fileTypes) > 0:
             request.setResponseCode(501, "File extension not accepted.") 
             return 'file extension not accepted'
 
         # check if directories exist 
-        if not os.path.exists(self.dir) or not os.path.exists(self.tempDir):
+        if not os.path.exists(self._dir) or not os.path.exists(self._tempDir):
                 request.setResponseCode(502, "File upload directories are not accessible.") 
                 return "File upload directories are not accessible."
 
         # check if another session is uploading this file already
 
-        for e in os.listdir(self.tempDir):
+        for e in os.listdir(self._tempDir):
             common_id = e[0:e.find("#")]
             existing_origin = e[e.find("#") + 1 :]
             if common_id == fileId + '_orig' and existing_origin != origin :
@@ -161,10 +160,10 @@ class FileUploadResource(Resource):
 
         # TODO: check mime type
 
-        fileTempDir = os.path.join(self.tempDir,fileId + '_orig#' + origin)
+        fileTempDir = os.path.join(self._tempDir,fileId + '_orig#' + origin)
         chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
 
-        if not (os.path.exists(os.path.join(self.dir, fileId)) or os.path.exists(fileTempDir)):
+        if not (os.path.exists(os.path.join(self._dir, fileId)) or os.path.exists(fileTempDir)):
             # first chunk of file
 
             # publish file upload start to file_progress_URI  
@@ -178,7 +177,7 @@ class FileUploadResource(Resource):
 
             if totalChunks == 1: 
                 # only one chunk overall -> write file directly
-                finalFileName = os.path.join(self.dir, fileId)   
+                finalFileName = os.path.join(self._dir, fileId)   
                 finalFile = open(finalFileName, 'wb') 
                 finalFile.write(fileContent)
                 finalFile.close             
@@ -245,7 +244,7 @@ class FileUploadResource(Resource):
                 chunk.close  
 
                 # Now merge all files into one file and remove the temp files
-                finalFile = open(os.path.join(self.dir, fileId), 'wb')
+                finalFile = open(os.path.join(self._dir, fileId), 'wb')
 
                 for tfileName in os.listdir(fileTempDir):
                     tfile = open(os.path.join(fileTempDir, tfileName),'r')
@@ -308,10 +307,10 @@ class FileUploadResource(Resource):
         fileId = arg['resumableIdentifier'][0]
         chunkNumber = int(arg['resumableChunkNumber'][0])
 
-        fileTempDir = os.path.join(self.tempDir,fileId + '_orig#' + origin)
+        fileTempDir = os.path.join(self._tempDir,fileId + '_orig#' + origin)
         chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
 
-        if (os.path.exists(chunkName) or os.path.exists(os.path.join(self.dir, fileId))):
+        if (os.path.exists(chunkName) or os.path.exists(os.path.join(self._dir, fileId))):
             request.setResponseCode(200, "Chunk of File already uploaded.")
             return 'chunk already uploaded'
             
