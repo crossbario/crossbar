@@ -124,6 +124,7 @@ class FileUploadResource(Resource):
 
         if 'progress_uri' in f and f['progress_uri'] in content and self._fileupload_session != {}:
             topic = content[f['progress_uri']].value
+
             def fileupload_publish(payload):
                     self._fileupload_session.publish(topic, *[payload], **{})
         else:
