@@ -58,12 +58,18 @@ except ImportError:
 _HAS_COLOR_TERM = False
 try:
     import colorama
-    if sys.platform == 'win32' and 'TERM' in os.environ and os.environ['TERM'] == 'cygwin':
-        # color does not seem to work on Windows Git Bash / Cygwin terminal
-        pass
-    else:
-        _HAS_COLOR_TERM = True
+
+    # https://github.com/tartley/colorama/issues/48
+    term = None
+    if sys.platform == 'win32' and 'TERM' in os.environ:
+        term = os.environ.pop('TERM')
+
     colorama.init()
+    _HAS_COLOR_TERM = True
+
+    if term:
+        os.environ['TERM'] = term
+
 except ImportError:
     pass
 
