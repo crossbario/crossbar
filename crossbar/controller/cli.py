@@ -55,6 +55,18 @@ try:
 except ImportError:
     _HAS_PSUTIL = False
 
+_HAS_COLOR_TERM = False
+try:
+    import colorama
+    if sys.platform == 'win32' and 'TERM' in os.environ and os.environ['TERM'] == 'cygwin':
+        # color does not seem to work on Windows Git Bash / Cygwin terminal
+        pass
+    else:
+        _HAS_COLOR_TERM = True
+    colorama.init()
+except ImportError:
+    pass
+
 __all__ = ('run',)
 
 # http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
