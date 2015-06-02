@@ -6,7 +6,7 @@ The following sections provide information about legal aspects related to Crossb
 
 The Crossbar.io [source code](https://github.com/crossbario/crossbar/tree/master/crossbar) is licensed under the [GNU AGPL 3.0](http://www.gnu.org/licenses/agpl-3.0.html). You can find a copy of the license in the repository [here](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE) and references to this license at the top of each source code file.
 
-All rights to the Crossbar.io source code remain exclusively with [Tavendo](http://tavendo.com/). All (external) contributors sign a [Contributor Assignement Agreement](https://github.com/crossbario/crossbar/wiki/Contributing%20to%20the%20project)
+All rights to the Crossbar.io source code remain exclusively with [Tavendo](http://tavendo.com/). All (external) contributors sign a [Contributor Assignement Agreement](http://crossbar.io/docs/Contributing-to-the-project/)
 
 The Crossbar.io [application templates](https://github.com/crossbario/crossbar/tree/master/crossbar/crossbar/templates) and instances of code generated from these templates are licensed under the [BSD 2-clause](http://opensource.org/licenses/BSD-2-Clause) license. 
 
@@ -31,7 +31,7 @@ The licenses allow you to use the template code and generated code in your own a
 
 ## Documentation
 
-The Crossbar.io [documentation](https://github.com/crossbario/crossbar/wiki) is licensed under a [Creative Commons](http://creativecommons.org/) license: the [CC BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).
+The Crossbar.io [documentation](http://crossbar.io/docs/) is licensed under a [Creative Commons](http://creativecommons.org/) license: the [CC BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).
 
 # Trademarks
 
@@ -39,15 +39,15 @@ The Crossbar.io [documentation](https://github.com/crossbario/crossbar/wiki) is 
 
 The Crossbar.io symbol
 
-![](legal/crossbar_icon.png)
+![](https://github.com/crossbario/crossbar/blob/master/legal/crossbar_icon.png)
 
 and the Crossbar.io logo
 
-![](legal/crossbar_text_vectorized.png)
+![](https://github.com/crossbario/crossbar/blob/master/legal/crossbar_icon_and_text_vectorized.png)
 
 and the Crossbar.io extended logo
 
-![](legal/crossbar_icon_and_text_vectorized.png)
+![](https://github.com/crossbario/crossbar/blob/master/legal/crossbar_text_vectorized.png)
 
 are design marks of Tavendo.
 
