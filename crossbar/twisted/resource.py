@@ -122,10 +122,10 @@ class FileUploadResource(Resource):
         totalChunks = int(content[f['total_chunks']].value)
         fileContent = content[f['content']].value
 
-        if 'progress_uri' in f and self._fileupload_session != {}:
+        if 'progress_uri' in f and f['progress_uri'] in content and self._fileupload_session != {}:
             topic = content[f['progress_uri']].value
             def fileupload_publish(payload):
-                self._fileupload_session.publish(topic, *[payload], **{})
+                    self._fileupload_session.publish(topic, *[payload], **{})
         else:
             def fileupload_publish(payload):
                 return ''
@@ -143,12 +143,12 @@ class FileUploadResource(Resource):
         extension = os.path.splitext(filename)[1]
 
         if extension not in self._fileTypes and len(self._fileTypes) > 0:
-            request.setResponseCode(501, "File extension not accepted.")
+            request.setResponseCode(500, "File extension not accepted.")
             return 'file extension not accepted'
 
         # check if directories exist
         if not os.path.exists(self._dir) or not os.path.exists(self._tempDir):
-                request.setResponseCode(502, "File upload directories are not accessible.")
+                request.setResponseCode(500, "File upload directories are not accessible.")
                 return "File upload directories are not accessible."
 
         # check if another session is uploading this file already
@@ -157,7 +157,7 @@ class FileUploadResource(Resource):
             common_id = e[0:e.find("#")]
             existing_origin = e[e.find("#") + 1:]
             if common_id == fileId + '_orig' and existing_origin != origin:
-                request.setResponseCode(503, "Upload in progress in other session.")
+                request.setResponseCode(500, "Upload in progress in other session.")
                 # Error has to be captured in the calling session. No need to publish.
                 # self._fileupload_publish( {
                 #     "fileId": fileId,
@@ -262,7 +262,7 @@ class FileUploadResource(Resource):
                     os.chmod(finalFileName, perm)
 
                 except Exception as e:
-                    request.setResponseCode(500, "File owner/permissions could not be changed")
+                    request.setResponseCode(500, "File permissions could not be changed")
                     self.removeTempDir(fileTempDir)
                     return ''
 
