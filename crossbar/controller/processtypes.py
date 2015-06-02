@@ -90,6 +90,21 @@ class WorkerProcess(object):
 
         # A deferred that resolves when the worker has exited.
         self.exit = Deferred()
+        self.exit.addBoth(self._dump_remaining_log)
+
+    def _dump_remaining_log(self, result):
+        """
+        If there's anything left in the log buffer, log it out so it's not
+        lost.
+        """
+        if self._log_rich and self._log_data != u"":
+            self._logger.warn("REMAINING LOG BUFFER AFTER EXIT FOR PID {pid}:",
+                              pid=self.pid)
+
+            for log in self._log_data.split(u"\n"):
+                self._logger.warn(escape_formatting(log))
+
+        return result
 
     def log(self, childFD, data):
         """
@@ -103,7 +118,7 @@ class WorkerProcess(object):
         if self._log_rich is None:
             # If it supports rich logging, it will print just the logger aware
             # "magic phrase" as its first message.
-            if data == cb_logging_aware + "\n":
+            if data == cb_logging_aware + u"\n":
                 self._log_rich = True
                 self._log_data = u""  # Log buffer
                 return
@@ -120,7 +135,13 @@ class WorkerProcess(object):
 
                 log, self._log_data = self._log_data.split(record_separator, 1)
 
-                event = json.loads(log)
+                try:
+                    event = json.loads(log)
+                except ValueError:
+                    # If invalid JSON is written out, just output the raw text.
+                    # We tried!
+                    event = {"level": u"warn",
+                             "text": u"INVALID JSON: {}".format(escape_formatting(log))}
                 event_text = event["text"]
                 level = LogLevel.levelWithName(event["level"])
 
