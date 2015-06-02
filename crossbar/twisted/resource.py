@@ -101,15 +101,7 @@ class FileUploadResource(Resource):
         self._fileTypes = file_types
         self._form_fields = form_fields
         self._file_permissions = file_permissions
-
-        if 'progress_uri' in form_fields:
-            def _fileupload_publish(payload):
-                fileupload_session.publish(form_fields['progress_uri'], *[payload], **{})
-        else:
-            def _fileupload_publish(payload):
-                return ''
-
-        self._fileupload_publish = _fileupload_publish
+        self._fileupload_session = fileupload_session
 
     def render_POST(self, request):
         headers = request.getAllHeaders()
@@ -119,8 +111,7 @@ class FileUploadResource(Resource):
             fp=request.content,
             headers=headers,
             environ={'REQUEST_METHOD': 'POST',
-                     'CONTENT_TYPE': headers['content-type'],
-                     })
+                     'CONTENT_TYPE': headers['content-type']})
 
         f = self._form_fields
         fileId = content[f['file_id']].value
@@ -130,6 +121,14 @@ class FileUploadResource(Resource):
         filename = content[f['file_name']].value
         totalChunks = int(content[f['total_chunks']].value)
         fileContent = content[f['content']].value
+        topic = content[f['progress_uri']].value
+
+        if 'progress_uri' in f and self._fileupload_session != {}:
+            def fileupload_publish(payload):
+                self._fileupload_session.publish(topic, *[payload], **{})
+        else:
+            def fileupload_publish(payload):
+                return ''
 
         log.msg('--------Try POST File--------' + filename)
 
@@ -179,13 +178,13 @@ class FileUploadResource(Resource):
             # first chunk of file
 
             # publish file upload start to file_progress_URI
-            self._fileupload_publish({
-                                     "fileId": fileId,
-                                     "fileName": filename,
-                                     "totalSize": totalSize,
-                                     "status": "START",
-                                     "progress": 0
-                                     })
+            fileupload_publish({
+                               "fileId": fileId,
+                               "fileName": filename,
+                               "totalSize": totalSize,
+                               "status": "START",
+                               "progress": 0
+                               })
 
             if totalChunks == 1:
                 # only one chunk overall -> write file directly
@@ -204,13 +203,13 @@ class FileUploadResource(Resource):
                     return ''
 
                 # publish file upload progress to file_progress_URI
-                self._fileupload_publish({
-                                         "fileId": fileId,
-                                         "fileName": filename,
-                                         "totalSize": totalSize,
-                                         "status": "FINISH",
-                                         "progress": 1
-                                         })
+                fileupload_publish({
+                                   "fileId": fileId,
+                                   "fileName": filename,
+                                   "totalSize": totalSize,
+                                   "status": "FINISH",
+                                   "progress": 1
+                                   })
             else:
                 # first of more chunks
                 os.makedirs(fileTempDir)
@@ -219,13 +218,13 @@ class FileUploadResource(Resource):
                 chunk.close
 
                 # publish file upload progress to file_progress_URI
-                self._fileupload_publish({
-                                         "fileId": fileId,
-                                         "fileName": filename,
-                                         "totalSize": totalSize,
-                                         "status": "PROGRESS",
-                                         "progress": chunkSize / float(totalSize)
-                                         })
+                fileupload_publish({
+                                   "fileId": fileId,
+                                   "fileName": filename,
+                                   "totalSize": totalSize,
+                                   "status": "PROGRESS",
+                                   "progress": chunkSize / float(totalSize)
+                                   })
 
         else:
             # intermediate chunk
@@ -235,13 +234,13 @@ class FileUploadResource(Resource):
 
             prog = float(sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))) / totalSize
 
-            self._fileupload_publish({
-                                     "fileId": fileId,
-                                     "fileName": filename,
-                                     "totalSize": totalSize,
-                                     "status": "PROGRESS",
-                                     "progress": prog
-                                     })
+            fileupload_publish({
+                               "fileId": fileId,
+                               "fileName": filename,
+                               "totalSize": totalSize,
+                               "status": "PROGRESS",
+                               "progress": prog
+                               })
 
             if chunkNumber == totalChunks:
                 # last chunk
@@ -269,13 +268,13 @@ class FileUploadResource(Resource):
 
                 # publish file upload progress to file_progress_URI
 
-                self._fileupload_publish({
-                                         "fileId": fileId,
-                                         "fileName": filename,
-                                         "totalSize": totalSize,
-                                         "status": "FINISH",
-                                         "progress": 1
-                                         })
+                fileupload_publish({
+                                   "fileId": fileId,
+                                   "fileName": filename,
+                                   "totalSize": totalSize,
+                                   "status": "FINISH",
+                                   "progress": 1
+                                   })
 
                 # remove the file temp folder
                 self.removeTempDir(fileTempDir)

@@ -1083,7 +1083,7 @@ class RouterWorkerSession(NativeWorkerSession):
             # If fileupload events are not desired the publish function does nothing then.
             if 'progress_uri' in path_config['form_fields']:
 
-                fileupload_session_config = ComponentConfig(realm='realm1', extra=None)
+                fileupload_session_config = ComponentConfig(realm=path_config['progress_realm'], extra=None)
                 fileupload_session = ApplicationSession(fileupload_session_config)
 
                 self._router_session_factory.add(fileupload_session, authrole=u'trusted')

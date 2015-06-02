@@ -831,7 +831,8 @@ def check_web_path_service_fileupload(config):
         'temp_directory': (True, [six.text_type]),
         'file_permissions': (False, [six.text_type]),
         'max_file_size': (False, six.integer_types),
-        'file_types': (False, [list])
+        'file_types': (False, [list]),
+        'progress_realm': (False, [six.text_type])
     }, config, "Web transport 'fileupload' path service")
 
     if 'max_file_size' in config:
