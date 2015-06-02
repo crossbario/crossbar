@@ -121,9 +121,9 @@ class FileUploadResource(Resource):
         filename = content[f['file_name']].value
         totalChunks = int(content[f['total_chunks']].value)
         fileContent = content[f['content']].value
-        topic = content[f['progress_uri']].value
 
         if 'progress_uri' in f and self._fileupload_session != {}:
+            topic = content[f['progress_uri']].value
             def fileupload_publish(payload):
                 self._fileupload_session.publish(topic, *[payload], **{})
         else:
