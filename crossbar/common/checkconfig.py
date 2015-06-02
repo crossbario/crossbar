@@ -829,9 +829,9 @@ def check_web_path_service_fileupload(config):
         'directory': (True, [six.text_type]),
         'temp_directory': (True, [six.text_type]),
         'max_file_size': (False, six.integer_types),
-        'mime_types': (False, [list]),
         'file_types': (False, [list]),
         'file_progress': (False, [dict]),
+        'file_owner': (False, [dict])
     }, config, "Web transport 'fileupload' path service")
 
     if 'max_file_size' in config:
@@ -840,6 +840,11 @@ def check_web_path_service_fileupload(config):
     if 'file_progress' in config:
         check_or_raise_uri(config['file_progress']['uri'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['file_progress']['uri']))
     
+    # check_dict_args({
+    #     'owner': (True, [six.text_type]),
+    #     'group': (True, [six.text_type]),
+    #     'permissions': (True, six.integer_types)
+    #     }, config['file_owner'], "File upload owner settings")
 
 def check_web_path_service(path, config, nested):
     """

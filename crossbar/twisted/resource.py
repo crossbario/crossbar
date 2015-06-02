@@ -29,10 +29,12 @@
 #####################################################################################
 
 import os
+import pwd
+import grp
+
 import json
 import time
-import cgi
-import os, os.path
+import cgi # for POST Request Header decoding
 
 from twisted.python import log, compat
 from twisted.web import http
@@ -85,7 +87,7 @@ class FileUploadResource(Resource):
     Twisted Web resource that handles file uploads over HTTP post requests.
     """
 
-    def __init__(self, fileupload_publish, form_fields, fileupload_directory='', temp_dir='..', max_file_size=1024 * 1024 * 100, mime_types='', file_types='', file_progress_URI=''):
+    def __init__(self, fileupload_publish, file_owner, form_fields, fileupload_directory='', temp_dir='..', max_file_size=1024 * 1024 * 100, mime_types='', file_types='', file_progress_URI=''):
         Resource.__init__(self)
         self.max_file_size = max_file_size
         self.dir = fileupload_directory
@@ -95,6 +97,7 @@ class FileUploadResource(Resource):
         self.fileProgressURI = file_progress_URI
         self._fileupload_publish = fileupload_publish
         self._form_fields = form_fields
+        self._owner = file_owner        
 
     def render_POST(self, request):
         headers = request.getAllHeaders()
@@ -123,19 +126,19 @@ class FileUploadResource(Resource):
         # check file size
 
         if int(totalSize) > self.max_file_size: 
-            request.setResponseCode(400, "max filesize of " + self.max_file_size + " bytes exceeded.")  #request entity too large
+            request.setResponseCode(500, "max filesize of " + self.max_file_size + " bytes exceeded.")  #request entity too large
             return 'max filesize exceeded'
 
         # check file extensions
 
         extension = os.path.splitext(filename)[1]
         if extension not in self.fileTypes:
-            request.setResponseCode(401, "File extension not accepted.") 
+            request.setResponseCode(501, "File extension not accepted.") 
             return 'file extension not accepted'
 
         # check if directories exist 
-        if not os.path.exist(self.dir) or not os.path.exist(self.tempDir):
-                request.setResponseCode(404, "File upload directories are not accessible.") 
+        if not os.path.exists(self.dir) or not os.path.exists(self.tempDir):
+                request.setResponseCode(502, "File upload directories are not accessible.") 
                 return "File upload directories are not accessible."
 
         # check if another session is uploading this file already
@@ -144,7 +147,7 @@ class FileUploadResource(Resource):
             common_id = e[0:e.find("#")]
             existing_origin = e[e.find("#") + 1 :]
             if common_id == fileId + '_orig' and existing_origin != origin :
-                request.setResponseCode(402, "Upload in progress in other session.") 
+                request.setResponseCode(503, "Upload in progress in other session.") 
                 # Error has to be captured in the calling session. No need to publish.
                 # self._fileupload_publish( {
                 #     "fileId": fileId,
@@ -174,10 +177,26 @@ class FileUploadResource(Resource):
                 })  
 
             if totalChunks == 1: 
-                # only on chunk overall -> write file directly
-                chunk = open(os.path.join(self.dir, fileId), 'wb') 
-                chunk.write(fileContent)
-                chunk.close
+                # only one chunk overall -> write file directly
+                finalFileName = os.path.join(self.dir, fileId)   
+                finalFile = open(finalFileName, 'wb') 
+                finalFile.write(fileContent)
+                finalFile.close             
+
+                try:
+                    if 'owner' in self._owner and 'group' in self._owner:
+                        uid = pwd.getpwnam(self._owner['owner']).pw_uid
+                        gid = grp.getgrnam(self._owner['group']).gr_gid
+                        os.chown(finalFileName, uid, gid)  
+
+                    if 'permissions' in self._owner:
+                        perm = int(self._owner['permissions'],8)
+                        os.chmod(finalFileName, perm)            
+
+                except Exception as e:
+                    request.setResponseCode(500, "File owner/permissions could not be changed")
+                    os.remove(finalFileName)
+                    return ''      
 
                 # publish file upload progress to file_progress_URI     
                 self._fileupload_publish( {
@@ -232,8 +251,23 @@ class FileUploadResource(Resource):
                     tfile = open(os.path.join(fileTempDir, tfileName),'r')
                     finalFile.write( tfile.read())
 
-                finalFile.close()                
-                
+                finalFile.close()
+
+                try:
+                    if 'owner' in self._owner and 'group' in self._owner:
+                        uid = pwd.getpwnam(self._owner['owner']).pw_uid
+                        gid = grp.getgrnam(self._owner['group']).gr_gid
+                        os.chown(finalFileName, uid, gid)  
+
+                    if 'permissions' in self._owner:
+                        perm = int(self._owner['permissions'],8)
+                        os.chmod(finalFileName, perm)            
+
+                except Exception as e:
+                    request.setResponseCode(500, "File owner/permissions could not be changed")
+                    self.removeTempDir(fileTempDir)                
+                    return ''
+
                 # publish file upload progress to file_progress_URI     
 
                 self._fileupload_publish( {
@@ -245,15 +279,18 @@ class FileUploadResource(Resource):
                     })
 
                 # remove the file temp folder
-
-                for tfileName in os.listdir(fileTempDir):
-                    os.remove(os.path.join(fileTempDir, tfileName))
-
-                os.rmdir(fileTempDir)
+                self.removeTempDir(fileTempDir)
+               
 
         request.setResponseCode(200)
         return ''
 
+
+    def removeTempDir(fileTempDir):
+        for tfileName in os.listdir(fileTempDir):
+            os.remove(os.path.join(fileTempDir, tfileName))
+
+        os.rmdir(fileTempDir)
 
     def render_GET(self, request):
         """

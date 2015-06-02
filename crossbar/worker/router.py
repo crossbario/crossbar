@@ -1081,6 +1081,10 @@ class RouterWorkerSession(NativeWorkerSession):
             if 'file_types' in path_config:  
                 file_types = path_config['file_types']
 
+            file_owner = {}
+            if 'file_owner' in path_config: 
+                file_owner = path_config['file_owner'] 
+
             file_progress_URI = ''
             # If fileupload events are not desired the publish function does nothing then.
             def fileupload_publish(payload):
@@ -1101,7 +1105,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if 'processor' in path_config:  
                 post_upload_processor = path_config['processor']
 
-            return FileUploadResource(fileupload_publish, form_fields, fileupload_directory, temp_dir, max_file_size, mime_types, file_types, file_progress_URI)
+            return FileUploadResource(fileupload_publish, file_owner, form_fields, fileupload_directory, temp_dir, max_file_size, mime_types, file_types, file_progress_URI)
 
         # Generic Twisted Web resource
         #
