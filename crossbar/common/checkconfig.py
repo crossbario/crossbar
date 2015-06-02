@@ -823,28 +823,35 @@ def check_web_path_service_fileupload(config):
     :param config: The path service configuration.
     :type config: dict
     """
+
     check_dict_args({
         'type': (True, [six.text_type]),
         'form_fields': (True, [dict]),
         'directory': (True, [six.text_type]),
         'temp_directory': (True, [six.text_type]),
+        'file_permissions': (False, [six.text_type]),
         'max_file_size': (False, six.integer_types),
-        'file_types': (False, [list]),
-        'file_progress': (False, [dict]),
-        'file_owner': (False, [dict])
+        'file_types': (False, [list])
     }, config, "Web transport 'fileupload' path service")
 
     if 'max_file_size' in config:
         check_web_path_service_max_file_size(config['max_file_size'])
-    
-    if 'file_progress' in config:
-        check_or_raise_uri(config['file_progress']['uri'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['file_progress']['uri']))
-    
+
+    if 'progress_uri' in config['form_fields']:
+        check_or_raise_uri(config['form_fields']['progress_uri'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['form_fields']['progress_uri']))
+
     check_dict_args({
-        'owner': (True, [six.text_type]),
-        'group': (True, [six.text_type]),
-        'permissions': (True, [six.text_type])
-        }, config['file_owner'], "File upload owner settings")
+                    'file_id': (True, [six.text_type]),
+                    'file_name': (True, [six.text_type]),
+                    'mime_type': (True, [six.text_type]),
+                    'total_size': (True, [six.text_type]),
+                    'chunk_number': (True, [six.text_type]),
+                    'chunk_size': (True, [six.text_type]),
+                    'total_chunks': (True, [six.text_type]),
+                    'content': (True, [six.text_type]),
+                    'progress_uri': (False, [six.text_type])
+                    }, config['form_fields'], "File upload form field settings")
+
 
 def check_web_path_service(path, config, nested):
     """

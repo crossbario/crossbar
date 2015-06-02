@@ -1062,50 +1062,35 @@ class RouterWorkerSession(NativeWorkerSession):
 
             fileupload_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
             fileupload_directory = fileupload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-            
 
             temp_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
             temp_dir = temp_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
 
             max_file_size = 1024 * 1024 * 1000   # 1000MB
-            if 'max_file_size' in path_config:  
+            if 'max_file_size' in path_config:
                 max_file_size = path_config['max_file_size']
 
             form_fields = path_config['form_fields']
-                
-            mime_types = ''
-            if 'mime_types' in path_config:  
-                mime_types = path_config['mime_types']
-            
+
             file_types = []
-            if 'file_types' in path_config:  
+            if 'file_types' in path_config:
                 file_types = path_config['file_types']
 
-            file_owner = {}
-            if 'file_owner' in path_config: 
-                file_owner = path_config['file_owner'] 
+            file_permissions = "0700"
+            if 'file_permissions' in path_config:
+                file_permissions = path_config['file_permissions']
 
-            file_progress_URI = ''
             # If fileupload events are not desired the publish function does nothing then.
-            def fileupload_publish(payload):
-                return ''
+            if 'progress_uri' in path_config['form_fields']:
 
-            if 'file_progress' in path_config:  
-                file_progress_URI = path_config['file_progress']['uri']
-
-                fileupload_session_config = ComponentConfig(realm=path_config['file_progress']['realm'], extra=None)
+                fileupload_session_config = ComponentConfig(realm='realm1', extra=None)
                 fileupload_session = ApplicationSession(fileupload_session_config)
 
                 self._router_session_factory.add(fileupload_session, authrole=u'trusted')
+            else:
+                fileupload_session = {}
 
-                def fileupload_publish(payload):
-                    fileupload_session.publish(file_progress_URI, *[payload], **{})
-
-            post_upload_processor = ''
-            if 'processor' in path_config:  
-                post_upload_processor = path_config['processor']
-
-            return FileUploadResource(fileupload_publish, file_owner, form_fields, fileupload_directory, temp_dir, max_file_size, mime_types, file_types, file_progress_URI)
+            return FileUploadResource(file_permissions, fileupload_session, form_fields, fileupload_directory, temp_dir, max_file_size, file_types)
 
         # Generic Twisted Web resource
         #
