@@ -803,6 +803,57 @@ def check_web_path_service_path(config):
     check_paths(config['paths'], nested=True)
 
 
+def check_web_path_service_max_file_size(limit):
+    """
+    Check a publisher/caller web path service "timestamp_delta_limit" parameter.
+
+    :param port: The limit to check.
+    :type port: int
+    """
+    if type(limit) not in six.integer_types:
+        raise Exception("'max_file_size' attribute in fileupload configuration must be integer ({} encountered)".format(type(limit)))
+    if limit < 0:
+        raise Exception("invalid value {} for 'max_file_size' attribute in fileupload configuration".format(limit))
+
+
+def check_web_path_service_fileupload(config):
+    """
+    Check a "fileupload" path service on Web transport.
+
+    :param config: The path service configuration.
+    :type config: dict
+    """
+
+    check_dict_args({
+        'type': (True, [six.text_type]),
+        'form_fields': (True, [dict]),
+        'directory': (True, [six.text_type]),
+        'temp_directory': (True, [six.text_type]),
+        'file_permissions': (False, [six.text_type]),
+        'max_file_size': (False, six.integer_types),
+        'file_types': (False, [list]),
+        'progress_realm': (False, [six.text_type])
+    }, config, "Web transport 'fileupload' path service")
+
+    if 'max_file_size' in config:
+        check_web_path_service_max_file_size(config['max_file_size'])
+
+    if 'progress_uri' in config['form_fields']:
+        check_or_raise_uri(config['form_fields']['progress_uri'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['form_fields']['progress_uri']))
+
+    check_dict_args({
+                    'file_id': (True, [six.text_type]),
+                    'file_name': (True, [six.text_type]),
+                    'mime_type': (True, [six.text_type]),
+                    'total_size': (True, [six.text_type]),
+                    'chunk_number': (True, [six.text_type]),
+                    'chunk_size': (True, [six.text_type]),
+                    'total_chunks': (True, [six.text_type]),
+                    'content': (True, [six.text_type]),
+                    'progress_uri': (False, [six.text_type])
+                    }, config['form_fields'], "File upload form field settings")
+
+
 def check_web_path_service(path, config, nested):
     """
     Check a single path service on Web transport.
@@ -820,7 +871,7 @@ def check_web_path_service(path, config, nested):
         if ptype not in ['static', 'wsgi', 'redirect', 'publisher', 'caller', 'resource']:
             raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'schemadoc', 'path', 'resource']:
+        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'schemadoc', 'path', 'resource', 'fileupload']:
             raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -835,7 +886,8 @@ def check_web_path_service(path, config, nested):
         'caller': check_web_path_service_caller,
         'schemadoc': check_web_path_service_schemadoc,
         'path': check_web_path_service_path,
-        'resource': check_web_path_service_resource
+        'resource': check_web_path_service_resource,
+        'fileupload': check_web_path_service_fileupload
     }
 
     checkers[ptype](config)

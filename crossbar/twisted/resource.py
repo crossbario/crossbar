@@ -29,8 +29,10 @@
 #####################################################################################
 
 import os
+
 import json
 import time
+import cgi  # for POST Request Header decoding
 
 from twisted.python import log, compat
 from twisted.web import http
@@ -75,6 +77,244 @@ class JsonResource(Resource):
     def render_GET(self, request):
         request.setHeader(b'content-type', b'application/json; charset=UTF-8')
         return self._data
+
+
+class FileUploadResource(Resource):
+
+    """
+    Twisted Web resource that handles file uploads over HTTP post requests.
+    """
+
+    def __init__(self,
+                 file_permissions,
+                 fileupload_session,
+                 form_fields,
+                 fileupload_directory='',
+                 temp_dir='..',
+                 max_file_size=1024 * 1024 * 100,
+                 file_types=[]):
+
+        Resource.__init__(self)
+        self._max_file_size = max_file_size
+        self._dir = fileupload_directory
+        self._tempDir = temp_dir
+        self._fileTypes = file_types
+        self._form_fields = form_fields
+        self._file_permissions = file_permissions
+        self._fileupload_session = fileupload_session
+
+    def render_POST(self, request):
+        headers = request.getAllHeaders()
+
+        origin = headers['host'].replace(".", "_").replace(":", "-").replace("/", "_")
+        content = cgi.FieldStorage(
+            fp=request.content,
+            headers=headers,
+            environ={'REQUEST_METHOD': 'POST',
+                     'CONTENT_TYPE': headers['content-type']})
+
+        f = self._form_fields
+        fileId = content[f['file_id']].value
+        chunkNumber = int(content[f['chunk_number']].value)
+        chunkSize = int(content[f['chunk_size']].value)
+        totalSize = int(content[f['total_size']].value)
+        filename = content[f['file_name']].value
+        totalChunks = int(content[f['total_chunks']].value)
+        fileContent = content[f['content']].value
+
+        if 'progress_uri' in f and f['progress_uri'] in content and self._fileupload_session != {}:
+            topic = content[f['progress_uri']].value
+
+            def fileupload_publish(payload):
+                    self._fileupload_session.publish(topic, *[payload], **{})
+        else:
+            def fileupload_publish(payload):
+                return ''
+
+        log.msg('--------Try POST File--------' + filename)
+
+        # check file size
+
+        if int(totalSize) > self._max_file_size:
+            request.setResponseCode(500, "max filesize of " + self._max_file_size + " bytes exceeded.")
+            return 'max filesize exceeded'
+
+        # check file extensions
+
+        extension = os.path.splitext(filename)[1]
+
+        if extension not in self._fileTypes and len(self._fileTypes) > 0:
+            request.setResponseCode(500, "File extension not accepted.")
+            return 'file extension not accepted'
+
+        # check if directories exist
+        if not os.path.exists(self._dir) or not os.path.exists(self._tempDir):
+                request.setResponseCode(500, "File upload directories are not accessible.")
+                return "File upload directories are not accessible."
+
+        # check if another session is uploading this file already
+
+        for e in os.listdir(self._tempDir):
+            common_id = e[0:e.find("#")]
+            existing_origin = e[e.find("#") + 1:]
+            if common_id == fileId + '_orig' and existing_origin != origin:
+                request.setResponseCode(500, "Upload in progress in other session.")
+                # Error has to be captured in the calling session. No need to publish.
+                # self._fileupload_publish( {
+                #     "fileId": fileId,
+                #     "fileName": filename,
+                #     "totalSize": totalSize,
+                #     "status": "ERROR",
+                #     "error_msg": "Upload in Progress in other session.",
+                #     "progress": 0
+                #     })
+                return ''
+
+        # TODO: check mime type
+
+        fileTempDir = os.path.join(self._tempDir, fileId + '_orig#' + origin)
+        chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
+
+        if not (os.path.exists(os.path.join(self._dir, fileId)) or os.path.exists(fileTempDir)):
+            # first chunk of file
+
+            # publish file upload start to file_progress_URI
+            fileupload_publish({
+                               "fileId": fileId,
+                               "fileName": filename,
+                               "totalSize": totalSize,
+                               "status": "START",
+                               "progress": 0
+                               })
+
+            if totalChunks == 1:
+                # only one chunk overall -> write file directly
+                finalFileName = os.path.join(self._dir, fileId)
+                finalFile = open(finalFileName, 'wb')
+                finalFile.write(fileContent)
+                finalFile.close
+
+                try:
+                    perm = int(self._file_permissions, 8)
+                    os.chmod(finalFileName, perm)
+
+                except Exception as e:
+                    request.setResponseCode(500, "File permissions could not be changed")
+                    os.remove(finalFileName)
+                    return ''
+
+                # publish file upload progress to file_progress_URI
+                fileupload_publish({
+                                   "fileId": fileId,
+                                   "fileName": filename,
+                                   "totalSize": totalSize,
+                                   "status": "FINISH",
+                                   "progress": 1
+                                   })
+            else:
+                # first of more chunks
+                os.makedirs(fileTempDir)
+                chunk = open(chunkName, 'wb')
+                chunk.write(fileContent)
+                chunk.close
+
+                # publish file upload progress to file_progress_URI
+                fileupload_publish({
+                                   "fileId": fileId,
+                                   "fileName": filename,
+                                   "totalSize": totalSize,
+                                   "status": "PROGRESS",
+                                   "progress": chunkSize / float(totalSize)
+                                   })
+
+        else:
+            # intermediate chunk
+            chunk = open(chunkName, 'wb')
+            chunk.write(fileContent)
+            chunk.close
+
+            prog = float(sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))) / totalSize
+
+            fileupload_publish({
+                               "fileId": fileId,
+                               "fileName": filename,
+                               "totalSize": totalSize,
+                               "status": "PROGRESS",
+                               "progress": prog
+                               })
+
+            if chunkNumber == totalChunks:
+                # last chunk
+                chunk = open(chunkName, 'wb')
+                chunk.write(fileContent)
+                chunk.close
+
+                # Now merge all files into one file and remove the temp files
+                finalFile = open(os.path.join(self._dir, fileId), 'wb')
+
+                for tfileName in os.listdir(fileTempDir):
+                    tfile = open(os.path.join(fileTempDir, tfileName), 'r')
+                    finalFile.write(tfile.read())
+
+                finalFile.close()
+
+                try:
+                    perm = int(self._file_permissions, 8)
+                    os.chmod(finalFileName, perm)
+
+                except Exception as e:
+                    request.setResponseCode(500, "File permissions could not be changed")
+                    self.removeTempDir(fileTempDir)
+                    return ''
+
+                # publish file upload progress to file_progress_URI
+
+                fileupload_publish({
+                                   "fileId": fileId,
+                                   "fileName": filename,
+                                   "totalSize": totalSize,
+                                   "status": "FINISH",
+                                   "progress": 1
+                                   })
+
+                # remove the file temp folder
+                self.removeTempDir(fileTempDir)
+
+        request.setResponseCode(200)
+        return ''
+
+    def removeTempDir(fileTempDir):
+        for tfileName in os.listdir(fileTempDir):
+            os.remove(os.path.join(fileTempDir, tfileName))
+
+        os.rmdir(fileTempDir)
+
+    def render_GET(self, request):
+        """
+        This method can be used to check wether a chunk has been uploaded already.
+        It returns Status 200 if yes and something else if not.
+        The request needs to contain the file identifier and the chunk number to check for.
+        """
+        # log.msg( 'file uploads --------GET--------')
+
+        arg = request.args
+
+        headers = request.getAllHeaders()
+        origin = headers['host'].replace(".", "_").replace(":", "-").replace("/", "_")
+
+        fileId = arg['resumableIdentifier'][0]
+        chunkNumber = int(arg['resumableChunkNumber'][0])
+
+        fileTempDir = os.path.join(self._tempDir, fileId + '_orig#' + origin)
+        chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
+
+        if (os.path.exists(chunkName) or os.path.exists(os.path.join(self._dir, fileId))):
+            request.setResponseCode(200, "Chunk of File already uploaded.")
+            return 'chunk already uploaded'
+
+        request.setResponseCode(404, "Chunk of file not yet uploaded.")
+
+        return 'Chunk of file not yet uploaded.'
 
 
 class Resource404(Resource):

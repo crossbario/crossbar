@@ -88,6 +88,7 @@ from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
     Resource404, \
+    FileUploadResource, \
     RedirectResource
 
 from autobahn.twisted.flashpolicy import FlashPolicyFactory
@@ -1054,6 +1055,42 @@ class RouterWorkerSession(NativeWorkerSession):
             # now create the caller Twisted Web resource
             #
             return CallerResource(path_config.get('options', {}), caller_session)
+
+        # File Upload resource
+        #
+        elif path_config['type'] == 'fileupload':
+
+            fileupload_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
+            fileupload_directory = fileupload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+
+            temp_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
+            temp_dir = temp_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+
+            max_file_size = 1024 * 1024 * 1000   # 1000MB
+            if 'max_file_size' in path_config:
+                max_file_size = path_config['max_file_size']
+
+            form_fields = path_config['form_fields']
+
+            file_types = []
+            if 'file_types' in path_config:
+                file_types = path_config['file_types']
+
+            file_permissions = "0700"
+            if 'file_permissions' in path_config:
+                file_permissions = path_config['file_permissions']
+
+            # If fileupload events are not desired the publish function does nothing then.
+            if 'progress_uri' in path_config['form_fields']:
+
+                fileupload_session_config = ComponentConfig(realm=path_config['progress_realm'], extra=None)
+                fileupload_session = ApplicationSession(fileupload_session_config)
+
+                self._router_session_factory.add(fileupload_session, authrole=u'trusted')
+            else:
+                fileupload_session = {}
+
+            return FileUploadResource(file_permissions, fileupload_session, form_fields, fileupload_directory, temp_dir, max_file_size, file_types)
 
         # Generic Twisted Web resource
         #

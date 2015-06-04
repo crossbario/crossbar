@@ -2,6 +2,7 @@
 *.pyo
 *.dat
 *.sublime-workspace
+*.sublime-project
 build
 dist
 .coverage

@@ -55,6 +55,24 @@ try:
 except ImportError:
     _HAS_PSUTIL = False
 
+_HAS_COLOR_TERM = False
+try:
+    import colorama
+
+    # https://github.com/tartley/colorama/issues/48
+    term = None
+    if sys.platform == 'win32' and 'TERM' in os.environ:
+        term = os.environ.pop('TERM')
+
+    colorama.init()
+    _HAS_COLOR_TERM = True
+
+    if term:
+        os.environ['TERM'] = term
+
+except ImportError:
+    pass
+
 __all__ = ('run',)
 
 # http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
