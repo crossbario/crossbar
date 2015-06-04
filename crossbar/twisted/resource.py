@@ -41,6 +41,7 @@ from twisted.web.resource import Resource, NoResource
 from twisted.web import server
 
 from autobahn.twisted import longpoll
+from autobahn.wamp.types import PublishOptions
 
 import crossbar
 
@@ -113,12 +114,17 @@ class FileUploadResource(Resource):
         self._debug = self._options.get('debug', False)
         self._max_file_size = self._options.get('max_file_size', 10 * 1024 * 1024)
         self._fileTypes = self._options.get('file_types', None)
-        self._file_permissions = self._options.get('file_permissions', '0664')
+        self._file_permissions = self._options.get('file_permissions', None)
+
+        # track uploaded files / chunks
+        self._uploads = {}
 
     def render_POST(self, request):
         headers = request.getAllHeaders()
 
+        # FIXME: this is a hack
         origin = headers['host'].replace(".", "_").replace(":", "-").replace("/", "_")
+
         content = cgi.FieldStorage(
             fp=request.content,
             headers=headers,
@@ -127,29 +133,37 @@ class FileUploadResource(Resource):
 
         f = self._form_fields
         fileId = content[f['file_id']].value
-        chunkNumber = int(content[f['chunk_number']].value)
-        chunkSize = int(content[f['chunk_size']].value)
-        totalSize = int(content[f['total_size']].value)
         filename = content[f['file_name']].value
+        totalSize = int(content[f['total_size']].value)
         totalChunks = int(content[f['total_chunks']].value)
+        chunkSize = int(content[f['chunk_size']].value)
+        chunkNumber = int(content[f['chunk_number']].value)
         fileContent = content[f['content']].value
+
+        if self._debug:
+            log.msg('file upload resource - started upload of file: file_id={}, file_name={}, total_size={}, total_chunks={}, chunk_size={}, chunk_number={}'.format(fileId, filename, totalSize, totalChunks, chunkSize, chunkNumber))
 
         if 'on_progress' in f and f['on_progress'] in content and self._fileupload_session != {}:
             topic = content[f['on_progress']].value
 
+            if 'session' in f and f['session'] in content:
+                session = int(content[f['session']].value)
+                publish_options = PublishOptions(eligible=[session])
+            else:
+                publish_options = None
+
             def fileupload_publish(payload):
-                self._fileupload_session.publish(topic, payload)
+                self._fileupload_session.publish(topic, payload, options=publish_options)
         else:
             def fileupload_publish(payload):
                 pass
 
-        if self._debug:
-            log.msg('file upload resource - started upload of file {}'.format(filename))
-
         # check file size
         #
         if totalSize > self._max_file_size:
-            msg = "size {} of file to be uploaded exceeds maximum {}".format(totalSize, self._max_file_size)
+            msg = "file upload resource - size {} of file to be uploaded exceeds maximum {}".format(totalSize, self._max_file_size)
+            if self._debug:
+                log.msg(msg)
             # 413 Request Entity Too Large
             request.setResponseCode(413, msg)
             return msg
@@ -158,7 +172,9 @@ class FileUploadResource(Resource):
         #
         extension = os.path.splitext(filename)[1]
         if self._fileTypes and extension not in self._fileTypes:
-            msg = "type '{}' of file to be uploaded is in allowed types {}".format(extension, self._fileTypes)
+            msg = "file upload resource - type '{}' of file to be uploaded is in allowed types {}".format(extension, self._fileTypes)
+            if self._debug:
+                log.msg(msg)
             # 415 Unsupported Media Type
             request.setResponseCode(415, msg)
             return msg
@@ -170,7 +186,9 @@ class FileUploadResource(Resource):
             common_id = e[0:e.find("#")]
             existing_origin = e[e.find("#") + 1:]
             if common_id == fileId + '_orig' and existing_origin != origin:
-                msg = "file being uploaded is already uploaded in a different session"
+                msg = "file upload resource - file being uploaded is already uploaded in a different session"
+                if self._debug:
+                    log.msg(msg)
                 # 409 Conflict
                 request.setResponseCode(409, msg)
                 return msg
@@ -187,32 +205,37 @@ class FileUploadResource(Resource):
             #
             fileupload_publish({
                                "id": fileId,
+                               "chunk": chunkNumber,
                                "name": filename,
                                "total": totalSize,
                                "remaining": totalSize,
                                "status": "started",
-                               "progress": 0
+                               "progress": 0.
                                })
 
             if totalChunks == 1:
                 # only one chunk overall -> write file directly
                 finalFileName = os.path.join(self._dir, fileId)
-                finalFile = open(finalFileName, 'wb')
-                finalFile.write(fileContent)
-                finalFile.close
+                with open(finalFileName, 'wb') as finalFile:
+                    finalFile.write(fileContent)
 
-                try:
+                if self._file_permissions:
                     perm = int(self._file_permissions, 8)
-                    os.chmod(finalFileName, perm)
-
-                except Exception as e:
-                    request.setResponseCode(500, "File permissions could not be changed")
-                    os.remove(finalFileName)
-                    return ''
+                    try:
+                        os.chmod(finalFileName, perm)
+                    except Exception as e:
+                        os.remove(finalFileName)
+                        msg = "file upload resource - could not change file permissions of uploaded file"
+                        if self._debug:
+                            log.msg(msg)
+                            log.msg(e)
+                        request.setResponseCode(500, msg)
+                        return msg
 
                 # publish file upload progress to file_progress_URI
                 fileupload_publish({
                                    "id": fileId,
+                                   "chunk": chunkNumber,
                                    "name": filename,
                                    "total": totalSize,
                                    "remaining": 0,
@@ -222,65 +245,67 @@ class FileUploadResource(Resource):
             else:
                 # first of more chunks
                 os.makedirs(fileTempDir)
-                chunk = open(chunkName, 'wb')
-                chunk.write(fileContent)
-                chunk.close
+                with open(chunkName, 'wb') as chunk:
+                    chunk.write(fileContent)
 
                 # publish file upload progress
                 #
                 fileupload_publish({
                                    "id": fileId,
+                                   "chunk": chunkNumber,
                                    "name": filename,
                                    "total": totalSize,
                                    "remaining": totalSize - chunkSize,
                                    "status": "progress",
-                                   "progress": float(chunkSize) / float(totalSize)
+                                   "progress": round(float(chunkSize) / float(totalSize), 3)
                                    })
 
         else:
             # intermediate chunk
-            chunk = open(chunkName, 'wb')
-            chunk.write(fileContent)
-            chunk.close
+            with open(chunkName, 'wb') as chunk:
+                chunk.write(fileContent)
 
             received = sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))
 
             fileupload_publish({
                                "id": fileId,
+                               "chunk": chunkNumber,
                                "name": filename,
                                "total": totalSize,
                                "remaining": totalSize - received,
                                "status": "progress",
-                               "progress": float(received) / float(totalSize)
+                               "progress": round(float(received) / float(totalSize), 3)
                                })
 
             if chunkNumber == totalChunks:
                 # last chunk
-                chunk = open(chunkName, 'wb')
-                chunk.write(fileContent)
-                chunk.close
+                with open(chunkName, 'wb') as chunk:
+                    chunk.write(fileContent)
 
                 # Now merge all files into one file and remove the temp files
-                finalFile = open(os.path.join(self._dir, fileId), 'wb')
+                with open(os.path.join(self._dir, fileId), 'wb') as finalFile:
+                    for tfileName in os.listdir(fileTempDir):
+                        with open(os.path.join(fileTempDir, tfileName), 'r') as tfile:
+                            finalFile.write(tfile.read())
 
-                for tfileName in os.listdir(fileTempDir):
-                    tfile = open(os.path.join(fileTempDir, tfileName), 'r')
-                    finalFile.write(tfile.read())
-
-                finalFile.close()
-
-                try:
+                if self._file_permissions:
                     perm = int(self._file_permissions, 8)
-                    os.chmod(finalFileName, perm)
-                except Exception as e:
-                    request.setResponseCode(500, "File permissions could not be changed")
-                    self.removeTempDir(fileTempDir)
-                    return ''
+                    try:
+                        os.chmod(finalFileName, perm)
+                    except Exception as e:
+                        self._remove_temp_dir(fileTempDir)
+                        msg = "file upload resource - could not change file permissions of uploaded file"
+                        if self._debug:
+                            log.msg(msg)
+                            log.msg(e)
+                        request.setResponseCode(500, msg)
+                        return msg
 
                 # publish file upload progress to file_progress_URI
 
                 fileupload_publish({
                                    "id": fileId,
+                                   "chunk": chunkNumber,
                                    "name": filename,
                                    "total": totalSize,
                                    "remaining": 0,
@@ -289,12 +314,13 @@ class FileUploadResource(Resource):
                                    })
 
                 # remove the file temp folder
-                self.removeTempDir(fileTempDir)
+                self._remove_temp_dir(fileTempDir)
 
         request.setResponseCode(200)
         return ''
 
-    def removeTempDir(fileTempDir):
+    def _remove_temp_dir(self, fileTempDir):
+        return
         for tfileName in os.listdir(fileTempDir):
             os.remove(os.path.join(fileTempDir, tfileName))
 
@@ -303,27 +329,34 @@ class FileUploadResource(Resource):
     def render_GET(self, request):
         """
         This method can be used to check wether a chunk has been uploaded already.
-        It returns Status 200 if yes and something else if not.
+        It returns with HTTP status code `200` if yes and `404` if not.
         The request needs to contain the file identifier and the chunk number to check for.
         """
-        arg = request.args
+        for param in ['file_id', 'chunk_number']:
+            if not self._form_fields[param] in request.args:
+                msg = "file upload resource - missing request query parameter '{}', configured from '{}'".format(self._form_fields[param], param)
+                if self._debug:
+                    log.msg(msg)
+                # 400 Bad Request
+                request.setResponseCode(400, msg)
+                return msg
 
-        headers = request.getAllHeaders()
-        origin = headers['host'].replace(".", "_").replace(":", "-").replace("/", "_")
+        file_id = request.args[self._form_fields['file_id']][0]
+        chunk_number = request.args[self._form_fields['chunk_number']][0]
+        origin = request.getHeader('host')[0]
+        origin = origin.replace(".", "_").replace(":", "-").replace("/", "_")
 
-        fileId = arg['resumableIdentifier'][0]
-        chunkNumber = int(arg['resumableChunkNumber'][0])
+        fileTempDir = os.path.join(self._tempDir, file_id + '_orig#' + origin)
+        chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunk_number))
 
-        fileTempDir = os.path.join(self._tempDir, fileId + '_orig#' + origin)
-        chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
-
-        if (os.path.exists(chunkName) or os.path.exists(os.path.join(self._dir, fileId))):
-            request.setResponseCode(200, "Chunk of File already uploaded.")
-            return 'chunk already uploaded'
-
-        request.setResponseCode(404, "Chunk of file not yet uploaded.")
-
-        return 'Chunk of file not yet uploaded.'
+        if (os.path.exists(chunkName) or os.path.exists(os.path.join(self._dir, file_id))):
+            msg = "chunk of file already uploaded"
+            request.setResponseCode(200, msg)
+            return msg
+        else:
+            msg = "chunk of file not yet uploaded"
+            request.setResponseCode(404, msg)
+            return msg
 
 
 class Resource404(Resource):

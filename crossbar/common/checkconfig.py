@@ -843,7 +843,8 @@ def check_web_path_service_upload(config):
         'chunk_size': (True, [six.text_type]),
         'total_chunks': (True, [six.text_type]),
         'content': (True, [six.text_type]),
-        'on_progress': (False, [six.text_type])
+        'on_progress': (False, [six.text_type]),
+        'session': (False, [six.text_type]),
     }, config['form_fields'], "File upload form field settings")
 
     if 'on_progress' in config['form_fields']:
