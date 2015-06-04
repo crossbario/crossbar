@@ -35,6 +35,7 @@ import sys
 import jinja2
 import importlib
 import pkg_resources
+import tempfile
 from datetime import datetime
 
 from twisted.internet import reactor
@@ -1058,39 +1059,33 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # File Upload resource
         #
-        elif path_config['type'] == 'fileupload':
+        elif path_config['type'] == 'upload':
 
-            fileupload_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
-            fileupload_directory = fileupload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+            upload_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
+            upload_directory = upload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+            if not os.path.isdir(upload_directory):
+                emsg = "configured upload directory '{}' in file upload resource isn't a directory".format(upload_directory)
+                log.msg(emsg)
+                raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
-            temp_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
-            temp_dir = temp_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-
-            max_file_size = 1024 * 1024 * 1000   # 1000MB
-            if 'max_file_size' in path_config:
-                max_file_size = path_config['max_file_size']
-
-            form_fields = path_config['form_fields']
-
-            file_types = []
-            if 'file_types' in path_config:
-                file_types = path_config['file_types']
-
-            file_permissions = "0700"
-            if 'file_permissions' in path_config:
-                file_permissions = path_config['file_permissions']
-
-            # If fileupload events are not desired the publish function does nothing then.
-            if 'progress_uri' in path_config['form_fields']:
-
-                fileupload_session_config = ComponentConfig(realm=path_config['progress_realm'], extra=None)
-                fileupload_session = ApplicationSession(fileupload_session_config)
-
-                self._router_session_factory.add(fileupload_session, authrole=u'trusted')
+            if 'temp_directory' in path_config:
+                temp_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
+                temp_directory = temp_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
             else:
-                fileupload_session = {}
+                temp_directory = os.path.abspath(tempfile.gettempdir())
+            if not os.path.isdir(temp_directory):
+                emsg = "configured temp directory '{}' in file upload resource isn't a directory".format(temp_directory)
+                log.msg(emsg)
+                raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
-            return FileUploadResource(file_permissions, fileupload_session, form_fields, fileupload_directory, temp_dir, max_file_size, file_types)
+            # file upload progress and finish events are published via this session
+            #
+            upload_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+            upload_session = ApplicationSession(upload_session_config)
+
+            self._router_session_factory.add(upload_session, authrole=path_config.get('role', 'anonymous'))
+
+            return FileUploadResource(upload_directory, temp_directory, path_config['form_fields'], upload_session, path_config.get('options', {}))
 
         # Generic Twisted Web resource
         #
