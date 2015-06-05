@@ -115,6 +115,8 @@ class WorkerProcess(object):
         if type(data) != six.text_type:
             data = data.decode('utf8')
 
+        print(data)
+
         if self._log_rich is None:
             # If it supports rich logging, it will print just the logger aware
             # "magic phrase" as its first message.
