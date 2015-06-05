@@ -33,6 +33,8 @@ from __future__ import absolute_import
 import six
 import json
 
+from collections import deque
+
 from datetime import datetime
 
 from twisted.internet.defer import Deferred
@@ -79,6 +81,9 @@ class WorkerProcess(object):
         self.created = datetime.utcnow()
         self.connected = None
         self.started = None
+
+        self._log_entries = deque(maxlen=10)
+
         self._log_fds = [2]
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
@@ -91,6 +96,9 @@ class WorkerProcess(object):
         # A deferred that resolves when the worker has exited.
         self.exit = Deferred()
         self.exit.addBoth(self._dump_remaining_log)
+
+    def getlog(self):
+        return list(self._log_entries)
 
     def _dump_remaining_log(self, result):
         """
@@ -112,20 +120,17 @@ class WorkerProcess(object):
         """
         assert(childFD in self._log_fds)
 
-        print(data)
-
         if type(data) != six.text_type:
             data = data.decode('utf8')
 
         if self._log_rich is None:
             # If it supports rich logging, it will print just the logger aware
             # "magic phrase" as its first message.
-            if data == cb_logging_aware + u"\n":
+            if data[0:len(cb_logging_aware)] == cb_logging_aware:
                 self._log_rich = True
                 self._log_data = u""  # Log buffer
                 return
             else:
-                print(",".join(data))
                 self._log_rich = False
 
         system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
@@ -149,6 +154,7 @@ class WorkerProcess(object):
                 level = LogLevel.levelWithName(event["level"])
 
                 self._logger.emit(level, event_text, log_system=system)
+                self._log_entries.append(event_text)
 
                 if self._log_topic:
                     self._controller.publish(self._log_topic, event_text)
@@ -164,6 +170,7 @@ class WorkerProcess(object):
                     continue
 
                 self._logger.emit(LogLevel.info, row, log_system=system)
+                self._log_entries.append(row)
 
                 if self._log_topic:
                     self._controller.publish(self._log_topic, row)
