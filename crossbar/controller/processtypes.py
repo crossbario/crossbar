@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import
 
-import os
 import six
 import json
 
@@ -102,7 +101,7 @@ class WorkerProcess(object):
             self._logger.warn("REMAINING LOG BUFFER AFTER EXIT FOR PID {pid}:",
                               pid=self.pid)
 
-            for log in self._log_data.split(os.linesep):
+            for log in self._log_data.split(u"\n"):
                 self._logger.warn(escape_formatting(log))
 
         return result
@@ -121,11 +120,12 @@ class WorkerProcess(object):
         if self._log_rich is None:
             # If it supports rich logging, it will print just the logger aware
             # "magic phrase" as its first message.
-            if data == cb_logging_aware + os.linesep:
+            if data == cb_logging_aware + u"\n":
                 self._log_rich = True
                 self._log_data = u""  # Log buffer
                 return
             else:
+                print(",".join(data))
                 self._log_rich = False
 
         system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
@@ -157,7 +157,7 @@ class WorkerProcess(object):
             # Rich logs aren't supported
             data = escape_formatting(data)
 
-            for row in data.split(os.linesep):
+            for row in data.split(u"\n"):
                 row = row.strip()
 
                 if row == u"":
