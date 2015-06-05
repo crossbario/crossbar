@@ -36,7 +36,6 @@ import six
 
 from six.moves import urllib
 
-from twisted.python import log
 from twisted.internet.defer import Deferred
 
 from autobahn import util
@@ -53,6 +52,8 @@ from autobahn.wamp.interfaces import ITransportHandler
 
 import txaio
 
+from crossbar._logging import make_logger
+
 from crossbar.router.auth import PendingAuthPersona, \
     PendingAuthWampCra, \
     PendingAuthTicket
@@ -68,6 +69,8 @@ class _RouterApplicationSession:
     """
     Wraps an application session to run directly attached to a WAMP router (broker+dealer).
     """
+
+    log = make_logger()
 
     def __init__(self, session, routerFactory, authid=None, authrole=None):
         """
@@ -152,7 +155,6 @@ class _RouterApplicationSession:
                                      self._session._authprovider)
 
             txaio.as_future(self._session.onJoin, details)
-            # self._session.onJoin(details)
 
         # app-to-router
         #
@@ -204,6 +206,8 @@ class _RouterSession(BaseSession):
     """
     WAMP router session. This class implements :class:`autobahn.wamp.interfaces.ITransportHandler`.
     """
+
+    log = make_logger()
 
     def __init__(self, routerFactory):
         """
@@ -445,10 +449,12 @@ class _RouterSessionFactory(object):
     WAMP router session factory.
     """
 
+    log = make_logger()
+
     session = _RouterSession
     """
-   WAMP router session class to be used in this factory.
-   """
+    WAMP router session class to be used in this factory.
+    """
 
     def __init__(self, routerFactory):
         """
@@ -493,6 +499,8 @@ class RouterSession(_RouterSession):
     """
     Router-side of (non-embedded) Crossbar.io WAMP sessions.
     """
+
+    log = make_logger()
 
     def onOpen(self, transport):
         """
@@ -771,7 +779,7 @@ class RouterSession(_RouterSession):
                                 #    return types.Deny()
 
                             else:
-                                log.msg("unknown authmethod '{}'".format(authmethod))
+                                self.log.info("unknown authmethod '{}'".format(authmethod))
                                 return types.Deny(message="unknown authentication method {}".format(authmethod))
 
                     # if authentication is configured, by default, deny.
@@ -922,7 +930,7 @@ class RouterSession(_RouterSession):
                             postdata=body,
                             headers=headers)
 
-                log.msg("Authentication request sent.")
+                self.log.info("Authentication request sent.")
 
                 def done(res):
                     res = json.loads(res)
@@ -934,7 +942,7 @@ class RouterSession(_RouterSession):
                             self._transport._authrole = self._pending_auth.role
                             self._transport._authmethod = 'mozilla_persona'
 
-                            log.msg("Authenticated user {} with role {}".format(self._transport._authid, self._transport._authrole))
+                            self.log.info("Authenticated user {} with role {}".format(self._transport._authid, self._transport._authrole))
                             dres.callback(types.Accept(authid=self._transport._authid, authrole=self._transport._authrole, authmethod=self._transport._authmethod))
 
                             # remember the user's auth info (this marks the cookie as authenticated)
@@ -951,15 +959,15 @@ class RouterSession(_RouterSession):
                                             except Exception as e:
                                                 pass
                         else:
-                            log.msg("Authentication failed!")
-                            log.msg(res)
+                            self.log.info("Authentication failed!")
+                            self.log.info(res)
                             dres.callback(types.Deny(reason="wamp.error.authorization_failed", message=res.get("reason", None)))
                     except Exception as e:
-                        log.msg("internal error during authentication verification: {}".format(e))
+                        self.log.info("internal error during authentication verification: {}".format(e))
                         dres.callback(types.Deny(reason="wamp.error.internal_error", message=str(e)))
 
                 def error(err):
-                    log.msg("Authentication request failed: {}".format(err.value))
+                    self.log.info("Authentication request failed: {}".format(err.value))
                     dres.callback(types.Deny(reason="wamp.error.authorization_request_failed", message=str(err.value)))
 
                 d.addCallbacks(done, error)
@@ -968,7 +976,7 @@ class RouterSession(_RouterSession):
 
             else:
 
-                log.msg("don't know how to authenticate")
+                self.log.info("don't know how to authenticate")
 
                 return types.Deny()
 
@@ -1032,4 +1040,7 @@ class RouterSessionFactory(_RouterSessionFactory):
     Factory creating the router side of (non-embedded) Crossbar.io WAMP sessions.
     This is the session factory that will given to router transports.
     """
+
+    log = make_logger()
+
     session = RouterSession
