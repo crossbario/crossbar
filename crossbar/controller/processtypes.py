@@ -101,7 +101,7 @@ class WorkerProcess(object):
             self._logger.warn("REMAINING LOG BUFFER AFTER EXIT FOR PID {pid}:",
                               pid=self.pid)
 
-            for log in self._log_data.split(u"\n"):
+            for log in self._log_data.split(os.linesep):
                 self._logger.warn(escape_formatting(log))
 
         return result
@@ -112,15 +112,15 @@ class WorkerProcess(object):
         """
         assert(childFD in self._log_fds)
 
+        print(data)
+
         if type(data) != six.text_type:
             data = data.decode('utf8')
-
-        print(data)
 
         if self._log_rich is None:
             # If it supports rich logging, it will print just the logger aware
             # "magic phrase" as its first message.
-            if data == cb_logging_aware + u"\n":
+            if data == cb_logging_aware + os.linesep:
                 self._log_rich = True
                 self._log_data = u""  # Log buffer
                 return
@@ -156,7 +156,7 @@ class WorkerProcess(object):
             # Rich logs aren't supported
             data = escape_formatting(data)
 
-            for row in data.split(u"\n"):
+            for row in data.split(os.linesep):
                 row = row.strip()
 
                 if row == u"":
