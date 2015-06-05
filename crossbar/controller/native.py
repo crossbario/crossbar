@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-from twisted.python import log
-
 from autobahn.twisted.websocket import WampWebSocketClientFactory, \
     WampWebSocketClientProtocol
 
@@ -39,10 +37,15 @@ from twisted.internet.error import ProcessDone, ProcessTerminated
 from twisted.internet.error import ConnectionDone
 # from twisted.internet.error import ConnectionClosed, ConnectionLost, ConnectionAborted
 
+from crossbar._logging import make_logger
+
+
 __all__ = ('create_native_worker_client_factory',)
 
 
 class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
+
+    log = make_logger()
 
     def connectionMade(self):
         WampWebSocketClientProtocol.connectionMade(self)
@@ -58,7 +61,7 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         self._transport_info = None
 
     def connectionLost(self, reason):
-        log.msg("Worker {}: Process connection gone ({})".format(self._pid, reason.value))
+        self.log.debug("Process connection gone: {reason}", reason=reason.value)
 
         WampWebSocketClientProtocol.connectionLost(self, reason)
         self.factory.proto = None
@@ -72,19 +75,21 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
                 if not self.factory._on_exit.called:
                     self.factory._on_exit.errback(reason)
                 else:
-                    log.msg("FIXME: unhandled code path (1) in WorkerClientProtocol.connectionLost", reason.value)
+                    self.log.error("unhandled code path (1) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
         elif isinstance(reason.value, ProcessDone) or isinstance(reason.value, ConnectionDone):
             # the worker exited cleanly
             if not self.factory._on_exit.called:
                 self.factory._on_exit.callback(None)
             else:
-                log.msg("FIXME: unhandled code path (2) in WorkerClientProtocol.connectionLost", reason.value)
+                self.log.error("unhandled code path (2) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
         else:
             # should not arrive here
-            log.msg("FIXME: unhandled code path (3) in WorkerClientProtocol.connectionLost", reason.value)
+            self.log.error("unhandled code path (3) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
 
 
 class NativeWorkerClientFactory(WampWebSocketClientFactory):
+
+    log = make_logger()
 
     def __init__(self, *args, **kwargs):
         WampWebSocketClientFactory.__init__(self, *args, **kwargs)

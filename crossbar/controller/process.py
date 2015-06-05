@@ -124,6 +124,7 @@ class NodeControllerSession(NativeProcessSession):
 
     This class exposes the node's management API.
     """
+
     log = make_logger()
 
     def __init__(self, node):
@@ -149,8 +150,11 @@ class NodeControllerSession(NativeProcessSession):
         self._management_transport = None
 
     def onConnect(self):
-        # self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra.node)
-        self._uri_prefix = 'crossbar.node.{}'.format(self._node_id)
+
+        self.log.debug("Connected to node management router")
+
+        # self._uri_prefix = u'crossbar.node.{}'.format(self.config.extra.node)
+        self._uri_prefix = u'crossbar.node.{}'.format(self._node_id)
 
         NativeProcessSession.onConnect(self, False)
 
@@ -159,6 +163,8 @@ class NodeControllerSession(NativeProcessSession):
 
     @inlineCallbacks
     def onJoin(self, details):
+
+        self.log.info("Joined realm '{realm}' on node management router", realm=details.realm)
 
         # When a (native) worker process has connected back to the router of
         # the node controller, the worker will publish this event
@@ -207,10 +213,13 @@ class NodeControllerSession(NativeProcessSession):
 
         regs = yield DeferredList(dl)
 
-        self.log.debug("{me} registered {registers} procedures",
-                       me=self.__class__.__name__, registers=len(regs))
+        self.log.debug("Registered {registers} procedures", registers=len(regs))
 
         # FIXME: publish node ready event
+
+        self.publish(u"crossbar.node.on_ready", self._node_id)
+
+        self.log.info("Node controller ready")
 
     @inlineCallbacks
     def shutdown(self, restart=False, details=None):

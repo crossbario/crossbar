@@ -138,6 +138,7 @@ class Node(object):
             runner = ApplicationRunner(url=u"ws://localhost:9000", realm=u"cdc-oberstet-1", extra=extra)
             runner.run(NodeManagementSession, start_reactor=False)
 
+            # wait until we have attached to the uplink CDC
             self._management_session = yield extra['onready']
 
             self.log.info("Connected to Crossbar.io Management Cloud: {management_session}",
