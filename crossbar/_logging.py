@@ -139,6 +139,11 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         if event["log_level"] not in levels:
             return
 
+        if "log_failure" in event and event["log_format"] is None:
+            # This is a traceback. Print it.
+            print(event["log_failure"].getTraceback(), file=_stderr)
+            return
+
         if event.get("log_system", "-") == "-":
             logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
         else:
