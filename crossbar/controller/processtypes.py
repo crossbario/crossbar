@@ -30,8 +30,11 @@
 
 from __future__ import absolute_import
 
+import os
 import six
 import json
+
+from collections import deque
 
 from datetime import datetime
 
@@ -79,6 +82,9 @@ class WorkerProcess(object):
         self.created = datetime.utcnow()
         self.connected = None
         self.started = None
+
+        self._log_entries = deque(maxlen=10)
+
         self._log_fds = [2]
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
@@ -92,6 +98,9 @@ class WorkerProcess(object):
         self.exit = Deferred()
         self.exit.addBoth(self._dump_remaining_log)
 
+    def getlog(self):
+        return list(self._log_entries)
+
     def _dump_remaining_log(self, result):
         """
         If there's anything left in the log buffer, log it out so it's not
@@ -101,7 +110,7 @@ class WorkerProcess(object):
             self._logger.warn("REMAINING LOG BUFFER AFTER EXIT FOR PID {pid}:",
                               pid=self.pid)
 
-            for log in self._log_data.split(u"\n"):
+            for log in self._log_data.split(os.linesep):
                 self._logger.warn(escape_formatting(log))
 
         return result
@@ -118,7 +127,7 @@ class WorkerProcess(object):
         if self._log_rich is None:
             # If it supports rich logging, it will print just the logger aware
             # "magic phrase" as its first message.
-            if data == cb_logging_aware + u"\n":
+            if data[0:len(cb_logging_aware)] == cb_logging_aware:
                 self._log_rich = True
                 self._log_data = u""  # Log buffer
                 return
@@ -146,6 +155,7 @@ class WorkerProcess(object):
                 level = LogLevel.levelWithName(event["level"])
 
                 self._logger.emit(level, event_text, log_system=system)
+                self._log_entries.append(event_text)
 
                 if self._log_topic:
                     self._controller.publish(self._log_topic, event_text)
@@ -154,13 +164,14 @@ class WorkerProcess(object):
             # Rich logs aren't supported
             data = escape_formatting(data)
 
-            for row in data.split(u"\n"):
+            for row in data.split(os.linesep):
                 row = row.strip()
 
                 if row == u"":
                     continue
 
                 self._logger.emit(LogLevel.info, row, log_system=system)
+                self._log_entries.append(row)
 
                 if self._log_topic:
                     self._controller.publish(self._log_topic, row)
