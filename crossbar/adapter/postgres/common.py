@@ -43,7 +43,7 @@ class PostgreSQLAdapter(ApplicationSession):
     This is the common, shared `key1` part of advisory locks acquired by Crossbar.io PostgreSQL adapter classes.
     """
 
-    PG_LOCK_UPGRADE
+    PG_LOCK_UPGRADE = 1
     """
     This lock will be held during database schema upgrades.
     """
