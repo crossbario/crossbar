@@ -1073,7 +1073,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 temp_directory = temp_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
             else:
                 temp_directory = os.path.abspath(tempfile.gettempdir())
-                temp_directory = os.path.join(temp_directory,'crossbar-uploads')
+                temp_directory = os.path.join(temp_directory, 'crossbar-uploads')
                 if not os.path.exists(temp_directory):
                     os.makedirs(temp_directory)
 

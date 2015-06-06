@@ -123,7 +123,7 @@ class FileUploadResource(Resource):
         headers = request.getAllHeaders()
 
         # FIXME: this is a hack
-        origin = headers['host'] #.replace(".", "_").replace(":", "-").replace("/", "_")
+        origin = headers['host']
 
         content = cgi.FieldStorage(
             fp=request.content,
@@ -140,15 +140,12 @@ class FileUploadResource(Resource):
         chunkNumber = int(content[f['chunk_number']].value)
         fileContent = content[f['content']].value
 
-        fileId = filename
-
         # Register upload right at the start to avoid overlapping upload conflicts
         if fileId not in self._uploads:
-            self._uploads[fileId] = {'chunk_list':[], 'origin': origin}
+            self._uploads[fileId] = {'chunk_list': [], 'origin': origin}
             chunk_is_first = True
         else:
-            chunk_is_first = False            
-
+            chunk_is_first = False
 
         if self._debug:
             log.msg('file upload resource - started upload of file: file_id={}, file_name={}, total_size={}, total_chunks={}, chunk_size={}, chunk_number={}'.format(fileId, filename, totalSize, totalChunks, chunkSize, chunkNumber))
@@ -189,7 +186,6 @@ class FileUploadResource(Resource):
             request.setResponseCode(415, msg)
             return msg
 
-        # FIXME: this is a hack
         # check if another session is uploading this file already
         #
         try:
@@ -231,7 +227,7 @@ class FileUploadResource(Resource):
                 # only one chunk overall -> write file directly
                 finalFileName = os.path.join(self._dir, fileId)
                 with open(finalFileName, 'wb') as finalFile:
-                    finalFile.write(fileContent)                
+                    finalFile.write(fileContent)
 
                 self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
@@ -266,7 +262,7 @@ class FileUploadResource(Resource):
                 with open(chunkName, 'wb') as chunk:
                     chunk.write(fileContent)
 
-                self._uploads[fileId]['chunk_list'].append(chunkNumber)                
+                self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
                 # publish file upload progress
                 #
@@ -299,12 +295,13 @@ class FileUploadResource(Resource):
                                "progress": round(float(received) / float(totalSize), 3)
                                })
 
-
         # every chunk has to check if it is the last chunk written, except in a single chunk scenario
 
         if totalChunks > 1 and len(self._uploads[fileId]['chunk_list']) == totalChunks:
             # last chunk
-            log.msg('---- finish after chunk ----- ' + str(chunkNumber))
+            if self._debug:
+                log.msg('---- finish file upload after chunk ----- ' + str(chunkNumber))
+
             # Merge all files into one file and remove the temp files
             # TODO: How to avoid the extra file IO ?
             with open(os.path.join(self._dir, fileId), 'wb') as finalFile:
@@ -326,7 +323,6 @@ class FileUploadResource(Resource):
                     return msg
 
             # publish file upload progress to file_progress_URI
-
             fileupload_publish({
                                "id": fileId,
                                "chunk": chunkNumber,
@@ -345,22 +341,23 @@ class FileUploadResource(Resource):
         request.setResponseCode(200)
         return ''
 
-    def _remove_temp_dir(self, fileTempDir):        
+    def _remove_temp_dir(self, fileTempDir):
         for tfileName in os.listdir(fileTempDir):
             os.remove(os.path.join(fileTempDir, tfileName))
 
         os.rmdir(fileTempDir)
 
-    # this only works if there is a temp folder exclusive for crossbar file uploads
-    # if the system temp folder is used then crossbar creates a "crossbar-uploads" there and
-    # uses that as the temp folder for uploads
-    # If you don't clean up regularly an attacker could fill up the OS file system 
     def _remove_stale_uploads(self):
+        """
+        This only works if there is a temp folder exclusive for crossbar file uploads
+        if the system temp folder is used then crossbar creates a "crossbar-uploads" there and
+        uses that as the temp folder for uploads
+        If you don't clean up regularly an attacker could fill up the OS file system
+        """
         for _dir in os.listdir(self._tempDir):
-            fileTempDir = os.path.join(self._tempDir,_dir)
+            fileTempDir = os.path.join(self._tempDir, _dir)
             if os.path.isdir(fileTempDir) and _dir not in self._uploads:
                 self._remove_temp_dir(fileTempDir)
-
 
     def render_GET(self, request):
         """
@@ -379,15 +376,8 @@ class FileUploadResource(Resource):
 
         file_id = request.args[self._form_fields['file_id']][0]
         chunk_number = request.args[self._form_fields['chunk_number']][0]
-        origin = request.getHeader('host')[0]
 
-        origin = origin.replace(".", "_").replace(":", "-").replace("/", "_")
-
-        fileTempDir = os.path.join(self._tempDir, file_id)
-        chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunk_number))
-
-        if chunkNumber in self._uploads[fileId]['chunk_list'] or os.path.exists(os.path.join(self._dir, file_id)):
-        # if (os.path.exists(chunkName) or os.path.exists(os.path.join(self._dir, file_id))):
+        if os.path.exists(os.path.join(self._dir, file_id)) or (file_id in self._uploads and chunk_number in self._uploads[file_id]['chunk_list']):
             msg = "chunk of file already uploaded"
             request.setResponseCode(200, msg)
             return msg
@@ -395,6 +385,7 @@ class FileUploadResource(Resource):
             msg = "chunk of file not yet uploaded"
             request.setResponseCode(404, msg)
             return msg
+
 
 class Resource404(Resource):
 
