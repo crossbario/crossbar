@@ -38,6 +38,7 @@ from txpostgres import txpostgres
 
 from twisted.internet.defer import inlineCallbacks
 
+from autobahn.wamp.types import PublishOptions
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar._logging import make_logger
@@ -82,6 +83,8 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
        * http://www.postgresql.org/docs/devel/static/functions-json.html
     """
 
+    log = make_logger()
+
     CHANNEL_PUBSUB_EVENT = "crossbar_publish"
     """
     The PostgreSQL NOTIFY channel used for Crossbar.io PubSub events
@@ -90,8 +93,6 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
 
     @inlineCallbacks
     def onJoin(self, details):
-
-        self.log = make_logger()
 
         self.log.debug("Joined realm '{realm}' on router", realm=details.realm)
 
@@ -176,7 +177,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                     # check allowed attributes
                     #
                     for k in obj:
-                        if k not in ['type', 'topic', 'args', 'kwargs', 'options']:
+                        if k not in ['type', 'topic', 'args', 'kwargs', 'options', 'details']:
                             raise Exception("invalid attribute '{0}'' in notification of type 'inline'".format(k))
 
                     # check for mandatory 'topic' attribute
@@ -196,7 +197,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                         else:
                             args = obj['args']
 
-                    # check for optional 'args' attribute
+                    # check for optional 'kwargs' attribute
                     #
                     kwargs = None
                     if 'kwargs' in obj:
@@ -205,16 +206,37 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                         else:
                             kwargs = obj['kwargs']
 
+                    # check for optional 'options' attribute
+                    #
+                    options = None
+                    if 'options' in obj:
+                        if not isinstance(obj['options'], dict):
+                            raise Exception("notification payload of type 'inline' with wrong type for 'options' attribute: must be dict, was {0}".format(obj['options']))
+                        else:
+                            try:
+                                options = PublishOptions(**(obj['options']))
+                            except Exception as e:
+                                raise Exception("notification payload of type 'inline' with invalid attribute in 'options': {0}".format(e))
+
+                    # check for optional 'details' attribute
+                    #
+                    details = None
+                    if 'details' in obj:
+                        if not isinstance(obj['details'], dict):
+                            raise Exception("notification payload of type 'inline' with wrong type for 'details' attribute: must be dict, was {0}".format(obj['details']))
+                        else:
+                            details = obj['details']
+
                     # now actually publish the WAMP event
                     #
                     if kwargs:
-                        self.publish(topic, *args, **kwargs)
+                        self.publish(topic, *args, options=options, **kwargs)
                     elif args:
-                        self.publish(topic, *args)
+                        self.publish(topic, *args, options=options)
                     else:
-                        self.publish(topic)
+                        self.publish(topic, options=options)
 
-                    self.log.debug("Event forwarded on topic {0}".format(topic))
+                    self.log.debug("Event forwarded on topic {topic} with details {details}", topic=topic, details=details)
 
                 elif obj['type'] == 'buffered':
                     raise Exception("notification payload type 'buffered' not implemented")
@@ -223,9 +245,8 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
 
             except Exception as e:
                 self.log.error(e)
-                self.leave()
         else:
-            self.log.error("Received NOTIFY on unknown channel")
+            self.log.error("Received NOTIFY on unknown channel {channel}", channel=notify.channel)
 
 
 if __name__ == '__main__':
