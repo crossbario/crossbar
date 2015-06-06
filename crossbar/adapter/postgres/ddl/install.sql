@@ -4,4 +4,4 @@ ALTER ROLE crossbar ENCRYPTED PASSWORD 'crossbar';
 
 CREATE SCHEMA crossbar AUTHORIZATION crossbar;
 
-GRANT USAGE ON SCHEMA crossbar TO PUBLIC;
+GRANT USAGE ON SCHEMA crossbar TO public;

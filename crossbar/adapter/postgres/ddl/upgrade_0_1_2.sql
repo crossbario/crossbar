@@ -1,4 +1,4 @@
-﻿DROP FUNCTION IF EXISTS crossbar.publish (TEXT, JSONB, JSONB, JSONB, BOOLEAN);
+DROP FUNCTION IF EXISTS crossbar.publish (TEXT, JSONB, JSONB, JSONB, BOOLEAN);
 
 CREATE OR REPLACE FUNCTION crossbar.publish (
     topic       TEXT,

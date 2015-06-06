@@ -93,7 +93,6 @@ GRANT EXECUTE ON FUNCTION crossbar.register
         TO PUBLIC
 ;
 
-SELECT crossbar.register('io.crossbar.cdc.database.account.create_user', 'account.create_user');
+-- SELECT crossbar.register('io.crossbar.cdc.database.account.create_user', 'account.create_user');
 
-SELECT * FROM crossbar.registration;
-
+-- SELECT * FROM crossbar.registration;

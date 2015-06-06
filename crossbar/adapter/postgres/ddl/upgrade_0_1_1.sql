@@ -1,3 +1,17 @@
+DROP TABLE IF EXISTS crossbar.meta;
+
+CREATE TABLE crossbar.meta
+(
+    key             TEXT PRIMARY KEY,
+    modified_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    value           JSONB NOT NULL
+);
+
+INSERT INTO crossbar.meta (key, value)
+    VALUES ('schema_version', 0::text::jsonb)
+;
+
+
 DROP TABLE IF EXISTS crossbar.event;
 
 CREATE UNLOGGED TABLE crossbar.event
