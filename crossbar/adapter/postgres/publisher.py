@@ -40,6 +40,8 @@ from twisted.internet.defer import inlineCallbacks
 
 from autobahn.twisted.wamp import ApplicationSession
 
+from crossbar._logging import make_logger
+
 
 class PostgreSQLDatabasePublisher(ApplicationSession):
 
@@ -80,16 +82,18 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
        * http://www.postgresql.org/docs/devel/static/functions-json.html
     """
 
-    CHANNEL_PUBSUB_EVENT = "crossbar_pubsub_event"
+    CHANNEL_PUBSUB_EVENT = "crossbar_publish"
     """
-   The PostgreSQL NOTIFY channel used for Crossbar.io PubSub events
-   sent from within the database.
-   """
+    The PostgreSQL NOTIFY channel used for Crossbar.io PubSub events
+    sent from within the database.
+    """
 
     @inlineCallbacks
     def onJoin(self, details):
 
-        print("PostgreSQL database adapter [publisher role] connected to router")
+        self.log = make_logger()
+
+        self.log.debug("Joined realm '{realm}' on router", realm=details.realm)
 
         dbconfig = self.config.extra['database']
 
@@ -110,36 +114,38 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                                 val = dbconfig[k]
                             else:
                                 val = len(dbconfig[k]) * '*'
-                            print("database configuration parameter '{}' set to '{}' from environment variable {}".format(k, val, envvar))
+                            self.log.debug("Database configuration parameter '{}' set to '{}' from environment variable {}".format(k, val, envvar))
                         else:
-                            print("warning: database configuration parameter '{}' should have been read from enviroment variable {}, but the latter is not set".format(k, envvar))
+                            self.log.warn("Database configuration parameter '{}' should have been read from enviroment variable {}, but the latter is not set".format(k, envvar))
 
         conn = txpostgres.Connection()
 
         try:
             yield conn.connect(**dbconfig)
         except Exception as e:
-            print("could not connect to database: {0}".format(e))
+            self.log.error("Could not connect to database: {0}".format(e))
             self.leave()
             return
         else:
-            print("PostgreSQL database adapter [publisher role] connected to database")
+            self.log.debug("Connected to database")
 
         conn.addNotifyObserver(self._on_notify)
         try:
             yield conn.runOperation("LISTEN {0}".format(self.CHANNEL_PUBSUB_EVENT))
         except Exception as e:
-            print("failed to listen on channel '{0}': {1}".format(self.CHANNEL_PUBSUB_EVENT, e))
+            self.log.error("Failed to listen on channel '{0}': {1}".format(self.CHANNEL_PUBSUB_EVENT, e))
             self.leave()
         else:
-            print("ok, pusher is listening on PostgreSQL NOTIFY channel '{0}'' ...".format(self.CHANNEL_PUBSUB_EVENT))
+            self.log.debug("Listening on PostgreSQL NOTIFY channel '{0}'' ...".format(self.CHANNEL_PUBSUB_EVENT))
+
+        self.log.info("PostgreSQL database adapter (Publisher) ready")
 
     def onLeave(self, details):
-        print("session closed")
+        self.log.debug("Left realm - {}".format(details))
         self.disconnect()
 
     def onDisconnect(self):
-        print("disconnected")
+        self.log.info("PostgreSQL database adapter (Publisher) stopped")
 
     def _on_notify(self, notify):
         # process PostgreSQL notifications sent via NOTIFY
@@ -162,31 +168,31 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                 #
                 if 'type' not in obj:
                     raise Exception("notification payload must have a 'type' attribute")
-                if obj['type'] not in ['direct', 'table']:
-                    raise Exception("notification payload 'type' must be one of ['direct', 'table'], was '{0}'".format(obj['type']))
+                if obj['type'] not in ['inline', 'buffered']:
+                    raise Exception("notification payload 'type' must be one of ['inline', 'buffered'], was '{0}'".format(obj['type']))
 
-                if obj['type'] == 'direct':
+                if obj['type'] == 'inline':
 
                     # check allowed attributes
                     #
                     for k in obj:
-                        if k not in ['type', 'topic', 'args', 'kwargs', 'exclude', 'eligible']:
-                            raise Exception("invalid attribute '{0}'' in notification of type 'direct'".format(k))
+                        if k not in ['type', 'topic', 'args', 'kwargs', 'options']:
+                            raise Exception("invalid attribute '{0}'' in notification of type 'inline'".format(k))
 
                     # check for mandatory 'topic' attribute
                     #
                     if 'topic' not in obj:
-                        raise Exception("notification payload of type 'direct' must have a 'topic' attribute")
+                        raise Exception("notification payload of type 'inline' must have a 'topic' attribute")
                     topic = obj['topic']
                     if not isinstance(topic, six.text_type):
-                        raise Exception("notification payload of type 'direct' must have a 'topic' attribute of type string - was {0}".format(type(obj['topic'])))
+                        raise Exception("notification payload of type 'inline' must have a 'topic' attribute of type string - was {0}".format(type(obj['topic'])))
 
                     # check for optional 'args' attribute
                     #
                     args = None
                     if 'args' in obj:
                         if not isinstance(obj['args'], list):
-                            raise Exception("notification payload of type 'direct' with wrong type for 'args' attribute: must be list, was {0}".format(obj['args']))
+                            raise Exception("notification payload of type 'inline' with wrong type for 'args' attribute: must be list, was {0}".format(obj['args']))
                         else:
                             args = obj['args']
 
@@ -195,7 +201,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                     kwargs = None
                     if 'kwargs' in obj:
                         if not isinstance(obj['kwargs'], dict):
-                            raise Exception("notification payload of type 'direct' with wrong type for 'kwargs' attribute: must be dict, was {0}".format(obj['kwargs']))
+                            raise Exception("notification payload of type 'inline' with wrong type for 'kwargs' attribute: must be dict, was {0}".format(obj['kwargs']))
                         else:
                             kwargs = obj['kwargs']
 
@@ -208,17 +214,18 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
                     else:
                         self.publish(topic)
 
-                    print("event published to topic {0}".format(topic))
+                    self.log.debug("Event forwarded on topic {0}".format(topic))
 
-                elif obj['type'] == 'table':
-                    raise Exception("notification payload type 'table' not implemented")
+                elif obj['type'] == 'buffered':
+                    raise Exception("notification payload type 'buffered' not implemented")
                 else:
                     raise Exception("logic error")
 
             except Exception as e:
-                print(e)
+                self.log.error(e)
+                self.leave()
         else:
-            print("unknown channel")
+            self.log.error("Received NOTIFY on unknown channel")
 
 
 if __name__ == '__main__':
