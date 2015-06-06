@@ -28,24 +28,27 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 import json
 import six
 import re
 import os
 import pkg_resources
-from txpostgres import txpostgres
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 
+from txpostgres import txpostgres
+
 from autobahn.wamp.types import PublishOptions
-from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar._logging import make_logger
+from crossbar.adapter.postgres.common import PostgreSQLAdapter
+
+__all__ = ('PostgreSQLPublisher',)
 
 
-class PostgreSQLDatabasePublisher(ApplicationSession):
+class PostgreSQLPublisher(PostgreSQLAdapter):
 
     """
     PostgreSQL database adapter that allows publishing of WAMP real-time
@@ -80,6 +83,13 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
     sent from within the database.
     """
 
+    PG_LOCK_RUN = 100
+    """
+    This adapter will acquire an exclusive advisory lock using `self.PG_LOCK_GROUP`
+    and `self.PG_LOCK_RUN`. Only one instance of this adapter may be connected to
+    a given PostgreSQL database.
+    """
+
     DDL_SCRIPTS_DIR = os.path.abspath(pkg_resources.resource_filename("crossbar", "adapter/postgres/ddl"))
 
     @inlineCallbacks
@@ -89,6 +99,7 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
         self.log.debug("Using DDL script directory {ddl_scripts_dir}", ddl_scripts_dir=self.DDL_SCRIPTS_DIR)
 
         self._db_config = self.config.extra['database']
+        self._db_config['application_name'] = "Crossbar.io PostgreSQL Adapter (Publisher)"
 
         # check if the config contains environment variables instead of
         # straight strings (e.g. $DBNAME), and if so, try to fill in the actual
@@ -125,6 +136,24 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
             return
         else:
             self.log.debug("Connected to database")
+
+        # acquire exclusive run lock
+        #
+        res = yield conn.runQuery("SELECT pg_try_advisory_lock(%s, %s)", (self.PG_LOCK_GROUP, self.PG_LOCK_RUN))
+        if not res[0][0]:
+            locker_pid, locker_user_id, locker_user_name, locker_app_name = None, None, None, None
+            res = yield conn.runQuery("SELECT pid FROM pg_locks WHERE locktype = 'advisory' AND classid = %s AND objid = %s", (self.PG_LOCK_GROUP, self.PG_LOCK_RUN))
+            if res:
+                locker_pid = res[0][0]
+            if locker_pid:
+                res = yield conn.runQuery("SELECT usesysid, usename, application_name FROM pg_stat_activity WHERE pid = %s", (locker_pid,))
+                if res:
+                    locker_user_id, locker_user_name, locker_app_name = res[0]
+
+            self.log.error('A database session already holds the run lock for us (pid={pid}, userid={userid}, username={username}, appname="{appname}")', pid=locker_pid, userid=locker_user_id, username=locker_user_name, appname=locker_app_name)
+            raise Exception("Only one instance of this adapter can be connected to a given database")
+        else:
+            self.log.debug("Obtained exclusive run lock on ({key1}, {key2})", key1=self.PG_LOCK_GROUP, key2=self.PG_LOCK_RUN)
 
         # upgrade database schema if needed
         #
@@ -180,7 +209,12 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
             else:
                 current_version = res[0][0]
 
+        # get the latest schema version from DDL scripts as well as map of DDL upgrade scripts
+        #
         latest_version, upgrade_scripts = self._get_latest_schema_version()
+
+        # upgrade schema version-wise, running each upgrade in it's own transaction
+        #
         for from_version in range(current_version, latest_version):
             yield self._upgrade_schema(conn, upgrade_scripts, from_version, from_version + 1)
 
@@ -189,6 +223,10 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
         returnValue(current_version)
 
     def _get_latest_schema_version(self):
+        """
+        Determine latest available database schema version available from DDL scripts,
+        and build a map of (from_version, to_version) -> (part -> script)
+        """
         latest_version = 0
         upgrade_scripts = {}
         pat = re.compile(r"^upgrade_(\d)_(\d)_(\d).sql$")
@@ -207,6 +245,9 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
         return latest_version, upgrade_scripts
 
     def _upgrade_schema(self, conn, upgrade_scripts, from_version, to_version):
+        """
+        Upgrade database schema in a transaction.
+        """
         scripts = upgrade_scripts[(from_version, to_version)]
 
         @inlineCallbacks
@@ -232,12 +273,9 @@ class PostgreSQLDatabasePublisher(ApplicationSession):
         self.log.info("PostgreSQL database adapter (Publisher) stopped")
 
     def _on_notify(self, notify):
-        # process PostgreSQL notifications sent via NOTIFY
-        #
-
-        # PID of the PostgreSQL backend that issued the NOTIFY
-        #
-        # pid = notify.pid
+        """
+        Process PostgreSQL notifications sent via `NOTIFY` on channel `self.CHANNEL_PUBSUB_EVENT`.
+        """
 
         # sanity check that we are processing the correct channel
         #
@@ -371,4 +409,4 @@ if __name__ == '__main__':
 
     runner = ApplicationRunner(url="ws://127.0.0.1:8080/ws",
                                realm="realm1", extra=config)
-    runner.run(PostgreSQLDatabasePublisher)
+    runner.run(PostgreSQLPublisher)

@@ -30,6 +30,20 @@
 
 from __future__ import absolute_import
 
-from crossbar.adapter.postgres.publisher import PostgreSQLPublisher
+from autobahn.twisted.wamp import ApplicationSession
 
-__all__ = ('PostgreSQLPublisher',)
+
+class PostgreSQLAdapter(ApplicationSession):
+    """
+    Abstract base class for PostgreSQL-WAMP integration.
+    """
+
+    PG_LOCK_GROUP = 6000
+    """
+    This is the common, shared `key1` part of advisory locks acquired by Crossbar.io PostgreSQL adapter classes.
+    """
+
+    PG_LOCK_UPGRADE
+    """
+    This lock will be held during database schema upgrades.
+    """
