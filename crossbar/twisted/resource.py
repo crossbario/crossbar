@@ -105,6 +105,7 @@ class FileUploadResource(Resource):
         :param options: Options for file upload.
         :type options: dict or None
         """
+
         Resource.__init__(self)
         self._dir = upload_directory
         self._tempDir = temp_directory
@@ -119,10 +120,22 @@ class FileUploadResource(Resource):
         # track uploaded files / chunks
         self._uploads = {}
 
+        # scan the temp dir for uploaded chunks and fill the _uploads dict with it
+        # so existing uploads can be resumed
+        for fileTempDir in os.listdir(self._tempDir):
+            ft = os.path.join(self._tempDir, fileTempDir)
+            if os.path.isdir(ft):
+                self._uploads[fileTempDir] = {'chunk_list': {}, 'origin': 'startup'}
+                for chunk in os.listdir(ft):
+                    if chunk[:6] == 'chunk_':
+                        self._uploads[fileTempDir]['chunk_list'][int(chunk[6:])] = True
+
+        if self._debug:
+            log.msg("Scanned pending uploads: " + json.dumps(self._uploads))
+
     def render_POST(self, request):
         headers = request.getAllHeaders()
 
-        # FIXME: this is a hack
         origin = headers['host']
 
         content = cgi.FieldStorage(
@@ -132,7 +145,6 @@ class FileUploadResource(Resource):
                      'CONTENT_TYPE': headers['content-type']})
 
         f = self._form_fields
-        fileId = content[f['file_id']].value
         filename = content[f['file_name']].value
         totalSize = int(content[f['total_size']].value)
         totalChunks = int(content[f['total_chunks']].value)
@@ -140,15 +152,37 @@ class FileUploadResource(Resource):
         chunkNumber = int(content[f['chunk_number']].value)
         fileContent = content[f['content']].value
 
-        # Register upload right at the start to avoid overlapping upload conflicts
-        if fileId not in self._uploads:
-            self._uploads[fileId] = {'chunk_list': [], 'origin': origin}
-            chunk_is_first = True
-        else:
-            chunk_is_first = False
+        fileId = filename
 
-        if self._debug:
-            log.msg('file upload resource - started upload of file: file_id={}, file_name={}, total_size={}, total_chunks={}, chunk_size={}, chunk_number={}'.format(fileId, filename, totalSize, totalChunks, chunkSize, chunkNumber))
+        # # prepare user specific upload areas
+        # # NOT YET IMPLEMENTED
+        # #
+        # if 'auth_id' in f and f['auth_id'] in content:
+        #     auth_id = content[f['auth_id']].value
+        #     mydir = os.path.join(self._dir, auth_id)
+        #     my_temp_dir = os.path.join(self._tempDir, auth_id)
+        #
+        #     # check if auth_id is a valid directory_name
+        #     #
+        #     if auth_id != auth_id.encode('ascii', 'ignore'):
+        #         msg = "The requestor auth_id must be an ascii string."
+        #         if self._debug:
+        #             log.msg(msg)
+        #         # 415 Unsupported Media Type
+        #         request.setResponseCode(415, msg)
+        #         return msg
+        # else:
+        #     auth_id = 'anonymous'
+
+        # create user specific folder
+
+        # mydir = self._dir
+        # my_temp_dir = self._tempDir
+
+        # if not os.path.exists(mydir):
+        #     os.makedirs(mydir)
+        # if not os.path.exists(my_temp_dir):
+        #     os.makedirs(my_temp_dir)
 
         if 'on_progress' in f and f['on_progress'] in content and self._fileupload_session != {}:
             topic = content[f['on_progress']].value
@@ -164,6 +198,16 @@ class FileUploadResource(Resource):
         else:
             def fileupload_publish(payload):
                 pass
+
+        # Register upload right at the start to avoid overlapping upload conflicts
+        if fileId not in self._uploads:
+            self._uploads[fileId] = {'chunk_list': {}, 'origin': origin}
+            chunk_is_first = True
+        else:
+            chunk_is_first = False
+
+        if self._debug:
+            log.msg('file upload resource - started upload of file: file_name={}, total_size={}, total_chunks={}, chunk_size={}, chunk_number={}'.format(fileId, totalSize, totalChunks, chunkSize, chunkNumber))
 
         # check file size
         #
@@ -187,10 +231,11 @@ class FileUploadResource(Resource):
             return msg
 
         # check if another session is uploading this file already
+        # If the chunks are read at startup of crossbar any client may resume the pending upload !
         #
         try:
             upl = self._uploads[fileId]
-            if upl['origin'] != origin:
+            if upl['origin'] != origin and upl['origin'] != 'startup':
                 msg = "file upload resource - file being uploaded is already uploaded in a different session"
                 if self._debug:
                     log.msg(msg)
@@ -204,6 +249,7 @@ class FileUploadResource(Resource):
 
         fileTempDir = os.path.join(self._tempDir, fileId)
         chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
+        _chunkName = os.path.join(fileTempDir, '#kfhfkzuru578e38viokbjhfvz4w__' + 'chunk_' + str(chunkNumber))
 
         if chunk_is_first:
             # first chunk of file
@@ -226,10 +272,13 @@ class FileUploadResource(Resource):
             if totalChunks == 1:
                 # only one chunk overall -> write file directly
                 finalFileName = os.path.join(self._dir, fileId)
-                with open(finalFileName, 'wb') as finalFile:
-                    finalFile.write(fileContent)
+                _finalFileName = os.path.join(self._dir, '#kfhfkzuru578e38viokbjhfvz4w__' + fileId)
 
-                self._uploads[fileId]['chunk_list'].append(chunkNumber)
+                with open(_finalFileName, 'wb') as finalFile:
+                    finalFile.write(fileContent)
+                os.rename(_finalFileName, finalFileName)
+
+                self._uploads[fileId]['chunk_list'][chunkNumber] = True
 
                 if self._file_permissions:
                     perm = int(self._file_permissions, 8)
@@ -259,10 +308,11 @@ class FileUploadResource(Resource):
             else:
                 # first of more chunks
                 os.makedirs(fileTempDir)
-                with open(chunkName, 'wb') as chunk:
+                with open(_chunkName, 'wb') as chunk:
                     chunk.write(fileContent)
+                os.rename(_chunkName, chunkName)
 
-                self._uploads[fileId]['chunk_list'].append(chunkNumber)
+                self._uploads[fileId]['chunk_list'][chunkNumber] = True
 
                 # publish file upload progress
                 #
@@ -278,10 +328,11 @@ class FileUploadResource(Resource):
 
         else:
             # intermediate chunk
-            with open(chunkName, 'wb') as chunk:
+            with open(_chunkName, 'wb') as chunk:
                 chunk.write(fileContent)
+            os.rename(_chunkName, chunkName)
 
-            self._uploads[fileId]['chunk_list'].append(chunkNumber)
+            self._uploads[fileId]['chunk_list'][chunkNumber] = True
 
             received = sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))
 
@@ -296,7 +347,6 @@ class FileUploadResource(Resource):
                                })
 
         # every chunk has to check if it is the last chunk written, except in a single chunk scenario
-
         if totalChunks > 1 and len(self._uploads[fileId]['chunk_list']) == totalChunks:
             # last chunk
             if self._debug:
@@ -304,17 +354,19 @@ class FileUploadResource(Resource):
 
             # Merge all files into one file and remove the temp files
             # TODO: How to avoid the extra file IO ?
-            with open(os.path.join(self._dir, fileId), 'wb') as finalFile:
+            finalFileName = os.path.join(self._dir, fileId)
+            _finalFileName = os.path.join(self._dir, '#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
+            with open(_finalFileName, 'wb') as finalFile:
                 for tfileName in os.listdir(fileTempDir):
                     with open(os.path.join(fileTempDir, tfileName), 'r') as tfile:
                         finalFile.write(tfile.read())
+            os.rename(_finalFileName, finalFileName)
 
             if self._file_permissions:
                 perm = int(self._file_permissions, 8)
                 try:
                     os.chmod(finalFileName, perm)
                 except Exception as e:
-                    self._remove_temp_dir(fileTempDir)
                     msg = "file upload resource - could not change file permissions of uploaded file"
                     if self._debug:
                         log.msg(msg)
@@ -365,7 +417,7 @@ class FileUploadResource(Resource):
         It returns with HTTP status code `200` if yes and `404` if not.
         The request needs to contain the file identifier and the chunk number to check for.
         """
-        for param in ['file_id', 'chunk_number']:
+        for param in ['file_name', 'chunk_number']:
             if not self._form_fields[param] in request.args:
                 msg = "file upload resource - missing request query parameter '{}', configured from '{}'".format(self._form_fields[param], param)
                 if self._debug:
@@ -374,10 +426,14 @@ class FileUploadResource(Resource):
                 request.setResponseCode(400, msg)
                 return msg
 
-        file_id = request.args[self._form_fields['file_id']][0]
-        chunk_number = request.args[self._form_fields['chunk_number']][0]
+        file_name = request.args[self._form_fields['file_name']][0]
+        chunk_number = int(request.args[self._form_fields['chunk_number']][0])
 
-        if os.path.exists(os.path.join(self._dir, file_id)) or (file_id in self._uploads and chunk_number in self._uploads[file_id]['chunk_list']):
+        # a complete upload will be repeated an incomplete upload will be resumed
+        if file_name in self._uploads and chunk_number in self._uploads[file_name]['chunk_list']:
+            msg = "skipping chunk upload : " + file_name + ' ---- chunk ' + str(chunk_number)
+            if self._debug:
+                log.msg(msg)
             msg = "chunk of file already uploaded"
             request.setResponseCode(200, msg)
             return msg
