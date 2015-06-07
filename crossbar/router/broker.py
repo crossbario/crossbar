@@ -40,6 +40,7 @@ from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, RouterAction
+from crossbar._logging import make_logger
 
 import txaio
 
@@ -50,6 +51,8 @@ class Broker(object):
     """
     Basic WAMP broker.
     """
+
+    log = make_logger()
 
     def __init__(self, router, options=None):
         """
@@ -260,12 +263,19 @@ class Broker(object):
                                         receiver._transport.send(msg)
 
             def on_authorize_error(err):
-
-                # the call to authorize the action _itself_ failed (note this is different from the
-                # call to authorize succeed, but the authorization being denied)
-                #
+                """
+                the call to authorize the action _itself_ failed (note this is
+                different from the call to authorize succeed, but the
+                authorization being denied)
+                """
+                self.log.failure(err)
                 if publish.acknowledge:
-                    reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.AUTHORIZATION_FAILED, [u"failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)])
+                    reply = message.Error(
+                        message.Publish.MESSAGE_TYPE,
+                        publish.request,
+                        ApplicationError.AUTHORIZATION_FAILED,
+                        [u"failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)]
+                    )
                     session._transport.send(reply)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -336,10 +346,19 @@ class Broker(object):
             session._transport.send(reply)
 
         def on_authorize_error(err):
-            # the call to authorize the action _itself_ failed (note this is different from the
-            # call to authorize succeed, but the authorization being denied)
-            #
-            reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.AUTHORIZATION_FAILED, [u"failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)])
+            """
+            the call to authorize the action _itself_ failed (note this is
+            different from the call to authorize succeed, but the
+            authorization being denied)
+            """
+            # XXX same as another code-block, can we collapse?
+            self.log.failure(err)
+            reply = message.Error(
+                message.Subscribe.MESSAGE_TYPE,
+                subscribe.request,
+                ApplicationError.AUTHORIZATION_FAILED,
+                [u"failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)]
+            )
             session._transport.send(reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)

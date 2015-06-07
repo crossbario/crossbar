@@ -42,6 +42,7 @@ from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, RouterAction
+from crossbar._logging import make_logger
 
 import txaio
 
@@ -67,6 +68,8 @@ class Dealer(object):
     """
     Basic WAMP dealer.
     """
+
+    log = make_logger()
 
     def __init__(self, router, options=None):
         """
@@ -235,10 +238,18 @@ class Dealer(object):
             session._transport.send(reply)
 
         def on_authorize_error(err):
-            # the call to authorize the action _itself_ failed (note this is different from the
-            # call to authorize succeed, but the authorization being denied)
-            #
-            reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.AUTHORIZATION_FAILED, [u"failed to authorize session for registering procedure '{0}': {1}".format(register.procedure, err.value)])
+            """
+            the call to authorize the action _itself_ failed (note this is
+            different from the call to authorize succeed, but the
+            authorization being denied)
+            """
+            self.log.failure(err)
+            reply = message.Error(
+                message.Register.MESSAGE_TYPE,
+                register.request,
+                ApplicationError.AUTHORIZATION_FAILED,
+                [u"failed to authorize session for registering procedure '{0}': {1}".format(register.procedure, err.value)]
+            )
             session._transport.send(reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -407,11 +418,18 @@ class Dealer(object):
                     callee._transport.send(invocation)
 
             def on_authorize_error(err):
-
-                # the call to authorize the action _itself_ failed (note this is different from the
-                # call to authorize succeed, but the authorization being denied)
-                #
-                reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.AUTHORIZATION_FAILED, [u"failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)])
+                """
+                the call to authorize the action _itself_ failed (note this is
+                different from the call to authorize succeed, but the
+                authorization being denied)
+                """
+                self.log.failure(err)
+                reply = message.Error(
+                    message.Call.MESSAGE_TYPE,
+                    call.request,
+                    ApplicationError.AUTHORIZATION_FAILED,
+                    [u"failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)]
+                )
                 session._transport.send(reply)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
