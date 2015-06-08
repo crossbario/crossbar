@@ -35,8 +35,6 @@ import json
 import re
 import six
 
-from twisted.python.compat import unicode
-
 from pprint import pformat
 
 from autobahn.websocket.protocol import parseWsUrl
@@ -336,7 +334,7 @@ def check_listening_endpoint_tcp(endpoint):
     if 'port' not in endpoint:
         raise Exception("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
-    if type(endpoint['port']) in (str, unicode):
+    if type(endpoint['port']) == six.text_type:
         port = _readenv(endpoint['port'], "listening endpoint configuration")
         try:
             port = int(port)
@@ -2019,7 +2017,7 @@ def fill_config_from_env(config, keys=None, debug=False):
 
     for k in keys:
         if k in config:
-            if type(config[k]) in (str, unicode):
+            if type(config[k]) is six.text_type:
                 match = _ENV_VAR_PAT.match(config[k])
                 if match and match.groups():
                     envvar = match.groups()[0]
