@@ -432,21 +432,26 @@ def run_command_start(options):
         if options.loglevel == "none":
             # Do no logging!
             pass
-        elif options.loglevel == "quiet":
-            # Quiet: Only print warnings and errors to stderr.
+        elif options.loglevel == "error":
+            # Error: Only print errors to stderr.
+            log_publisher.addObserver(make_stderr_observer(
+                (LogLevel.error, LogLevel.critical),
+                show_source=False, format=options.logformat))
+        elif options.loglevel == "warn":
+            # Print warnings+ to stderr.
             log_publisher.addObserver(make_stderr_observer(
                 (LogLevel.warn, LogLevel.error,
                  LogLevel.critical), show_source=False, format=options.logformat))
-        elif options.loglevel == "standard":
-            # Standard: For users of Crossbar
+        elif options.loglevel == "info":
+            # Print info to stdout, warn+ to stderr
             log_publisher.addObserver(make_stdout_observer(
                 (LogLevel.info,), show_source=False, format=options.logformat))
             log_publisher.addObserver(make_stderr_observer(
                 (LogLevel.warn, LogLevel.error,
                  LogLevel.critical), show_source=False, format=options.logformat))
-        elif options.loglevel == "verbose":
-            # Verbose: for developers
-            # Adds the class source.
+        elif options.loglevel == "debug":
+            # Print debug+info to stdout, warn+ to stderr, with the class
+            # source
             log_publisher.addObserver(make_stdout_observer(
                 (LogLevel.info, LogLevel.debug), show_source=True,
                 format=options.logformat))
@@ -454,8 +459,7 @@ def run_command_start(options):
                 (LogLevel.warn, LogLevel.error,
                  LogLevel.critical), show_source=True, format=options.logformat))
         elif options.loglevel == "trace":
-            # Verbose: for developers
-            # Adds the class source + "trace" output
+            # Print trace+, with the class source
             log_publisher.addObserver(make_stdout_observer(
                 (LogLevel.info, LogLevel.debug), show_source=True,
                 format=options.logformat, trace=True))
@@ -625,8 +629,8 @@ def run(prog=None, args=None):
 
     parser_start.add_argument('--loglevel',
                               type=str,
-                              default='standard',
-                              choices=['none', 'quiet', 'standard', 'verbose', 'trace'],
+                              default='info',
+                              choices=['none', 'error', 'warn', 'info', 'debug', 'trace'],
                               help="How much Crossbar.io should log to the terminal, in order of verbosity.")
 
     parser_start.add_argument('--logformat',
