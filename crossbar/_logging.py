@@ -40,6 +40,8 @@ from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner, formatTime
 from twisted.logger import FileLogObserver
 
+from twisted.python.compat import currentframe
+
 from twisted.python.reflect import qual
 
 log_publisher = LogPublisher()
@@ -231,9 +233,68 @@ def make_legacy_daily_logfile_observer(path, logoutputlevel):
 
     return _log
 
+POSSIBLE_LEVELS = ["none", "critical", "error", "warn", "info", "debug",
+                   "trace"]
+REAL_LEVELS = ["critical", "error", "warn", "info", "debug"]
 
-def make_logger():
-    return Logger(observer=log_publisher)
+# Sanity check
+assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
+
+
+from functools import partialmethod
+
+class CrossbarLogger(object):
+    """
+    A logger.
+    """
+    def __init__(self, log_level, namespace=None, logger=None, observer=None):
+
+        assert logger is not None and \
+            observer is not None and \
+            namespace is not None, (
+                "Don't make a CrossbarLogger directly, use makeLogger")
+
+        self.log_level = log_level
+
+        self.logger = logger(observer=observer, namespace=namespace)
+
+        def _log(self, level, *args, **kwargs):
+            pass
+
+
+
+
+        for item in REAL_LEVELS:
+            pass
+
+
+
+    @property
+    def log_level(self):
+        return self._log_level
+
+    @log_level.setter
+    def log_level(self, level):
+        if not level in POSSIBLE_LEVELS:
+            raise ValueError(
+                "{level} not in {levels}".format(level=level,
+                                                 levels=POSSIBLE_LEVELS))
+        self._log_level = level
+
+
+
+
+
+
+def make_logger(log_level, logger=Logger, observer=log_publisher):
+    """
+    Make a new instance of L{CrossbarLogger}.
+    """
+    namespace = currentframe(1).f_globals["__name__"]
+    return CrossbarLogger(log_level,
+                          namespace=namespace,
+                          logger=logger,
+                          observer=observer)
 
 
 def start_logging():
