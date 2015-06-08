@@ -34,7 +34,8 @@ import json
 import time
 import cgi  # for POST Request Header decoding
 
-from twisted.python import log, compat
+from twisted.python import log
+from twisted.python.compat import nativeString
 from twisted.web import http
 from twisted.web.http import NOT_FOUND
 from twisted.web.resource import Resource, NoResource
@@ -396,7 +397,7 @@ class Resource404(Resource):
     def __init__(self, templates, directory):
         Resource.__init__(self)
         self._page = templates.get_template('cb_web_404.html')
-        self._directory = compat.nativeString(directory)
+        self._directory = nativeString(directory)
 
     def render_GET(self, request):
         request.setResponseCode(NOT_FOUND)
