@@ -109,7 +109,7 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
             elif "Router" in logSystem:
                 fore = Fore.YELLOW
             elif "Container" in logSystem:
-                fore = Fore.CYAN
+                fore = Fore.GREEN
             else:
                 fore = Fore.WHITE
 

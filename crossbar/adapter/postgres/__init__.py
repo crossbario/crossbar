@@ -30,6 +30,6 @@
 
 from __future__ import absolute_import
 
-from crossbar.adapter.postgres.publisher import PostgreSQLDatabasePublisher
+from crossbar.adapter.postgres.publisher import PostgreSQLPublisher
 
-__all__ = ("PostgreSQLDatabasePublisher",)
+__all__ = ('PostgreSQLPublisher',)

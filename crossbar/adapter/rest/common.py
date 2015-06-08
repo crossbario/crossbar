@@ -37,7 +37,6 @@ import base64
 from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.python import log
-from twisted.python.compat import nativeString
 from twisted.web.resource import Resource
 
 
@@ -61,6 +60,7 @@ class _CommonResource(Resource):
         self._session = session
 
         self._debug = options.get('debug', False)
+        self._debug = False
 
         self._key = None
         if 'key' in options:
@@ -93,7 +93,7 @@ class _CommonResource(Resource):
             log.msg("_CommonResource [render]", request.method, request.path, request.args)
 
         if request.method != b"POST":
-            return self._deny_request(request, 405, "HTTP/{0} not allowed".format(nativeString(request.method)))
+            return self._deny_request(request, 405, u"HTTP/{0} not allowed".format(request.method))
         else:
             return self.render_POST(request)
 
@@ -102,161 +102,160 @@ class _CommonResource(Resource):
         Receives an HTTP/POST request, and then calls the Publisher/Caller
         processor.
         """
-        try:
-            # read HTTP/POST body
-            body = request.content.read()
+        # read HTTP/POST body
+        body = request.content.read()
 
-            args = request.args
-            headers = request.getAllHeaders()
+        args = request.args
+        headers = request.getAllHeaders()
 
-            # check content type
-            #
-            content_type = headers.get(b"content-type", None)
-            if content_type != b'application/json':
-                return self._deny_request(request, 400, "bad or missing content type ('{0}')".format(nativeString(content_type)))
+        # check content type
+        #
+        content_type = headers.get(b"content-type", None)
+        if content_type != b'application/json':
+            return self._deny_request(request, 400, u"bad or missing content type ('{0}')".format(content_type))
 
-            # enforce "post_body_limit"
-            #
-            body_length = len(body)
-            content_length = int(headers.get(b"content-length", body_length))
+        # enforce "post_body_limit"
+        #
+        body_length = len(body)
+        content_length = int(headers.get(b"content-length", body_length))
 
-            if body_length != content_length:
-                # Prevent the body length from being different to the given
-                # Content-Length. This is so that clients can't lie and bypass
-                # length restrictions by giving an incorrect header with a large
-                # body.
-                return self._deny_request(request, 400, "HTTP/POST body length ({0}) is different to Content-Length ({1})".format(body_length, content_length))
+        if body_length != content_length:
+            # Prevent the body length from being different to the given
+            # Content-Length. This is so that clients can't lie and bypass
+            # length restrictions by giving an incorrect header with a large
+            # body.
+            return self._deny_request(request, 400, u"HTTP/POST body length ({0}) is different to Content-Length ({1})".format(body_length, content_length))
 
-            if self._post_body_limit and content_length > self._post_body_limit:
-                return self._deny_request(request, 400, "HTTP/POST body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit))
+        if self._post_body_limit and content_length > self._post_body_limit:
+            return self._deny_request(request, 400, u"HTTP/POST body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit))
 
-            #
-            # parse/check HTTP/POST query parameters
-            #
+        #
+        # parse/check HTTP/POST query parameters
+        #
 
-            # key
-            #
-            if 'key' in args:
-                key_str = args["key"][0]
-            else:
-                if self._secret:
-                    return self._deny_request(request, 400, "signed request required, but mandatory 'key' field missing")
-
-            # timestamp
-            #
-            if 'timestamp' in args:
-                timestamp_str = args["timestamp"][0]
-                try:
-                    ts = datetime.datetime.strptime(nativeString(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ")
-                    delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
-                    if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
-                        return self._deny_request(request, 400, "request expired (delta {0} seconds)".format(delta))
-                except ValueError:
-                    return self._deny_request(request, 400, "invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(timestamp_str))
-            else:
-                if self._secret:
-                    return self._deny_request(request, 400, "signed request required, but mandatory 'timestamp' field missing")
-
-            # seq
-            #
-            if 'seq' in args:
-                seq_str = args["seq"][0]
-                try:
-                    # FIXME: check sequence
-                    seq = int(seq_str)  # noqa
-                except:
-                    return self._deny_request(request, 400, "invalid sequence number '{0}' (must be an integer)".format(nativeString(seq_str)))
-            else:
-                if self._secret:
-                    return self._deny_request(request, 400, "signed request required, but mandatory 'seq' field missing")
-
-            # nonce
-            #
-            if 'nonce' in args:
-                nonce_str = args["nonce"][0]
-                try:
-                    # FIXME: check nonce
-                    nonce = int(nonce_str)  # noqa
-                except:
-                    return self._deny_request(request, 400, "invalid nonce '{0}' (must be an integer)".format(nativeString(nonce_str)))
-            else:
-                if self._secret:
-                    return self._deny_request(request, 400, "signed request required, but mandatory 'nonce' field missing")
-
-            # signature
-            #
-            if 'signature' in args:
-                signature_str = args["signature"][0]
-            else:
-                if self._secret:
-                    return self._deny_request(request, 400, "signed request required, but mandatory 'signature' field missing")
-
-            # do more checks if signed requests are required
-            #
+        # key
+        #
+        if 'key' in args:
+            key_str = args["key"][0]
+        else:
             if self._secret:
+                return self._deny_request(request, 400, u"signed request required, but mandatory 'key' field missing")
 
-                if key_str != self._key:
-                    return self._deny_request(request, 400, "unknown key '{0}' in signed request".format(nativeString(key_str)))
+        # timestamp
+        #
+        if 'timestamp' in args:
+            timestamp_str = args["timestamp"][0]
+            try:
+                ts = datetime.datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
+                if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
+                    return self._deny_request(request, 400, u"request expired (delta {0} seconds)".format(delta))
+            except ValueError:
+                return self._deny_request(request, 400, u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(timestamp_str))
+        else:
+            if self._secret:
+                return self._deny_request(request, 400, u"signed request required, but mandatory 'timestamp' field missing")
 
-                # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
-                hm = hmac.new(self._secret, None, hashlib.sha256)
-                hm.update(key_str)
-                hm.update(timestamp_str)
-                hm.update(seq_str)
-                hm.update(nonce_str)
-                hm.update(body)
-                signature_recomputed = base64.urlsafe_b64encode(hm.digest())
+        # seq
+        #
+        if 'seq' in args:
+            seq_str = args["seq"][0]
+            try:
+                # FIXME: check sequence
+                seq = int(seq_str)  # noqa
+            except:
+                return self._deny_request(request, 400, u"invalid sequence number '{0}' (must be an integer)".format(seq_str))
+        else:
+            if self._secret:
+                return self._deny_request(request, 400, u"signed request required, but mandatory 'seq' field missing")
 
-                if signature_str != signature_recomputed:
-                    return self._deny_request(request, 401, "invalid request signature")
-                else:
-                    if self._debug:
-                        log.msg("_CommonResource - ok, request signature valid.")
+        # nonce
+        #
+        if 'nonce' in args:
+            nonce_str = args["nonce"][0]
+            try:
+                # FIXME: check nonce
+                nonce = int(nonce_str)  # noqa
+            except:
+                return self._deny_request(request, 400, u"invalid nonce '{0}' (must be an integer)".format(nonce_str))
+        else:
+            if self._secret:
+                return self._deny_request(request, 400, u"signed request required, but mandatory 'nonce' field missing")
 
-            # user_agent = headers.get("user-agent", "unknown")
-            client_ip = request.getClientIP()
-            is_secure = request.isSecure()
+        # signature
+        #
+        if 'signature' in args:
+            signature_str = args["signature"][0]
+        else:
+            if self._secret:
+                return self._deny_request(request, 400, u"signed request required, but mandatory 'signature' field missing")
 
-            # enforce client IP address
-            #
-            if self._require_ip:
-                ip = IPAddress(nativeString(client_ip))
-                allowed = False
-                for net in self._require_ip:
-                    if ip in net:
-                        allowed = True
-                        break
-                if not allowed:
-                    return self._deny_request(request, 400, "request denied based on IP address")
+        # do more checks if signed requests are required
+        #
+        if self._secret:
 
-            # enforce TLS
-            #
-            if self._require_tls:
-                if not is_secure:
-                    return self._deny_request(request, 400, "request denied because not using TLS")
+            if key_str != self._key:
+                return self._deny_request(request, 400, u"unknown key '{0}' in signed request".format(key_str))
 
-            # FIXME: authorize request
-            authorized = True
+            # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
+            hm = hmac.new(self._secret, None, hashlib.sha256)
+            hm.update(key_str)
+            hm.update(timestamp_str)
+            hm.update(seq_str)
+            hm.update(nonce_str)
+            hm.update(body)
+            signature_recomputed = base64.urlsafe_b64encode(hm.digest())
 
-            if authorized:
-
-                try:
-                    event = json.loads(nativeString(body))
-                except Exception as e:
-                    return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
-
-                if not isinstance(event, dict):
-                    return self._deny_request(request, 400, "invalid request event - HTTP/POST body must be JSON dict")
-
-                return self._process(request, event)
-
+            if signature_str != signature_recomputed:
+                return self._deny_request(request, 401, u"invalid request signature")
             else:
-                return self._deny_request(request, 401, "not authorized")
+                if self._debug:
+                    log.msg("_CommonResource - ok, request signature valid.")
 
-        except Exception as e:
-            raise e
-            # catch all .. should not happen (usually)
-            return self._deny_request(request, 500, "internal server error ('{0}')".format(e))
+        # user_agent = headers.get("user-agent", "unknown")
+        client_ip = request.getClientIP()
+        is_secure = request.isSecure()
+
+        # enforce client IP address
+        #
+        if self._require_ip:
+            ip = IPAddress(client_ip)
+            allowed = False
+            for net in self._require_ip:
+                if ip in net:
+                    allowed = True
+                    break
+            if not allowed:
+                return self._deny_request(request, 400, u"request denied based on IP address")
+
+        # enforce TLS
+        #
+        if self._require_tls:
+            if not is_secure:
+                return self._deny_request(request, 400, u"request denied because not using TLS")
+
+        # FIXME: authorize request
+        authorized = True
+
+        if authorized:
+
+            try:
+                event = json.loads(body)
+            except Exception as e:
+                return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
+
+            if not isinstance(event, dict):
+                return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be JSON dict")
+
+            return self._process(request, event)
+
+        else:
+            return self._deny_request(request, 401, u"not authorized")
+
+        # except Exception as e:
+        #     raise e
+        #     # catch all .. should not happen (usually)
+        #     return self._deny_request(request, 500, "internal server error ('{0}')".format(e))
 
     def _process(self, request, event):
         raise NotImplementedError()

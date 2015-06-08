@@ -133,8 +133,6 @@ class NativeProcessSession(ApplicationSession):
         if not hasattr(self, '_uri_prefix'):
             self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra.node)
 
-        self.log.debug("Session connected to management router")
-
         self._started = datetime.utcnow()
 
         # see: BaseSession
@@ -151,7 +149,7 @@ class NativeProcessSession(ApplicationSession):
             self._pinfo = None
             self._pinfo_monitor = None
             self._pinfo_monitor_seq = None
-            self.log.info("Warning: process utilities not available")
+            self.log.info("Process utilities not available")
 
         if do_join:
             self.join(self.config.realm)
@@ -182,8 +180,7 @@ class NativeProcessSession(ApplicationSession):
 
         regs = yield DeferredList(dl)
 
-        self.log.debug("{cls} registered {len_reg} procedures",
-                       cls=self.__class__.__name__, len_reg=len(regs))
+        self.log.debug("Registered {len_reg} procedures", len_reg=len(regs))
 
     def get_process_info(self, details=None):
         """

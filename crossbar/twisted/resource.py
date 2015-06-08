@@ -123,7 +123,7 @@ class FileUploadResource(Resource):
         headers = request.getAllHeaders()
 
         # FIXME: this is a hack
-        origin = headers['host'].replace(".", "_").replace(":", "-").replace("/", "_")
+        origin = headers['host']
 
         content = cgi.FieldStorage(
             fp=request.content,
@@ -139,6 +139,13 @@ class FileUploadResource(Resource):
         chunkSize = int(content[f['chunk_size']].value)
         chunkNumber = int(content[f['chunk_number']].value)
         fileContent = content[f['content']].value
+
+        # Register upload right at the start to avoid overlapping upload conflicts
+        if fileId not in self._uploads:
+            self._uploads[fileId] = {'chunk_list': [], 'origin': origin}
+            chunk_is_first = True
+        else:
+            chunk_is_first = False
 
         if self._debug:
             log.msg('file upload resource - started upload of file: file_id={}, file_name={}, total_size={}, total_chunks={}, chunk_size={}, chunk_number={}'.format(fileId, filename, totalSize, totalChunks, chunkSize, chunkNumber))
@@ -179,27 +186,30 @@ class FileUploadResource(Resource):
             request.setResponseCode(415, msg)
             return msg
 
-        # FIXME: this is a hack
         # check if another session is uploading this file already
         #
-        for e in os.listdir(self._tempDir):
-            common_id = e[0:e.find("#")]
-            existing_origin = e[e.find("#") + 1:]
-            if common_id == fileId + '_orig' and existing_origin != origin:
+        try:
+            upl = self._uploads[fileId]
+            if upl['origin'] != origin:
                 msg = "file upload resource - file being uploaded is already uploaded in a different session"
                 if self._debug:
                     log.msg(msg)
                 # 409 Conflict
                 request.setResponseCode(409, msg)
                 return msg
+        except Exception:
+            pass
 
         # TODO: check mime type
 
-        fileTempDir = os.path.join(self._tempDir, fileId + '_orig#' + origin)
+        fileTempDir = os.path.join(self._tempDir, fileId)
         chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
 
-        if not (os.path.exists(os.path.join(self._dir, fileId)) or os.path.exists(fileTempDir)):
+        if chunk_is_first:
             # first chunk of file
+
+            # clean the temp dir once per file upload
+            self._remove_stale_uploads()
 
             # publish file upload start
             #
@@ -219,6 +229,8 @@ class FileUploadResource(Resource):
                 with open(finalFileName, 'wb') as finalFile:
                     finalFile.write(fileContent)
 
+                self._uploads[fileId]['chunk_list'].append(chunkNumber)
+
                 if self._file_permissions:
                     perm = int(self._file_permissions, 8)
                     try:
@@ -231,6 +243,8 @@ class FileUploadResource(Resource):
                             log.msg(e)
                         request.setResponseCode(500, msg)
                         return msg
+
+                self._uploads.pop(fileId, None)
 
                 # publish file upload progress to file_progress_URI
                 fileupload_publish({
@@ -247,6 +261,8 @@ class FileUploadResource(Resource):
                 os.makedirs(fileTempDir)
                 with open(chunkName, 'wb') as chunk:
                     chunk.write(fileContent)
+
+                self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
                 # publish file upload progress
                 #
@@ -265,6 +281,8 @@ class FileUploadResource(Resource):
             with open(chunkName, 'wb') as chunk:
                 chunk.write(fileContent)
 
+            self._uploads[fileId]['chunk_list'].append(chunkNumber)
+
             received = sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))
 
             fileupload_publish({
@@ -277,54 +295,69 @@ class FileUploadResource(Resource):
                                "progress": round(float(received) / float(totalSize), 3)
                                })
 
-            if chunkNumber == totalChunks:
-                # last chunk
-                with open(chunkName, 'wb') as chunk:
-                    chunk.write(fileContent)
+        # every chunk has to check if it is the last chunk written, except in a single chunk scenario
 
-                # Now merge all files into one file and remove the temp files
-                with open(os.path.join(self._dir, fileId), 'wb') as finalFile:
-                    for tfileName in os.listdir(fileTempDir):
-                        with open(os.path.join(fileTempDir, tfileName), 'r') as tfile:
-                            finalFile.write(tfile.read())
+        if totalChunks > 1 and len(self._uploads[fileId]['chunk_list']) == totalChunks:
+            # last chunk
+            if self._debug:
+                log.msg('---- finish file upload after chunk ----- ' + str(chunkNumber))
 
-                if self._file_permissions:
-                    perm = int(self._file_permissions, 8)
-                    try:
-                        os.chmod(finalFileName, perm)
-                    except Exception as e:
-                        self._remove_temp_dir(fileTempDir)
-                        msg = "file upload resource - could not change file permissions of uploaded file"
-                        if self._debug:
-                            log.msg(msg)
-                            log.msg(e)
-                        request.setResponseCode(500, msg)
-                        return msg
+            # Merge all files into one file and remove the temp files
+            # TODO: How to avoid the extra file IO ?
+            with open(os.path.join(self._dir, fileId), 'wb') as finalFile:
+                for tfileName in os.listdir(fileTempDir):
+                    with open(os.path.join(fileTempDir, tfileName), 'r') as tfile:
+                        finalFile.write(tfile.read())
 
-                # publish file upload progress to file_progress_URI
+            if self._file_permissions:
+                perm = int(self._file_permissions, 8)
+                try:
+                    os.chmod(finalFileName, perm)
+                except Exception as e:
+                    self._remove_temp_dir(fileTempDir)
+                    msg = "file upload resource - could not change file permissions of uploaded file"
+                    if self._debug:
+                        log.msg(msg)
+                        log.msg(e)
+                    request.setResponseCode(500, msg)
+                    return msg
 
-                fileupload_publish({
-                                   "id": fileId,
-                                   "chunk": chunkNumber,
-                                   "name": filename,
-                                   "total": totalSize,
-                                   "remaining": 0,
-                                   "status": "finished",
-                                   "progress": 1.
-                                   })
+            # publish file upload progress to file_progress_URI
+            fileupload_publish({
+                               "id": fileId,
+                               "chunk": chunkNumber,
+                               "name": filename,
+                               "total": totalSize,
+                               "remaining": 0,
+                               "status": "finished",
+                               "progress": 1.
+                               })
 
-                # remove the file temp folder
-                self._remove_temp_dir(fileTempDir)
+            # remove the file temp folder
+            self._remove_temp_dir(fileTempDir)
+
+            self._uploads.pop(fileId, None)
 
         request.setResponseCode(200)
         return ''
 
     def _remove_temp_dir(self, fileTempDir):
-        return
         for tfileName in os.listdir(fileTempDir):
             os.remove(os.path.join(fileTempDir, tfileName))
 
         os.rmdir(fileTempDir)
+
+    def _remove_stale_uploads(self):
+        """
+        This only works if there is a temp folder exclusive for crossbar file uploads
+        if the system temp folder is used then crossbar creates a "crossbar-uploads" there and
+        uses that as the temp folder for uploads
+        If you don't clean up regularly an attacker could fill up the OS file system
+        """
+        for _dir in os.listdir(self._tempDir):
+            fileTempDir = os.path.join(self._tempDir, _dir)
+            if os.path.isdir(fileTempDir) and _dir not in self._uploads:
+                self._remove_temp_dir(fileTempDir)
 
     def render_GET(self, request):
         """
@@ -343,13 +376,8 @@ class FileUploadResource(Resource):
 
         file_id = request.args[self._form_fields['file_id']][0]
         chunk_number = request.args[self._form_fields['chunk_number']][0]
-        origin = request.getHeader('host')[0]
-        origin = origin.replace(".", "_").replace(":", "-").replace("/", "_")
 
-        fileTempDir = os.path.join(self._tempDir, file_id + '_orig#' + origin)
-        chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunk_number))
-
-        if (os.path.exists(chunkName) or os.path.exists(os.path.join(self._dir, file_id))):
+        if os.path.exists(os.path.join(self._dir, file_id)) or (file_id in self._uploads and chunk_number in self._uploads[file_id]['chunk_list']):
             msg = "chunk of file already uploaded"
             request.setResponseCode(200, msg)
             return msg
@@ -376,6 +404,10 @@ class Resource404(Resource):
         s = self._page.render(cbVersion=crossbar.__version__,
                               directory=self._directory)
         return s.encode('utf8')
+
+    def render_HEAD(self, request):
+        request.setResponseCode(NOT_FOUND)
+        return ''
 
 
 class RedirectResource(Resource):

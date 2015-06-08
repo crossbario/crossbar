@@ -2,3 +2,4 @@ include COPYRIGHT
 include LICENSE
 recursive-include crossbar/web *
 recursive-include crossbar/templates *
+recursive-include crossbar/adapter/postgres/ddl *

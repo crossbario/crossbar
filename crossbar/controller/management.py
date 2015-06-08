@@ -34,36 +34,73 @@ import os
 
 from twisted.internet.defer import inlineCallbacks
 
+from autobahn.wamp.types import SubscribeOptions, PublishOptions
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar._logging import make_logger
 
-__all__ = ('NodeManagementSession',)
+__all__ = ('NodeManagementSession', 'NodeManagementBridgeSession')
 
 
 class NodeManagementSession(ApplicationSession):
 
+    """
+    This session is used for any uplink CDC connection.
+    """
+
+    log = make_logger()
+
     def onJoin(self, details):
+        self.log.debug("Joined realm '{realm}' on uplink CDC router", realm=details.realm)
         self.config.extra['onready'].callback(self)
 
 
 class NodeManagementBridgeSession(ApplicationSession):
 
+    """
+    The management bridge is a WAMP session that lives on the local management router,
+    but has access to a 2nd WAMP session that lives on the uplink CDC router.
+
+    The bridge is responsible for forwarding calls from CDC into the local node,
+    and for forwarding events from the local node to CDC.
+    """
+
     log = make_logger()
 
     def __init__(self, config, management_session):
+        """
+
+        :param config: Session configuration.
+        :type config: instance of `autobahn.wamp.types.ComponentConfig`
+        :param management_session: uplink session.
+        :type management_session: instance of `autobahn.wamp.protocol.ApplicationSession`
+        """
         ApplicationSession.__init__(self, config)
         self._management_session = management_session
-
-    def _forward_call(self, *args, **kwargs):
-        return self.call()
+        self._regs = {}
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.log.info("Management bridge attached to node router.")
 
-        self._regs = {}
+        self.log.debug("Joined realm '{realm}' on node management router", realm=details.realm)
 
+        @inlineCallbacks
+        def on_event(*args, **kwargs):
+            details = kwargs.pop('details')
+            topic = u"cdc." + details.topic
+            try:
+                yield self._management_session.publish(topic, *args, options=PublishOptions(acknowledge=True), **kwargs)
+            except Exception as e:
+                self.log.error(e)
+            else:
+                self.log.debug("Forwarded event on topic '{topic}'", topic=topic)
+
+        yield self.subscribe(on_event, u"crossbar.node", options=SubscribeOptions(match=u"prefix", details_arg="details"))
+
+        # we use the WAMP meta API implemented by CB to get notified whenever a procedure is
+        # registered/unregister on the node management router, setup a forwarding procedure
+        # and register that on the uplink CDC router
+        #
         @inlineCallbacks
         def on_registration_create(session_id, registration):
             uri = registration['uri']
@@ -74,8 +111,7 @@ class NodeManagementBridgeSession(ApplicationSession):
             reg = yield self._management_session.register(forward_call, uri)
             self._regs[registration['id']] = reg
 
-            self.log.info("Management bridge - forwarding procedure: {procedure}",
-                          procedure=reg.procedure)
+            self.log.debug("Forwarding procedure: {procedure}", procedure=reg.procedure)
 
         yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
 
@@ -85,15 +121,13 @@ class NodeManagementBridgeSession(ApplicationSession):
 
             if reg:
                 yield reg.unregister()
-                self.log.info("Management bridge - removed procedure {procedure}",
-                              procedure=reg.procedure)
+                self.log.debug("Removed forwarding of procedure {procedure}", procedure=reg.procedure)
             else:
-                self.log.warn("Management bridge - WARNING: on_registration_delete() for unmapped registration_id {reg_id}",
-                              reg_id=registration_id)
+                self.log.warn("Could not remove forwarding for unmapped registration_id {reg_id}", reg_id=registration_id)
 
         yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
 
-        self.log.info("Management bridge ready.")
+        self.log.info("Management bridge ready")
 
 
 class NodeManagementSessionOld(ApplicationSession):
