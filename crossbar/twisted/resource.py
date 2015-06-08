@@ -405,6 +405,10 @@ class Resource404(Resource):
                               directory=self._directory)
         return s.encode('utf8')
 
+    def render_HEAD(self, request):
+        request.setResponseCode(NOT_FOUND)
+        return ''
+
 
 class RedirectResource(Resource):
 

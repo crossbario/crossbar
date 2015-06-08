@@ -91,8 +91,8 @@ class CallerResource(_CommonResource):
 
         procedure = event.pop('procedure')
 
-        args = event.pop('args', [])
-        kwargs = event.pop('kwargs', {})
+        args = event['args'] if 'args' in event and event['args'] else []
+        kwargs = event['kwargs'] if 'kwargs' in event and event['kwargs'] else {}
 
         d = self._session.call(procedure, *args, **kwargs)
 
