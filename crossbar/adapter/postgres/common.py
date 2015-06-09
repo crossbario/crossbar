@@ -32,6 +32,7 @@ from __future__ import absolute_import
 
 import re
 import os
+import pkg_resources
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 
@@ -70,7 +71,7 @@ class PostgreSQLAdapter(ApplicationSession):
         self._db_config['adapter_channel'] = self.CHANNEL_PUBSUB_EVENT
 
         self.log.debug("Using database configuration {db_config}", db_config=self._db_config)
-        self.log.debug("Using DDL script directory {ddl_scripts_dir}", ddl_scripts_dir=db_config['scripts'])
+        self.log.debug("Using DDL script directory {ddl_scripts_dir}", ddl_scripts_dir=self._db_config['scripts'])
 
         try:
             yield self.connect_and_observe(self._db_config, self.CHANNEL_PUBSUB_EVENT, self.on_notify)

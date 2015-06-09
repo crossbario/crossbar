@@ -32,13 +32,6 @@ from __future__ import absolute_import
 
 import json
 import six
-import re
-import os
-import pkg_resources
-
-from twisted.internet.defer import inlineCallbacks, returnValue
-
-from txpostgres import txpostgres
 
 from autobahn.wamp.types import PublishOptions
 

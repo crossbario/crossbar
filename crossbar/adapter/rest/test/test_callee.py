@@ -36,11 +36,11 @@ from twisted.trial.unittest import TestCase
 from twisted.web.http_headers import Headers
 from twisted.internet.defer import inlineCallbacks
 
+from crossbar.adapter.rest.test import MockTransport, MockWebTransport
+from autobahn.wamp.types import ComponentConfig
+
 if not PY3:
     from crossbar.adapter.rest import RESTCallee
-from crossbar.adapter.rest.test import MockTransport, MockWebTransport
-
-from autobahn.wamp.types import ComponentConfig
 
 
 class CalleeTestCase(TestCase):

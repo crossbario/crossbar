@@ -648,8 +648,16 @@ def check_web_path_service_json(config):
     """
     check_dict_args({
         'type': (True, [six.text_type]),
-        'value': (True, None)
+        'value': (True, None),
+        'options': (False, [dict]),
     }, config, "Web transport 'json' path service")
+
+    if 'options' in config:
+        check_dict_args({
+            'prettify': (False, [bool]),
+            'allow_cross_origin': (False, [bool]),
+            'discourage_caching': (False, [bool]),
+        }, config['options'], "Web transport 'json' path service")
 
 
 def check_web_path_service_cgi(config):
@@ -833,7 +841,6 @@ def check_web_path_service_upload(config):
     }, config, "Web transport 'upload' path service")
 
     check_dict_args({
-        'file_id': (True, [six.text_type]),
         'file_name': (True, [six.text_type]),
         'mime_type': (True, [six.text_type]),
         'total_size': (True, [six.text_type]),
@@ -842,7 +849,7 @@ def check_web_path_service_upload(config):
         'total_chunks': (True, [six.text_type]),
         'content': (True, [six.text_type]),
         'on_progress': (False, [six.text_type]),
-        'session': (False, [six.text_type]),
+        'session': (False, [six.text_type])
     }, config['form_fields'], "File upload form field settings")
 
     if 'on_progress' in config['form_fields']:
@@ -853,7 +860,7 @@ def check_web_path_service_upload(config):
             'debug': (False, [bool]),
             'max_file_size': (False, six.integer_types),
             'file_types': (False, [list]),
-            'file_permissions': (False, [six.text_type]),
+            'file_permissions': (False, [six.text_type])
         }, config['options'], "Web transport 'upload' path service")
 
         if 'max_file_size' in config['options']:
