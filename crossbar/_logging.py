@@ -34,7 +34,6 @@ import os
 import sys
 import json
 
-
 from functools import partial
 
 from zope.interface import provider
@@ -43,8 +42,8 @@ from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner, formatTime
 from twisted.logger import FileLogObserver
 
+from twisted.python.constants import NamedConstant
 from twisted.python.compat import currentframe
-
 from twisted.python.reflect import qual
 
 from weakref import WeakKeyDictionary
@@ -55,7 +54,7 @@ record_separator = u"\x1e"
 cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
 
 _loggers = WeakKeyDictionary()
-_loglevel = "N/A"
+_loglevel = "info"  # Default is "info"
 
 
 def set_global_log_level(level):
@@ -260,7 +259,8 @@ assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
 
 class CrossbarLogger(object):
     """
-    A logger.
+    A logger that wraps a L{Logger} and no-ops messages that it doesn't want to
+    listen to.
     """
     def __init__(self, log_level, namespace=None, logger=None, observer=None):
 
@@ -270,7 +270,6 @@ class CrossbarLogger(object):
                 "Don't make a CrossbarLogger directly, use makeLogger")
 
         self.log_level = log_level
-
         self.logger = logger(observer=observer, namespace=namespace)
 
         def _log(self, level, *args, **kwargs):
@@ -278,7 +277,6 @@ class CrossbarLogger(object):
             When this is called, it checks whether the index is higher than the
             current set level. If it is not, it is a no-op.
             """
-            from twisted.python.constants import NamedConstant
 
             if isinstance(level, NamedConstant):
                 level = level.name
@@ -311,7 +309,9 @@ class CrossbarLogger(object):
 
 def make_logger(log_level=None, logger=Logger, observer=log_publisher):
     """
-    Make a new logger.
+    Make a new logger (of the type set by the kwarg logger) that publishes to
+    the observer set in the observer kwarg. If no explicit log_level is given,
+    it uses the current global log level.
     """
     if log_level is None:
         # If an explicit log level isn't given, use the current global log
@@ -342,13 +342,13 @@ def make_logger(log_level=None, logger=Logger, observer=log_publisher):
                                 logger=logger,
                                 observer=observer)
 
-    # Set up a weak ref
+    # Set up a weak ref, so that all loggers can be updated later
     _loggers[logger] = True
     return logger
 
 
 def start_logging():
     """
-    Start logging to the publishers.
+    Start logging to the publisher.
     """
     globalLogBeginner.beginLoggingTo([log_publisher])
