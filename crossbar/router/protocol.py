@@ -40,7 +40,9 @@ from autobahn.websocket.compress import *  # noqa
 import crossbar
 
 from crossbar.router.cookiestore import CookieStore, PersistentCookieStore
-from crossbar._logging import make_logger, log
+from crossbar._logging import make_logger
+
+log = make_logger()
 
 __all__ = (
     'WampWebSocketServerFactory',

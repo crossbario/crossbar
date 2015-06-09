@@ -65,8 +65,6 @@ class Node(object):
     A single Crossbar.io node runs exactly one instance of this class, hence
     this class can be considered a system singleton.
     """
-    log = make_logger()
-
     def __init__(self, reactor, options):
         """
         Ctor.
@@ -76,6 +74,8 @@ class Node(object):
         :param options: Options from command line.
         :type options: obj
         """
+        self.log = make_logger()
+
         self.options = options
         # the reactor under which we run
         self._reactor = reactor

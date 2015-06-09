@@ -67,7 +67,7 @@ from autobahn.twisted.websocket import WampWebSocketServerFactory
 
 from crossbar.platform import HAS_FSNOTIFY, DirWatcher
 
-from crossbar._logging import make_logger
+from crossbar._logging import make_logger, _loglevel
 
 
 __all__ = ('NodeControllerSession', 'create_process_env')
@@ -465,6 +465,7 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--worker", str(id)])
         args.extend(["--realm", self._realm])
         args.extend(["--type", wtype])
+        args.extend(["--loglevel", _loglevel])
 
         # allow override worker process title from options
         #

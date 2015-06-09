@@ -47,7 +47,6 @@ from autobahn.util import utcnow
 from autobahn.twisted.choosereactor import install_reactor
 
 import crossbar
-from crossbar._logging import log, log_publisher
 
 try:
     import psutil
@@ -416,7 +415,12 @@ def run_command_start(options):
 
     # start Twisted logging
     #
-    from crossbar._logging import LogLevel, start_logging
+    from crossbar._logging import log_publisher, make_logger
+    from crossbar._logging import LogLevel, start_logging, set_global_log_level
+
+    set_global_log_level(options.loglevel)
+
+    log = make_logger()
 
     if options.logdir:
         # We want to log to a file
@@ -434,38 +438,25 @@ def run_command_start(options):
             pass
         elif options.loglevel == "error":
             # Error: Only print errors to stderr.
-            log_publisher.addObserver(make_stderr_observer(
-                (LogLevel.error, LogLevel.critical),
-                show_source=False, format=options.logformat))
+            log_publisher.addObserver(make_stdout_observer(show_source=False, format=options.logformat))
+            log_publisher.addObserver(make_stderr_observer(show_source=False, format=options.logformat))
         elif options.loglevel == "warn":
             # Print warnings+ to stderr.
-            log_publisher.addObserver(make_stderr_observer(
-                (LogLevel.warn, LogLevel.error,
-                 LogLevel.critical), show_source=False, format=options.logformat))
+            log_publisher.addObserver(make_stdout_observer(show_source=False, format=options.logformat))
+            log_publisher.addObserver(make_stderr_observer(show_source=False, format=options.logformat))
         elif options.loglevel == "info":
             # Print info to stdout, warn+ to stderr
-            log_publisher.addObserver(make_stdout_observer(
-                (LogLevel.info,), show_source=False, format=options.logformat))
-            log_publisher.addObserver(make_stderr_observer(
-                (LogLevel.warn, LogLevel.error,
-                 LogLevel.critical), show_source=False, format=options.logformat))
+            log_publisher.addObserver(make_stdout_observer(show_source=False, format=options.logformat))
+            log_publisher.addObserver(make_stderr_observer(show_source=False, format=options.logformat))
         elif options.loglevel == "debug":
             # Print debug+info to stdout, warn+ to stderr, with the class
             # source
-            log_publisher.addObserver(make_stdout_observer(
-                (LogLevel.info, LogLevel.debug), show_source=True,
-                format=options.logformat))
-            log_publisher.addObserver(make_stderr_observer(
-                (LogLevel.warn, LogLevel.error,
-                 LogLevel.critical), show_source=True, format=options.logformat))
+            log_publisher.addObserver(make_stdout_observer(show_source=True, format=options.logformat))
+            log_publisher.addObserver(make_stderr_observer(show_source=True, format=options.logformat))
         elif options.loglevel == "trace":
             # Print trace+, with the class source
-            log_publisher.addObserver(make_stdout_observer(
-                (LogLevel.info, LogLevel.debug), show_source=True,
-                format=options.logformat, trace=True))
-            log_publisher.addObserver(make_stderr_observer(
-                (LogLevel.warn, LogLevel.error,
-                 LogLevel.critical), show_source=True, format=options.logformat))
+            log_publisher.addObserver(make_stdout_observer(show_source=True, format=options.logformat, trace=True))
+            log_publisher.addObserver(make_stderr_observer(show_source=True, format=options.logformat))
         else:
             assert False, "Shouldn't ever get here."
 

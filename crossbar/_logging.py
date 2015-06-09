@@ -45,11 +45,23 @@ from twisted.python.compat import currentframe
 
 from twisted.python.reflect import qual
 
+from weakref import WeakKeyDictionary
+
 log_publisher = LogPublisher()
-log = Logger(observer=log_publisher)
 
 record_separator = u"\x1e"
 cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
+
+_loggers = WeakKeyDictionary()
+_loglevel = "N/A"
+
+
+def set_global_log_level(level):
+    for item in _loggers.keys():
+        item.log_level = level
+    global _loglevel
+    _loglevel = level
+
 
 try:
     from colorama import Fore
@@ -90,7 +102,7 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
     @provider(ILogObserver)
     def StandardOutObserver(event):
 
-        if not trace and event.get("cb_level") == "trace":
+        if not trace and event.get("cb_trace") == True:
             # Don't output 'trace' output
             return
 
@@ -102,8 +114,8 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
         else:
             logSystem = event["log_system"]
 
-        if show_source and event.get("log_source") is not None:
-            logSystem += " " + qual(event["log_source"].__class__)
+        if show_source and event.get("log_namespace") is not None:
+            logSystem += " " + event.get("cb_namespace", event["log_namespace"])
 
         if format == "colour":
             # Choose a colour depending on where the log came from.
@@ -152,8 +164,8 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         else:
             logSystem = event["log_system"]
 
-        if show_source and event.get("log_source") is not None:
-            logSystem += " " + qual(event["log_source"].__class__)
+        if show_source and event.get("log_namespace") is not None:
+            logSystem += " " + event.get("cb_namespace", event["log_namespace"])
 
         if format == "colour":
             # Errors are always red, no matter the system they came from.
@@ -176,10 +188,13 @@ def make_JSON_observer(outFile):
     Make an observer which writes JSON to C{outfile}.
     """
     def _make_json(event):
+        #print(event, file=outFile)
 
         return json.dumps({
             "text": escape_formatting(formatEvent(event)),
-            "level": event.get("log_level", LogLevel.info).name})
+            "level": event.get("log_level", LogLevel.info).name,
+            "namespace": event.get("log_namespace", '')
+        })
 
     return FileLogObserver(
         outFile,
@@ -263,12 +278,23 @@ class CrossbarLogger(object):
             When this is called, it checks whether the index is higher than the
             current set level. If it is not, it is a no-op.
             """
+            from twisted.python.constants import NamedConstant
+
+            if isinstance(level, NamedConstant):
+                level = level.name
+
             if POSSIBLE_LEVELS.index(level) <= POSSIBLE_LEVELS.index(self.log_level):
                 getattr(self.logger, level)(*args, **kwargs)
 
         for item in REAL_LEVELS:
             # Set instances of _log which convert to no-ops.
             setattr(self, item, partial(_log, self, item))
+
+        self.emit = partial(_log, self)
+
+    def trace(self, *args, **kwargs):
+        if POSSIBLE_LEVELS.index("trace") <= POSSIBLE_LEVELS.index(self.log_level):
+            return self.debug(*args, cb_trace=True, **kwargs)
 
     @property
     def log_level(self):
@@ -283,15 +309,42 @@ class CrossbarLogger(object):
         self._log_level = level
 
 
-def make_logger(log_level, logger=Logger, observer=log_publisher):
+def make_logger(log_level=None, logger=Logger, observer=log_publisher):
     """
-    Make a new instance of L{CrossbarLogger}.
+    Make a new logger.
     """
-    namespace = currentframe(1).f_globals["__name__"]
-    return CrossbarLogger(log_level,
-                          namespace=namespace,
-                          logger=logger,
-                          observer=observer)
+    if log_level is None:
+        # If an explicit log level isn't given, use the current global log
+        # level
+        log_level = _loglevel
+
+    # Get the caller's frame
+    cf = currentframe(1)
+
+    if "self" in cf.f_locals:
+        # We're probably in a class init or method
+        namespace = qual(cf.f_locals["self"].__class__)
+
+        logger = CrossbarLogger(log_level,
+                                namespace=namespace,
+                                logger=logger,
+                                observer=observer)
+    else:
+        namespace = cf.f_globals["__name__"]
+
+        if cf.f_code.co_name != "<module>":
+            # If it's not the module, and not in a class instance, add the code
+            # object's name.
+            namespace = namespace + "." + cf.f_code.co_name
+
+        logger = CrossbarLogger(log_level,
+                                namespace=namespace,
+                                logger=logger,
+                                observer=observer)
+
+    # Set up a weak ref
+    _loggers[logger] = True
+    return logger
 
 
 def start_logging():

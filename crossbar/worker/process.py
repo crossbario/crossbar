@@ -71,6 +71,12 @@ def run():
                         choices=['select', 'poll', 'epoll', 'kqueue', 'iocp'],
                         help='Explicit Twisted reactor selection (optional).')
 
+    parser.add_argument('--loglevel',
+                        default="info",
+                        choices=['none', 'error', 'warn', 'info', 'debug', 'trace'],
+                        help='Initial log level.')
+
+
     parser.add_argument('-c',
                         '--cbdir',
                         type=str,
@@ -107,6 +113,10 @@ def run():
     #
     from crossbar._logging import make_JSON_observer, cb_logging_aware, _stderr
     from crossbar._logging import make_logger, log_publisher, start_logging
+    from crossbar._logging import set_global_log_level
+
+    # Set the global log level
+    set_global_log_level(options.loglevel)
 
     log = make_logger()
 

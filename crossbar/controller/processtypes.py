@@ -151,11 +151,13 @@ class WorkerProcess(object):
                     # We tried!
                     event = {"level": u"warn",
                              "text": u"INVALID JSON: {}".format(escape_formatting(log))}
-                event_text = event["text"]
-                level = LogLevel.levelWithName(event["level"])
+                event_text = event.pop("text")
+                event_namespace = event.pop("namespace", None)
+                level = LogLevel.levelWithName(event.pop("level"))
 
-                self._logger.emit(level, event_text, log_system=system)
-                self._log_entries.append(event_text)
+                self._logger.emit(level, event_text, log_system=system,
+                                  cb_namespace=event_namespace, **event)
+                self._log_entries.append(event)
 
                 if self._log_topic:
                     self._controller.publish(self._log_topic, event_text)

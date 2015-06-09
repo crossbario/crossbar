@@ -139,7 +139,7 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.process`
         """
-        self.log.debug("Router.process: {msg}", msg=msg, cb_level="trace")
+        self.log.trace("Router.process: {msg}", msg=msg)
 
         # Broker
         #
