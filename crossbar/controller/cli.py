@@ -416,7 +416,7 @@ def run_command_start(options):
     # start Twisted logging
     #
     from crossbar._logging import log_publisher, make_logger
-    from crossbar._logging import LogLevel, start_logging, set_global_log_level
+    from crossbar._logging import start_logging, set_global_log_level
 
     set_global_log_level(options.loglevel)
 

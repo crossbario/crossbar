@@ -7,6 +7,7 @@ from crossbar._logging import make_logger, CrossbarLogger
 
 _log = make_logger("info", logger=Mock)
 
+
 def _makelog():
     log = make_logger("info", logger=Mock)
     return log

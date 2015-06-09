@@ -31,9 +31,11 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import six
 import sys
 import json
+
+
+from functools import partial
 
 from zope.interface import provider
 
@@ -102,7 +104,7 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
     @provider(ILogObserver)
     def StandardOutObserver(event):
 
-        if not trace and event.get("cb_trace") == True:
+        if not trace and event.get("cb_trace") is True:
             # Don't output 'trace' output
             return
 
@@ -188,7 +190,6 @@ def make_JSON_observer(outFile):
     Make an observer which writes JSON to C{outfile}.
     """
     def _make_json(event):
-        #print(event, file=outFile)
 
         return json.dumps({
             "text": escape_formatting(formatEvent(event)),
@@ -256,7 +257,6 @@ REAL_LEVELS = ["critical", "error", "warn", "info", "debug"]
 # Sanity check
 assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
 
-from functools import partial
 
 class CrossbarLogger(object):
     """
@@ -302,7 +302,7 @@ class CrossbarLogger(object):
 
     @log_level.setter
     def log_level(self, level):
-        if not level in POSSIBLE_LEVELS:
+        if level not in POSSIBLE_LEVELS:
             raise ValueError(
                 "{level} not in {levels}".format(level=level,
                                                  levels=POSSIBLE_LEVELS))

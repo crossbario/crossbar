@@ -76,7 +76,6 @@ def run():
                         choices=['none', 'error', 'warn', 'info', 'debug', 'trace'],
                         help='Initial log level.')
 
-
     parser.add_argument('-c',
                         '--cbdir',
                         type=str,
