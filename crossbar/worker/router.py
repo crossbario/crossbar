@@ -36,11 +36,12 @@ import jinja2
 import importlib
 import pkg_resources
 import tempfile
+import six
+
 from datetime import datetime
 
 from twisted.internet import reactor
 from twisted.python import log
-from twisted.python.compat import unicode
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
 
@@ -859,7 +860,7 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         for path in sorted(paths):
 
-            if isinstance(path, unicode):
+            if isinstance(path, six.text_type):
                 webPath = path.encode('utf8')
             else:
                 webPath = path

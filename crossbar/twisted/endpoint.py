@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import os
+import six
 
 from twisted.internet import defer
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
@@ -39,7 +40,6 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ClientEndpoint, \
     UNIXServerEndpoint, \
     UNIXClientEndpoint
-from twisted.python.compat import unicode
 
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
@@ -86,7 +86,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
         # the listening port
         #
-        if type(config['port']) in (str, unicode):
+        if type(config['port']) is six.text_type:
             # read port from environment variable ..
             try:
                 port = int(os.environ[config['port'][1:]])

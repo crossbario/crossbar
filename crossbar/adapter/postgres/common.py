@@ -67,7 +67,7 @@ class PostgreSQLAdapter(ApplicationSession):
         self._db_config['application_name'] = "Crossbar.io PostgreSQL Adapter (Publisher)"
         self._db_config['scripts'] = os.path.abspath(pkg_resources.resource_filename("crossbar", "adapter/postgres/ddl"))
         self._db_config['adapter_xlock'] = 100
-        self._db_config['adapter_channel'] self.CHANNEL_PUBSUB_EVENT
+        self._db_config['adapter_channel'] = self.CHANNEL_PUBSUB_EVENT
 
         self.log.debug("Using database configuration {db_config}", db_config=self._db_config)
         self.log.debug("Using DDL script directory {ddl_scripts_dir}", ddl_scripts_dir=db_config['scripts'])

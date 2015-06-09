@@ -35,8 +35,6 @@ import json
 import re
 import six
 
-from twisted.python.compat import unicode
-
 from pprint import pformat
 
 from autobahn.websocket.protocol import parseWsUrl
@@ -336,7 +334,7 @@ def check_listening_endpoint_tcp(endpoint):
     if 'port' not in endpoint:
         raise Exception("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
-    if type(endpoint['port']) in (str, unicode):
+    if type(endpoint['port']) == six.text_type:
         port = _readenv(endpoint['port'], "listening endpoint configuration")
         try:
             port = int(port)
@@ -843,7 +841,6 @@ def check_web_path_service_upload(config):
     }, config, "Web transport 'upload' path service")
 
     check_dict_args({
-        'file_id': (True, [six.text_type]),
         'file_name': (True, [six.text_type]),
         'mime_type': (True, [six.text_type]),
         'total_size': (True, [six.text_type]),
@@ -852,7 +849,7 @@ def check_web_path_service_upload(config):
         'total_chunks': (True, [six.text_type]),
         'content': (True, [six.text_type]),
         'on_progress': (False, [six.text_type]),
-        'session': (False, [six.text_type]),
+        'session': (False, [six.text_type])
     }, config['form_fields'], "File upload form field settings")
 
     if 'on_progress' in config['form_fields']:
@@ -863,7 +860,7 @@ def check_web_path_service_upload(config):
             'debug': (False, [bool]),
             'max_file_size': (False, six.integer_types),
             'file_types': (False, [list]),
-            'file_permissions': (False, [six.text_type]),
+            'file_permissions': (False, [six.text_type])
         }, config['options'], "Web transport 'upload' path service")
 
         if 'max_file_size' in config['options']:
@@ -2027,7 +2024,7 @@ def fill_config_from_env(config, keys=None, debug=False):
 
     for k in keys:
         if k in config:
-            if type(config[k]) in (str, unicode):
+            if type(config[k]) is six.text_type:
                 match = _ENV_VAR_PAT.match(config[k])
                 if match and match.groups():
                     envvar = match.groups()[0]
