@@ -31,6 +31,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import six
 import sys
 import json
 
@@ -240,8 +241,7 @@ REAL_LEVELS = ["critical", "error", "warn", "info", "debug"]
 # Sanity check
 assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
 
-
-from functools import partialmethod
+from functools import partial
 
 class CrossbarLogger(object):
     """
@@ -259,15 +259,16 @@ class CrossbarLogger(object):
         self.logger = logger(observer=observer, namespace=namespace)
 
         def _log(self, level, *args, **kwargs):
-            pass
-
-
-
+            """
+            When this is called, it checks whether the index is higher than the
+            current set level. If it is not, it is a no-op.
+            """
+            if POSSIBLE_LEVELS.index(level) <= POSSIBLE_LEVELS.index(self.log_level):
+                getattr(self.logger, level)(*args, **kwargs)
 
         for item in REAL_LEVELS:
-            pass
-
-
+            # Set instances of _log which convert to no-ops.
+            setattr(self, item, partial(_log, self, item))
 
     @property
     def log_level(self):
@@ -280,10 +281,6 @@ class CrossbarLogger(object):
                 "{level} not in {levels}".format(level=level,
                                                  levels=POSSIBLE_LEVELS))
         self._log_level = level
-
-
-
-
 
 
 def make_logger(log_level, logger=Logger, observer=log_publisher):

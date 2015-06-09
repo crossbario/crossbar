@@ -26,8 +26,18 @@ class CrossbarLoggerTests(TestCase):
         """
         A Logger emits messages through to its child logger.
         """
-        logger = make_logger("info", logger=Mock)
+        log = make_logger("info", logger=Mock)
 
-        logger.error("Foo happened!!!")
+        log.error("Foo happened!!!")
+        log.logger.error.assert_called_with("Foo happened!!!")
 
-        logger.logger.error.assert_called_with("Foo happened!!!")
+        log.warn("Stuff", foo="bar")
+        log.logger.warn.assert_called_with("Stuff", foo="bar")
+
+
+    def test_logger_emits_if_higher(self):
+        """
+        A Logger that has a log level of a higher severity will not emit
+        messages of a lower severity.
+        """
+        log = make_logger("info", logger=Mock)
