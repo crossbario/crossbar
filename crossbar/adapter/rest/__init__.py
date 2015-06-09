@@ -28,12 +28,12 @@
 #
 #####################################################################################
 
-from twisted.python.compat import _PY3
+from six import PY3
 
 from crossbar.adapter.rest.publisher import PublisherResource
 from crossbar.adapter.rest.caller import CallerResource
 
-if _PY3:
+if PY3:
     __all__ = ("PublisherResource", "CallerResource")
 
 else:

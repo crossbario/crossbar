@@ -35,12 +35,13 @@ import hashlib
 import random
 import base64
 
+from six import b as networkString
+
 from datetime import datetime
 
 from collections import namedtuple
 
 from twisted.internet.defer import maybeDeferred, Deferred
-from twisted.python.compat import networkString
 from twisted.internet import reactor
 
 from crossbar.adapter.rest.test.request_mock import _requestMock, _render
