@@ -36,6 +36,8 @@ import jinja2
 import importlib
 import pkg_resources
 import tempfile
+import six
+
 from datetime import datetime
 
 from twisted.internet import reactor
