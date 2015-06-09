@@ -102,7 +102,8 @@ extras_require_accelerate = [
 
 # Extra requirements which enhance the development experience
 extras_require_dev = [
-    "colorama>=0.3.3"       # BSD license
+    "colorama>=0.3.3",       # BSD license
+    "mock>=1.0.1",           # BSD license
 ]
 
 extras_require_all = extras_require_system + extras_require_db + \
