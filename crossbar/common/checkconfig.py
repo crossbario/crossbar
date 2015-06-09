@@ -650,8 +650,16 @@ def check_web_path_service_json(config):
     """
     check_dict_args({
         'type': (True, [six.text_type]),
-        'value': (True, None)
+        'value': (True, None),
+        'options': (False, [dict]),
     }, config, "Web transport 'json' path service")
+
+    if 'options' in config:
+        check_dict_args({
+            'prettify': (False, [bool]),
+            'allow_cross_origin': (False, [bool]),
+            'discourage_caching': (False, [bool]),
+        }, config['options'], "Web transport 'json' path service")
 
 
 def check_web_path_service_cgi(config):

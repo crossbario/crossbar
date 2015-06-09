@@ -44,6 +44,7 @@ from autobahn.twisted import longpoll
 from autobahn.wamp.types import PublishOptions
 
 import crossbar
+from crossbar._logging import make_logger
 
 try:
     # triggers module level reactor import
@@ -71,12 +72,51 @@ class JsonResource(Resource):
     Static Twisted Web resource that renders to a JSON document.
     """
 
-    def __init__(self, value):
+    log = make_logger()
+
+    def __init__(self, value, options=None):
         Resource.__init__(self)
-        self._data = json.dumps(value, sort_keys=True, indent=3)
+        options = options or {}
+
+        if options.get('prettify', False):
+            self._data = json.dumps(value, sort_keys=True, indent=3, ensure_ascii=False)
+        else:
+            self._data = json.dumps(value, separators=(',', ':'), ensure_ascii=False)
+
+        self._allow_cross_origin = options.get('allow_cross_origin', True)
+        self._discourage_caching = options.get('discourage_caching', False)
+
+        # number of HTTP/GET requests we served from this resource
+        #
+        self._requests_served = 0
 
     def render_GET(self, request):
-        request.setHeader(b'content-type', b'application/json; charset=UTF-8')
+        # we produce JSON: set correct response content type
+        #
+        request.setHeader(b'content-type', b'application/json; charset=utf8-8')
+
+        # set response headers for cross-origin requests
+        #
+        if self._allow_cross_origin:
+            origin = request.getHeader("origin")
+            if origin is None or origin == "null":
+                origin = "*"
+            request.setHeader('access-control-allow-origin', origin)
+            request.setHeader('access-control-allow-credentials', 'true')
+
+            headers = request.getHeader('access-control-request-headers')
+            if headers is not None:
+                request.setHeader('access-control-allow-headers', headers)
+
+        # set response headers to disallow caching
+        #
+        if self._discourage_caching:
+            request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+
+        self._requests_served += 1
+        if self._requests_served % 1000 == 0:
+            self.log.info("Served {requests_served} requests", requests_served=self._requests_served)
+
         return self._data
 
 
