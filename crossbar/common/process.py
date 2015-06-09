@@ -64,6 +64,7 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
+from crossbar._logging import make_logger
 from crossbar.common import checkconfig
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
@@ -71,8 +72,6 @@ from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
     from crossbar.common.processinfo import ProcessInfo
     # from crossbar.common.processinfo import SystemInfo
-
-from crossbar._logging import make_logger
 
 __all__ = ('NativeProcessSession',)
 

@@ -36,11 +36,11 @@ from twisted.trial.unittest import TestCase
 from twisted.web.http_headers import Headers
 from twisted.internet.defer import inlineCallbacks
 
+from autobahn.wamp.types import ComponentConfig, PublishOptions
+
+from crossbar.adapter.rest.test import MockTransport, MockWebTransport
 if not PY3:
     from crossbar.adapter.rest import MessageForwarder
-from crossbar.adapter.rest.test import MockTransport, MockWebTransport
-
-from autobahn.wamp.types import ComponentConfig, PublishOptions
 
 
 class MessageForwarderTestCase(TestCase):
