@@ -231,7 +231,7 @@ def run_command_version(options):
         xor_ver = 'autobahn'
     else:
         # could not detect XOR masker type/version
-        xor_ver = 'ß'
+        xor_ver = '?'
     if options.debug:
         xor_ver += " [%s]" % qual(XorMaskerNull)
 
@@ -255,16 +255,16 @@ def run_command_version(options):
     for line in BANNER.splitlines():
         print(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
-    print("Crossbar.io                  : {0}".format(click.style(crossbar.__version__, fg='yellow', bold=True)))
-    print("  Autobahn|Python            : {0}".format(click.style(ab_ver, fg='yellow', bold=True)))
-    print("    WebSocket UTF8 Validator : {0}".format(click.style(utf8_ver, fg='yellow', bold=True)))
-    print("    WebSocket XOR Masker     : {0}".format(click.style(xor_ver, fg='yellow', bold=True)))
-    print("    WAMP JSON Codec          : {0}".format(click.style(json_ver, fg='yellow', bold=True)))
-    print("    WAMP MsgPack Codec       : {0}".format(click.style(msgpack_ver, fg='yellow', bold=True)))
-    print("  Twisted                    : {0}".format(click.style(tx_ver, fg='yellow', bold=True)))
-    print("  Python                     : {0}-{1}".format(click.style(py_ver, fg='yellow', bold=True), click.style(py_ver_detail, fg='yellow', bold=True)))
-    print("OS                           : {0}".format(click.style(platform.platform(), fg='yellow', bold=True)))
-    print("Machine                      : {0}".format(click.style(platform.machine(), fg='yellow', bold=True)))
+    print("Crossbar.io        : {0}".format(click.style(crossbar.__version__, fg='yellow', bold=True)))
+    print("  Autobahn         : {0}".format(click.style(ab_ver, fg='yellow', bold=True)))
+    print("    UTF8 Validator : {0}".format(click.style(utf8_ver, fg='yellow', bold=True)))
+    print("    XOR Masker     : {0}".format(click.style(xor_ver, fg='yellow', bold=True)))
+    print("    JSON Codec     : {0}".format(click.style(json_ver, fg='yellow', bold=True)))
+    print("    MsgPack Codec  : {0}".format(click.style(msgpack_ver, fg='yellow', bold=True)))
+    print("  Twisted          : {0}".format(click.style(tx_ver, fg='yellow', bold=True)))
+    print("  Python           : {0}/{1}".format(click.style(py_ver, fg='yellow', bold=True), click.style(py_ver_detail, fg='yellow', bold=True)))
+    print("OS                 : {0}".format(click.style(platform.platform(), fg='yellow', bold=True)))
+    print("Machine            : {0}".format(click.style(platform.machine(), fg='yellow', bold=True)))
     print("")
 
 
