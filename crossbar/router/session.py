@@ -154,7 +154,12 @@ class _RouterApplicationSession:
                                      self._session._authid, self._session._authrole, self._session._authmethod,
                                      self._session._authprovider)
 
-            txaio.as_future(self._session.onJoin, details)
+            d = txaio.as_future(self._session.onJoin, details)
+
+            def _log_error_and_close(fail):
+                self.log.failure("Internal error: {log_failure.value}", failure=fail)
+                self.close()
+            txaio.add_callbacks(d, None, _log_error_and_close)
 
         # app-to-router
         #
@@ -305,7 +310,7 @@ class _RouterSession(BaseSession):
                     if msg:
                         self._transport.send(msg)
 
-                txaio.add_callbacks(d, success, self._onError)
+                txaio.add_callbacks(d, success, self._swallow_error_and_abort)
 
             elif isinstance(msg, message.Authenticate):
 
@@ -326,7 +331,7 @@ class _RouterSession(BaseSession):
                     if msg:
                         self._transport.send(msg)
 
-                txaio.add_callbacks(d, success, self._onError)
+                txaio.add_callbacks(d, success, self._swallow_error_and_abort)
 
             elif isinstance(msg, message.Abort):
 
@@ -418,27 +423,26 @@ class _RouterSession(BaseSession):
         else:
             raise SessionNotReady(u"Already requested to close the session")
 
-    def _onError(self, err):
-        try:
-            self.onError(err)
-        except Exception as e:
-            if self.debug:
-                print("exception raised in onError callback: {0}".format(e))
+    def _swallow_error_and_abort(self, fail):
+        """
+        Internal method that logs an error that would otherwise be
+        unhandled and also *cancels it*. This will also completely
+        abort the session, sending Abort to the other side.
 
+        DO NOT attach to Deferreds that are returned to calling code.
+        """
+        self.log.failure("Internal error: {log_failure.value}", failure=fail)
+
+        # tell other side we're done
         reply = message.Abort(u"wamp.error.authorization_failed", u"Internal server error")
         self._transport.send(reply)
 
-        self._router.detach(self)
-
+        # cleanup
+        if self._router:
+            self._router.detach(self)
         self._session_id = None
         self._pending_session_id = None
-
-    def onError(self, err):
-        """
-        Overwride for custom error handling.
-        """
-        if self.debug:
-            print("Catched exception during message processing: {0}".format(err.getTraceback()))  # replace with proper logging
+        return None  # we've handled the error; don't propagate
 
 
 ITransportHandler.register(_RouterSession)

@@ -68,14 +68,25 @@ try:
     from colorama import Fore
 except ImportError:
     # No colorama, so just mock it out.
-    class Fore(object):
-        BLUE = ""
+    class _Fore(object):
+        BLACK = ""
+        RED = ""
+        GREEN = ""
         YELLOW = ""
+        BLUE = ""
+        MAGENTA = ""
         CYAN = ""
         WHITE = ""
-        RED = ""
         RESET = ""
-    Fore = Fore()
+        LIGHTBLACK_EX = ""
+        LIGHTRED_EX = ""
+        LIGHTGREEN_EX = ""
+        LIGHTYELLOW_EX = ""
+        LIGHTBLUE_EX = ""
+        LIGHTMAGENTA_EX = ""
+        LIGHTCYAN_EX = ""
+        LIGHTWHITE_EX = ""
+    Fore = _Fore()
 
 COLOUR_FORMAT = "{}{} [{}]{} {}"
 NOCOLOUR_FORMAT = "{} [{}] {}"
