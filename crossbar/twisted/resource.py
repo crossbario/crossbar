@@ -248,7 +248,7 @@ class FileUploadResource(Resource):
             chunk_is_first = False
 
         self.log.debug('Started upload of file: file_name={file_name}, total_size={total_size}, total_chunks={total_chunks}, chunk_size={chunk_size}, chunk_number={chunk_number}',
-            file_name=fileId, total_size=totalSize, total_chunks=totalChunks, chunk_size=chunkSize, chunk_number=chunkNumber)
+                       file_name=fileId, total_size=totalSize, total_chunks=totalChunks, chunk_size=chunkSize, chunk_number=chunkNumber)
 
         # check file size
         #
@@ -465,7 +465,7 @@ class FileUploadResource(Resource):
 
         # a complete upload will be repeated an incomplete upload will be resumed
         if file_name in self._uploads and chunk_number in self._uploads[file_name]['chunk_list']:
-            self.log.debug("Skipping chunk upload {file_name} of chunk {chunk_number}" , file_name=file_name, chunk_number=chunk_number)
+            self.log.debug("Skipping chunk upload {file_name} of chunk {chunk_number}", file_name=file_name, chunk_number=chunk_number)
             msg = "chunk of file already uploaded"
             request.setResponseCode(200, msg)
             return msg
