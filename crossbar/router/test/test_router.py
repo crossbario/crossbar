@@ -33,8 +33,11 @@ from __future__ import absolute_import
 from twisted.trial import unittest
 
 import txaio
+import mock
 
 from autobahn.wamp import types
+from autobahn.wamp import message
+from autobahn.wamp import role
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import RouterFactory
@@ -88,6 +91,34 @@ class TestEmbeddedSessions(unittest.TestCase):
         self.session_factory.add(session)
 
         return d
+
+    def test_application_session_internal_error(self):
+        """
+        simulate an internal error triggering the 'onJoin' error-case from
+        _RouterApplicationSession's send() method (from the Hello msg)
+        """
+        # setup
+        the_exception = RuntimeError("sadness")
+        class TestSession(ApplicationSession):
+            def onJoin(self, *args, **kw):
+                raise the_exception
+        session = TestSession(types.ComponentConfig(u'realm1'))
+        from crossbar.router.session import _RouterApplicationSession
+
+        # execute, first patching-out the logger so we can see that
+        # log.failure() was called when our exception triggers.
+        with mock.patch.object(_RouterApplicationSession, 'log') as logger:
+            # this should call onJoin, triggering our error
+            self.session_factory.add(session)
+
+            # check we got the right log.failure() call
+            self.assertTrue(len(logger.method_calls) > 0)
+            call = logger.method_calls[0]
+            # for a MagicMock call-object, 0th thing is the method-name, 1st
+            # thing is the arg-tuple, 2nd thing is the kwargs.
+            self.assertEqual(call[0], 'failure')
+            self.assertTrue(call[2].has_key('failure'))
+            self.assertEqual(call[2]['failure'].value, the_exception)
 
     def test_add_and_subscribe(self):
         """
