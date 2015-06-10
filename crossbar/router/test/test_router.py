@@ -99,6 +99,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         """
         # setup
         the_exception = RuntimeError("sadness")
+
         class TestSession(ApplicationSession):
             def onJoin(self, *args, **kw):
                 raise the_exception
@@ -117,7 +118,69 @@ class TestEmbeddedSessions(unittest.TestCase):
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
             self.assertEqual(call[0], 'failure')
-            self.assertTrue(call[2].has_key('failure'))
+            self.assertTrue('failure' in call[2])
+            self.assertEqual(call[2]['failure'].value, the_exception)
+
+    def test_router_session_internal_error_onHello(self):
+        """
+        similar to above, but during _RouterSession's onMessage handling,
+        where it calls self.onHello
+        """
+        # setup
+        transport = mock.MagicMock()
+        the_exception = RuntimeError("kerblam")
+
+        def boom(*args, **kw):
+            raise the_exception
+        session = self.session_factory()  # __call__ on the _RouterSessionFactory
+        session.onHello = boom
+        session.onOpen(transport)
+        msg = message.Hello(u'realm1', dict(caller=role.RoleCallerFeatures()))
+
+        # XXX think: why isn't this using _RouterSession.log?
+        from crossbar.router.session import RouterSession
+        with mock.patch.object(RouterSession, 'log') as logger:
+            # do the test; should call onHello which is now "boom", above
+            session.onMessage(msg)
+
+            # check we got the right log.failure() call
+            self.assertTrue(len(logger.method_calls) > 0)
+            call = logger.method_calls[0]
+            # for a MagicMock call-object, 0th thing is the method-name, 1st
+            # thing is the arg-tuple, 2nd thing is the kwargs.
+            self.assertEqual(call[0], 'failure')
+            self.assertTrue('failure' in call[2])
+            self.assertEqual(call[2]['failure'].value, the_exception)
+
+    def test_router_session_internal_error_onAuthenticate(self):
+        """
+        similar to above, but during _RouterSession's onMessage handling,
+        where it calls self.onAuthenticate)
+        """
+        # setup
+        transport = mock.MagicMock()
+        the_exception = RuntimeError("kerblam")
+
+        def boom(*args, **kw):
+            raise the_exception
+        session = self.session_factory()  # __call__ on the _RouterSessionFactory
+        session.onAuthenticate = boom
+        session.onOpen(transport)
+        msg = message.Authenticate(u'bogus signature')
+
+        # XXX think: why isn't this using _RouterSession.log?
+        from crossbar.router.session import RouterSession
+        with mock.patch.object(RouterSession, 'log') as logger:
+            # do the test; should call onHello which is now "boom", above
+            session.onMessage(msg)
+
+            # check we got the right log.failure() call
+            self.assertTrue(len(logger.method_calls) > 0)
+            call = logger.method_calls[0]
+            # for a MagicMock call-object, 0th thing is the method-name, 1st
+            # thing is the arg-tuple, 2nd thing is the kwargs.
+            self.assertEqual(call[0], 'failure')
+            self.assertTrue('failure' in call[2])
             self.assertEqual(call[2]['failure'].value, the_exception)
 
     def test_add_and_subscribe(self):
