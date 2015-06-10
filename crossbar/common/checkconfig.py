@@ -857,7 +857,6 @@ def check_web_path_service_upload(config):
 
     if 'options' in config:
         check_dict_args({
-            'debug': (False, [bool]),
             'max_file_size': (False, six.integer_types),
             'file_types': (False, [list]),
             'file_permissions': (False, [six.text_type])

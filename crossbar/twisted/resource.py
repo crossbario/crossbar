@@ -127,6 +127,8 @@ class FileUploadResource(Resource):
     Twisted Web resource that handles file uploads over `HTTP/POST` requests.
     """
 
+    log = make_logger()
+
     def __init__(self,
                  upload_directory,
                  temp_directory,
@@ -153,7 +155,6 @@ class FileUploadResource(Resource):
         self._form_fields = form_fields
         self._fileupload_session = upload_session
         self._options = options or {}
-        self._debug = self._options.get('debug', False)
         self._max_file_size = self._options.get('max_file_size', 10 * 1024 * 1024)
         self._fileTypes = self._options.get('file_types', None)
         self._file_permissions = self._options.get('file_permissions', None)
@@ -171,8 +172,7 @@ class FileUploadResource(Resource):
                     if chunk[:6] == 'chunk_':
                         self._uploads[fileTempDir]['chunk_list'][int(chunk[6:])] = True
 
-        if self._debug:
-            log.msg("Scanned pending uploads: " + json.dumps(self._uploads))
+        self.log.debug("Scanned pending uploads: {uploads}", uploads=self._uploads)
 
     def render_POST(self, request):
         headers = request.getAllHeaders()
@@ -247,15 +247,14 @@ class FileUploadResource(Resource):
         else:
             chunk_is_first = False
 
-        if self._debug:
-            log.msg('file upload resource - started upload of file: file_name={}, total_size={}, total_chunks={}, chunk_size={}, chunk_number={}'.format(fileId, totalSize, totalChunks, chunkSize, chunkNumber))
+        self.log.debug('Started upload of file: file_name={file_name}, total_size={total_size}, total_chunks={total_chunks}, chunk_size={chunk_size}, chunk_number={chunk_number}',
+            file_name=fileId, total_size=totalSize, total_chunks=totalChunks, chunk_size=chunkSize, chunk_number=chunkNumber)
 
         # check file size
         #
         if totalSize > self._max_file_size:
-            msg = "file upload resource - size {} of file to be uploaded exceeds maximum {}".format(totalSize, self._max_file_size)
-            if self._debug:
-                log.msg(msg)
+            msg = "Size {} of file to be uploaded exceeds maximum {}".format(totalSize, self._max_file_size)
+            self.log.debug(msg)
             # 413 Request Entity Too Large
             request.setResponseCode(413, msg)
             return msg
@@ -264,9 +263,8 @@ class FileUploadResource(Resource):
         #
         extension = os.path.splitext(filename)[1]
         if self._fileTypes and extension not in self._fileTypes:
-            msg = "file upload resource - type '{}' of file to be uploaded is in allowed types {}".format(extension, self._fileTypes)
-            if self._debug:
-                log.msg(msg)
+            msg = "Type '{}' of file to be uploaded is in allowed types {}".format(extension, self._fileTypes)
+            self.log.debug(msg)
             # 415 Unsupported Media Type
             request.setResponseCode(415, msg)
             return msg
@@ -277,9 +275,8 @@ class FileUploadResource(Resource):
         try:
             upl = self._uploads[fileId]
             if upl['origin'] != origin and upl['origin'] != 'startup':
-                msg = "file upload resource - file being uploaded is already uploaded in a different session"
-                if self._debug:
-                    log.msg(msg)
+                msg = "File being uploaded is already uploaded in a different session"
+                self.log.debug(msg)
                 # 409 Conflict
                 request.setResponseCode(409, msg)
                 return msg
@@ -327,10 +324,9 @@ class FileUploadResource(Resource):
                         os.chmod(finalFileName, perm)
                     except Exception as e:
                         os.remove(finalFileName)
-                        msg = "file upload resource - could not change file permissions of uploaded file"
-                        if self._debug:
-                            log.msg(msg)
-                            log.msg(e)
+                        msg = "Could not change file permissions of uploaded file"
+                        self.log.debug(msg)
+                        self.log.debug(e)
                         request.setResponseCode(500, msg)
                         return msg
 
@@ -390,8 +386,7 @@ class FileUploadResource(Resource):
         # every chunk has to check if it is the last chunk written, except in a single chunk scenario
         if totalChunks > 1 and len(self._uploads[fileId]['chunk_list']) == totalChunks:
             # last chunk
-            if self._debug:
-                log.msg('---- finish file upload after chunk ----- ' + str(chunkNumber))
+            self.log.debug('Finished file upload after chunk {chunk_number}', chunk_number=chunkNumber)
 
             # Merge all files into one file and remove the temp files
             # TODO: How to avoid the extra file IO ?
@@ -409,9 +404,8 @@ class FileUploadResource(Resource):
                     os.chmod(finalFileName, perm)
                 except Exception as e:
                     msg = "file upload resource - could not change file permissions of uploaded file"
-                    if self._debug:
-                        log.msg(msg)
-                        log.msg(e)
+                    self.log.debug(msg)
+                    self.log.debug(e)
                     request.setResponseCode(500, msg)
                     return msg
 
@@ -461,8 +455,7 @@ class FileUploadResource(Resource):
         for param in ['file_name', 'chunk_number']:
             if not self._form_fields[param] in request.args:
                 msg = "file upload resource - missing request query parameter '{}', configured from '{}'".format(self._form_fields[param], param)
-                if self._debug:
-                    log.msg(msg)
+                self.log.debug(msg)
                 # 400 Bad Request
                 request.setResponseCode(400, msg)
                 return msg
@@ -472,9 +465,7 @@ class FileUploadResource(Resource):
 
         # a complete upload will be repeated an incomplete upload will be resumed
         if file_name in self._uploads and chunk_number in self._uploads[file_name]['chunk_list']:
-            msg = "skipping chunk upload : " + file_name + ' ---- chunk ' + str(chunk_number)
-            if self._debug:
-                log.msg(msg)
+            self.log.debug("Skipping chunk upload {file_name} of chunk {chunk_number}" , file_name=file_name, chunk_number=chunk_number)
             msg = "chunk of file already uploaded"
             request.setResponseCode(200, msg)
             return msg
