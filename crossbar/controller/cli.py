@@ -42,7 +42,6 @@ import traceback
 import click
 
 from twisted.python.reflect import qual
-from twisted.internet.error import ReactorNotRunning
 
 from autobahn.util import utcnow
 from autobahn.twisted.choosereactor import install_reactor
