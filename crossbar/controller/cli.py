@@ -205,7 +205,7 @@ def run_command_version(options):
     # UTF8 Validator
     #
     from autobahn.websocket.utf8validator import Utf8Validator
-    s = str(Utf8Validator)
+    s = qual(Utf8Validator)
     if 'wsaccel' in s:
         utf8_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
     elif s.startswith('autobahn'):
@@ -219,14 +219,14 @@ def run_command_version(options):
     # XOR Masker
     #
     from autobahn.websocket.xormasker import XorMaskerNull
-    s = str(XorMaskerNull)
+    s = qual(XorMaskerNull)
     if 'wsaccel' in s:
         xor_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
     elif s.startswith('autobahn'):
         xor_ver = 'autobahn'
     else:
         # could not detect XOR masker type/version
-        xor_ver = '?'
+        xor_ver = 'ß'
     if options.debug:
         xor_ver += " [%s]" % qual(XorMaskerNull)
 
