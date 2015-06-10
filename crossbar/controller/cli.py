@@ -42,7 +42,6 @@ import traceback
 import click
 
 from twisted.python.reflect import qual
-from twisted.internet.error import ReactorNotRunning
 
 from autobahn.util import utcnow
 from autobahn.twisted.choosereactor import install_reactor
@@ -478,20 +477,17 @@ def run_command_start(options):
 
     # create and start Crossbar.io node
     #
-    from crossbar.controller.node import Node
+    def start_crossbar():
+        from crossbar.controller.node import Node
+        node = Node(reactor, options)
+        d = node.start()
 
-    node = Node(reactor, options)
-    d = node.start()
-
-    def on_error(err):
-        log.error("Could not start node: {error}", error=err.value)
-        try:
-            reactor.stop()
-            log.info("Reactor stopped.")
-        except ReactorNotRunning:
-            log.warn("Reactor not running.")
-
-    d.addErrback(on_error)
+        def on_error(err):
+            log.error("Could not start node: {error}", error=err.value)
+            if reactor.running:
+                reactor.stop()
+        d.addErrback(on_error)
+    reactor.callWhenRunning(start_crossbar)
 
     try:
         log.info("Entering reactor event loop...")
