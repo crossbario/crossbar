@@ -479,8 +479,10 @@ def run_command_start(options):
     # create and start Crossbar.io node
     #
     from crossbar.controller.node import Node
+
     node = Node(reactor, options)
     d = node.start()
+
     def on_error(err):
         log.error("Could not start node: {error}", error=err.value)
         try:
@@ -488,6 +490,7 @@ def run_command_start(options):
             log.info("Reactor stopped.")
         except ReactorNotRunning:
             log.warn("Reactor not running.")
+
     d.addErrback(on_error)
 
     try:
