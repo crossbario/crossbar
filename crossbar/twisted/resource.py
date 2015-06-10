@@ -329,6 +329,8 @@ class FileUploadResource(Resource):
                         self.log.debug(e)
                         request.setResponseCode(500, msg)
                         return msg
+                    else:
+                        self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
 
                 self._uploads.pop(fileId, None)
 
@@ -408,6 +410,8 @@ class FileUploadResource(Resource):
                     self.log.debug(e)
                     request.setResponseCode(500, msg)
                     return msg
+                else:
+                    self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
 
             # publish file upload progress to file_progress_URI
             fileupload_publish({
