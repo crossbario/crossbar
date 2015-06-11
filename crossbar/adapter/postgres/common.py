@@ -128,9 +128,6 @@ class PostgreSQLAdapter(ApplicationSession):
             'host': db_config['host'],
             'port': db_config['port'],
             'database': db_config['database'],
-            #'encoding': 'UTF-8',
-            #'lc_collate': 'de_DE.UTF-8',
-            #'lc_ctype': 'de_DE.UTF-8'
         }
 
         try:
