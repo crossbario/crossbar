@@ -1,0 +1,119 @@
+DROP FUNCTION IF EXISTS crossbar.call (TEXT, JSONB, JSONB, JSONB, TEXT);
+
+CREATE OR REPLACE FUNCTION crossbar.call (
+    p_proc      TEXT,
+    p_args      JSONB DEFAULT NULL,
+    p_kwargs    JSONB DEFAULT NULL,
+    p_options   JSONB DEFAULT NULL,
+    p_server    TEXT DEFAULT current_setting('crossbar.router_url')
+)
+RETURNS JSONB
+LANGUAGE plpythonu
+VOLATILE
+AS
+$$
+import requests, json
+
+payload = {"procedure": p_proc}
+
+if p_args:
+    payload['args'] = json.loads(p_args)
+    if type(payload['args']) != list:
+        raise Exception("'args' must be a list")
+
+if p_kwargs:
+    payload['kwargs'] = json.loads(p_kwargs)
+    if type(payload['kwargs']) != dict:
+        raise Exception("'kwargs' must be a dict")
+
+if p_options:
+    payload['options'] = json.loads(p_options)
+    if type(payload['options']) != dict:
+        raise Exception("'options' must be a dict")
+    for k in payload['options']:
+        if k not in ['timeout']:
+            raise Exception("illegal option '{}'".format(k))
+
+headers = {'Content-Type': 'application/json'}
+
+r = requests.post(p_server, data=json.dumps(payload), headers=headers)
+res = r.json()
+
+if ('args' in res and res['args'] and len(res['args']) > 1) or ('kwargs' in res and res['kwargs']):
+    # complex result
+    pass
+else:
+    # single positional result
+    res = res.get('args', [None])[0]
+
+return json.dumps(res)
+$$;
+
+/*
+DROP FUNCTION IF EXISTS crossbar.call (TEXT, JSONB, JSONB, JSONB, TEXT);
+
+CREATE OR REPLACE FUNCTION crossbar.call (
+    p_proc      TEXT,
+    p_args      JSONB DEFAULT NULL,
+    p_kwargs    JSONB DEFAULT NULL,
+    p_options   JSONB DEFAULT NULL,
+    p_server    TEXT DEFAULT current_setting('crossbar.router_url')
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+VOLATILE
+AS
+$$
+DECLARE
+    l_request   http_request;
+    l_response  http_response;
+    l_payload   jsonb;
+    l_res       jsonb;
+    l_rec       record;
+BEGIN
+    -- check/sanitize arguments
+    --
+    IF p_args IS NOT NULL AND jsonb_typeof(p_args) != 'array' THEN
+        RAISE EXCEPTION 'args must be a jsonb array, was %', jsonb_typeof(p_args);
+    END IF;
+
+    IF p_kwargs IS NOT NULL AND jsonb_typeof(p_kwargs) != 'object' THEN
+        RAISE EXCEPTION 'kwargs must be a jsonb object, was %', jsonb_typeof(p_kwargs);
+    END IF;
+
+    IF p_options IS NOT NULL THEN
+        IF jsonb_typeof(p_options) != 'object' THEN
+            RAISE EXCEPTION 'options must be a jsonb object, was %', jsonb_typeof(p_options);
+        END IF;
+        FOR l_rec IN (SELECT jsonb_object_keys(p_options) AS key)
+        LOOP
+            IF NOT l_rec.key = ANY('{timeout}'::text[]) THEN
+                RAISE EXCEPTION 'illegal attribute "%" in "options"', l_rec.key;
+            END IF;
+        END LOOP;
+    END IF;
+
+    l_payload := json_build_object(
+        'procedure', p_proc,
+        'args', p_args,
+        'kwargs', p_kwargs,
+        'options', p_options
+        ,'details', json_build_object(
+            'session_user', session_user,
+            'pg_backend_pid', pg_backend_pid(),
+            'published_at', to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+        )
+    )::jsonb;
+
+    l_request.method = 'POST';
+    l_request.content_type = 'application/json';
+    l_request.uri := current_setting('crossbar.router_url');
+    l_request.content := l_payload::text;
+
+    l_response := http(l_request);
+    l_res := l_response.content::jsonb;
+
+    RETURN (l_res->>'args')::jsonb->>0;
+END;
+$$;
+*/

@@ -60,6 +60,8 @@ class PostgreSQLAdapter(ApplicationSession):
     This lock will be held during database schema upgrades.
     """
 
+    PG_CHANNEL = ''
+
     @inlineCallbacks
     def onJoin(self, details):
         self.log.debug("Joined realm '{realm}' on router", realm=details.realm)
@@ -68,15 +70,15 @@ class PostgreSQLAdapter(ApplicationSession):
         self._db_config['application_name'] = "Crossbar.io PostgreSQL Adapter (Publisher)"
         self._db_config['scripts'] = os.path.abspath(pkg_resources.resource_filename("crossbar", "adapter/postgres/ddl"))
         self._db_config['adapter_xlock'] = 100
-        self._db_config['adapter_channel'] = self.CHANNEL_PUBSUB_EVENT
+        self._db_config['adapter_channel'] = self.PG_CHANNEL
 
         self.log.debug("Using database configuration {db_config}", db_config=self._db_config)
         self.log.debug("Using DDL script directory {ddl_scripts_dir}", ddl_scripts_dir=self._db_config['scripts'])
 
         try:
-            yield self.connect_and_observe(self._db_config, self.CHANNEL_PUBSUB_EVENT, self.on_notify)
+            yield self.connect_and_observe(self._db_config, self.PG_CHANNEL, self.on_notify)
         except Exception as e:
-            self.log.failure(e)
+            self.log.error("Could not connect to database: {error}", error=e)
             self.leave()
 
         self.log.info("PostgreSQL database adapter (Publisher) ready")
@@ -120,8 +122,19 @@ class PostgreSQLAdapter(ApplicationSession):
         #
         conn = txpostgres.Connection()
 
+        db_conn_params = {
+            'user': db_config['user'],
+            'password': db_config['password'],
+            'host': db_config['host'],
+            'port': db_config['port'],
+            'database': db_config['database'],
+            #'encoding': 'UTF-8',
+            #'lc_collate': 'de_DE.UTF-8',
+            #'lc_ctype': 'de_DE.UTF-8'
+        }
+
         try:
-            yield conn.connect(**db_config)
+            yield conn.connect(**db_conn_params)
         except Exception as e:
             raise Exception("database connection failed: {}".format(e))
         else:
@@ -152,7 +165,7 @@ class PostgreSQLAdapter(ApplicationSession):
 
         # add channel listener
         #
-        conn.addNotifyObserver(self._on_notify)
+        conn.addNotifyObserver(fun)
         try:
             yield conn.runOperation("LISTEN {0}".format(self._db_config['adapter_channel']))
         except Exception as e:
@@ -199,18 +212,18 @@ class PostgreSQLAdapter(ApplicationSession):
 
         # get the latest schema version from DDL scripts as well as map of DDL upgrade scripts
         #
-        latest_version, upgrade_scripts = self._get_latest_schema_version()
+        latest_version, upgrade_scripts = self._get_latest_schema_version(db_config['scripts'])
 
         # upgrade schema version-wise, running each upgrade in it's own transaction
         #
         for from_version in range(current_version, latest_version):
-            yield self._upgrade_schema(conn, upgrade_scripts, from_version, from_version + 1)
+            yield self._upgrade_schema(conn, db_config['scripts'], upgrade_scripts, from_version, from_version + 1)
 
         current_version = latest_version
 
         returnValue(current_version)
 
-    def _get_latest_schema_version(self):
+    def _get_latest_schema_version(self, scripts_dir):
         """
         Determine latest available database schema version available from DDL scripts,
         and build a map of (from_version, to_version) -> (part -> script)
@@ -218,7 +231,7 @@ class PostgreSQLAdapter(ApplicationSession):
         latest_version = 0
         upgrade_scripts = {}
         pat = re.compile(r"^upgrade_(\d)_(\d)_(\d).sql$")
-        for fn in os.listdir(self.DDL_SCRIPTS_DIR):
+        for fn in os.listdir(scripts_dir):
             m = pat.match(fn)
             if m:
                 from_version, to_version, part = m.groups()
@@ -232,7 +245,7 @@ class PostgreSQLAdapter(ApplicationSession):
                     latest_version = to_version
         return latest_version, upgrade_scripts
 
-    def _upgrade_schema(self, conn, upgrade_scripts, from_version, to_version):
+    def _upgrade_schema(self, conn, scripts_dir, upgrade_scripts, from_version, to_version):
         """
         Upgrade database schema in a transaction.
         """
@@ -241,11 +254,12 @@ class PostgreSQLAdapter(ApplicationSession):
         @inlineCallbacks
         def upgrade(txn):
             for part in sorted(scripts.keys()):
-                script = os.path.join(self.DDL_SCRIPTS_DIR, scripts[part])
+                script = os.path.join(scripts_dir, scripts[part])
 
                 self.log.debug("Running schema upgrade script {script}", script=script)
                 with open(script) as f:
                     sql = f.read()
+                    sql = str(sql)
                     try:
                         yield txn.execute(sql)
                     except Exception as e:
