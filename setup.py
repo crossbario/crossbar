@@ -106,10 +106,18 @@ extras_require_dev = [
     "mock>=1.0.1",           # BSD license
 ]
 
+extras_require_postgres = [
+    'txpostgres>=1.2.0'   # MIT license
+]
+if CPY:
+    # LGPL license
+    extras_require_postgres.append('psycopg2>=2.5.1')
+else:
+    extras_require_postgres.append('psycopg2cffi>=2.7.0')
+
 extras_require_all = extras_require_system + extras_require_db + \
     extras_require_manhole + extras_require_msgpack + extras_require_tls + \
     extras_require_accelerate + extras_require_dev
-
 
 setup(
     name='crossbar',
@@ -147,10 +155,7 @@ setup(
         'oracle': [
             'cx_Oracle>=5.1.2'         # Python Software Foundation license
         ],
-        'postgres': [
-            'psycopg2>=2.5.1',         # LGPL license
-            'txpostgres>=1.2.0'        # MIT license
-        ],
+        'postgres': extras_require_postgres,
     },
     entry_points={
         'console_scripts': [

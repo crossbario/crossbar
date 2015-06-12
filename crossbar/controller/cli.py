@@ -189,6 +189,11 @@ def run_command_version(options):
     if options.debug:
         py_ver += " [%s]" % sys.version.replace('\n', ' ')
 
+    if 'pypy_version_info' in sys.__dict__:
+        py_ver_detail = "{}-{}".format(platform.python_implementation(), '.'.join(str(x) for x in sys.pypy_version_info[:3]))
+    else:
+        py_ver_detail = platform.python_implementation()
+
     # Twisted / Reactor
     #
     tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
@@ -205,7 +210,7 @@ def run_command_version(options):
     # UTF8 Validator
     #
     from autobahn.websocket.utf8validator import Utf8Validator
-    s = str(Utf8Validator)
+    s = qual(Utf8Validator)
     if 'wsaccel' in s:
         utf8_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
     elif s.startswith('autobahn'):
@@ -219,7 +224,7 @@ def run_command_version(options):
     # XOR Masker
     #
     from autobahn.websocket.xormasker import XorMaskerNull
-    s = str(XorMaskerNull)
+    s = qual(XorMaskerNull)
     if 'wsaccel' in s:
         xor_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
     elif s.startswith('autobahn'):
@@ -247,21 +252,19 @@ def run_command_version(options):
     except ImportError:
         msgpack_ver = '-'
 
-    print("")
-    print("Crossbar.io package versions and platform information:")
-    print("")
-    print("Crossbar.io                  : {0}".format(crossbar.__version__))
-    print("")
-    print("  Autobahn|Python            : {0}".format(ab_ver))
-    print("    WebSocket UTF8 Validator : {0}".format(utf8_ver))
-    print("    WebSocket XOR Masker     : {0}".format(xor_ver))
-    print("    WAMP JSON Codec          : {0}".format(json_ver))
-    print("    WAMP MsgPack Codec       : {0}".format(msgpack_ver))
-    print("  Twisted                    : {0}".format(tx_ver))
-    print("  Python                     : {0}-{1}".format(py_ver, platform.python_implementation()))
-    print("")
-    print("OS                           : {0}".format(platform.platform()))
-    print("Machine                      : {0}".format(platform.machine()))
+    for line in BANNER.splitlines():
+        print(click.style(("{:>40}").format(line), fg='yellow', bold=True))
+
+    print("Crossbar.io        : {0}".format(click.style(crossbar.__version__, fg='yellow', bold=True)))
+    print("  Autobahn         : {0}".format(click.style(ab_ver, fg='yellow', bold=True)))
+    print("    UTF8 Validator : {0}".format(click.style(utf8_ver, fg='yellow', bold=True)))
+    print("    XOR Masker     : {0}".format(click.style(xor_ver, fg='yellow', bold=True)))
+    print("    JSON Codec     : {0}".format(click.style(json_ver, fg='yellow', bold=True)))
+    print("    MsgPack Codec  : {0}".format(click.style(msgpack_ver, fg='yellow', bold=True)))
+    print("  Twisted          : {0}".format(click.style(tx_ver, fg='yellow', bold=True)))
+    print("  Python           : {0}/{1}".format(click.style(py_ver, fg='yellow', bold=True), click.style(py_ver_detail, fg='yellow', bold=True)))
+    print("OS                 : {0}".format(click.style(platform.platform(), fg='yellow', bold=True)))
+    print("Machine            : {0}".format(click.style(platform.machine(), fg='yellow', bold=True)))
     print("")
 
 
@@ -477,9 +480,17 @@ def run_command_start(options):
 
     # create and start Crossbar.io node
     #
-    from crossbar.controller.node import Node
-    node = Node(reactor, options)
-    node.start()
+    def start_crossbar():
+        from crossbar.controller.node import Node
+        node = Node(reactor, options)
+        d = node.start()
+
+        def on_error(err):
+            log.error("Could not start node: {error}", error=err.value)
+            if reactor.running:
+                reactor.stop()
+        d.addErrback(on_error)
+    reactor.callWhenRunning(start_crossbar)
 
     try:
         log.info("Entering reactor event loop...")

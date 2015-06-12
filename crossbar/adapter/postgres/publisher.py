@@ -70,7 +70,7 @@ class PostgreSQLPublisher(PostgreSQLAdapter):
 
     log = make_logger()
 
-    CHANNEL_PUBSUB_EVENT = "crossbar_publish"
+    PG_CHANNEL = "crossbar_publish"
     """
     The PostgreSQL NOTIFY channel used for Crossbar.io PubSub events
     sent from within the database.
