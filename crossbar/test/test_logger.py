@@ -189,7 +189,6 @@ class CrossbarLoggerTests(TestCase):
         self.assertEqual(log.logger.namespace,
                          "crossbar.test.test_logger._makelog")
 
-
     def test_logger_failure(self):
         """
         The failure method catches the in-flight exception.
@@ -197,7 +196,7 @@ class CrossbarLoggerTests(TestCase):
         log = make_logger("info", logger=Mock)
 
         try:
-            1/0
+            1 / 0
         except:
             log.failure("Failure happened!")
 
@@ -210,7 +209,7 @@ class CrossbarLoggerTests(TestCase):
         log = make_logger("none", logger=Mock)
 
         try:
-            1/0
+            1 / 0
         except:
             log.failure("Failure happened!")
 
@@ -246,7 +245,7 @@ class JSONObserverTests(TestCase):
         log = make_logger(observer=observer)
 
         try:
-            1/0
+            1 / 0
         except:
             log.failure("Oh no")
 

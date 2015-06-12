@@ -41,7 +41,6 @@ from zope.interface import provider
 
 from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner, formatTime
-from twisted.logger import FileLogObserver
 
 from twisted.python.constants import NamedConstant
 from twisted.python.compat import currentframe
