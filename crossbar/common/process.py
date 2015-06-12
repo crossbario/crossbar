@@ -127,10 +127,10 @@ class NativeProcessSession(ApplicationSession):
         """
         """
         if not hasattr(self, 'cbdir'):
-            self.cbdir = self.config.extra.cbdir
+            self.cbdir = self.config.extra['cbdir']
 
         if not hasattr(self, '_uri_prefix'):
-            self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra.node)
+            self._uri_prefix = 'crossbar.node.{}'.format(self.config.extra['node'])
 
         self._started = datetime.utcnow()
 

@@ -279,7 +279,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         # 3) create and connect client endpoint
         #
         endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'],
-                                                          self.config.extra.cbdir,
+                                                          self.config.extra['cbdir'],
                                                           reactor)
 
         # now connect the client

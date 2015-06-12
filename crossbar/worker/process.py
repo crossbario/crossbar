@@ -192,7 +192,7 @@ def run():
         from autobahn.twisted.wamp import ApplicationSessionFactory
         from autobahn.wamp.types import ComponentConfig
 
-        session_config = ComponentConfig(realm=options.realm, extra=options)
+        session_config = ComponentConfig(realm=options.realm, extra=vars(options))
         session_factory = ApplicationSessionFactory(session_config)
         session_factory.session = WORKER_TYPE_TO_CLASS[options.type]
 
