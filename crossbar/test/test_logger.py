@@ -1,8 +1,49 @@
+#####################################################################################
+#
+#  Copyright (C) Tavendo GmbH
+#
+#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
+#  have purchased a commercial license), the license terms below apply.
+#
+#  Should you enter into a separate license agreement after having received a copy of
+#  this software, then the terms of such license agreement replace the terms below at
+#  the time at which such license agreement becomes effective.
+#
+#  In case a separate license agreement ends, and such agreement ends without being
+#  replaced by another separate license agreement, the license terms below apply
+#  from the time at which said agreement ends.
+#
+#  LICENSE TERMS
+#
+#  This program is free software: you can redistribute it and/or modify it under the
+#  terms of the GNU Affero General Public License, version 3, as published by the
+#  Free Software Foundation. This program is distributed in the hope that it will be
+#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+#  See the GNU Affero General Public License Version 3 for more details.
+#
+#  You should have received a copy of the GNU Affero General Public license along
+#  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
+#
+#####################################################################################
+
+from __future__ import absolute_import, division, print_function
+
+import json
+
+from six import StringIO as NativeStringIO
+
 from twisted.trial.unittest import TestCase
+
+from io import StringIO
 
 from mock import Mock
 
-from crossbar._logging import make_logger, CrossbarLogger
+from twisted.logger import formatTime
+
+from crossbar._logging import make_logger, CrossbarLogger, LogLevel
+from crossbar import _logging
 
 
 _log = make_logger("info", logger=Mock)
@@ -20,6 +61,42 @@ class _InitLoggerMaker(object):
 
 class _ClassDefLoggerMaker(object):
     log = make_logger("info", logger=Mock)
+
+
+class LoggerModuleTests(TestCase):
+
+    def setUp(self):
+        self.existing_level = _logging._loglevel
+
+    def tearDown(self):
+        _logging.set_global_log_level(self.existing_level)
+
+    def test_set_global(self):
+        """
+        Setting the global log level via the function changes it.
+        """
+        _logging.set_global_log_level("warn")
+        self.assertEqual(_logging._loglevel, "warn")
+
+    def test_set_global_changes_loggers(self):
+        """
+        Setting the global log level changes the level of all loggers that were
+        not instantiated with a level.
+        """
+        log = make_logger()
+        self.assertEqual(log._log_level, "info")
+        _logging.set_global_log_level("warn")
+        self.assertEqual(log._log_level, "warn")
+
+    def test_set_global_does_not_change_explicit_loggers(self):
+        """
+        Setting the global log level does not change loggers that have an
+        explicit level set.
+        """
+        log = make_logger("info")
+        self.assertEqual(log._log_level, "info")
+        _logging.set_global_log_level("warn")
+        self.assertEqual(log._log_level, "info")
 
 
 class CrossbarLoggerTests(TestCase):
@@ -66,11 +143,13 @@ class CrossbarLoggerTests(TestCase):
         log.debug("Debug!")
         log.info("Info!")
         log.trace("Trace!")
+        log.emit(LogLevel.info, "Infoooo!")
 
+        self.assertEqual(log.logger.failure.call_count, 0)
         self.assertEqual(log.logger.critical.call_count, 0)
         self.assertEqual(log.logger.error.call_count, 1)
         self.assertEqual(log.logger.warn.call_count, 0)
-        self.assertEqual(log.logger.info.call_count, 1)
+        self.assertEqual(log.logger.info.call_count, 2)
         self.assertEqual(log.logger.debug.call_count, 0)
         self.assertEqual(log.logger.trace.call_count, 0)
 
@@ -109,3 +188,123 @@ class CrossbarLoggerTests(TestCase):
         log = _makelog()
         self.assertEqual(log.logger.namespace,
                          "crossbar.test.test_logger._makelog")
+
+    def test_logger_failure(self):
+        """
+        The failure method catches the in-flight exception.
+        """
+        log = make_logger("info", logger=Mock)
+
+        try:
+            1 / 0
+        except:
+            log.failure("Failure happened!")
+
+        log.logger.failure.assert_called_once()
+
+    def test_logger_failure_not_called(self):
+        """
+        The failure method isn't called under 'none'.
+        """
+        log = make_logger("none", logger=Mock)
+
+        try:
+            1 / 0
+        except:
+            log.failure("Failure happened!")
+
+        self.assertEqual(log.logger.failure.call_count, 0)
+
+
+class JSONObserverTests(TestCase):
+
+    def test_basic(self):
+        """
+        The JSON observer outputs a stream of log events.
+        """
+        stream = StringIO()
+        observer = _logging.make_JSON_observer(stream)
+        log = make_logger(observer=observer)
+
+        log.info("Hello")
+
+        result = stream.getvalue()
+        log_entry = json.loads(result[:-1])
+
+        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(len(log_entry.keys()), 4)
+        self.assertEqual(log_entry["level"], u"info")
+        self.assertEqual(log_entry["text"], u"Hello")
+
+    def test_failure(self):
+        """
+        Failures include the stacktrace.
+        """
+        stream = StringIO()
+        observer = _logging.make_JSON_observer(stream)
+        log = make_logger(observer=observer)
+
+        try:
+            1 / 0
+        except:
+            log.failure("Oh no")
+
+        result = stream.getvalue()
+        log_entry = json.loads(result[:-1])
+
+        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(len(log_entry.keys()), 4)
+        self.assertIn(u"ZeroDivisionError", log_entry["text"])
+        self.assertIn(u"Oh no", log_entry["text"])
+        self.assertEqual(log_entry["level"], u"critical")
+
+
+class StdoutObserverTests(TestCase):
+
+    def test_basic(self):
+
+        stream = NativeStringIO()
+        observer = _logging.make_stdout_observer(_file=stream)
+        log = make_logger(observer=observer)
+
+        log.info("Hi!", log_system="foo")
+
+        result = stream.getvalue()
+        self.assertIn(u"[foo]", result)
+
+    def test_output_nocolour(self):
+        """
+        The output format is the time, the system in square brackets, and the
+        message.
+        """
+        stream = NativeStringIO()
+        observer = _logging.make_stdout_observer(_file=stream,
+                                                 format="nocolour")
+        event = {'log_level': LogLevel.info,
+                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
+                 'log_source': None, 'log_format': 'Hi there!',
+                 'log_system': 'foo', 'log_time': 1434099813.77449}
+
+        observer(event)
+
+        result = stream.getvalue()
+        self.assertEqual(result[:-1],
+                         formatTime(event["log_time"]) + " [foo] Hi there!")
+
+    def test_output_syslogd(self):
+        """
+        The syslogd output format is the system in square brackets, and the
+        message.
+        """
+        stream = NativeStringIO()
+        observer = _logging.make_stdout_observer(_file=stream,
+                                                 format="syslogd")
+        event = {'log_level': LogLevel.info,
+                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
+                 'log_source': None, 'log_format': 'Hi there!',
+                 'log_system': 'foo', 'log_time': 1434099813.77449}
+
+        observer(event)
+
+        result = stream.getvalue()
+        self.assertEqual(result[:-1], "[foo] Hi there!")
