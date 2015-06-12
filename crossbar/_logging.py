@@ -33,6 +33,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 import json
+import six
 
 from functools import partial
 
@@ -58,8 +59,13 @@ _loglevel = "info"  # Default is "info"
 
 
 def set_global_log_level(level):
+    """
+    Set the global log level on all the loggers that have the level not
+    explicitly set.
+    """
     for item in _loggers.keys():
-        item.log_level = level
+        if not item._log_level_explicitly_set:
+            item._log_level = level
     global _loglevel
     _loglevel = level
 
@@ -71,7 +77,7 @@ except ImportError:
     class Fore(object):
         BLUE = ""
         YELLOW = ""
-        CYAN = ""
+        GREEN = ""
         WHITE = ""
         RED = ""
         RESET = ""
@@ -80,6 +86,13 @@ except ImportError:
 COLOUR_FORMAT = "{}{} [{}]{} {}"
 NOCOLOUR_FORMAT = "{} [{}] {}"
 SYSLOGD_FORMAT = "[{}] {}"
+
+POSSIBLE_LEVELS = ["none", "critical", "error", "warn", "info", "debug",
+                   "trace"]
+REAL_LEVELS = ["critical", "error", "warn", "info", "debug"]
+
+# Sanity check
+assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
 
 # Make our own copies of stdout and stderr, for printing to later
 # When we start logging, the logger will capture all outputs to the *new*
@@ -96,16 +109,13 @@ def escape_formatting(text):
 
 
 def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
-                         show_source=False, format="colour", trace=False):
+                         show_source=False, format="colour", trace=False,
+                         _file=_stdout):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
     @provider(ILogObserver)
     def StandardOutObserver(event):
-
-        if not trace and event.get("cb_trace") is True:
-            # Don't output 'trace' output
-            return
 
         if event["log_level"] not in levels:
             return
@@ -116,7 +126,7 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
             logSystem = event["log_system"]
 
         if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event["log_namespace"])
+            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
 
         if format == "colour":
             # Choose a colour depending on where the log came from.
@@ -138,14 +148,15 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
         elif format == "syslogd":
             eventString = SYSLOGD_FORMAT.format(logSystem, formatEvent(event))
 
-        print(eventString, file=_stdout)
+        print(eventString, file=_file)
 
     return StandardOutObserver
 
 
 def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                                  LogLevel.critical),
-                         show_source=False, format="colour"):
+                         show_source=False, format="colour",
+                         _file=_stderr):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
@@ -155,31 +166,35 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         if event["log_level"] not in levels:
             return
 
-        if "log_failure" in event and event["log_format"] is None:
-            # This is a traceback. Print it.
-            print(event["log_failure"].getTraceback(), file=_stderr)
-            return
-
-        if event.get("log_system", "-") == "-":
-            logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
+        if event.get("log_system", u"-") == u"-":
+            logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
         else:
             logSystem = event["log_system"]
 
         if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event["log_namespace"])
+            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+
+        if event.get("log_format", None) is not None:
+            eventText = formatEvent(event)
+        else:
+            eventText = ""
+
+        if "log_failure" in event:
+            # This is a traceback. Print it.
+            eventText = eventText + event["log_failure"].getTraceback()
 
         if format == "colour":
             # Errors are always red, no matter the system they came from.
             eventString = COLOUR_FORMAT.format(
                 Fore.RED, formatTime(event["log_time"]), logSystem, Fore.RESET,
-                formatEvent(event))
+                eventText)
         elif format == "nocolour":
             eventString = NOCOLOUR_FORMAT.format(
-                formatTime(event["log_time"]), logSystem, formatEvent(event))
+                formatTime(event["log_time"]), logSystem, eventText)
         elif format == "syslogd":
-            eventString = SYSLOGD_FORMAT.format(logSystem, formatEvent(event))
+            eventString = SYSLOGD_FORMAT.format(logSystem, eventText)
 
-        print(eventString, file=_stderr)
+        print(eventString, file=_file)
 
     return StandardErrorObserver
 
@@ -188,18 +203,45 @@ def make_JSON_observer(outFile):
     """
     Make an observer which writes JSON to C{outfile}.
     """
-    def _make_json(event):
+    @provider(ILogObserver)
+    def _make_json(_event):
 
-        return json.dumps({
-            "text": escape_formatting(formatEvent(event)),
-            "level": event.get("log_level", LogLevel.info).name,
-            "namespace": event.get("log_namespace", '')
-        })
+        event = dict(_event)
 
-    return FileLogObserver(
-        outFile,
-        lambda event: u"{0}{1}".format(_make_json(event), record_separator)
-    )
+        done_json = {
+            "level": event.pop("log_level", LogLevel.info).name,
+            "namespace": event.pop("log_namespace", '')
+        }
+
+        eventText = formatEvent(event)
+
+        if "log_failure" in event:
+            # This is a traceback. Print it.
+            eventText = eventText + os.linesep + event["log_failure"].getTraceback()
+
+        done_json["text"] = escape_formatting(eventText)
+
+        try:
+            event.pop("log_logger", "")
+            event.pop("log_format", "")
+            event.pop("log_source", "")
+            event.pop("log_system", "")
+            event.pop("log_failure", "")
+            event.pop("failure", "")
+            event.update(done_json)
+
+            text = json.dumps(event, skipkeys=True)
+        except Exception as e:
+            text = json.dumps({"text": "Error writing: " + str(e) + " " + str(event),
+                               "level": "error",
+                               "namespace": "crossbar._logging"})
+
+        if not isinstance(text, six.text_type):
+            text = text.decode('utf8')
+
+        print(text, end=record_separator, file=outFile)
+
+    return _make_json
 
 
 def make_legacy_daily_logfile_observer(path, logoutputlevel):
@@ -249,27 +291,27 @@ def make_legacy_daily_logfile_observer(path, logoutputlevel):
 
     return _log
 
-POSSIBLE_LEVELS = ["none", "critical", "error", "warn", "info", "debug",
-                   "trace"]
-REAL_LEVELS = ["critical", "error", "warn", "info", "debug"]
-
-# Sanity check
-assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
-
 
 class CrossbarLogger(object):
     """
     A logger that wraps a L{Logger} and no-ops messages that it doesn't want to
     listen to.
     """
-    def __init__(self, log_level, namespace=None, logger=None, observer=None):
+    def __init__(self, log_level=None, namespace=None, logger=None, observer=None):
 
         assert logger is not None and \
             observer is not None and \
             namespace is not None, (
                 "Don't make a CrossbarLogger directly, use makeLogger")
 
-        self.log_level = log_level
+        if log_level is None:
+            # If an explicit log level isn't given, use the current global log
+            # level
+            self._setlog_level = _loglevel
+            self._log_level_explicitly_set = False
+        else:
+            self.set_log_level(log_level)
+
         self.logger = logger(observer=observer, namespace=namespace)
 
         def _log(self, level, *args, **kwargs):
@@ -277,11 +319,10 @@ class CrossbarLogger(object):
             When this is called, it checks whether the index is higher than the
             current set level. If it is not, it is a no-op.
             """
-
             if isinstance(level, NamedConstant):
                 level = level.name
 
-            if POSSIBLE_LEVELS.index(level) <= POSSIBLE_LEVELS.index(self.log_level):
+            if POSSIBLE_LEVELS.index(level) <= POSSIBLE_LEVELS.index(self._log_level):
                 getattr(self.logger, level)(*args, **kwargs)
 
         for item in REAL_LEVELS:
@@ -290,21 +331,32 @@ class CrossbarLogger(object):
 
         self.emit = partial(_log, self)
 
+    def failure(self, *args, **kwargs):
+        if POSSIBLE_LEVELS.index("critical") <= POSSIBLE_LEVELS.index(self._log_level):
+            return self.logger.failure(*args, **kwargs)
+
     def trace(self, *args, **kwargs):
-        if POSSIBLE_LEVELS.index("trace") <= POSSIBLE_LEVELS.index(self.log_level):
+        if POSSIBLE_LEVELS.index("trace") <= POSSIBLE_LEVELS.index(self._log_level):
             return self.debug(*args, cb_trace=True, **kwargs)
 
-    @property
-    def log_level(self):
-        return self._log_level
+    def set_log_level(self, level):
+        """
+        Explicitly change the log level.
+        """
+        self._log_level_explicitly_set = True
+        self._log_level = level
 
-    @log_level.setter
-    def log_level(self, level):
+    @property
+    def _log_level(self):
+        return self._setlog_level
+
+    @_log_level.setter
+    def _log_level(self, level):
         if level not in POSSIBLE_LEVELS:
             raise ValueError(
                 "{level} not in {levels}".format(level=level,
                                                  levels=POSSIBLE_LEVELS))
-        self._log_level = level
+        self._setlog_level = level
 
 
 def make_logger(log_level=None, logger=Logger, observer=log_publisher):
@@ -313,11 +365,6 @@ def make_logger(log_level=None, logger=Logger, observer=log_publisher):
     the observer set in the observer kwarg. If no explicit log_level is given,
     it uses the current global log level.
     """
-    if log_level is None:
-        # If an explicit log level isn't given, use the current global log
-        # level
-        log_level = _loglevel
-
     # Get the caller's frame
     cf = currentframe(1)
 
