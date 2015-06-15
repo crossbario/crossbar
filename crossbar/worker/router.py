@@ -526,7 +526,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         if id in self._components:
             if self.debug:
-                log.msg("Worker {}: stopping component {}".format(self.config.extra.worker, id))
+                log.msg("Worker {}: stopping component {}".format(self.config.extra['worker'], id))
 
             try:
                 # self._components[id].disconnect()
@@ -595,7 +595,7 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         elif config['type'] == 'websocket':
 
-            transport_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, config, self._templates)
+            transport_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra['cbdir'], config, self._templates)
             transport_factory.noisy = False
 
         # Flash-policy file server pseudo transport
@@ -635,7 +635,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
                 if 'directory' in root_config:
 
-                    root_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, root_config['directory']))
+                    root_dir = os.path.abspath(os.path.join(self.config.extra['cbdir'], root_config['directory']))
 
                 elif 'package' in root_config:
 
@@ -833,7 +833,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # create transport endpoint / listening port from transport factory
         #
-        d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, reactor)
+        d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra['cbdir'], reactor)
 
         def ok(port):
             self.transports[id] = RouterTransport(id, config, transport_factory, port)
@@ -881,7 +881,7 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         if path_config['type'] == 'websocket':
 
-            ws_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, path_config, self._templates)
+            ws_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra['cbdir'], path_config, self._templates)
 
             # FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
             ws_factory.startFactory()
@@ -896,7 +896,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             if 'directory' in path_config:
 
-                static_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
+                static_dir = os.path.abspath(os.path.join(self.config.extra['cbdir'], path_config['directory']))
 
             elif 'package' in path_config:
 
@@ -1001,7 +1001,7 @@ class RouterWorkerSession(NativeWorkerSession):
         elif path_config['type'] == 'cgi':
 
             cgi_processor = path_config['processor']
-            cgi_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
+            cgi_directory = os.path.abspath(os.path.join(self.config.extra['cbdir'], path_config['directory']))
             cgi_directory = cgi_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
 
             return CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
@@ -1062,7 +1062,7 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         elif path_config['type'] == 'upload':
 
-            upload_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
+            upload_directory = os.path.abspath(os.path.join(self.config.extra['cbdir'], path_config['directory']))
             upload_directory = upload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
             if not os.path.isdir(upload_directory):
                 emsg = "configured upload directory '{}' in file upload resource isn't a directory".format(upload_directory)
@@ -1070,7 +1070,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
             if 'temp_directory' in path_config:
-                temp_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
+                temp_directory = os.path.abspath(os.path.join(self.config.extra['cbdir'], path_config['temp_directory']))
                 temp_directory = temp_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
             else:
                 temp_directory = os.path.abspath(tempfile.gettempdir())

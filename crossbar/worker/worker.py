@@ -65,7 +65,7 @@ class NativeWorkerSession(NativeProcessSession):
         """
         Called when the worker has connected to the node's management router.
         """
-        self._uri_prefix = 'crossbar.node.{}.worker.{}'.format(self.config.extra.node, self.config.extra.worker)
+        self._uri_prefix = 'crossbar.node.{}.worker.{}'.format(self.config.extra['node'], self.config.extra['worker'])
 
         NativeProcessSession.onConnect(self, False)
 
@@ -108,8 +108,8 @@ class NativeWorkerSession(NativeProcessSession):
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
         #
-        pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
-                                 {'type': self.WORKER_TYPE, 'id': self.config.extra.worker, 'pid': os.getpid()},
+        pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra['node']),
+                                 {'type': self.WORKER_TYPE, 'id': self.config.extra['worker'], 'pid': os.getpid()},
                                  options=PublishOptions(acknowledge=True))
 
         if self.debug:
@@ -167,7 +167,7 @@ class NativeWorkerSession(NativeProcessSession):
 
             # publish info to all but the caller ..
             #
-            cpu_affinity_set_topic = 'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.worker)
+            cpu_affinity_set_topic = 'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra['node'], self.config.extra['worker'])
             cpu_affinity_set_info = {
                 'affinity': new_affinity,
                 'who': details.caller
@@ -207,7 +207,7 @@ class NativeWorkerSession(NativeProcessSession):
         for p in paths:
             # transform all paths (relative to cbdir) into absolute paths
             #
-            path_to_add = os.path.abspath(os.path.join(self.config.extra.cbdir, p))
+            path_to_add = os.path.abspath(os.path.join(self.config.extra['cbdir'], p))
             if os.path.isdir(path_to_add):
                 paths_added.append({'requested': p, 'resolved': path_to_add})
             else:
@@ -235,7 +235,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         # publish event "on_pythonpath_add" to all but the caller
         #
-        topic = 'crossbar.node.{}.worker.{}.on_pythonpath_add'.format(self.config.extra.node, self.config.extra.worker)
+        topic = 'crossbar.node.{}.worker.{}.on_pythonpath_add'.format(self.config.extra['node'], self.config.extra['worker'])
         res = {
             'paths': sys.path,
             'paths_added': paths_added,

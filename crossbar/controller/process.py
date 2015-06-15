@@ -153,7 +153,7 @@ class NodeControllerSession(NativeProcessSession):
 
         self.log.debug("Connected to node management router")
 
-        # self._uri_prefix = u'crossbar.node.{}'.format(self.config.extra.node)
+        # self._uri_prefix = u'crossbar.node.{}'.format(self.config.extra['node'])
         self._uri_prefix = u'crossbar.node.{}'.format(self._node_id)
 
         NativeProcessSession.onConnect(self, False)
