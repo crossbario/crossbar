@@ -29,6 +29,7 @@
 #####################################################################################
 
 from __future__ import absolute_import
+import six
 
 from pytrie import StringTrie
 
@@ -183,6 +184,9 @@ class UriObservationMap(object):
             ``observation`` is an instance of one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``.
         :rtype: tuple
         """
+        if not isinstance(uri, six.text_type):
+            raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
+
         if match == u"exact":
 
             # if the exact-matching URI isn't in our map, create a new observation
@@ -270,16 +274,17 @@ class UriObservationMap(object):
             or ``None``.
         :rtype: obj or None
         """
-        if match == u"exact":
 
+        if not isinstance(uri, six.text_type):
+            raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
+
+        if match == u"exact":
             return self._observations_exact.get(uri, None)
 
         elif match == u"prefix":
-
             return self._observations_prefix.get(uri, None)
 
         elif match == u"wildcard":
-
             return self._observations_wildcard.get(uri, None)
 
         else:
@@ -298,6 +303,9 @@ class UriObservationMap(object):
         :rtype: list
         """
         observations = []
+
+        if not isinstance(uri, six.text_type):
+            raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
         if uri in self._observations_exact:
             observations.append(self._observations_exact[uri])
@@ -327,6 +335,9 @@ class UriObservationMap(object):
             ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation`` or ``None``.
         :rtype: obj or None
         """
+        if not isinstance(uri, six.text_type):
+            raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
+
         # a exact matching observation is always "best", if any
         #
         if uri in self._observations_exact:
