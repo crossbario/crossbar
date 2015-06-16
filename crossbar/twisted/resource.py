@@ -115,7 +115,7 @@ class JsonResource(Resource):
             request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
 
         self._requests_served += 1
-        if self._requests_served % 1000 == 0:
+        if self._requests_served % 10000 == 0:
             self.log.info("Served {requests_served} requests", requests_served=self._requests_served)
 
         return self._data
