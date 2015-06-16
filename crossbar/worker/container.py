@@ -51,7 +51,7 @@ from autobahn.wamp.types import ComponentConfig, \
 from crossbar.common import checkconfig
 from crossbar.worker.worker import NativeWorkerSession
 from crossbar.router.protocol import WampWebSocketClientFactory, \
-    WampRawSocketClientFactory
+    WampRawSocketClientFactory, WampWebSocketClientProtocol, WampRawSocketClientProtocol
 
 from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -290,6 +290,8 @@ class ContainerWorkerSession(NativeWorkerSession):
             component = ContainerComponent(id, config, proto, None)
             self.components[id] = component
 
+            # FIXME: this is a total hack.
+            #
             def close_wrapper(orig, was_clean, code, reason):
                 """
                 Wrap our protocol's onClose so we can tell when the component
@@ -312,7 +314,22 @@ class ContainerWorkerSession(NativeWorkerSession):
                 self._publish_component_stop(component)
                 component._stopped.callback(component.marshal())
                 return r
-            proto.onClose = partial(close_wrapper, proto.onClose)
+
+            # FIXME: due to history, the following is currently the case:
+            # ITransportHandler.onClose is implemented directly on WampWebSocketClientProtocol,
+            # while with WampRawSocketClientProtocol, the ITransportHandler is implemented
+            # by the object living on proto._session
+            #
+            if isinstance(proto, WampWebSocketClientProtocol):
+                proto.onClose = partial(close_wrapper, proto.onClose)
+
+            elif isinstance(proto, WampRawSocketClientProtocol):
+                # FIXME: doesn't work without guard, since proto_.session is not yet there when
+                # proto comes into existance ..
+                if proto._session:
+                    proto._session.onClose = partial(close_wrapper, proto._session.onClose)
+            else:
+                raise Exception("logic error")
 
             # publish event "on_component_start" to all but the caller
             #

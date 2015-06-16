@@ -47,12 +47,12 @@ log = make_logger()
 __all__ = (
     'WampWebSocketServerFactory',
     'WampRawSocketServerFactory',
-    'WampRawSocketClientFactory',
+    'WampWebSocketServerProtocol',
+    'WampRawSocketServerProtocol',
     'WampWebSocketClientFactory',
-    # 'WampWebSocketServerProtocol',
-    # 'WampRawSocketServerProtocol',
-    # 'WampRawSocketClientProtocol',
-    # 'WampWebSocketClientProtocol',
+    'WampRawSocketClientFactory',
+    'WampWebSocketClientProtocol',
+    'WampRawSocketClientProtocol',
 )
 
 
