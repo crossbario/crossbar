@@ -212,7 +212,18 @@ def run():
         # now start reactor loop
         #
         log.info("Entering event loop...")
+
+        import os
+        import vmprof
+
+        PROFILE_FILE = 'vmprof_{}.dat'.format(os.getpid())
+
+        outfd = os.open(PROFILE_FILE, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+        vmprof.enable(outfd, period=0.01)
+
         reactor.run()
+
+        vmprof.disable()
 
     except Exception as e:
         log.info("Unhandled exception: {}".format(e))
