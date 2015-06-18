@@ -211,7 +211,7 @@ def run():
 
         # now start reactor loop
         #
-        log.info("Entering event loop...")
+        log.info("vmprof enabled.")
 
         import os
         import vmprof
@@ -221,6 +221,7 @@ def run():
         outfd = os.open(PROFILE_FILE, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
         vmprof.enable(outfd, period=0.01)
 
+        log.info("Entering event loop...")
         reactor.run()
 
         vmprof.disable()
