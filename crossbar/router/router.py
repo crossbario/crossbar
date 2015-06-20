@@ -236,11 +236,9 @@ class Router(object):
         if role in self._roles:
             authorized = self._roles[role].authorize(session, uri, action)
 
-        self.log.debug("CrossbarRouter.authorize: {session_id} {uri} {action} {authid} {authrole} {authmethod} {authprovider} -> {authorized}",
+        self.log.debug("Authorize '{action}' for '{uri}' by {session_id}/{authid}/{authrole} -> {authorized}",
                        session_id=session._session_id, uri=uri, action=action,
                        authid=session._authid, authrole=session._authrole,
-                       authmethod=session._authmethod,
-                       authprovider=session._authprovider,
                        authorized=authorized, cb_level="trace")
 
         return authorized
@@ -249,9 +247,8 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
-        self.log.debug("Router.validate: {payload_type} {uri} {args} {kwargs}",
-                       payload_type=payload_type, uri=uri, args=args,
-                       kwargs=kwargs, cb_level="trace")
+        self.log.debug("Validate '{payload_type}' for '{uri}'",
+                       payload_type=payload_type, uri=uri, cb_level="trace")
 
 
 class RouterFactory(object):

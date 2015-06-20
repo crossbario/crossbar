@@ -1915,33 +1915,29 @@ def check_config(config, silence=False):
         if k not in ['manager', 'controller', 'workers']:
             raise Exception("encountered unknown attribute '{}' in top-level configuration".format(k))
 
-    if 'manager' in config and ('controller' in config or 'workers' in config):
-        raise Exception("when running in managed mode, no workers/conroller attributes must be present in configuration")
+    # check controller config
+    #
+    if 'controller' in config:
+        if not silence:
+            print("Checking controller item ..")
+        check_controller(config['controller'])
 
+    # check management server config
+    #
     if 'manager' in config:
         check_manager(config['manager'])
 
-    else:
-        # check contoller config
-        #
-        if 'controller' in config:
-            if not silence:
-                print("Checking controller item ..")
-            check_controller(config['controller'])
-
-        # check workers
-        #
-        workers = config.get('workers', [])
-
-        if not isinstance(workers, list):
-            raise Exception("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
-
-        i = 1
-        for worker in workers:
-            if not silence:
-                print("Checking worker item {} ..".format(i))
-            check_worker(worker, silence)
-            i += 1
+    # check worker configs
+    #
+    workers = config.get('workers', [])
+    if not isinstance(workers, list):
+        raise Exception("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
+    i = 1
+    for worker in workers:
+        if not silence:
+            print("Checking worker item {} ..".format(i))
+        check_worker(worker, silence)
+        i += 1
 
 
 def check_config_file(configfile, silence=False):

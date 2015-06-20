@@ -40,7 +40,6 @@ import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
-from autobahn.twisted.util import sleep
 from autobahn.twisted.wamp import ApplicationRunner
 
 from crossbar.router.router import RouterFactory
@@ -125,11 +124,10 @@ class Node(object):
         # the node's name (must be unique within the management realm)
         if 'manager' in self._config:
             self._node_id = self._config['manager']['id']
+        elif 'id' in controller_config:
+            self._node_id = controller_config['id']
         else:
-            if 'id' in controller_config:
-                self._node_id = controller_config['id']
-            else:
-                self._node_id = socket.gethostname()
+            self._node_id = socket.gethostname()
 
         if 'manager' in self._config:
             extra = {
@@ -193,10 +191,7 @@ class Node(object):
             self.log.info("No WAMPlets detected in enviroment.")
 
         try:
-            if 'manager' in self._config:
-                yield self._startup_managed(self._config)
-            else:
-                yield self._startup_standalone(self._config)
+            yield self._startup(self._config)
         except:
             traceback.print_exc()
             try:
@@ -205,19 +200,9 @@ class Node(object):
                 pass
 
     @inlineCallbacks
-    def _startup_managed(self, config):
-        """
-        Connect the node to an upstream management application. The node
-        will run in "managed" mode (as opposed to "standalone" mode).
-        """
-        yield sleep(1)
+    def _startup(self, config):
+        # Setup node according to the local configuration provided.
 
-    @inlineCallbacks
-    def _startup_standalone(self, config):
-        """
-        Setup node according to the local configuration provided. The node
-        will run in "standalone" mode (as opposed to "managed" mode).
-        """
         # fake call details information when calling into
         # remoted procedure locally
         #

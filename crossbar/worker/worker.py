@@ -41,8 +41,12 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, \
     RegisterOptions
 
+from crossbar._logging import make_logger
+
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcessSession
+
+from crossbar.common.profiler import PROFILERS
 
 from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
@@ -60,6 +64,8 @@ class NativeWorkerSession(NativeProcessSession):
     """
 
     WORKER_TYPE = 'native'
+
+    log = make_logger()
 
     def onConnect(self):
         """
@@ -81,23 +87,29 @@ class NativeWorkerSession(NativeProcessSession):
         yield NativeProcessSession.onJoin(self, details)
 
         procs = [
+            # CPU affinity for this worker process
             'get_cpu_affinity',
             'set_cpu_affinity',
+
+            # PYTHONPATH used for this worker
             'get_pythonpath',
             'add_pythonpath',
+
+            # profiling control
+            'get_profilers',
+            'start_profiler',
+            'query_profile',
         ]
 
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            if self.debug:
-                log.msg("Registering procedure '{}'".format(uri))
+            self.log.info("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        if self.debug:
-            log.msg("{} registered {} procedures".format(self.__class__.__name__, len(regs)))
+        self.log.info("Registered {cnt} management API procedures", cnt=len(regs))
 
         if publish_ready:
             yield self.publish_ready()
@@ -108,12 +120,50 @@ class NativeWorkerSession(NativeProcessSession):
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
         #
-        pub = yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
-                                 {'type': self.WORKER_TYPE, 'id': self.config.extra.worker, 'pid': os.getpid()},
-                                 options=PublishOptions(acknowledge=True))
+        yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
+                           {'type': self.WORKER_TYPE, 'id': self.config.extra.worker, 'pid': os.getpid()},
+                           options=PublishOptions(acknowledge=True))
 
-        if self.debug:
-            log.msg("NativeWorker ready event published ({})".format(pub))
+        self.log.info("Worker ready to roll!")
+
+    def get_profilers(self, details=None):
+        """
+        Returns available profilers.
+        """
+        return [p.marshal() for p in PROFILERS.items()]
+
+    def start_profiler(self, profiler, runtime=10, details=None):
+        """
+        Start a profiler producing a profile which is stored and can be
+        queried later.
+        """
+        if profiler not in PROFILERS:
+            raise Exception("no such profiler")
+
+        profiler = PROFILERS[profiler]
+
+        self.log.debug("Starting profiler {profiler}, running for {secs} seconds", profiler=profiler, secs=runtime)
+
+        # run the selected profiler, producing a profile
+        profile_id, profile_finished = profiler.start(runtime=runtime)
+
+        def on_profile_finished(profile_filename):
+            # FIXME: store the profile in the node database (LMDB)
+            print("profile stored in {}".format(profile_filename))
+
+        def on_profile_failed(err):
+            print("profile failed: {}".format(err))
+
+        profile_finished.addCallbacks(on_profile_finished, on_profile_failed)
+
+        # return the ID uner which the profile will be stored
+        return profile_id
+
+    def query_profile(self, profile_id, query, wait_on_profile=True, details=None):
+        """
+        Query a profile previously produced by a profiler run.
+        """
+        pass
 
     def get_cpu_affinity(self, details=None):
         """
