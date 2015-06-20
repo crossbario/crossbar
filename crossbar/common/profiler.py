@@ -134,7 +134,7 @@ if _HAS_VMPROF:
                     stats = vmprof.read_profile(profile_filename, virtual_only=True, include_extra_info=True)
                 except Exception as e:
                     self.log.error("Fatal: could not read vmprof profile file '{}': {}".format(profile_filename, e))
-                    return
+                    raise e
 
                 tree = stats.get_tree()
                 total = float(tree.count)
@@ -157,9 +157,12 @@ if _HAS_VMPROF:
                         res.append(
                             {
                                 'type': 'py',
+                                'level': level,
                                 'parent': parent_name,
                                 'fun': funname,
-                                'file': filename,
+                                'filename': filename,
+                                'dirname': os.path.dirname(filename),
+                                'basename': os.path.basename(filename),
                                 'line': funline,
                                 'perc': perc,
                                 'perc_of_parent': perc_of_parent,
@@ -171,6 +174,7 @@ if _HAS_VMPROF:
                         res.append(
                             {
                                 'type': 'jit',
+                                'level': level,
                                 'parent': parent_name,
                                 'fun': funname,
                                 'perc': perc,
@@ -194,18 +198,23 @@ if _HAS_VMPROF:
 
                 def on_profile_converted(res):
                     self.log.info("Profile data with {count} log entries generated", count=len(res))
+                    self._finished.callback(res)
 
                 def on_profile_conversaion_failed(err):
                     self.log.error(err.value)
+                    self._finished.errback(err)
 
                 d.addCallbacks(on_profile_converted, on_profile_conversaion_failed)
 
-                # reset state
-                self._state = Profiler.STATE_STOPPED
-                self._profile_filename = None
-                self._started = None
-                self._finished = None
-                self._profile_id = None
+                def cleanup(res):
+                    # reset state
+                    self._state = Profiler.STATE_STOPPED
+                    self._profile_filename = None
+                    self._started = None
+                    self._finished = None
+                    self._profile_id = None
+
+                d.addBoth(cleanup)
 
             self.log.info("Starting profiling using {profiler} for {runtime} seconds.", profiler=self._id, runtime=runtime)
 

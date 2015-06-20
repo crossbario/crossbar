@@ -132,7 +132,7 @@ class NativeWorkerSession(NativeProcessSession):
         """
         return [p.marshal() for p in PROFILERS.items()]
 
-    def start_profiler(self, profiler, runtime=10, details=None):
+    def start_profiler(self, profiler, runtime=10, async=True, details=None):
         """
         Start a profiler producing a profile which is stored and can be
         queried later.
@@ -147,17 +147,22 @@ class NativeWorkerSession(NativeProcessSession):
         # run the selected profiler, producing a profile
         profile_id, profile_finished = profiler.start(runtime=runtime)
 
-        def on_profile_finished(profile_filename):
+        def on_profile_finished(res):
             # FIXME: store the profile in the node database (LMDB)
             print("profile stored in {}".format(profile_filename))
+            return res
 
         def on_profile_failed(err):
             print("profile failed: {}".format(err))
+            return err
 
-        profile_finished.addCallbacks(on_profile_finished, on_profile_failed)
+        #profile_finished.addCallbacks(on_profile_finished, on_profile_failed)
 
-        # return the ID uner which the profile will be stored
-        return profile_id
+        if async:
+            # return the ID uner which the profile will be stored
+            return profile_id
+        else:
+            return profile_finished
 
     def query_profile(self, profile_id, query, wait_on_profile=True, details=None):
         """
