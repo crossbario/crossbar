@@ -149,14 +149,14 @@ class NativeWorkerSession(NativeProcessSession):
 
         def on_profile_finished(res):
             # FIXME: store the profile in the node database (LMDB)
-            print("profile stored in {}".format(profile_filename))
+            # print("profile stored in {}".format(profile_filename))
             return res
 
         def on_profile_failed(err):
             print("profile failed: {}".format(err))
             return err
 
-        #profile_finished.addCallbacks(on_profile_finished, on_profile_failed)
+        # profile_finished.addCallbacks(on_profile_finished, on_profile_failed)
 
         if async:
             # return the ID uner which the profile will be stored
