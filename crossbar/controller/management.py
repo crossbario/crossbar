@@ -51,7 +51,7 @@ class NodeManagementSession(ApplicationSession):
     log = make_logger()
 
     def onJoin(self, details):
-        self.log.debug("Joined realm '{realm}' on uplink CDC router", realm=details.realm)
+        self.log.info("Joined realm '{realm}' on uplink CDC router", realm=details.realm)
         self.config.extra['onready'].callback(self)
 
 
@@ -128,60 +128,3 @@ class NodeManagementBridgeSession(ApplicationSession):
         yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
 
         self.log.info("Management bridge ready")
-
-
-class NodeManagementSessionOld(ApplicationSession):
-
-    """
-    """
-    log = make_logger()
-
-    def __init__(self):
-        ApplicationSession.__init__(self)
-
-    def onConnect(self):
-        self.join("crossbar.cloud")
-
-    def is_paired(self):
-        return False
-
-    @inlineCallbacks
-    def onJoin(self, details):
-        self.log.info("Connected to Crossbar.io Management Cloud.")
-
-        from twisted.internet import reactor
-
-        self.factory.node_session.setControllerSession(self)
-
-        if not self.is_paired():
-            try:
-                node_info = {}
-                node_publickey = "public key"
-                activation_code = yield self.call('crossbar.cloud.get_activation_code', node_info, node_publickey)
-            except Exception:
-                self.log.failure("internal error: {log_failure.value}")
-            else:
-                self.log.info("Log into https://console.crossbar.io to configure your instance using the activation code: {}".format(activation_code))
-
-                reg = None
-
-                def activate(node_id, certificate):
-                    # check if certificate was issued by Tavendo
-                    # check if certificate matches node key
-                    # persist node_id
-                    # persist certificate
-                    # restart node
-                    reg.unregister()
-
-                    self.publish('crossbar.node.onactivate', node_id)
-
-                    self.log.info("Restarting node in 5 seconds ...")
-                    reactor.callLater(5, self.factory.node_controller_session.restart_node)
-
-                reg = yield self.register(activate, 'crossbar.node.activate.{}'.format(activation_code))
-        else:
-            pass
-
-        yield self.register(self.factory.node_controller_session.get_node_worker_processes, 'crossbar.node.get_node_worker_processes')
-
-        self.publish('com.myapp.topic1', os.getpid())

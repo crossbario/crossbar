@@ -133,14 +133,15 @@ class Node(object):
             extra = {
                 'onready': Deferred()
             }
-            runner = ApplicationRunner(url=u"ws://localhost:9000", realm=u"cdc-oberstet-1", extra=extra)
+            realm = self._config['manager']['realm']
+            transport = self._config['manager']['transport']
+            runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra)
             runner.run(NodeManagementSession, start_reactor=False)
 
             # wait until we have attached to the uplink CDC
             self._management_session = yield extra['onready']
 
-            self.log.info("Connected to Crossbar.io Management Cloud: {management_session}",
-                          management_session=self._management_session)
+            self.log.info("Node is connected to Crossbar.io DevOps Center (CDC)")
         else:
             self._management_session = None
 
