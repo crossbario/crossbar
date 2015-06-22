@@ -1861,20 +1861,20 @@ def check_controller(controller, silence=False):
         raise Exception("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'realm', 'options', 'transport', 'manhole']:
+        if k not in ['id', 'options', 'transport', 'manhole', 'manager']:
             raise Exception("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
         check_id(controller['id'])
-
-    if 'realm' in controller:
-        check_realm_name(controller['realm'])
 
     if 'options' in controller:
         check_controller_options(controller['options'])
 
     if 'manhole' in controller:
         check_manhole(controller['manhole'])
+
+    if 'manager' in controller:
+        check_manager(controller['manager'])
 
     if 'transport' in controller:
         # FIXME: for now, only allow WAMP-WebSocket here
@@ -1892,7 +1892,6 @@ def check_manager(manager, silence=False):
         raise Exception("manager items must be dictionaries ({} encountered)\n\n{}".format(type(manager), pformat(manager)))
 
     check_dict_args({
-        'id': (True, [six.text_type]),
         'key': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
         'transport': (True, [dict]),
@@ -1912,7 +1911,7 @@ def check_config(config, silence=False):
         raise Exception("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
 
     for k in config:
-        if k not in ['manager', 'controller', 'workers']:
+        if k not in ['controller', 'workers']:
             raise Exception("encountered unknown attribute '{}' in top-level configuration".format(k))
 
     # check controller config
@@ -1921,11 +1920,6 @@ def check_config(config, silence=False):
         if not silence:
             print("Checking controller item ..")
         check_controller(config['controller'])
-
-    # check management server config
-    #
-    if 'manager' in config:
-        check_manager(config['manager'])
 
     # check worker configs
     #

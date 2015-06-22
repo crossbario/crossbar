@@ -215,8 +215,6 @@ class NodeControllerSession(NativeProcessSession):
 
         self.log.debug("Registered {registers} procedures", registers=len(regs))
 
-        # FIXME: publish node ready event
-
         self.publish(u"crossbar.node.on_ready", self._node_id)
 
         self.log.info("Node controller ready")
@@ -241,7 +239,7 @@ class NodeControllerSession(NativeProcessSession):
     @inlineCallbacks
     def start_management_transport(self, config, details=None):
         """
-        Start transport for local management router.
+        Start a (listening) transport for the local management router.
 
         :param config: Transport configuration.
         :type config: obj
@@ -286,7 +284,7 @@ class NodeControllerSession(NativeProcessSession):
             self.log.failure(emsg)
             raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
-        # alright, manhole has started
+        # alright, the transpotr has started
         self._management_transport.started = datetime.utcnow()
         self._management_transport.status = 'started'
 

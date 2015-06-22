@@ -76,6 +76,7 @@ class Node(object):
         self.log = make_logger()
 
         self.options = options
+
         # the reactor under which we run
         self._reactor = reactor
 
@@ -122,19 +123,17 @@ class Node(object):
             setproctitle.setproctitle(controller_title)
 
         # the node's name (must be unique within the management realm)
-        if 'manager' in self._config:
-            self._node_id = self._config['manager']['id']
-        elif 'id' in controller_config:
+        if 'id' in controller_config:
             self._node_id = controller_config['id']
         else:
             self._node_id = socket.gethostname()
 
-        if 'manager' in self._config:
+        if 'manager' in controller_config:
             extra = {
                 'onready': Deferred()
             }
-            realm = self._config['manager']['realm']
-            transport = self._config['manager']['transport']
+            realm = controller_config['manager']['realm']
+            transport = controller_config['manager']['transport']
             runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra)
             runner.run(NodeManagementSession, start_reactor=False)
 
@@ -172,7 +171,6 @@ class Node(object):
 
         # the node controller singleton WAMP application session
         #
-        # session_config = ComponentConfig(realm = options.realm, extra = options)
         self._controller = NodeControllerSession(self)
 
         # add the node controller singleton session to the router
