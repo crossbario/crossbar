@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import os
-
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn.wamp.types import SubscribeOptions, PublishOptions
