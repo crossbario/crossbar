@@ -144,7 +144,8 @@ class NativeWorkerSession(NativeProcessSession):
 
         self.log.debug("Starting profiler {profiler}, running for {secs} seconds", profiler=profiler, secs=runtime)
 
-        # run the selected profiler, producing a profile
+        # run the selected profiler, producing a profile. "profile_finished" is a Deferred
+        # that will fire with the actual profile recorded
         profile_id, profile_finished = profiler.start(runtime=runtime)
 
         def on_profile_finished(res):
@@ -159,9 +160,12 @@ class NativeWorkerSession(NativeProcessSession):
         # profile_finished.addCallbacks(on_profile_finished, on_profile_failed)
 
         if async:
-            # return the ID uner which the profile will be stored
+            # if running in async mode, immediately return the ID under
+            # which the profile can be retrieved later (when it is finished)
             return profile_id
         else:
+            # if running in sync mode, return only when the profiling was
+            # actually finished - and return the complete profile
             return profile_finished
 
     def query_profile(self, profile_id, query, wait_on_profile=True, details=None):
