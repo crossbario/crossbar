@@ -284,7 +284,7 @@ class NodeControllerSession(NativeProcessSession):
             self.log.failure(emsg)
             raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
-        # alright, the transpotr has started
+        # alright, the transport has started
         self._management_transport.started = datetime.utcnow()
         self._management_transport.status = 'started'
 
