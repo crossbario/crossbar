@@ -82,6 +82,9 @@ class Dealer(object):
         self._router = router
         self._options = options or RouterOptions()
 
+        # generator for WAMP request IDs
+        self._request_id_gen = util.IdGenerator()
+
         # registration map managed by this dealer
         self._registration_map = UriObservationMap(ordered=True)
 
@@ -388,7 +391,7 @@ class Dealer(object):
 
                     # new ID for the invocation
                     #
-                    invocation_request_id = util.id()
+                    invocation_request_id = self._request_id_gen.next()
 
                     # caller disclosure
                     #
