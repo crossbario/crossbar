@@ -208,16 +208,16 @@ class NodeControllerSession(NativeProcessSession):
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering procedure '{uri}'", uri=uri)
+            self.log.debug("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        self.log.debug("Registered {registers} procedures", registers=len(regs))
+        self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
 
         self.publish(u"crossbar.node.on_ready", self._node_id)
 
-        self.log.info("Node controller ready")
+        self.log.debug("Node controller ready")
 
     @inlineCallbacks
     def shutdown(self, restart=False, details=None):

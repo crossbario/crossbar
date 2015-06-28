@@ -281,14 +281,12 @@ class RouterWorkerSession(NativeWorkerSession):
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            if self.debug:
-                log.msg("Registering procedure '{}'".format(uri))
+            self.log.debug("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        if self.debug:
-            log.msg("RouterWorker registered {} procedures".format(len(regs)))
+        self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
 
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
