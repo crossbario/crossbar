@@ -35,8 +35,10 @@ from autobahn.wamp import role
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 
-from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
-    _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY
+from autobahn.wamp.message import \
+    _URI_PAT_STRICT_NON_EMPTY, _URI_PAT_LOOSE_NON_EMPTY, \
+    _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY, \
+    _URI_PAT_STRICT_LAST_EMPTY, _URI_PAT_LOOSE_LAST_EMPTY
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, RouterAction
@@ -133,11 +135,12 @@ class Broker(object):
                 session._transport.send(reply)
             return
 
-        # disallow publication to topics starting with "wamp." and
-        # "crossbar." other than for trusted session (that are sessions
-        # built into Crossbar.io)
+        # disallow publication to topics starting with "wamp." and "crossbar." other than for
+        # trusted sessions (that are sessions built into Crossbar.io)
+        #
         if session._authrole is not None and session._authrole != u"trusted":
-            if publish.topic.startswith(u"wamp.") or publish.topic.startswith(u"crossbar."):
+            is_restricted = publish.topic.startswith(u"wamp.") or publish.topic.startswith(u"crossbar.")
+            if is_restricted:
                 if publish.acknowledge:
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with restricted topic URI '{0}'".format(publish.topic)])
                     session._transport.send(reply)
@@ -285,16 +288,22 @@ class Broker(object):
         Implements :func:`crossbar.router.interfaces.IBroker.processSubscribe`
         """
         # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
-        # URI components must be non-empty other than for wildcard subscriptions
+        # URI components must be non-empty for normal subscriptions, may be empty for
+        # wildcard subscriptions and must be non-empty for all but the last component for
+        # prefix subscriptions
         #
         if self._option_uri_strict:
             if subscribe.match == u"wildcard":
                 uri_is_valid = _URI_PAT_STRICT_EMPTY.match(subscribe.topic)
+            elif subscribe.match == u"prefix":
+                uri_is_valid = _URI_PAT_STRICT_LAST_EMPTY.match(subscribe.topic)
             else:
                 uri_is_valid = _URI_PAT_STRICT_NON_EMPTY.match(subscribe.topic)
         else:
             if subscribe.match == u"wildcard":
                 uri_is_valid = _URI_PAT_LOOSE_EMPTY.match(subscribe.topic)
+            elif subscribe.match == u"prefix":
+                uri_is_valid = _URI_PAT_LOOSE_LAST_EMPTY.match(subscribe.topic)
             else:
                 uri_is_valid = _URI_PAT_LOOSE_NON_EMPTY.match(subscribe.topic)
 

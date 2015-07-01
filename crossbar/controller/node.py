@@ -130,11 +130,17 @@ class Node(object):
 
         if 'manager' in controller_config:
             extra = {
-                'onready': Deferred()
+                'onready': Deferred(),
+
+                # authentication information for connecting to uplinkg CDC router
+                # using WAMP-CRA authentication
+                #
+                'authid': self._node_id,
+                'authkey': controller_config['manager']['key']
             }
             realm = controller_config['manager']['realm']
             transport = controller_config['manager']['transport']
-            runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra)
+            runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra, debug_wamp=False)
             runner.run(NodeManagementSession, start_reactor=False)
 
             # wait until we have attached to the uplink CDC

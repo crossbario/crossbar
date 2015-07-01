@@ -32,6 +32,7 @@ from __future__ import absolute_import
 
 from twisted.internet.defer import inlineCallbacks
 
+from autobahn.wamp import auth
 from autobahn.wamp.types import SubscribeOptions, PublishOptions
 from autobahn.twisted.wamp import ApplicationSession
 
@@ -48,9 +49,33 @@ class NodeManagementSession(ApplicationSession):
 
     log = make_logger()
 
+    def onConnect(self):
+        authid = self.config.extra['authid']
+        realm = self.config.realm
+        self.log.info("Connected. Joining realm '{}' as '{}' ..".format(realm, authid))
+        self.join(realm, [u"wampcra"], authid)
+
+    def onChallenge(self, challenge):
+        if challenge.method == u"wampcra":
+            authkey = self.config.extra['authkey'].encode('utf8')
+            signature = auth.compute_wcs(authkey, challenge.extra['challenge'].encode('utf8'))
+            return signature.decode('ascii')
+        else:
+            raise Exception("don't know how to compute challenge for authmethod {}".format(challenge.method))
+
     def onJoin(self, details):
         self.log.info("Joined realm '{realm}' on uplink CDC router", realm=details.realm)
         self.config.extra['onready'].callback(self)
+
+    def onLeave(self, details):
+        if details.reason != u"wamp.close.normal":
+            self.log.warn("Session detached: {}".format(details))
+        else:
+            self.log.debug("Session detached: {}".format(details))
+        self.disconnect()
+
+    def onDisconnect(self):
+        self.log.debug("Disconnected.")
 
 
 class NodeManagementBridgeSession(ApplicationSession):
@@ -82,10 +107,18 @@ class NodeManagementBridgeSession(ApplicationSession):
 
         self.log.debug("Joined realm '{realm}' on node management router", realm=details.realm)
 
+        # setup event forwarding
+        #
         @inlineCallbacks
         def on_event(*args, **kwargs):
             details = kwargs.pop('details')
-            topic = u"cdc." + details.topic
+
+            # a node local event such as 'crossbar.node.on_ready' is mogrified to 'local.crossbar.node.on_ready'
+            # (one reason is that URIs such as 'wamp.*' and 'crossbar.*' are restricted to trusted sessions, and
+            # the management bridge is connecting over network to the uplink CDC and hence can't be trusted)
+            #
+            topic = u"local.{}".format(details.topic)
+
             try:
                 yield self._management_session.publish(topic, *args, options=PublishOptions(acknowledge=True), **kwargs)
             except Exception as e:
@@ -95,18 +128,20 @@ class NodeManagementBridgeSession(ApplicationSession):
 
         yield self.subscribe(on_event, u"crossbar.node", options=SubscribeOptions(match=u"prefix", details_arg="details"))
 
-        # we use the WAMP meta API implemented by CB to get notified whenever a procedure is
-        # registered/unregister on the node management router, setup a forwarding procedure
-        # and register that on the uplink CDC router
+        # setup call forwarding
         #
         @inlineCallbacks
         def on_registration_create(session_id, registration):
-            uri = registration['uri']
+            # we use the WAMP meta API implemented by CB to get notified whenever a procedure is
+            # registered/unregister on the node management router, setup a forwarding procedure
+            # and register that on the uplink CDC router
+
+            procedure = u"local.{}".format(registration['uri'])
 
             def forward_call(*args, **kwargs):
                 return self.call(uri, *args, **kwargs)
 
-            reg = yield self._management_session.register(forward_call, uri)
+            reg = yield self._management_session.register(forward_call, procedure)
             self._regs[registration['id']] = reg
 
             self.log.info("Management procedure registered: '{procedure}'", procedure=reg.procedure)
@@ -119,7 +154,7 @@ class NodeManagementBridgeSession(ApplicationSession):
 
             if reg:
                 yield reg.unregister()
-                self.log.info("Managemed procedure unregistered: '{procedure}'", procedure=reg.procedure)
+                self.log.info("Management procedure unregistered: '{procedure}'", procedure=reg.procedure)
             else:
                 self.log.warn("Could not remove forwarding for unmapped registration_id {reg_id}", reg_id=registration_id)
 
