@@ -139,7 +139,7 @@ class NodeManagementBridgeSession(ApplicationSession):
             procedure = u"local.{}".format(registration['uri'])
 
             def forward_call(*args, **kwargs):
-                return self.call(procedure, *args, **kwargs)
+                return self.call(registration['uri'], *args, **kwargs)
 
             reg = yield self._management_session.register(forward_call, procedure)
             self._regs[registration['id']] = reg
