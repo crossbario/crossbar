@@ -32,7 +32,6 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.python import log
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn import wamp
@@ -40,6 +39,7 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.observation import is_protected_uri
+from crossbar._logging import make_logger
 
 __all__ = ('RouterServiceSession',)
 
@@ -55,6 +55,8 @@ class RouterServiceSession(ApplicationSession):
     issue WAMP calls or publish events, and which provides WAMP meta API
     procedures.
     """
+
+    log = make_logger()
 
     def __init__(self, config, router, schemas=None):
         """
@@ -72,43 +74,50 @@ class RouterServiceSession(ApplicationSession):
         self._schemas = {}
         if schemas:
             self._schemas.update(schemas)
-            log.msg("CrossbarRouterServiceSession: initialized schemas cache with {} entries".format(len(self._schemas)))
+            self.log.info("initialized schemas cache with {} entries".format(len(self._schemas)))
 
     @inlineCallbacks
     def onJoin(self, details):
-        if self.debug:
-            log.msg("CrossbarRouterServiceSession.onJoin({})".format(details))
-
+        self.log.debug("Router service session attached: {}".format(details))
         regs = yield self.register(self)
-        if self.debug:
-            log.msg("CrossbarRouterServiceSession: registered {} procedures".format(len(regs)))
+        self.log.debug("Registered {} procedures".format(len(regs)))
 
     @wamp.register(u'wamp.session.list')
-    def session_list(self):
+    def session_list(self, filter_authroles=None):
         """
         Get list of session IDs of sessions currently joined on the router.
+
+        :param filter_authroles: If provided, only return sessions with an authrole from this list.
+        :type filter_authroles: None or list
 
         :returns: List of WAMP session IDs (order undefined).
         :rtype: list
         """
+        assert(filter_authroles is None or type(filter_authroles) == list)
         session_ids = []
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                session_ids.append(session._session_id)
+                if filter_authroles is None or session._session_details['authrole'] in filter_authroles:
+                    session_ids.append(session._session_id)
         return session_ids
 
     @wamp.register(u'wamp.session.count')
-    def session_count(self):
+    def session_count(self, filter_authroles=None):
         """
         Count sessions currently joined on the router.
+
+        :param filter_authroles: If provided, only count sessions with an authrole from this list.
+        :type filter_authroles: None or list
 
         :returns: Count of joined sessions.
         :rtype: int
         """
+        assert(filter_authroles is None or type(filter_authroles) == list)
         session_count = 0
         for session in self._router._session_id_to_session.values():
             if not is_restricted_session(session):
-                session_count += 1
+                if filter_authroles is None or session._session_details['authrole'] in filter_authroles:
+                    session_count += 1
         return session_count
 
     @wamp.register(u'wamp.session.get')

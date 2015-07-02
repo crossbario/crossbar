@@ -141,7 +141,7 @@ class NodeControllerSession(NativeProcessSession):
 
         self.cbdir = self._node._cbdir
 
-        self._created = utcnow()
+        self._started = None
         self._pid = os.getpid()
 
         # map of worker processes: worker_id -> NativeWorkerProcess
@@ -214,6 +214,8 @@ class NodeControllerSession(NativeProcessSession):
         regs = yield DeferredList(dl)
 
         self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+
+        self._started = utcnow()
 
         self.publish(u"crossbar.node.on_ready", self._node_id)
 
@@ -299,7 +301,7 @@ class NodeControllerSession(NativeProcessSession):
         Return node information.
         """
         return {
-            'created': self._created,
+            'started': self._started,
             'pid': self._pid,
             'workers': len(self._workers),
             'directory': self.cbdir,
