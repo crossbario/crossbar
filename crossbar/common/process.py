@@ -246,7 +246,7 @@ class NativeProcessSession(ApplicationSession):
 
         :returns dict -- The connection.
         """
-        self.log.info("start_connection: id={id}, config={config}", id=id, config=config)
+        self.log.debug("start_connection: id={id}, config={config}", id=id, config=config)
 
         # prohibit starting a component twice
         #
@@ -281,6 +281,7 @@ class NativeProcessSession(ApplicationSession):
 
         try:
             yield connection.start()
+            self.log.info("Connection {connection_type} started '{connection_id}'", connection_id=id, connection_type=config['type'])
         except Exception, e:
             del self._connections[id]
             raise

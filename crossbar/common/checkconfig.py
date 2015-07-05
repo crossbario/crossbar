@@ -1594,7 +1594,7 @@ def check_container(container, silence=False):
     :type router: dict
     """
     for k in container:
-        if k not in ['id', 'type', 'options', 'manhole', 'transports', 'components']:
+        if k not in ['id', 'type', 'options', 'manhole', 'components', 'connections']:
             raise Exception("encountered unknown attribute '{}' in container configuration".format(k))
 
     # check stuff common to all native workers

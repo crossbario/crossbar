@@ -349,7 +349,8 @@ class Node(object):
                             yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
                             self.log.info("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
 
-                    # start connections to run embedded in the router
+                    # start connections (such as PostgreSQL database connection pools)
+                    # to run embedded in the router
                     #
                     connection_no = 1
 
@@ -415,6 +416,24 @@ class Node(object):
                     topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self._node_id, worker_id)
                     component_stop_sub = yield self._controller.subscribe(component_exited, topic)
 
+                    # start connections (such as PostgreSQL database connection pools)
+                    # to run embedded in the container
+                    #
+                    connection_no = 1
+
+                    for connection in worker.get('connections', []):
+
+                        if 'id' in connection:
+                            connection_id = connection.pop('id')
+                        else:
+                            connection_id = 'connection{}'.format(connection_no)
+                            connection_no += 1
+
+                        yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
+                        self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
+
+                    # start components to run embedded in the container
+                    #
                     for component in worker.get('components', []):
 
                         if 'id' in component:
