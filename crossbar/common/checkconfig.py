@@ -1489,7 +1489,7 @@ def check_router_realm(realm, silence=False):
                     }, grants, "invalid grant in realm permissions")
 
 
-def check_components(self, components, silence=False):
+def check_components(components, silence=False):
     """
     Components can be present in router workers and container workers.
     """
@@ -1504,11 +1504,11 @@ def check_components(self, components, silence=False):
         i += 1
 
 
-def check_connection(self, connection):
-    pass
+def check_connection(connection):
+    print("check_connection: not implemented")
 
 
-def check_connections(self, connections, silence=False):
+def check_connections(connections, silence=False):
     """
     Connections can be present in controller, router and container processes.
     """
@@ -1519,11 +1519,11 @@ def check_connections(self, connections, silence=False):
     for connection in connections:
         if not silence:
             print("Checking connection item {} ..".format(i))
-        check_connection(connection, silence)
+        check_connection(connection)
         i += 1
 
 
-def check_transports(self, transports, silence=False):
+def check_transports(transports, silence=False):
     """
     Transports can only be present in router workers.
     """
