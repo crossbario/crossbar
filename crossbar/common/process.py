@@ -104,7 +104,7 @@ if _HAS_POSTGRESQL:
                 'port': config['port'],
                 'database': config['database'],
             }
-            self.pool = txpostgres.ConnectionPool(min=5, **params)
+            self.pool = txpostgres.ConnectionPool(None, min=5, **params)
 
         def start(self):
             self.started = datetime.utcnow()
@@ -116,7 +116,7 @@ if _HAS_POSTGRESQL:
 
         def marshal(self):
             return {
-                'id': self.started,
+                'id': self.id,
                 'started': utcstr(self.started),
                 'stopped': utcstr(self.stopped) if self.stopped else None,
                 'config': self.config,
@@ -246,7 +246,7 @@ class NativeProcessSession(ApplicationSession):
 
         :returns dict -- The connection.
         """
-        self.log.debug("start_connection: id={id}, config={config}", id=id, config=config)
+        self.log.info("start_connection: id={id}, config={config}", id=id, config=config)
 
         # prohibit starting a component twice
         #
@@ -264,7 +264,7 @@ class NativeProcessSession(ApplicationSession):
             self.log.warn(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.info("Starting {}-connection in process.".format(config['type']))
+            self.log.info("Starting {} in process.".format(config['type']))
 
         if config['type'] == u'postgresql.connection':
             if _HAS_POSTGRESQL:
