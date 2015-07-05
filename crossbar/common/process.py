@@ -73,11 +73,57 @@ if _HAS_PSUTIL:
     from crossbar.common.processinfo import ProcessInfo
     # from crossbar.common.processinfo import SystemInfo
 
+try:
+    from txpostgres import txpostgres
+    _HAS_POSTGRESQL = True
+except ImportError:
+    _HAS_POSTGRESQL = False
+
 __all__ = ('NativeProcessSession',)
 
 
+if _HAS_POSTGRESQL:
+
+    class PostgreSQLConnection(object):
+        """
+        A PostgreSQL database connection pool.
+        """
+
+        def __init__(self, id, config):
+            """
+            """
+            self.id = id
+            self.config = config
+            self.started = None
+            self.stopped = None
+
+            params = {
+                'user': config['user'],
+                'password': config['password'],
+                'host': config['host'],
+                'port': config['port'],
+                'database': config['database'],
+            }
+            self.pool = txpostgres.ConnectionPool(min=5, **params)
+
+        def start(self):
+            self.started = datetime.utcnow()
+            return self.pool.start()
+
+        def stop(self):
+            self.stopped = datetime.utcnow()
+            return self.pool.close()
+
+        def marshal(self):
+            return {
+                'id': self.started,
+                'started': utcstr(self.started),
+                'stopped': utcstr(self.stopped) if self.stopped else None,
+                'config': self.config,
+            }
+
 if _HAS_MANHOLE:
-    class ManholeService:
+    class ManholeService(object):
 
         """
         Manhole service running inside a native processes (controller, router, container).
@@ -150,6 +196,8 @@ class NativeProcessSession(ApplicationSession):
             self._pinfo_monitor_seq = None
             self.log.info("Process utilities not available")
 
+        self._connections = {}
+
         if do_join:
             self.join(self.config.realm)
 
@@ -162,6 +210,9 @@ class NativeProcessSession(ApplicationSession):
             'start_manhole',
             'stop_manhole',
             'get_manhole',
+            'start_connection',
+            'stop_connection',
+            'get_connections',
             'trigger_gc',
             'utcnow',
             'started',
@@ -180,6 +231,114 @@ class NativeProcessSession(ApplicationSession):
         regs = yield DeferredList(dl)
 
         self.log.debug("Registered {len_reg} procedures", len_reg=len(regs))
+
+    @inlineCallbacks
+    def start_connection(self, id, config, details=None):
+        """
+        Starts a connection in this process.
+
+        :param id: The ID for the started connection.
+        :type id: unicode
+        :param config: Connection configuration.
+        :type config: dict
+        :param details: Caller details.
+        :type details: instance of :class:`autobahn.wamp.types.CallDetails`
+
+        :returns dict -- The connection.
+        """
+        self.log.debug("start_connection: id={id}, config={config}", id=id, config=config)
+
+        # prohibit starting a component twice
+        #
+        if id in self._connections:
+            emsg = "cannot start connection: a connection with id={} is already started".format(id)
+            self.log.warn(emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+
+        # check configuration
+        #
+        try:
+            checkconfig.check_connection(config)
+        except Exception as e:
+            emsg = "invalid connection configuration ({})".format(e)
+            self.log.warn(emsg)
+            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+        else:
+            self.log.info("Starting {}-connection in process.".format(config['type']))
+
+        if config['type'] == u'postgresql.connection':
+            if _HAS_POSTGRESQL:
+                connection = PostgreSQLConnection(id, config)
+            else:
+                emsg = "unable to start connection - required PostgreSQL driver package not installed"
+                self.log.warn(emsg)
+                raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+        else:
+            # should not arrive here
+            raise Exception("logic error")
+
+        self._connections[id] = connection
+
+        try:
+            yield connection.start()
+        except Exception, e:
+            del self._connections[id]
+            raise
+
+        state = connection.marshal()
+
+        self.publish(u'crossbar.node.process.on_connection_start', state)
+
+        returnValue(state)
+
+    @inlineCallbacks
+    def stop_connection(self, id, details=None):
+        """
+        Stop a connection currently running within this process.
+
+        :param id: The ID of the connection to stop.
+        :type id: unicode
+        :param details: Caller details.
+        :type details: instance of :class:`autobahn.wamp.types.CallDetails`
+
+        :returns dict -- A dict with component start information.
+        """
+        self.log.debug("stop_connection: id={id}", id=id)
+
+        if id not in self._connections:
+            raise ApplicationError('crossbar.error.no_such_object', 'no connection with ID {} running in this process'.format(id))
+
+        connection = self._connections[id]
+
+        try:
+            yield connection.stop()
+        except Exception as e:
+            self.log.warn('could not stop connection {id}: {error}', error=e)
+            raise
+
+        del self._connections[id]
+
+        state = connection.marshal()
+
+        self.publish(u'crossbar.node.process.on_connection_stop', state)
+
+        returnValue(state)
+
+    def get_connections(self, details=None):
+        """
+        Get connections currently running within this processs.
+
+        :param details: Caller details.
+        :type details: instance of :class:`autobahn.wamp.types.CallDetails`
+
+        :returns list -- List of connections.
+        """
+        self.log.debug("get_connections")
+
+        res = []
+        for c in self._connections.values():
+            res.append(c.marshal())
+        return res
 
     def get_process_info(self, details=None):
         """

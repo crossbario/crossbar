@@ -1488,20 +1488,45 @@ def check_router_realm(realm, silence=False):
                         'register': (False, [bool]),
                     }, grants, "invalid grant in realm permissions")
 
-    # components
-    #
-    if 'components' in realm:
-        components = realm['components']
-        if not isinstance(components, list):
-            raise Exception("'components' in 'realm' must be a list ({} encountered)\n\n{}".format(type(components), realm))
 
-        i = 1
-        for component in components:
-            if not silence:
-                print("Checking component item {} ..".format(i))
-            # FIXME
-            # check_component(component)
-            i += 1
+def check_components(self, components, silence=False):
+    """
+    Components can be present in router workers and container workers.
+    """
+    if not isinstance(components, list):
+        raise Exception("'components' items must be lists ({} encountered)".format(type(components)))
+
+    i = 1
+    for component in components:
+        if not silence:
+            print("Checking component item {} ..".format(i))
+        check_router_component(component, silence)
+        i += 1
+
+
+def check_connection(self, connection):
+    pass
+
+
+def check_connections(self, connections, silence=False):
+    """
+    Connections can be present in controller, router and container processes.
+    """
+    if not isinstance(connections, list):
+        raise Exception("'connections' items must be lists ({} encountered)".format(type(connections)))
+
+    i = 1
+    for connection in connections:
+        if not silence:
+            print("Checking connection item {} ..".format(i))
+        check_connection(connection, silence)
+        i += 1
+
+
+def check_transports(self, transports, silence=False):
+    """
+    Transports can only be present in router workers.
+    """
 
 
 def check_router(router, silence=False):
@@ -1512,7 +1537,7 @@ def check_router(router, silence=False):
     :type router: dict
     """
     for k in router:
-        if k not in ['id', 'type', 'options', 'manhole', 'realms', 'transports', 'components', 'links']:
+        if k not in ['id', 'type', 'options', 'manhole', 'realms', 'transports', 'components', 'connections', 'links']:
             raise Exception("encountered unknown attribute '{}' in router configuration".format(k))
 
     # check stuff common to all native workers
@@ -1537,24 +1562,9 @@ def check_router(router, silence=False):
         check_router_realm(realm, silence)
         i += 1
 
-    # components
-    #
-    components = router.get('components', [])
-
-    if not isinstance(components, list):
-        raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(router)))
-
-    i = 1
-    for component in components:
-        if not silence:
-            print("Checking component item {} ..".format(i))
-        check_router_component(component, silence)
-        i += 1
-
     # transports
     #
     transports = router.get('transports', [])
-
     if not isinstance(transports, list):
         raise Exception("'transports' items must be lists ({} encountered)\n\n{}".format(type(transports), pformat(router)))
 
@@ -1564,6 +1574,16 @@ def check_router(router, silence=False):
             print("Checking transport item {} ..".format(i))
         check_router_transport(transport, silence)
         i += 1
+
+    # connections
+    #
+    connections = router.get('connections', [])
+    check_connections(connections, silence=silence)
+
+    # components
+    #
+    components = router.get('components', [])
+    check_components(components, silence=silence)
 
 
 def check_container(container, silence=False):
@@ -1585,19 +1605,15 @@ def check_container(container, silence=False):
     if 'options' in container:
         check_native_worker_options(container['options'])
 
+    # connections
+    #
+    connections = container.get('connections', [])
+    check_connections(connections, silence=silence)
+
     # components
     #
     components = container.get('components', [])
-
-    if not isinstance(components, list):
-        raise Exception("'components' items must be lists ({} encountered)\n\n{}".format(type(components), pformat(container)))
-
-    i = 1
-    for component in components:
-        if not silence:
-            print("Checking component item {} ..".format(i))
-        check_container_component(component, silence)
-        i += 1
+    check_components(components, silence=silence)
 
 
 def check_router_options(options):
@@ -1861,7 +1877,7 @@ def check_controller(controller, silence=False):
         raise Exception("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'transport', 'manhole', 'manager']:
+        if k not in ['id', 'options', 'transport', 'manhole', 'manager', 'connections']:
             raise Exception("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -1876,9 +1892,14 @@ def check_controller(controller, silence=False):
     if 'manager' in controller:
         check_manager(controller['manager'])
 
-    if 'transport' in controller:
-        # FIXME: for now, only allow WAMP-WebSocket here
-        check_listening_transport_websocket(controller['transport'])
+#    if 'transport' in controller:
+#        # FIXME: for now, only allow WAMP-WebSocket here
+#        check_listening_transport_websocket(controller['transport'])
+
+    # connections
+    #
+    connections = controller.get('connections', [])
+    check_connections(connections, silence=silence)
 
 
 def check_manager(manager, silence=False):
