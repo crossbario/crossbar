@@ -73,10 +73,39 @@ def _readenv(var, msg):
         if envvar in os.environ:
             return os.environ[envvar]
         else:
-            raise Exception("{} - enviroment variable '{}' not set".format(msg, var))
+            raise Exception("{} - environment variable '{}' not set".format(msg, var))
     else:
         raise Exception("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
 
+
+def get_config_value(config, item, default=None):
+    """
+    Get an item from a configuration dict, possibly trying to read the
+    item's value from an environment variable.
+
+    E.g., consider `{"password": "secret123"}`. The function will simply return
+    the value `"secret123"`, while with `{"password": "$PASSWORD"}` will read the value
+    from the enviroment variable `PASSWORD`.
+
+    When the item is missing in the configuration, or a coonfigured enviroment
+    variable isn't defined, a default value is returned.
+    """
+    if item in config:
+        # for str/unicode valued items, check if the value actually point to
+        # an enviroment variable (e.g. "$PGPASSWORD")
+        if type(config[item]) in (str, unicode):
+            match = _ENV_VAR_PAT.match(config[item])
+            if match and match.groups():
+                envvar = match.groups()[0]
+                if envvar in os.environ:
+                    return os.environ[envvar]
+                else:
+                    # item value seems to point to an enviroment variable,
+                    # but the enviroment variable isn't set
+                    return default
+        return config[item]
+    else:
+        return default
 
 _CONFIG_ITEM_ID_PAT_STR = "^[a-z][a-z0-9_]{2,11}$"
 _CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
@@ -1505,7 +1534,30 @@ def check_components(components, silence=False):
 
 
 def check_connection(connection):
-    print("check_connection: not implemented")
+    """
+    Check a connection item (such as a PostgreSQL or Oracle database connection pool).
+    """
+    if 'type' not in connection:
+        raise Exception("missing mandatory attribute 'type' in connection configuration")
+
+    valid_types = ['postgresql.connection']
+    if connection['type'] not in valid_types:
+        raise Exception("invalid type '{}' for connection type - must be one of {}".format(connection['type'], valid_types))
+
+    if connection['type'] == 'postgresql.connection':
+        check_dict_args({
+            'type': (True, [six.text_type]),
+            'host': (False, [six.text_type]),
+            'port': (False, six.integer_types),
+            'database': (True, [six.text_type]),
+            'user': (True, [six.text_type]),
+            'password': (True, [six.text_type]),
+        }, connection, "PostgreSQL connection configuration")
+        if 'port' in connection:
+            check_endpoint_port(connection['port'])
+
+    else:
+        raise Exception("logic error")
 
 
 def check_connections(connections, silence=False):

@@ -66,6 +66,7 @@ from autobahn.wamp.types import PublishOptions, RegisterOptions
 
 from crossbar._logging import make_logger
 from crossbar.common import checkconfig
+from crossbar.common.checkconfig import get_config_value
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
@@ -89,8 +90,15 @@ if _HAS_POSTGRESQL:
         A PostgreSQL database connection pool.
         """
 
+        log = make_logger()
+
         def __init__(self, id, config):
             """
+
+            :param id: The ID of the connection item.
+            :type id: unicode
+            :param config: The connection item configuration.
+            :type config: dict
             """
             self.id = id
             self.config = config
@@ -98,11 +106,11 @@ if _HAS_POSTGRESQL:
             self.stopped = None
 
             params = {
-                'user': config['user'],
-                'password': config['password'],
-                'host': config['host'],
-                'port': config['port'],
+                'host': config.get('host', 'localhost'),
+                'port': config.get('port', 5432),
                 'database': config['database'],
+                'user': config['user'],
+                'password': get_config_value(config, 'password'),
             }
             self.pool = txpostgres.ConnectionPool(None, min=5, **params)
 
