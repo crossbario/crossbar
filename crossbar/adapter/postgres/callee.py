@@ -30,10 +30,16 @@
 
 from __future__ import absolute_import
 
-from crossbar.adapter.postgres.publisher import PostgreSQLPublisher
-from crossbar.adapter.postgres.callee import PostgreSQLCallee
+from autobahn.twisted.wamp import ApplicationSession
 
-__all__ = (
-    'PostgreSQLPublisher',
-    'PostgreSQLCallee'
-)
+from crossbar._logging import make_logger
+
+__all__ = ('PostgreSQLCallee',)
+
+
+class PostgreSQLCallee(ApplicationSession):
+
+    log = make_logger()
+
+    def onJoin(self, details):
+        pass
