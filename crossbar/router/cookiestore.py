@@ -38,14 +38,14 @@ from autobahn import util
 from crossbar._logging import make_logger
 
 __all__ = (
-    'CookieStore',
-    'PersistentCookieStore',
+    'CookieStoreMemoryBacked',
+    'CookieStoreFileBacked',
 )
 
 
-class CookieStore:
+class CookieStore(object):
     """
-    A transient cookie store.
+    Cookie store common base.
     """
 
     log = make_logger()
@@ -71,7 +71,7 @@ class CookieStore:
         # transient cookie database
         self._cookies = {}
 
-        self.log.info("Transient cookie stored created with config {config}", config=config)
+        self.log.debug("Cookie stored created with config {config}", config=config)
 
     def parse(self, headers):
         """
@@ -104,12 +104,25 @@ class CookieStore:
 
         cbtid = util.newid(self._cookie_id_field_length)
 
-        cbtData = {'created': util.utcnow(),
-                   'authid': None,
-                   'authrole': None,
-                   'authmethod': None,
-                   'max_age': self._cookie_max_age,
-                   'connections': set()}
+        # cookie tracking data
+        cbtData = {
+            # UTC timestamp when the cookie was created
+            'created': util.utcnow(),
+
+            # maximum lifetime of the tracking/authenticating cookie
+            'max_age': self._cookie_max_age,
+
+            # when a cookie has been set, and the WAMP session
+            # was successfully authenticated thereafter, the latter
+            # auth info is store here
+            'authid': None,
+            'authrole': None,
+            'authmethod': None,
+
+            # set of WAMP transports (WebSocket connections) this
+            # cookie is currently used on
+            'connections': set()
+        }
 
         self._cookies[cbtid] = cbtData
 
@@ -192,21 +205,31 @@ class CookieStore:
             return []
 
 
-class PersistentCookieStore(CookieStore):
-
+class CookieStoreMemoryBacked(CookieStore):
     """
-    A persistent cookie store.
+    Memory-backed cookie store.
     """
 
-    def __init__(self, cookie_file_name, config, debug=False):
-        CookieStore.__init__(self, config, debug)
+class CookieStoreFileBacked(CookieStore):
+    """
+    A persistent, file-backed cookie store.
+
+    This cookie store is backed by a file, which is written to in append-only mode.
+    Hence, the file is "growing forever". Whenever information attached to a cookie
+    is changed (such as a previously anonymous cookie is authenticated), a new cookie
+    record is appended. When the store is booting, the file is sequentially scanned.
+    The last record for a given cookie ID is remembered in memory.
+    """
+
+    def __init__(self, cookie_file_name, config):
+        CookieStore.__init__(self, config)
 
         self._cookie_file_name = cookie_file_name
 
         if not os.path.isfile(self._cookie_file_name):
-            self.log.info("File for file-based cookie store created")
+            self.log.debug("File-backed cookie store created")
         else:
-            self.log.info("File for file-based cookie store already exists")
+            self.log.debug("File-backed cookie store already exists")
 
         self._cookie_file = open(self._cookie_file_name, 'a')
 
@@ -241,7 +264,7 @@ class PersistentCookieStore(CookieStore):
             self._cookies[id] = cookie
             n += 1
 
-        self.log.info("Loaded {cnt_cookies} from file-based cookie store", cnt_cookies=n)
+        self.log.info("Loaded {cnt_cookies} cookie records from file", cnt_cookies=n)
 
     def create(self):
         cbtid, header = CookieStore.create(self)

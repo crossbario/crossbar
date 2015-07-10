@@ -39,7 +39,7 @@ from autobahn.websocket.compress import *  # noqa
 
 import crossbar
 
-from crossbar.router.cookiestore import CookieStore, PersistentCookieStore
+from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked
 from crossbar._logging import make_logger
 
 log = make_logger()
@@ -368,13 +368,20 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
 
         # cookie tracking
         if 'cookie' in config:
-            if 'database' in config['cookie']:
-                dbfile = os.path.abspath(os.path.join(self._cbdir, config['cookie']['database']))
-                self._cookiestore = PersistentCookieStore(dbfile, config['cookie'])
-                self.log.info("Persistent cookie store active: {}".format(dbfile))
+            cookie_store_type = config['cookie']['store']['type']
+
+            if cookie_store_type == 'memory':
+                self._cookiestore = CookieStoreMemoryBacked(config['cookie'])
+                self.log.info("Memory-backed cookie store active.")
+
+            elif cookie_store_type == 'file':
+                cookie_store_file = os.path.abspath(os.path.join(self._cbdir, config['cookie']['store']['filename']))
+                self._cookiestore = CookieStoreFileBacked(cookie_store_file, config['cookie'])
+                self.log.info("File-backed cookie store active {cookie_store_file}", cookie_store_file=cookie_store_file)
+
             else:
-                self._cookiestore = CookieStore(config['cookie'])
-                self.log.info("Transient cookie store active.")
+                # should not arrive here as the config should have been checked before
+                raise Exception("logic error")
         else:
             self._cookiestore = None
 
