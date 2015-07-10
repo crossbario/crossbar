@@ -447,7 +447,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            checkconfig.check_router_component(config)
+            checkconfig.check_component(config)
         except Exception as e:
             emsg = "ERROR: invalid router component configuration ({})".format(e)
             log.msg(emsg)
@@ -456,8 +456,28 @@ class RouterWorkerSession(NativeWorkerSession):
             if self.debug:
                 log.msg("Starting {}-component on router.".format(config['type']))
 
+        # resolve references to other entities
+        #
+        references = {}
+        for ref in config.get('references', []):
+            ref_type, ref_id = ref.split(':')
+            if ref_type == u'connection':
+                if ref_id in self._connections:
+                    references[ref] = self._connections[ref_id]
+                else:
+                    emsg = "cannot resolve reference '{}' - no '{}' with ID '{}'".format(ref_type, ref_id)
+                    log.msg(emsg)
+                    raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+            else:
+                emsg = "cannot resolve reference '{}' - invalid reference type '{}'".format(ref, ref_type)
+                log.msg(emsg)
+                raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+
+        # create component config
+        #
         realm = config['realm']
-        cfg = ComponentConfig(realm=realm, extra=config.get('extra', None))
+        extra = config.get('extra', None)
+        cfg = ComponentConfig(realm=realm, extra=extra)
 
         if config['type'] == 'class':
 

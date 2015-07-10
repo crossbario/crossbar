@@ -198,6 +198,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             self._authid = None
             self._authrole = None
             self._authmethod = None
+            self._authprovider = None
 
             # cookie tracking
             #
@@ -230,15 +231,20 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
                     self._authid, self._authrole, self._authmethod = self.factory._cookiestore.getAuth(self._cbtid)
 
-                    self.log.debug("Authenticated client via cookie id={id}, role={role}, method={method}",
-                                   id=self._authid, role=self._authrole,
-                                   method=self._authmethod)
+                    if self._authid:
+                        self._authprovider = u'cookie'
+                        self.log.debug("Authenticated client via cookie id={id}, role={role}, method={method}",
+                                       id=self._authid, role=self._authrole,
+                                       method=self._authmethod)
+                    else:
+                        # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
+                        pass
                 else:
-                    self.log.debug("Cookie-based authentication disabled")
+                    self.log.info("Cookie-based authentication disabled")
 
             else:
 
-                self.log.debug("Cookie tracking disabled on WebSocket connection {}".format(self))
+                self.log.info("Cookie tracking disabled on WebSocket connection {}".format(self))
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
@@ -391,6 +397,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         self._authid = None
         self._authrole = None
         self._authmethod = None
+        self._authprovider = None
 
         # cookie tracking
         #

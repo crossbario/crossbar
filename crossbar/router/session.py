@@ -534,7 +534,7 @@ class RouterSession(_RouterSession):
             #
             if self._transport._authid is not None:
 
-                # already authenticated .. e.g. via cookie
+                # already authenticated .. e.g. via HTTP Cookie or TLS client-certificate
 
                 # check if role still exists on realm
                 #
@@ -544,7 +544,7 @@ class RouterSession(_RouterSession):
                     return types.Accept(authid=self._transport._authid,
                                         authrole=self._transport._authrole,
                                         authmethod=self._transport._authmethod,
-                                        authprovider='transport')
+                                        authprovider=self._transport._authprovider)
                 else:
                     return types.Deny(ApplicationError.NO_SUCH_ROLE, message="session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'".format(self._transport._authrole, realm))
 
@@ -772,16 +772,15 @@ class RouterSession(_RouterSession):
                             # "Cookie" authentication
                             #
                             elif authmethod == u"cookie":
+                                # the client requested cookie authentication, but there is 1) no cookie set,
+                                # or 2) a cookie set, but that cookie wasn't authenticated before using
+                                # a different auth method (if it had been, we would never have entered here, since then
+                                # auth info would already have been extracted from the transport)
+                                # consequently, we skip this auth method and move on to next auth method.
                                 pass
-                                # if self._transport._cbtid:
-                                #    cookie = self._transport.factory._cookies[self._transport._cbtid]
-                                #    authid = cookie['authid']
-                                #    authrole = cookie['authrole']
-                                #    authmethod = "cookie.{}".format(cookie['authmethod'])
-                                #    return types.Accept(authid = authid, authrole = authrole, authmethod = authmethod)
-                                # else:
-                                #    return types.Deny()
 
+                            # Unknown authentication method
+                            #
                             else:
                                 self.log.info("unknown authmethod '{}'".format(authmethod))
                                 return types.Deny(message="unknown authentication method {}".format(authmethod))
@@ -990,6 +989,10 @@ class RouterSession(_RouterSession):
             return types.Deny(message=u"no pending authentication")
 
     def onJoin(self, details):
+
+        if hasattr(self._transport, '_cbtid') and self._transport._cbtid:
+            if details.authmethod != 'cookie':
+                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole, details.authmethod)
 
         # Router/Realm service session
         #

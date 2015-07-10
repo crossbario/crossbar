@@ -33,10 +33,9 @@ import json
 
 from six.moves import http_cookies
 
-from twisted.python import log
-
-
 from autobahn import util
+
+from crossbar._logging import make_logger
 
 __all__ = (
     'CookieStore',
@@ -45,36 +44,41 @@ __all__ = (
 
 
 class CookieStore:
-
     """
-    A cookie store.
+    A transient cookie store.
     """
 
-    def __init__(self, config, debug=False):
+    log = make_logger()
+
+    def __init__(self, config):
         """
         Ctor.
 
         :param config: The cookie configuration.
         :type config: dict
         """
-        self.debug = debug
-        if self.debug:
-            log.msg("CookieStore.__init__()", config)
-
         self._config = config
-        self._cookie_id_field = config.get('name', 'cbtid')
-        self._cookie_id_field_length = int(config.get('length', 24))
-        self._cookie_max_age = int(config.get('max_age', 86400 * 30 * 12))
 
+        # name of the HTTP cookie in use
+        self._cookie_id_field = config.get('name', 'cbtid')
+
+        # length of the cookie (random) ID value
+        self._cookie_id_field_length = int(config.get('length', 24))
+
+        # lifetime of the cookie in seconds (http://tools.ietf.org/html/rfc6265#page-20)
+        self._cookie_max_age = int(config.get('max_age', 86400 * 7))
+
+        # transient cookie database
         self._cookies = {}
+
+        self.log.info("Transient cookie stored created with config {config}", config=config)
 
     def parse(self, headers):
         """
         Parse HTTP header for cookie. If cookie is found, return cookie ID,
         else return None.
         """
-        if self.debug:
-            log.msg("CookieStore.parse()", headers)
+        self.log.debug("Parsing cookie from {headers}", headers=headers)
 
         # see if there already is a cookie set ..
         if 'cookie' in headers:
@@ -85,23 +89,20 @@ class CookieStore:
                 pass
             else:
                 if self._cookie_id_field in cookie:
-                    id = cookie[self._cookie_id_field].value
-                    if id in self._cookies:
-                        return id
+                    cbtid = cookie[self._cookie_id_field].value
+                    if cbtid in self._cookies:
+                        return cbtid
         return None
 
     def create(self):
         """
         Create a new cookie, returning the cookie ID and cookie header value.
         """
-        if self.debug:
-            log.msg("CookieStore.create()")
-
         # http://tools.ietf.org/html/rfc6265#page-20
         # 0: delete cookie
         # -1: preserve cookie until browser is closed
 
-        id = util.newid(self._cookie_id_field_length)
+        cbtid = util.newid(self._cookie_id_field_length)
 
         cbtData = {'created': util.utcnow(),
                    'authid': None,
@@ -110,83 +111,83 @@ class CookieStore:
                    'max_age': self._cookie_max_age,
                    'connections': set()}
 
-        self._cookies[id] = cbtData
+        self._cookies[cbtid] = cbtData
+
+        self.log.debug("New cookie {cbtid} created", cbtid=cbtid)
 
         # do NOT add the "secure" cookie attribute! "secure" refers to the
         # scheme of the Web page that triggered the WS, not WS itself!!
         #
-        return id, '%s=%s;max-age=%d' % (self._cookie_id_field, id, cbtData['max_age'])
+        return cbtid, '%s=%s;max-age=%d' % (self._cookie_id_field, cbtid, cbtData['max_age'])
 
-    def exists(self, id):
+    def exists(self, cbtid):
         """
         Check if cookie with given ID exists.
         """
-        if self.debug:
-            log.msg("CookieStore.exists()", id)
+        cookie_exists = cbtid in self._cookies
+        self.log.debug("Cookie {cbtid} exists = {cookie_exists}", cbtid=cbtid, cookie_exists=cookie_exists)
+        return cookie_exists
 
-        return id in self._cookies
-
-    def getAuth(self, id):
+    def getAuth(self, cbtid):
         """
         Return `(authid, authrole, authmethod)` triple given cookie ID.
         """
-        if self.debug:
-            log.msg("CookieStore.getAuth()", id)
-
-        if id in self._cookies:
-            c = self._cookies[id]
-            return c['authid'], c['authrole'], c['authmethod']
+        if cbtid in self._cookies:
+            c = self._cookies[cbtid]
+            cookie_auth_info = c['authid'], c['authrole'], c['authmethod']
         else:
-            return None, None, None
+            cookie_auth_info = None, None, None
 
-    def setAuth(self, id, authid, authrole, authmethod):
+        self.log.debug("Cookie auth info for {cbtid} retrieved: {cookie_auth_info}", cbtid=cbtid, cookie_auth_info=cookie_auth_info)
+
+        return cookie_auth_info
+
+    def setAuth(self, cbtid, authid, authrole, authmethod):
         """
         Set `(authid, authrole, authmethod)` triple for given cookie ID.
         """
-        if id in self._cookies:
-            c = self._cookies[id]
+        if cbtid in self._cookies:
+            c = self._cookies[cbtid]
             c['authid'] = authid
             c['authrole'] = authrole
             c['authmethod'] = authmethod
 
-    def addProto(self, id, proto):
+    def addProto(self, cbtid, proto):
         """
         Add given WebSocket connection to the set of connections associated
         with the cookie having the given ID. Return the new count of
         connections associated with the cookie.
         """
-        if self.debug:
-            log.msg("CookieStore.addProto()", id, proto)
+        self.log.debug("Adding proto {proto} to cookie {cbtid}", proto=proto, cbtid=cbtid)
 
-        if id in self._cookies:
-            self._cookies[id]['connections'].add(proto)
-            return len(self._cookies[id]['connections'])
+        if cbtid in self._cookies:
+            self._cookies[cbtid]['connections'].add(proto)
+            return len(self._cookies[cbtid]['connections'])
         else:
             return 0
 
-    def dropProto(self, id, proto):
+    def dropProto(self, cbtid, proto):
         """
         Remove given WebSocket connection from the set of connections associated
         with the cookie having the given ID. Return the new count of
         connections associated with the cookie.
         """
-        if self.debug:
-            log.msg("CookieStore.dropProto()", id, proto)
+        self.log.debug("Removing proto {proto} from cookie {cbtid}", proto=proto, cbtid=cbtid)
 
         # remove this WebSocket connection from the set of connections
         # associated with the same cookie
-        if id in self._cookies:
-            self._cookies[id]['connections'].discard(proto)
-            return len(self._cookies[id]['connections'])
+        if cbtid in self._cookies:
+            self._cookies[cbtid]['connections'].discard(proto)
+            return len(self._cookies[cbtid]['connections'])
         else:
             return 0
 
-    def getProtos(self, id):
+    def getProtos(self, cbtid):
         """
         Get all WebSocket connections currently associated with the cookie.
         """
-        if id in self._cookies:
-            return self._cookies[id]['connections']
+        if cbtid in self._cookies:
+            return self._cookies[cbtid]['connections']
         else:
             return []
 
@@ -203,9 +204,9 @@ class PersistentCookieStore(CookieStore):
         self._cookie_file_name = cookie_file_name
 
         if not os.path.isfile(self._cookie_file_name):
-            log.msg("Cookie store created.")
+            self.log.info("File for file-based cookie store created")
         else:
-            log.msg("Cookie store already exists.")
+            self.log.info("File for file-based cookie store already exists")
 
         self._cookie_file = open(self._cookie_file_name, 'a')
 
@@ -240,27 +241,26 @@ class PersistentCookieStore(CookieStore):
             self._cookies[id] = cookie
             n += 1
 
-        log.msg("Loaded {} cookies into cache.".format(n))
+        self.log.info("Loaded {cnt_cookies} from file-based cookie store", cnt_cookies=n)
 
     def create(self):
-        id, header = CookieStore.create(self)
+        cbtid, header = CookieStore.create(self)
 
-        c = self._cookies[id]
+        c = self._cookies[cbtid]
 
-        self._persist(id, c)
+        self._persist(cbtid, c)
 
-        if self.debug:
-            log.msg("Cookie {} stored".format(id))
+        self.log.debug("Cookie {cbtid} stored", cbtid=cbtid)
 
-        return id, header
+        return cbtid, header
 
-    def setAuth(self, id, authid, authrole, authmethod):
+    def setAuth(self, cbtid, authid, authrole, authmethod):
 
-        if self.exists(id):
+        if self.exists(cbtid):
 
-            cookie = self._cookies[id]
+            cookie = self._cookies[cbtid]
 
             # only set the changes and write them to the file if any of the values changed
             if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']:
-                CookieStore.setAuth(self, id, authid, authrole, authmethod)
-                self._persist(id, cookie)
+                CookieStore.setAuth(self, cbtid, authid, authrole, authmethod)
+                self._persist(cbtid, cookie)

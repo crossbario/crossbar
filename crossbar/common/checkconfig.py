@@ -219,6 +219,13 @@ def check_transport_auth_wampcra(config):
         raise Exception("logic error")
 
 
+def check_transport_auth_cookie(config):
+    """
+    Check a WAMP-Cookie configuration item.
+    """
+    pass
+
+
 def check_transport_auth_anonymous(config):
     """
     Check a WAMP-Anonymous configuration item.
@@ -238,11 +245,79 @@ def check_transport_auth(auth):
         'anonymous': check_transport_auth_anonymous,
         'ticket': check_transport_auth_ticket,
         'wampcra': check_transport_auth_wampcra,
+        'cookie': check_transport_auth_cookie
     }
     for k in auth:
         if k not in CHECKS:
             raise Exception("invalid authentication method key '{}' - must be one of {}".format(k, CHECKS.keys()))
         CHECKS[k](auth[k])
+
+
+def check_cookie_store_memory(store):
+    """
+    Checking memory-backed cookie store configuration.
+    """
+    check_dict_args({
+        'type': (True, [six.text_type]),
+    }, store, "WebSocket file-backed cookie store configuration")
+
+
+def check_cookie_store_file(store):
+    """
+    Checking file-backed cookie store configuration.
+    """
+    check_dict_args({
+        'type': (True, [six.text_type]),
+        'filename': (False, [six.text_type])
+    }, store, "WebSocket memory-backed cookie store configuration")
+
+
+_COOKIE_NAME_PAT_STR = "^[a-z][a-z0-9_]+$"
+_COOKIE_NAME_PAT = re.compile(_COOKIE_NAME_PAT_STR)
+
+
+def check_transport_cookie(cookie):
+    """
+    Check a WAMP-WebSocket transport cookie configuration.
+    """
+    check_dict_args({
+        'name': (False, [six.text_type]),
+        'length': (False, six.integer_types),
+        'max_age': (False, six.integer_types),
+        'store': (False, [dict])
+    }, cookie, "WebSocket cookie configuration")
+
+    if 'name' in cookie:
+        match = _COOKIE_NAME_PAT.match(cookie['name'])
+        if not match:
+            raise Exception("invalid cookie name '{}' - must match regular expression {}".format(cookie['name'], _COOKIE_NAME_PAT_STR))
+
+    if 'max_age' in cookie:
+        max_age = cookie['max_age']
+        if not (max_age > 0 and max_age <= 86400 * 360 * 10):
+            raise Exception("invalid cookie max_age {} - must be >0 seconds, and <= 10 years", format(max_age))
+
+    if 'length' in cookie:
+        length = cookie['length']
+        if not (length >= 6 and length <= 64):
+            raise Exception("invalid cookie length {} - must be >=6 and <= 64", format(length))
+
+    if 'store' in cookie:
+        store = cookie['store']
+
+        if 'type' not in store:
+            raise Exception("missing mandatory attribute 'type' in cookie store configuration\n\n{}".format(pformat(cookie)))
+
+        store_type = store['type']
+        if store_type not in ['memory', 'file']:
+            raise Exception("invalid attribute value '{}' for attribute 'type' in cookie store item\n\n{}".format(store_type, pformat(cookie)))
+
+        if store_type == 'memory':
+            check_cookie_store_memory(store)
+        elif store_type == 'file':
+            check_cookie_store_file(store)
+        else:
+            raise Exception("logic error")
 
 
 def check_endpoint_backlog(backlog):
@@ -571,6 +646,7 @@ def check_web_path_service_websocket(config):
         'type': (True, [six.text_type]),
         'url': (False, [six.text_type]),
         'serializers': (False, [list]),
+        'cookie': (False, [dict]),
         'auth': (False, [dict]),
         'options': (False, [dict]),
         'debug': (False, [bool])
@@ -595,6 +671,9 @@ def check_web_path_service_websocket(config):
 
     if 'auth' in config:
         check_transport_auth(config['auth'])
+
+    if 'cookie' in config:
+        check_transport_cookie(config['cookie'])
 
 
 def check_web_path_service_static(config):
@@ -1037,7 +1116,8 @@ def check_listening_transport_websocket(transport):
            'serializers',
            'debug',
            'options',
-           'auth']:
+           'auth',
+           'cookie']:
             raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
     if 'id' in transport:
@@ -1072,6 +1152,9 @@ def check_listening_transport_websocket(transport):
 
     if 'auth' in transport:
         check_transport_auth(transport['auth'])
+
+    if 'cookie' in transport:
+        check_transport_cookie(transport['cookie'])
 
 
 def check_listening_transport_websocket_testee(transport):
@@ -1360,7 +1443,7 @@ def check_router_transport(transport, silence=False):
         raise Exception("logic error")
 
 
-def check_router_component(component, silence=False):
+def check_component(component, silence=False):
     """
     Check a component configuration for a component running side-by-side with router.
 
@@ -1383,6 +1466,7 @@ def check_router_component(component, silence=False):
             'type': (True, [six.text_type]),
             'realm': (True, [six.text_type]),
             'role': (False, [six.text_type]),
+            'references': (False, [list]),
 
             'package': (True, [six.text_type]),
             'entrypoint': (True, [six.text_type]),
@@ -1395,6 +1479,7 @@ def check_router_component(component, silence=False):
             'type': (True, [six.text_type]),
             'realm': (True, [six.text_type]),
             'role': (False, [six.text_type]),
+            'references': (False, [list]),
 
             'classname': (True, [six.text_type]),
             'extra': (False, None),
@@ -1529,7 +1614,7 @@ def check_components(components, silence=False):
     for component in components:
         if not silence:
             print("Checking component item {} ..".format(i))
-        check_router_component(component, silence)
+        check_component(component, silence)
         i += 1
 
 
@@ -1537,6 +1622,9 @@ def check_connection(connection):
     """
     Check a connection item (such as a PostgreSQL or Oracle database connection pool).
     """
+    if 'id' in connection:
+        check_id(connection['id'])
+
     if 'type' not in connection:
         raise Exception("missing mandatory attribute 'type' in connection configuration")
 
@@ -1546,15 +1634,24 @@ def check_connection(connection):
 
     if connection['type'] == 'postgresql.connection':
         check_dict_args({
+            'id': (False, [six.text_type]),
             'type': (True, [six.text_type]),
             'host': (False, [six.text_type]),
             'port': (False, six.integer_types),
             'database': (True, [six.text_type]),
             'user': (True, [six.text_type]),
             'password': (True, [six.text_type]),
+            'options': (False, [dict]),
         }, connection, "PostgreSQL connection configuration")
+
         if 'port' in connection:
             check_endpoint_port(connection['port'])
+
+        if 'options' in connection:
+            check_dict_args({
+                'min_connections': (False, six.integer_types),
+                'max_connections': (False, six.integer_types),
+            }, connection['options'], "PostgreSQL connection options")
 
     else:
         raise Exception("logic error")
