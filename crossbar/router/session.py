@@ -753,14 +753,11 @@ class RouterSession(_RouterSession):
                                     return types.Deny(ApplicationError.NO_SUCH_ROLE, message="authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
 
                                 # authid generation
-                                #
                                 if self._transport._cbtid:
                                     # if cookie tracking is enabled, set authid to cookie value
-                                    #
                                     authid = self._transport._cbtid
                                 else:
                                     # if no cookie tracking, generate a random value for authid
-                                    #
                                     authid = util.newid(24)
 
                                 self._transport._authid = authid
@@ -794,14 +791,11 @@ class RouterSession(_RouterSession):
                     #
 
                     # authid generation
-                    #
                     if self._transport._cbtid:
                         # if cookie tracking is enabled, set authid to cookie value
-                        #
                         authid = self._transport._cbtid
                     else:
                         # if no cookie tracking, generate a random value for authid
-                        #
                         authid = util.newid(24)
 
                     return types.Accept(authid=authid, authrole="anonymous", authmethod="anonymous")

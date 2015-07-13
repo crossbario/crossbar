@@ -193,19 +193,20 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
             self._origin = request.origin
 
-            # transport authentication
+            # transport-level WMAP authentication info
             #
             self._authid = None
             self._authrole = None
             self._authmethod = None
             self._authprovider = None
 
-            # cookie tracking
+            # cookie tracking and cookie-based authentication
             #
             self._cbtid = None
 
             if self.factory._cookiestore:
 
+                # try to parse an already set cookie from HTTP request headers
                 self._cbtid = self.factory._cookiestore.parse(request.headers)
 
                 # if no cookie is set, create a new one ..
@@ -215,7 +216,6 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
                     self.log.debug("Setting new cookie: {cookie}",
                                    cookie=headers['Set-Cookie'])
-
                 else:
                     self.log.debug("Cookie already set")
 
@@ -232,18 +232,17 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                     self._authid, self._authrole, self._authmethod = self.factory._cookiestore.getAuth(self._cbtid)
 
                     if self._authid:
+                        # there is a cookie set, and the cookie was previously successfully authenticated,
+                        # so immediately authenticate the client using that information
                         self._authprovider = u'cookie'
-                        self.log.debug("Authenticated client via cookie id={id}, role={role}, method={method}",
-                                       id=self._authid, role=self._authrole,
-                                       method=self._authmethod)
+                        self.log.debug("Authenticated client via cookie cbtid={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}",
+                                       cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
-                        pass
+                        self.log.debig("Cookie-based authentication enabled, but cookie isn't authenticated yet")
                 else:
                     self.log.info("Cookie-based authentication disabled")
-
             else:
-
                 self.log.info("Cookie tracking disabled on WebSocket connection {}".format(self))
 
             # remember transport level info for later forwarding in
@@ -254,7 +253,8 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 'protocol': protocol,
                 'peer': self.peer,
                 'http_headers_received': request.headers,
-                'http_headers_sent': headers
+                'http_headers_sent': headers,
+                'cbtid': self._cbtid
             }
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
@@ -370,10 +370,12 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
         if 'cookie' in config:
             cookie_store_type = config['cookie']['store']['type']
 
+            # ephemeral, memory-backed cookie store
             if cookie_store_type == 'memory':
                 self._cookiestore = CookieStoreMemoryBacked(config['cookie'])
                 self.log.info("Memory-backed cookie store active.")
 
+            # persistent, file-backed cookie store
             elif cookie_store_type == 'file':
                 cookie_store_file = os.path.abspath(os.path.join(self._cbdir, config['cookie']['store']['filename']))
                 self._cookiestore = CookieStoreFileBacked(cookie_store_file, config['cookie'])
@@ -406,7 +408,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         self._authmethod = None
         self._authprovider = None
 
-        # cookie tracking
+        # cookie tracking ID
         #
         self._cbtid = None
 
