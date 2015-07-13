@@ -202,18 +202,18 @@ class CrossbarLoggerTests(TestCase):
 
         log.logger.failure.assert_called_once()
 
-    def test_logger_failure_not_called(self):
-        """
-        The failure method isn't called under 'none'.
-        """
-        log = make_logger("none", logger=Mock)
+    # def test_logger_failure_not_called(self):
+    #     """
+    #     The failure method isn't called under 'none'.
+    #     """
+    #     log = make_logger("none", logger=Mock)
 
-        try:
-            1 / 0
-        except:
-            log.failure("Failure happened!")
+    #     try:
+    #         1 / 0
+    #     except:
+    #         log.failure("Failure happened!")
 
-        self.assertEqual(log.logger.failure.call_count, 0)
+    #     self.assertEqual(log.logger.failure.call_count, 0)
 
 
 class JSONObserverTests(TestCase):

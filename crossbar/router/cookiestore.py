@@ -210,6 +210,7 @@ class CookieStoreMemoryBacked(CookieStore):
     Memory-backed cookie store.
     """
 
+
 class CookieStoreFileBacked(CookieStore):
     """
     A persistent, file-backed cookie store.

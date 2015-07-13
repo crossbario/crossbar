@@ -465,7 +465,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 if ref_id in self._connections:
                     references[ref] = self._connections[ref_id]
                 else:
-                    emsg = "cannot resolve reference '{}' - no '{}' with ID '{}'".format(ref_type, ref_id)
+                    emsg = "cannot resolve reference '{}' - no '{}' with ID '{}'".format(ref, ref_type, ref_id)
                     log.msg(emsg)
                     raise ApplicationError("crossbar.error.invalid_configuration", emsg)
             else:
