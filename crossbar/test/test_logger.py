@@ -189,31 +189,31 @@ class CrossbarLoggerTests(TestCase):
         self.assertEqual(log.logger.namespace,
                          "crossbar.test.test_logger._makelog")
 
-    # def test_logger_failure(self):
-    #     """
-    #     The failure method catches the in-flight exception.
-    #     """
-    #     log = make_logger("info", logger=Mock)
+    def test_logger_failure(self):
+        """
+        The failure method catches the in-flight exception.
+        """
+        log = make_logger("info", logger=Mock)
 
-    #     try:
-    #         1 / 0
-    #     except:
-    #         log.failure("Failure happened!")
+        try:
+            1 / 0
+        except:
+            log.failure("Failure happened!")
 
-    #     log.logger.failure.assert_called_once()
+        self.assertEqual(log.logger.failure.call_count, 1)
 
-    # def test_logger_failure_not_called(self):
-    #     """
-    #     The failure method isn't called under 'none'.
-    #     """
-    #     log = make_logger("none", logger=Mock)
+    def test_logger_failure_not_called(self):
+        """
+        The failure method isn't called under 'none'.
+        """
+        log = make_logger("none", logger=Mock)
 
-    #     try:
-    #         1 / 0
-    #     except:
-    #         log.failure("Failure happened!")
+        try:
+            1 / 0
+        except:
+            log.failure("Failure happened!")
 
-    #     self.assertEqual(log.logger.failure.call_count, 0)
+        self.assertEqual(log.logger.failure.call_count, 0)
 
 
 class JSONObserverTests(TestCase):
