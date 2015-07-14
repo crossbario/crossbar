@@ -32,8 +32,9 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
-import json
 import six
+
+from json import JSONEncoder
 
 from functools import partial
 
@@ -213,8 +214,6 @@ def make_JSON_observer(outFile):
     """
     Make an observer which writes JSON to C{outfile}.
     """
-    from json import JSONEncoder
-
     class CrossbarEncoder(JSONEncoder):
         def default(self, o):
             return repr(o)
@@ -249,9 +248,10 @@ def make_JSON_observer(outFile):
 
             text = encoder.encode(event)
         except Exception as e:
-            text = encoder.encode({"text": "Error writing: " + str(e) + " " + str(event),
-                               "level": "error",
-                               "namespace": "crossbar._logging"})
+            text = encoder.encode({
+                "text": "Error writing: " + str(e) + " " + str(event),
+                "level": "error",
+                "namespace": "crossbar._logging"})
 
         if not isinstance(text, six.text_type):
             text = text.decode('utf8')
