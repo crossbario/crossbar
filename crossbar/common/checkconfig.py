@@ -1603,7 +1603,7 @@ def check_router_realm(realm, silence=False):
                     }, grants, "invalid grant in realm permissions")
 
 
-def check_components(components, silence=False, checker=check_component):
+def check_components(components, silence=False):
     """
     Components can be present in router workers and container workers.
     """
@@ -1614,7 +1614,7 @@ def check_components(components, silence=False, checker=check_component):
     for component in components:
         if not silence:
             print("Checking component item {} ..".format(i))
-        checker(component, silence)
+        check_component(component, silence)
         i += 1
 
 
@@ -1762,8 +1762,7 @@ def check_container(container, silence=False):
     # components
     #
     components = container.get('components', [])
-    check_components(components, silence=silence,
-                     checker=check_container_component)
+    check_components(components, silence=silence)
 
 
 def check_router_options(options):
