@@ -42,6 +42,8 @@ from autobahn.websocket.protocol import parseWsUrl
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
 # from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY
 
+from crossbar._logging import make_logger
+
 import yaml
 from yaml import Loader, SafeLoader
 
@@ -64,6 +66,12 @@ SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
 _ENV_VAR_PAT_STR = "^\$([A-Z0-9_]+)$"
 _ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
+
+log = make_logger()
+
+
+class InvalidConfigException(Exception):
+    pass
 
 
 def _readenv(var, msg):
