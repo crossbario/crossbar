@@ -144,13 +144,22 @@ def check_realm_name(name):
 
 
 def check_dict_args(spec, config, msg):
+    """
+    Check the arguments of C{config} according to C{spec}.
+
+    C{spec} is a dict, with the key mapping to the config and the value being a
+    2-tuple, for which the first item being whether or not it is mandatory, and
+    the second being a list of types of which the config item can be.
+    """
     if not isinstance(config, dict):
-        raise InvalidConfigException("{} - invalid type for configuration item - expected dict, got {}".format(msg, type(config)))
+        raise InvalidConfigException("{} - invalid type for configuration item - expected dict, got {}".format(msg, type(config).__name__))
+
     for k in config:
         if k not in spec:
             raise InvalidConfigException("{} - encountered unknown attribute '{}'".format(msg, k))
         if spec[k][1] and type(config[k]) not in spec[k][1]:
-            raise InvalidConfigException("{} - invalid {} encountered for attribute '{}'".format(msg, type(config[k]), k))
+            raise InvalidConfigException("{} - invalid type {} encountered for attribute '{}', must be one of ({})".format(msg, type(config[k]).__name__, k, ', '.join([x.__name__ for x in spec[k][1]])))
+
     mandatory_keys = [k for k in spec if spec[k][0]]
     for k in mandatory_keys:
         if k not in config:
