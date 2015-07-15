@@ -1571,6 +1571,18 @@ def check_container_component(component, silence=False):
     check_connecting_transport(component['transport'])
 
 
+def check_container_components(components, silence=False):
+    """
+    Check components inside a container.
+    """
+    if not isinstance(components, list):
+        raise InvalidConfigException("'components' items must be lists ({} encountered)".format(type(components)))
+
+    for i, component in enumerate(components):
+        log.debug("Checking container component item {} ..".format(i))
+        check_container_component(component, silence)
+
+
 def check_router_realm(realm, silence=False):
     # FIXME
     return
@@ -1619,12 +1631,9 @@ def check_router_components(components, silence=False):
     if not isinstance(components, list):
         raise InvalidConfigException("'components' items must be lists ({} encountered)".format(type(components)))
 
-    i = 1
-    for component in components:
-        if not silence:
-            print("Checking component item {} ..".format(i))
-        check_component(component, silence)
-        i += 1
+    for i, component in enumerate(components):
+        log.debug("Checking router component item {} ..".format(i))
+        check_router_component(component, silence)
 
 
 def check_connection(connection):
@@ -1741,12 +1750,12 @@ def check_router(router, silence=False):
     # components
     #
     components = router.get('components', [])
-    check_components(components, silence=silence)
+    check_router_components(components, silence=silence)
 
 
 def check_container(container, silence=False):
     """
-    Checks a router worker configuration.
+    Checks a container worker configuration.
 
     :param router: The configuration to check.
     :type router: dict
@@ -1771,7 +1780,7 @@ def check_container(container, silence=False):
     # components
     #
     components = container.get('components', [])
-    check_components(components, silence=silence)
+    check_container_components(components, silence=silence)
 
 
 def check_router_options(options):
