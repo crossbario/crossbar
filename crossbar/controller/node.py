@@ -103,6 +103,8 @@ class Node(object):
         """
         Check the configuration of this node.
         """
+        # for now, a node is always started from a local configuration
+        #
         configfile = os.path.join(self.options.cbdir, self.options.config)
         self.log.info("Loading node configuration file '{configfile}'",
                       configfile=configfile)
@@ -114,8 +116,6 @@ class Node(object):
         Starts this node. This will start a node controller and then spawn new worker
         processes as needed.
         """
-        # for now, a node is always started from a local configuration
-        #
         if not self._config:
             self.check_config()
 
