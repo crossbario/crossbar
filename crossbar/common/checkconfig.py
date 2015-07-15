@@ -42,6 +42,8 @@ from autobahn.websocket.protocol import parseWsUrl
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
 # from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY
 
+from crossbar._logging import make_logger
+
 import yaml
 from yaml import Loader, SafeLoader
 
@@ -65,6 +67,12 @@ SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 _ENV_VAR_PAT_STR = "^\$([A-Z0-9_]+)$"
 _ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
 
+log = make_logger()
+
+
+class InvalidConfigException(Exception):
+    pass
+
 
 def _readenv(var, msg):
     match = _ENV_VAR_PAT.match(var)
@@ -73,9 +81,9 @@ def _readenv(var, msg):
         if envvar in os.environ:
             return os.environ[envvar]
         else:
-            raise Exception("{} - environment variable '{}' not set".format(msg, var))
+            raise InvalidConfigException("{} - environment variable '{}' not set".format(msg, var))
     else:
-        raise Exception("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
+        raise InvalidConfigException("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
 
 
 def get_config_value(config, item, default=None):
@@ -116,9 +124,9 @@ def check_id(id):
     Check a configuration item ID.
     """
     if not isinstance(id, six.text_type):
-        raise Exception("invalid configuration item ID '{}' - type must be string, was ".format(id, type(id)))
+        raise InvalidConfigException("invalid configuration item ID '{}' - type must be string, was ".format(id, type(id)))
     if not _CONFIG_ITEM_ID_PAT.match(id):
-        raise Exception("invalid configuration item ID '{}' - must match regular expression {}".format(id, _CONFIG_ITEM_ID_PAT_STR))
+        raise InvalidConfigException("invalid configuration item ID '{}' - must match regular expression {}".format(id, _CONFIG_ITEM_ID_PAT_STR))
 
 
 _REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
@@ -130,31 +138,40 @@ def check_realm_name(name):
     Check a realm name.
     """
     if not isinstance(name, six.text_type):
-        raise Exception("invalid realm name '{}' - type must be string, was ".format(name, type(name)))
+        raise InvalidConfigException("invalid realm name '{}' - type must be string, was ".format(name, type(name)))
     if not _REALM_NAME_PAT.match(name):
-        raise Exception("invalid realm name '{}' - must match regular expression {}".format(name, _REALM_NAME_PAT_STR))
+        raise InvalidConfigException("invalid realm name '{}' - must match regular expression {}".format(name, _REALM_NAME_PAT_STR))
 
 
 def check_dict_args(spec, config, msg):
+    """
+    Check the arguments of C{config} according to C{spec}.
+
+    C{spec} is a dict, with the key mapping to the config and the value being a
+    2-tuple, for which the first item being whether or not it is mandatory, and
+    the second being a list of types of which the config item can be.
+    """
     if not isinstance(config, dict):
-        raise Exception("{} - invalid type for configuration item - expected dict, got {}".format(msg, type(config)))
+        raise InvalidConfigException("{} - invalid type for configuration item - expected dict, got {}".format(msg, type(config).__name__))
+
     for k in config:
         if k not in spec:
-            raise Exception("{} - encountered unknown attribute '{}'".format(msg, k))
+            raise InvalidConfigException("{} - encountered unknown attribute '{}'".format(msg, k))
         if spec[k][1] and type(config[k]) not in spec[k][1]:
-            raise Exception("{} - invalid {} encountered for attribute '{}'".format(msg, type(config[k]), k))
+            raise InvalidConfigException("{} - invalid type {} encountered for attribute '{}', must be one of ({})".format(msg, type(config[k]).__name__, k, ', '.join([x.__name__ for x in spec[k][1]])))
+
     mandatory_keys = [k for k in spec if spec[k][0]]
     for k in mandatory_keys:
         if k not in config:
-            raise Exception("{} - missing mandatory attribute '{}'".format(msg, k))
+            raise InvalidConfigException("{} - missing mandatory attribute '{}'".format(msg, k))
 
 
 def check_or_raise_uri(value, message):
     if not isinstance(value, six.text_type):
-        raise Exception("{}: invalid type {} for URI".format(message, type(value)))
+        raise InvalidConfigException("{}: invalid type {} for URI".format(message, type(value)))
     # if not _URI_PAT_LOOSE_NON_EMPTY.match(value):
     if not _URI_PAT_STRICT_NON_EMPTY.match(value):
-        raise Exception("{}: invalid value '{}' for URI".format(message, value))
+        raise InvalidConfigException("{}: invalid value '{}' for URI".format(message, value))
     return value
 
 
@@ -163,16 +180,16 @@ def check_transport_auth_ticket(config):
     Check a Ticket-based authentication configuration item.
     """
     if 'type' not in config:
-        raise Exception("missing mandatory attribute 'type' in Ticket-based authentication configuration")
+        raise InvalidConfigException("missing mandatory attribute 'type' in Ticket-based authentication configuration")
 
     if config['type'] not in ['static', 'dynamic']:
-        raise Exception("invalid type '{}' for Ticket-based authentication type - must be one of 'static', 'dynamic'".format(config['type']))
+        raise InvalidConfigException("invalid type '{}' for Ticket-based authentication type - must be one of 'static', 'dynamic'".format(config['type']))
 
     if config['type'] == 'static':
         if 'principals' not in config:
-            raise Exception("missing mandatory attribute 'principals' in static Ticket-based authentication configuration")
+            raise InvalidConfigException("missing mandatory attribute 'principals' in static Ticket-based authentication configuration")
         if not isinstance(config['principals'], dict):
-            raise Exception("invalid type for attribute 'principals' in static Ticket-based authentication configuration - expected dict, got {}".format(type(config['users'])))
+            raise InvalidConfigException("invalid type for attribute 'principals' in static Ticket-based authentication configuration - expected dict, got {}".format(type(config['users'])))
         for u, principal in config['principals'].items():
             check_dict_args({
                 'ticket': (True, [six.text_type]),
@@ -181,10 +198,10 @@ def check_transport_auth_ticket(config):
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
-            raise Exception("missing mandatory attribute 'authenticator' in dynamic Ticket-based authentication configuration")
+            raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic Ticket-based authentication configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic Ticket-based authentication configuration".format(config['authenticator']))
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
 def check_transport_auth_wampcra(config):
@@ -192,16 +209,16 @@ def check_transport_auth_wampcra(config):
     Check a WAMP-CRA configuration item.
     """
     if 'type' not in config:
-        raise Exception("missing mandatory attribute 'type' in WAMP-CRA configuration")
+        raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-CRA configuration")
 
     if config['type'] not in ['static', 'dynamic']:
-        raise Exception("invalid type '{}' for WAMP-CRA authentication type - must be one of 'static', 'dynamic'".format(config['type']))
+        raise InvalidConfigException("invalid type '{}' for WAMP-CRA authentication type - must be one of 'static', 'dynamic'".format(config['type']))
 
     if config['type'] == 'static':
         if 'users' not in config:
-            raise Exception("missing mandatory attribute 'users' in static WAMP-CRA configuration")
+            raise InvalidConfigException("missing mandatory attribute 'users' in static WAMP-CRA configuration")
         if not isinstance(config['users'], dict):
-            raise Exception("invalid type for attribute 'users' in static WAMP-CRA configuration - expected dict, got {}".format(type(config['users'])))
+            raise InvalidConfigException("invalid type for attribute 'users' in static WAMP-CRA configuration - expected dict, got {}".format(type(config['users'])))
         for u, user in config['users'].items():
             check_dict_args({
                 'secret': (True, [six.text_type]),
@@ -213,10 +230,10 @@ def check_transport_auth_wampcra(config):
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
-            raise Exception("missing mandatory attribute 'authenticator' in dynamic WAMP-CRA configuration")
+            raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-CRA configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-CRA configuration".format(config['authenticator']))
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
 def check_transport_auth_cookie(config):
@@ -240,7 +257,7 @@ def check_transport_auth(auth):
     Check a WAMP transport authentication configuration.
     """
     if not isinstance(auth, dict):
-        raise Exception("invalid type {} for authentication configuration item (dict expected)".format(type(auth)))
+        raise InvalidConfigException("invalid type {} for authentication configuration item (dict expected)".format(type(auth)))
     CHECKS = {
         'anonymous': check_transport_auth_anonymous,
         'ticket': check_transport_auth_ticket,
@@ -249,7 +266,7 @@ def check_transport_auth(auth):
     }
     for k in auth:
         if k not in CHECKS:
-            raise Exception("invalid authentication method key '{}' - must be one of {}".format(k, CHECKS.keys()))
+            raise InvalidConfigException("invalid authentication method key '{}' - must be one of {}".format(k, CHECKS.keys()))
         CHECKS[k](auth[k])
 
 
@@ -290,34 +307,34 @@ def check_transport_cookie(cookie):
     if 'name' in cookie:
         match = _COOKIE_NAME_PAT.match(cookie['name'])
         if not match:
-            raise Exception("invalid cookie name '{}' - must match regular expression {}".format(cookie['name'], _COOKIE_NAME_PAT_STR))
+            raise InvalidConfigException("invalid cookie name '{}' - must match regular expression {}".format(cookie['name'], _COOKIE_NAME_PAT_STR))
 
     if 'max_age' in cookie:
         max_age = cookie['max_age']
         if not (max_age > 0 and max_age <= 86400 * 360 * 10):
-            raise Exception("invalid cookie max_age {} - must be >0 seconds, and <= 10 years", format(max_age))
+            raise InvalidConfigException("invalid cookie max_age {} - must be >0 seconds, and <= 10 years", format(max_age))
 
     if 'length' in cookie:
         length = cookie['length']
         if not (length >= 6 and length <= 64):
-            raise Exception("invalid cookie length {} - must be >=6 and <= 64", format(length))
+            raise InvalidConfigException("invalid cookie length {} - must be >=6 and <= 64", format(length))
 
     if 'store' in cookie:
         store = cookie['store']
 
         if 'type' not in store:
-            raise Exception("missing mandatory attribute 'type' in cookie store configuration\n\n{}".format(pformat(cookie)))
+            raise InvalidConfigException("missing mandatory attribute 'type' in cookie store configuration\n\n{}".format(pformat(cookie)))
 
         store_type = store['type']
         if store_type not in ['memory', 'file']:
-            raise Exception("invalid attribute value '{}' for attribute 'type' in cookie store item\n\n{}".format(store_type, pformat(cookie)))
+            raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in cookie store item\n\n{}".format(store_type, pformat(cookie)))
 
         if store_type == 'memory':
             check_cookie_store_memory(store)
         elif store_type == 'file':
             check_cookie_store_file(store)
         else:
-            raise Exception("logic error")
+            raise InvalidConfigException("logic error")
 
 
 def check_endpoint_backlog(backlog):
@@ -328,9 +345,9 @@ def check_endpoint_backlog(backlog):
     :type backlog: int
     """
     if type(backlog) not in six.integer_types:
-        raise Exception("'backlog' attribute in endpoint must be int ({} encountered)".format(type(backlog)))
+        raise InvalidConfigException("'backlog' attribute in endpoint must be int ({} encountered)".format(type(backlog)))
     if backlog < 1 or backlog > 65535:
-        raise Exception("invalid value {} for 'backlog' attribute in endpoint (must be from [1, 65535])".format(backlog))
+        raise InvalidConfigException("invalid value {} for 'backlog' attribute in endpoint (must be from [1, 65535])".format(backlog))
 
 
 def check_endpoint_port(port, message="listening/connection endpoint"):
@@ -341,9 +358,9 @@ def check_endpoint_port(port, message="listening/connection endpoint"):
     :type port: int
     """
     if type(port) not in six.integer_types:
-        raise Exception("'port' attribute in {} must be integer ({} encountered)".format(message, type(port)))
+        raise InvalidConfigException("'port' attribute in {} must be integer ({} encountered)".format(message, type(port)))
     if port < 1 or port > 65535:
-        raise Exception("invalid value {} for 'port' attribute in {}".format(port, message))
+        raise InvalidConfigException("invalid value {} for 'port' attribute in {}".format(port, message))
 
 
 def check_endpoint_ip_version(version):
@@ -354,9 +371,9 @@ def check_endpoint_ip_version(version):
     :type version: int
     """
     if type(version) not in six.integer_types:
-        raise Exception("'version' attribute in endpoint must be integer ({} encountered)".format(type(version)))
+        raise InvalidConfigException("'version' attribute in endpoint must be integer ({} encountered)".format(type(version)))
     if version not in [4, 6]:
-        raise Exception("invalid value {} for 'version' attribute in endpoint".format(version))
+        raise InvalidConfigException("invalid value {} for 'version' attribute in endpoint".format(version))
 
 
 def check_endpoint_timeout(timeout):
@@ -367,9 +384,9 @@ def check_endpoint_timeout(timeout):
     :type timeout: int
     """
     if type(timeout) not in six.integer_types:
-        raise Exception("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
+        raise InvalidConfigException("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
     if timeout < 0 or timeout > 600:
-        raise Exception("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
+        raise InvalidConfigException("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
 
 
 def check_transport_max_message_size(max_message_size):
@@ -380,9 +397,9 @@ def check_transport_max_message_size(max_message_size):
     :type max_message_size: int
     """
     if type(max_message_size) not in six.integer_types:
-        raise Exception("'max_message_size' attribute in transport must be int ({} encountered)".format(type(max_message_size)))
+        raise InvalidConfigException("'max_message_size' attribute in transport must be int ({} encountered)".format(type(max_message_size)))
     if max_message_size < 1 or max_message_size > 64 * 1024 * 1024:
-        raise Exception("invalid value {} for 'max_message_size' attribute in transport (must be from [1, 64MB])".format(max_message_size))
+        raise InvalidConfigException("invalid value {} for 'max_message_size' attribute in transport (must be from [1, 64MB])".format(max_message_size))
 
 
 def check_listening_endpoint_tls(tls):
@@ -393,20 +410,20 @@ def check_listening_endpoint_tls(tls):
     :type tls: dict
     """
     if not isinstance(tls, dict):
-        raise Exception("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
+        raise InvalidConfigException("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
 
     for k in tls:
         if k not in ['key', 'certificate', 'dhparam', 'ciphers']:
-            raise Exception("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
 
     for k in [('key', True), ('certificate', True), ('dhparam', False), ('ciphers', False)]:
 
         if k[1] and not k[0] in tls:
-            raise Exception("missing mandatory attribute '{}' in listening endpoint TLS configuration".format(k[0]))
+            raise InvalidConfigException("missing mandatory attribute '{}' in listening endpoint TLS configuration".format(k[0]))
 
         if k[0] in tls:
             if not isinstance(tls[k[0]], six.text_type):
-                raise Exception("'{}' in listening endpoint TLS configuration must be string ({} encountered)".format(k[0], type(tls[k[0]])))
+                raise InvalidConfigException("'{}' in listening endpoint TLS configuration must be string ({} encountered)".format(k[0], type(tls[k[0]])))
 
 
 def check_connecting_endpoint_tls(tls):
@@ -417,11 +434,11 @@ def check_connecting_endpoint_tls(tls):
     :type tls: dict
     """
     if not isinstance(tls, dict):
-        raise Exception("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
+        raise InvalidConfigException("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
 
     for k in tls:
         if k not in []:
-            raise Exception("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
 
 
 def check_listening_endpoint_tcp(endpoint):
@@ -433,10 +450,10 @@ def check_listening_endpoint_tcp(endpoint):
     """
     for k in endpoint:
         if k not in ['type', 'version', 'port', 'shared', 'interface', 'backlog', 'tls']:
-            raise Exception("encountered unknown attribute '{}' in listening endpoint".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint".format(k))
 
     if 'port' not in endpoint:
-        raise Exception("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
+        raise InvalidConfigException("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
     if type(endpoint['port']) == six.text_type:
         port = _readenv(endpoint['port'], "listening endpoint configuration")
@@ -454,7 +471,7 @@ def check_listening_endpoint_tcp(endpoint):
     if 'shared' in endpoint:
         shared = endpoint['shared']
         if not isinstance(shared, bool):
-            raise Exception("'shared' attribute in endpoint must be bool ({} encountered)".format(type(shared)))
+            raise InvalidConfigException("'shared' attribute in endpoint must be bool ({} encountered)".format(type(shared)))
 
     if 'tls' in endpoint:
         check_listening_endpoint_tls(endpoint['tls'])
@@ -462,7 +479,7 @@ def check_listening_endpoint_tcp(endpoint):
     if 'interface' in endpoint:
         interface = endpoint['interface']
         if not isinstance(interface, six.text_type):
-            raise Exception("'interface' attribute in endpoint must be string ({} encountered)".format(type(interface)))
+            raise InvalidConfigException("'interface' attribute in endpoint must be string ({} encountered)".format(type(interface)))
 
     if 'backlog' in endpoint:
         check_endpoint_backlog(endpoint['backlog'])
@@ -477,14 +494,14 @@ def check_listening_endpoint_unix(endpoint):
     """
     for k in endpoint:
         if k not in ['type', 'path', 'backlog']:
-            raise Exception("encountered unknown attribute '{}' in listening endpoint".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint".format(k))
 
     if 'path' not in endpoint:
-        raise Exception("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
+        raise InvalidConfigException("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
 
     path = endpoint['path']
     if not isinstance(path, six.text_type):
-        raise Exception("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type(path)))
+        raise InvalidConfigException("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type(path)))
 
     if 'backlog' in endpoint:
         check_endpoint_backlog(endpoint['backlog'])
@@ -499,13 +516,13 @@ def check_connecting_endpoint_tcp(endpoint):
     """
     for k in endpoint:
         if k not in ['type', 'version', 'host', 'port', 'timeout', 'tls']:
-            raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in connecting endpoint".format(k))
 
     if 'host' not in endpoint:
-        raise Exception("missing mandatory attribute 'host' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+        raise InvalidConfigException("missing mandatory attribute 'host' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
 
     if 'port' not in endpoint:
-        raise Exception("missing mandatory attribute 'port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+        raise InvalidConfigException("missing mandatory attribute 'port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
 
     check_endpoint_port(endpoint['port'])
 
@@ -528,14 +545,14 @@ def check_connecting_endpoint_unix(endpoint):
     """
     for k in endpoint:
         if k not in ['type', 'path', 'timeout']:
-            raise Exception("encountered unknown attribute '{}' in connecting endpoint".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in connecting endpoint".format(k))
 
     if 'path' not in endpoint:
-        raise Exception("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
+        raise InvalidConfigException("missing mandatory attribute 'path' in Unix domain socket endpoint item\n\n{}".format(pformat(endpoint)))
 
     path = endpoint['path']
     if not isinstance(path, six.text_type):
-        raise Exception("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type(path)))
+        raise InvalidConfigException("'path' attribute in Unix domain socket endpoint must be str ({} encountered)".format(type(path)))
 
     if 'timeout' in endpoint:
         check_endpoint_timeout(endpoint['timeout'])
@@ -549,21 +566,21 @@ def check_listening_endpoint(endpoint):
     :type endpoint: dict
     """
     if not isinstance(endpoint, dict):
-        raise Exception("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
+        raise InvalidConfigException("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
 
     if 'type' not in endpoint:
-        raise Exception("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
+        raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
     if etype not in ['tcp', 'unix']:
-        raise Exception("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
+        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
         check_listening_endpoint_tcp(endpoint)
     elif etype == 'unix':
         check_listening_endpoint_unix(endpoint)
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
 def check_connecting_endpoint(endpoint):
@@ -574,21 +591,21 @@ def check_connecting_endpoint(endpoint):
     :type endpoint: dict
     """
     if not isinstance(endpoint, dict):
-        raise Exception("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
+        raise InvalidConfigException("'endpoint' items must be dictionaries ({} encountered)\n\n{}".format(type(endpoint)))
 
     if 'type' not in endpoint:
-        raise Exception("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
+        raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
     if etype not in ['tcp', 'unix']:
-        raise Exception("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
+        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
         check_connecting_endpoint_tcp(endpoint)
     elif etype == 'unix':
         check_connecting_endpoint_unix(endpoint)
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
 def check_websocket_options(options):
@@ -599,7 +616,7 @@ def check_websocket_options(options):
     :type options: dict
     """
     if not isinstance(options, dict):
-        raise Exception("WebSocket options must be a dictionary ({} encountered)".format(type(options)))
+        raise InvalidConfigException("WebSocket options must be a dictionary ({} encountered)".format(type(options)))
 
     for k in options:
         if k not in [
@@ -630,7 +647,7 @@ def check_websocket_options(options):
             'compression',
             'require_websocket_subprotocol'
         ]:
-            raise Exception("encountered unknown attribute '{}' in WebSocket options".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket options".format(k))
 
     # FIXME: more complete checking ..
 
@@ -658,16 +675,16 @@ def check_web_path_service_websocket(config):
     if 'debug' in config:
         debug = config['debug']
         if not isinstance(debug, bool):
-            raise Exception("'debug' in WebSocket configuration must be boolean ({} encountered)".format(type(debug)))
+            raise InvalidConfigException("'debug' in WebSocket configuration must be boolean ({} encountered)".format(type(debug)))
 
     if 'url' in config:
         url = config['url']
         if not isinstance(url, six.text_type):
-            raise Exception("'url' in WebSocket configuration must be str ({} encountered)".format(type(url)))
+            raise InvalidConfigException("'url' in WebSocket configuration must be str ({} encountered)".format(type(url)))
         try:
             parseWsUrl(url)
-        except Exception as e:
-            raise Exception("invalid 'url' in WebSocket configuration : {}".format(e))
+        except InvalidConfigException as e:
+            raise InvalidConfigException("invalid 'url' in WebSocket configuration : {}".format(e))
 
     if 'auth' in config:
         check_transport_auth(config['auth'])
@@ -693,10 +710,10 @@ def check_web_path_service_static(config):
 
     if 'directory' in config:
         if 'package' in config or 'resource' in config:
-            raise Exception("Web transport 'static' path service: either 'directory' OR 'package' + 'resource' must be given, not both")
+            raise InvalidConfigException("Web transport 'static' path service: either 'directory' OR 'package' + 'resource' must be given, not both")
     else:
         if 'package' not in config or 'resource' not in config:
-            raise Exception("Web transport 'static' path service: either 'directory' OR 'package' + 'resource' must be given, not both")
+            raise InvalidConfigException("Web transport 'static' path service: either 'directory' OR 'package' + 'resource' must be given, not both")
 
     if 'options' in config:
         check_dict_args({
@@ -813,9 +830,9 @@ def check_web_path_service_rest_post_body_limit(limit):
     :type port: int
     """
     if type(limit) not in six.integer_types:
-        raise Exception("'post_body_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
+        raise InvalidConfigException("'post_body_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
     if limit < 0 or limit > 2 ** 20:
-        raise Exception("invalid value {} for 'post_body_limit' attribute in publisher/caller configuration".format(limit))
+        raise InvalidConfigException("invalid value {} for 'post_body_limit' attribute in publisher/caller configuration".format(limit))
 
 
 def check_web_path_service_rest_timestamp_delta_limit(limit):
@@ -826,9 +843,9 @@ def check_web_path_service_rest_timestamp_delta_limit(limit):
     :type port: int
     """
     if type(limit) not in six.integer_types:
-        raise Exception("'timestamp_delta_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
+        raise InvalidConfigException("'timestamp_delta_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
     if limit < 0 or limit > 86400:
-        raise Exception("invalid value {} for 'timestamp_delta_limit' attribute in publisher/caller configuration".format(limit))
+        raise InvalidConfigException("invalid value {} for 'timestamp_delta_limit' attribute in publisher/caller configuration".format(limit))
 
 
 def check_web_path_service_publisher(config):
@@ -925,9 +942,9 @@ def check_web_path_service_max_file_size(limit):
     :type limit: int
     """
     if type(limit) not in six.integer_types:
-        raise Exception("'max_file_size' attribute must be integer ({} encountered)".format(type(limit)))
+        raise InvalidConfigException("'max_file_size' attribute must be integer ({} encountered)".format(type(limit)))
     if limit < 0:
-        raise Exception("invalid value {} for 'max_file_size' attribute - must be non-negative".format(limit))
+        raise InvalidConfigException("invalid value {} for 'max_file_size' attribute - must be non-negative".format(limit))
 
 
 def check_web_path_service_upload(config):
@@ -984,15 +1001,15 @@ def check_web_path_service(path, config, nested):
     :type nested: bool
     """
     if 'type' not in config:
-        raise Exception("missing mandatory attribute 'type' in Web transport path service '{}' configuration\n\n{}".format(path, config))
+        raise InvalidConfigException("missing mandatory attribute 'type' in Web transport path service '{}' configuration\n\n{}".format(path, config))
 
     ptype = config['type']
     if path == '/' and not nested:
         if ptype not in ['static', 'wsgi', 'redirect', 'publisher', 'caller', 'resource']:
-            raise Exception("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
+            raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
         if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'schemadoc', 'path', 'resource', 'upload']:
-            raise Exception("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
+            raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
         'websocket': check_web_path_service_websocket,
@@ -1022,59 +1039,59 @@ def check_listening_transport_web(transport):
     """
     for k in transport:
         if k not in ['id', 'type', 'endpoint', 'paths', 'options']:
-            raise Exception("encountered unknown attribute '{}' in Web transport configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in Web transport configuration".format(k))
 
     if 'id' in transport:
         check_id(transport['id'])
 
     if 'endpoint' not in transport:
-        raise Exception("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
 
     if 'paths' not in transport:
-        raise Exception("missing mandatory attribute 'paths' in Web transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'paths' in Web transport item\n\n{}".format(pformat(transport)))
 
     paths = transport['paths']
     if not isinstance(paths, dict):
-        raise Exception("'paths' attribute in Web transport configuration must be dictionary ({} encountered)".format(type(paths)))
+        raise InvalidConfigException("'paths' attribute in Web transport configuration must be dictionary ({} encountered)".format(type(paths)))
 
     if '/' not in paths:
-        raise Exception("missing mandatory path '/' in 'paths' in Web transport configuration")
+        raise InvalidConfigException("missing mandatory path '/' in 'paths' in Web transport configuration")
 
     check_paths(paths)
 
     if 'options' in transport:
         options = transport['options']
         if not isinstance(options, dict):
-            raise Exception("'options' in Web transport must be dictionary ({} encountered)".format(type(options)))
+            raise InvalidConfigException("'options' in Web transport must be dictionary ({} encountered)".format(type(options)))
 
         if 'access_log' in options:
             access_log = options['access_log']
             if not isinstance(access_log, bool):
-                raise Exception("'access_log' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(access_log)))
+                raise InvalidConfigException("'access_log' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(access_log)))
 
         if 'display_tracebacks' in options:
             display_tracebacks = options['display_tracebacks']
             if not isinstance(display_tracebacks, bool):
-                raise Exception("'display_tracebacks' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(display_tracebacks)))
+                raise InvalidConfigException("'display_tracebacks' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(display_tracebacks)))
 
         if 'hsts' in options:
             hsts = options['hsts']
             if not isinstance(hsts, bool):
-                raise Exception("'hsts' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hsts)))
+                raise InvalidConfigException("'hsts' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hsts)))
 
         if 'hsts_max_age' in options:
             hsts_max_age = options['hsts_max_age']
             if type(hsts_max_age) not in six.integer_types:
-                raise Exception("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
+                raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
             if hsts_max_age < 0:
-                raise Exception("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
+                raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
 
         if 'hixie76_aware' in options:
             hixie76_aware = options['hixie76_aware']
             if not isinstance(hixie76_aware, bool):
-                raise Exception("'hixie76_aware' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hixie76_aware)))
+                raise InvalidConfigException("'hixie76_aware' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hixie76_aware)))
 
 
 _WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
@@ -1092,10 +1109,10 @@ def check_paths(paths, nested=False):
     """
     for p in paths:
         if not isinstance(p, six.text_type):
-            raise Exception("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
+            raise InvalidConfigException("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
 
         if not _WEB_PATH_PATH.match(p):
-            raise Exception("invalid value '{}' for path in Web transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
+            raise InvalidConfigException("invalid value '{}' for path in Web transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
         check_web_path_service(p, paths[p], nested)
 
@@ -1118,13 +1135,13 @@ def check_listening_transport_websocket(transport):
            'options',
            'auth',
            'cookie']:
-            raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
     if 'id' in transport:
         check_id(transport['id'])
 
     if 'endpoint' not in transport:
-        raise Exception("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
 
@@ -1134,21 +1151,21 @@ def check_listening_transport_websocket(transport):
     if 'serializers' in transport:
         serializers = transport['serializers']
         if not isinstance(serializers, list):
-            raise Exception("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
+            raise InvalidConfigException("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
 
     if 'debug' in transport:
         debug = transport['debug']
         if not isinstance(debug, bool):
-            raise Exception("'debug' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+            raise InvalidConfigException("'debug' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
     if 'url' in transport:
         url = transport['url']
         if not isinstance(url, six.text_type):
-            raise Exception("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
+            raise InvalidConfigException("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
         try:
             parseWsUrl(url)
-        except Exception as e:
-            raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
+        except InvalidConfigException as e:
+            raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
     if 'auth' in transport:
         check_transport_auth(transport['auth'])
@@ -1172,13 +1189,13 @@ def check_listening_transport_websocket_testee(transport):
            'url',
            'debug',
            'options']:
-            raise Exception("encountered unknown attribute '{}' in WebSocket-Testee transport configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket-Testee transport configuration".format(k))
 
     if 'id' in transport:
         check_id(transport['id'])
 
     if 'endpoint' not in transport:
-        raise Exception("missing mandatory attribute 'endpoint' in WebSocket-Testee transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket-Testee transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
 
@@ -1188,16 +1205,16 @@ def check_listening_transport_websocket_testee(transport):
     if 'debug' in transport:
         debug = transport['debug']
         if not isinstance(debug, bool):
-            raise Exception("'debug' in WebSocket-Testee transport configuration must be boolean ({} encountered)".format(type(debug)))
+            raise InvalidConfigException("'debug' in WebSocket-Testee transport configuration must be boolean ({} encountered)".format(type(debug)))
 
     if 'url' in transport:
         url = transport['url']
         if not isinstance(url, six.text_type):
-            raise Exception("'url' in WebSocket-Testee transport configuration must be str ({} encountered)".format(type(url)))
+            raise InvalidConfigException("'url' in WebSocket-Testee transport configuration must be str ({} encountered)".format(type(url)))
         try:
             parseWsUrl(url)
-        except Exception as e:
-            raise Exception("invalid 'url' in WebSocket-Testee transport configuration : {}".format(e))
+        except InvalidConfigException as e:
+            raise InvalidConfigException("invalid 'url' in WebSocket-Testee transport configuration : {}".format(e))
 
 
 def check_listening_transport_stream_testee(transport):
@@ -1213,20 +1230,20 @@ def check_listening_transport_stream_testee(transport):
            'type',
            'endpoint',
            'debug']:
-            raise Exception("encountered unknown attribute '{}' in Stream-Testee transport configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in Stream-Testee transport configuration".format(k))
 
     if 'id' in transport:
         check_id(transport['id'])
 
     if 'endpoint' not in transport:
-        raise Exception("missing mandatory attribute 'endpoint' in Stream-Testee transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in Stream-Testee transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
 
     if 'debug' in transport:
         debug = transport['debug']
         if not isinstance(debug, bool):
-            raise Exception("'debug' in WebSocket-Stream transport configuration must be boolean ({} encountered)".format(type(debug)))
+            raise InvalidConfigException("'debug' in WebSocket-Stream transport configuration must be boolean ({} encountered)".format(type(debug)))
 
 
 def check_listening_transport_flashpolicy(transport):
@@ -1238,30 +1255,30 @@ def check_listening_transport_flashpolicy(transport):
     """
     for k in transport:
         if k not in ['id', 'type', 'endpoint', 'allowed_domain', 'allowed_ports', 'debug']:
-            raise Exception("encountered unknown attribute '{}' in Flash-policy transport configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in Flash-policy transport configuration".format(k))
 
     if 'id' in transport:
         check_id(transport['id'])
 
     if 'endpoint' not in transport:
-        raise Exception("missing mandatory attribute 'endpoint' in Flash-policy transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in Flash-policy transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
 
     if 'debug' in transport:
         debug = transport['debug']
         if not isinstance(debug, bool):
-            raise Exception("'debug' in Flash-policy transport configuration must be boolean ({} encountered)".format(type(debug)))
+            raise InvalidConfigException("'debug' in Flash-policy transport configuration must be boolean ({} encountered)".format(type(debug)))
 
     if 'allowed_domain' in transport:
         allowed_domain = transport['allowed_domain']
         if not isinstance(allowed_domain, six.text_type):
-            raise Exception("'allowed_domain' in Flash-policy transport configuration must be str ({} encountered)".format(type(allowed_domain)))
+            raise InvalidConfigException("'allowed_domain' in Flash-policy transport configuration must be str ({} encountered)".format(type(allowed_domain)))
 
     if 'allowed_ports' in transport:
         allowed_ports = transport['allowed_ports']
         if not isinstance(allowed_ports, list):
-            raise Exception("'allowed_ports' in Flash-policy transport configuration must be list of integers ({} encountered)".format(type(allowed_ports)))
+            raise InvalidConfigException("'allowed_ports' in Flash-policy transport configuration must be list of integers ({} encountered)".format(type(allowed_ports)))
         for port in allowed_ports:
             check_endpoint_port(port, "Flash-policy allowed_ports")
 
@@ -1283,23 +1300,23 @@ def check_listening_transport_rawsocket(transport):
             'debug',
             'auth',
         ]:
-            raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
     if 'id' in transport:
         check_id(transport['id'])
 
     if 'endpoint' not in transport:
-        raise Exception("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
     check_listening_endpoint(transport['endpoint'])
 
     if 'serializers' in transport:
         serializers = transport['serializers']
         if not isinstance(serializers, list):
-            raise Exception("'serializers' in RawSocket transport configuration must be list ({} encountered)".format(type(serializers)))
+            raise InvalidConfigException("'serializers' in RawSocket transport configuration must be list ({} encountered)".format(type(serializers)))
         for serializer in serializers:
             if serializer not in [u'json', u'msgpack']:
-                raise Exception("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
+                raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
 
     if 'max_message_size' in transport:
         check_transport_max_message_size(transport['max_message_size'])
@@ -1307,7 +1324,7 @@ def check_listening_transport_rawsocket(transport):
     if 'debug' in transport:
         debug = transport['debug']
         if not isinstance(debug, bool):
-            raise Exception("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+            raise InvalidConfigException("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
     if 'auth' in transport:
         check_transport_auth(transport['auth'])
@@ -1322,13 +1339,13 @@ def check_connecting_transport_websocket(transport):
     """
     for k in transport:
         if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'debug_wamp', 'options']:
-            raise Exception("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
     if 'id' in transport:
         check_id(transport['id'])
 
     if 'endpoint' not in transport:
-        raise Exception("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
     check_connecting_endpoint(transport['endpoint'])
 
@@ -1338,28 +1355,28 @@ def check_connecting_transport_websocket(transport):
     if 'serializers' in transport:
         serializers = transport['serializers']
         if not isinstance(serializers, list):
-            raise Exception("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
+            raise InvalidConfigException("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
 
     if 'debug' in transport:
         debug = transport['debug']
         if not isinstance(debug, bool):
-            raise Exception("'debug' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+            raise InvalidConfigException("'debug' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
     if 'debug_wamp' in transport:
         debug_wamp = transport['debug_wamp']
         if not isinstance(debug_wamp, bool):
-            raise Exception("'debug_wamp' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug_wamp)))
+            raise InvalidConfigException("'debug_wamp' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug_wamp)))
 
     if 'url' not in transport:
-        raise Exception("missing mandatory attribute 'url' in WebSocket transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'url' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
     url = transport['url']
     if not isinstance(url, six.text_type):
-        raise Exception("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
+        raise InvalidConfigException("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
     try:
         parseWsUrl(url)
-    except Exception as e:
-        raise Exception("invalid 'url' in WebSocket transport configuration : {}".format(e))
+    except InvalidConfigException as e:
+        raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
 
 def check_connecting_transport_rawsocket(transport):
@@ -1371,30 +1388,30 @@ def check_connecting_transport_rawsocket(transport):
     """
     for k in transport:
         if k not in ['id', 'type', 'endpoint', 'serializer', 'debug']:
-            raise Exception("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
     if 'id' in transport:
         check_id(transport['id'])
 
     if 'endpoint' not in transport:
-        raise Exception("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
     check_connecting_endpoint(transport['endpoint'])
 
     if 'serializer' not in transport:
-        raise Exception("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
+        raise InvalidConfigException("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
     serializer = transport['serializer']
     if not isinstance(serializer, six.text_type):
-        raise Exception("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
+        raise InvalidConfigException("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
 
     if serializer not in ['json', 'msgpack']:
-        raise Exception("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
+        raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
 
     if 'debug' in transport:
         debug = transport['debug']
         if not isinstance(debug, bool):
-            raise Exception("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
+            raise InvalidConfigException("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
 
 def check_router_transport(transport, silence=False):
@@ -1405,10 +1422,10 @@ def check_router_transport(transport, silence=False):
     :type transport: dict
     """
     if not isinstance(transport, dict):
-        raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
+        raise InvalidConfigException("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
 
     if 'type' not in transport:
-        raise Exception("missing mandatory attribute 'type' in component")
+        raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ttype = transport['type']
     if ttype not in [
@@ -1419,7 +1436,7 @@ def check_router_transport(transport, silence=False):
         'websocket.testee',
         'stream.testee'
     ]:
-        raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
+        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
     if ttype == 'websocket':
         check_listening_transport_websocket(transport)
@@ -1440,25 +1457,26 @@ def check_router_transport(transport, silence=False):
         check_listening_transport_stream_testee(transport)
 
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
-def check_component(component, silence=False):
+def check_router_component(component, silence=False):
     """
-    Check a component configuration for a component running side-by-side with router.
+    Check a component configuration for a component running side-by-side with
+    a router.
 
     :param component: The component configuration.
     :type component: dict
     """
     if not isinstance(component, dict):
-        raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
+        raise InvalidConfigException("components must be dictionaries ({} encountered)".format(type(component)))
 
     if 'type' not in component:
-        raise Exception("missing mandatory attribute 'type' in component")
+        raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
     if ctype not in ['wamplet', 'class']:
-        raise Exception("invalid value '{}' for component type".format(ctype))
+        raise InvalidConfigException("invalid value '{}' for component type".format(ctype))
 
     if ctype == 'wamplet':
         check_dict_args({
@@ -1486,7 +1504,7 @@ def check_component(component, silence=False):
         }, component, "invalid component configuration")
 
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
 def check_connecting_transport(transport, silence=False):
@@ -1497,14 +1515,14 @@ def check_connecting_transport(transport, silence=False):
     :type transport: dict
     """
     if not isinstance(transport, dict):
-        raise Exception("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
+        raise InvalidConfigException("'transport' items must be dictionaries ({} encountered)\n\n{}".format(type(transport), pformat(transport)))
 
     if 'type' not in transport:
-        raise Exception("missing mandatory attribute 'type' in component")
+        raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ttype = transport['type']
     if ttype not in ['websocket', 'rawsocket']:
-        raise Exception("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
+        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
     if ttype == 'websocket':
         check_connecting_transport_websocket(transport)
@@ -1513,7 +1531,7 @@ def check_connecting_transport(transport, silence=False):
         check_connecting_transport_rawsocket(transport)
 
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
 def check_container_component(component, silence=False):
@@ -1524,14 +1542,14 @@ def check_container_component(component, silence=False):
     :type component: dict
     """
     if not isinstance(component, dict):
-        raise Exception("components must be dictionaries ({} encountered)".format(type(component)))
+        raise InvalidConfigException("components must be dictionaries ({} encountered)".format(type(component)))
 
     if 'type' not in component:
-        raise Exception("missing mandatory attribute 'type' in component")
+        raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
     if ctype not in ['wamplet', 'class']:
-        raise Exception("invalid value '{}' for component type".format(ctype))
+        raise InvalidConfigException("invalid value '{}' for component type".format(ctype))
 
     if ctype == 'wamplet':
         check_dict_args({
@@ -1557,9 +1575,21 @@ def check_container_component(component, silence=False):
         }, component, "invalid component configuration")
 
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
     check_connecting_transport(component['transport'])
+
+
+def check_container_components(components, silence=False):
+    """
+    Check components inside a container.
+    """
+    if not isinstance(components, list):
+        raise InvalidConfigException("'components' items must be lists ({} encountered)".format(type(components)))
+
+    for i, component in enumerate(components):
+        log.debug("Checking container component item {} ..".format(i))
+        check_container_component(component, silence)
 
 
 def check_router_realm(realm, silence=False):
@@ -1571,7 +1601,7 @@ def check_router_realm(realm, silence=False):
     if 'permissions' in realm:
         permissions = realm['permissions']
         if not isinstance(permissions, dict):
-            raise Exception("'permissions' in 'realm' must be a dictionary ({} encountered)\n\n{}".format(type(permissions), realm))
+            raise InvalidConfigException("'permissions' in 'realm' must be a dictionary ({} encountered)\n\n{}".format(type(permissions), realm))
 
         for role in sorted(permissions):
             check_or_raise_uri(role, "invalid role URI '{}' in realm permissions".format(role))
@@ -1584,7 +1614,7 @@ def check_router_realm(realm, silence=False):
             if 'access' in permissions[role]:
                 access = permissions[role]['access']
                 if not isinstance(access, dict):
-                    raise Exception("'access' attribute in realm-role permissions must be a dictionary ({} encountered)".format(type(access)))
+                    raise InvalidConfigException("'access' attribute in realm-role permissions must be a dictionary ({} encountered)".format(type(access)))
 
                 for uri in sorted(access.keys()):
                     if len(uri) > 0 and uri[-1] == '*':
@@ -1603,19 +1633,16 @@ def check_router_realm(realm, silence=False):
                     }, grants, "invalid grant in realm permissions")
 
 
-def check_components(components, silence=False):
+def check_router_components(components, silence=False):
     """
-    Components can be present in router workers and container workers.
+    Check the components that go inside a router.
     """
     if not isinstance(components, list):
-        raise Exception("'components' items must be lists ({} encountered)".format(type(components)))
+        raise InvalidConfigException("'components' items must be lists ({} encountered)".format(type(components)))
 
-    i = 1
-    for component in components:
-        if not silence:
-            print("Checking component item {} ..".format(i))
-        check_component(component, silence)
-        i += 1
+    for i, component in enumerate(components):
+        log.debug("Checking router component item {} ..".format(i))
+        check_router_component(component, silence)
 
 
 def check_connection(connection):
@@ -1626,11 +1653,11 @@ def check_connection(connection):
         check_id(connection['id'])
 
     if 'type' not in connection:
-        raise Exception("missing mandatory attribute 'type' in connection configuration")
+        raise InvalidConfigException("missing mandatory attribute 'type' in connection configuration")
 
     valid_types = ['postgresql.connection']
     if connection['type'] not in valid_types:
-        raise Exception("invalid type '{}' for connection type - must be one of {}".format(connection['type'], valid_types))
+        raise InvalidConfigException("invalid type '{}' for connection type - must be one of {}".format(connection['type'], valid_types))
 
     if connection['type'] == 'postgresql.connection':
         check_dict_args({
@@ -1654,7 +1681,7 @@ def check_connection(connection):
             }, connection['options'], "PostgreSQL connection options")
 
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
 def check_connections(connections, silence=False):
@@ -1662,7 +1689,7 @@ def check_connections(connections, silence=False):
     Connections can be present in controller, router and container processes.
     """
     if not isinstance(connections, list):
-        raise Exception("'connections' items must be lists ({} encountered)".format(type(connections)))
+        raise InvalidConfigException("'connections' items must be lists ({} encountered)".format(type(connections)))
 
     i = 1
     for connection in connections:
@@ -1687,7 +1714,7 @@ def check_router(router, silence=False):
     """
     for k in router:
         if k not in ['id', 'type', 'options', 'manhole', 'realms', 'transports', 'components', 'connections', 'links']:
-            raise Exception("encountered unknown attribute '{}' in router configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in router configuration".format(k))
 
     # check stuff common to all native workers
     #
@@ -1702,7 +1729,7 @@ def check_router(router, silence=False):
     realms = router.get('realms', [])
 
     if not isinstance(realms, list):
-        raise Exception("'realms' items must be lists ({} encountered)\n\n{}".format(type(realms), pformat(router)))
+        raise InvalidConfigException("'realms' items must be lists ({} encountered)\n\n{}".format(type(realms), pformat(router)))
 
     i = 1
     for realm in realms:
@@ -1715,7 +1742,7 @@ def check_router(router, silence=False):
     #
     transports = router.get('transports', [])
     if not isinstance(transports, list):
-        raise Exception("'transports' items must be lists ({} encountered)\n\n{}".format(type(transports), pformat(router)))
+        raise InvalidConfigException("'transports' items must be lists ({} encountered)\n\n{}".format(type(transports), pformat(router)))
 
     i = 1
     for transport in transports:
@@ -1732,19 +1759,19 @@ def check_router(router, silence=False):
     # components
     #
     components = router.get('components', [])
-    check_components(components, silence=silence)
+    check_router_components(components, silence=silence)
 
 
 def check_container(container, silence=False):
     """
-    Checks a router worker configuration.
+    Checks a container worker configuration.
 
     :param router: The configuration to check.
     :type router: dict
     """
     for k in container:
         if k not in ['id', 'type', 'options', 'manhole', 'components', 'connections']:
-            raise Exception("encountered unknown attribute '{}' in container configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in container configuration".format(k))
 
     # check stuff common to all native workers
     #
@@ -1762,7 +1789,7 @@ def check_container(container, silence=False):
     # components
     #
     components = container.get('components', [])
-    check_components(components, silence=silence)
+    check_container_components(components, silence=silence)
 
 
 def check_router_options(options):
@@ -1775,37 +1802,37 @@ def check_container_options(options):
 
 def check_manhole(manhole, silence=False):
     if not isinstance(manhole, dict):
-        raise Exception("'manhole' items must be dictionaries ({} encountered)\n\n{}".format(type(manhole), pformat(manhole)))
+        raise InvalidConfigException("'manhole' items must be dictionaries ({} encountered)\n\n{}".format(type(manhole), pformat(manhole)))
 
     for k in manhole:
         if k not in ['endpoint', 'users']:
-            raise Exception("encountered unknown attribute '{}' in Manhole configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in Manhole configuration".format(k))
 
     if 'endpoint' not in manhole:
-        raise Exception("missing mandatory attribute 'endpoint' in Manhole item\n\n{}".format(pformat(manhole)))
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in Manhole item\n\n{}".format(pformat(manhole)))
 
     check_listening_endpoint(manhole['endpoint'])
 
     if 'users' not in manhole:
-        raise Exception("missing mandatory attribute 'users' in Manhole item\n\n{}".format(pformat(manhole)))
+        raise InvalidConfigException("missing mandatory attribute 'users' in Manhole item\n\n{}".format(pformat(manhole)))
 
     users = manhole['users']
     if not isinstance(users, list):
-        raise Exception("'manhole.users' items must be lists ({} encountered)\n\n{}".format(type(users), pformat(users)))
+        raise InvalidConfigException("'manhole.users' items must be lists ({} encountered)\n\n{}".format(type(users), pformat(users)))
 
     for user in users:
         if not isinstance(user, dict):
-            raise Exception("'manhole.users.user' items must be dictionaries ({} encountered)\n\n{}".format(type(user), pformat(user)))
+            raise InvalidConfigException("'manhole.users.user' items must be dictionaries ({} encountered)\n\n{}".format(type(user), pformat(user)))
 
         for k in user:
             if k not in ['user', 'password']:
-                raise Exception("encountered unknown attribute '{}' in manhole.users.user".format(k))
+                raise InvalidConfigException("encountered unknown attribute '{}' in manhole.users.user".format(k))
 
         if 'user' not in user:
-            raise Exception("missing mandatory attribute 'user' in Manhole user item\n\n{}".format(pformat(user)))
+            raise InvalidConfigException("missing mandatory attribute 'user' in Manhole user item\n\n{}".format(pformat(user)))
 
         if 'password' not in user:
-            raise Exception("missing mandatory attribute 'password' in Manhole user item\n\n{}".format(pformat(user)))
+            raise InvalidConfigException("missing mandatory attribute 'password' in Manhole user item\n\n{}".format(pformat(user)))
 
 
 def check_process_env(env, silence=False):
@@ -1816,11 +1843,11 @@ def check_process_env(env, silence=False):
     :type env: dict
     """
     if not isinstance(env, dict):
-        raise Exception("'env' in 'options' in worker/guest configuration must be dict ({} encountered)".format(type(env)))
+        raise InvalidConfigException("'env' in 'options' in worker/guest configuration must be dict ({} encountered)".format(type(env)))
 
     for k in env:
         if k not in ['inherit', 'vars']:
-            raise Exception("encountered unknown attribute '{}' in 'options.env' in worker/guest configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in 'options.env' in worker/guest configuration".format(k))
 
     if 'inherit' in env:
         inherit = env['inherit']
@@ -1829,20 +1856,20 @@ def check_process_env(env, silence=False):
         elif isinstance(inherit, list):
             for v in inherit:
                 if not isinstance(v, six.text_type):
-                    raise Exception("invalid type for inherited env var name in 'inherit' in 'options.env' in worker/guest configuration - must be a string ({} encountered)".format(type(v)))
+                    raise InvalidConfigException("invalid type for inherited env var name in 'inherit' in 'options.env' in worker/guest configuration - must be a string ({} encountered)".format(type(v)))
         else:
-            raise Exception("'inherit' in 'options.env' in worker/guest configuration must be bool or list ({} encountered)".format(type(inherit)))
+            raise InvalidConfigException("'inherit' in 'options.env' in worker/guest configuration must be bool or list ({} encountered)".format(type(inherit)))
 
     if 'vars' in env:
         envvars = env['vars']
         if not isinstance(envvars, dict):
-            raise Exception("'options.env.vars' in worker/guest configuration must be dict ({} encountered)".format(type(envvars)))
+            raise InvalidConfigException("'options.env.vars' in worker/guest configuration must be dict ({} encountered)".format(type(envvars)))
 
         for k, v in envvars.items():
             if not isinstance(k, six.text_type):
-                raise Exception("invalid type for environment variable key '{}' in 'options.env.vars' - must be a string ({} encountered)".format(k, type(k)))
+                raise InvalidConfigException("invalid type for environment variable key '{}' in 'options.env.vars' - must be a string ({} encountered)".format(k, type(k)))
             if not isinstance(v, six.text_type):
-                raise Exception("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
+                raise InvalidConfigException("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
 
 
 def check_native_worker_options(options, silence=False):
@@ -1854,42 +1881,42 @@ def check_native_worker_options(options, silence=False):
     """
 
     if not isinstance(options, dict):
-        raise Exception("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
+        raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
     for k in options:
         if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env']:
-            raise Exception("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
 
     if 'title' in options:
         title = options['title']
         if not isinstance(title, six.text_type):
-            raise Exception("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
+            raise InvalidConfigException("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
 
     if 'reactor' in options:
         _reactor = options['reactor']
         if not isinstance(_reactor, dict):
-            raise Exception("'reactor' in 'options' in worker configuration must be a dict ({} encountered)".format(type(_reactor)))
+            raise InvalidConfigException("'reactor' in 'options' in worker configuration must be a dict ({} encountered)".format(type(_reactor)))
 
     if 'python' in options:
         python = options['python']
         if not isinstance(python, six.text_type):
-            raise Exception("'python' in 'options' in worker configuration must be a string ({} encountered)".format(type(python)))
+            raise InvalidConfigException("'python' in 'options' in worker configuration must be a string ({} encountered)".format(type(python)))
 
     if 'pythonpath' in options:
         pythonpath = options['pythonpath']
         if not isinstance(pythonpath, list):
-            raise Exception("'pythonpath' in 'options' in worker configuration must be lists ({} encountered)".format(type(pythonpath)))
+            raise InvalidConfigException("'pythonpath' in 'options' in worker configuration must be lists ({} encountered)".format(type(pythonpath)))
         for p in pythonpath:
             if not isinstance(p, six.text_type):
-                raise Exception("paths in 'pythonpath' in 'options' in worker configuration must be strings ({} encountered)".format(type(p)))
+                raise InvalidConfigException("paths in 'pythonpath' in 'options' in worker configuration must be strings ({} encountered)".format(type(p)))
 
     if 'cpu_affinity' in options:
         cpu_affinity = options['cpu_affinity']
         if not isinstance(cpu_affinity, list):
-            raise Exception("'cpu_affinity' in 'options' in worker configuration must be lists ({} encountered)".format(type(cpu_affinity)))
+            raise InvalidConfigException("'cpu_affinity' in 'options' in worker configuration must be lists ({} encountered)".format(type(cpu_affinity)))
         for a in cpu_affinity:
             if type(a) not in six.integer_types:
-                raise Exception("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
+                raise InvalidConfigException("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
 
     if 'env' in options:
         check_process_env(options['env'])
@@ -1910,7 +1937,7 @@ def check_guest(guest, silence=False):
                      'workdir',
                      'options',
                      'watch']:
-            raise Exception("encountered unknown attribute '{}' in guest worker configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in guest worker configuration".format(k))
 
     check_dict_args({
         'id': (False, [six.text_type]),
@@ -1921,18 +1948,18 @@ def check_guest(guest, silence=False):
     }, guest, "Guest process configuration")
 
     if guest['type'] != 'guest':
-        raise Exception("invalid value '{}' for type in guest worker configuration".format(guest['type']))
+        raise InvalidConfigException("invalid value '{}' for type in guest worker configuration".format(guest['type']))
 
     if 'arguments' in guest:
         for arg in guest['arguments']:
             if not isinstance(arg, six.text_type):
-                raise Exception("invalid type {} for argument in 'arguments' in guest worker configuration".format(type(arg)))
+                raise InvalidConfigException("invalid type {} for argument in 'arguments' in guest worker configuration".format(type(arg)))
 
     if 'options' in guest:
         options = guest['options']
 
         if not isinstance(options, dict):
-            raise Exception("'options' must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(guest)))
+            raise InvalidConfigException("'options' must be dictionaries ({} encountered)\n\n{}".format(type(options), pformat(guest)))
 
         check_dict_args({
             'env': (False, [dict]),
@@ -1946,7 +1973,7 @@ def check_guest(guest, silence=False):
         for s in ['stdout', 'stderr']:
             if s in options:
                 if options[s] not in ['close', 'log', 'drop']:
-                    raise Exception("invalid value '{}' for '{}' in guest worker configuration".format(options[s], s))
+                    raise InvalidConfigException("invalid value '{}' for '{}' in guest worker configuration".format(options[s], s))
 
         if 'stdin' in options:
             if isinstance(options['stdin'], dict):
@@ -1957,7 +1984,7 @@ def check_guest(guest, silence=False):
                 }, options['stdin'], "Guest process 'stdin' configuration")
             else:
                 if options['stdin'] not in ['close']:
-                    raise Exception("invalid value '{}' for 'stdin' in guest worker configuration".format(options['stdin']))
+                    raise InvalidConfigException("invalid value '{}' for 'stdin' in guest worker configuration".format(options['stdin']))
 
         if 'env' in options:
             check_process_env(options['env'])
@@ -1971,15 +1998,15 @@ def check_worker(worker, silence=False):
     :type worker: dict
     """
     if not isinstance(worker, dict):
-        raise Exception("worker items must be dictionaries ({} encountered)\n\n{}".format(type(worker), pformat(worker)))
+        raise InvalidConfigException("worker items must be dictionaries ({} encountered)\n\n{}".format(type(worker), pformat(worker)))
 
     if 'type' not in worker:
-        raise Exception("missing mandatory attribute 'type' in worker item\n\n{}".format(pformat(worker)))
+        raise InvalidConfigException("missing mandatory attribute 'type' in worker item\n\n{}".format(pformat(worker)))
 
     ptype = worker['type']
 
     if ptype not in ['router', 'container', 'guest']:
-        raise Exception("invalid attribute value '{}' for attribute 'type' in worker item\n\n{}".format(ptype, pformat(worker)))
+        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item\n\n{}".format(ptype, pformat(worker)))
 
     if ptype == 'router':
         check_router(worker, silence)
@@ -1991,7 +2018,7 @@ def check_worker(worker, silence=False):
         check_guest(worker, silence)
 
     else:
-        raise Exception("logic error")
+        raise InvalidConfigException("logic error")
 
 
 def check_controller_options(options, silence=False):
@@ -2003,16 +2030,16 @@ def check_controller_options(options, silence=False):
     """
 
     if not isinstance(options, dict):
-        raise Exception("'options' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(options)))
+        raise InvalidConfigException("'options' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(options)))
 
     for k in options:
         if k not in ['title']:
-            raise Exception("encountered unknown attribute '{}' in 'options' in controller configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in controller configuration".format(k))
 
     if 'title' in options:
         title = options['title']
         if not isinstance(title, six.text_type):
-            raise Exception("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
+            raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
 
 
 def check_controller(controller, silence=False):
@@ -2023,11 +2050,11 @@ def check_controller(controller, silence=False):
     :type controller: dict
     """
     if not isinstance(controller, dict):
-        raise Exception("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
+        raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
         if k not in ['id', 'options', 'transport', 'manhole', 'manager', 'connections']:
-            raise Exception("encountered unknown attribute '{}' in controller configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
         check_id(controller['id'])
@@ -2059,7 +2086,7 @@ def check_manager(manager, silence=False):
     :type manager: dict
     """
     if not isinstance(manager, dict):
-        raise Exception("manager items must be dictionaries ({} encountered)\n\n{}".format(type(manager), pformat(manager)))
+        raise InvalidConfigException("manager items must be dictionaries ({} encountered)\n\n{}".format(type(manager), pformat(manager)))
 
     check_dict_args({
         'key': (True, [six.text_type]),
@@ -2078,11 +2105,11 @@ def check_config(config, silence=False):
     :type config: dict
     """
     if not isinstance(config, dict):
-        raise Exception("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
+        raise InvalidConfigException("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
 
     for k in config:
         if k not in ['controller', 'workers']:
-            raise Exception("encountered unknown attribute '{}' in top-level configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in top-level configuration".format(k))
 
     # check controller config
     #
@@ -2095,7 +2122,7 @@ def check_config(config, silence=False):
     #
     workers = config.get('workers', [])
     if not isinstance(workers, list):
-        raise Exception("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
+        raise InvalidConfigException("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
     i = 1
     for worker in workers:
         if not silence:
@@ -2118,13 +2145,13 @@ def check_config_file(configfile, silence=False):
         if configext == '.yaml':
             try:
                 config = yaml.safe_load(infile)
-            except Exception as e:
-                raise Exception("configuration file does not seem to be proper YAML ('{}'')".format(e))
+            except InvalidConfigException as e:
+                raise InvalidConfigException("configuration file does not seem to be proper YAML ('{}'')".format(e))
         else:
             try:
                 config = json.load(infile)
             except ValueError as e:
-                raise Exception("configuration file does not seem to be proper JSON ('{}'')".format(e))
+                raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}'')".format(e))
 
     check_config(config, silence)
 
@@ -2147,8 +2174,8 @@ def convert_config_file(configfile):
             print("converting YAML configuration {} to JSON ...".format(configfile))
             try:
                 config = yaml.safe_load(infile)
-            except Exception as e:
-                raise Exception("configuration file does not seem to be proper YAML ('{}'')".format(e))
+            except InvalidConfigException as e:
+                raise InvalidConfigException("configuration file does not seem to be proper YAML ('{}'')".format(e))
             else:
                 newconfig = os.path.abspath(configbase + '.json')
                 with open(newconfig, 'wb') as outfile:
@@ -2159,7 +2186,7 @@ def convert_config_file(configfile):
             try:
                 config = json.load(infile)
             except ValueError as e:
-                raise Exception("configuration file does not seem to be proper JSON ('{}'')".format(e))
+                raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}'')".format(e))
             else:
                 newconfig = os.path.abspath(configbase + '.yaml')
                 with open(newconfig, 'wb') as outfile:

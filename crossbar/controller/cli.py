@@ -478,11 +478,23 @@ def run_command_start(options):
 
     log.info("Starting from node directory {}".format(options.cbdir))
 
-    # create and start Crossbar.io node
-    #
+    from crossbar.controller.node import Node
+    from crossbar.common.checkconfig import InvalidConfigException
+    node = Node(reactor, options)
+
+    try:
+        node.check_config()
+    except InvalidConfigException as e:
+        log.error("*** Configuration validation failed ***")
+        log.error("{e!s}", e=e)
+        sys.exit(1)
+    except:
+        raise
+
     def start_crossbar():
-        from crossbar.controller.node import Node
-        node = Node(reactor, options)
+        """
+        Start the crossbar node.
+        """
         d = node.start()
 
         def on_error(err):

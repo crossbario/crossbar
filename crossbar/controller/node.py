@@ -96,18 +96,28 @@ class Node(object):
         # in the node's management router)
         self._controller = None
 
+        # config of this node.
+        self._config = None
+
+    def check_config(self):
+        """
+        Check the configuration of this node.
+        """
+        # for now, a node is always started from a local configuration
+        #
+        configfile = os.path.join(self.options.cbdir, self.options.config)
+        self.log.info("Loading node configuration file '{configfile}'",
+                      configfile=configfile)
+        self._config = check_config_file(configfile, silence=True)
+
     @inlineCallbacks
     def start(self):
         """
         Starts this node. This will start a node controller and then spawn new worker
         processes as needed.
         """
-        # for now, a node is always started from a local configuration
-        #
-        configfile = os.path.join(self.options.cbdir, self.options.config)
-        self.log.info("Starting from node configuration file '{configfile}'",
-                      configfile=configfile)
-        self._config = check_config_file(configfile, silence=True)
+        if not self._config:
+            self.check_config()
 
         controller_config = self._config.get('controller', {})
 
