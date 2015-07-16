@@ -261,7 +261,7 @@ def make_JSON_observer(outFile):
     return _make_json
 
 
-def make_legacy_daily_logfile_observer(path, logoutputlevel):
+def make_legacy_daily_logfile_observer(path):
     """
     Make a L{DefaultSystemFileLogObserver}.
     """
@@ -276,37 +276,7 @@ def make_legacy_daily_logfile_observer(path, logoutputlevel):
                                      system="{:<10} {:>6}".format(
                                          "Controller", os.getpid())).emit)
 
-    def _log(event):
-
-        level = event["log_level"]
-
-        if logoutputlevel == "none":
-            return
-        elif logoutputlevel == "quiet":
-            # Quiet: Only print warnings and errors to stderr.
-            if level not in (LogLevel.warn, LogLevel.error, LogLevel.critical):
-                return
-        elif logoutputlevel == "standard":
-            # Standard: For users of Crossbar
-            if level not in (LogLevel.info, LogLevel.warn, LogLevel.error,
-                             LogLevel.critical):
-                return
-        elif logoutputlevel == "verbose":
-            # Verbose: for developers
-            # Adds the class source.
-            if event.get("cb_level") == "trace":
-                return
-        elif logoutputlevel == "trace":
-            # Verbose: for developers
-            # Adds "trace" output
-            pass
-        else:
-            assert False, "Shouldn't ever get here."
-
-        # Forward the event
-        flo(event)
-
-    return _log
+    return flo
 
 
 class CrossbarLogger(object):

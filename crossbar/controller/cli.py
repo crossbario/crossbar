@@ -425,12 +425,17 @@ def run_command_start(options):
 
     log = make_logger()
 
-    if options.logdir:
+    if options.logtofile:
         # We want to log to a file
         from crossbar._logging import make_legacy_daily_logfile_observer
 
+        if not options.logdir:
+            logdir = options.cbdir
+        else:
+            logdir = options.logdir
+
         log_publisher.addObserver(
-            make_legacy_daily_logfile_observer(options.logdir, options.loglevel))
+            make_legacy_daily_logfile_observer(logdir))
     else:
         # We want to log to stdout/stderr.
         from crossbar._logging import make_stdout_observer
@@ -439,15 +444,7 @@ def run_command_start(options):
         if options.loglevel == "none":
             # Do no logging!
             pass
-        elif options.loglevel == "error":
-            # Error: Only print errors to stderr.
-            log_publisher.addObserver(make_stdout_observer(show_source=False, format=options.logformat))
-            log_publisher.addObserver(make_stderr_observer(show_source=False, format=options.logformat))
-        elif options.loglevel == "warn":
-            # Print warnings+ to stderr.
-            log_publisher.addObserver(make_stdout_observer(show_source=False, format=options.logformat))
-            log_publisher.addObserver(make_stderr_observer(show_source=False, format=options.logformat))
-        elif options.loglevel == "info":
+        elif options.loglevel in ["error", "warn", "info"]:
             # Print info to stdout, warn+ to stderr
             log_publisher.addObserver(make_stdout_observer(show_source=False, format=options.logformat))
             log_publisher.addObserver(make_stderr_observer(show_source=False, format=options.logformat))
@@ -639,7 +636,11 @@ def run(prog=None, args=None):
     parser_start.add_argument('--logdir',
                               type=str,
                               default=None,
-                              help="Crossbar.io log directory (default: <Crossbar Node Directory>/log)")
+                              help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
+
+    parser_start.add_argument('--logtofile',
+                              action='store_true',
+                              help="Whether or not to log to file")
 
     parser_start.add_argument('--loglevel',
                               type=str,
