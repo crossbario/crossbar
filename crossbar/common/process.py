@@ -290,7 +290,7 @@ class NativeProcessSession(ApplicationSession):
         try:
             yield connection.start()
             self.log.info("Connection {connection_type} started '{connection_id}'", connection_id=id, connection_type=config['type'])
-        except Exception, e:
+        except Exception as e:
             del self._connections[id]
             raise
 
