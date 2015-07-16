@@ -33,7 +33,6 @@ from __future__ import absolute_import
 import json
 import six
 
-from twisted.python import log
 from twisted.web import server
 
 from autobahn.wamp.types import PublishOptions
@@ -109,8 +108,7 @@ class PublisherResource(_CommonResource):
 
         def on_publish_ok(pub):
             res = {'id': pub.id}
-            if self._debug:
-                log.msg("PublisherResource - request succeeded with result {0}".format(res))
+            self.log.debug("request succeeded with result {res}", res=res)
             body = json.dumps(res, separators=(',', ':'))
             if six.PY3:
                 body = body.encode('utf8')
@@ -123,8 +121,7 @@ class PublisherResource(_CommonResource):
 
         def on_publish_error(err):
             emsg = "PublisherResource - request failed with error {0}\n".format(err.value)
-            if self._debug:
-                log.msg(emsg)
+            self.log.debug(emsg)
             request.setResponseCode(400)
             request.write(emsg)
             request.finish()

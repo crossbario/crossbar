@@ -34,9 +34,10 @@ import hmac
 import hashlib
 import base64
 
+from crossbar._logging import make_logger
+
 from netaddr.ip import IPAddress, IPNetwork
 
-from twisted.python import log
 from twisted.web.resource import Resource
 from twisted.python.compat import nativeString
 
@@ -46,6 +47,7 @@ class _CommonResource(Resource):
     Shared components between PublisherResource and CallerResource.
     """
     isLeaf = True
+
 
     def __init__(self, options, session):
         """
@@ -59,9 +61,7 @@ class _CommonResource(Resource):
         Resource.__init__(self)
         self._options = options
         self._session = session
-
-        self._debug = options.get('debug', False)
-        self._debug = False
+        self.log = make_logger()
 
         self._key = None
         if 'key' in options:
@@ -84,14 +84,14 @@ class _CommonResource(Resource):
         """
         Called when client request is denied.
         """
-        if self._debug:
-            log.msg("_CommonResource [request denied] - {0} / {1}".format(code, reason))
+        self.log.debug("[request denied] - {code} / {reason}",
+                       code=code, reason=reason)
         request.setResponseCode(code)
         return u"{}\n".format(reason).encode("utf8")
 
     def render(self, request):
-        if self._debug:
-            log.msg("_CommonResource [render]", request.method, request.path, request.args)
+        self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
+                       request=request)
 
         if request.method != b"POST":
             return self._deny_request(request, 405, u"HTTP/{0} not allowed".format(nativeString(request.method)))
@@ -210,8 +210,7 @@ class _CommonResource(Resource):
             if signature_str != signature_recomputed:
                 return self._deny_request(request, 401, u"invalid request signature")
             else:
-                if self._debug:
-                    log.msg("_CommonResource - ok, request signature valid.")
+                self.log.debug("ok, request signature valid.")
 
         # user_agent = headers.get("user-agent", "unknown")
         client_ip = request.getClientIP()
@@ -253,10 +252,6 @@ class _CommonResource(Resource):
         else:
             return self._deny_request(request, 401, u"not authorized")
 
-        # except Exception as e:
-        #     raise e
-        #     # catch all .. should not happen (usually)
-        #     return self._deny_request(request, 500, "internal server error ('{0}')".format(e))
 
     def _process(self, request, event):
         raise NotImplementedError()

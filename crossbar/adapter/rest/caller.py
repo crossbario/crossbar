@@ -32,7 +32,6 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.python import log
 from twisted.web import server
 
 from autobahn.wamp.types import CallResult
@@ -119,8 +118,8 @@ class CallerResource(_CommonResource):
             else:
                 res = {'args': [value]}
 
-            if self._debug:
-                log.msg("CallerResource - WAMP call succeeded with result {0}".format(res))
+            self.log.debug("WAMP call succeeded with result {res}",
+                           res=res)
 
             return_call_result(res)
 
@@ -139,8 +138,7 @@ class CallerResource(_CommonResource):
                 res['error'] = u'wamp.error.runtime_error'
                 res['args'] = ["{}".format(err)]
 
-            if self._debug:
-                log.msg("CallerResource - WAMP call failed with error {0}".format(res))
+            self.log.debug("WAMP call failed with error {err}", err=res)
 
             return_call_result(res)
 
