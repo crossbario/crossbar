@@ -48,7 +48,6 @@ class _CommonResource(Resource):
     """
     isLeaf = True
 
-
     def __init__(self, options, session):
         """
         Ctor.
@@ -251,7 +250,6 @@ class _CommonResource(Resource):
 
         else:
             return self._deny_request(request, 401, u"not authorized")
-
 
     def _process(self, request, event):
         raise NotImplementedError()
