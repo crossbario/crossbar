@@ -34,28 +34,17 @@ import json
 import time
 import cgi  # for POST Request Header decoding
 
-from twisted.python import log
 from twisted.python.compat import nativeString
-from twisted.web import http
+from twisted.web import http, server
 from twisted.web.http import NOT_FOUND
 from twisted.web.resource import Resource, NoResource
-from twisted.web import server
+from twisted.web.static import File
 
 from autobahn.twisted import longpoll
 from autobahn.wamp.types import PublishOptions
 
 import crossbar
 from crossbar._logging import make_logger
-
-try:
-    # triggers module level reactor import
-    # https://twistedmatrix.com/trac/ticket/6849#comment:4
-    from twisted.web.static import File
-    _HAS_STATIC = True
-except ImportError:
-    # Twisted hasn't ported this to Python 3 yet
-    _HAS_STATIC = False
-
 
 try:
     # triggers module level reactor import
@@ -68,11 +57,9 @@ except (ImportError, SyntaxError):
 
 
 class JsonResource(Resource):
-
     """
     Static Twisted Web resource that renders to a JSON document.
     """
-
     log = make_logger()
 
     def __init__(self, value, options=None):
@@ -516,47 +503,44 @@ class RedirectResource(Resource):
         return server.NOT_DONE_YET
 
 
-if _HAS_STATIC:
+class StaticResource(File):
+    """
+    Resource for static assets from file system.
+    """
 
-    class StaticResource(File):
+    def __init__(self, *args, **kwargs):
+        self._cache_timeout = kwargs.pop('cache_timeout', None)
 
-        """
-        Resource for static assets from file system.
-        """
+        File.__init__(self, *args, **kwargs)
 
-        def __init__(self, *args, **kwargs):
-            self._cache_timeout = kwargs.pop('cache_timeout', None)
+    def render_GET(self, request):
+        if self._cache_timeout is not None:
+            request.setHeader(b'cache-control', 'max-age={}, public'.format(self._cache_timeout))
+            request.setHeader(b'expires', http.datetimeToString(time.time() + self._cache_timeout))
 
-            File.__init__(self, *args, **kwargs)
+        return File.render_GET(self, request)
 
-        def render_GET(self, request):
-            if self._cache_timeout is not None:
-                request.setHeader(b'cache-control', 'max-age={}, public'.format(self._cache_timeout))
-                request.setHeader(b'expires', http.datetimeToString(time.time() + self._cache_timeout))
+    def createSimilarFile(self, *args, **kwargs):
+        #
+        # File.getChild uses File.createSimilarFile to make a new resource of the same class to serve actual files under
+        # a directory. We need to override that to also set the cache timeout on the child.
+        #
 
-            return File.render_GET(self, request)
+        similar_file = File.createSimilarFile(self, *args, **kwargs)
 
-        def createSimilarFile(self, *args, **kwargs):
-            #
-            # File.getChild uses File.createSimilarFile to make a new resource of the same class to serve actual files under
-            # a directory. We need to override that to also set the cache timeout on the child.
-            #
+        # need to manually set this - above explicitly enumerates constructor args
+        similar_file._cache_timeout = self._cache_timeout
 
-            similar_file = File.createSimilarFile(self, *args, **kwargs)
+        return similar_file
 
-            # need to manually set this - above explicitly enumerates constructor args
-            similar_file._cache_timeout = self._cache_timeout
 
-            return similar_file
+class StaticResourceNoListing(StaticResource):
+    """
+    A file hierarchy resource with directory listing disabled.
+    """
 
-    class StaticResourceNoListing(StaticResource):
-
-        """
-        A file hierarchy resource with directory listing disabled.
-        """
-
-        def directoryListing(self):
-            return self.childNotFound
+    def directoryListing(self):
+        return self.childNotFound
 
 
 if _HAS_CGI:
@@ -618,6 +602,7 @@ class WampLongPollResourceSession(longpoll.WampLongPollResourceSession):
 class WampLongPollResource(longpoll.WampLongPollResource):
 
     protocol = WampLongPollResourceSession
+    log = make_logger()
 
     def getNotice(self, peer, redirectUrl=None, redirectAfter=0):
         try:
@@ -629,8 +614,8 @@ class WampLongPollResource(longpoll.WampLongPollResource):
                                   workerPid=os.getpid())
             content = content.encode('utf8')
             return content
-        except Exception as e:
-            log.msg("Error rendering LongPoll notice page template: {}".format(e))
+        except Exception:
+            self.log.failure("Error rendering LongPoll notice page template: {failure}")
 
 
 class SchemaDocResource(Resource):

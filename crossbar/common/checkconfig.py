@@ -1691,12 +1691,9 @@ def check_connections(connections, silence=False):
     if not isinstance(connections, list):
         raise InvalidConfigException("'connections' items must be lists ({} encountered)".format(type(connections)))
 
-    i = 1
-    for connection in connections:
-        if not silence:
-            print("Checking connection item {} ..".format(i))
+    for i, connection in enumerate(connections):
+        log.debug("Checking connection item {} ..".format(i))
         check_connection(connection)
-        i += 1
 
 
 def check_transports(transports, silence=False):
@@ -1731,12 +1728,9 @@ def check_router(router, silence=False):
     if not isinstance(realms, list):
         raise InvalidConfigException("'realms' items must be lists ({} encountered)\n\n{}".format(type(realms), pformat(router)))
 
-    i = 1
-    for realm in realms:
-        if not silence:
-            print("Checking realm item {} ..".format(i))
+    for i, realm in enumerate(realms):
+        log.debug("Checking realm item {} ..".format(i))
         check_router_realm(realm, silence)
-        i += 1
 
     # transports
     #
@@ -1744,12 +1738,9 @@ def check_router(router, silence=False):
     if not isinstance(transports, list):
         raise InvalidConfigException("'transports' items must be lists ({} encountered)\n\n{}".format(type(transports), pformat(router)))
 
-    i = 1
-    for transport in transports:
-        if not silence:
-            print("Checking transport item {} ..".format(i))
+    for i, transport in enumerate(transports):
+        log.debug("Checking transport item {} ..".format(i))
         check_router_transport(transport, silence)
-        i += 1
 
     # connections
     #
@@ -2114,8 +2105,7 @@ def check_config(config, silence=False):
     # check controller config
     #
     if 'controller' in config:
-        if not silence:
-            print("Checking controller item ..")
+        log.debug("Checking controller item ..")
         check_controller(config['controller'])
 
     # check worker configs
@@ -2123,12 +2113,10 @@ def check_config(config, silence=False):
     workers = config.get('workers', [])
     if not isinstance(workers, list):
         raise InvalidConfigException("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
-    i = 1
-    for worker in workers:
-        if not silence:
-            print("Checking worker item {} ..".format(i))
+
+    for i, worker in enumerate(workers):
+        log.debug("Checking worker item {} ..".format(i))
         check_worker(worker, silence)
-        i += 1
 
 
 def check_config_file(configfile, silence=False):
@@ -2171,7 +2159,7 @@ def convert_config_file(configfile):
 
     with open(configfile, 'rb') as infile:
         if configext == '.yaml':
-            print("converting YAML configuration {} to JSON ...".format(configfile))
+            log.info("converting YAML configuration {} to JSON ...".format(configfile))
             try:
                 config = yaml.safe_load(infile)
             except InvalidConfigException as e:
@@ -2180,9 +2168,9 @@ def convert_config_file(configfile):
                 newconfig = os.path.abspath(configbase + '.json')
                 with open(newconfig, 'wb') as outfile:
                     json.dump(config, outfile, ensure_ascii=False, separators=(', ', ': '), indent=3, sort_keys=False)
-                    print("ok, JSON formatted configuration written to {}".format(newconfig))
+                    log.info("ok, JSON formatted configuration written to {}".format(newconfig))
         else:
-            print("converting JSON formatted configuration {} to YAML format ...".format(configfile))
+            log.info("converting JSON formatted configuration {} to YAML format ...".format(configfile))
             try:
                 config = json.load(infile)
             except ValueError as e:
@@ -2191,7 +2179,7 @@ def convert_config_file(configfile):
                 newconfig = os.path.abspath(configbase + '.yaml')
                 with open(newconfig, 'wb') as outfile:
                     yaml.safe_dump(config, outfile)
-                    print("ok, YAML formatted configuration written to {}".format(newconfig))
+                    log.info("ok, YAML formatted configuration written to {}".format(newconfig))
 
 
 def fill_config_from_env(config, keys=None, debug=False):
@@ -2217,8 +2205,6 @@ def fill_config_from_env(config, keys=None, debug=False):
                     if envvar in os.environ:
                         val = os.environ[envvar]
                         config[k] = val
-                        if debug:
-                            print("configuration parameter '{}' set to '{}' from environment variable {}".format(k, val, envvar))
+                        log.debug("configuration parameter '{key}' set to '{val}' from environment variable {envvar}", key=k, val=val, envvar=envvar)
                     else:
-                        if debug:
-                            print("warning: configuration parameter '{}' should have been read from enviroment variable {}, but the latter is not set".format(k, envvar))
+                        log.debug("warning: configuration parameter '{key}' should have been read from enviroment variable {envvar}, but the latter is not set", key=k, envvar=envvar)
