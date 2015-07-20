@@ -395,12 +395,11 @@ def run_command_start(options):
         with open(fp, 'w') as fd:
             argv = options.argv
             options_dump = vars(options)
-            del options_dump['func']
-            del options_dump['argv']
             pid_data = {
                 'pid': os.getpid(),
                 'argv': argv,
-                'options': options_dump
+                'options': {x:y for x,y in options_dump
+                            if not x in ["func", "argv"]}
             }
             fd.write("{}\n".format(json.dumps(pid_data, sort_keys=False, indent=3, separators=(',', ': '))))
 
