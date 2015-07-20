@@ -47,14 +47,6 @@ import sys
 import warnings
 
 
-class dot_accessible_dict(dict):
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
-    def __getattr__(self, attr):
-        return self.get(attr)
-
-
 class CLITestBase(unittest.TestCase):
 
     def setUp(self):
@@ -71,11 +63,6 @@ class CLITestBase(unittest.TestCase):
         self.patch(_logging, "globalLogBeginner", self.beginner)
         self.patch(_logging, "_loggers", WeakKeyDictionary())
         self.patch(_logging, "_loglevel", "info")
-
-    def make_options(self, opts):
-        options = dot_accessible_dict(opts)
-        options.__dict__ = opts
-        return options
 
     def tearDown(self):
         sys.stdout = sys.__stdout__
@@ -102,15 +89,12 @@ class StartTests(CLITestBase):
 
         reactor = SelectReactor()
         reactor.run = lambda: False
-        opt = {
-            "loglevel": "info",
-            "cbdir": self.cbdir,
-            "config": "config.json",
-            "logtofile": False,
-            "logformat": "syslogd",
-        }
 
-        cli.run_command_start(self.make_options(opt), reactor)
+        cli.run("crossbar",
+                ["start", "--cbdir={}".format(self.cbdir),
+                 "--logformat=syslogd"],
+                reactor=reactor)
+
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
 
     def test_configValidationFailure(self):
@@ -121,16 +105,12 @@ class StartTests(CLITestBase):
             f.write("")
 
         reactor = SelectReactor()
-        opt = {
-            "loglevel": "info",
-            "cbdir": self.cbdir,
-            "config": "config.json",
-            "logtofile": False,
-            "logformat": "syslogd",
-        }
 
         with self.assertRaises(SystemExit) as e:
-            cli.run_command_start(self.make_options(opt), reactor)
+            cli.run("crossbar",
+                ["start", "--cbdir={}".format(self.cbdir),
+                 "--logformat=syslogd"],
+                reactor=reactor)
 
         # Exit with code 1
         self.assertEqual(e.exception.args[0], 1)
@@ -151,14 +131,10 @@ class StartTests(CLITestBase):
 
         reactor = SelectReactor()
         reactor.run = lambda: None
-        opt = {
-            "loglevel": "info",
-            "cbdir": self.cbdir,
-            "config": "config.json",
-            "logtofile": True,
-        }
 
-        cli.run_command_start(self.make_options(opt), reactor)
+        cli.run("crossbar",
+                ["start", "--cbdir={}".format(self.cbdir), "--logtofile"],
+                reactor=reactor)
 
         with open(os.path.join(self.cbdir, "node.log"), "r") as f:
             logFile = f.read()
@@ -166,3 +142,22 @@ class StartTests(CLITestBase):
         self.assertIn("Entering reactor event loop", logFile)
         self.assertEqual("", self.stderr.getvalue())
         self.assertEqual("", self.stdout.getvalue())
+
+    def test_stalePID(self):
+
+        with open(self.config, "w") as f:
+            f.write("""{"controller": {}}""")
+
+        with open(os.path.join(self.cbdir, "node.pid"), "w") as f:
+            f.write("""{"pid": 9999999}""")
+
+        reactor = SelectReactor()
+        reactor.run = lambda: None
+
+        cli.run("crossbar",
+                ["start", "--cbdir={}".format(self.cbdir),
+                 "--logformat=syslogd"],
+                reactor=reactor)
+
+        self.assertIn("Stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) removed".format(os.path.abspath(os.path.join(self.cbdir, "node.pid")), 9999999),
+                      self.stdout.getvalue())
