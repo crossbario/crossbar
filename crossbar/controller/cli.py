@@ -47,6 +47,8 @@ from autobahn.util import utcnow
 from autobahn.twisted.choosereactor import install_reactor
 
 import crossbar
+from crossbar._logging import make_logger
+
 
 try:
     import psutil
@@ -132,6 +134,8 @@ def check_is_running(cbdir):
     :returns: The PID of the running Crossbar.io controller process or ``None``
     :rtype: int or None
     """
+    log = make_logger()
+
     fp = os.path.join(cbdir, _PID_FILENAME)
     if os.path.isfile(fp):
         with open(fp) as fd:
@@ -143,9 +147,9 @@ def check_is_running(cbdir):
                 try:
                     os.remove(fp)
                 except Exception as e:
-                    print("Could not remove corrupted Crossbar.io PID file {} - {}".format(fp, e))
+                    log.info("Could not remove corrupted Crossbar.io PID file {} - {}".format(fp, e))
                 else:
-                    print("Corrupted Crossbar.io PID file {} removed".format(fp))
+                    log.info("Corrupted Crossbar.io PID file {} removed".format(fp))
             else:
                 if sys.platform == 'win32' and not _HAS_PSUTIL:
                     # when on Windows, and we can't actually determine if the PID exists,
@@ -162,22 +166,22 @@ def check_is_running(cbdir):
                                 nicecmdline = ' '.join(cmdline)
                                 if len(nicecmdline) > 76:
                                     nicecmdline = nicecmdline[:38] + ' ... ' + nicecmdline[-38:]
-                                print('"{}" points to PID {} which is not a crossbar process:'.format(fp, pid))
-                                print('  ' + nicecmdline)
-                                print('Verify manually and either kill {} or delete {}'.format(pid, fp))
+                                log.info('"{}" points to PID {} which is not a crossbar process:'.format(fp, pid))
+                                log.info('  ' + nicecmdline)
+                                log.info('Verify manually and either kill {} or delete {}'.format(pid, fp))
                                 return None
                         return pid_data
                     else:
                         try:
                             os.remove(fp)
                         except Exception as e:
-                            print("Could not remove stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) - {}".format(fp, pid, e))
+                            log.info("Could not remove stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) - {}".format(fp, pid, e))
                         else:
-                            print("Stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) removed".format(fp, pid))
+                            log.info("Stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) removed".format(fp, pid))
     return None
 
 
-def run_command_version(options):
+def run_command_version(options, **kwargs):
     """
     Subcommand "crossbar version".
     """
@@ -268,7 +272,7 @@ def run_command_version(options):
     print("")
 
 
-def run_command_templates(options):
+def run_command_templates(options, **kwargs):
     """
     Subcommand "crossbar templates".
     """
@@ -278,7 +282,7 @@ def run_command_templates(options):
     templates.help()
 
 
-def run_command_init(options):
+def run_command_init(options, **kwargs):
     """
     Subcommand "crossbar init".
     """
@@ -324,10 +328,11 @@ def run_command_init(options):
         print("\nTo start your node, run 'crossbar start --cbdir {}'\n".format(os.path.abspath(os.path.join(options.appdir, '.crossbar'))))
 
 
-def run_command_status(options):
+def run_command_status(options, **kwargs):
     """
     Subcommand "crossbar status".
     """
+    log = make_logger()
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
     #
@@ -335,14 +340,14 @@ def run_command_status(options):
     if pid_data is None:
         # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
         # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
-        print("No Crossbar.io instance is currently running from node directory {}.".format(options.cbdir))
+        log.info("No Crossbar.io instance is currently running from node directory {}.".format(options.cbdir))
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
     else:
-        print("A Crossbar.io instance is running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
+        log.info("A Crossbar.io instance is running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
         sys.exit(0)
 
 
-def run_command_stop(options, exit=True):
+def run_command_stop(options, exit=True, **kwargs):
     """
     Subcommand "crossbar stop".
     """
@@ -379,6 +384,70 @@ def run_command_stop(options, exit=True):
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
 
 
+def _startlog(options):
+    """
+    Start the logging in a way that all the subcommands can use it.
+    """
+    from crossbar._logging import log_publisher, start_logging
+    from crossbar._logging import set_global_log_level
+
+    loglevel = getattr(options, "loglevel", "info")
+    logformat = getattr(options, "logformat", "colour")
+
+    set_global_log_level(loglevel)
+
+    if getattr(options, "logtofile", False):
+        # We want to log to a file
+        from crossbar._logging import make_logfile_observer
+
+        if not options.logdir:
+            logdir = options.cbdir
+        else:
+            logdir = options.logdir
+
+        logfile = os.path.join(logdir, "node.log")
+
+        if loglevel in ["error", "warn", "info"]:
+            show_source = False
+        else:
+            show_source = True
+
+        log_publisher.addObserver(make_logfile_observer(logfile, show_source))
+    else:
+        # We want to log to stdout/stderr.
+        from crossbar._logging import make_stdout_observer
+        from crossbar._logging import make_stderr_observer
+
+        if loglevel == "none":
+            # Do no logging!
+            pass
+        elif loglevel in ["error", "warn", "info"]:
+            # Print info to stdout, warn+ to stderr
+            log_publisher.addObserver(make_stdout_observer(show_source=False,
+                                                           format=logformat))
+            log_publisher.addObserver(make_stderr_observer(show_source=False,
+                                                           format=logformat))
+        elif loglevel == "debug":
+            # Print debug+info to stdout, warn+ to stderr, with the class
+            # source
+            log_publisher.addObserver(make_stdout_observer(show_source=True,
+                                                           format=logformat))
+            log_publisher.addObserver(make_stderr_observer(show_source=True,
+                                                           format=logformat))
+        elif loglevel == "trace":
+            # Print trace+, with the class source
+            log_publisher.addObserver(make_stdout_observer(show_source=True,
+                                                           format=logformat,
+                                                           trace=True))
+            log_publisher.addObserver(make_stderr_observer(show_source=True,
+                                                           format=logformat))
+        else:
+            assert False, "Shouldn't ever get here."
+
+    # Actually start the logger.
+    start_logging()
+
+
 def run_command_start(options, reactor=None):
     """
     Subcommand "crossbar start".
@@ -398,7 +467,7 @@ def run_command_start(options, reactor=None):
             pid_data = {
                 'pid': os.getpid(),
                 'argv': argv,
-                'options': {x: y for x, y in options_dump
+                'options': {x: y for x, y in options_dump.items()
                             if x not in ["func", "argv"]}
             }
             fd.write("{}\n".format(json.dumps(pid_data, sort_keys=False, indent=3, separators=(',', ': '))))
@@ -416,59 +485,9 @@ def run_command_start(options, reactor=None):
             os.remove(fp)
     reactor.addSystemEventTrigger('after', 'shutdown', remove_pid_file)
 
-    # start Twisted logging
-    #
-    from crossbar._logging import log_publisher, make_logger
-    from crossbar._logging import start_logging, set_global_log_level
-
-    set_global_log_level(options.loglevel)
-
     log = make_logger()
 
-    if options.logtofile:
-        # We want to log to a file
-        from crossbar._logging import make_logfile_observer
-
-        if not options.logdir:
-            logdir = options.cbdir
-        else:
-            logdir = options.logdir
-
-        logfile = os.path.join(logdir, "node.log")
-
-        if options.loglevel in ["error", "warn", "info"]:
-            show_source = False
-        else:
-            show_source = True
-
-        log_publisher.addObserver(make_logfile_observer(logfile, show_source))
-    else:
-        # We want to log to stdout/stderr.
-        from crossbar._logging import make_stdout_observer
-        from crossbar._logging import make_stderr_observer
-
-        if options.loglevel == "none":
-            # Do no logging!
-            pass
-        elif options.loglevel in ["error", "warn", "info"]:
-            # Print info to stdout, warn+ to stderr
-            log_publisher.addObserver(make_stdout_observer(show_source=False, format=options.logformat))
-            log_publisher.addObserver(make_stderr_observer(show_source=False, format=options.logformat))
-        elif options.loglevel == "debug":
-            # Print debug+info to stdout, warn+ to stderr, with the class
-            # source
-            log_publisher.addObserver(make_stdout_observer(show_source=True, format=options.logformat))
-            log_publisher.addObserver(make_stderr_observer(show_source=True, format=options.logformat))
-        elif options.loglevel == "trace":
-            # Print trace+, with the class source
-            log_publisher.addObserver(make_stdout_observer(show_source=True, format=options.logformat, trace=True))
-            log_publisher.addObserver(make_stderr_observer(show_source=True, format=options.logformat))
-        else:
-            assert False, "Shouldn't ever get here."
-
-    # Actually start the logger.
-    start_logging()
-
+    # Print the banner.
     for line in BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
@@ -514,7 +533,7 @@ def run_command_start(options, reactor=None):
         log.failure("Could not start reactor: {log_failure.value}")
 
 
-def run_command_restart(options):
+def run_command_restart(options, **kwargs):
     """
     Subcommand "crossbar restart".
     """
@@ -527,7 +546,7 @@ def run_command_restart(options):
     run(prog, args)
 
 
-def run_command_check(options):
+def run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
@@ -546,7 +565,7 @@ def run_command_check(options):
         sys.exit(0)
 
 
-def run_command_convert(options):
+def run_command_convert(options, **kwargs):
     """
     Subcommand "crossbar convert".
     """
@@ -564,7 +583,7 @@ def run_command_convert(options):
         sys.exit(0)
 
 
-def run(prog=None, args=None):
+def run(prog=None, args=None, reactor=None):
     """
     Entry point of Crossbar.io CLI.
     """
@@ -774,9 +793,12 @@ def run(prog=None, args=None):
                     print("Could not create log directory: {}".format(e))
                     sys.exit(1)
 
+    # Start the logger
+    _startlog(options)
+
     # run the subcommand selected
     #
-    options.func(options)
+    options.func(options, reactor=reactor)
 
 
 if __name__ == '__main__':
