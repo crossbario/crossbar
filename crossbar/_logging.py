@@ -271,9 +271,9 @@ def make_JSON_observer(outFile):
     return _make_json
 
 
-def make_logfile_observer(path, show_source):
+def make_logfile_observer(path, show_source=False):
     """
-    Make a L{DefaultSystemFileLogObserver}.
+    Make an observer that writes out to C{path}.
     """
     from twisted.logger import FileLogObserver
 
@@ -281,29 +281,25 @@ def make_logfile_observer(path, show_source):
 
     def _render(event):
 
-        try:
-            if event.get("log_system", u"-") == u"-":
-                logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
-            else:
-                logSystem = event["log_system"]
+        if event.get("log_system", u"-") == u"-":
+            logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
+        else:
+            logSystem = event["log_system"]
 
-            if show_source and event.get("log_namespace") is not None:
-                logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+        if show_source and event.get("log_namespace") is not None:
+            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
 
-            if event.get("log_format", None) is not None:
-                eventText = formatEvent(event)
-            else:
-                eventText = ""
+        if event.get("log_format", None) is not None:
+            eventText = formatEvent(event)
+        else:
+            eventText = ""
 
-            if "log_failure" in event:
-                # This is a traceback. Print it.
-                eventText = eventText + event["log_failure"].getTraceback()
+        if "log_failure" in event:
+            # This is a traceback. Print it.
+            eventText = eventText + event["log_failure"].getTraceback()
 
-            eventString = NOCOLOUR_FORMAT.format(
-                formatTime(event["log_time"]), logSystem, eventText) + os.linesep
-
-        except Exception as e:
-            sys.__stdout__.write(str(e))
+        eventString = NOCOLOUR_FORMAT.format(
+            formatTime(event["log_time"]), logSystem, eventText) + os.linesep
 
         return eventString
 
