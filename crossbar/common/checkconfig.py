@@ -2134,12 +2134,12 @@ def check_config_file(configfile, silence=False):
             try:
                 config = yaml.safe_load(infile)
             except InvalidConfigException as e:
-                raise InvalidConfigException("configuration file does not seem to be proper YAML ('{}'')".format(e))
+                raise InvalidConfigException("configuration file does not seem to be proper YAML ('{}')".format(e))
         else:
             try:
                 config = json.load(infile)
             except ValueError as e:
-                raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}'')".format(e))
+                raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}')".format(e))
 
     check_config(config, silence)
 
