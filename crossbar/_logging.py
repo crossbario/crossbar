@@ -161,6 +161,8 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
                 formatTime(event["log_time"]), logSystem, formatEvent(event))
         elif format == "syslogd":
             eventString = SYSLOGD_FORMAT.format(logSystem, formatEvent(event))
+        elif format == "none":
+            eventString = formatEvent(event)
         else:
             assert False
 
@@ -212,6 +214,8 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                 formatTime(event["log_time"]), logSystem, eventText)
         elif format == "syslogd":
             eventString = SYSLOGD_FORMAT.format(logSystem, eventText)
+        elif format == "none":
+            eventString = formatEvent(event)
         else:
             assert False
 

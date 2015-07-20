@@ -286,12 +286,15 @@ def run_command_init(options, **kwargs):
     """
     Subcommand "crossbar init".
     """
+    log = make_logger()
+
     from crossbar.controller.template import Templates
 
     templates = Templates()
 
     if options.template not in templates:
-        print("Huh, sorry. There is no template named '{}'. Try 'crossbar templates' to list the templates available.".format(options.template))
+        log.info("Huh, sorry. There is no template named '{options.template}'. Try 'crossbar templates' to list the templates available.",
+                 options=options)
         sys.exit(1)
 
     if options.appdir is None:
@@ -305,27 +308,22 @@ def run_command_init(options, **kwargs):
         except Exception as e:
             raise Exception("could not create application directory '{}' ({})".format(options.appdir, e))
         else:
-            print("Crossbar.io application directory '{}' created".format(options.appdir))
+            log.info("Crossbar.io application directory '{options.appdir}' created",
+                     options=options)
 
     options.appdir = os.path.abspath(options.appdir)
 
-    print("Initializing application template '{}' in directory '{}'".format(options.template, options.appdir))
+    log.info("Initializing application template '{options.template}' in directory '{options.appdir}'",
+             options=options)
     get_started_hint = templates.init(options.appdir, options.template)
 
-    # try:
-    #    templates.init(options.appdir, options.template)
-    # except Exception as e:
-    #    try:
-    #       shutil.rmtree(options.appdir)
-    #    except:
-    #       pass
-    #    raise e
+    log.info("Application template initialized")
 
-    print("Application template initialized")
     if get_started_hint:
-        print("\n{}\n".format(get_started_hint))
+        log.info("\n{}\n".format(get_started_hint))
     else:
-        print("\nTo start your node, run 'crossbar start --cbdir {}'\n".format(os.path.abspath(os.path.join(options.appdir, '.crossbar'))))
+        log.info("\nTo start your node, run 'crossbar start --cbdir {cbdir}'\n",
+              cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
 
 
 def run_command_status(options, **kwargs):
@@ -333,6 +331,7 @@ def run_command_status(options, **kwargs):
     Subcommand "crossbar status".
     """
     log = make_logger()
+
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
     #
@@ -340,10 +339,12 @@ def run_command_status(options, **kwargs):
     if pid_data is None:
         # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
         # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
-        log.info("No Crossbar.io instance is currently running from node directory {}.".format(options.cbdir))
+        log.info("No Crossbar.io instance is currently running from node directory {cbdir}.",
+                 cbdir=options.cbdir)
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
     else:
-        log.info("A Crossbar.io instance is running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
+        log.info("A Crossbar.io instance is running from node directory {cbdir} (PID {pid}).",
+                 cbdir=options.cbdir, pid=pid_data['pid'])
         sys.exit(0)
 
 
@@ -392,7 +393,7 @@ def _startlog(options):
     from crossbar._logging import set_global_log_level
 
     loglevel = getattr(options, "loglevel", "info")
-    logformat = getattr(options, "logformat", "colour")
+    logformat = getattr(options, "logformat", "none")
 
     set_global_log_level(loglevel)
 
