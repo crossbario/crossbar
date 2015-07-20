@@ -323,7 +323,7 @@ def run_command_init(options, **kwargs):
         log.info("\n{}\n".format(get_started_hint))
     else:
         log.info("\nTo start your node, run 'crossbar start --cbdir {cbdir}'\n",
-              cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
+                 cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
 
 
 def run_command_status(options, **kwargs):
