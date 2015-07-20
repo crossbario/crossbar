@@ -121,10 +121,13 @@ def escape_formatting(text):
 
 def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
                          show_source=False, format="colour", trace=False,
-                         _file=_stdout):
+                         _file=None):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
+    if _file is None:
+        _file = _stdout
+
     @provider(ILogObserver)
     def StandardOutObserver(event):
 
@@ -169,10 +172,13 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                                  LogLevel.critical),
                          show_source=False, format="colour",
-                         _file=_stderr):
+                         _file=None):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
+    if _file is None:
+        _file = _stderr
+
     @provider(ILogObserver)
     def StandardErrorObserver(event):
 
@@ -350,12 +356,15 @@ class CrossbarLogger(object):
         self._setlog_level = level
 
 
-def make_logger(log_level=None, logger=Logger, observer=log_publisher):
+def make_logger(log_level=None, logger=Logger, observer=None):
     """
     Make a new logger (of the type set by the kwarg logger) that publishes to
     the observer set in the observer kwarg. If no explicit log_level is given,
     it uses the current global log level.
     """
+    if observer is None:
+        observer = log_publisher
+
     # Get the caller's frame
     cf = currentframe(1)
 
