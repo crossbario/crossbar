@@ -38,7 +38,7 @@ from twisted.internet.selectreactor import SelectReactor
 from crossbar.controller import cli
 from crossbar import _logging
 
-from twisted.logger import LogPublisher, LogBeginner, textFileLogObserver, globalLogPublisher
+from twisted.logger import LogPublisher, LogBeginner
 
 from weakref import WeakKeyDictionary
 
@@ -48,8 +48,8 @@ import warnings
 
 
 class dot_accessible_dict(dict):
-    __setattr__= dict.__setitem__
-    __delattr__= dict.__delitem__
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
     def __getattr__(self, attr):
         return self.get(attr)
@@ -72,7 +72,6 @@ class CLITestBase(unittest.TestCase):
         self.patch(_logging, "_loggers", WeakKeyDictionary())
         self.patch(_logging, "_loglevel", "info")
 
-
     def make_options(self, opts):
         options = dot_accessible_dict(opts)
         options.__dict__ = opts
@@ -81,6 +80,7 @@ class CLITestBase(unittest.TestCase):
     def tearDown(self):
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
+
 
 class StartTests(CLITestBase):
 
@@ -92,7 +92,6 @@ class StartTests(CLITestBase):
         self.cbdir = self.mktemp()
         os.mkdir(self.cbdir)
         self.config = os.path.join(self.cbdir, "config.json")
-
 
     def test_start(self):
         """
@@ -113,7 +112,6 @@ class StartTests(CLITestBase):
 
         cli.run_command_start(self.make_options(opt), reactor)
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
-
 
     def test_configValidationFailure(self):
         """

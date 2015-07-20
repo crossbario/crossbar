@@ -398,8 +398,8 @@ def run_command_start(options, reactor=None):
             pid_data = {
                 'pid': os.getpid(),
                 'argv': argv,
-                'options': {x:y for x,y in options_dump
-                            if not x in ["func", "argv"]}
+                'options': {x: y for x, y in options_dump
+                            if x not in ["func", "argv"]}
             }
             fd.write("{}\n".format(json.dumps(pid_data, sort_keys=False, indent=3, separators=(',', ': '))))
 
