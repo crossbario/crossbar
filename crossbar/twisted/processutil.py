@@ -39,7 +39,7 @@ from twisted.internet.endpoints import _WrapIProtocol, ProcessEndpoint
 from twisted.internet.address import _ProcessAddress
 from twisted.internet import defer
 
-__all__ = ('WorkerProcessEndpoint', 'BareFormatFileLogObserver', 'DefaultSystemFileLogObserver')
+__all__ = ('WorkerProcessEndpoint',)
 
 
 class _WorkerWrapIProtocol(_WrapIProtocol):
@@ -89,39 +89,3 @@ class WorkerProcessEndpoint(ProcessEndpoint):
             return defer.fail()
         else:
             return defer.succeed(proto)
-
-
-class BareFormatFileLogObserver(FileLogObserver):
-
-    """
-    Log observer without any additional formatting (such as timestamps).
-    """
-
-    def emit(self, eventDict):
-        text = textFromEventDict(eventDict)
-        if text:
-            util.untilConcludes(self.write, text + "\n")
-            util.untilConcludes(self.flush)
-
-
-class DefaultSystemFileLogObserver(FileLogObserver):
-
-    """
-    Log observer with default settable system.
-    """
-
-    def __init__(self, f, system=None, override=True):
-        FileLogObserver.__init__(self, f)
-        if system:
-            self._system = system
-        else:
-            self._system = "Process {}".format(os.getpid())
-        self._override = override
-
-    def emit(self, eventDict):
-        if 'system' in eventDict and 'override_system' in eventDict and eventDict['override_system']:
-            pass
-        else:
-            if self._override or ('system' not in eventDict) or eventDict['system'] == "-":
-                eventDict['system'] = self._system
-        FileLogObserver.emit(self, eventDict)
