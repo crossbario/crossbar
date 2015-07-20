@@ -379,7 +379,7 @@ def run_command_stop(options, exit=True):
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
 
 
-def run_command_start(options):
+def run_command_start(options, reactor=None):
     """
     Subcommand "crossbar start".
     """
@@ -403,9 +403,10 @@ def run_command_start(options):
             }
             fd.write("{}\n".format(json.dumps(pid_data, sort_keys=False, indent=3, separators=(',', ': '))))
 
-    # we use an Autobahn utility to import the "best" available Twisted reactor
-    #
-    reactor = install_reactor(options.reactor, options.debug)
+    if not reactor:
+        # we use an Autobahn utility to import the "best" available Twisted reactor
+        #
+        reactor = install_reactor(options.reactor, options.debug)
 
     # remove node PID file when reactor exits
     #
