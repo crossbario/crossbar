@@ -110,7 +110,7 @@ class StartTests(CLITestBase):
             cli.run("crossbar",
                     ["start", "--cbdir={}".format(self.cbdir),
                      "--logformat=syslogd"],
-                reactor=reactor)
+                    reactor=reactor)
 
         # Exit with code 1
         self.assertEqual(e.exception.args[0], 1)
