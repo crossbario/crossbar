@@ -139,5 +139,5 @@ class StartTests(CLITestBase):
         self.assertIn("*** Configuration validation failed ***",
                       self.stderr.getvalue())
         self.assertIn(("configuration file does not seem to be proper JSON "
-                       "('No JSON object could be decoded')"),
+                       "('No JSON object could be decoded"),
                       self.stderr.getvalue())
