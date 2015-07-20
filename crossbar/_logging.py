@@ -271,22 +271,43 @@ def make_JSON_observer(outFile):
     return _make_json
 
 
-def make_legacy_daily_logfile_observer(path):
+def make_logfile_observer(path, show_source):
     """
     Make a L{DefaultSystemFileLogObserver}.
     """
-    from crossbar.twisted.processutil import DefaultSystemFileLogObserver
-    from twisted.logger import LegacyLogObserverWrapper
-    from twisted.python.logfile import DailyLogFile
+    from twisted.logger import FileLogObserver
 
-    logfd = DailyLogFile.fromFullPath(os.path.join(path,
-                                                   'node.log'))
-    flo = LegacyLogObserverWrapper(
-        DefaultSystemFileLogObserver(logfd,
-                                     system="{:<10} {:>6}".format(
-                                         "Controller", os.getpid())).emit)
+    f = open(path, "w")
 
-    return flo
+    def _render(event):
+
+        try:
+            if event.get("log_system", u"-") == u"-":
+                logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
+            else:
+                logSystem = event["log_system"]
+
+            if show_source and event.get("log_namespace") is not None:
+                logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+
+            if event.get("log_format", None) is not None:
+                eventText = formatEvent(event)
+            else:
+                eventText = ""
+
+            if "log_failure" in event:
+                # This is a traceback. Print it.
+                eventText = eventText + event["log_failure"].getTraceback()
+
+            eventString = NOCOLOUR_FORMAT.format(
+                formatTime(event["log_time"]), logSystem, eventText) + os.linesep
+
+        except Exception as e:
+            sys.__stdout__.write(str(e))
+
+        return eventString
+
+    return FileLogObserver(f, _render)
 
 
 class CrossbarLogger(object):

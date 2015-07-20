@@ -427,15 +427,21 @@ def run_command_start(options, reactor=None):
 
     if options.logtofile:
         # We want to log to a file
-        from crossbar._logging import make_legacy_daily_logfile_observer
+        from crossbar._logging import make_logfile_observer
 
         if not options.logdir:
             logdir = options.cbdir
         else:
             logdir = options.logdir
 
-        log_publisher.addObserver(
-            make_legacy_daily_logfile_observer(logdir))
+        logfile = os.path.join(logdir, "node.log")
+
+        if options.loglevel in ["error", "warn", "info"]:
+            show_source = False
+        else:
+            show_source = True
+
+        log_publisher.addObserver(make_logfile_observer(logfile, show_source))
     else:
         # We want to log to stdout/stderr.
         from crossbar._logging import make_stdout_observer
