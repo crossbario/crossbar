@@ -108,8 +108,8 @@ class StartTests(CLITestBase):
 
         with self.assertRaises(SystemExit) as e:
             cli.run("crossbar",
-                ["start", "--cbdir={}".format(self.cbdir),
-                 "--logformat=syslogd"],
+                    ["start", "--cbdir={}".format(self.cbdir),
+                     "--logformat=syslogd"],
                 reactor=reactor)
 
         # Exit with code 1

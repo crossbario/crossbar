@@ -30,11 +30,6 @@
 
 from __future__ import absolute_import
 
-import os
-
-from twisted.python import util
-from twisted.python.log import FileLogObserver, textFromEventDict
-
 from twisted.internet.endpoints import _WrapIProtocol, ProcessEndpoint
 from twisted.internet.address import _ProcessAddress
 from twisted.internet import defer
