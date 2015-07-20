@@ -141,3 +141,28 @@ class StartTests(CLITestBase):
         self.assertIn(("configuration file does not seem to be proper JSON "
                        "('No JSON object could be decoded"),
                       self.stderr.getvalue())
+
+    def test_fileLogging(self):
+        """
+        Running `crossbar start --logtofile` will log to cbdir/node.log.
+        """
+        with open(self.config, "w") as f:
+            f.write("""{"controller": {}}""")
+
+        reactor = SelectReactor()
+        reactor.run = lambda: None
+        opt = {
+            "loglevel": "info",
+            "cbdir": self.cbdir,
+            "config": "config.json",
+            "logtofile": True,
+        }
+
+        cli.run_command_start(self.make_options(opt), reactor)
+
+        with open(os.path.join(self.cbdir, "node.log"), "r") as f:
+            logFile = f.read()
+
+        self.assertIn("Entering reactor event loop", logFile)
+        self.assertEqual("", self.stderr.getvalue())
+        self.assertEqual("", self.stdout.getvalue())
