@@ -118,8 +118,7 @@ class StartTests(CLITestBase):
         # The proper warning should be emitted
         self.assertIn("*** Configuration validation failed ***",
                       self.stderr.getvalue())
-        self.assertIn(("configuration file does not seem to be proper JSON "
-                       "('No JSON object could be decoded"),
+        self.assertIn(("configuration file does not seem to be proper JSON "),
                       self.stderr.getvalue())
 
     def test_fileLogging(self):
