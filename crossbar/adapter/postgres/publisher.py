@@ -78,12 +78,12 @@ class PostgreSQLPublisher(PostgreSQLAdapter):
 
     def on_notify(self, notify):
         """
-        Process PostgreSQL notifications sent via `NOTIFY` on channel `self.CHANNEL_PUBSUB_EVENT`.
+        Process PostgreSQL notifications sent via `NOTIFY` on channel `self.PG_CHANNEL`.
         """
 
         # sanity check that we are processing the correct channel
         #
-        if notify.channel == self.CHANNEL_PUBSUB_EVENT:
+        if notify.channel == self.PG_CHANNEL:
             try:
                 obj = json.loads(notify.payload)
 

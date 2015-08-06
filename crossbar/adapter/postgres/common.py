@@ -83,8 +83,6 @@ class PostgreSQLAdapter(ApplicationSession):
 
         self.log.info("PostgreSQL database adapter (Publisher) ready")
 
-        self.publish()
-
     def onLeave(self, details):
         self.log.debug("Left realm - {}".format(details))
         self.disconnect()
