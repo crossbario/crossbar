@@ -134,6 +134,5 @@ class CallerTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(
-            b"invalid request event - HTTP/POST body must be valid JSON: "
-            b"No JSON object could be decoded",
+            b"invalid request event - HTTP/POST body must be valid JSON: ",
             request.getWrittenData())

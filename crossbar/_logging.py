@@ -121,10 +121,13 @@ def escape_formatting(text):
 
 def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
                          show_source=False, format="colour", trace=False,
-                         _file=_stdout):
+                         _file=None):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
+    if _file is None:
+        _file = _stdout
+
     @provider(ILogObserver)
     def StandardOutObserver(event):
 
@@ -158,6 +161,10 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
                 formatTime(event["log_time"]), logSystem, formatEvent(event))
         elif format == "syslogd":
             eventString = SYSLOGD_FORMAT.format(logSystem, formatEvent(event))
+        elif format == "none":
+            eventString = formatEvent(event)
+        else:
+            assert False
 
         print(eventString, file=_file)
 
@@ -167,10 +174,13 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                                  LogLevel.critical),
                          show_source=False, format="colour",
-                         _file=_stderr):
+                         _file=None):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
+    if _file is None:
+        _file = _stderr
+
     @provider(ILogObserver)
     def StandardErrorObserver(event):
 
@@ -204,6 +214,10 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                 formatTime(event["log_time"]), logSystem, eventText)
         elif format == "syslogd":
             eventString = SYSLOGD_FORMAT.format(logSystem, eventText)
+        elif format == "none":
+            eventString = formatEvent(event)
+        else:
+            assert False
 
         print(eventString, file=_file)
 
@@ -261,22 +275,39 @@ def make_JSON_observer(outFile):
     return _make_json
 
 
-def make_legacy_daily_logfile_observer(path):
+def make_logfile_observer(path, show_source=False):
     """
-    Make a L{DefaultSystemFileLogObserver}.
+    Make an observer that writes out to C{path}.
     """
-    from crossbar.twisted.processutil import DefaultSystemFileLogObserver
-    from twisted.logger import LegacyLogObserverWrapper
-    from twisted.python.logfile import DailyLogFile
+    from twisted.logger import FileLogObserver
 
-    logfd = DailyLogFile.fromFullPath(os.path.join(path,
-                                                   'node.log'))
-    flo = LegacyLogObserverWrapper(
-        DefaultSystemFileLogObserver(logfd,
-                                     system="{:<10} {:>6}".format(
-                                         "Controller", os.getpid())).emit)
+    f = open(path, "w")
 
-    return flo
+    def _render(event):
+
+        if event.get("log_system", u"-") == u"-":
+            logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
+        else:
+            logSystem = event["log_system"]
+
+        if show_source and event.get("log_namespace") is not None:
+            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+
+        if event.get("log_format", None) is not None:
+            eventText = formatEvent(event)
+        else:
+            eventText = ""
+
+        if "log_failure" in event:
+            # This is a traceback. Print it.
+            eventText = eventText + event["log_failure"].getTraceback()
+
+        eventString = NOCOLOUR_FORMAT.format(
+            formatTime(event["log_time"]), logSystem, eventText) + os.linesep
+
+        return eventString
+
+    return FileLogObserver(f, _render)
 
 
 class CrossbarLogger(object):
@@ -346,12 +377,15 @@ class CrossbarLogger(object):
         self._setlog_level = level
 
 
-def make_logger(log_level=None, logger=Logger, observer=log_publisher):
+def make_logger(log_level=None, logger=Logger, observer=None):
     """
     Make a new logger (of the type set by the kwarg logger) that publishes to
     the observer set in the observer kwarg. If no explicit log_level is given,
     it uses the current global log level.
     """
+    if observer is None:
+        observer = log_publisher
+
     # Get the caller's frame
     cf = currentframe(1)
 
