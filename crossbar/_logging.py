@@ -270,7 +270,7 @@ def make_JSON_observer(outFile):
 
             text = encoder.encode(event)
 
-        except Exception as e:
+        except Exception:
             text = encoder.encode({
                 "text": done_json["text"],
                 "level": "error",

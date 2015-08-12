@@ -303,7 +303,7 @@ class JSONObserverTests(TestCase):
         self.assertIn(u"MESSAGE LOST", log_entry["text"])
         self.assertEqual(log_entry["level"], u"error")
 
-    def test_raising_during_encoding(self):
+    def test_unicode_logs(self):
         """
         Unicode is JSON serialised correctly.
         """
