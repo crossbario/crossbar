@@ -2,7 +2,7 @@ language: python
 sudo: false
 
 install:
-  - pip install tox, codecov
+  - pip install tox codecov
 
 env:
   - TOX_ENV=flake8
