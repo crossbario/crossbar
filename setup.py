@@ -67,10 +67,10 @@ extras_require_system = [
     'psutil>=3.1.1',        # BSD license
 ]
 if sys.platform.startswith('linux'):
-    extras_require_system.append('setproctitle>=1.1.8')  # BSD license
-    extras_require_system.append('pyinotify>=0.9.4')  # MIT license
+    extras_require_system.append('setproctitle>=1.1.9')  # BSD license
+    extras_require_system.append('pyinotify>=0.9.6')  # MIT license
 if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
-    extras_require_system.append('setproctitle>=1.1.8')  # BSD license
+    extras_require_system.append('setproctitle>=1.1.9')  # BSD license
 
 extras_require_db = [
     'lmdb>=0.87',           # OpenLDAP BSD
