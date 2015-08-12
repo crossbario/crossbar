@@ -139,6 +139,54 @@ class RequestBodyTestCase(TestCase):
     """
     Unit tests for the body validation parts of L{_CommonResource}.
     """
+    def test_empty_content_type(self):
+        """
+        A request lacking a content-type header will be rejected.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST", headers={},
+            body=publishBody))
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual((b"bad or missing content type (''), "
+                          b"should be 'application/json'\n"),
+                         request.getWrittenData())
+
+    def test_allow_charset_in_content_type(self):
+        """
+        A charset in the content-type will be allowed.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json; charset=utf-8"]},
+            body=publishBody))
+
+        self.assertEqual(request.code, 202)
+        self.assertIn(b'{"id":',
+                      request.getWrittenData())
+
+    def test_allow_caps_in_content_type(self):
+        """
+        Differently-capitalised content-type headers will be allowed.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"CONTENT-TYPE": [b"APPLICATION/JSON"]},
+            body=publishBody))
+
+        self.assertEqual(request.code, 202)
+        self.assertIn(b'{"id":',
+                      request.getWrittenData())
+
     def test_bad_content_type(self):
         """
         An incorrect content type will mean the request is rejected.

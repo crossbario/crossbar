@@ -79,14 +79,14 @@ class _CommonResource(Resource):
 
         self._require_tls = options.get('require_tls', None)
 
-    def _deny_request(self, request, code, reason):
+    def _deny_request(self, request, code, reason, **kwargs):
         """
         Called when client request is denied.
         """
-        self.log.debug("[request denied] - {code} / {reason}",
-                       code=code, reason=reason)
+        self.log.debug("[request denied] - {code} / " + reason,
+                       code=code, **kwargs)
         request.setResponseCode(code)
-        return u"{}\n".format(reason).encode("utf8")
+        return reason.format(**kwargs).encode("utf8") + b"\n"
 
     def render(self, request):
         self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
@@ -110,9 +110,16 @@ class _CommonResource(Resource):
 
         # check content type
         #
-        content_type = headers.get(b"content-type", None)
-        if content_type != b'application/json':
-            return self._deny_request(request, 400, u"bad or missing content type ('{0}')".format(nativeString(content_type)))
+        content_type = headers.get(b"content-type", b'')
+        content_type_elements = [x.strip().lower()
+                                 for x in content_type.split(b";")]
+
+        if b'application/json' not in content_type_elements:
+            return self._deny_request(
+                request, 400,
+                ("bad or missing content type ('{content_type}'), "
+                 "should be 'application/json'"),
+                content_type=nativeString(content_type))
 
         # enforce "post_body_limit"
         #
