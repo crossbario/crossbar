@@ -79,14 +79,14 @@ class _CommonResource(Resource):
 
         self._require_tls = options.get('require_tls', None)
 
-    def _deny_request(self, request, code, reason):
+    def _deny_request(self, request, code, reason, **kwargs):
         """
         Called when client request is denied.
         """
-        self.log.debug("[request denied] - {code} / {reason}",
-                       code=code, reason=reason)
+        self.log.debug("[request denied] - {code} / " + reason,
+                       code=code, **kwargs)
         request.setResponseCode(code)
-        return u"{}\n".format(reason).encode("utf8")
+        return reason.format(**kwargs).encode("utf8") + b"\n"
 
     def render(self, request):
         self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
