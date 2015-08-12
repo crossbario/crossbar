@@ -110,9 +110,16 @@ class _CommonResource(Resource):
 
         # check content type
         #
-        content_type = headers.get(b"content-type", None)
-        if content_type != b'application/json':
-            return self._deny_request(request, 400, u"bad or missing content type ('{0}')".format(nativeString(content_type)))
+        content_type = headers.get(b"content-type", b'')
+        content_type_elements = [x.strip().lower()
+                                 for x in content_type.split(b";")]
+
+        if b'application/json' not in content_type_elements:
+            return self._deny_request(
+                request, 400,
+                ("bad or missing content type ('{content_type}'), "
+                 "should be 'application/json'"),
+                content_type=nativeString(content_type))
 
         # enforce "post_body_limit"
         #
