@@ -153,7 +153,7 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertEqual((b"bad or missing content type (''), "
                           b"should be 'application/json'\n"),
-                      request.getWrittenData())
+                         request.getWrittenData())
 
     def test_allow_charset_in_content_type(self):
         """
