@@ -2,7 +2,7 @@ language: python
 sudo: false
 
 install:
-  - pip install tox
+  - pip install tox codecov
 
 env:
   - TOX_ENV=flake8
@@ -15,6 +15,9 @@ env:
 
 script:
   - tox -c tox.ini -e $TOX_ENV
+
+after_success:
+  - codecov
 
 notifications:
    irc:
