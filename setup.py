@@ -64,35 +64,35 @@ else:
 #
 
 extras_require_system = [
-    'psutil>=2.1.3',        # BSD license
+    'psutil>=3.1.1',        # BSD license
 ]
 if sys.platform.startswith('linux'):
-    extras_require_system.append('setproctitle>=1.1.8')  # BSD license
-    extras_require_system.append('pyinotify>=0.9.4')  # MIT license
+    extras_require_system.append('setproctitle>=1.1.9')  # BSD license
+    extras_require_system.append('pyinotify>=0.9.6')  # MIT license
 if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
-    extras_require_system.append('setproctitle>=1.1.8')  # BSD license
+    extras_require_system.append('setproctitle>=1.1.9')  # BSD license
 
 extras_require_db = [
-    'lmdb>=0.84',           # OpenLDAP BSD
+    'lmdb>=0.87',           # OpenLDAP BSD
 ]
 if PYPY:
     os.environ['LMDB_FORCE_CFFI'] = '1'
 
 extras_require_manhole = [
-    'pyasn1>=0.1.7',        # BSD license
+    'pyasn1>=0.1.8',        # BSD license
     'pycrypto>=2.6.1'       # Public Domain license
 ]
 
 extras_require_msgpack = [
-    'msgpack-python>=0.4.2'  # Apache license
+    'msgpack-python>=0.4.6'  # Apache license
 ]
 
 extras_require_tls = [
-    'cryptography>=0.4',    # Apache license
-    'pyOpenSSL>=0.14',      # Apache license
-    'pyasn1',               # BSD license
-    'pyasn1-modules',       # BSD license
-    'service_identity',     # MIT license
+    'cryptography>=0.9.3',          # Apache license
+    'pyOpenSSL>=0.15.1',            # Apache license
+    'pyasn1>=0.1.8',                # BSD license
+    'pyasn1-modules>=0.0.7',        # BSD license
+    'service_identity>=14.0.0',     # MIT license
 ]
 
 extras_require_accelerate = [
@@ -103,17 +103,17 @@ extras_require_accelerate = [
 # Extra requirements which enhance the development experience
 extras_require_dev = [
     "colorama>=0.3.3",       # BSD license
-    "mock>=1.0.1",           # BSD license
+    "mock>=1.3.0",           # BSD license
 ]
 
 extras_require_postgres = [
-    'txpostgres>=1.2.0'   # MIT license
+    'txpostgres>=1.4.0'   # MIT license
 ]
 if CPY:
     # LGPL license
-    extras_require_postgres.append('psycopg2>=2.5.1')
+    extras_require_postgres.append('psycopg2>=2.6.1')
 else:
-    extras_require_postgres.append('psycopg2cffi>=2.7.0')
+    extras_require_postgres.append('psycopg2cffi>=2.7.2')
 
 extras_require_all = extras_require_system + extras_require_db + \
     extras_require_manhole + extras_require_msgpack + extras_require_tls + \
@@ -129,18 +129,18 @@ setup(
     url='http://crossbar.io/',
     platforms=('Any'),
     install_requires=[
-        'click>=4.0',                 # BSD license
-        'setuptools>=2.2',            # Python Software Foundation license
+        'click>=4.1',                 # BSD license
+        'setuptools>=18.1',           # Python Software Foundation license
         'zope.interface>=3.6.0',      # Zope Public license
-        'twisted>=15.2.1',            # MIT license
-        'autobahn[twisted]>=0.10.3',  # MIT license
-        'netaddr>=0.7.11',            # BSD license
+        'twisted>=15.3.0',            # MIT license
+        'autobahn[twisted]>=0.10.5',  # MIT license
+        'netaddr>=0.7.15',            # BSD license
         'pytrie>=0.2',                # BSD license
-        'jinja2>=2.7.2',              # BSD license
-        'mistune>=0.3.0',             # BSD license
-        'pygments>=1.6',              # BSD license
+        'jinja2>=2.8',                # BSD license
+        'mistune>=0.7',               # BSD license
+        'pygments>=2.0.2',            # BSD license
         'pyyaml>=3.11',               # MIT license
-        'shutilwhich>=1.0.1',         # PSF license
+        'shutilwhich>=1.1.0',         # PSF license
         'treq>=15.0.0',               # MIT license
     ],
     extras_require={
@@ -153,7 +153,7 @@ setup(
         'system': extras_require_system,
         'accelerate': extras_require_accelerate,
         'oracle': [
-            'cx_Oracle>=5.1.2'         # Python Software Foundation license
+            'cx_Oracle>=5.2'         # Python Software Foundation license
         ],
         'postgres': extras_require_postgres,
     },
@@ -174,8 +174,9 @@ setup(
                  "Framework :: Twisted",
                  "Intended Audience :: Developers",
                  "Operating System :: OS Independent",
-                 "Programming Language :: Python :: 2.6",
                  "Programming Language :: Python :: 2.7",
+                 "Programming Language :: Python :: 3.3",
+                 "Programming Language :: Python :: 3.4",
                  "Programming Language :: Python :: Implementation :: CPython",
                  "Programming Language :: Python :: Implementation :: PyPy",
                  "Topic :: Internet",

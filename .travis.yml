@@ -6,9 +6,12 @@ install:
 
 env:
   - TOX_ENV=flake8
-  - TOX_ENV=py27twisted
-  - TOX_ENV=py33twisted
-  - TOX_ENV=pypy2twisted
+  - TOX_ENV=py27-twcurrent
+  - TOX_ENV=pypy-twcurrent
+  - TOX_ENV=py27-twtrunk
+  - TOX_ENV=py33-twtrunk
+  - TOX_ENV=py34-twtrunk
+  - TOX_ENV=pypy-twtrunk
 
 script:
   - tox -c tox.ini -e $TOX_ENV
