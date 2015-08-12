@@ -32,7 +32,7 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
-from six import StringIO as NativeStringIO
+from six import StringIO as NativeStringIO, PY3
 
 from twisted.trial.unittest import TestCase
 
@@ -256,6 +256,75 @@ class JSONObserverTests(TestCase):
         self.assertEqual(len(log_entry.keys()), 4)
         self.assertIn(u"ZeroDivisionError", log_entry["text"])
         self.assertIn(u"Oh no", log_entry["text"])
+        self.assertEqual(log_entry["level"], u"critical")
+
+    def test_not_json_serialisable(self):
+        """
+        Non-JSON-serialisable parameters are repr()'d.
+        """
+        stream = StringIO()
+        observer = _logging.make_JSON_observer(stream)
+        log = make_logger(observer=observer)
+
+        try:
+            1 / 0
+        except:
+            log.failure("Oh no", obj=observer)
+
+        result = stream.getvalue()
+        log_entry = json.loads(result[:-1])
+
+        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(len(log_entry.keys()), 5)
+        self.assertIn(u"ZeroDivisionError", log_entry["text"])
+        self.assertIn(u"Oh no", log_entry["text"])
+        self.assertIn(u"<function ", log_entry["obj"])
+        self.assertEqual(log_entry["level"], u"critical")
+
+    def test_raising_during_encoding(self):
+        """
+        Non-JSON-serialisable parameters are repr()'d.
+        """
+        stream = StringIO()
+        observer = _logging.make_JSON_observer(stream)
+        log = make_logger(observer=observer)
+
+        class BadThing(object):
+            def __repr__(self):
+                raise Exception()
+
+        log.info("hi {obj}", obj=BadThing())
+
+        result = stream.getvalue()
+        log_entry = json.loads(result[:-1])
+
+        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(len(log_entry.keys()), 3)
+        self.assertIn(u"MESSAGE LOST", log_entry["text"])
+        self.assertEqual(log_entry["level"], u"error")
+
+    def test_raising_during_encoding(self):
+        """
+        Unicode is JSON serialised correctly.
+        """
+        stream = StringIO()
+        observer = _logging.make_JSON_observer(stream)
+        log = make_logger(observer=observer)
+
+        try:
+            if PY3:
+                raise Exception(u"\u2603")
+            else:
+                raise Exception(u"\u2603".encode('utf-8'))
+        except:
+            log.failure("Oh no")
+
+        result = stream.getvalue()
+        log_entry = json.loads(result[:-1])
+
+        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(len(log_entry.keys()), 4)
+        self.assertIn(u"\u2603", log_entry["text"])
         self.assertEqual(log_entry["level"], u"critical")
 
 

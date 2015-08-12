@@ -231,7 +231,7 @@ def make_JSON_observer(outFile):
     class CrossbarEncoder(JSONEncoder):
         def default(self, o):
             return repr(o)
-    encoder = CrossbarEncoder(skipkeys=True)
+    encoder = CrossbarEncoder()
 
     @provider(ILogObserver)
     def _make_json(_event):
@@ -247,7 +247,15 @@ def make_JSON_observer(outFile):
 
         if "log_failure" in event:
             # This is a traceback. Print it.
-            eventText = eventText + os.linesep + event["log_failure"].getTraceback()
+            traceback = event["log_failure"].getTraceback()
+
+            if not six.PY3:
+                traceback = traceback.decode('utf-8')
+                linesep = os.linesep.decode('utf-8')
+            else:
+                linesep = os.linesep
+
+            eventText = eventText + linesep + traceback
 
         done_json["text"] = escape_formatting(eventText)
 
@@ -261,9 +269,10 @@ def make_JSON_observer(outFile):
             event.update(done_json)
 
             text = encoder.encode(event)
+
         except Exception as e:
             text = encoder.encode({
-                "text": "Error writing: " + str(e) + " " + str(event),
+                "text": done_json["text"],
                 "level": "error",
                 "namespace": "crossbar._logging"})
 
