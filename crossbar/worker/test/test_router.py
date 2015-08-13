@@ -101,4 +101,4 @@ class RouterWorkerSessionTests(TestCase):
         r.onOpen(transport)
 
         # Should have 35 registers, all for the management interface
-        self.assertEqual(transport._get(Register), 35)
+        self.assertEqual(len(transport._get(Register)), 35)
