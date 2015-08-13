@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 
 import json
 import traceback
@@ -64,8 +64,7 @@ __all__ = (
 )
 
 
-class _RouterApplicationSession:
-
+class _RouterApplicationSession(object):
     """
     Wraps an application session to run directly attached to a WAMP router (broker+dealer).
     """
@@ -131,7 +130,6 @@ class _RouterApplicationSession:
         Implements :func:`autobahn.wamp.interfaces.ITransport.send`
         """
         if isinstance(msg, message.Hello):
-
             self._router = self._routerFactory.get(msg.realm)
 
             # fake session ID assignment (normally done in WAMP opening handshake)
