@@ -38,10 +38,17 @@ from autobahn.wamp.message import Publish, Published
 from autobahn.wamp.role import RoleBrokerFeatures
 from autobahn.wamp.types import ComponentConfig
 
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import ApplicationError
+
 
 class DottableDict(dict):
     def __getattr__(self, name):
         return self[name]
+
+
+class AppSession(ApplicationSession):
+    pass
 
 
 class FakeWAMPTransport(object):
@@ -78,7 +85,9 @@ class FakeWAMPTransport(object):
 class RouterWorkerSessionTests(TestCase):
 
     def setUp(self):
-
+        """
+        Set up the common component config.
+        """
         self.realm = "realm1"
         config_extras = DottableDict({"node": "testnode",
                                       "worker": "worker1",
@@ -94,10 +103,120 @@ class RouterWorkerSessionTests(TestCase):
         r = router.RouterWorkerSession(config=self.config)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
-        transport = FakeWAMPTransport(r)
-
         # Open the transport
+        transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
         # Should have 35 registers, all for the management interface
         self.assertEqual(len(transport._get(Register)), 35)
+        self.assertIn("ready", log_list[-1]["log_format"])
+
+    def test_start_router_component(self):
+        """
+        Starting a class-based router component works.
+        """
+        log_list = []
+
+        r = router.RouterWorkerSession(config=self.config)
+        r.log = make_logger(observer=log_list.append, log_level="debug")
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': [{u'name': u'anonymous',
+                        u'permissions': [{u'subscribe': True,
+                                          u'register': True, u'call': True,
+                                          u'uri': u'*', u'publish': True}]}]
+        }
+
+        r.start_router_realm("realm1", realm_config)
+
+        component_config = {
+            "type": u"class",
+            "classname": u"crossbar.worker.test.test_router.AppSession",
+            "realm": u"realm1"
+        }
+
+        r.start_router_component("newcomponent", component_config)
+
+        self.assertEqual(len(r.get_router_components()), 1)
+        self.assertEqual(r.get_router_components()[0]["id"],
+                         "newcomponent")
+
+
+    def test_start_router_component_fails(self):
+        """
+        Trying to start a class-based router component that gets an error on
+        importing fails.
+        """
+        log_list = []
+
+        r = router.RouterWorkerSession(config=self.config)
+        r.log = make_logger(observer=log_list.append, log_level="debug")
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': [{u'name': u'anonymous',
+                        u'permissions': [{u'subscribe': True,
+                                          u'register': True, u'call': True,
+                                          u'uri': u'*', u'publish': True}]}]
+        }
+
+        r.start_router_realm("realm1", realm_config)
+
+        component_config = {
+            "type": u"class",
+            "classname": u"thisisathing.thatdoesnot.exist",
+            "realm": u"realm1"
+        }
+
+        with self.assertRaises(ApplicationError) as e:
+            r.start_router_component("newcomponent", component_config)
+
+        self.assertIn(
+            "Failed to import class 'thisisathing.thatdoesnot.exist'",
+            str(e.exception))
+
+        self.assertEqual(len(r.get_router_components()), 0)
+
+    def test_start_router_component_invalid_type(self):
+        """
+        Trying to start a component with an invalid type fails.
+        """
+        log_list = []
+
+        r = router.RouterWorkerSession(config=self.config)
+        r.log = make_logger(observer=log_list.append, log_level="debug")
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        r.start_router_realm("realm1", realm_config)
+
+        component_config = {
+            "type": u"notathingcrossbarsupports",
+            "realm": u"realm1"
+        }
+
+        with self.assertRaises(ApplicationError) as e:
+            r.start_router_component("newcomponent", component_config)
+
+        self.assertIn(
+            ("ERROR: invalid router component configuration (invalid value "
+             "'notathingcrossbarsupports' for component type)"),
+            str(e.exception))
+
+        self.assertEqual(len(r.get_router_components()), 0)

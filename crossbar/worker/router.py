@@ -413,7 +413,7 @@ class RouterWorkerSession(NativeWorkerSession):
         self.log.debug("{}.get_router_components".format(self.__class__.__name__))
 
         res = []
-        for component in sorted(self._components.values(), key=lambda c: c.created):
+        for component in sorted(self.components.values(), key=lambda c: c.created):
             res.append({
                 'id': component.id,
                 'created': utcstr(component.created),
@@ -525,6 +525,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         self.components[id] = RouterComponent(id, config, session)
         self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))
+        self.log.debug("Added component {id}", id=id)
 
     def stop_router_component(self, id, details=None):
         """
@@ -535,13 +536,13 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         self.log.debug("{}.stop_router_component".format(self.__class__.__name__), id=id)
 
-        if id in self._components:
+        if id in self.components:
             self.log.debug("Worker {}: stopping component {}".format(self.config.extra.worker, id))
 
             try:
                 # self._components[id].disconnect()
-                self._session_factory.remove(self._components[id])
-                del self._components[id]
+                self._session_factory.remove(self.components[id])
+                del self.components[id]
             except Exception as e:
                 raise ApplicationError("crossbar.error.component.cannot_stop", "Failed to stop component {}: {}".format(id, e))
         else:
