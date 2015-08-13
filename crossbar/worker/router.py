@@ -41,7 +41,6 @@ import six
 from datetime import datetime
 
 from twisted.internet import reactor
-from twisted.python import log
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
 
@@ -125,7 +124,7 @@ EXTRA_MIME_TYPES = {
 }
 
 
-class RouterTransport:
+class RouterTransport(object):
 
     """
     A transport attached to a router.
@@ -151,7 +150,7 @@ class RouterTransport:
         self.created = datetime.utcnow()
 
 
-class RouterComponent:
+class RouterComponent(object):
 
     """
     An embedded application component running inside a router instance.
@@ -174,7 +173,7 @@ class RouterComponent:
         self.created = datetime.utcnow()
 
 
-class RouterRealm:
+class RouterRealm(object):
 
     """
     A realm managed by a router.
@@ -198,7 +197,7 @@ class RouterRealm:
         self.roles = {}
 
 
-class RouterRealmRole:
+class RouterRealmRole(object):
 
     """
     A role in a realm managed by a router.
@@ -234,8 +233,8 @@ class RouterWorkerSession(NativeWorkerSession):
         # Jinja2 templates for Web (like WS status page et al)
         #
         templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
-        if self.debug:
-            log.msg("Using Web templates from {}".format(templates_dir))
+        self.log.debug("Using Web templates from {templates_dir}",
+                       templates_dir=templates_dir)
         self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
 
         # factory for producing (per-realm) routers
@@ -295,8 +294,7 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         List realms currently managed by this router.
         """
-        if self.debug:
-            log.msg("{}.get_router_realms".format(self.__class__.__name__))
+        self.log.debug("{}.get_router_realms".format(self.__class__.__name__))
 
         raise Exception("not implemented")
 
@@ -311,8 +309,8 @@ class RouterWorkerSession(NativeWorkerSession):
         :param schemas: An (optional) initial schema dictionary to load.
         :type schemas: dict
         """
-        if self.debug:
-            log.msg("{}.start_router_realm".format(self.__class__.__name__), id, config, schemas)
+        self.log.debug("{}.start_router_realm".format(self.__class__.__name__),
+                       id=id, config=config, schemas=schemas)
 
         # URI of the realm to start
         realm = config['name']
@@ -342,8 +340,8 @@ class RouterWorkerSession(NativeWorkerSession):
         :param close_sessions: If `True`, close all session currently attached.
         :type close_sessions: bool
         """
-        if self.debug:
-            log.msg("{}.stop_router_realm".format(self.__class__.__name__), id, close_sessions)
+        self.log.debug("{}.stop_router_realm".format(self.__class__.__name__),
+                       id=id, close_sessions=close_sessions)
 
         # FIXME
         raise NotImplementedError()
@@ -356,8 +354,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :returns: list -- A list of roles.
         """
-        if self.debug:
-            log.msg("{}.get_router_realm_roles".format(self.__class__.__name__), id)
+        self.log.debug("{}.get_router_realm_roles".format(self.__class__.__name__), id=id)
 
         if id not in self.realms:
             raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
@@ -375,8 +372,8 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The role configuration.
         :type config: dict
         """
-        if self.debug:
-            log.msg("{}.add_router_realm_role".format(self.__class__.__name__), id, role_id, config)
+        self.log.debug("{}.add_router_realm_role".format(self.__class__.__name__),
+                       id=id, role_id=role_id, config=config)
 
         if id not in self.realms:
             raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
@@ -398,8 +395,8 @@ class RouterWorkerSession(NativeWorkerSession):
         :param role_id: The ID of the role within the realm to drop.
         :type role_id: str
         """
-        if self.debug:
-            log.msg("{}.drop_router_realm_role".format(self.__class__.__name__), id, role_id)
+        self.log.debug("{}.drop_router_realm_role".format(self.__class__.__name__),
+                       id=id, role_id=role_id)
 
         if id not in self.realms:
             raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
@@ -413,8 +410,7 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         List application components currently running (embedded) in this router.
         """
-        if self.debug:
-            log.msg("{}.get_router_components".format(self.__class__.__name__))
+        self.log.debug("{}.get_router_components".format(self.__class__.__name__))
 
         res = []
         for component in sorted(self._components.values(), key=lambda c: c.created):
@@ -434,14 +430,14 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The component configuration.
         :type config: obj
         """
-        if self.debug:
-            log.msg("{}.start_router_component".format(self.__class__.__name__), id, config)
+        self.log.debug("{}.start_router_component".format(self.__class__.__name__),
+                       id=id, config=config)
 
         # prohibit starting a component twice
         #
         if id in self.components:
             emsg = "ERROR: could not start component - a component with ID '{}'' is already running (or starting)".format(id)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
         # check configuration
@@ -450,11 +446,11 @@ class RouterWorkerSession(NativeWorkerSession):
             checkconfig.check_router_component(config)
         except Exception as e:
             emsg = "ERROR: invalid router component configuration ({})".format(e)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
-            if self.debug:
-                log.msg("Starting {}-component on router.".format(config['type']))
+            self.log.debug("Starting {type}-component on router.",
+                           type=config['type'])
 
         # resolve references to other entities
         #
@@ -466,11 +462,11 @@ class RouterWorkerSession(NativeWorkerSession):
                     references[ref] = self._connections[ref_id]
                 else:
                     emsg = "cannot resolve reference '{}' - no '{}' with ID '{}'".format(ref, ref_type, ref_id)
-                    log.msg(emsg)
+                    self.log.error(emsg)
                     raise ApplicationError("crossbar.error.invalid_configuration", emsg)
             else:
                 emsg = "cannot resolve reference '{}' - invalid reference type '{}'".format(ref, ref_type)
-                log.msg(emsg)
+                self.log.error(emsg)
                 raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
         # create component config
@@ -484,8 +480,7 @@ class RouterWorkerSession(NativeWorkerSession):
             try:
                 klassname = config['classname']
 
-                if self.debug:
-                    log.msg("Starting class '{}'".format(klassname))
+                self.log.debug("Starting class '{klass}'", klass=klassname)
 
                 c = klassname.split('.')
                 module_name, klass_name = '.'.join(c[:-1]), c[-1]
@@ -494,8 +489,8 @@ class RouterWorkerSession(NativeWorkerSession):
 
             except Exception as e:
                 emsg = "Failed to import class '{}' - {}".format(klassname, e)
-                log.msg(emsg)
-                log.msg("PYTHONPATH: {}".format(sys.path))
+                self.log.error(emsg)
+                self.log.error("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
                 raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
         elif config['type'] == 'wamplet':
@@ -504,15 +499,14 @@ class RouterWorkerSession(NativeWorkerSession):
                 dist = config['package']
                 name = config['entrypoint']
 
-                if self.debug:
-                    log.msg("Starting WAMPlet '{}/{}'".format(dist, name))
+                self.log.debug("Starting WAMPlet '{}/{}'".format(dist, name))
 
                 # make is supposed to make instances of ApplicationSession
                 make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
 
             except Exception as e:
                 emsg = "Failed to import wamplet '{}/{}' - {}".format(dist, name, e)
-                log.msg(emsg)
+                self.log.error(emsg)
                 raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
         else:
@@ -539,12 +533,10 @@ class RouterWorkerSession(NativeWorkerSession):
         :param id: The ID of the component to stop.
         :type id: str
         """
-        if self.debug:
-            log.msg("{}.stop_router_component".format(self.__class__.__name__), id)
+        self.log.debug("{}.stop_router_component".format(self.__class__.__name__), id=id)
 
         if id in self._components:
-            if self.debug:
-                log.msg("Worker {}: stopping component {}".format(self.config.extra.worker, id))
+            self.log.debug("Worker {}: stopping component {}".format(self.config.extra.worker, id))
 
             try:
                 # self._components[id].disconnect()
@@ -559,8 +551,7 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         List currently running transports.
         """
-        if self.debug:
-            log.msg("{}.get_router_transports".format(self.__class__.__name__))
+        self.log.debug("{}.get_router_transports".format(self.__class__.__name__))
 
         res = []
         for transport in sorted(self.transports.values(), key=lambda c: c.created):
@@ -580,14 +571,14 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The transport configuration.
         :type config: dict
         """
-        if self.debug:
-            log.msg("{}.start_router_transport".format(self.__class__.__name__), id, config)
+        self.log.debug("{}.start_router_transport".format(self.__class__.__name__),
+                       id=id, config=config)
 
         # prohibit starting a transport twice
         #
         if id in self.transports:
             emsg = "ERROR: could not start transport - a transport with ID '{}'' is already running (or starting)".format(id)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
         # check configuration
@@ -596,11 +587,10 @@ class RouterWorkerSession(NativeWorkerSession):
             checkconfig.check_router_transport(config)
         except Exception as e:
             emsg = "ERROR: invalid router transport configuration ({})".format(e)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
-            if self.debug:
-                log.msg("Starting {}-transport on router.".format(config['type']))
+            self.log.debug("Starting {}-transport on router.".format(config['type']))
 
         # standalone WAMP-RawSocket transport
         #
@@ -664,25 +654,24 @@ class RouterWorkerSession(NativeWorkerSession):
                         mod = importlib.import_module(root_config['package'])
                     except ImportError as e:
                         emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(root_config['resource'], root_config['package'], e)
-                        log.msg(emsg)
+                        self.log.error(emsg)
                         raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                     else:
                         try:
                             root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['package'], root_config['resource']))
                         except Exception as e:
                             emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(root_config['resource'], root_config['package'], e)
-                            log.msg(emsg)
+                            self.log.error(emsg)
                             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                         else:
                             mod_version = getattr(mod, '__version__', '?.?.?')
-                            log.msg("Loaded static Web resource '{}' from package '{} {}' (filesystem path {})".format(root_config['resource'], root_config['package'], mod_version, root_dir))
+                            self.log.info("Loaded static Web resource '{}' from package '{} {}' (filesystem path {})".format(root_config['resource'], root_config['package'], mod_version, root_dir))
 
                 else:
                     raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
 
                 root_dir = root_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-                if self.debug:
-                    log.msg("Starting Web service at root directory {}".format(root_dir))
+                self.log.debug("Starting Web service at root directory {}".format(root_dir))
 
                 # create resource for file system hierarchy
                 #
@@ -791,8 +780,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 try:
                     klassname = root_config['classname']
 
-                    if self.debug:
-                        log.msg("Starting class '{}'".format(klassname))
+                    self.log.debug("Starting class '{}'".format(klassname))
 
                     c = klassname.split('.')
                     module_name, klass_name = '.'.join(c[:-1]), c[-1]
@@ -802,8 +790,9 @@ class RouterWorkerSession(NativeWorkerSession):
 
                 except Exception as e:
                     emsg = "Failed to import class '{}' - {}".format(klassname, e)
-                    log.msg(emsg)
-                    log.msg("PYTHONPATH: {}".format(sys.path))
+                    self.log.error(emsg)
+                    self.log.error("PYTHONPATH: {pythonpath}",
+                                   pythonpath=sys.path)
                     raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
             # Invalid root resource
@@ -836,7 +825,7 @@ class RouterWorkerSession(NativeWorkerSession):
                     hsts_max_age = int(options.get('hsts_max_age', 31536000))
                     transport_factory.requestFactory = createHSTSRequestFactory(transport_factory.requestFactory, hsts_max_age)
                 else:
-                    log.msg("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
+                    self.log.warn("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
 
             # enable Hixie-76 on Twisted Web
             #
@@ -855,13 +844,12 @@ class RouterWorkerSession(NativeWorkerSession):
 
         def ok(port):
             self.transports[id] = RouterTransport(id, config, transport_factory, port)
-            if self.debug:
-                log.msg("Router transport '{}'' started and listening".format(id))
+            self.log.debug("Router transport '{}'' started and listening".format(id))
             return
 
         def fail(err):
             emsg = "ERROR: cannot listen on transport endpoint ({})".format(err.value)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
         d.addCallbacks(ok, fail)
@@ -925,14 +913,14 @@ class RouterWorkerSession(NativeWorkerSession):
                     mod = importlib.import_module(path_config['package'])
                 except ImportError as e:
                     emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
-                    log.msg(emsg)
+                    self.log.error(emsg)
                     raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                 else:
                     try:
                         static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
                     except Exception as e:
                         emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
-                        log.msg(emsg)
+                        self.log.error(emsg)
                         raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
             else:
@@ -1084,7 +1072,7 @@ class RouterWorkerSession(NativeWorkerSession):
             upload_directory = upload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
             if not os.path.isdir(upload_directory):
                 emsg = "configured upload directory '{}' in file upload resource isn't a directory".format(upload_directory)
-                log.msg(emsg)
+                self.log.error(emsg)
                 raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
             if 'temp_directory' in path_config:
@@ -1098,7 +1086,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             if not os.path.isdir(temp_directory):
                 emsg = "configured temp directory '{}' in file upload resource isn't a directory".format(temp_directory)
-                log.msg(emsg)
+                self.log.error(emsg)
                 raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
             # file upload progress and finish events are published via this session
@@ -1117,8 +1105,7 @@ class RouterWorkerSession(NativeWorkerSession):
             try:
                 klassname = path_config['classname']
 
-                if self.debug:
-                    log.msg("Starting class '{}'".format(klassname))
+                self.log.debug("Starting class '{}'".format(klassname))
 
                 c = klassname.split('.')
                 module_name, klass_name = '.'.join(c[:-1]), c[-1]
@@ -1129,8 +1116,8 @@ class RouterWorkerSession(NativeWorkerSession):
 
             except Exception as e:
                 emsg = "Failed to import class '{}' - {}".format(klassname, e)
-                log.msg(emsg)
-                log.msg("PYTHONPATH: {}".format(sys.path))
+                self.log.error(emsg)
+                self.log.error("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
                 raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
         # Schema Docs resource
@@ -1175,18 +1162,16 @@ class RouterWorkerSession(NativeWorkerSession):
         :param id: The ID of the transport to stop.
         :type id: dict
         """
-        if self.debug:
-            log.msg("{}.stop_router_transport".format(self.__class__.__name__), id)
+        self.log.debug("{}.stop_router_transport".format(self.__class__.__name__), id=id)
 
         # FIXME
         if id not in self.transports:
             #      if not id in self.transports or self.transports[id].status != 'started':
             emsg = "ERROR: cannot stop transport - no transport with ID '{}' (or already stopping)".format(id)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError('crossbar.error.not_running', emsg)
 
-        if self.debug:
-            log.msg("Stopping transport with ID '{}'".format(id))
+        self.log.debug("Stopping transport with ID '{}'".format(id))
 
         d = self.transports[id].port.stopListening()
 
@@ -1203,8 +1188,7 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         List currently running router links.
         """
-        if self.debug:
-            log.msg("{}.get_router_links".format(self.__class__.__name__))
+        self.log.debug("{}.get_router_links".format(self.__class__.__name__))
 
         raise NotImplementedError()
 
@@ -1217,8 +1201,8 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The link configuration.
         :type config: dict
         """
-        if self.debug:
-            log.msg("{}.start_router_link".format(self.__class__.__name__), id, config)
+        self.log.debug("{}.start_router_link".format(self.__class__.__name__),
+                       id=id, config=config)
 
         raise NotImplementedError()
 
@@ -1229,7 +1213,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param id: The ID of the link to stop.
         :type id: str
         """
-        if self.debug:
-            log.msg("{}.stop_router_link".format(self.__class__.__name__), id)
+        self.log.debug("{}.stop_router_link".format(self.__class__.__name__),
+                       id=id)
 
         raise NotImplementedError()
