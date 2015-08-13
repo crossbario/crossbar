@@ -54,7 +54,10 @@ class FakeWAMPTransport(object):
         self._session = session
 
     def send(self, message):
-        print(message)
+        """
+        Send the message, respond with it's success message synchronously.
+        Append it to C{self._messages} for later analysis.
+        """
         self._messages.append(message)
 
         if isinstance(message, Hello):
@@ -70,7 +73,7 @@ class FakeWAMPTransport(object):
                 Published(message.request, message.request))
 
     def _get(self, klass):
-        return filter(lambda x: isinstance(x, klass), self._messages)
+        return list(filter(lambda x: isinstance(x, klass), self._messages))
 
 
 class RouterWorkerSessionTests(TestCase):
