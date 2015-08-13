@@ -33,16 +33,16 @@ from __future__ import absolute_import, division, print_function
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
 
+from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 from crossbar.worker import router
 from crossbar._logging import make_logger
 
-from autobahn.wamp.message import Register, Registered, Hello, Welcome
-from autobahn.wamp.message import Publish, Published, Subscribe, Subscribed
-from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
-from autobahn.wamp.types import ComponentConfig, PublishOptions
-
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.message import Publish, Published, Subscribe, Subscribed
+from autobahn.wamp.message import Register, Registered, Hello, Welcome
+from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
+from autobahn.wamp.types import ComponentConfig, PublishOptions
 
 
 class DottableDict(dict):
@@ -51,6 +51,7 @@ class DottableDict(dict):
 
 
 _ = []
+
 
 class AppSession(ApplicationSession):
 
@@ -144,14 +145,11 @@ class RouterWorkerSessionTests(TestCase):
                                           u'uri': u'*', u'publish': True}]}]
         }
 
-        from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
-
         r.start_router_realm("realm1", realm_config)
 
         permissions = RouterPermissions('', True, True, True, True, True)
         routera = r._router_factory.get(u'realm1')
         routera.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=permissions))
-
 
         component_config = {
             "type": u"class",
@@ -166,8 +164,7 @@ class RouterWorkerSessionTests(TestCase):
                          "newcomponent")
 
         self.assertEqual(len(_), 1)
-        _.pop() # clear this global state
-
+        _.pop()  # clear this global state
 
     def test_start_router_component_fails(self):
         """
