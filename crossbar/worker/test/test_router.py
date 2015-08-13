@@ -28,8 +28,6 @@
 #
 #####################################################################################
 
-
-from twisted.internet.defer import inlineCallbacks
 from twisted.trial.unittest import TestCase
 
 from crossbar.worker import router
@@ -87,7 +85,6 @@ class RouterWorkerSessionTests(TestCase):
         self.config = ComponentConfig(self.realm, extra=config_extras)
 
 
-
     def test_basic(self):
         """
         We can instantiate a RouterWorkerSession.
@@ -97,7 +94,6 @@ class RouterWorkerSessionTests(TestCase):
         r = router.RouterWorkerSession(config=self.config)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
-        details = SessionDetails(self.realm, 1)
         transport = FakeWAMPTransport(r)
 
         # Open the transport
