@@ -33,9 +33,10 @@ from twisted.trial.unittest import TestCase
 from crossbar.worker import router
 from crossbar._logging import make_logger
 
-from autobahn.wamp.message import Register, Registered, Hello, Welcome, Publish, Published
+from autobahn.wamp.message import Register, Registered, Hello, Welcome
+from autobahn.wamp.message import Publish, Published
 from autobahn.wamp.role import RoleBrokerFeatures
-from autobahn.wamp.types import SessionDetails, ComponentConfig
+from autobahn.wamp.types import ComponentConfig
 
 
 class DottableDict(dict):
@@ -83,7 +84,6 @@ class RouterWorkerSessionTests(TestCase):
                                       "worker": "worker1",
                                       "cbdir": self.mktemp()})
         self.config = ComponentConfig(self.realm, extra=config_extras)
-
 
     def test_basic(self):
         """
