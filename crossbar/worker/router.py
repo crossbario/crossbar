@@ -447,7 +447,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            checkconfig.check_component(config)
+            checkconfig.check_router_component(config)
         except Exception as e:
             emsg = "ERROR: invalid router component configuration ({})".format(e)
             log.msg(emsg)
