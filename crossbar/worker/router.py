@@ -215,7 +215,6 @@ class RouterRealmRole(object):
 
 
 class RouterWorkerSession(NativeWorkerSession):
-
     """
     A native Crossbar.io worker that runs a WAMP router which can manage
     multiple realms, run multiple transports and links, as well as host

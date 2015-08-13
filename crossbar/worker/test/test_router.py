@@ -28,15 +28,18 @@
 #
 #####################################################################################
 
+from __future__ import absolute_import, division, print_function
+
 from twisted.trial.unittest import TestCase
+from twisted.internet.defer import inlineCallbacks
 
 from crossbar.worker import router
 from crossbar._logging import make_logger
 
 from autobahn.wamp.message import Register, Registered, Hello, Welcome
-from autobahn.wamp.message import Publish, Published
-from autobahn.wamp.role import RoleBrokerFeatures
-from autobahn.wamp.types import ComponentConfig
+from autobahn.wamp.message import Publish, Published, Subscribe, Subscribed
+from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
+from autobahn.wamp.types import ComponentConfig, PublishOptions
 
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
@@ -47,8 +50,15 @@ class DottableDict(dict):
         return self[name]
 
 
+_ = []
+
 class AppSession(ApplicationSession):
-    pass
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        yield self.subscribe(_.append, "com.test")
+        yield self.publish("com.test", "woo",
+                           options=PublishOptions(exclude_me=False))
 
 
 class FakeWAMPTransport(object):
@@ -68,15 +78,20 @@ class FakeWAMPTransport(object):
 
         if isinstance(message, Hello):
             self._session.onMessage(
-                Welcome(1, {u"broker": RoleBrokerFeatures()}))
-
-        if isinstance(message, Register):
+                Welcome(1, {u"broker": RoleBrokerFeatures(),
+                            u"dealer": RoleDealerFeatures()},
+                        authrole=u"anonymous"))
+        elif isinstance(message, Register):
             self._session.onMessage(
                 Registered(message.request, message.request))
-
-        if isinstance(message, Publish):
+        elif isinstance(message, Publish):
             self._session.onMessage(
                 Published(message.request, message.request))
+        elif isinstance(message, Subscribe):
+            self._session.onMessage(
+                Subscribed(message.request, message.request))
+        else:
+            assert False, message
 
     def _get(self, klass):
         return list(filter(lambda x: isinstance(x, klass), self._messages))
@@ -115,10 +130,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         Starting a class-based router component works.
         """
-        log_list = []
-
         r = router.RouterWorkerSession(config=self.config)
-        r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
         transport = FakeWAMPTransport(r)
@@ -132,7 +144,14 @@ class RouterWorkerSessionTests(TestCase):
                                           u'uri': u'*', u'publish': True}]}]
         }
 
+        from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
+
         r.start_router_realm("realm1", realm_config)
+
+        permissions = RouterPermissions('', True, True, True, True, True)
+        routera = r._router_factory.get(u'realm1')
+        routera.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=permissions))
+
 
         component_config = {
             "type": u"class",
@@ -145,6 +164,10 @@ class RouterWorkerSessionTests(TestCase):
         self.assertEqual(len(r.get_router_components()), 1)
         self.assertEqual(r.get_router_components()[0]["id"],
                          "newcomponent")
+
+        self.assertEqual(len(_), 1)
+        _.pop()
+
 
     def test_start_router_component_fails(self):
         """

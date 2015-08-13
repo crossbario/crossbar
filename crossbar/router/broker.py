@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 
 from autobahn import util
 from autobahn.wamp import role
@@ -154,7 +154,6 @@ class Broker(object):
         # otherwise there isn't anything to do anyway.
         #
         if subscriptions or publish.acknowledge:
-
             # validate payload
             #
             try:
@@ -209,7 +208,6 @@ class Broker(object):
                     # iterate over all subscriptions ..
                     #
                     for subscription in subscriptions:
-
                         # initial list of receivers are all subscribers on a subscription ..
                         #
                         receivers = subscription.observers
