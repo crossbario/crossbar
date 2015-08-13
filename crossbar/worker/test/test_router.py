@@ -166,7 +166,7 @@ class RouterWorkerSessionTests(TestCase):
                          "newcomponent")
 
         self.assertEqual(len(_), 1)
-        _.pop()
+        _.pop() # clear this global state
 
 
     def test_start_router_component_fails(self):
