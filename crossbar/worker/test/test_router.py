@@ -146,7 +146,6 @@ class RouterWorkerSessionTests(TestCase):
         self.assertEqual(r.get_router_components()[0]["id"],
                          "newcomponent")
 
-
     def test_start_router_component_fails(self):
         """
         Trying to start a class-based router component that gets an error on
