@@ -314,7 +314,7 @@ class RequestBodyTestCase(TestCase):
         request = self.successResultOf(renderResource(
             resource, b"/", method=b"POST",
             headers={b"Content-Type": [b"application/json;charset=utf-8"]},
-            body=b'{"foo": "\xe2\x98\x83"}'))
+            body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
 
         self.assertEqual(request.code, 202)
         self.assertIn(b'{"id":',
