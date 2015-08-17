@@ -284,3 +284,75 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn(b"invalid request event - HTTP/POST body must be JSON dict",
                       request.getWrittenData())
+
+    def test_ASCII_assumption(self):
+        """
+        A body, when the Content-Type has no charset, is assumed to be ASCII.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
+            body=b'{"foo": "\xe2\x98\x83"}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertIn((b"invalid request event - HTTP/POST body was "
+                       b"undecodable (not 'ascii') - specify a charset in "
+                       b"the Content-Type header"),
+                      request.getWrittenData())
+
+    def test_decodes_UTF8(self):
+        """
+        A body, when the Content-Type has been set to be charset=utf-8, will
+        decode it as UTF8.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json;charset=utf-8"]},
+            body=b'{"foo": "\xe2\x98\x83"}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            b"invalid request event - missing 'topic' in HTTP/POST body\n",
+            request.getWrittenData())
+
+    def test_decodes_UTF8(self):
+        """
+        A body, when the Content-Type has been set to be charset=utf-8, will
+        decode it as UTF8.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json;charset=utf-8"]},
+            body=b'{"foo": "\xe2\x98\x83"}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            b"invalid request event - missing 'topic' in HTTP/POST body\n",
+            request.getWrittenData())
+
+    def test_unknown_encoding(self):
+        """
+        A body, when the Content-Type has been set to something other than
+        charset=utf-8, will error out.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json;charset=blarg"]},
+            body=b'{"foo": "\xe2\x98\x83"}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            b"invalid request event - 'blarg' is not a valid charset encoding\n",
+            request.getWrittenData())
