@@ -320,24 +320,6 @@ class RequestBodyTestCase(TestCase):
         self.assertIn(b'{"id":',
                       request.getWrittenData())
 
-    def test_decodes_UTF8(self):
-        """
-        A body, when the Content-Type has been set to be charset=utf-8, will
-        decode it as UTF8.
-        """
-        session = MockPublisherSession(self)
-        resource = PublisherResource({}, session)
-
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json;charset=utf-8"]},
-            body=b'{"foo": "\xe2\x98\x83"}'))
-
-        self.assertEqual(request.code, 400)
-        self.assertEqual(
-            b"invalid request event - missing 'topic' in HTTP/POST body\n",
-            request.getWrittenData())
-
     def test_unknown_encoding(self):
         """
         A body, when the Content-Type has been set to something other than
