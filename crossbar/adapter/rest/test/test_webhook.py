@@ -54,7 +54,7 @@ class WebhookTestCase(TestCase):
         request = yield renderResource(
             resource, b"/",
             method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
+            headers={b"Content-Type": []},
             body=b'{"foo": "has happened"}')
 
         self.assertEqual(len(session._published_messages), 1)
@@ -63,7 +63,7 @@ class WebhookTestCase(TestCase):
                 "method": "POST",
                 "body": '{"foo": "has happened"}',
                 "headers": {
-                    "Content-Type": ["application/json"],
+                    "Content-Type": [],
                     'Date': ['Tue, 01 Jan 2014 01:01:01 GMT'],
                     'Host': ['localhost:8080']
                 }

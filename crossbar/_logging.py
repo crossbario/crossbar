@@ -280,6 +280,7 @@ def make_JSON_observer(outFile):
             text = text.decode('utf8')
 
         print(text, end=record_separator, file=outFile)
+        outFile.flush()
 
     return _make_json
 

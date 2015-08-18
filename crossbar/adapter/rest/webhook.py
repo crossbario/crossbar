@@ -80,8 +80,10 @@ class WebhookResource(_CommonResource):
 
     def _process(self, request, event):
 
-        message = {}
+        # The topic we're going to send to
+        topic = self._options["topic"]
 
+        message = {}
         message["headers"] = {
             nativeString(x): [nativeString(z) for z in y]
             for x, y in request.requestHeaders.getAllRawHeaders()}
@@ -91,15 +93,20 @@ class WebhookResource(_CommonResource):
         publish_options = PublishOptions(acknowledge=True)
 
         def _succ(result):
+            self.log.info("Successfully sent webhook from {ip} to {topic}",
+                          topic=topic, ip=request.getClientIP())
             request.setResponseCode(202)
             request.write(b"OK")
             request.finish()
 
         def _err(result):
+            self.log.error("Unable to send webhook from {ip} to {topic}",
+                           topic=topic, ip=request.getClientIP(),
+                           log_failure=result)
             request.setResponseCode(500)
             request.write(b"NOT OK")
 
-        d = self._session.publish(self._options["topic"],
+        d = self._session.publish(topic,
                                   json.loads(json.dumps(message)),
                                   options=publish_options)
         d.addCallback(_succ)
