@@ -79,6 +79,9 @@ class _CommonResource(Resource):
 
         self._require_tls = options.get('require_tls', None)
 
+        self._allowed_charset_encodings = options.get(
+            "allowed_charset_encodings", ["utf-8", "ascii"])
+
     def _deny_request(self, request, code, reason, **kwargs):
         """
         Called when client request is denied.
@@ -108,18 +111,44 @@ class _CommonResource(Resource):
         args = request.args
         headers = request.getAllHeaders()
 
-        # check content type
+        # check content type + charset encoding
         #
-        content_type = headers.get(b"content-type", b'')
-        content_type_elements = [x.strip().lower()
-                                 for x in content_type.split(b";")]
+        content_type_elements = [
+            x.strip().lower()
+            for x in headers.get(b"content-type", b'').split(b";")
+        ]
 
-        if b'application/json' not in content_type_elements:
+        if b'application/json' != content_type_elements.pop(0):
             return self._deny_request(
                 request, 400,
-                ("bad or missing content type ('{content_type}'), "
-                 "should be 'application/json'"),
-                content_type=nativeString(content_type))
+                u"bad or missing content type, should be 'application/json'")
+
+        try:
+            encoding_parts = {}
+
+            for item in content_type_elements:
+                # Parsing things like:
+                # charset=utf-8
+                _ = nativeString(item).split("=")
+                assert len(_) == 2
+
+                # We don't want duplicates
+                key = _[0].strip().lower()
+                assert key not in encoding_parts
+                encoding_parts[key] = _[1].strip().lower()
+        except:
+            return self._deny_request(request, 400,
+                                      u"mangled Content-Type header")
+
+        charset_encoding = encoding_parts.get("charset", "ascii")
+
+        if charset_encoding not in self._allowed_charset_encodings:
+            return self._deny_request(
+                request, 400,
+                (u"'{charset_encoding}' is not an accepted charset encoding, "
+                 u"must be one of '{allowed_encodings}'"),
+                charset_encoding=charset_encoding,
+                allowed_encodings=", ".join(self._allowed_charset_encodings))
 
         # enforce "post_body_limit"
         #
@@ -246,7 +275,14 @@ class _CommonResource(Resource):
         if authorized:
 
             try:
-                event = json.loads(body.decode('utf8'))
+                event = json.loads(body.decode(charset_encoding))
+            except UnicodeDecodeError:
+                return self._deny_request(
+                    request, 400,
+                    (u"invalid request event - HTTP/POST body was undecodable "
+                     u"(not '{charset_encoding}') - specify a valid charset "
+                     u"in the Content-Type header"),
+                    charset_encoding=charset_encoding)
             except Exception as e:
                 return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
 

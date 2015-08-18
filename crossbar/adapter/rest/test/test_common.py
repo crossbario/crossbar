@@ -151,7 +151,7 @@ class RequestBodyTestCase(TestCase):
             body=publishBody))
 
         self.assertEqual(request.code, 400)
-        self.assertEqual((b"bad or missing content type (''), "
+        self.assertEqual((b"bad or missing content type, "
                           b"should be 'application/json'\n"),
                          request.getWrittenData())
 
@@ -200,7 +200,7 @@ class RequestBodyTestCase(TestCase):
             body=publishBody))
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"bad or missing content type ('application/text')",
+        self.assertIn(b"bad or missing content type",
                       request.getWrittenData())
 
     def test_bad_method(self):
@@ -284,3 +284,84 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn(b"invalid request event - HTTP/POST body must be JSON dict",
                       request.getWrittenData())
+
+    def test_ASCII_assumption(self):
+        """
+        A body, when the Content-Type has no charset, is assumed to be ASCII.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"]},
+            body=b'{"foo": "\xe2\x98\x83"}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertIn((b"invalid request event - HTTP/POST body was "
+                       b"undecodable (not 'ascii') - specify a valid charset "
+                       b"in the Content-Type header"),
+                      request.getWrittenData())
+
+    def test_decodes_UTF8(self):
+        """
+        A body, when the Content-Type has been set to be charset=utf-8, will
+        decode it as UTF8.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json;charset=utf-8"]},
+            body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
+
+        self.assertEqual(request.code, 202)
+        self.assertIn(b'{"id":',
+                      request.getWrittenData())
+
+    def test_unknown_encoding(self):
+        """
+        A body, when the Content-Type has been set to something other than
+        charset=utf-8, will error out.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json;charset=blarg"]},
+            body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            (b"'blarg' is not an accepted charset encoding, must be one of "
+             b"'utf-8, ascii'\n"),
+            request.getWrittenData())
+
+    def test_broken_contenttype(self):
+        """
+        Crossbar rejects broken content-types.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json;charset=blarg;charset=boo"]},
+            body=b'{"foo": "\xe2\x98\x83"}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            b"mangled Content-Type header\n",
+            request.getWrittenData())
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"charset=blarg;application/json"]},
+            body=b'{"foo": "\xe2\x98\x83"}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            b"bad or missing content type, should be 'application/json'\n",
+            request.getWrittenData())
