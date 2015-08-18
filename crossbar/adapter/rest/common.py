@@ -119,27 +119,36 @@ class _CommonResource(Resource):
             for x in headers.get(b"content-type", b'').split(b";")
         ]
 
-        if b'application/json' != content_type_elements.pop(0):
-            return self._deny_request(
-                request, 400,
-                u"bad or missing content type, should be 'application/json'")
+        if self.decode_as_json:
 
-        try:
-            encoding_parts = {}
+            if b'application/json' != content_type_elements.pop(0):
+                return self._deny_request(
+                    request, 400,
+                    u"bad or missing content type, should be 'application/json'")
+        else:
+            # We don't actually care about the first item
+            try:
+                content_type_elements.pop(0)
+            except:
+                pass
 
-            for item in content_type_elements:
-                # Parsing things like:
-                # charset=utf-8
-                _ = nativeString(item).split("=")
-                assert len(_) == 2
+        encoding_parts = {}
 
-                # We don't want duplicates
-                key = _[0].strip().lower()
-                assert key not in encoding_parts
-                encoding_parts[key] = _[1].strip().lower()
-        except:
-            return self._deny_request(request, 400,
-                                      u"mangled Content-Type header")
+        if len(content_type_elements) > 0:
+            try:
+                for item in content_type_elements:
+                    # Parsing things like:
+                    # charset=utf-8
+                    _ = nativeString(item).split("=")
+                    assert len(_) == 2
+
+                    # We don't want duplicates
+                    key = _[0].strip().lower()
+                    assert key not in encoding_parts
+                    encoding_parts[key] = _[1].strip().lower()
+            except:
+                return self._deny_request(request, 400,
+                                          u"mangled Content-Type header")
 
         charset_encoding = encoding_parts.get("charset", "ascii")
 

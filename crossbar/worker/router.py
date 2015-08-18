@@ -104,6 +104,7 @@ from crossbar.twisted.site import patchFileContentTypes
 from crossbar.twisted.resource import _HAS_CGI
 
 from crossbar.adapter.rest import PublisherResource, CallerResource
+from crossbar.adapter.rest import WebhookResource
 
 if _HAS_CGI:
     from crossbar.twisted.resource import CgiDirectory
@@ -756,6 +757,23 @@ class RouterWorkerSession(NativeWorkerSession):
                 #
                 root = PublisherResource(root_config.get('options', {}), publisher_session)
 
+            # Webhook resource (part of REST-bridge)
+            #
+            elif root_type == 'webhook':
+
+                # create a vanilla session: the webhook will use this to inject events
+                #
+                webhook_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
+                webhook_session = ApplicationSession(webhook_session_config)
+
+                # add the publishing session to the router
+                #
+                self._router_session_factory.add(webhook_session, authrole=root_config.get('role', 'anonymous'))
+
+                # now create the webhook Twisted Web resource and add it to resource tree
+                #
+                root = WebhookResource(root_config.get('options', {}), webhook_session)
+
             # Caller resource (part of REST-bridge)
             #
             elif root_type == 'caller':
@@ -1046,6 +1064,23 @@ class RouterWorkerSession(NativeWorkerSession):
             # now create the publisher Twisted Web resource
             #
             return PublisherResource(path_config.get('options', {}), publisher_session)
+
+        # Webhook resource (part of REST-bridge)
+        #
+        elif path_config['type'] == 'webhook':
+
+            # create a vanilla session: the webhook will use this to inject events
+            #
+            webhook_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+            webhook_session = ApplicationSession(webhook_session_config)
+
+            # add the webhook session to the router
+            #
+            self._router_session_factory.add(webhook_session, authrole=path_config.get('role', 'anonymous'))
+
+            # now create the webhook Twisted Web resource
+            #
+            return WebhookResource(path_config.get('options', {}), webhook_session)
 
         # Caller resource (part of REST-bridge)
         #

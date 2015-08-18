@@ -880,6 +880,30 @@ def check_web_path_service_publisher(config):
             check_web_path_service_rest_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
+def check_web_path_service_webhook(config):
+    """
+    Check a "webhook" path service on Web transport.
+
+    :param config: The path service configuration.
+    :type config: dict
+    """
+    check_dict_args({
+        'type': (True, [six.text_type]),
+        'realm': (True, [six.text_type]),
+        'role': (True, [six.text_type]),
+        'options': (True, [dict]),
+    }, config, "Web transport 'webhook' path service")
+
+    check_dict_args({
+        'debug': (False, [bool]),
+        'post_body_limit': (False, six.integer_types),
+        'topic': (False, six.string_types),
+    }, config['options'], "Web transport 'webhook' path service")
+
+    if 'post_body_limit' in config['options']:
+        check_web_path_service_rest_post_body_limit(config['options']['post_body_limit'])
+
+
 def check_web_path_service_caller(config):
     """
     Check a "caller" path service on Web transport.
@@ -1005,10 +1029,10 @@ def check_web_path_service(path, config, nested):
 
     ptype = config['type']
     if path == '/' and not nested:
-        if ptype not in ['static', 'wsgi', 'redirect', 'publisher', 'caller', 'resource']:
+        if ptype not in ['static', 'wsgi', 'redirect', 'publisher', 'caller', 'resource', 'webhook']:
             raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'schemadoc', 'path', 'resource', 'upload']:
+        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload']:
             raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -1020,6 +1044,7 @@ def check_web_path_service(path, config, nested):
         'cgi': check_web_path_service_cgi,
         'longpoll': check_web_path_service_longpoll,
         'publisher': check_web_path_service_publisher,
+        'webhook': check_web_path_service_webhook,
         'caller': check_web_path_service_caller,
         'schemadoc': check_web_path_service_schemadoc,
         'path': check_web_path_service_path,
