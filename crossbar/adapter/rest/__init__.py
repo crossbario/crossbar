@@ -30,11 +30,12 @@
 
 from six import PY3
 
-from crossbar.adapter.rest.publisher import PublisherResource
 from crossbar.adapter.rest.caller import CallerResource
+from crossbar.adapter.rest.publisher import PublisherResource
+from crossbar.adapter.rest.webhook import WebhookResource
 
 if PY3:
-    __all__ = ("PublisherResource", "CallerResource")
+    __all__ = ("PublisherResource", "CallerResource", "WebhookResource")
 
 else:
     from crossbar.adapter.rest.callee import RESTCallee

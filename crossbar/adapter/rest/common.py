@@ -47,6 +47,7 @@ class _CommonResource(Resource):
     Shared components between PublisherResource and CallerResource.
     """
     isLeaf = True
+    decode_as_json = True
 
     def __init__(self, options, session):
         """
@@ -275,7 +276,7 @@ class _CommonResource(Resource):
         if authorized:
 
             try:
-                event = json.loads(body.decode(charset_encoding))
+                event = body.decode(charset_encoding)
             except UnicodeDecodeError:
                 return self._deny_request(
                     request, 400,
@@ -283,11 +284,16 @@ class _CommonResource(Resource):
                      u"(not '{charset_encoding}') - specify a valid charset "
                      u"in the Content-Type header"),
                     charset_encoding=charset_encoding)
-            except Exception as e:
-                return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
 
-            if not isinstance(event, dict):
-                return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be JSON dict")
+            if self.decode_as_json:
+                try:
+                    event = json.loads(event)
+
+                except Exception as e:
+                    return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
+
+                if not isinstance(event, dict):
+                    return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be JSON dict")
 
             return self._process(request, event)
 
