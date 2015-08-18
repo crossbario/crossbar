@@ -110,33 +110,37 @@ class _CommonResource(Resource):
         body = request.content.read()
 
         args = request.args
-        headers = request.getAllHeaders()
+        headers = request.requestHeaders
 
         # check content type + charset encoding
         #
-        content_type_elements = [
-            x.strip().lower()
-            for x in headers.get(b"content-type", b'').split(b";")
-        ]
+        content_type_header = headers.getRawHeaders(b"content-type", [])
+
+        if len(content_type_header) > 0:
+            content_type_elements = [
+                x.strip().lower()
+                for x in content_type_header[0].split(b";")
+            ]
+        else:
+            content_type_elements = []
 
         if self.decode_as_json:
 
-            if b'application/json' != content_type_elements.pop(0):
+            if (len(content_type_elements) == 0 or
+                b'application/json' != content_type_elements[0]):
                 return self._deny_request(
                     request, 400,
                     u"bad or missing content type, should be 'application/json'")
-        else:
-            # We don't actually care about the first item
-            try:
-                content_type_elements.pop(0)
-            except:
-                pass
 
         encoding_parts = {}
 
-        if len(content_type_elements) > 0:
+        if len(content_type_elements) > 1:
             try:
                 for item in content_type_elements:
+                    if b"=" not in item:
+                        # Don't bother looking at things "like application/json"
+                        continue
+
                     # Parsing things like:
                     # charset=utf-8
                     _ = nativeString(item).split("=")
@@ -163,7 +167,16 @@ class _CommonResource(Resource):
         # enforce "post_body_limit"
         #
         body_length = len(body)
-        content_length = int(headers.get(b"content-length", body_length))
+        content_length_header = headers.getRawHeaders(b"content-length", [])
+
+        if len(content_length_header) == 1:
+            content_length = int(content_length_header[0])
+        elif len(content_length_header) > 1:
+            return self._deny_request(
+                request, 400,
+                u"Multiple Content-Length headers are not allowed")
+        else:
+            content_length = body_length
 
         if body_length != content_length:
             # Prevent the body length from being different to the given

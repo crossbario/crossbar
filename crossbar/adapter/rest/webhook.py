@@ -87,7 +87,6 @@ class WebhookResource(_CommonResource):
         message["headers"] = {
             nativeString(x): [nativeString(z) for z in y]
             for x, y in request.requestHeaders.getAllRawHeaders()}
-        message["method"] = nativeString(request.method)
         message["body"] = event
 
         publish_options = PublishOptions(acknowledge=True)

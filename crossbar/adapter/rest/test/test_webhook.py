@@ -60,7 +60,6 @@ class WebhookTestCase(TestCase):
         self.assertEqual(len(session._published_messages), 1)
         self.assertEqual(
             {
-                "method": "POST",
                 "body": '{"foo": "has happened"}',
                 "headers": {
                     "Content-Type": [],
