@@ -42,4 +42,4 @@ else:
     from crossbar.adapter.rest.subscriber import MessageForwarder
 
     __all__ = ("PublisherResource", "CallerResource", "RESTCallee",
-               "MessageForwarder")
+               "MessageForwarder", "WebhookResource")

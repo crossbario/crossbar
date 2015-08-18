@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import json
-
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.compat import nativeString

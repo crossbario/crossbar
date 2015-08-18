@@ -32,13 +32,10 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.web import server
 from twisted.web.server import NOT_DONE_YET
-from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.compat import nativeString
 
 from autobahn.wamp.types import PublishOptions
-from autobahn.wamp.exception import ApplicationError
 
 from crossbar.adapter.rest.common import _CommonResource
 
@@ -87,7 +84,7 @@ class WebhookResource(_CommonResource):
 
         message["headers"] = {
             nativeString(x): [nativeString(z) for z in y]
-            for x,y in request.requestHeaders.getAllRawHeaders()}
+            for x, y in request.requestHeaders.getAllRawHeaders()}
         message["method"] = nativeString(request.method)
         message["body"] = event
 
@@ -104,8 +101,7 @@ class WebhookResource(_CommonResource):
 
         d = self._session.publish(self._options["topic"],
                                   json.loads(json.dumps(message)),
-                                  options=publish_options
-        )
+                                  options=publish_options)
         d.addCallback(_succ)
         d.addErrback(_err)
 
