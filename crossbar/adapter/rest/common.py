@@ -125,9 +125,8 @@ class _CommonResource(Resource):
             content_type_elements = []
 
         if self.decode_as_json:
-
-            if (len(content_type_elements) == 0 or
-                b'application/json' != content_type_elements[0]):
+            if len(content_type_elements) == 0 or \
+               b'application/json' != content_type_elements[0]:
                 return self._deny_request(
                     request, 400,
                     u"bad or missing content type, should be 'application/json'")
