@@ -44,6 +44,7 @@ from twisted.python.compat import nativeString
 from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
 
+
 class _InvalidUnicode(BaseException):
     """
     Invalid Unicode was found.
