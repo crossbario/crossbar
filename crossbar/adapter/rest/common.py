@@ -303,7 +303,7 @@ class _CommonResource(Resource):
             return self._deny_request(request, 401, u"not authorized")
 
         _validator.reset()
-        validation_result = _validator.validate(event)
+        validation_result = _validator.validate(body)
 
         # validate() returns a 4-tuple, of which item 0 is whether it
         # is valid
@@ -312,7 +312,7 @@ class _CommonResource(Resource):
                 request, 400,
                 u"invalid request event - HTTP/POST body was invalid UTF-8")
 
-        event = event.decode("utf8")
+        event = body.decode("utf8")
 
         if self.decode_as_json:
             try:
