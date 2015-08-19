@@ -285,9 +285,9 @@ class RequestBodyTestCase(TestCase):
         self.assertIn(b"invalid request event - HTTP/POST body must be JSON dict",
                       request.getWrittenData())
 
-    def test_ASCII_assumption(self):
+    def test_UTF8_assumption(self):
         """
-        A body, when the Content-Type has no charset, is assumed to be ASCII.
+        A body, when the Content-Type has no charset, is assumed to be UTF-8.
         """
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
@@ -295,12 +295,27 @@ class RequestBodyTestCase(TestCase):
         request = self.successResultOf(renderResource(
             resource, b"/", method=b"POST",
             headers={b"Content-Type": [b"application/json"]},
-            body=b'{"foo": "\xe2\x98\x83"}'))
+            body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
+
+        self.assertEqual(request.code, 202)
+        self.assertIn(b'{"id":',
+                      request.getWrittenData())
+
+    def test_ASCII_denied(self):
+        """
+        A body with an ASCII charset is denied, it must be UTF-8.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json; charset=ascii"]},
+            body=b''))
 
         self.assertEqual(request.code, 400)
-        self.assertIn((b"invalid request event - HTTP/POST body was "
-                       b"undecodable (not 'ascii') - specify a valid charset "
-                       b"in the Content-Type header"),
+        self.assertIn((b"'ascii' is not an accepted charset encoding, must be "
+                       b"utf-8"),
                       request.getWrittenData())
 
     def test_decodes_UTF8(self):
@@ -320,6 +335,23 @@ class RequestBodyTestCase(TestCase):
         self.assertIn(b'{"id":',
                       request.getWrittenData())
 
+    def test_undecodable_UTF8(self):
+        """
+        Undecodable UTF-8 will return an error.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json;charset=utf-8"]},
+            body=b'{"topic": "com.test.messages", "args": ["\x61\x62\x63\xe9"]}'))
+
+        self.assertEqual(request.code, 400)
+        self.assertEqual(
+            (b"invalid request event - HTTP/POST body was invalid UTF-8\n"),
+            request.getWrittenData())
+
     def test_unknown_encoding(self):
         """
         A body, when the Content-Type has been set to something other than
@@ -331,12 +363,11 @@ class RequestBodyTestCase(TestCase):
         request = self.successResultOf(renderResource(
             resource, b"/", method=b"POST",
             headers={b"Content-Type": [b"application/json;charset=blarg"]},
-            body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
+            body=b'{"args": ["\x61\x62\x63\xe9"]}'))
 
         self.assertEqual(request.code, 400)
         self.assertEqual(
-            (b"'blarg' is not an accepted charset encoding, must be one of "
-             b"'utf-8, ascii'\n"),
+            (b"'blarg' is not an accepted charset encoding, must be utf-8\n"),
             request.getWrittenData())
 
     def test_broken_contenttype(self):

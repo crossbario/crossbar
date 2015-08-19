@@ -41,6 +41,14 @@ from netaddr.ip import IPAddress, IPNetwork
 from twisted.web.resource import Resource
 from twisted.python.compat import nativeString
 
+from autobahn.websocket.utf8validator import Utf8Validator
+_validator = Utf8Validator()
+
+class _InvalidUnicode(BaseException):
+    """
+    Invalid Unicode was found.
+    """
+
 
 class _CommonResource(Resource):
     """
@@ -78,9 +86,6 @@ class _CommonResource(Resource):
             self._require_ip = [IPNetwork(net) for net in options['require_ip']]
 
         self._require_tls = options.get('require_tls', None)
-
-        self._allowed_charset_encodings = options.get(
-            "allowed_charset_encodings", ["utf-8", "ascii"])
 
     def _deny_request(self, request, code, reason, **kwargs):
         """
@@ -140,15 +145,14 @@ class _CommonResource(Resource):
             return self._deny_request(request, 400,
                                       u"mangled Content-Type header")
 
-        charset_encoding = encoding_parts.get("charset", "ascii")
+        charset_encoding = encoding_parts.get("charset", "utf-8")
 
-        if charset_encoding not in self._allowed_charset_encodings:
+        if charset_encoding not in ["utf-8", "utf8"]:
             return self._deny_request(
                 request, 400,
                 (u"'{charset_encoding}' is not an accepted charset encoding, "
-                 u"must be one of '{allowed_encodings}'"),
-                charset_encoding=charset_encoding,
-                allowed_encodings=", ".join(self._allowed_charset_encodings))
+                 u"must be utf-8"),
+                charset_encoding=charset_encoding)
 
         # enforce "post_body_limit"
         #
@@ -272,27 +276,36 @@ class _CommonResource(Resource):
         # FIXME: authorize request
         authorized = True
 
-        if authorized:
-
-            try:
-                event = json.loads(body.decode(charset_encoding))
-            except UnicodeDecodeError:
-                return self._deny_request(
-                    request, 400,
-                    (u"invalid request event - HTTP/POST body was undecodable "
-                     u"(not '{charset_encoding}') - specify a valid charset "
-                     u"in the Content-Type header"),
-                    charset_encoding=charset_encoding)
-            except Exception as e:
-                return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
-
-            if not isinstance(event, dict):
-                return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be JSON dict")
-
-            return self._process(request, event)
-
-        else:
+        if not authorized:
             return self._deny_request(request, 401, u"not authorized")
+
+        try:
+            _validator.reset()
+            validation_result = _validator.validate(body)
+
+            # validate() returns a 4-tuple, of which item 0 is whether it
+            # is valid
+            if not validation_result[0]:
+                raise _InvalidUnicode()
+            event = json.loads(body.decode("utf8"))
+
+        except (UnicodeDecodeError, _InvalidUnicode):
+            return self._deny_request(
+                request, 400,
+                u"invalid request event - HTTP/POST body was invalid UTF-8")
+        except Exception as e:
+            print(e)
+            return self._deny_request(
+                request, 400,
+                (u"invalid request event - HTTP/POST body must be valid "
+                 u"JSON: {exc}"), exc=e)
+
+        if not isinstance(event, dict):
+            return self._deny_request(
+                request, 400,
+                u"invalid request event - HTTP/POST body must be JSON dict")
+
+        return self._process(request, event)
 
     def _process(self, request, event):
         raise NotImplementedError()
