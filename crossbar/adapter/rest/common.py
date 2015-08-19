@@ -41,6 +41,15 @@ from netaddr.ip import IPAddress, IPNetwork
 from twisted.web.resource import Resource
 from twisted.python.compat import nativeString
 
+from autobahn.websocket.utf8validator import Utf8Validator
+_validator = Utf8Validator()
+
+
+class _InvalidUnicode(BaseException):
+    """
+    Invalid Unicode was found.
+    """
+
 
 class _CommonResource(Resource):
     """
@@ -108,18 +117,43 @@ class _CommonResource(Resource):
         args = request.args
         headers = request.getAllHeaders()
 
-        # check content type
+        # check content type + charset encoding
         #
-        content_type = headers.get(b"content-type", b'')
-        content_type_elements = [x.strip().lower()
-                                 for x in content_type.split(b";")]
+        content_type_elements = [
+            x.strip().lower()
+            for x in headers.get(b"content-type", b'').split(b";")
+        ]
 
-        if b'application/json' not in content_type_elements:
+        if b'application/json' != content_type_elements.pop(0):
             return self._deny_request(
                 request, 400,
-                ("bad or missing content type ('{content_type}'), "
-                 "should be 'application/json'"),
-                content_type=nativeString(content_type))
+                u"bad or missing content type, should be 'application/json'")
+
+        try:
+            encoding_parts = {}
+
+            for item in content_type_elements:
+                # Parsing things like:
+                # charset=utf-8
+                _ = nativeString(item).split("=")
+                assert len(_) == 2
+
+                # We don't want duplicates
+                key = _[0].strip().lower()
+                assert key not in encoding_parts
+                encoding_parts[key] = _[1].strip().lower()
+        except:
+            return self._deny_request(request, 400,
+                                      u"mangled Content-Type header")
+
+        charset_encoding = encoding_parts.get("charset", "utf-8")
+
+        if charset_encoding not in ["utf-8", "utf8"]:
+            return self._deny_request(
+                request, 400,
+                (u"'{charset_encoding}' is not an accepted charset encoding, "
+                 u"must be utf-8"),
+                charset_encoding=charset_encoding)
 
         # enforce "post_body_limit"
         #
@@ -243,20 +277,35 @@ class _CommonResource(Resource):
         # FIXME: authorize request
         authorized = True
 
-        if authorized:
-
-            try:
-                event = json.loads(body.decode('utf8'))
-            except Exception as e:
-                return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be valid JSON: {0}".format(e))
-
-            if not isinstance(event, dict):
-                return self._deny_request(request, 400, u"invalid request event - HTTP/POST body must be JSON dict")
-
-            return self._process(request, event)
-
-        else:
+        if not authorized:
             return self._deny_request(request, 401, u"not authorized")
+
+        try:
+            _validator.reset()
+            validation_result = _validator.validate(body)
+
+            # validate() returns a 4-tuple, of which item 0 is whether it
+            # is valid
+            if not validation_result[0]:
+                raise _InvalidUnicode()
+            event = json.loads(body.decode("utf8"))
+
+        except (UnicodeDecodeError, _InvalidUnicode):
+            return self._deny_request(
+                request, 400,
+                u"invalid request event - HTTP/POST body was invalid UTF-8")
+        except Exception as e:
+            return self._deny_request(
+                request, 400,
+                (u"invalid request event - HTTP/POST body must be valid "
+                 u"JSON: {exc}"), exc=e)
+
+        if not isinstance(event, dict):
+            return self._deny_request(
+                request, 400,
+                u"invalid request event - HTTP/POST body must be JSON dict")
+
+        return self._process(request, event)
 
     def _process(self, request, event):
         raise NotImplementedError()
