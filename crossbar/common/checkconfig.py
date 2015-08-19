@@ -897,7 +897,7 @@ def check_web_path_service_webhook(config):
     check_dict_args({
         'debug': (False, [bool]),
         'post_body_limit': (False, six.integer_types),
-        'topic': (False, six.string_types),
+        'topic': (False, [six.text_type]),
     }, config['options'], "Web transport 'webhook' path service")
 
     if 'post_body_limit' in config['options']:
