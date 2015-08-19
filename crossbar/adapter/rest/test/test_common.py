@@ -299,8 +299,9 @@ class RequestBodyTestCase(TestCase):
             body=b"[{},{}]"))
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"invalid request event - HTTP/POST body must be JSON dict",
-                      request.getWrittenData())
+        self.assertIn(
+            b"invalid request event - HTTP/POST body must be a JSON dict",
+            request.getWrittenData())
 
     def test_UTF8_assumption(self):
         """

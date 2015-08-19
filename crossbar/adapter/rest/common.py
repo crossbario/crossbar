@@ -302,30 +302,32 @@ class _CommonResource(Resource):
         if not authorized:
             return self._deny_request(request, 401, u"not authorized")
 
-        try:
-            _validator.reset()
-            validation_result = _validator.validate(body)
+        _validator.reset()
+        validation_result = _validator.validate(event)
 
-            # validate() returns a 4-tuple, of which item 0 is whether it
-            # is valid
-            if not validation_result[0]:
-                raise _InvalidUnicode()
-            event = json.loads(body.decode("utf8"))
-
-        except (UnicodeDecodeError, _InvalidUnicode):
+        # validate() returns a 4-tuple, of which item 0 is whether it
+        # is valid
+        if not validation_result[0]:
             return self._deny_request(
                 request, 400,
                 u"invalid request event - HTTP/POST body was invalid UTF-8")
-        except Exception as e:
-            return self._deny_request(
-                request, 400,
-                (u"invalid request event - HTTP/POST body must be valid "
-                 u"JSON: {exc}"), exc=e)
 
-        if not isinstance(event, dict):
-            return self._deny_request(
-                request, 400,
-                u"invalid request event - HTTP/POST body must be JSON dict")
+        event = event.decode("utf8")
+
+        if self.decode_as_json:
+            try:
+                event = json.loads(event)
+            except Exception as e:
+                return self._deny_request(
+                    request, 400,
+                    (u"invalid request event - HTTP/POST body must be "
+                     u"valid JSON: {exc}"), exc=e)
+
+            if not isinstance(event, dict):
+                return self._deny_request(
+                    request, 400,
+                    (u"invalid request event - HTTP/POST body must be "
+                     u"a JSON dict"))
 
         return self._process(request, event)
 
