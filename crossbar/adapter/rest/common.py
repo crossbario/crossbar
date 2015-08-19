@@ -56,6 +56,7 @@ class _CommonResource(Resource):
     Shared components between PublisherResource and CallerResource.
     """
     isLeaf = True
+    decode_as_json = True
 
     def __init__(self, options, session):
         """
@@ -115,36 +116,48 @@ class _CommonResource(Resource):
         body = request.content.read()
 
         args = request.args
-        headers = request.getAllHeaders()
+        headers = request.requestHeaders
 
         # check content type + charset encoding
         #
-        content_type_elements = [
-            x.strip().lower()
-            for x in headers.get(b"content-type", b'').split(b";")
-        ]
+        content_type_header = headers.getRawHeaders(b"content-type", [])
 
-        if b'application/json' != content_type_elements.pop(0):
-            return self._deny_request(
-                request, 400,
-                u"bad or missing content type, should be 'application/json'")
+        if len(content_type_header) > 0:
+            content_type_elements = [
+                x.strip().lower()
+                for x in content_type_header[0].split(b";")
+            ]
+        else:
+            content_type_elements = []
 
-        try:
-            encoding_parts = {}
+        if self.decode_as_json:
+            if len(content_type_elements) == 0 or \
+               b'application/json' != content_type_elements[0]:
+                return self._deny_request(
+                    request, 400,
+                    u"bad or missing content type, should be 'application/json'")
 
-            for item in content_type_elements:
-                # Parsing things like:
-                # charset=utf-8
-                _ = nativeString(item).split("=")
-                assert len(_) == 2
+        encoding_parts = {}
 
-                # We don't want duplicates
-                key = _[0].strip().lower()
-                assert key not in encoding_parts
-                encoding_parts[key] = _[1].strip().lower()
-        except:
-            return self._deny_request(request, 400,
-                                      u"mangled Content-Type header")
+        if len(content_type_elements) > 1:
+            try:
+                for item in content_type_elements:
+                    if b"=" not in item:
+                        # Don't bother looking at things "like application/json"
+                        continue
+
+                    # Parsing things like:
+                    # charset=utf-8
+                    _ = nativeString(item).split("=")
+                    assert len(_) == 2
+
+                    # We don't want duplicates
+                    key = _[0].strip().lower()
+                    assert key not in encoding_parts
+                    encoding_parts[key] = _[1].strip().lower()
+            except:
+                return self._deny_request(request, 400,
+                                          u"mangled Content-Type header")
 
         charset_encoding = encoding_parts.get("charset", "utf-8")
 
@@ -158,7 +171,16 @@ class _CommonResource(Resource):
         # enforce "post_body_limit"
         #
         body_length = len(body)
-        content_length = int(headers.get(b"content-length", body_length))
+        content_length_header = headers.getRawHeaders(b"content-length", [])
+
+        if len(content_length_header) == 1:
+            content_length = int(content_length_header[0])
+        elif len(content_length_header) > 1:
+            return self._deny_request(
+                request, 400,
+                u"Multiple Content-Length headers are not allowed")
+        else:
+            content_length = body_length
 
         if body_length != content_length:
             # Prevent the body length from being different to the given
@@ -280,30 +302,32 @@ class _CommonResource(Resource):
         if not authorized:
             return self._deny_request(request, 401, u"not authorized")
 
-        try:
-            _validator.reset()
-            validation_result = _validator.validate(body)
+        _validator.reset()
+        validation_result = _validator.validate(body)
 
-            # validate() returns a 4-tuple, of which item 0 is whether it
-            # is valid
-            if not validation_result[0]:
-                raise _InvalidUnicode()
-            event = json.loads(body.decode("utf8"))
-
-        except (UnicodeDecodeError, _InvalidUnicode):
+        # validate() returns a 4-tuple, of which item 0 is whether it
+        # is valid
+        if not validation_result[0]:
             return self._deny_request(
                 request, 400,
                 u"invalid request event - HTTP/POST body was invalid UTF-8")
-        except Exception as e:
-            return self._deny_request(
-                request, 400,
-                (u"invalid request event - HTTP/POST body must be valid "
-                 u"JSON: {exc}"), exc=e)
 
-        if not isinstance(event, dict):
-            return self._deny_request(
-                request, 400,
-                u"invalid request event - HTTP/POST body must be JSON dict")
+        event = body.decode("utf8")
+
+        if self.decode_as_json:
+            try:
+                event = json.loads(event)
+            except Exception as e:
+                return self._deny_request(
+                    request, 400,
+                    (u"invalid request event - HTTP/POST body must be "
+                     u"valid JSON: {exc}"), exc=e)
+
+            if not isinstance(event, dict):
+                return self._deny_request(
+                    request, 400,
+                    (u"invalid request event - HTTP/POST body must be "
+                     u"a JSON dict"))
 
         return self._process(request, event)
 

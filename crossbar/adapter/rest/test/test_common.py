@@ -235,6 +235,23 @@ class RequestBodyTestCase(TestCase):
         self.assertIn("HTTP/POST body length ({}) exceeds maximum ({})".format(len(publishBody), 1),
                       nativeString(request.getWrittenData()))
 
+    def test_multiple_content_length(self):
+        """
+        Requests with multiple Content-Length headers will be rejected.
+        """
+        session = MockPublisherSession(self)
+        resource = PublisherResource({}, session)
+
+        request = self.successResultOf(renderResource(
+            resource, b"/", method=b"POST",
+            headers={b"Content-Type": [b"application/json"],
+                     b"Content-Length": ["1", "10"]},
+            body=publishBody))
+
+        self.assertEqual(request.code, 400)
+        self.assertIn("Multiple Content-Length headers are not allowed",
+                      nativeString(request.getWrittenData()))
+
     def test_not_matching_bodylength(self):
         """
         A body length that is different than the Content-Length header will mean
@@ -282,8 +299,9 @@ class RequestBodyTestCase(TestCase):
             body=b"[{},{}]"))
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"invalid request event - HTTP/POST body must be JSON dict",
-                      request.getWrittenData())
+        self.assertIn(
+            b"invalid request event - HTTP/POST body must be a JSON dict",
+            request.getWrittenData())
 
     def test_UTF8_assumption(self):
         """
