@@ -295,7 +295,6 @@ class _CommonResource(Resource):
                 request, 400,
                 u"invalid request event - HTTP/POST body was invalid UTF-8")
         except Exception as e:
-            print(e)
             return self._deny_request(
                 request, 400,
                 (u"invalid request event - HTTP/POST body must be valid "
