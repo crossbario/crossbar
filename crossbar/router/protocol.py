@@ -239,7 +239,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                                        cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
-                        self.log.debig("Cookie-based authentication enabled, but cookie isn't authenticated yet")
+                        self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
                 else:
                     self.log.info("Cookie-based authentication disabled")
             else:
