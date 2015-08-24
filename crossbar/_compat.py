@@ -28,47 +28,17 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
 
-from twisted.trial.unittest import TestCase
-from twisted.internet.defer import inlineCallbacks
-
-from crossbar._compat import native_string
-from crossbar.adapter.rest import WebhookResource
-from crossbar.adapter.rest.test import MockPublisherSession, renderResource
+from six import PY3
 
 
-class WebhookTestCase(TestCase):
+def native_string(string):
     """
-    Unit tests for L{WebhookResource}.
+    Make C{string} be the type of C{str}, decoding with ASCII if required.
     """
-    @inlineCallbacks
-    def test_basic(self):
-        """
-        A message, when a request has gone through to it, publishes a WAMP
-        message on the configured topic.
-        """
-        session = MockPublisherSession(self)
-        resource = WebhookResource({u"topic": u"com.test.webhook"}, session)
-
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": []},
-            body=b'{"foo": "has happened"}')
-
-        self.assertEqual(len(session._published_messages), 1)
-        self.assertEqual(
-            {
-                "body": '{"foo": "has happened"}',
-                "headers": {
-                    "Content-Type": [],
-                    'Date': ['Tue, 01 Jan 2014 01:01:01 GMT'],
-                    'Host': ['localhost:8080']
-                }
-            },
-            session._published_messages[0]["args"][0])
-
-        self.assertEqual(request.code, 202)
-        self.assertEqual(native_string(request.getWrittenData()),
-                         "OK")
+    if PY3 and isinstance(string, bytes):
+        return string.decode('ascii')
+    elif not PY3:
+        if isinstance(string, unicode):
+            raise Exception("This can't be used to go from unicode to str")
+    return string

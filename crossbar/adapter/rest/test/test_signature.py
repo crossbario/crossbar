@@ -33,9 +33,9 @@ from __future__ import absolute_import
 import json
 
 from twisted.trial.unittest import TestCase
-from twisted.python.compat import nativeString
 from twisted.internet.defer import inlineCallbacks
 
+from crossbar._compat import native_string
 from crossbar.adapter.rest import PublisherResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource, makeSignedArguments
 
@@ -66,7 +66,7 @@ class SignatureTestCase(TestCase):
             sign=True, signKey="bazapp", signSecret="foobar")
 
         self.assertEqual(request.code, 202)
-        self.assertEqual(json.loads(nativeString(request.getWrittenData())),
+        self.assertEqual(json.loads(native_string(request.getWrittenData())),
                          {"id": session._published_messages[0]["id"]})
 
     @inlineCallbacks

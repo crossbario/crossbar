@@ -33,6 +33,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 import six
+import inspect
 
 from json import JSONEncoder
 
@@ -44,7 +45,6 @@ from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
 from twisted.logger import LogLevel, globalLogBeginner, formatTime
 
 from twisted.python.constants import NamedConstant
-from twisted.python.compat import currentframe
 from twisted.python.reflect import qual
 
 from weakref import WeakKeyDictionary
@@ -397,7 +397,7 @@ def make_logger(log_level=None, logger=Logger, observer=None):
         observer = log_publisher
 
     # Get the caller's frame
-    cf = currentframe(1)
+    cf = inspect.currentframe().f_back
 
     if "self" in cf.f_locals:
         # We're probably in a class init or method

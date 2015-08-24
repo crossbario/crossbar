@@ -34,7 +34,6 @@ import json
 import time
 import cgi  # for POST Request Header decoding
 
-from twisted.python.compat import nativeString
 from twisted.web import http, server
 from twisted.web.http import NOT_FOUND
 from twisted.web.resource import Resource, NoResource
@@ -44,6 +43,7 @@ from autobahn.twisted import longpoll
 from autobahn.wamp.types import PublishOptions
 
 import crossbar
+from crossbar._compat import native_string
 from crossbar._logging import make_logger
 
 try:
@@ -475,7 +475,7 @@ class Resource404(Resource):
     def __init__(self, templates, directory):
         Resource.__init__(self)
         self._page = templates.get_template('cb_web_404.html')
-        self._directory = nativeString(directory)
+        self._directory = native_string(directory)
 
     def render_GET(self, request):
         request.setResponseCode(NOT_FOUND)

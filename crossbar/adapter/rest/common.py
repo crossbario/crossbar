@@ -35,11 +35,11 @@ import hashlib
 import base64
 
 from crossbar._logging import make_logger
+from crossbar._compat import native_string
 
 from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.web.resource import Resource
-from twisted.python.compat import nativeString
 
 from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
@@ -103,7 +103,7 @@ class _CommonResource(Resource):
                        request=request)
 
         if request.method != b"POST":
-            return self._deny_request(request, 405, u"HTTP/{0} not allowed".format(nativeString(request.method)))
+            return self._deny_request(request, 405, u"HTTP/{0} not allowed".format(native_string(request.method)))
         else:
             return self.render_POST(request)
 
@@ -148,7 +148,7 @@ class _CommonResource(Resource):
 
                     # Parsing things like:
                     # charset=utf-8
-                    _ = nativeString(item).split("=")
+                    _ = native_string(item).split("=")
                     assert len(_) == 2
 
                     # We don't want duplicates
@@ -209,7 +209,7 @@ class _CommonResource(Resource):
         if 'timestamp' in args:
             timestamp_str = args["timestamp"][0]
             try:
-                ts = datetime.datetime.strptime(nativeString(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ")
+                ts = datetime.datetime.strptime(native_string(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ")
                 delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
                 if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
                     return self._deny_request(request, 400, u"request expired (delta {0} seconds)".format(delta))
@@ -258,7 +258,7 @@ class _CommonResource(Resource):
         if self._secret:
 
             if key_str != self._key:
-                return self._deny_request(request, 400, u"unknown key '{0}' in signed request".format(nativeString(key_str)))
+                return self._deny_request(request, 400, u"unknown key '{0}' in signed request".format(native_string(key_str)))
 
             # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
             hm = hmac.new(self._secret, None, hashlib.sha256)
@@ -281,7 +281,7 @@ class _CommonResource(Resource):
         # enforce client IP address
         #
         if self._require_ip:
-            ip = IPAddress(nativeString(client_ip))
+            ip = IPAddress(native_string(client_ip))
             allowed = False
             for net in self._require_ip:
                 if ip in net:

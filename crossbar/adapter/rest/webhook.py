@@ -33,10 +33,10 @@ from __future__ import absolute_import
 import json
 
 from twisted.web.server import NOT_DONE_YET
-from twisted.python.compat import nativeString
 
 from autobahn.wamp.types import PublishOptions
 
+from crossbar._compat import native_string
 from crossbar.adapter.rest.common import _CommonResource
 
 __all__ = ('WebhookResource',)
@@ -85,7 +85,7 @@ class WebhookResource(_CommonResource):
 
         message = {}
         message["headers"] = {
-            nativeString(x): [nativeString(z) for z in y]
+            native_string(x): [native_string(z) for z in y]
             for x, y in request.requestHeaders.getAllRawHeaders()}
         message["body"] = event
 
