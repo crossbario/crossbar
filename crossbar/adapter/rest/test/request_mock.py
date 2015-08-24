@@ -53,7 +53,7 @@ def _requestMock(path, method=b"GET", host=b"localhost", port=8080, isSecure=Fal
     if not headers:
         headers = {}
 
-    headers[b"Date"] = ["Tue, 01 Jan 2014 01:01:01 GMT"]
+    headers[b"Date"] = [b"Tue, 01 Jan 2014 01:01:01 GMT"]
 
     if not body:
         body = b''

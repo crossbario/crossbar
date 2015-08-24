@@ -86,21 +86,21 @@ def _utcnow():
 
 def makeSignedArguments(params, signKey, signSecret, body):
 
-    params['timestamp'] = [networkString(_utcnow())]
-    params['seq'] = [b"1"]
-    params['key'] = [networkString(signKey)]
-    params['nonce'] = [networkString(str(random.randint(0, 9007199254740992)))]
+    params[b'timestamp'] = [networkString(_utcnow())]
+    params[b'seq'] = [b"1"]
+    params[b'key'] = [networkString(signKey)]
+    params[b'nonce'] = [networkString(str(random.randint(0, 9007199254740992)))]
 
     # HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
 
     hm = hmac.new(signSecret.encode('utf8'), None, hashlib.sha256)
-    hm.update(params['key'][0])
-    hm.update(params['timestamp'][0])
-    hm.update(params['seq'][0])
-    hm.update(params['nonce'][0])
+    hm.update(params[b'key'][0])
+    hm.update(params[b'timestamp'][0])
+    hm.update(params[b'seq'][0])
+    hm.update(params[b'nonce'][0])
     hm.update(body)
     signature = base64.urlsafe_b64encode(hm.digest())
-    params['signature'] = [signature]
+    params[b'signature'] = [signature]
 
     return params
 

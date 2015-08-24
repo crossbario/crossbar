@@ -116,7 +116,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        del signedParams['timestamp']
+        del signedParams[b'timestamp']
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
@@ -136,7 +136,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        signedParams['timestamp'] = ["notatimestamp"]
+        signedParams[b'timestamp'] = [b"notatimestamp"]
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
@@ -160,7 +160,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(custOpts, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        signedParams['timestamp'] = ["2011-10-14T16:59:51.123Z"]
+        signedParams[b'timestamp'] = [b"2011-10-14T16:59:51.123Z"]
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
@@ -180,7 +180,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        signedParams['nonce'] = ["notanonce"]
+        signedParams[b'nonce'] = [b"notanonce"]
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
@@ -200,7 +200,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        del signedParams['nonce']
+        del signedParams[b'nonce']
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
@@ -220,7 +220,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        del signedParams['signature']
+        del signedParams[b'signature']
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
@@ -240,7 +240,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        del signedParams['key']
+        del signedParams[b'key']
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
@@ -260,7 +260,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        del signedParams['seq']
+        del signedParams[b'seq']
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
@@ -280,7 +280,7 @@ class SignatureTestCase(TestCase):
         resource = PublisherResource(resourceOptions, session)
 
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
-        signedParams['seq'] = ["notaseq"]
+        signedParams[b'seq'] = [b"notaseq"]
 
         request = yield renderResource(
             resource, b"/", method=b"POST",
