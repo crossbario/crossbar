@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import, division, print_function
 
-from six import PY3
-
 from twisted.trial.unittest import TestCase
 
 from crossbar import _compat as compat
