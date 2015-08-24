@@ -156,8 +156,8 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         :returns dict -- A dict with combined info from component starting.
         """
-        self.log.debug("{class}.start_container_component({id}, {config})",
-                       class=self.__class__.__name__, id=id, config=config)
+        self.log.debug("{klass}.start_container_component({id}, {config})",
+                       klass=self.__class__.__name__, id=id, config=config)
 
         # prohibit starting a component twice
         #
