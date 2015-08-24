@@ -528,9 +528,11 @@ class RouterSession(_RouterSession):
             if realm not in self._router_factory:
                 return types.Deny(ApplicationError.NO_SUCH_REALM, message="no realm '{}' exists on this router".format(realm))
 
+            authmethods = details.authmethods or ["anonymous"]
+
             # perform authentication
             #
-            if self._transport._authid is not None:
+            if self._transport._authid is not None and (self._transport._authmethod == u'trusted' or self._transport._authprovider in authmethods):
 
                 # already authenticated .. e.g. via HTTP Cookie or TLS client-certificate
 
@@ -553,7 +555,7 @@ class RouterSession(_RouterSession):
 
                     # iterate over authentication methods announced by client ..
                     #
-                    for authmethod in details.authmethods or ["anonymous"]:
+                    for authmethod in authmethods:
 
                         # .. and if the configuration has an entry for the authmethod
                         # announced, process ..

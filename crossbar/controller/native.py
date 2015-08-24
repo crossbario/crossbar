@@ -57,6 +57,7 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         self._authrole = u'trusted'
         self._authmethod = u'trusted'
         self._authprovider = u'programcode'
+        self._cbtid = None
 
         # FIXME
         self._transport_info = None
