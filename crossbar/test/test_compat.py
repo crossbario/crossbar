@@ -32,17 +32,25 @@ from __future__ import absolute_import, division, print_function
 
 from six import PY3
 
+from twisted.trial.unittest import TestCase
 
-def native_string(string):
+from crossbar import _compat as compat
+
+
+class NativeStringTestCase(TestCase):
     """
-    Make C{string} be the type of C{str}, decoding with ASCII if required.
+    Tests for C{crossbar._compat.native_string}.
     """
-    if PY3:
-        if isinstance(string, bytes):
-            return string.decode('ascii')
-        else:
-            raise ValueError("This is already a native string.")
-    else:
-        if isinstance(string, unicode):
-            raise ValueError("This can't be used to go from unicode to str")
-    return string
+
+    def test_bytes_always_native(self):
+        """
+        C{native_string}, with a bytes input, will always give a str output.
+        """
+        self.assertEqual(type(compat.native_string(b"foo")), str)
+
+    def test_unicode_not_allowed(self):
+        """
+        A unicode argument should never be allowed.
+        """
+        with self.assertRaises(ValueError):
+            compat.native_string(u"bar")
