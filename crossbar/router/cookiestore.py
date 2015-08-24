@@ -250,10 +250,10 @@ class CookieStoreFileBacked(CookieStore):
 
                 yield d
 
-    def _persist(self, id, c):
+    def _persist(self, id, c, status='created'):
 
         self._cookie_file.write(json.dumps({
-            'id': id, 'created': c['created'], 'max_age': c['max_age'],
+            'id': id, status: c['created'], 'max_age': c['max_age'],
             'authid': c['authid'], 'authrole': c['authrole'],
             'authmethod': c['authmethod']
         }) + '\n')
@@ -265,7 +265,7 @@ class CookieStoreFileBacked(CookieStore):
             self._cookies[id] = cookie
             n += 1
 
-        self.log.info("Loaded {cnt_cookies} cookie records from file", cnt_cookies=n)
+        self.log.info("Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.", cnt_cookie_records=n, cnt_cookies=len(self._cookies))
 
     def create(self):
         cbtid, header = CookieStore.create(self)
@@ -287,4 +287,4 @@ class CookieStoreFileBacked(CookieStore):
             # only set the changes and write them to the file if any of the values changed
             if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']:
                 CookieStore.setAuth(self, cbtid, authid, authrole, authmethod)
-                self._persist(cbtid, cookie)
+                self._persist(cbtid, cookie, status='modified')
