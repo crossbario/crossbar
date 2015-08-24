@@ -105,7 +105,7 @@ class GuestWorkerClientProtocol(protocol.Protocol):
                 # should not arrive here
                 self.log.error("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {}".format(reason))
 
-        except Exception as e:
+        except Exception:
             self.log.failure("GuestWorkerClientProtocol: INTERNAL ERROR - {log_failure}")
 
     def signal(self, sig='TERM'):
@@ -114,8 +114,8 @@ class GuestWorkerClientProtocol(protocol.Protocol):
             self.transport.signalProcess(sig)
         except ProcessExitedAlready:
             pass
-        except OSError as e:
-            log.msg(e)
+        except OSError:
+            self.log.failure(None)
 
 
 class GuestWorkerClientFactory(protocol.Factory):

@@ -116,8 +116,7 @@ class RouterRoleStaticAuth(RouterRole):
         self.permissions = permissions or []
 
         self._urimap = StringTrie()
-        self._default = default_permissions or \
-                        RouterPermissions('', True, False, False, False, False)
+        self._default = default_permissions or RouterPermissions('', True, False, False, False, False)
 
         for p in self.permissions:
             uri = p['uri']

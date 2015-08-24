@@ -48,7 +48,6 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
 from autobahn.wamp.types import RegisterOptions
 
-from crossbar._logging import make_logger
 from crossbar.common import checkconfig
 from crossbar.worker.worker import NativeWorkerSession
 from crossbar.router.protocol import WampWebSocketClientFactory, \
