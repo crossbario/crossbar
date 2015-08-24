@@ -33,16 +33,14 @@ from __future__ import absolute_import
 import os
 import sys
 import pkg_resources
-
+from datetime import datetime
 # backport of shutil.which
 import shutilwhich  # noqa
 import shutil
 
-from datetime import datetime
-
-from twisted.internet.defer import Deferred, DeferredList, returnValue, inlineCallbacks
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.error import ProcessExitedAlready
-
 from twisted.internet.threads import deferToThread
 
 from autobahn.util import utcnow, utcstr
@@ -54,19 +52,11 @@ from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
 from crossbar.controller.guest import create_guest_worker_client_factory
-
 from crossbar.controller.processtypes import RouterWorkerProcess, \
     ContainerWorkerProcess, \
     GuestWorkerProcess
 from crossbar.common.process import NativeProcessSession
-
-
-from twisted.internet import reactor
-from crossbar.twisted.endpoint import create_listening_port_from_config
-from autobahn.twisted.websocket import WampWebSocketServerFactory
-
 from crossbar.platform import HAS_FSNOTIFY, DirWatcher
-
 from crossbar._logging import make_logger, _loglevel
 
 
@@ -78,44 +68,6 @@ def check_executable(fn):
     Check whether the given path is an executable.
     """
     return os.path.exists(fn) and os.access(fn, os.F_OK | os.X_OK) and not os.path.isdir(fn)
-
-
-class ManagementTransport:
-
-    """
-    Local management service running inside node controller.
-    """
-
-    def __init__(self, config, who):
-        """
-        Ctor.
-
-        :param config: The configuration the manhole service was started with.
-        :type config: dict
-        :param who: Who triggered creation of this service.
-        :type who: str
-        """
-        self.config = config
-        self.who = who
-        self.status = 'starting'
-        self.created = datetime.utcnow()
-        self.started = None
-        self.port = None
-
-    def marshal(self):
-        """
-        Marshal object information for use with WAMP calls/events.
-
-        :returns: dict -- The marshalled information.
-        """
-        now = datetime.utcnow()
-        return {
-            'created': utcstr(self.created),
-            'status': self.status,
-            'started': utcstr(self.started) if self.started else None,
-            'uptime': (now - self.started).total_seconds() if self.started else None,
-            'config': self.config
-        }
 
 
 class NodeControllerSession(NativeProcessSession):
@@ -146,8 +98,6 @@ class NodeControllerSession(NativeProcessSession):
 
         # map of worker processes: worker_id -> NativeWorkerProcess
         self._workers = {}
-
-        self._management_transport = None
 
     def onConnect(self):
 
@@ -193,7 +143,6 @@ class NodeControllerSession(NativeProcessSession):
         #
         procs = [
             'shutdown',
-            'start_management_transport',
             'get_info',
             'get_workers',
             'get_worker_log',
@@ -237,64 +186,6 @@ class NodeControllerSession(NativeProcessSession):
         yield sleep(3)
 
         self._node._reactor.stop()
-
-    @inlineCallbacks
-    def start_management_transport(self, config, details=None):
-        """
-        Start a (listening) transport for the local management router.
-
-        :param config: Transport configuration.
-        :type config: obj
-        """
-        if self.debug:
-            self.log.debug("{me}.start_management_transport",
-                           me=self.__class__.__name__, config=config)
-
-        if self._management_transport:
-            emsg = "ERROR: could not start management transport - already running (or starting)"
-            self.log.failure(emsg)
-            raise ApplicationError("crossbar.error.already_started", emsg)
-
-        try:
-            checkconfig.check_listening_transport_websocket(config)
-        except Exception as e:
-            emsg = "ERROR: could not start management transport - invalid configuration ({})".format(e)
-            self.log.failure(emsg)
-            raise ApplicationError('crossbar.error.invalid_configuration', emsg)
-
-        self._management_transport = ManagementTransport(config, details.caller)
-
-        factory = WampWebSocketServerFactory(self._node._router_session_factory, debug=False)
-        factory.setProtocolOptions(failByDrop=False)
-        factory.noisy = False
-
-        starting_topic = '{}.on_management_transport_starting'.format(self._uri_prefix)
-        starting_info = self._management_transport.marshal()
-
-        # the caller gets a progressive result ..
-        if details.progress:
-            details.progress(starting_info)
-
-        # .. while all others get an event
-        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
-
-        try:
-            self._management_transport.port = yield create_listening_port_from_config(config['endpoint'], factory, self.cbdir, reactor)
-        except Exception as e:
-            self._management_transport = None
-            emsg = "ERROR: local management service endpoint cannot listen - {}".format(e)
-            self.log.failure(emsg)
-            raise ApplicationError("crossbar.error.cannot_listen", emsg)
-
-        # alright, the transport has started
-        self._management_transport.started = datetime.utcnow()
-        self._management_transport.status = 'started'
-
-        started_topic = '{}.on_management_transport_started'.format(self._uri_prefix)
-        started_info = self._management_transport.marshal()
-        self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
-
-        returnValue(started_info)
 
     def get_info(self, details=None):
         """

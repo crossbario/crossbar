@@ -230,11 +230,6 @@ class Node(object):
         if 'manhole' in controller:
             yield self._controller.start_manhole(controller['manhole'], details=call_details)
 
-        # start local transport for management router
-        #
-        if 'transport' in controller:
-            yield self._controller.start_management_transport(controller['transport'], details=call_details)
-
         # startup all workers
         #
         worker_no = 1

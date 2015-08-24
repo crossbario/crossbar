@@ -2069,7 +2069,7 @@ def check_controller(controller, silence=False):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'transport', 'manhole', 'manager', 'connections']:
+        if k not in ['id', 'options', 'manhole', 'manager', 'connections']:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -2083,10 +2083,6 @@ def check_controller(controller, silence=False):
 
     if 'manager' in controller:
         check_manager(controller['manager'])
-
-#    if 'transport' in controller:
-#        # FIXME: for now, only allow WAMP-WebSocket here
-#        check_listening_transport_websocket(controller['transport'])
 
     # connections
     #
