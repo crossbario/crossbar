@@ -35,7 +35,6 @@ import json
 
 from functools import partial
 
-from twisted.python import log
 from twisted.internet.defer import inlineCallbacks
 from twisted.web.http_headers import Headers
 
@@ -43,8 +42,12 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import SubscribeOptions
 
+from crossbar._logging import make_logger
+
 
 class MessageForwarder(ApplicationSession):
+
+    log = make_logger()
 
     def __init__(self, *args, **kwargs):
         self._webtransport = kwargs.pop("webTransport", treq)
@@ -81,7 +84,7 @@ class MessageForwarder(ApplicationSession):
 
             if debug:
                 content = yield self._webtransport.text_content(res)
-                log.msg(content)
+                self.log.debug(content)
 
         for s in subscriptions:
             # Assert that there's "topic" and "url" entries
@@ -94,5 +97,5 @@ class MessageForwarder(ApplicationSession):
                 options=SubscribeOptions(match=s.get("match", u"exact"))
             )
 
-            if debug:
-                log.msg("MessageForwarder subscribed to {}".format(s["topic"]))
+            self.log.debug("MessageForwarder subscribed to {topic}",
+                           topic=s["topic"])
