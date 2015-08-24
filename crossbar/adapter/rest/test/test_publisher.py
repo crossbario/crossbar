@@ -34,8 +34,8 @@ import json
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
-from twisted.python.compat import nativeString
 
+from crossbar._compat import native_string
 from crossbar.adapter.rest import PublisherResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource
 
@@ -63,7 +63,7 @@ class PublisherTestCase(TestCase):
         self.assertEqual(session._published_messages[0]["args"], (1,))
 
         self.assertEqual(request.code, 202)
-        self.assertEqual(json.loads(nativeString(request.getWrittenData())),
+        self.assertEqual(json.loads(native_string(request.getWrittenData())),
                          {"id": session._published_messages[0]["id"]})
 
     @inlineCallbacks

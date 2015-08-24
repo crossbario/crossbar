@@ -31,8 +31,8 @@
 from __future__ import absolute_import
 
 from twisted.trial.unittest import TestCase
-from twisted.python.compat import nativeString
 
+from crossbar._compat import native_string
 from crossbar.adapter.rest import PublisherResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource
 
@@ -233,7 +233,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn("HTTP/POST body length ({}) exceeds maximum ({})".format(len(publishBody), 1),
-                      nativeString(request.getWrittenData()))
+                      native_string(request.getWrittenData()))
 
     def test_multiple_content_length(self):
         """
@@ -250,7 +250,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn("Multiple Content-Length headers are not allowed",
-                      nativeString(request.getWrittenData()))
+                      native_string(request.getWrittenData()))
 
     def test_not_matching_bodylength(self):
         """
@@ -268,7 +268,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn("HTTP/POST body length ({}) is different to Content-Length ({})".format(len(publishBody), 1),
-                      nativeString(request.getWrittenData()))
+                      native_string(request.getWrittenData()))
 
     def test_invalid_JSON_body(self):
         """

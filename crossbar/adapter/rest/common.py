@@ -35,11 +35,11 @@ import hashlib
 import base64
 
 from crossbar._logging import make_logger
+from crossbar._compat import native_string
 
 from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.web.resource import Resource
-from twisted.python.compat import nativeString
 
 from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
@@ -103,7 +103,7 @@ class _CommonResource(Resource):
                        request=request)
 
         if request.method != b"POST":
-            return self._deny_request(request, 405, u"HTTP/{0} not allowed".format(nativeString(request.method)))
+            return self._deny_request(request, 405, u"HTTP/{0} not allowed".format(native_string(request.method)))
         else:
             return self.render_POST(request)
 
@@ -115,7 +115,7 @@ class _CommonResource(Resource):
         # read HTTP/POST body
         body = request.content.read()
 
-        args = request.args
+        args = {native_string(x): y[0] for x, y in request.args.items()}
         headers = request.requestHeaders
 
         # check content type + charset encoding
@@ -148,7 +148,7 @@ class _CommonResource(Resource):
 
                     # Parsing things like:
                     # charset=utf-8
-                    _ = nativeString(item).split("=")
+                    _ = native_string(item).split("=")
                     assert len(_) == 2
 
                     # We don't want duplicates
@@ -199,7 +199,7 @@ class _CommonResource(Resource):
         # key
         #
         if 'key' in args:
-            key_str = args["key"][0]
+            key_str = args["key"]
         else:
             if self._secret:
                 return self._deny_request(request, 400, u"signed request required, but mandatory 'key' field missing")
@@ -207,14 +207,14 @@ class _CommonResource(Resource):
         # timestamp
         #
         if 'timestamp' in args:
-            timestamp_str = args["timestamp"][0]
+            timestamp_str = args["timestamp"]
             try:
-                ts = datetime.datetime.strptime(nativeString(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ")
+                ts = datetime.datetime.strptime(native_string(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ")
                 delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
                 if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
                     return self._deny_request(request, 400, u"request expired (delta {0} seconds)".format(delta))
-            except ValueError:
-                return self._deny_request(request, 400, u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(timestamp_str))
+            except ValueError as e:
+                return self._deny_request(request, 400, u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)))
         else:
             if self._secret:
                 return self._deny_request(request, 400, u"signed request required, but mandatory 'timestamp' field missing")
@@ -222,12 +222,12 @@ class _CommonResource(Resource):
         # seq
         #
         if 'seq' in args:
-            seq_str = args["seq"][0]
+            seq_str = args["seq"]
             try:
                 # FIXME: check sequence
                 seq = int(seq_str)  # noqa
             except:
-                return self._deny_request(request, 400, u"invalid sequence number '{0}' (must be an integer)".format(seq_str))
+                return self._deny_request(request, 400, u"invalid sequence number '{0}' (must be an integer)".format(native_string(seq_str)))
         else:
             if self._secret:
                 return self._deny_request(request, 400, u"signed request required, but mandatory 'seq' field missing")
@@ -235,12 +235,12 @@ class _CommonResource(Resource):
         # nonce
         #
         if 'nonce' in args:
-            nonce_str = args["nonce"][0]
+            nonce_str = args["nonce"]
             try:
                 # FIXME: check nonce
                 nonce = int(nonce_str)  # noqa
             except:
-                return self._deny_request(request, 400, u"invalid nonce '{0}' (must be an integer)".format(nonce_str))
+                return self._deny_request(request, 400, u"invalid nonce '{0}' (must be an integer)".format(native_string(nonce_str)))
         else:
             if self._secret:
                 return self._deny_request(request, 400, u"signed request required, but mandatory 'nonce' field missing")
@@ -248,7 +248,7 @@ class _CommonResource(Resource):
         # signature
         #
         if 'signature' in args:
-            signature_str = args["signature"][0]
+            signature_str = args["signature"]
         else:
             if self._secret:
                 return self._deny_request(request, 400, u"signed request required, but mandatory 'signature' field missing")
@@ -258,7 +258,7 @@ class _CommonResource(Resource):
         if self._secret:
 
             if key_str != self._key:
-                return self._deny_request(request, 400, u"unknown key '{0}' in signed request".format(nativeString(key_str)))
+                return self._deny_request(request, 400, u"unknown key '{0}' in signed request".format(native_string(key_str)))
 
             # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
             hm = hmac.new(self._secret, None, hashlib.sha256)
@@ -281,7 +281,7 @@ class _CommonResource(Resource):
         # enforce client IP address
         #
         if self._require_ip:
-            ip = IPAddress(nativeString(client_ip))
+            ip = IPAddress(native_string(client_ip))
             allowed = False
             for net in self._require_ip:
                 if ip in net:

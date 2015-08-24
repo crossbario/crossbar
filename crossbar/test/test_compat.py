@@ -28,47 +28,27 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import inlineCallbacks
 
-from crossbar._compat import native_string
-from crossbar.adapter.rest import WebhookResource
-from crossbar.adapter.rest.test import MockPublisherSession, renderResource
+from crossbar import _compat as compat
 
 
-class WebhookTestCase(TestCase):
+class NativeStringTestCase(TestCase):
     """
-    Unit tests for L{WebhookResource}.
+    Tests for C{crossbar._compat.native_string}.
     """
-    @inlineCallbacks
-    def test_basic(self):
+
+    def test_bytes_always_native(self):
         """
-        A message, when a request has gone through to it, publishes a WAMP
-        message on the configured topic.
+        C{native_string}, with a bytes input, will always give a str output.
         """
-        session = MockPublisherSession(self)
-        resource = WebhookResource({u"topic": u"com.test.webhook"}, session)
+        self.assertEqual(type(compat.native_string(b"foo")), str)
 
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": []},
-            body=b'{"foo": "has happened"}')
-
-        self.assertEqual(len(session._published_messages), 1)
-        self.assertEqual(
-            {
-                "body": '{"foo": "has happened"}',
-                "headers": {
-                    "Content-Type": [],
-                    'Date': ['Tue, 01 Jan 2014 01:01:01 GMT'],
-                    'Host': ['localhost:8080']
-                }
-            },
-            session._published_messages[0]["args"][0])
-
-        self.assertEqual(request.code, 202)
-        self.assertEqual(native_string(request.getWrittenData()),
-                         "OK")
+    def test_unicode_not_allowed(self):
+        """
+        A unicode argument should never be allowed.
+        """
+        with self.assertRaises(ValueError):
+            compat.native_string(u"bar")

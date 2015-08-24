@@ -34,8 +34,8 @@ import json
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
-from twisted.python.compat import nativeString
 
+from crossbar._compat import native_string
 from crossbar.adapter.rest import CallerResource
 from crossbar.adapter.rest.test import renderResource
 
@@ -99,7 +99,7 @@ class CallerTestCase(TestCase):
             body=b'{"procedure": "com.test.add2", "args": [1,2]}')
 
         self.assertEqual(request.code, 200)
-        self.assertEqual(json.loads(nativeString(request.getWrittenData())),
+        self.assertEqual(json.loads(native_string(request.getWrittenData())),
                          {"args": [3]})
 
     @inlineCallbacks
