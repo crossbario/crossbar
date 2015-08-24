@@ -30,9 +30,9 @@
 
 from __future__ import absolute_import, division, print_function
 
+from six import StringIO as NativeStringIO
 
 from twisted.trial import unittest
-from twisted.python.compat import NativeStringIO
 from twisted.internet.selectreactor import SelectReactor
 
 from crossbar.controller import cli
