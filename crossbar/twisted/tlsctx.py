@@ -33,7 +33,7 @@ import tempfile
 from OpenSSL import crypto, SSL
 from twisted.internet.ssl import DefaultOpenSSLContextFactory, ClientContextFactory
 
-from twisted.python import log
+from crossbar._logging import make_logger
 
 # Monkey patch missing constants
 #
@@ -221,7 +221,6 @@ ECDH_DEFAULT_CURVE = ELLIPTIC_CURVES[ECDH_DEFAULT_CURVE_NAME]
 
 
 class TlsServerContextFactory(DefaultOpenSSLContextFactory):
-
     """
     TLS context factory for use with Twisted.
 
@@ -246,6 +245,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
        http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
        https://www.ssllabs.com/ssltest/analyze.html?d=www.example.com
     """
+
+    log = make_logger()
 
     def __init__(self,
                  privateKeyString,
@@ -276,10 +277,10 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
 
             if self._ciphers:
                 ctx.set_cipher_list(self._ciphers)
-                log.msg("Using explicit cipher list.")
+                self.log.info("Using explicit cipher list.")
             else:
                 ctx.set_cipher_list(SSL_DEFAULT_CIPHERS)
-                log.msg("Using default cipher list.")
+                self.log.info("Using default cipher list.")
 
             # Activate DH(E)
             #
@@ -289,12 +290,12 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
             if self._dhParamFilename:
                 try:
                     ctx.load_tmp_dh(self._dhParamFilename)
-                except Exception as e:
-                    log.msg("Error: OpenSSL DH modes not active - failed to load DH parameter file [{}]".format(e))
+                except Exception:
+                    self.log.failure("Error: OpenSSL DH modes not active - failed to load DH parameter file [{log_failure}]")
                 else:
-                    log.msg("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
+                    self.log.info("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
             else:
-                log.msg("Warning: OpenSSL DH modes not active - missing DH param file")
+                self.log.warning("OpenSSL DH modes not active - missing DH param file")
 
             # Activate ECDH(E)
             #
@@ -307,10 +308,11 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 #
                 curve = crypto.get_elliptic_curve(ECDH_DEFAULT_CURVE_NAME)
                 ctx.set_tmp_ecdh(curve)
-            except Exception as e:
-                log.msg("Warning: OpenSSL failed to set ECDH default curve [{}]".format(e))
+            except Exception:
+                self.log.failure("Warning: OpenSSL failed to set ECDH default curve [{log_failure}]")
             else:
-                log.msg("Ok, OpenSSL is using ECDH elliptic curve {}".format(ECDH_DEFAULT_CURVE_NAME))
+                self.log.info("Ok, OpenSSL is using ECDH elliptic curve {curve}",
+                              curve=ECDH_DEFAULT_CURVE_NAME)
 
             # load certificate (chain) into context
             #

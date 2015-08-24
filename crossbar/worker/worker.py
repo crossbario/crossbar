@@ -34,21 +34,17 @@ import os
 import sys
 import pkg_resources
 
-from twisted.python import log
 from twisted.internet.defer import DeferredList, inlineCallbacks
 
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, \
-    RegisterOptions
+from autobahn.wamp.types import PublishOptions, RegisterOptions
 
 from crossbar._logging import make_logger
-
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcessSession
-
 from crossbar.common.profiler import PROFILERS
-
 from crossbar.common.processinfo import _HAS_PSUTIL
+
 if _HAS_PSUTIL:
     import psutil
 
@@ -180,12 +176,11 @@ class NativeWorkerSession(NativeProcessSession):
 
         :returns list -- List of CPU IDs the process affinity is set to.
         """
-        if self.debug:
-            log.msg("{}.get_cpu_affinity".format(self.__class__.__name__))
+        self.log.debug("{klass}.get_cpu_affinity", klass=self.__class__.__name__)
 
         if not _HAS_PSUTIL:
             emsg = "ERROR: unable to get CPU affinity - required package 'psutil' is not installed"
-            log.msg(emsg)
+            self.log.warn(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         try:
@@ -193,7 +188,7 @@ class NativeWorkerSession(NativeProcessSession):
             current_affinity = p.cpu_affinity()
         except Exception as e:
             emsg = "ERROR: could not get CPU affinity ({})".format(e)
-            log.msg(emsg)
+            self.log.failure(emsg)
             raise ApplicationError("crossbar.error.runtime_error", emsg)
         else:
             res = {'affinity': current_affinity}
@@ -206,12 +201,11 @@ class NativeWorkerSession(NativeProcessSession):
         :param cpus: List of CPU IDs to set process affinity to.
         :type cpus: list
         """
-        if self.debug:
-            log.msg("{}.set_cpu_affinity".format(self.__class__.__name__))
+        self.log.debug("{klass}.set_cpu_affinity", klass=self.__class__.__name__)
 
         if not _HAS_PSUTIL:
             emsg = "ERROR: unable to set CPU affinity - required package 'psutil' is not installed"
-            log.msg(emsg)
+            self.log.warn(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         try:
@@ -220,7 +214,7 @@ class NativeWorkerSession(NativeProcessSession):
             new_affinity = p.cpu_affinity()
         except Exception as e:
             emsg = "ERROR: could not set CPU affinity ({})".format(e)
-            log.msg(emsg)
+            self.log.failure(emsg)
             raise ApplicationError("crossbar.error.runtime_error", emsg)
         else:
 
@@ -243,9 +237,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         :returns list -- List of module search paths.
         """
-        if self.debug:
-            log.msg("{}.get_pythonpath".format(self.__class__.__name__))
-
+        self.log.debug("{klass}.get_pythonpath", klass=self.__class__.__name__)
         return sys.path
 
     def add_pythonpath(self, paths, prepend=True, details=None):
@@ -259,8 +251,7 @@ class NativeWorkerSession(NativeProcessSession):
                         Otherwise append.
         :type prepend: bool
         """
-        if self.debug:
-            log.msg("{}.add_pythonpath".format(self.__class__.__name__))
+        self.log.debug("{klass}.add_pythonpath", klass=self.__class__.__name__)
 
         paths_added = []
         for p in paths:
@@ -271,7 +262,7 @@ class NativeWorkerSession(NativeProcessSession):
                 paths_added.append({'requested': p, 'resolved': path_to_add})
             else:
                 emsg = "ERROR: cannot add Python search path '{}' - resolved path '{}' is not a directory".format(p, path_to_add)
-                log.msg(emsg)
+                self.log.failure(emsg)
                 raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
 
         # now extend python module search path
@@ -294,7 +285,9 @@ class NativeWorkerSession(NativeProcessSession):
 
         # publish event "on_pythonpath_add" to all but the caller
         #
-        topic = 'crossbar.node.{}.worker.{}.on_pythonpath_add'.format(self.config.extra.node, self.config.extra.worker)
+        topic = 'crossbar.node.{}.worker.{}.on_pythonpath_add'.format(
+            self.config.extra.node, self.config.extra.worker)
+
         res = {
             'paths': sys.path,
             'paths_added': paths_added,

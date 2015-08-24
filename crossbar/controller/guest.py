@@ -32,16 +32,18 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.python import log
 from twisted.internet import protocol
 from twisted.internet.error import ProcessDone, ProcessTerminated, ProcessExitedAlready
 from twisted.internet.error import ConnectionDone
-# from twisted.internet.error import ConnectionDone, ConnectionClosed, ConnectionLost, ConnectionAborted
+
+from crossbar._logging import make_logger
 
 __all__ = ('create_guest_worker_client_factory',)
 
 
 class GuestWorkerClientProtocol(protocol.Protocol):
+
+    log = make_logger()
 
     def __init__(self, config, debug=False):
         self.config = config
@@ -53,30 +55,25 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
         options = self.config.get('options', {})
 
-        if self.debug:
-            log.msg("GuestWorkerClientProtocol.connectionMade")
+        self.log.debug("GuestWorkerClientProtocol.connectionMade")
 
         if 'stdout' in options and options['stdout'] == 'close':
             self.transport.closeStdout()
-            if self.debug:
-                log.msg("GuestWorkerClientProtocol: stdout to guest closed")
+            self.log.debug("GuestWorkerClientProtocol: stdout to guest closed")
 
         if 'stderr' in options and options['stderr'] == 'close':
             self.transport.closeStderr()
-            if self.debug:
-                log.msg("GuestWorkerClientProtocol: stderr to guest closed")
+            self.log.debug("GuestWorkerClientProtocol: stderr to guest closed")
 
         if 'stdin' in options:
             if options['stdin'] == 'close':
                 self.transport.closeStdin()
-                if self.debug:
-                    log.msg("GuestWorkerClientProtocol: stdin to guest closed")
+                self.log.debug("GuestWorkerClientProtocol: stdin to guest closed")
             else:
                 if options['stdin']['type'] == 'json':
 
                     self.transport.write(json.dumps(options['stdin']['value']))
-                    if self.debug:
-                        log.msg("GuestWorkerClientProtocol: JSON value written to stdin on guest")
+                    self.log.debug("GuestWorkerClientProtocol: JSON value written to stdin on guest")
 
                 elif options['stdin']['type'] == 'msgpack':
                     raise Exception("not implemented")
@@ -86,32 +83,30 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
                 if options['stdin'].get('close', True):
                     self.transport.closeStdin()
-                    if self.debug:
-                        log.msg("GuestWorkerClientProtocol: stdin to guest closed")
+                    self.log.debug("GuestWorkerClientProtocol: stdin to guest closed")
 
         self.factory._on_ready.callback(self)
 
     def connectionLost(self, reason):
-        if self.debug:
-            log.msg("GuestWorkerClientProtocol.connectionLost: {}".format(reason))
+        self.log.debug("GuestWorkerClientProtocol.connectionLost: {reason}",
+                       reason=reason)
         try:
             if isinstance(reason.value, (ProcessDone, ConnectionDone)):
-                if self.debug:
-                    log.msg("GuestWorkerClientProtocol: guest ended cleanly")
+                self.log.debug("GuestWorkerClientProtocol: guest ended cleanly")
                 self.factory._on_exit.callback(None)
 
             elif isinstance(reason.value, ProcessTerminated):
-                if self.debug:
-                    log.msg("GuestWorkerClientProtocol: guest ended with error {}".format(reason.value.exitCode))
+                self.log.debug("GuestWorkerClientProtocol: guest ended with error {code}",
+                               code=reason.value.exitCode)
                 self.factory._on_exit.errback(reason)
 
             else:
                 # get this when subprocess has exited early; should we just log error?
                 # should not arrive here
-                log.msg("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {}".format(reason))
+                self.log.error("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {}".format(reason))
 
-        except Exception as e:
-            log.msg("GuestWorkerClientProtocol: INTERNAL ERROR - {}".format(e))
+        except Exception:
+            self.log.failure("GuestWorkerClientProtocol: INTERNAL ERROR - {log_failure}")
 
     def signal(self, sig='TERM'):
         assert(sig in ['KILL', 'TERM', 'INT'])
@@ -119,8 +114,8 @@ class GuestWorkerClientProtocol(protocol.Protocol):
             self.transport.signalProcess(sig)
         except ProcessExitedAlready:
             pass
-        except OSError as e:
-            log.msg(e)
+        except OSError:
+            self.log.failure(None)
 
 
 class GuestWorkerClientFactory(protocol.Factory):

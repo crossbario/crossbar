@@ -34,19 +34,19 @@ import sys
 import importlib
 import pkg_resources
 import traceback
+
 from functools import partial
 from datetime import datetime
 
-from twisted.internet import reactor
 from twisted import internet
-from twisted.python import log
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
+from twisted.internet.defer import returnValue
 
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import ComponentConfig, \
-    PublishOptions, \
-    RegisterOptions
+from autobahn.wamp.types import ComponentConfig, PublishOptions
+from autobahn.wamp.types import RegisterOptions
 
 from crossbar.common import checkconfig
 from crossbar.worker.worker import NativeWorkerSession
@@ -58,7 +58,7 @@ from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
 __all__ = ('ContainerWorkerSession',)
 
 
-class ContainerComponent:
+class ContainerComponent(object):
 
     """
     An application component running inside a container.
@@ -155,14 +155,14 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         :returns dict -- A dict with combined info from component starting.
         """
-        if self.debug:
-            log.msg("{}.start_container_component".format(self.__class__.__name__), id, config)
+        self.log.debug("{klass}.start_container_component({id}, {config})",
+                       klass=self.__class__.__name__, id=id, config=config)
 
         # prohibit starting a component twice
         #
         if id in self.components:
             emsg = "ERROR: could not start component - a component with ID '{}'' is already running (or starting)".format(id)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
         # check configuration
@@ -171,11 +171,11 @@ class ContainerWorkerSession(NativeWorkerSession):
             checkconfig.check_container_component(config)
         except Exception as e:
             emsg = "ERROR: invalid container component configuration ({})".format(e)
-            log.msg(emsg)
+            self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
-            if self.debug:
-                log.msg("Starting {}-component in container.".format(config['type']))
+            self.log.debug("Starting {type}-component in container.",
+                           type=config['type'])
 
         realm = config['realm']
         componentcfg = ComponentConfig(realm=realm, extra=config.get('extra', None))
@@ -195,12 +195,12 @@ class ContainerWorkerSession(NativeWorkerSession):
             except Exception as e:
                 tb = traceback.format_exc()
                 emsg = 'ERROR: failed to import WAMPlet {}.{} ("{}")'.format(package, entrypoint, e)
-                log.msg(emsg)
+                self.log.error(emsg)
                 raise ApplicationError("crossbar.error.cannot_import", emsg, tb)
 
             else:
-                if self.debug:
-                    log.msg("Creating component from WAMPlet {}.{}".format(package, entrypoint))
+                self.log.debug("Creating component from WAMPlet {package}.{entrypoint}",
+                               package=package, entrypoint=entrypoint)
 
         elif config['type'] == 'class':
 
@@ -217,13 +217,13 @@ class ContainerWorkerSession(NativeWorkerSession):
 
             except Exception as e:
                 emsg = "Failed to import class '{}' - {}".format(qualified_classname, e)
-                log.msg(emsg)
-                log.msg("PYTHONPATH: {}".format(sys.path))
+                self.log.error(emsg)
+                self.log.error("PYTHONPATH: {}".format(sys.path))
                 raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
             else:
-                if self.debug:
-                    log.msg("Creating component from class {}".format(qualified_classname))
+                self.log.debug("Creating component from class {klass}",
+                               klass=qualified_classname)
 
         else:
             # should not arrive here, since we did `check_container_component()`
@@ -241,7 +241,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             try:
                 return create_component(componentcfg)
             except Exception:
-                log.err(_why="Instantiating component failed")
+                self.log.failure("Instantiating component failed")
                 raise
 
         # 2) create WAMP transport factory
@@ -297,17 +297,20 @@ class ContainerWorkerSession(NativeWorkerSession):
                 """
                 r = orig(was_clean, code, reason)
                 if component.id not in self.components:
-                    log.msg("Component '{}' closed, but not in set.".format(component.id))
+                    self.log.warn("Component '{id}' closed, but not in set.",
+                                  id=component.id)
                     return r
 
                 if was_clean:
-                    log.msg("Closed connection to '{}' with code '{}'".format(component.id, code))
+                    self.log.info("Closed connection to '{id}' with code '{code}'",
+                                  id=component.id, code=code)
                 else:
-                    msg = "Lost connection to component '{}' with code '{}'."
-                    log.msg(msg.format(component.id, code))
+                    self.log.error("Lost connection to component '{id}' with code '{code}'.",
+                                   id=component.id, code=code)
 
                 if reason:
-                    log.msg(str(reason))
+                    self.log.warn(str(reason))
+
                 del self.components[component.id]
                 self._publish_component_stop(component)
                 component._stopped.callback(component.marshal())
@@ -340,7 +343,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             # https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
             if isinstance(err.value, internet.error.ConnectError):
                 emsg = "ERROR: could not connect container component to router - transport establishment failed ({})".format(err.value)
-                log.msg(emsg)
+                self.log.failure(emsg)
                 raise ApplicationError('crossbar.error.cannot_connect', emsg)
             else:
                 # should not arrive here (since all errors arriving here should be subclasses of ConnectError)
@@ -406,7 +409,8 @@ class ContainerWorkerSession(NativeWorkerSession):
         try:
             component.proto.close()
         except:
-            log.err(_why="Failed to close component '{}':".format(id))
+            self.log.failure("Failed to close component '{id}': {log_failure}",
+                             id=id)
             raise
 
         # essentially just waiting for "on_component_stop"

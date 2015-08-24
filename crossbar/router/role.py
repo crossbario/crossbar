@@ -34,7 +34,7 @@ from collections import namedtuple
 
 from pytrie import StringTrie
 
-from twisted.python import log
+from crossbar._logging import make_logger
 
 __all__ = (
     'RouterRole',
@@ -44,32 +44,31 @@ __all__ = (
 )
 
 
-RouterPermissions = namedtuple('RouterPermissions', ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
+RouterPermissions = namedtuple(
+    'RouterPermissions',
+    ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
 
 
-class RouterRole:
-
+class RouterRole(object):
     """
     Base class for router roles.
     """
+    log = make_logger()
 
-    def __init__(self, router, uri, debug=False):
+    def __init__(self, router, uri):
         """
         Ctor.
 
         :param uri: The URI of the role.
         :type uri: str
-        :param debug: Enable debug logging.
-        :type debug: bool
         """
         self.router = router
         self.uri = uri
-        self.debug = debug
 
     def authorize(self, session, uri, action):
         """
-        Authorize a session connected under this role to perform the given action
-        on the given URI.
+        Authorize a session connected under this role to perform the given
+        action on the given URI.
 
         :param session: The WAMP session that requests the action.
         :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
@@ -80,31 +79,30 @@ class RouterRole:
 
         :return: bool -- Flag indicating whether session is authorized or not.
         """
-        if self.debug:
-            log.msg("CrossbarRouterRole.authorize", uri, action)
+        self.log.debug("CrossbarRouterRole.authorize {uri} {action}",
+                       uri=uri, action=action)
         return False
 
 
 class RouterTrustedRole(RouterRole):
-
     """
     A router role that is trusted to do anything. This is used e.g. for the
     service session run internally run by a router.
     """
 
     def authorize(self, session, uri, action):
-        if self.debug:
-            log.msg("CrossbarRouterTrustedRole.authorize", self.uri, uri, action)
+        self.log.debug(
+            "CrossbarRouterTrustedRole.authorize {myuri} {uri} {action}",
+            myuri=self.uri, uri=uri, action=action)
         return True
 
 
 class RouterRoleStaticAuth(RouterRole):
-
     """
     A role on a router realm that is authorized using a static configuration.
     """
 
-    def __init__(self, router, uri, permissions=None, default_permissions=None, debug=False):
+    def __init__(self, router, uri, permissions=None, default_permissions=None):
         """
         Ctor.
 
@@ -113,10 +111,8 @@ class RouterRoleStaticAuth(RouterRole):
         :param permissions: A permissions configuration, e.g. a list
            of permission dicts like `{'uri': 'com.example.*', 'call': True}`
         :type permissions: list
-        :param debug: Enable debug logging.
-        :type debug: bool
         """
-        RouterRole.__init__(self, router, uri, debug)
+        RouterRole.__init__(self, router, uri)
         self.permissions = permissions or []
 
         self._urimap = StringTrie()
@@ -144,8 +140,8 @@ class RouterRoleStaticAuth(RouterRole):
 
     def authorize(self, session, uri, action):
         """
-        Authorize a session connected under this role to perform the given action
-        on the given URI.
+        Authorize a session connected under this role to perform the given
+        action on the given URI.
 
         :param session: The WAMP session that requests the action.
         :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
@@ -156,8 +152,9 @@ class RouterRoleStaticAuth(RouterRole):
 
         :return: bool -- Flag indicating whether session is authorized or not.
         """
-        if self.debug:
-            log.msg("CrossbarRouterRoleStaticAuth.authorize", self.uri, uri, action)
+        self.log.debug(
+            "CrossbarRouterRoleStaticAuth.authorize {myuri} {uri} {action}",
+            myuri=self.uri, uri=uri, action=action)
         # if action == 'publish':
         #   f = 1/0
         try:
@@ -170,29 +167,26 @@ class RouterRoleStaticAuth(RouterRole):
 
 
 class RouterRoleDynamicAuth(RouterRole):
-
     """
     A role on a router realm that is authorized by calling (via WAMP RPC)
     an authorizer function provided by the app.
     """
 
-    def __init__(self, router, uri, authorizer, debug=False):
+    def __init__(self, router, uri, authorizer):
         """
         Ctor.
 
         :param uri: The URI of the role.
         :type uri: str
-        :param debug: Enable debug logging.
-        :type debug: bool
         """
-        RouterRole.__init__(self, router, uri, debug)
+        RouterRole.__init__(self, router, uri)
         self._authorizer = authorizer
         self._session = router._realm.session
 
     def authorize(self, session, uri, action):
         """
-        Authorize a session connected under this role to perform the given action
-        on the given URI.
+        Authorize a session connected under this role to perform the given
+        action on the given URI.
 
         :param session: The WAMP session that requests the action.
         :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
@@ -203,6 +197,8 @@ class RouterRoleDynamicAuth(RouterRole):
 
         :return: bool -- Flag indicating whether session is authorized or not.
         """
-        if self.debug:
-            log.msg("CrossbarRouterRoleDynamicAuth.authorize", self.uri, uri, action)
-        return self._session.call(self._authorizer, session._session_details, uri, action)
+        self.log.debug(
+            "CrossbarRouterRoleDynamicAuth.authorize {myuri} {uri} {action}",
+            myuri=self.uri, uri=uri, action=action)
+        return self._session.call(self._authorizer, session._session_details,
+                                  uri, action)
