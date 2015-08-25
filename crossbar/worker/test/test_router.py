@@ -44,30 +44,12 @@ from autobahn.wamp.message import Register, Registered, Hello, Welcome
 from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
 from autobahn.wamp.types import ComponentConfig, PublishOptions
 
+from .examples.goodclass import AppSession, _
+
 
 class DottableDict(dict):
     def __getattr__(self, name):
         return self[name]
-
-
-_ = []
-
-
-class AppSession(ApplicationSession):
-
-    @inlineCallbacks
-    def onJoin(self, details):
-        yield self.subscribe(_.append, "com.test")
-        yield self.publish("com.test", "woo",
-                           options=PublishOptions(exclude_me=False))
-
-
-class BadAppSession(object):
-    """
-    A thing that looks like an ApplicationSession but... isn't!
-    """
-    def __init__(self, ignored):
-        pass
 
 
 class FakeWAMPTransport(object):
@@ -161,7 +143,7 @@ class RouterWorkerSessionTests(TestCase):
 
         component_config = {
             "type": u"class",
-            "classname": u"crossbar.worker.test.test_router.AppSession",
+            "classname": u"crossbar.worker.test.examples.goodclass.AppSession",
             "realm": u"realm1"
         }
 
@@ -270,7 +252,7 @@ class RouterWorkerSessionTests(TestCase):
 
         component_config = {
             "type": u"class",
-            "classname": u"crossbar.worker.test.test_router.BadAppSession",
+            "classname": u"crossbar.worker.test.examples.badclass.AppSession",
             "realm": u"realm1"
         }
 
