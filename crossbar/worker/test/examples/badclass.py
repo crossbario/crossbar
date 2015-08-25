@@ -33,4 +33,6 @@ from __future__ import absolute_import, division
 
 class AppSession(object):
     def __init__(self, ignored):
-        pass
+        """
+        A AppSession that doesn't descend from ApplicationSession.
+        """
