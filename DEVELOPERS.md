@@ -32,6 +32,12 @@ This guide is for developers of the Crossbar.io code itself, not for application
 * Various authentication features
 * Reflection, API docs generation, payload validation
 
+### 0.14.0
+
+[Milestone for 0.14.0](https://github.com/crossbario/crossbar/milestones/0.14.0)
+
+* Multi-core support for routers (part 1: transport/routing service processes)
+
 
 ## Manhole
 
