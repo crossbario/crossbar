@@ -39,7 +39,7 @@ from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.defer import returnValue
 
 from autobahn.util import utcstr
-from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.exception import ApplicationError, TransportLost
 from autobahn.wamp.types import ComponentConfig, PublishOptions
 from autobahn.wamp.types import RegisterOptions
 
@@ -192,7 +192,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             try:
                 return create_component(component_config)
             except Exception:
-                self.log.failure("Instantiating component failed")
+                self.log.error("Instantiating component failed")
                 raise
 
         # 2) create WAMP transport factory

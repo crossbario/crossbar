@@ -417,8 +417,10 @@ class Node(object):
                         dead_comp = info['id']
                         self.log.info("Component '{dead_comp}' failed to start; shutting down node.", dead_comp=dead_comp)
                         self.log.debug("'{dead_comp}' has config: {config}", dead_comp=dead_comp, config=info['config'])
-                        if self._reactor.running:
+                        try:
                             self._reactor.stop()
+                        except twisted.internet.error.ReactorNotRunning:
+                            pass
                     topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self._node_id, worker_id)
                     component_stop_sub = yield self._controller.subscribe(component_exited, topic)
 
