@@ -485,9 +485,6 @@ class RouterWorkerSession(NativeWorkerSession):
         except Exception as e:
             raise ApplicationError("crossbar.error.class_import_failed", str(e))
 
-        if not isinstance(session, ApplicationSession):
-            raise ApplicationError("crossbar.error.class_import_failed", "session not derived of ApplicationSession")
-
         self.components[id] = RouterComponent(id, config, session)
         self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))
         self.log.debug("Added component {id}", id=id)

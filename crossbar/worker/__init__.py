@@ -32,6 +32,7 @@ import sys
 import importlib
 import pkg_resources
 
+from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 
 from twisted.python.failure import Failure
@@ -56,6 +57,11 @@ def _appsession_loader(config):
             module_name, klass_name = '.'.join(c[:-1]), c[-1]
             module = importlib.import_module(module_name)
             component = getattr(module, klass_name)
+
+            if not issubclass(component, ApplicationSession):
+                raise ApplicationError(
+                    "crossbar.error.class_import_failed",
+                    "session not derived of ApplicationSession")
 
         except Exception as e:
             emsg = "Failed to import class '{}'\n{}".format(
