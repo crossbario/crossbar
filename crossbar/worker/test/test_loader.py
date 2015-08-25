@@ -42,7 +42,22 @@ class AppSessionLoaderTests(TestCase):
     Tests for C{_appsession_loader}.
     """
 
-    def test_standard_class(self):
+    def test_unknown_types(self):
+        """
+        An unknown type will raise an exception.
+        """
+        config = {
+            "type": "kjdfgdbfls",
+        }
+
+        with self.assertRaises(ApplicationError) as e:
+            klass = _appsession_loader(config)
+
+        self.assertIn(
+            ("invalid component type 'kjdfgdbfls'"),
+            str(e.exception.args[0]))
+
+    def test_class_standard(self):
         """
         You can load a standard class.
         """
@@ -56,7 +71,7 @@ class AppSessionLoaderTests(TestCase):
         from .examples.goodclass import AppSession
         self.assertIs(klass, AppSession)
 
-    def test_non_base_class(self):
+    def test_class_non_applicationsession(self):
         """
         Loading a class which does not subclass AppSession fails.
         """
@@ -70,4 +85,25 @@ class AppSessionLoaderTests(TestCase):
 
         self.assertIn(
             ("session not derived of ApplicationSession"),
+            str(e.exception.args[0]))
+
+    def test_class_importerror(self):
+        """
+        Loading a class which has an import error upon import raises that
+        error.
+        """
+        config = {
+            "type": "class",
+            "classname": "crossbar.worker.test.examples.importerror.AppSession"
+        }
+
+        with self.assertRaises(ApplicationError) as e:
+            klass = _appsession_loader(config)
+
+        self.assertIn(
+            ("Failed to import class 'crossbar.worker.test.examples.importerr"
+             "or.AppSession'"),
+            str(e.exception.args[0]))
+        self.assertIn(
+            ("ImportError"),
             str(e.exception.args[0]))
