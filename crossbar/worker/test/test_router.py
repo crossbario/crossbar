@@ -31,20 +31,18 @@
 from __future__ import absolute_import, division, print_function
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import inlineCallbacks
 
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 from crossbar.worker import router
 from crossbar._logging import make_logger
 
-from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.message import Publish, Published, Subscribe, Subscribed
 from autobahn.wamp.message import Register, Registered, Hello, Welcome
 from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
-from autobahn.wamp.types import ComponentConfig, PublishOptions
+from autobahn.wamp.types import ComponentConfig
 
-from .examples.goodclass import AppSession, _
+from .examples.goodclass import _
 
 
 class DottableDict(dict):
@@ -194,7 +192,6 @@ class RouterWorkerSessionTests(TestCase):
             str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
-        self.assertEqual(len(_), 0)
 
     def test_start_router_component_invalid_type(self):
         """
@@ -230,7 +227,6 @@ class RouterWorkerSessionTests(TestCase):
             str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
-        self.assertEqual(len(_), 0)
 
     def test_start_router_component_wrong_baseclass(self):
         """
@@ -264,4 +260,3 @@ class RouterWorkerSessionTests(TestCase):
             str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
-        self.assertEqual(len(_), 0)
