@@ -31,35 +31,23 @@
 from __future__ import absolute_import, division, print_function
 
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import inlineCallbacks
 
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 from crossbar.worker import router
 from crossbar._logging import make_logger
 
-from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.message import Publish, Published, Subscribe, Subscribed
 from autobahn.wamp.message import Register, Registered, Hello, Welcome
 from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
-from autobahn.wamp.types import ComponentConfig, PublishOptions
+from autobahn.wamp.types import ComponentConfig
+
+from .examples.goodclass import _
 
 
 class DottableDict(dict):
     def __getattr__(self, name):
         return self[name]
-
-
-_ = []
-
-
-class AppSession(ApplicationSession):
-
-    @inlineCallbacks
-    def onJoin(self, details):
-        yield self.subscribe(_.append, "com.test")
-        yield self.publish("com.test", "woo",
-                           options=PublishOptions(exclude_me=False))
 
 
 class FakeWAMPTransport(object):
@@ -153,7 +141,7 @@ class RouterWorkerSessionTests(TestCase):
 
         component_config = {
             "type": u"class",
-            "classname": u"crossbar.worker.test.test_router.AppSession",
+            "classname": u"crossbar.worker.test.examples.goodclass.AppSession",
             "realm": u"realm1"
         }
 
@@ -201,7 +189,7 @@ class RouterWorkerSessionTests(TestCase):
 
         self.assertIn(
             "Failed to import class 'thisisathing.thatdoesnot.exist'",
-            str(e.exception))
+            str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
 
@@ -236,6 +224,39 @@ class RouterWorkerSessionTests(TestCase):
         self.assertIn(
             ("ERROR: invalid router component configuration (invalid value "
              "'notathingcrossbarsupports' for component type)"),
-            str(e.exception))
+            str(e.exception.args[0]))
+
+        self.assertEqual(len(r.get_router_components()), 0)
+
+    def test_start_router_component_wrong_baseclass(self):
+        """
+        Starting a class-based router component fails when the application
+        session isn't derived from ApplicationSession.
+        """
+        r = router.RouterWorkerSession(config=self.config)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        r.start_router_realm("realm1", realm_config)
+
+        component_config = {
+            "type": u"class",
+            "classname": u"crossbar.worker.test.examples.badclass.AppSession",
+            "realm": u"realm1"
+        }
+
+        with self.assertRaises(ApplicationError) as e:
+            r.start_router_component("newcomponent", component_config)
+
+        self.assertIn(
+            ("session not derived of ApplicationSession"),
+            str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)

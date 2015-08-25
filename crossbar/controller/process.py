@@ -884,6 +884,9 @@ def create_process_env(options):
         for k, v in os.environ.items():
             penv[k] = v
 
+        # PYTHONPATH is also a special thing...
+        penv["PYTHONPATH"] = ":".join(sys.path)
+
     # explicit environment vars from config
     if 'env' in options and 'vars' in options['env']:
         for k, v in options['env']['vars'].items():
