@@ -30,11 +30,6 @@
 
 from __future__ import absolute_import
 
-import sys
-import importlib
-import pkg_resources
-import traceback
-
 from functools import partial
 from datetime import datetime
 
@@ -49,6 +44,7 @@ from autobahn.wamp.types import ComponentConfig, PublishOptions
 from autobahn.wamp.types import RegisterOptions
 
 from crossbar.common import checkconfig
+from crossbar.worker import _appsession_loader
 from crossbar.worker.worker import NativeWorkerSession
 from crossbar.router.protocol import WampWebSocketClientFactory, \
     WampRawSocketClientFactory, WampWebSocketClientProtocol, WampRawSocketClientProtocol
@@ -177,57 +173,12 @@ class ContainerWorkerSession(NativeWorkerSession):
             self.log.debug("Starting {type}-component in container.",
                            type=config['type'])
 
-        realm = config['realm']
-        componentcfg = ComponentConfig(realm=realm, extra=config.get('extra', None))
-
         # 1) create WAMP application component factory
         #
-        if config['type'] == 'wamplet':
-
-            package = config['package']
-            entrypoint = config['entrypoint']
-
-            try:
-                # create_component() is supposed to make instances of ApplicationSession later
-                #
-                create_component = pkg_resources.load_entry_point(package, 'autobahn.twisted.wamplet', entrypoint)
-
-            except Exception as e:
-                tb = traceback.format_exc()
-                emsg = 'ERROR: failed to import WAMPlet {}.{} ("{}")'.format(package, entrypoint, e)
-                self.log.error(emsg)
-                raise ApplicationError("crossbar.error.cannot_import", emsg, tb)
-
-            else:
-                self.log.debug("Creating component from WAMPlet {package}.{entrypoint}",
-                               package=package, entrypoint=entrypoint)
-
-        elif config['type'] == 'class':
-
-            qualified_classname = config['classname']
-
-            try:
-                c = qualified_classname.split('.')
-                module_name, class_name = '.'.join(c[:-1]), c[-1]
-                module = importlib.import_module(module_name)
-
-                # create_component() is supposed to make instances of ApplicationSession later
-                #
-                create_component = getattr(module, class_name)
-
-            except Exception as e:
-                emsg = "Failed to import class '{}' - {}".format(qualified_classname, e)
-                self.log.error(emsg)
-                self.log.error("PYTHONPATH: {}".format(sys.path))
-                raise ApplicationError("crossbar.error.class_import_failed", emsg)
-
-            else:
-                self.log.debug("Creating component from class {klass}",
-                               klass=qualified_classname)
-
-        else:
-            # should not arrive here, since we did `check_container_component()`
-            raise Exception("logic error")
+        realm = config['realm']
+        extra = config.get('extra', None)
+        component_config = ComponentConfig(realm=realm, extra=extra)
+        create_component = _appsession_loader(config)
 
         # force reload of modules (user code)
         #
@@ -239,7 +190,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         # establised, from onOpen in autobahn/wamp/websocket.py:59
         def create_session():
             try:
-                return create_component(componentcfg)
+                return create_component(component_config)
             except Exception:
                 self.log.failure("Instantiating component failed")
                 raise

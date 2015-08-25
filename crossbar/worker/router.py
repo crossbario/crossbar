@@ -57,6 +57,7 @@ from crossbar.router.router import RouterFactory
 from crossbar.router.protocol import WampWebSocketServerFactory, \
     WampRawSocketServerFactory
 
+from crossbar.worker import _appsession_loader
 from crossbar.worker.testee import WebSocketTesteeServerFactory, \
     StreamTesteeServerFactory
 
@@ -473,50 +474,14 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         realm = config['realm']
         extra = config.get('extra', None)
-        cfg = ComponentConfig(realm=realm, extra=extra)
-
-        if config['type'] == 'class':
-
-            try:
-                klassname = config['classname']
-
-                self.log.debug("Starting class '{klass}'", klass=klassname)
-
-                c = klassname.split('.')
-                module_name, klass_name = '.'.join(c[:-1]), c[-1]
-                module = importlib.import_module(module_name)
-                make = getattr(module, klass_name)
-
-            except Exception as e:
-                emsg = "Failed to import class '{}' - {}".format(klassname, e)
-                self.log.error(emsg)
-                self.log.error("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
-                raise ApplicationError("crossbar.error.class_import_failed", emsg)
-
-        elif config['type'] == 'wamplet':
-
-            try:
-                dist = config['package']
-                name = config['entrypoint']
-
-                self.log.debug("Starting WAMPlet '{}/{}'".format(dist, name))
-
-                # make is supposed to make instances of ApplicationSession
-                make = pkg_resources.load_entry_point(dist, 'autobahn.twisted.wamplet', name)
-
-            except Exception as e:
-                emsg = "Failed to import wamplet '{}/{}' - {}".format(dist, name, e)
-                self.log.error(emsg)
-                raise ApplicationError("crossbar.error.class_import_failed", emsg)
-
-        else:
-            raise ApplicationError("crossbar.error.invalid_configuration", "invalid component type '{}'".format(config['type']))
+        component_config = ComponentConfig(realm=realm, extra=extra)
+        create_component = _appsession_loader(config)
 
         # .. and create and add an WAMP application session to
         # run the component next to the router
         #
         try:
-            session = make(cfg)
+            session = create_component(component_config)
         except Exception as e:
             raise ApplicationError("crossbar.error.class_import_failed", str(e))
 

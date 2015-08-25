@@ -27,3 +27,64 @@
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
 #####################################################################################
+
+import sys
+import importlib
+import pkg_resources
+
+from autobahn.wamp.exception import ApplicationError
+
+from twisted.python.failure import Failure
+
+from crossbar._logging import make_logger
+
+
+def _appsession_loader(config):
+    """
+    Load a class or a WAMPlet from C{config}.
+    """
+    log = make_logger()
+
+    if config['type'] == 'class':
+
+        try:
+            klassname = config['classname']
+
+            log.debug("Starting class '{klass}'", klass=klassname)
+
+            c = klassname.split('.')
+            module_name, klass_name = '.'.join(c[:-1]), c[-1]
+            module = importlib.import_module(module_name)
+            component = getattr(module, klass_name)
+
+        except Exception as e:
+            emsg = "Failed to import class '{}'\n{}".format(
+                klassname, Failure(e).getTraceback())
+            log.error(emsg)
+            log.error("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
+            raise ApplicationError("crossbar.error.class_import_failed", emsg)
+
+    elif config['type'] == 'wamplet':
+
+        try:
+            dist = config['package']
+            name = config['entrypoint']
+
+            log.debug("Starting WAMPlet '{}/{}'".format(dist, name))
+
+            # component is supposed to make instances of ApplicationSession
+            component = pkg_resources.load_entry_point(
+                dist, 'autobahn.twisted.wamplet', name)
+
+        except Exception as e:
+            emsg = "Failed to import wamplet '{}/{}'\n{}".format(
+                dist, name, Failure(e).getTraceback())
+            log.error(emsg)
+            raise ApplicationError("crossbar.error.class_import_failed", emsg)
+
+    else:
+        raise ApplicationError(
+            "crossbar.error.invalid_configuration",
+            "invalid component type '{}'".format(config['type']))
+
+    return component

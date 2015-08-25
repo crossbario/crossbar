@@ -62,6 +62,14 @@ class AppSession(ApplicationSession):
                            options=PublishOptions(exclude_me=False))
 
 
+class BadAppSession(object):
+    """
+    A thing that looks like an ApplicationSession but... isn't!
+    """
+    def __init__(self, ignored):
+        pass
+
+
 class FakeWAMPTransport(object):
     """
     A fake WAMP transport that responds to all messages with successes.
@@ -204,6 +212,7 @@ class RouterWorkerSessionTests(TestCase):
             str(e.exception))
 
         self.assertEqual(len(r.get_router_components()), 0)
+        self.assertEqual(len(_), 0)
 
     def test_start_router_component_invalid_type(self):
         """
@@ -239,3 +248,38 @@ class RouterWorkerSessionTests(TestCase):
             str(e.exception))
 
         self.assertEqual(len(r.get_router_components()), 0)
+        self.assertEqual(len(_), 0)
+
+    def test_start_router_component_wrong_baseclass(self):
+        """
+        Starting a class-based router component fails when the application
+        session isn't derived from ApplicationSession.
+        """
+        r = router.RouterWorkerSession(config=self.config)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        r.start_router_realm("realm1", realm_config)
+
+        component_config = {
+            "type": u"class",
+            "classname": u"crossbar.worker.test.test_router.BadAppSession",
+            "realm": u"realm1"
+        }
+
+        with self.assertRaises(ApplicationError) as e:
+            r.start_router_component("newcomponent", component_config)
+
+        self.assertIn(
+            ("session not derived of ApplicationSession"),
+            str(e.exception))
+
+        self.assertEqual(len(r.get_router_components()), 0)
+        self.assertEqual(len(_), 0)
