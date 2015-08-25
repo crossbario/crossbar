@@ -311,7 +311,10 @@ class ContainerWorkerSession(NativeWorkerSession):
         event = component.marshal()
         topic = self._uri_prefix + '.container.on_component_stop'
         # XXX just ignoring a Deferred here...
-        self.publish(topic, event)
+        try:
+            self.publish(topic, event)
+        except TransportLost:
+            self.log.error("Transport already gone trying to publish on_component_stop")
         return event
 
     @inlineCallbacks
