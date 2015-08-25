@@ -1,3 +1,39 @@
+# Developer Guide
+
+This guide is for developers of the Crossbar.io code itself, not for application developers creating Crossbar.io based applications.
+
+## Roadmap
+
+### 0.11.0
+
+[Milestone for 0.11.0](https://github.com/crossbario/crossbar/milestones/0.11.0)
+
+* Python 3
+* new logging
+* various improvements in error handling
+* File Upload service
+* various bug fixes and enhancement
+
+### 0.12.0
+
+[Milestone for 0.12.0](https://github.com/crossbario/crossbar/milestones/0.12.0)
+
+* PostgreSQL integration
+* RawSocket ping/pong
+* Reverse Proxy service
+* Web hook service
+* various bug fixes and enhancement
+
+### 0.13.0
+
+[Milestone for 0.13.0](https://github.com/crossbario/crossbar/milestones/0.13.0)
+
+* Timeouts at different levels (WAMP action, ..)
+* Various authentication features
+
+
+## Manhole
+
 **Manhole** is a feature useful primarily for developers working on the Crossbar.io code base.
 
 Manhole allows you to log into **live** running Crossbar.io *Controller* or *Native Worker* processes via SSH. You can then inspect and modify the internals while running.
@@ -64,7 +100,7 @@ Given above config, you can then log into the Worker via SSH:
 
 ```console
 ssh -p 6022 oberstet@127.0.0.1
-``` 
+```
 
 which will drop you into an interactive, colored Python shell:
 
@@ -73,10 +109,10 @@ which will drop you into an interactive, colored Python shell:
 ['__builtins__', 'session']
 >>> session
 <crossbar.worker.router.RouterWorkerSession instance at 0x41fa488>
->>> 
+>>>
 >>> session.uptime()
 3066.588492
->>> 
+>>>
 ```
 
 The `session` in this case is an instance of `crossbar.worker.router.RouterWorkerSession`.
