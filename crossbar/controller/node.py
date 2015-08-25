@@ -415,7 +415,8 @@ class Node(object):
                     # we've established a connection to the component
                     def component_exited(info):
                         dead_comp = info['id']
-                        self.log.info("Component '{}' failed to start; shutting down node.".format(dead_comp))
+                        self.log.info("Component '{dead_comp}' failed to start; shutting down node.", dead_comp=dead_comp)
+                        self.log.debug("'{dead_comp}' has config: {config}", dead_comp=dead_comp, config=info['config'])
                         if self._reactor.running:
                             self._reactor.stop()
                     topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self._node_id, worker_id)
