@@ -209,7 +209,7 @@ class RouterWorkerSessionTests(TestCase):
 
         self.assertIn(
             "Failed to import class 'thisisathing.thatdoesnot.exist'",
-            str(e.exception))
+            str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
         self.assertEqual(len(_), 0)
@@ -245,7 +245,7 @@ class RouterWorkerSessionTests(TestCase):
         self.assertIn(
             ("ERROR: invalid router component configuration (invalid value "
              "'notathingcrossbarsupports' for component type)"),
-            str(e.exception))
+            str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
         self.assertEqual(len(_), 0)
@@ -279,7 +279,7 @@ class RouterWorkerSessionTests(TestCase):
 
         self.assertIn(
             ("session not derived of ApplicationSession"),
-            str(e.exception))
+            str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
         self.assertEqual(len(_), 0)
