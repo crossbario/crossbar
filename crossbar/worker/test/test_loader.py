@@ -51,7 +51,7 @@ class AppSessionLoaderTests(TestCase):
         }
 
         with self.assertRaises(ApplicationError) as e:
-            klass = _appsession_loader(config)
+            _appsession_loader(config)
 
         self.assertIn(
             ("invalid component type 'kjdfgdbfls'"),
@@ -81,7 +81,7 @@ class AppSessionLoaderTests(TestCase):
         }
 
         with self.assertRaises(ApplicationError) as e:
-            klass = _appsession_loader(config)
+            _appsession_loader(config)
 
         self.assertIn(
             ("session not derived of ApplicationSession"),
@@ -98,7 +98,7 @@ class AppSessionLoaderTests(TestCase):
         }
 
         with self.assertRaises(ApplicationError) as e:
-            klass = _appsession_loader(config)
+            _appsession_loader(config)
 
         self.assertIn(
             ("Failed to import class 'crossbar.worker.test.examples.importerr"

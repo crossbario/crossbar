@@ -31,7 +31,11 @@
 from __future__ import absolute_import, division
 
 from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.types import PublishOptions
+
 from twisted.internet.defer import inlineCallbacks
+
+_ = []
 
 
 class AppSession(ApplicationSession):
