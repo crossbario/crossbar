@@ -30,6 +30,7 @@ This guide is for developers of the Crossbar.io code itself, not for application
 
 * Timeouts at different levels (WAMP action, ..)
 * Various authentication features
+* Reflection, API docs generation, payload validation
 
 
 ## Manhole
