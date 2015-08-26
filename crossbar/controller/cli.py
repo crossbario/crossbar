@@ -181,12 +181,10 @@ def check_is_running(cbdir):
     return None
 
 
-def run_command_version(options, **kwargs):
+def run_command_version(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar version".
     """
-    reactor = install_reactor(options.reactor, options.debug)
-
     # Python
     #
     py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
@@ -472,11 +470,6 @@ def run_command_start(options, reactor=None):
                             if x not in ["func", "argv"]}
             }
             fd.write("{}\n".format(json.dumps(pid_data, sort_keys=False, indent=3, separators=(',', ': '))))
-
-    if not reactor:
-        # we use an Autobahn utility to import the "best" available Twisted reactor
-        #
-        reactor = install_reactor(options.reactor, options.debug)
 
     # remove node PID file when reactor exits
     #
@@ -796,6 +789,12 @@ def run(prog=None, args=None, reactor=None):
 
     # Start the logger
     _startlog(options)
+
+
+    if not reactor:
+        # we use an Autobahn utility to import the "best" available Twisted
+        # reactor
+        reactor = install_reactor(options.reactor, options.debug)
 
     # run the subcommand selected
     #
