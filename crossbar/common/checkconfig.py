@@ -697,6 +697,8 @@ def check_web_path_service_static(config):
     """
     Check a "static" path service on Web transport.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/Static-Web-Service.md
+
     :param config: The path service configuration.
     :type config: dict
     """
@@ -727,6 +729,8 @@ def check_web_path_service_wsgi(config):
     """
     Check a "wsgi" path service on Web transport.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/WSGI-Host-Service.md
+
     :param config: The path service configuration.
     :type config: dict
     """
@@ -755,6 +759,8 @@ def check_web_path_service_redirect(config):
     """
     Check a "redirect" path service on Web transport.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/Web-Redirection-Service.md
+
     :param config: The path service configuration.
     :type config: dict
     """
@@ -767,6 +773,8 @@ def check_web_path_service_redirect(config):
 def check_web_path_service_json(config):
     """
     Check a "json" path service on Web transport.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/JSON-Value-Service.md
 
     :param config: The path service configuration.
     :type config: dict
@@ -789,6 +797,8 @@ def check_web_path_service_cgi(config):
     """
     Check a "cgi" path service on Web transport.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/CGI-Script-Service.md
+
     :param config: The path service configuration.
     :type config: dict
     """
@@ -802,6 +812,8 @@ def check_web_path_service_cgi(config):
 def check_web_path_service_longpoll(config):
     """
     Check a "longpoll" path service on Web transport.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/Long-Poll-Service.md
 
     :param config: The path service configuration.
     :type config: dict
@@ -974,6 +986,8 @@ def check_web_path_service_max_file_size(limit):
 def check_web_path_service_upload(config):
     """
     Check a file upload path service on Web transport.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/File-Upload-Service.md
 
     :param config: The path service configuration.
     :type config: dict
