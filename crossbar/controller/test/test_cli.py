@@ -84,21 +84,28 @@ class VersionTests(CLITestBase):
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
         self.assertIn(
-            "Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "SelectReactor",
+            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short()
+             + "-SelectReactor"),
             self.stdout.getvalue())
 
-    def test_(self):
+    def test_debug(self):
         """
-        Just running `crossbar version` gets us the versions.
+        Running `crossbar version` will give us the versions, plus the
+        locations of some of them.
         """
         reactor = SelectReactor()
 
         cli.run("crossbar",
-                ["version"])
+                ["version", "--loglevel=debug"],
+                reactor=reactor)
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
         self.assertIn(
-            "Twisted          : \x1b[33m\x1b[1m" + twisted.version.short(),
+            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short()
+             + "-SelectReactor"),
+            self.stdout.getvalue())
+        self.assertIn(
+            ("[twisted.internet.selectreactor.SelectReactor]"),
             self.stdout.getvalue())
 
 
