@@ -799,7 +799,6 @@ def run(prog=None, args=None, reactor=None):
     # Start the logger
     _startlog(options)
 
-
     if not reactor:
         # try and get the log verboseness we want -- not all commands have a
         # loglevel, so just default to info in that case
