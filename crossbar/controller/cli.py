@@ -254,7 +254,6 @@ def run_command_version(options, reactor=None, debug=False, **kwargs):
     except ImportError:
         msgpack_ver = '-'
 
-
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
