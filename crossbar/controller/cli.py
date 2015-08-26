@@ -30,16 +30,14 @@
 
 from __future__ import absolute_import
 
-import os
-import sys
-import signal
-import json
 import argparse
+import click
+import json
+import os
 import pkg_resources
 import platform
-import traceback
-
-import click
+import signal
+import sys
 
 from twisted.python.reflect import qual
 
