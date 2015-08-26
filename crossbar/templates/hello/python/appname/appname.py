@@ -46,7 +46,7 @@ class AppSession(ApplicationSession):
         def onhello(msg):
             self.log.info("event for 'onhello' received: {msg}", msg=msg)
 
-        sub = yield self.subscribe(onhello, 'com.example.onhello')
+        yield self.subscribe(onhello, 'com.example.onhello')
         self.log.info("subscribed to topic 'onhello'")
 
         # REGISTER a procedure for remote calling
@@ -55,7 +55,7 @@ class AppSession(ApplicationSession):
             self.log.info("add2() called with {x} and {y}", x=x, y=y)
             return x + y
 
-        reg = yield self.register(add2, 'com.example.add2')
+        yield self.register(add2, 'com.example.add2')
         self.log.info("procedure add2() registered")
 
         # PUBLISH and CALL every second .. forever
