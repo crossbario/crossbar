@@ -31,15 +31,11 @@
 from __future__ import absolute_import
 
 from twisted.trial import unittest
-# import unittest
 
 from crossbar.router.role import RouterRoleStaticAuth
 
 
 class Test_RouterRoleStaticAuth(unittest.TestCase):
-
-    def setUp(self):
-        pass
 
     def test_ruleset_empty(self):
         permissions = []
@@ -83,6 +79,3 @@ class Test_RouterRoleStaticAuth(unittest.TestCase):
         for uri, allow in uris:
             for action in actions:
                 self.assertEqual(role.authorize(None, uri, action), allow)
-
-if __name__ == '__main__':
-    unittest.main()
