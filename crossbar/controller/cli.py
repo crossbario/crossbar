@@ -815,14 +815,3 @@ def run(prog=None, args=None, reactor=None):
     # run the subcommand selected
     #
     options.func(options, reactor=reactor)
-
-
-if __name__ == '__main__':
-    try:
-        run()
-    except Exception as e:
-        print("\nError: {}\n".format(e))
-        traceback.print_exc()
-        sys.exit(1)
-    else:
-        sys.exit(0)
