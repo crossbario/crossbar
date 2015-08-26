@@ -45,6 +45,7 @@ from weakref import WeakKeyDictionary
 import os
 import sys
 import warnings
+import twisted
 
 
 class CLITestBase(unittest.TestCase):
@@ -67,6 +68,38 @@ class CLITestBase(unittest.TestCase):
     def tearDown(self):
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
+
+
+class VersionTests(CLITestBase):
+
+    def test_basic(self):
+        """
+        Just running `crossbar version` gets us the versions.
+        """
+        reactor = SelectReactor()
+
+        cli.run("crossbar",
+                ["version"],
+                reactor=reactor)
+
+        self.assertIn("Crossbar.io", self.stdout.getvalue())
+        self.assertIn(
+            "Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "SelectReactor",
+            self.stdout.getvalue())
+
+    def test_(self):
+        """
+        Just running `crossbar version` gets us the versions.
+        """
+        reactor = SelectReactor()
+
+        cli.run("crossbar",
+                ["version"])
+
+        self.assertIn("Crossbar.io", self.stdout.getvalue())
+        self.assertIn(
+            "Twisted          : \x1b[33m\x1b[1m" + twisted.version.short(),
+            self.stdout.getvalue())
 
 
 class StartTests(CLITestBase):

@@ -181,15 +181,16 @@ def check_is_running(cbdir):
     return None
 
 
-def run_command_version(options, reactor=None, debug=False, **kwargs):
+def run_command_version(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar version".
     """
+    log = make_logger()
+
     # Python
     #
     py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
-    if debug:
-        py_ver += " [%s]" % sys.version.replace('\n', ' ')
+    py_ver_string = "[%s]" % sys.version.replace('\n', ' ')
 
     if 'pypy_version_info' in sys.__dict__:
         py_ver_detail = "{}-{}".format(platform.python_implementation(), '.'.join(str(x) for x in sys.pypy_version_info[:3]))
@@ -199,15 +200,13 @@ def run_command_version(options, reactor=None, debug=False, **kwargs):
     # Twisted / Reactor
     #
     tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
-    if debug:
-        tx_ver += " [%s]" % qual(reactor.__class__)
+    tx_loc = "[%s]" % qual(reactor.__class__)
 
     # Autobahn
     #
     from autobahn.websocket.protocol import WebSocketProtocol
     ab_ver = pkg_resources.require("autobahn")[0].version
-    if debug:
-        ab_ver += " [%s]" % qual(WebSocketProtocol)
+    ab_loc = "[%s]" % qual(WebSocketProtocol)
 
     # UTF8 Validator
     #
@@ -220,8 +219,7 @@ def run_command_version(options, reactor=None, debug=False, **kwargs):
     else:
         # could not detect UTF8 validator type/version
         utf8_ver = '?'
-    if debug:
-        utf8_ver += " [%s]" % qual(Utf8Validator)
+    utf8_loc = "[%s]" % qual(Utf8Validator)
 
     # XOR Masker
     #
@@ -234,8 +232,7 @@ def run_command_version(options, reactor=None, debug=False, **kwargs):
     else:
         # could not detect XOR masker type/version
         xor_ver = '?'
-    if debug:
-        xor_ver += " [%s]" % qual(XorMaskerNull)
+    xor_loc = "[%s]" % qual(XorMaskerNull)
 
     # JSON Serializer
     #
@@ -260,18 +257,26 @@ def run_command_version(options, reactor=None, debug=False, **kwargs):
     for line in BANNER.splitlines():
         print(decorate("{:>40}".format(line)))
 
-    print(" Crossbar.io        : {0}".format(decorate(crossbar.__version__)))
-    print("   Autobahn         : {0}".format(decorate(ab_ver)))
-    print("     UTF8 Validator : {0}".format(decorate(utf8_ver)))
-    print("     XOR Masker     : {0}".format(decorate(xor_ver)))
-    print("     JSON Codec     : {0}".format(decorate(json_ver)))
-    print("     MsgPack Codec  : {0}".format(decorate(msgpack_ver)))
-    print("   Twisted          : {0}".format(decorate(tx_ver)))
-    print("   Python           : {0}/{1}".format(decorate(py_ver),
-                                                 decorate(py_ver_detail)))
-    print(" OS                 : {0}".format(decorate(platform.platform())))
-    print(" Machine            : {0}".format(decorate(platform.machine())))
-    print("")
+    pad = " " * 22
+
+    log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
+    log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
+    log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
+    log.info("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
+    log.debug("{pad}{debuginfo}", pad=pad,
+              debuginfo=decorate(utf8_loc))
+    log.info("     XOR Masker     : {ver}", ver=decorate(xor_ver))
+    log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
+    log.info("     JSON Codec     : {ver}", ver=decorate(json_ver))
+    log.info("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
+    log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
+    log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
+    log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver),
+             impl=decorate(py_ver_detail))
+    log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
+    log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
+    log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
+    log.info("")
 
 
 def run_command_templates(options, **kwargs):
