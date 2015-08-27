@@ -121,6 +121,17 @@ class WorkerProcess(object):
         """
         assert(childFD in self._log_fds)
 
+        system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
+
+        if childFD == 1:
+            # This is a log message made from some super dumb software that
+            # writes directly to FD1 instead of sys.stdout (which is captured
+            # by the logger). Because of this, we can't trust any portion of it
+            # and repr() it.
+            self._logger.info(repr(data), cb_namespace="FD1", log_system=system)
+            self._log_entries.append(repr(data))
+            return
+
         if type(data) != six.text_type:
             data = data.decode('utf8')
 
@@ -133,8 +144,6 @@ class WorkerProcess(object):
                 return
             else:
                 self._log_rich = False
-
-        system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
 
         if self._log_rich:
             # This guest supports rich logs.
@@ -172,7 +181,7 @@ class WorkerProcess(object):
                 if row == u"":
                     continue
 
-                self._logger.emit(LogLevel.info, row, log_system=system)
+                self._logger.info(row, log_system=system)
                 self._log_entries.append(row)
 
                 if self._log_topic:
