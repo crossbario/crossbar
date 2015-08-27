@@ -217,7 +217,7 @@ class StartTests(CLITestBase):
       }
    ]
 }
-            """ %(code_location,))
+            """ % (code_location,))
 
         with open(code_location + "/test.py", "w") as f:
             f.write("""#!/usr/bin/env python
@@ -248,7 +248,7 @@ class AppSession(ApplicationSession):
         lc.clock = reactor
 
         # In case it hard-locks
-        reactor.callLater(10, reactor.stop)
+        reactor.callLater(15, reactor.stop)
         lc.start(0.1)
 
         cli.run("crossbar",
@@ -256,6 +256,8 @@ class AppSession(ApplicationSession):
                  "--cbdir={}".format(self.cbdir),
                  "--logformat=syslogd"],
                 reactor=reactor)
+
+        print(self.stderr.getvalue(), file=sys.__stdout__)
 
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
         self.assertIn("Loaded the component!", self.stdout.getvalue())

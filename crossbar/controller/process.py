@@ -406,7 +406,7 @@ class NodeControllerSession(NativeProcessSession):
         #
         ep = WorkerProcessEndpoint(
             self._node._reactor, exe, args, env=worker_env, worker=worker,
-            childFDs={0:"w", 1:"r", 2: "r", 3:"r"})
+            childFDs={0: "w", 1: "r", 2: "r", 3: "r"})
 
         # ready handling
         #
@@ -717,7 +717,7 @@ class NodeControllerSession(NativeProcessSession):
                     def on_shutdown():
                         worker.watcher.stop()
 
-                    reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
+                    self._node._reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
 
                     # this handler will get fired by the watcher upon detecting an FS event
                     def on_fsevent(evt):
@@ -726,7 +726,7 @@ class NodeControllerSession(NativeProcessSession):
 
                         if options['watch'].get('action', None) == 'restart':
                             self.log.info("Restarting guest ..")
-                            reactor.callLater(0.1, self.start_guest, id, config, details)
+                            self._node._reactor.callLater(0.1, self.start_guest, id, config, details)
 
                     # now run the watcher on a background thread
                     deferToThread(worker.watcher.loop, on_fsevent)
