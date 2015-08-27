@@ -294,7 +294,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             # https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
             if isinstance(err.value, internet.error.ConnectError):
                 emsg = "ERROR: could not connect container component to router - transport establishment failed ({})".format(err.value)
-                self.log.failure(emsg)
+                self.log.error(emsg)
                 raise ApplicationError('crossbar.error.cannot_connect', emsg)
             else:
                 # should not arrive here (since all errors arriving here should be subclasses of ConnectError)
