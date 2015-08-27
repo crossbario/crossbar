@@ -28,10 +28,11 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import six
+import sys
 import json
 
 from collections import deque
@@ -52,8 +53,6 @@ class WorkerProcess(object):
     """
     Internal run-time representation of a worker process.
     """
-    _logger = make_logger()
-
     TYPE = 'worker'
     LOGNAME = 'Worker'
 
@@ -72,6 +71,8 @@ class WorkerProcess(object):
                         If `> 0`, keep at most such many log entries in buffer.
         :type keeplog: int or None
         """
+        self._logger = make_logger()
+
         self._controller = controller
 
         self.id = id
@@ -117,7 +118,7 @@ class WorkerProcess(object):
 
     def log(self, childFD, data):
         """
-        FIXME: line buffering
+        Handle a log message (or a fragment of such) coming in.
         """
         assert(childFD in self._log_fds)
 

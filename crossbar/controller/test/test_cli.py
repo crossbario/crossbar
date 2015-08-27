@@ -34,6 +34,7 @@ from six import StringIO as NativeStringIO
 
 from twisted.trial import unittest
 from twisted.internet.selectreactor import SelectReactor
+from twisted.internet.task import LoopingCall
 
 from crossbar.controller import cli
 from crossbar import _logging
@@ -231,25 +232,33 @@ class AppSession(ApplicationSession):
 
     @inlineCallbacks
     def onJoin(self, details):
-        print("hi")
-        yield self.subscribe(lambda _: self.log.info("Counter at {counter}", counter=_), 'com.example.oncounter')
-        yield self.publish('com.example.oncounter', 1)
+        self.log.info("Loaded the component!")
+        yield self.publish("com.bar", "test")
 """)
 
-        print(self.cbdir, file=sys.__stdout__)
-
         reactor = SelectReactor()
-        reactor.callLater(15, reactor.stop)
+
+        def _check(lc):
+            if "Loaded the component!" in self.stdout.getvalue():
+                reactor.stop()
+                lc.stop()
+
+        lc = LoopingCall(_check)
+        lc.a = (lc,)
+        lc.clock = reactor
+
+        # In case it hard-locks
+        reactor.callLater(10, reactor.stop)
+        lc.start(0.1)
 
         cli.run("crossbar",
                 ["start",
                  "--cbdir={}".format(self.cbdir),
-                 "--loglevel=debug"],
+                 "--logformat=syslogd"],
                 reactor=reactor)
 
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
-        print(self.stdout.getvalue(), file=sys.__stdout__)
-        print(self.stderr.getvalue(), file=sys.__stdout__)
+        self.assertIn("Loaded the component!", self.stdout.getvalue())
 
     def test_configValidationFailure(self):
         """
