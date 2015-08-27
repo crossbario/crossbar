@@ -61,11 +61,6 @@ def run():
     import argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-d',
-                        '--debug',
-                        action='store_true',
-                        help='Debug on (optional).')
-
     parser.add_argument('--reactor',
                         default=None,
                         choices=['select', 'poll', 'epoll', 'kqueue', 'iocp'],
@@ -207,7 +202,7 @@ def run():
         #
         from twisted.internet import stdio
         proto = transport_factory.buildProtocol(None)
-        stdio.StandardIO(proto)
+        stdio.StandardIO(proto, stdout=3)
 
         # now start reactor loop
         #

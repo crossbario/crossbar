@@ -363,11 +363,6 @@ class NodeControllerSession(NativeProcessSession):
         if options.get('title', None):
             args.extend(['--title', options['title']])
 
-        # allow overriding debug flag from options
-        #
-        if options.get('debug', self.debug):
-            args.append('--debug')
-
         # forward explicit reactor selection
         #
         if 'reactor' in options and sys.platform in options['reactor']:
@@ -405,9 +400,12 @@ class NodeControllerSession(NativeProcessSession):
 
         self._workers[id] = worker
 
-        # create a (custom) process endpoint
+        # create a (custom) process endpoint. We define a special FD3, which is
+        # used by the WAMP connection with the worker.
         #
-        ep = WorkerProcessEndpoint(self._node._reactor, exe, args, env=worker_env, worker=worker)
+        ep = WorkerProcessEndpoint(
+            self._node._reactor, exe, args, env=worker_env, worker=worker,
+            childFDs={0:"w", 1:"r", 2: "r", 3:"r"})
 
         # ready handling
         #

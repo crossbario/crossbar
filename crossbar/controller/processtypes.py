@@ -85,7 +85,7 @@ class WorkerProcess(object):
 
         self._log_entries = deque(maxlen=10)
 
-        self._log_fds = [2]
+        self._log_fds = [1, 2]
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
 
@@ -180,7 +180,6 @@ class WorkerProcess(object):
 
 
 class NativeWorkerProcess(WorkerProcess):
-
     """
     Internal run-time representation of a native worker (router or
     container currently) process.
@@ -207,7 +206,6 @@ class NativeWorkerProcess(WorkerProcess):
 
 
 class RouterWorkerProcess(NativeWorkerProcess):
-
     """
     Internal run-time representation of a router worker process.
     """
@@ -217,7 +215,6 @@ class RouterWorkerProcess(NativeWorkerProcess):
 
 
 class ContainerWorkerProcess(NativeWorkerProcess):
-
     """
     Internal run-time representation of a container worker process.
     """
@@ -227,7 +224,6 @@ class ContainerWorkerProcess(NativeWorkerProcess):
 
 
 class GuestWorkerProcess(WorkerProcess):
-
     """
     Internal run-time representation of a guest worker process.
     """
