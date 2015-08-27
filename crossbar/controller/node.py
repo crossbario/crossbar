@@ -187,7 +187,7 @@ class Node(object):
 
         # the node controller singleton WAMP application session
         #
-        self._controller = NodeControllerSession(self)
+        self._controller = NodeControllerSession(self, self._reactor)
 
         # add the node controller singleton session to the router
         #

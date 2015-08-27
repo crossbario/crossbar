@@ -79,12 +79,12 @@ class NodeControllerSession(NativeProcessSession):
 
     log = make_logger()
 
-    def __init__(self, node):
+    def __init__(self, node, reactor):
         """
         :param node: The node singleton for this node controller session.
         :type node: obj
         """
-        NativeProcessSession.__init__(self)
+        NativeProcessSession.__init__(self, reactor=reactor)
 
         # associated node
         self._node = node

@@ -116,9 +116,9 @@ class StartTests(CLITestBase):
         CLITestBase.setUp(self)
 
         # Set up the configuration directories
-        self.cbdir = self.mktemp()
+        self.cbdir = os.path.abspath(self.mktemp())
         os.mkdir(self.cbdir)
-        self.config = os.path.join(self.cbdir, "config.json")
+        self.config = os.path.abspath(os.path.join(self.cbdir, "config.json"))
 
     def test_start(self):
         """
@@ -136,6 +136,120 @@ class StartTests(CLITestBase):
                 reactor=reactor)
 
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
+
+    def test_start_run(self):
+        """
+        A basic start, that enters the reactor.
+        """
+        code_location = os.path.abspath(self.mktemp())
+        os.mkdir(code_location)
+
+        with open(self.config, "w") as f:
+            f.write("""{
+   "controller": {
+   },
+   "workers": [
+      {
+         "type": "router",
+         "options": {
+            "pythonpath": ["."]
+         },
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+            "/": {
+              "directory": ".",
+              "type": "static"
+            },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["%s"]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "test.AppSession",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  },
+                  "url": "ws://127.0.0.1:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+            """ %(code_location,))
+
+        with open(code_location + "/test.py", "w") as f:
+            f.write("""#!/usr/bin/env python
+from twisted.internet.defer import inlineCallbacks
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import ApplicationError
+
+class AppSession(ApplicationSession):
+
+    log = Logger()
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        print("hi")
+        yield self.subscribe(lambda _: self.log.info("Counter at {counter}", counter=_), 'com.example.oncounter')
+        yield self.publish('com.example.oncounter', 1)
+""")
+
+        print(self.cbdir, file=sys.__stdout__)
+
+        reactor = SelectReactor()
+        reactor.callLater(15, reactor.stop)
+
+        cli.run("crossbar",
+                ["start",
+                 "--cbdir={}".format(self.cbdir),
+                 "--loglevel=debug"],
+                reactor=reactor)
+
+        self.assertIn("Entering reactor event loop", self.stdout.getvalue())
+        print(self.stdout.getvalue(), file=sys.__stdout__)
+        print(self.stderr.getvalue(), file=sys.__stdout__)
 
     def test_configValidationFailure(self):
         """

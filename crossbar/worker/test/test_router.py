@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+from twisted.internet import reactor
 from twisted.trial.unittest import TestCase
 
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
@@ -104,7 +105,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -119,7 +120,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         Starting a class-based router component works.
         """
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
@@ -161,7 +162,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -199,7 +200,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -233,7 +234,7 @@ class RouterWorkerSessionTests(TestCase):
         Starting a class-based router component fails when the application
         session isn't derived from ApplicationSession.
         """
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)

@@ -177,6 +177,11 @@ class NativeProcessSession(ApplicationSession):
     """
     log = make_logger()
 
+    def __init__(self, config=None, reactor=None):
+        assert reactor
+        self.reactor = reactor
+        super(ApplicationSession, self).__init__(config=config)
+
     def onConnect(self, do_join=True):
         """
         """

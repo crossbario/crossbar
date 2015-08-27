@@ -34,7 +34,6 @@ from functools import partial
 from datetime import datetime
 
 from twisted import internet
-from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.defer import returnValue
 
@@ -229,7 +228,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         #
         endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'],
                                                           self.config.extra.cbdir,
-                                                          reactor)
+                                                          self.reactor)
 
         # now connect the client
         #
