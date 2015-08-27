@@ -34,7 +34,6 @@ import gc
 
 from datetime import datetime
 
-from twisted.internet import reactor
 from twisted.internet.defer import DeferredList, inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
 
@@ -178,8 +177,11 @@ class NativeProcessSession(ApplicationSession):
     log = make_logger()
 
     def __init__(self, config=None, reactor=None):
-        assert reactor
-        self.reactor = reactor
+        if not reactor:
+            from twisted.internet import reactor
+            self._reactor = reactor
+
+        self._reactor = reactor
         super(ApplicationSession, self).__init__(config=config)
 
     def onConnect(self, do_join=True):
@@ -501,7 +503,7 @@ class NativeProcessSession(ApplicationSession):
         self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
 
         try:
-            self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'], factory, self.cbdir, reactor)
+            self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'], factory, self.cbdir, self._reactor)
         except Exception as e:
             self._manhole_service = None
             emsg = "ERROR: manhole service endpoint cannot listen - {}".format(e)

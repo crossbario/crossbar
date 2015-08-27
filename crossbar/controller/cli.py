@@ -458,6 +458,8 @@ def run_command_start(options, reactor=None):
     """
     Subcommand "crossbar start".
     """
+    assert reactor
+
     # do not allow to run more than one Crossbar.io instance
     # from the same Crossbar.io node directory
     #

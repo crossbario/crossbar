@@ -38,16 +38,17 @@ from datetime import datetime
 import shutilwhich  # noqa
 import shutil
 
-from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.error import ProcessExitedAlready
 from twisted.internet.threads import deferToThread
+from twisted.python.filepath import FilePath
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 from autobahn.twisted.util import sleep
 
+import crossbar
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
@@ -79,12 +80,12 @@ class NodeControllerSession(NativeProcessSession):
 
     log = make_logger()
 
-    def __init__(self, node, reactor):
+    def __init__(self, node):
         """
         :param node: The node singleton for this node controller session.
         :type node: obj
         """
-        NativeProcessSession.__init__(self, reactor=reactor)
+        NativeProcessSession.__init__(self, reactor=node._reactor)
 
         # associated node
         self._node = node
@@ -346,7 +347,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # all native workers (routers and containers for now) start from the same script
         #
-        filename = pkg_resources.resource_filename('crossbar', 'worker/process.py')
+        filename = FilePath(crossbar.__file__).parent().child("worker").child("process.py").path
 
         # assemble command line for forking the worker
         #

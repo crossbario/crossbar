@@ -177,7 +177,7 @@ def run():
                 # loosing the connection to the node controller is fatal:
                 # stop the reactor and exit with error
                 if reactor.running:
-                    reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
+                    reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 2)
                     reactor.stop()
                 # if the reactor *isn't* running, we're already shutting down
 
