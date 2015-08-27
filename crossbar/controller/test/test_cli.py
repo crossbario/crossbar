@@ -54,7 +54,7 @@ class CLITestBase(unittest.TestCase):
 
     def setUp(self):
 
-        self._subprocess_timeout = 10
+        self._subprocess_timeout = 15
 
         if platform.python_implementation() == 'PyPy':
             self._subprocess_timeout = 30
@@ -246,7 +246,8 @@ class AppSession(ApplicationSession):
 
         def _check(lc):
             if "Loaded the component!" in self.stdout.getvalue():
-                reactor.stop()
+                if reactor.running:
+                    reactor.stop()
                 lc.stop()
 
         lc = LoopingCall(_check)
