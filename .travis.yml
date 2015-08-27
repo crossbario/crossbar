@@ -25,3 +25,6 @@ notifications:
          - "irc.freenode.org#crossbar"
       use_notice: true
       skip_join: true
+
+matrix:
+  fast_finish: true

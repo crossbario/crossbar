@@ -27,6 +27,7 @@
 ###############################################################################
 
 from twisted.internet.defer import inlineCallbacks
+from twisted.logger import Logger
 
 from autobahn.twisted.util import sleep
 from autobahn.twisted.wamp import ApplicationSession
@@ -35,25 +36,27 @@ from autobahn.wamp.exception import ApplicationError
 
 class AppSession(ApplicationSession):
 
+    log = Logger()
+
     @inlineCallbacks
     def onJoin(self, details):
 
         # SUBSCRIBE to a topic and receive events
         #
         def onhello(msg):
-            print("event for 'onhello' received: {}".format(msg))
+            self.log.info("event for 'onhello' received: {msg}", msg=msg)
 
-        sub = yield self.subscribe(onhello, 'com.example.onhello')
-        print("subscribed to topic 'onhello': {}".format(sub))
+        yield self.subscribe(onhello, 'com.example.onhello')
+        self.log.info("subscribed to topic 'onhello'")
 
         # REGISTER a procedure for remote calling
         #
         def add2(x, y):
-            print("add2() called with {} and {}".format(x, y))
+            self.log.info("add2() called with {x} and {y}", x=x, y=y)
             return x + y
 
-        reg = yield self.register(add2, 'com.example.add2')
-        print("procedure add2() registered: {}".format(reg))
+        yield self.register(add2, 'com.example.add2')
+        self.log.info("procedure add2() registered")
 
         # PUBLISH and CALL every second .. forever
         #
@@ -63,14 +66,16 @@ class AppSession(ApplicationSession):
             # PUBLISH an event
             #
             yield self.publish('com.example.oncounter', counter)
-            print("published to 'oncounter' with counter {}".format(counter))
+            self.log.info("published to 'oncounter' with counter {counter}",
+                          counter=counter)
             counter += 1
 
             # CALL a remote procedure
             #
             try:
                 res = yield self.call('com.example.mul2', counter, 3)
-                print("mul2() called with result: {}".format(res))
+                self.log.info("mul2() called with result: {result}",
+                              result=res)
             except ApplicationError as e:
                 # ignore errors due to the frontend not yet having
                 # registered the procedure we would like to call
