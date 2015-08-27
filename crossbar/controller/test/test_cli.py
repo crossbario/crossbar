@@ -45,6 +45,7 @@ from weakref import WeakKeyDictionary
 
 import os
 import sys
+import platform
 import warnings
 import twisted
 
@@ -52,6 +53,11 @@ import twisted
 class CLITestBase(unittest.TestCase):
 
     def setUp(self):
+
+        self._subprocess_timeout = 10
+
+        if platform.python_implementation() == 'PyPy':
+            self._subprocess_timeout = 30
 
         self.stderr = NativeStringIO()
         self.stdout = NativeStringIO()
@@ -248,7 +254,7 @@ class AppSession(ApplicationSession):
         lc.clock = reactor
 
         # In case it hard-locks
-        reactor.callLater(15, reactor.stop)
+        reactor.callLater(self._subprocess_timeout, reactor.stop)
         lc.start(0.1)
 
         cli.run("crossbar",
