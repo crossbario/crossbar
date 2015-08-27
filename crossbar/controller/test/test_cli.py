@@ -84,8 +84,7 @@ class VersionTests(CLITestBase):
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
         self.assertIn(
-            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short()
-             + "-SelectReactor"),
+            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"),
             self.stdout.getvalue())
 
     def test_debug(self):
@@ -101,8 +100,7 @@ class VersionTests(CLITestBase):
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
         self.assertIn(
-            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short()
-             + "-SelectReactor"),
+            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"),
             self.stdout.getvalue())
         self.assertIn(
             ("[twisted.internet.selectreactor.SelectReactor]"),

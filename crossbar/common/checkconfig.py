@@ -1074,7 +1074,7 @@ def check_web_path_service(path, config, nested):
     checkers = {
         'path': check_web_path_service_path,
         'static': check_web_path_service_static,
-        'upload': check_web_path_service_upload
+        'upload': check_web_path_service_upload,
         'websocket': check_web_path_service_websocket,
         'longpoll': check_web_path_service_longpoll,
         'redirect': check_web_path_service_redirect,
