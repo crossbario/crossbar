@@ -142,7 +142,7 @@ class StartTests(CLITestBase):
 
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
 
-    def test_start_run(self):
+    def _test_start_run(self):
         """
         A basic start, that enters the reactor.
         """
