@@ -309,9 +309,10 @@ class ContainerWorkerSession(NativeWorkerSession):
         Internal helper to publish details to on_component_stop
         """
         event = component.marshal()
-        topic = self._uri_prefix + '.container.on_component_stop'
-        # XXX just ignoring a Deferred here...
-        self.publish(topic, event)
+        if self.is_connected():
+            topic = self._uri_prefix + '.container.on_component_stop'
+            # XXX just ignoring a Deferred here...
+            self.publish(topic, event)
         return event
 
     @inlineCallbacks

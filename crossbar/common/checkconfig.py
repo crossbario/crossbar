@@ -406,6 +406,8 @@ def check_listening_endpoint_tls(tls):
     """
     Check a listening endpoint TLS configuration.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Transport-Endpoints.md
+
     :param tls: The TLS configuration part of a listening endpoint.
     :type tls: dict
     """
@@ -430,6 +432,8 @@ def check_connecting_endpoint_tls(tls):
     """
     Check a connecting endpoint TLS configuration.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Transport-Endpoints.md
+
     :param tls: The TLS configuration part of a connecting endpoint.
     :type tls: dict
     """
@@ -444,6 +448,8 @@ def check_connecting_endpoint_tls(tls):
 def check_listening_endpoint_tcp(endpoint):
     """
     Check a TCP listening endpoint configuration.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Transport-Endpoints.md
 
     :param endpoint: The TCP listening endpoint to check.
     :type endpoint: dict
@@ -489,6 +495,8 @@ def check_listening_endpoint_unix(endpoint):
     """
     Check a Unix listening endpoint configuration.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Transport-Endpoints.md
+
     :param endpoint: The Unix listening endpoint to check.
     :type endpoint: dict
     """
@@ -510,6 +518,8 @@ def check_listening_endpoint_unix(endpoint):
 def check_connecting_endpoint_tcp(endpoint):
     """
     Check a TCP connecting endpoint configuration.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Transport-Endpoints.md
 
     :param endpoint: The TCP connecting endpoint to check.
     :type endpoint: dict
@@ -540,6 +550,8 @@ def check_connecting_endpoint_unix(endpoint):
     """
     Check a Unix connecting endpoint configuration.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Transport-Endpoints.md
+
     :param endpoint: The Unix connecting endpoint to check.
     :type endpoint: dict
     """
@@ -561,6 +573,8 @@ def check_connecting_endpoint_unix(endpoint):
 def check_listening_endpoint(endpoint):
     """
     Check a listening endpoint configuration.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Transport-Endpoints.md
 
     :param endpoint: The listening endpoint configuration.
     :type endpoint: dict
@@ -586,6 +600,8 @@ def check_listening_endpoint(endpoint):
 def check_connecting_endpoint(endpoint):
     """
     Check a conencting endpoint configuration.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Transport-Endpoints.md
 
     :param endpoint: The connecting endpoint configuration.
     :type endpoint: dict
@@ -864,6 +880,8 @@ def check_web_path_service_publisher(config):
     """
     Check a "publisher" path service on Web transport.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/http-bridge/HTTP-Bridge-Publisher.md
+
     :param config: The path service configuration.
     :type config: dict
     """
@@ -896,6 +914,8 @@ def check_web_path_service_webhook(config):
     """
     Check a "webhook" path service on Web transport.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/http-bridge/HTTP-Bridge-Webhook.md
+
     :param config: The path service configuration.
     :type config: dict
     """
@@ -919,6 +939,8 @@ def check_web_path_service_webhook(config):
 def check_web_path_service_caller(config):
     """
     Check a "caller" path service on Web transport.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/http-bridge/HTTP-Bridge-Caller.md
 
     :param config: The path service configuration.
     :type config: dict
