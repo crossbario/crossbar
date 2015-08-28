@@ -39,6 +39,7 @@ from collections import deque
 from datetime import datetime
 
 from twisted.internet.defer import Deferred
+from twisted.python.runtime import platform
 
 from crossbar._logging import make_logger, LogLevel, record_separator
 from crossbar._logging import cb_logging_aware, escape_formatting
@@ -85,7 +86,7 @@ class WorkerProcess(object):
 
         self._log_entries = deque(maxlen=10)
 
-        self._log_fds = [1, 2]
+        self._log_fds = [2] if platform.isWindows() else [1, 2]
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
 

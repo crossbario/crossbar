@@ -42,6 +42,7 @@ from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.error import ProcessExitedAlready
 from twisted.internet.threads import deferToThread
 from twisted.python.filepath import FilePath
+from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
@@ -401,12 +402,25 @@ class NodeControllerSession(NativeProcessSession):
 
         self._workers[id] = worker
 
-        # create a (custom) process endpoint. We define a special FD3, which is
-        # used by the WAMP connection with the worker.
+        # create a (custom) process endpoint.
         #
+        if platform.isWindows():
+            childFDs = None  # Use the default Twisted ones
+        else:
+            # The communication between controller and container workers is
+            # using WAMP running over 2 pipes.
+            # For controller->container traffic this runs over FD 0 (`stdin`)
+            # and for the container->controller traffic, this runs over FD 3.
+            #
+            # Note: We use FD 3, not FD 1 (`stdout`) or FD 2 (`stderr`) for
+            # container->controller traffic, so that components running in the
+            # container which happen to write to `stdout` or `stderr` do not
+            # interfere with the container-controller communication.
+            childFDs = {0: "w", 1: "r", 2: "r", 3: "r"}
+
         ep = WorkerProcessEndpoint(
             self._node._reactor, exe, args, env=worker_env, worker=worker,
-            childFDs={0: "w", 1: "r", 2: "r", 3: "r"})
+            childFDs=childFDs)
 
         # ready handling
         #

@@ -200,9 +200,13 @@ def run():
 
         # create a protocol instance and wire up to stdio
         #
+        from twisted.python.runtime import platform as _platform
         from twisted.internet import stdio
         proto = transport_factory.buildProtocol(None)
-        stdio.StandardIO(proto, stdout=3)
+        if _platform.isWindows():
+            stdio.StandardIO(proto)
+        else:
+            stdio.StandardIO(proto, stdout=3)
 
         # now start reactor loop
         #

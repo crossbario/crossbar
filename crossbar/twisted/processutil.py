@@ -33,28 +33,51 @@ from __future__ import absolute_import
 from twisted.internet.endpoints import _WrapIProtocol, ProcessEndpoint
 from twisted.internet.address import _ProcessAddress
 from twisted.internet import defer
+from twisted.python.runtime import platform
 
 __all__ = ('WorkerProcessEndpoint',)
 
 
-class _WorkerWrapIProtocol(_WrapIProtocol):
-    """
-    Wraps an IProtocol into an IProcessProtocol which forwards data
-    received on Worker._log_fds to WorkerProcess.log().
-    """
+if platform.isWindows():
+    # On Windows, we're only using FDs 0, 1, and 2.
 
-    def childDataReceived(self, childFD, data):
+    class _WorkerWrapIProtocol(_WrapIProtocol):
         """
-        Some data has come in from the process child. If it's one of our
-        log FDs, log it. If it's on FD3, send it to the WAMP connection.
-        Otherwise, let _WrapIProtocol deal with it.
+        Wraps an IProtocol into an IProcessProtocol which forwards data
+        received on Worker._log_fds to WorkerProcess.log().
         """
-        if childFD in self._worker._log_fds:
-            self._worker.log(childFD, data)
-        elif childFD == 3:
-            self.protocol.dataReceived(data)
-        else:
-            _WrapIProtocol.childDataReceived(self, childFD, data)
+        def childDataReceived(self, childFD, data):
+            """
+            Some data has come in from the process child. If it's one of our
+            log FDs, log it. Otherwise, let _WrapIProtocol deal with it.
+            """
+            if childFD in self._worker._log_fds:
+                self._worker.log(childFD, data)
+            else:
+                _WrapIProtocol.childDataReceived(self, childFD, data)
+
+else:
+    # On UNIX-likes, we're logging FD1/2, and using FD3 for our own
+    # communication.
+
+    class _WorkerWrapIProtocol(_WrapIProtocol):
+        """
+        Wraps an IProtocol into an IProcessProtocol which forwards data
+        received on Worker._log_fds to WorkerProcess.log().
+        """
+
+        def childDataReceived(self, childFD, data):
+            """
+            Some data has come in from the process child. If it's one of our
+            log FDs, log it. If it's on FD3, send it to the WAMP connection.
+            Otherwise, let _WrapIProtocol deal with it.
+            """
+            if childFD in self._worker._log_fds:
+                self._worker.log(childFD, data)
+            elif childFD == 3:
+                self.protocol.dataReceived(data)
+            else:
+                _WrapIProtocol.childDataReceived(self, childFD, data)
 
 
 class WorkerProcessEndpoint(ProcessEndpoint):
