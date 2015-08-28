@@ -166,7 +166,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         # prohibit starting a component twice
         #
         if id in self.components:
-            emsg = "ERROR: could not start component - a component with ID '{}'' is already running (or starting)".format(id)
+            emsg = "Could not start component - a component with ID '{}'' is already running (or starting)".format(id)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
@@ -175,7 +175,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         try:
             checkconfig.check_container_component(config)
         except Exception as e:
-            emsg = "ERROR: invalid container component configuration ({})".format(e)
+            emsg = "Invalid container component configuration ({})".format(e)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
@@ -325,7 +325,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         def error(err):
             # https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
             if isinstance(err.value, internet.error.ConnectError):
-                emsg = "ERROR: could not connect container component to router - transport establishment failed ({})".format(err.value)
+                emsg = "Could not connect container component to router - transport establishment failed ({})".format(err.value)
                 self.log.error(emsg)
                 raise ApplicationError('crossbar.error.cannot_connect', emsg)
             else:
