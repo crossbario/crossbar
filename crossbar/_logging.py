@@ -230,7 +230,7 @@ def make_JSON_observer(outFile):
     """
     class CrossbarEncoder(JSONEncoder):
         def default(self, o):
-            return repr(o)
+            return escape_formatting(repr(o))
     encoder = CrossbarEncoder()
 
     @provider(ILogObserver)

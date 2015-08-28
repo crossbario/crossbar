@@ -281,9 +281,33 @@ class JSONObserverTests(TestCase):
         self.assertIn(u"<function ", log_entry["obj"])
         self.assertEqual(log_entry["level"], u"critical")
 
+    def test_repr_formatting(self):
+        """
+        Non-JSON-serialisable parameters are repr()'d, and any curly brackets
+        in the result are escaped.
+        """
+        stream = StringIO()
+        observer = _logging.make_JSON_observer(stream)
+        log = make_logger(observer=observer)
+
+        class BracketThing(object):
+            def __repr__(self):
+                return "<BracketThing kwargs={}>"
+
+        log.info("hi {obj}", obj=BracketThing())
+
+        result = stream.getvalue()
+        log_entry = json.loads(result[:-1])
+
+        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(len(log_entry.keys()), 5)
+        self.assertEqual(u"hi <BracketThing kwargs={{}}>", log_entry["text"])
+        self.assertEqual(log_entry["level"], u"info")
+
     def test_raising_during_encoding(self):
         """
-        Non-JSON-serialisable parameters are repr()'d.
+        Non-JSON-serialisable parameters are repr()'d, and if that's impossible
+        then the message is lost.
         """
         stream = StringIO()
         observer = _logging.make_JSON_observer(stream)
