@@ -222,7 +222,7 @@ class StartTests(CLITestBase):
       }
    ]
 }
-            """ % (code_location,))
+            """ % ("/".join(code_location.split(os.sep),)))
 
         with open(code_location + "/test.py", "w") as f:
             f.write("""#!/usr/bin/env python
@@ -262,8 +262,6 @@ class AppSession(ApplicationSession):
                  "--cbdir={}".format(self.cbdir),
                  "--logformat=syslogd"],
                 reactor=reactor)
-
-        print(self.stderr.getvalue(), file=sys.__stdout__)
 
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
         self.assertIn("Loaded the component!", self.stdout.getvalue())
