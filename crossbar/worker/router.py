@@ -481,8 +481,16 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         try:
             session = create_component(component_config)
+
+            # any exception spilling out from user code in onXXX handlers is fatal!
+            def panic(fail, msg):
+                self.log.error("Fatal error in component: {} - {}".format(msg, fail.value))
+                session.disconnect()
+            session._swallow_error = panic
         except Exception as e:
-            raise ApplicationError("crossbar.error.class_import_failed", str(e))
+            msg = "{}".format(e).strip()
+            self.log.error("Component instantiation failed:\n\n{err}", err=msg)
+            raise
 
         self.components[id] = RouterComponent(id, config, session)
         self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))

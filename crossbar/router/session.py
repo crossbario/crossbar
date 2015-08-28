@@ -108,6 +108,14 @@ class _RouterApplicationSession(object):
 
         self._session.onConnect()
 
+    def _swallow_error(self, fail, msg):
+        try:
+            if self._session:
+                self._session.onUserError(fail.value, msg)
+        except:
+            pass
+        return None
+
     def isOpen(self):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransport.isOpen`
@@ -152,12 +160,9 @@ class _RouterApplicationSession(object):
                                      self._session._authid, self._session._authrole, self._session._authmethod,
                                      self._session._authprovider)
 
+            # fire onOpen callback and handle any exception escaping from there
             d = txaio.as_future(self._session.onJoin, details)
-
-            def _log_error_and_close(fail):
-                self.log.failure("Internal error: {log_failure.value}", failure=fail)
-                self.close()
-            txaio.add_callbacks(d, None, _log_error_and_close)
+            txaio.add_callbacks(d, None, lambda fail: self._swallow_error(fail, "While firing onJoin"))
 
         # app-to-router
         #
@@ -429,7 +434,7 @@ class _RouterSession(BaseSession):
 
         DO NOT attach to Deferreds that are returned to calling code.
         """
-        self.log.failure("Internal error: {log_failure.value}", failure=fail)
+        self.log.failure("Internal error (2): {log_failure.value}", failure=fail)
 
         # tell other side we're done
         reply = message.Abort(u"wamp.error.authorization_failed", u"Internal server error")
