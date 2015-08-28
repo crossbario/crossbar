@@ -86,7 +86,10 @@ class WorkerProcess(object):
 
         self._log_entries = deque(maxlen=10)
 
-        self._log_fds = [2] if platform.isWindows() else [1, 2]
+        if platform.isWindows():
+            self._log_fds = [2]
+        else:
+            self._log_fds = [1, 2]
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
 

@@ -103,10 +103,6 @@ def run():
 
     options = parser.parse_args()
 
-    import sys
-    print(sys.path)
-
-
     # make sure logging to something else than stdio is setup _first_
     #
     from crossbar._logging import make_JSON_observer, cb_logging_aware, _stderr
