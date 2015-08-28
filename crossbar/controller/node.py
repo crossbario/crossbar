@@ -206,14 +206,19 @@ class Node(object):
         else:
             self.log.info("No WAMPlets detected in enviroment.")
 
+        panic = False
+
         try:
             yield self._startup(self._config)
         except ApplicationError as e:
+            panic = True
             for line in e.args[0].strip().splitlines():
                 self.log.error(line)
         except Exception:
+            panic = True
             traceback.print_exc()
-        finally:
+
+        if panic:
             try:
                 self._reactor.stop()
             except twisted.internet.error.ReactorNotRunning:
