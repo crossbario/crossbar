@@ -414,9 +414,8 @@ class Node(object):
                     # start_container_component returns as soon as
                     # we've established a connection to the component
                     def component_exited(info):
-                        dead_comp = info['id']
-                        self.log.info("Component '{dead_comp}' failed to start; shutting down node.", dead_comp=dead_comp)
-                        self.log.debug("'{dead_comp}' has config: {config}", dead_comp=dead_comp, config=info['config'])
+                        self.log.info("Component '{info.id}' failed to start; shutting down node.", info=info)
+                        self.log.debug("'{info.id}' has config: {info.config}", info=info)
                         try:
                             self._reactor.stop()
                         except twisted.internet.error.ReactorNotRunning:
