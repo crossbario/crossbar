@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, print_function
 
+from twisted.internet.error import ReactorNotRunning
+
 __all__ = ('run',)
 
 
@@ -174,12 +176,14 @@ def run():
             except:
                 pass
             finally:
-                # loosing the connection to the node controller is fatal:
+                # losing the connection to the node controller is fatal:
                 # stop the reactor and exit with error
-                if reactor.running:
-                    reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 2)
+                log.info("No more controller connection; shutting down.")
+                reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
+                try:
                     reactor.stop()
-                # if the reactor *isn't* running, we're already shutting down
+                except ReactorNotRunning:
+                    pass
 
     try:
         # create a WAMP application session factory

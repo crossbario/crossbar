@@ -114,7 +114,8 @@ class RouterWorkerSessionTests(TestCase):
 
         # Should have 35 registers, all for the management interface
         self.assertEqual(len(transport._get(Register)), 35)
-        self.assertIn("ready", log_list[-1]["log_format"])
+        # XXX depends on log-text; perhaps a little flaky...
+        self.assertIn("running as", log_list[-1]["log_format"])
 
     def test_start_router_component(self):
         """

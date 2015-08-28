@@ -38,7 +38,7 @@ from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.defer import returnValue
 
 from autobahn.util import utcstr
-from autobahn.wamp.exception import ApplicationError
+from autobahn.wamp.exception import ApplicationError, TransportLost
 from autobahn.wamp.types import ComponentConfig, PublishOptions
 from autobahn.wamp.types import RegisterOptions
 
@@ -191,7 +191,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             try:
                 return create_component(component_config)
             except Exception:
-                self.log.failure("Instantiating component failed")
+                self.log.error("Instantiating component failed")
                 raise
 
         # 2) create WAMP transport factory
@@ -293,7 +293,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             # https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
             if isinstance(err.value, internet.error.ConnectError):
                 emsg = "ERROR: could not connect container component to router - transport establishment failed ({})".format(err.value)
-                self.log.failure(emsg)
+                self.log.error(emsg)
                 raise ApplicationError('crossbar.error.cannot_connect', emsg)
             else:
                 # should not arrive here (since all errors arriving here should be subclasses of ConnectError)
@@ -310,7 +310,10 @@ class ContainerWorkerSession(NativeWorkerSession):
         event = component.marshal()
         topic = self._uri_prefix + '.container.on_component_stop'
         # XXX just ignoring a Deferred here...
-        self.publish(topic, event)
+        try:
+            self.publish(topic, event)
+        except TransportLost:
+            self.log.error("Transport already gone trying to publish on_component_stop")
         return event
 
     @inlineCallbacks
