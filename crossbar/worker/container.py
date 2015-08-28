@@ -177,7 +177,17 @@ class ContainerWorkerSession(NativeWorkerSession):
         realm = config['realm']
         extra = config.get('extra', None)
         component_config = ComponentConfig(realm=realm, extra=extra)
-        create_component = _appsession_loader(config)
+
+        try:
+            create_component = _appsession_loader(config)
+        except ApplicationError as e:
+            msg = e.args[0]
+            self.log.error("Component loading failed:\n\n{err}", err=msg)
+            if 'No module named' in msg:
+                self.log.error("  Python module search paths:")
+                for path in e.kwargs['pythonpath']:
+                    self.log.error("    {path}", path=path)
+            raise
 
         # force reload of modules (user code)
         #
@@ -189,9 +199,17 @@ class ContainerWorkerSession(NativeWorkerSession):
         # establised, from onOpen in autobahn/wamp/websocket.py:59
         def create_session():
             try:
-                return create_component(component_config)
-            except Exception:
-                self.log.error("Instantiating component failed")
+                session = create_component(component_config)
+
+                # any exception spilling out from user code in onXXX handlers is fatal!
+                def panic(fail, msg):
+                    self.log.error("Fatal error in component: {} - {}".format(msg, fail.value))
+                    session.disconnect()
+                session._swallow_error = panic
+                return session
+            except Exception as e:
+                msg = "{}".format(e).strip()
+                self.log.error("Component instantiation failed:\n\n{err}", err=msg)
                 raise
 
         # 2) create WAMP transport factory

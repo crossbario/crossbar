@@ -128,7 +128,7 @@ def run():
     try:
         import setproctitle
     except ImportError:
-        log.info("Warning: could not set worker process title (setproctitle not installed)")
+        log.debug("Could not set worker process title (setproctitle not installed)")
     else:
         # set process title if requested to
         #
@@ -147,7 +147,7 @@ def run():
     reactor = install_reactor(options.reactor)
 
     from twisted.python.reflect import qual
-    log.info("Running under {python} using {reactor} reactor",
+    log.info("Worker running under {python}-{reactor}",
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
@@ -230,7 +230,7 @@ def run():
 
             vmprof.disable()
         else:
-            log.info("Entering event loop...")
+            log.debug("Entering event loop...")
             reactor.run()
 
     except Exception as e:

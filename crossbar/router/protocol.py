@@ -241,9 +241,9 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
                         self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
                 else:
-                    self.log.info("Cookie-based authentication disabled")
+                    self.log.debug("Cookie-based authentication disabled")
             else:
-                self.log.info("Cookie tracking disabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking disabled on WebSocket connection {}".format(self))
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
