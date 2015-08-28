@@ -120,7 +120,8 @@ class NativeWorkerSession(NativeProcessSession):
                            {'type': self.WORKER_TYPE, 'id': self.config.extra.worker, 'pid': os.getpid()},
                            options=PublishOptions(acknowledge=True))
 
-        self.log.info("Worker ready to roll!")
+        self.log.info("Worker '{worker}' running as PID {pid}",
+                      worker=self.config.extra.node, pid=os.getpid())
 
     def get_profilers(self, details=None):
         """
