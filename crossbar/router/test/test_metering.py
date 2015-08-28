@@ -71,6 +71,7 @@ class TestLmdb(unittest.TestCase):
 
         self.db = lmdb.open(self.DBFILE, max_dbs=10)
         self.db1 = self.db.open_db(b'table1', create=True)
+        self.addCleanup(self.db.close)
 
     def test_insert(self):
         data = self._insert_data1()
