@@ -63,11 +63,6 @@ def run():
     import argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-d',
-                        '--debug',
-                        action='store_true',
-                        help='Debug on (optional).')
-
     parser.add_argument('--reactor',
                         default=None,
                         choices=['select', 'poll', 'epoll', 'kqueue', 'iocp'],
@@ -181,7 +176,7 @@ def run():
             except:
                 pass
             finally:
-                # loosing the connection to the node controller is fatal:
+                # losing the connection to the node controller is fatal:
                 # stop the reactor and exit with error
                 log.info("No more controller connection; shutting down.")
                 reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
@@ -189,7 +184,6 @@ def run():
                     reactor.stop()
                 except ReactorNotRunning:
                     pass
-                # if the reactor *isn't* running, we're already shutting down
 
     try:
         # create a WAMP application session factory
@@ -210,9 +204,13 @@ def run():
 
         # create a protocol instance and wire up to stdio
         #
+        from twisted.python.runtime import platform as _platform
         from twisted.internet import stdio
         proto = transport_factory.buildProtocol(None)
-        stdio.StandardIO(proto)
+        if _platform.isWindows():
+            stdio.StandardIO(proto)
+        else:
+            stdio.StandardIO(proto, stdout=3)
 
         # now start reactor loop
         #

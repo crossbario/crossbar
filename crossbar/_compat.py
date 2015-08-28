@@ -46,3 +46,9 @@ def native_string(string):
         if isinstance(string, unicode):
             raise ValueError("This can't be used to go from unicode to str")
     return string
+
+
+if PY3:
+    long = int
+else:
+    long = long

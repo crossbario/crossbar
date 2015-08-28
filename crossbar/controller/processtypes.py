@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import six
@@ -39,6 +39,7 @@ from collections import deque
 from datetime import datetime
 
 from twisted.internet.defer import Deferred
+from twisted.python.runtime import platform
 
 from crossbar._logging import make_logger, LogLevel, record_separator
 from crossbar._logging import cb_logging_aware, escape_formatting
@@ -52,8 +53,6 @@ class WorkerProcess(object):
     """
     Internal run-time representation of a worker process.
     """
-    _logger = make_logger()
-
     TYPE = 'worker'
     LOGNAME = 'Worker'
 
@@ -72,6 +71,8 @@ class WorkerProcess(object):
                         If `> 0`, keep at most such many log entries in buffer.
         :type keeplog: int or None
         """
+        self._logger = make_logger()
+
         self._controller = controller
 
         self.id = id
@@ -85,7 +86,10 @@ class WorkerProcess(object):
 
         self._log_entries = deque(maxlen=10)
 
-        self._log_fds = [2]
+        if platform.isWindows():
+            self._log_fds = [2]
+        else:
+            self._log_fds = [1, 2]
         self._log_lineno = 0
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
 
@@ -117,9 +121,20 @@ class WorkerProcess(object):
 
     def log(self, childFD, data):
         """
-        FIXME: line buffering
+        Handle a log message (or a fragment of such) coming in.
         """
         assert(childFD in self._log_fds)
+
+        system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
+
+        if childFD == 1:
+            # This is a log message made from some super dumb software that
+            # writes directly to FD1 instead of sys.stdout (which is captured
+            # by the logger). Because of this, we can't trust any portion of it
+            # and repr() it.
+            self._logger.info(repr(data), cb_namespace="FD1", log_system=system)
+            self._log_entries.append(repr(data))
+            return
 
         if type(data) != six.text_type:
             data = data.decode('utf8')
@@ -133,8 +148,6 @@ class WorkerProcess(object):
                 return
             else:
                 self._log_rich = False
-
-        system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
 
         if self._log_rich:
             # This guest supports rich logs.
@@ -172,7 +185,7 @@ class WorkerProcess(object):
                 if row == u"":
                     continue
 
-                self._logger.emit(LogLevel.info, row, log_system=system)
+                self._logger.info(row, log_system=system)
                 self._log_entries.append(row)
 
                 if self._log_topic:
@@ -180,7 +193,6 @@ class WorkerProcess(object):
 
 
 class NativeWorkerProcess(WorkerProcess):
-
     """
     Internal run-time representation of a native worker (router or
     container currently) process.
@@ -207,7 +219,6 @@ class NativeWorkerProcess(WorkerProcess):
 
 
 class RouterWorkerProcess(NativeWorkerProcess):
-
     """
     Internal run-time representation of a router worker process.
     """
@@ -217,7 +228,6 @@ class RouterWorkerProcess(NativeWorkerProcess):
 
 
 class ContainerWorkerProcess(NativeWorkerProcess):
-
     """
     Internal run-time representation of a container worker process.
     """
@@ -227,7 +237,6 @@ class ContainerWorkerProcess(NativeWorkerProcess):
 
 
 class GuestWorkerProcess(WorkerProcess):
-
     """
     Internal run-time representation of a guest worker process.
     """
