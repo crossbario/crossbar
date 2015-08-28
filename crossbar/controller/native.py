@@ -63,7 +63,7 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
         self._transport_info = None
 
     def connectionLost(self, reason):
-        self.log.debug("Process connection gone: {reason}", reason=reason.value)
+        self.log.warn("Process connection gone: {reason}", reason=reason.value)
 
         WampWebSocketClientProtocol.connectionLost(self, reason)
         self.factory.proto = None

@@ -101,6 +101,8 @@ class NodeControllerSession(NativeProcessSession):
         # map of worker processes: worker_id -> NativeWorkerProcess
         self._workers = {}
 
+        self._shutdown_requested = False
+
     def onConnect(self):
 
         self.log.debug("Connected to node management router")
@@ -458,11 +460,30 @@ class NodeControllerSession(NativeProcessSession):
 
         def on_exit_success(res):
             del self._workers[worker.id]
+            return worker.id
 
         def on_exit_error(err):
             del self._workers[worker.id]
+            return worker.id
 
-        worker.exit.addCallbacks(on_exit_success, on_exit_error)
+        def check_for_shutdown(worker_id):
+            shutdown = True
+            if not self._workers:
+                shutdown = True
+
+            self.log.info("Node worker {} ended ({} workers left)".format(worker_id, len(self._workers)))
+
+            if shutdown:
+                if not self._shutdown_requested:
+                    self.log.info("Node shutting down ..")
+                    self._shutdown_requested = True
+                    self.shutdown()
+                else:
+                    # shutdown already initiated
+                    pass
+
+        d_on_exit = worker.exit.addCallbacks(on_exit_success, on_exit_error)
+        d_on_exit.addBoth(check_for_shutdown)
 
         # create a transport factory for talking WAMP to the native worker
         #

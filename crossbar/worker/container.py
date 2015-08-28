@@ -120,6 +120,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             'get_container_components',
             'start_container_component',
             'stop_container_component',
+            'stop_container',
             'restart_container_component'
         ]
 
@@ -135,6 +136,15 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
+
+    def stop_container(self):
+        """
+        Stops the whole container.
+        """
+        dl = []
+        for component in self.components:
+            dl.append(self.stop_container_component(component.id))
+        self.disconnect()
 
     def start_container_component(self, id, config, reload_modules=False, details=None):
         """
@@ -282,6 +292,11 @@ class ContainerWorkerSession(NativeWorkerSession):
                 del self.components[component.id]
                 self._publish_component_stop(component)
                 component._stopped.callback(component.marshal())
+
+                if not self.components:
+                    self.log.info("Container is hosting no more components: shutting down.")
+                    self.stop_container()
+
                 return r
 
             # FIXME: due to history, the following is currently the case:
