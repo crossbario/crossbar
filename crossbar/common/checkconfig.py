@@ -612,6 +612,8 @@ def check_websocket_options(options):
     """
     Check WebSocket / WAMP-WebSocket protocol options.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/WebSocket-Options.md
+
     :param options: The options to check.
     :type options: dict
     """
@@ -649,12 +651,26 @@ def check_websocket_options(options):
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket options".format(k))
 
-    # FIXME: more complete checking ..
+    # FIXME: do the actual checking of above!
+
+    if 'compression' in options:
+        check_websocket_compression(options['compression'])
+
+
+def check_websocket_compression(options):
+    """
+    Check options for WebSocket compression.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/WebSocket-Compression.md
+    """
+    # FIXME
 
 
 def check_web_path_service_websocket(config):
     """
     Check a "websocket" path service on Web transport.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/WebSocket-Service.md
 
     :param config: The path service configuration.
     :type config: dict
@@ -744,6 +760,8 @@ def check_web_path_service_wsgi(config):
 def check_web_path_service_resource(config):
     """
     Check a "resource" path service on Web transport.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/Resource-Service.md
 
     :param config: The path service configuration.
     :type config: dict
@@ -957,6 +975,8 @@ def check_web_path_service_path(config):
     """
     Check a "path" path service on Web transport.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/Path-Service.md
+
     :param config: The path service configuration.
     :type config: dict
     """
@@ -1033,6 +1053,8 @@ def check_web_path_service(path, config, nested):
     """
     Check a single path service on Web transport.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/Web-Services.md
+
     :param config: The path service configuration.
     :type config: dict
     :param nested: Whether this is a nested path.
@@ -1050,20 +1072,20 @@ def check_web_path_service(path, config, nested):
             raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
-        'websocket': check_web_path_service_websocket,
+        'path': check_web_path_service_path,
         'static': check_web_path_service_static,
-        'wsgi': check_web_path_service_wsgi,
+        'upload': check_web_path_service_upload,
+        'websocket': check_web_path_service_websocket,
+        'longpoll': check_web_path_service_longpoll,
         'redirect': check_web_path_service_redirect,
         'json': check_web_path_service_json,
         'cgi': check_web_path_service_cgi,
-        'longpoll': check_web_path_service_longpoll,
+        'wsgi': check_web_path_service_wsgi,
+        'resource': check_web_path_service_resource,
+        'caller': check_web_path_service_caller,
         'publisher': check_web_path_service_publisher,
         'webhook': check_web_path_service_webhook,
-        'caller': check_web_path_service_caller,
         'schemadoc': check_web_path_service_schemadoc,
-        'path': check_web_path_service_path,
-        'resource': check_web_path_service_resource,
-        'upload': check_web_path_service_upload
     }
 
     checkers[ptype](config)
@@ -1072,6 +1094,8 @@ def check_web_path_service(path, config, nested):
 def check_listening_transport_web(transport):
     """
     Check a listening Web-WAMP transport configuration.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Web-Transport-and-Services.md
 
     :param transport: The Web transport configuration to check.
     :type transport: dict
@@ -1160,6 +1184,8 @@ def check_listening_transport_websocket(transport):
     """
     Check a listening WebSocket-WAMP transport configuration.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/WebSocket-Transport.md
+
     :param transport: The configuration item to check.
     :type transport: dict
     """
@@ -1217,6 +1243,8 @@ def check_listening_transport_websocket_testee(transport):
     """
     Check a listening WebSocket-Testee pseudo transport configuration.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/production/WebSocket-Compliance-Testing.md
+
     :param transport: The configuration item to check.
     :type transport: dict
     """
@@ -1260,6 +1288,8 @@ def check_listening_transport_stream_testee(transport):
     """
     Check a listening Stream-Testee pseudo transport configuration.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/production/Stream-Testee.md
+
     :param transport: The configuration item to check.
     :type transport: dict
     """
@@ -1288,6 +1318,8 @@ def check_listening_transport_stream_testee(transport):
 def check_listening_transport_flashpolicy(transport):
     """
     Check a Flash-policy file serving pseudo-transport.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/Flash-Policy-Transport.md
 
     :param transport: The configuration item to check.
     :type transport: dict
@@ -1325,6 +1357,8 @@ def check_listening_transport_flashpolicy(transport):
 def check_listening_transport_rawsocket(transport):
     """
     Check a listening RawSocket-WAMP transport configuration.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/router/transport/RawSocket-Transport.md
 
     :param transport: The configuration item to check.
     :type transport: dict
@@ -1831,6 +1865,14 @@ def check_container_options(options):
 
 
 def check_manhole(manhole, silence=False):
+    """
+    Check a process manhole configuration.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/worker/Manhole.md
+
+    :param manhole: The manhole configuration to check.
+    :type manhole: dict
+    """
     if not isinstance(manhole, dict):
         raise InvalidConfigException("'manhole' items must be dictionaries ({} encountered)\n\n{}".format(type(manhole), pformat(manhole)))
 
@@ -1869,6 +1911,8 @@ def check_process_env(env, silence=False):
     """
     Check a worker process environment configuration.
 
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/worker/Process-Environments.md
+
     :param env: The `env` part of the worker options.
     :type env: dict
     """
@@ -1905,6 +1949,8 @@ def check_process_env(env, silence=False):
 def check_native_worker_options(options, silence=False):
     """
     Check native worker options.
+
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/worker/Native-Worker-Options.md
 
     :param options: The native worker options to check.
     :type options: dict
