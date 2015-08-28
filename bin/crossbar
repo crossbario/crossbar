@@ -3,7 +3,10 @@
 import os
 import sys
 
-path = os.path.join(os.path.split(os.path.abspath(__file__))[0], "..")
+path = os.path.abspath(
+    os.path.join(
+        os.path.split(
+            os.path.abspath(__file__))[0], ".."))
 sys.path.insert(0, path)
 
 from crossbar.controller.cli import run
