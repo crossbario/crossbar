@@ -45,6 +45,7 @@ from weakref import WeakKeyDictionary
 
 import os
 import sys
+import time
 import platform
 import warnings
 import twisted
@@ -319,6 +320,9 @@ class AppSession(ApplicationSession):
 
         with open(os.path.join(self.cbdir, "node.pid"), "w") as f:
             f.write("""{"pid": 9999999}""")
+
+        # Maybe let Windows catch up?
+        time.sleep(1)
 
         reactor = SelectReactor()
         reactor.run = lambda: None
