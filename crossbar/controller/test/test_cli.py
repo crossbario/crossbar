@@ -321,9 +321,6 @@ class AppSession(ApplicationSession):
         with open(os.path.join(self.cbdir, "node.pid"), "w") as f:
             f.write("""{"pid": 9999999}""")
 
-        # Maybe let Windows catch up?
-        time.sleep(1)
-
         reactor = SelectReactor()
         reactor.run = lambda: None
 
@@ -332,5 +329,9 @@ class AppSession(ApplicationSession):
                  "--logformat=syslogd"],
                 reactor=reactor)
 
-        self.assertIn("Stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) removed".format(os.path.abspath(os.path.join(self.cbdir, "node.pid")), 9999999),
-                      self.stdout.getvalue())
+        self.assertIn(
+            ("Stale Crossbar.io PID file (pointing to non-existing process "
+             "with PID {pid}) {fp} removed").format(
+                 fp=os.path.abspath(os.path.join(self.cbdir, "node.pid")),
+                 pid=9999999),
+            self.stdout.getvalue())

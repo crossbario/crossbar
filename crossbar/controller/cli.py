@@ -134,7 +134,11 @@ def check_is_running(cbdir):
     """
     log = make_logger()
 
+    remove_PID_type = None
+    remove_PID_reason = None
+
     fp = os.path.join(cbdir, _PID_FILENAME)
+
     if os.path.isfile(fp):
         with open(fp) as fd:
             pid_data_str = fd.read()
@@ -142,12 +146,8 @@ def check_is_running(cbdir):
                 pid_data = json.loads(pid_data_str)
                 pid = int(pid_data['pid'])
             except ValueError:
-                try:
-                    os.remove(fp)
-                except Exception as e:
-                    log.info("Could not remove corrupted Crossbar.io PID file {} - {}".format(fp, e))
-                else:
-                    log.info("Corrupted Crossbar.io PID file {} removed".format(fp))
+                remove_PID_type = "corrupt"
+                remove_PID_reason = "corrupt .pid file"
             else:
                 if sys.platform == 'win32' and not _HAS_PSUTIL:
                     # when on Windows, and we can't actually determine if the PID exists,
@@ -170,12 +170,22 @@ def check_is_running(cbdir):
                                 return None
                         return pid_data
                     else:
-                        try:
-                            os.remove(fp)
-                        except Exception as e:
-                            log.info("Could not remove stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) - {}".format(fp, pid, e))
-                        else:
-                            log.info("Stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) removed".format(fp, pid))
+                        remove_PID_type = "stale"
+                        remove_PID_reason = "pointing to non-existing process with PID {}".format(pid)
+
+    if remove_PID_type:
+        # If we have to remove a PID, do it here.
+        try:
+            os.remove(fp)
+        except:
+            log.info(("Could not remove {pidtype} Crossbar.io PID file "
+                      "({reason}) {fp} - {log_failure}"),
+                     pidtype=remove_PID_type, reason=remove_PID_reason, fp=fp)
+        else:
+            log.info("{pidtype} Crossbar.io PID file ({reason}) {fp} removed",
+                     pidtype=remove_PID_type.title(), reason=remove_PID_reason,
+                     fp=fp)
+
     return None
 
 
