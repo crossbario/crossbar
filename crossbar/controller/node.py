@@ -211,9 +211,8 @@ class Node(object):
         except ApplicationError as e:
             for line in e.args[0].strip().splitlines():
                 self.log.error(line)
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
-            #self.log.error(e)
         finally:
             try:
                 self._reactor.stop()

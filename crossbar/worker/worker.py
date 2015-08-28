@@ -50,7 +50,6 @@ if _HAS_PSUTIL:
 
 __all__ = ('NativeWorkerSession',)
 
-import sys
 
 class NativeWorkerSession(NativeProcessSession):
 
@@ -65,9 +64,11 @@ class NativeWorkerSession(NativeProcessSession):
     log = make_logger()
 
     def onUserError(self, err, errmsg):
-        #self.log.error(errmsg)
-        #print(errmsg)
+        # FIXME: this works for me now ..
         sys.stderr.write(errmsg)
+        # .. not sure why this doesn't:
+        # self.log.error(errmsg)
+        # print(errmsg)
 
     def onConnect(self):
         """

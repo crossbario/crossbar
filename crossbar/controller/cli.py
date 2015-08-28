@@ -41,7 +41,6 @@ import sys
 
 from twisted.python.reflect import qual
 
-from autobahn.util import utcnow
 from autobahn.twisted.choosereactor import install_reactor
 
 import crossbar
