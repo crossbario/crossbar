@@ -40,6 +40,7 @@ import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
+from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationRunner
 
 from crossbar.router.router import RouterFactory
@@ -207,8 +208,13 @@ class Node(object):
 
         try:
             yield self._startup(self._config)
-        except:
+        except ApplicationError as e:
+            for line in e.args[0].strip().splitlines():
+                self.log.error(line)
+        except Exception as e:
             traceback.print_exc()
+            #self.log.error(e)
+        finally:
             try:
                 self._reactor.stop()
             except twisted.internet.error.ReactorNotRunning:

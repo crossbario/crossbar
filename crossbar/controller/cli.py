@@ -508,7 +508,7 @@ def run_command_start(options, reactor=None):
     log.info(bannerFormat.format("Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
     # log.info(bannerFormat.format("Python:", click.style(platform.python_implementation(), fg='yellow', bold=True)))
     # log.info(bannerFormat.format("Reactor:", click.style(qual(reactor.__class__).split('.')[-1], fg='yellow', bold=True)))
-    log.info(bannerFormat.format("Started:", click.style(utcnow(), fg='yellow', bold=True)))
+    # log.info(bannerFormat.format("Started:", click.style(utcnow(), fg='yellow', bold=True)))
     log.info()
 
     log.info("Starting from node directory {}".format(options.cbdir))

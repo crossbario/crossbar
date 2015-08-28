@@ -50,6 +50,7 @@ if _HAS_PSUTIL:
 
 __all__ = ('NativeWorkerSession',)
 
+import sys
 
 class NativeWorkerSession(NativeProcessSession):
 
@@ -62,6 +63,11 @@ class NativeWorkerSession(NativeProcessSession):
     WORKER_TYPE = 'native'
 
     log = make_logger()
+
+    def onUserError(self, err, errmsg):
+        #self.log.error(errmsg)
+        #print(errmsg)
+        sys.stderr.write(errmsg)
 
     def onConnect(self):
         """

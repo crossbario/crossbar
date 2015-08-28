@@ -66,8 +66,8 @@ def _appsession_loader(config):
         except Exception as e:
             emsg = "Failed to import class '{}'\n{}".format(
                 klassname, Failure(e).getTraceback())
-            log.error(emsg)
-            log.error("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
+            log.debug(emsg)
+            log.debug("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
             raise ApplicationError("crossbar.error.class_import_failed", emsg)
 
     elif config['type'] == 'wamplet':

@@ -38,7 +38,7 @@ from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.defer import returnValue
 
 from autobahn.util import utcstr
-from autobahn.wamp.exception import ApplicationError, TransportLost
+from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
 from autobahn.wamp.types import RegisterOptions
 
