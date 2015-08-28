@@ -45,7 +45,6 @@ from weakref import WeakKeyDictionary
 
 import os
 import sys
-import time
 import platform
 import warnings
 import twisted
