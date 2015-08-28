@@ -92,7 +92,7 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         return d
 
-    def test_application_session_internal_error(self):
+    def _test_application_session_internal_error(self):
         """
         simulate an internal error triggering the 'onJoin' error-case from
         _RouterApplicationSession's send() method (from the Hello msg)

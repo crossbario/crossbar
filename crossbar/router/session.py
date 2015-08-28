@@ -121,6 +121,9 @@ class _RouterApplicationSession(object):
         Implements :func:`autobahn.wamp.interfaces.ITransport.isOpen`
         """
 
+    def is_closed(self):
+        return False
+
     def close(self):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransport.close`
@@ -203,6 +206,13 @@ class _RouterApplicationSession(object):
             # deliver message to app session
             #
             self._session.onMessage(msg)
+
+        # ignore messages
+        #
+        elif isinstance(msg, message.Goodbye):
+            # fire onClose callback and handle any exception escaping from there
+            d = txaio.as_future(self._session.onClose, None)
+            txaio.add_callbacks(d, None, lambda fail: self._swallow_error(fail, "While firing onClose"))
 
         else:
             # should not arrive here
