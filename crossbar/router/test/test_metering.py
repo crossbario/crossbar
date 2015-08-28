@@ -72,6 +72,7 @@ class TestLmdb(unittest.TestCase):
         self.db = lmdb.open(self.DBFILE, max_dbs=10)
         self.db1 = self.db.open_db(b'table1', create=True)
         self.addCleanup(self.db.close)
+        self.addCleanup(self._scratch)
 
     def test_insert(self):
         data = self._insert_data1()
@@ -96,6 +97,3 @@ class TestLmdb(unittest.TestCase):
                     data_read.append((key, value))
 
         self.assertEqual(data_read, data[5:])
-
-    def tearDown(self):
-        self._scratch()
