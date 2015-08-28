@@ -28,27 +28,6 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 
-from six import PY3
-
-
-def native_string(string):
-    """
-    Make C{string} be the type of C{str}, decoding with ASCII if required.
-    """
-    if PY3:
-        if isinstance(string, bytes):
-            return string.decode('ascii')
-        else:
-            raise ValueError("This is already a native string.")
-    else:
-        if isinstance(string, unicode):
-            raise ValueError("This can't be used to go from unicode to str")
-    return string
-
-
-if PY3:
-    long = int
-else:
-    long = long
+class # noqa

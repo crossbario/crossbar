@@ -40,7 +40,6 @@ import six
 
 from datetime import datetime
 
-from twisted.internet import reactor
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
 
@@ -688,7 +687,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
                 # create a Twisted Web WSGI resource from the user's WSGI application object
                 try:
-                    wsgi_resource = WSGIResource(reactor, reactor.getThreadPool(), app)
+                    wsgi_resource = WSGIResource(self._reactor, self._reactor.reactor.getThreadPool(), app)
                 except Exception as e:
                     raise ApplicationError("crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
                 else:
@@ -820,7 +819,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # create transport endpoint / listening port from transport factory
         #
-        d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, reactor)
+        d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, self._reactor)
 
         def ok(port):
             self.transports[id] = RouterTransport(id, config, transport_factory, port)
@@ -963,7 +962,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             # create a Twisted Web WSGI resource from the user's WSGI application object
             try:
-                wsgi_resource = WSGIResource(reactor, reactor.getThreadPool(), app)
+                wsgi_resource = WSGIResource(self._reactor, self._reactor.getThreadPool(), app)
             except Exception as e:
                 raise ApplicationError("crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
             else:

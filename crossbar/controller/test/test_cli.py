@@ -34,6 +34,7 @@ from six import StringIO as NativeStringIO
 
 from twisted.trial import unittest
 from twisted.internet.selectreactor import SelectReactor
+from twisted.internet.task import LoopingCall
 
 from crossbar.controller import cli
 from crossbar import _logging
@@ -44,12 +45,19 @@ from weakref import WeakKeyDictionary
 
 import os
 import sys
+import platform
 import warnings
+import twisted
 
 
 class CLITestBase(unittest.TestCase):
 
     def setUp(self):
+
+        self._subprocess_timeout = 15
+
+        if platform.python_implementation() == 'PyPy':
+            self._subprocess_timeout = 30
 
         self.stderr = NativeStringIO()
         self.stdout = NativeStringIO()
@@ -69,6 +77,43 @@ class CLITestBase(unittest.TestCase):
         sys.stderr = sys.__stderr__
 
 
+class VersionTests(CLITestBase):
+
+    def test_basic(self):
+        """
+        Just running `crossbar version` gets us the versions.
+        """
+        reactor = SelectReactor()
+
+        cli.run("crossbar",
+                ["version"],
+                reactor=reactor)
+
+        self.assertIn("Crossbar.io", self.stdout.getvalue())
+        self.assertIn(
+            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"),
+            self.stdout.getvalue())
+
+    def test_debug(self):
+        """
+        Running `crossbar version` will give us the versions, plus the
+        locations of some of them.
+        """
+        reactor = SelectReactor()
+
+        cli.run("crossbar",
+                ["version", "--loglevel=debug"],
+                reactor=reactor)
+
+        self.assertIn("Crossbar.io", self.stdout.getvalue())
+        self.assertIn(
+            ("Twisted          : \x1b[33m\x1b[1m" + twisted.version.short() + "-SelectReactor"),
+            self.stdout.getvalue())
+        self.assertIn(
+            ("[twisted.internet.selectreactor.SelectReactor]"),
+            self.stdout.getvalue())
+
+
 class StartTests(CLITestBase):
 
     def setUp(self):
@@ -76,9 +121,9 @@ class StartTests(CLITestBase):
         CLITestBase.setUp(self)
 
         # Set up the configuration directories
-        self.cbdir = self.mktemp()
+        self.cbdir = os.path.abspath(self.mktemp())
         os.mkdir(self.cbdir)
-        self.config = os.path.join(self.cbdir, "config.json")
+        self.config = os.path.abspath(os.path.join(self.cbdir, "config.json"))
 
     def test_start(self):
         """
@@ -96,6 +141,129 @@ class StartTests(CLITestBase):
                 reactor=reactor)
 
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
+
+    def test_start_run(self):
+        """
+        A basic start, that enters the reactor.
+        """
+        code_location = os.path.abspath(self.mktemp())
+        os.mkdir(code_location)
+
+        with open(self.config, "w") as f:
+            f.write("""{
+   "controller": {
+   },
+   "workers": [
+      {
+         "type": "router",
+         "options": {
+            "pythonpath": ["."]
+         },
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+            "/": {
+              "directory": ".",
+              "type": "static"
+            },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["%s"]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "test.AppSession",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  },
+                  "url": "ws://127.0.0.1:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+            """ % ("/".join(code_location.split(os.sep),)))
+
+        with open(code_location + "/test.py", "w") as f:
+            f.write("""#!/usr/bin/env python
+from twisted.internet.defer import inlineCallbacks
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import ApplicationError
+
+class AppSession(ApplicationSession):
+
+    log = Logger()
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        self.log.info("Loaded the component!")
+        yield self.publish("com.bar", "test")
+""")
+
+        reactor = SelectReactor()
+
+        def _check(lc):
+            if "Loaded the component!" in self.stdout.getvalue():
+                if reactor.running:
+                    reactor.stop()
+                lc.stop()
+
+        lc = LoopingCall(_check)
+        lc.a = (lc,)
+        lc.clock = reactor
+
+        # In case it hard-locks
+        reactor.callLater(self._subprocess_timeout, reactor.stop)
+        lc.start(0.1)
+
+        cli.run("crossbar",
+                ["start",
+                 "--cbdir={}".format(self.cbdir),
+                 "--logformat=syslogd"],
+                reactor=reactor)
+
+        self.assertIn("Entering reactor event loop", self.stdout.getvalue())
+        self.assertIn("Loaded the component!", self.stdout.getvalue())
 
     def test_configValidationFailure(self):
         """
@@ -158,5 +326,9 @@ class StartTests(CLITestBase):
                  "--logformat=syslogd"],
                 reactor=reactor)
 
-        self.assertIn("Stale Crossbar.io PID file {} (pointing to non-existing process with PID {}) removed".format(os.path.abspath(os.path.join(self.cbdir, "node.pid")), 9999999),
-                      self.stdout.getvalue())
+        self.assertIn(
+            ("Stale Crossbar.io PID file (pointing to non-existing process "
+             "with PID {pid}) {fp} removed").format(
+                 fp=os.path.abspath(os.path.join(self.cbdir, "node.pid")),
+                 pid=9999999),
+            self.stdout.getvalue())

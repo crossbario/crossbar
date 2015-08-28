@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+from twisted.internet import reactor
 from twisted.trial.unittest import TestCase
 
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
@@ -104,7 +105,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -113,13 +114,14 @@ class RouterWorkerSessionTests(TestCase):
 
         # Should have 35 registers, all for the management interface
         self.assertEqual(len(transport._get(Register)), 35)
-        self.assertIn("ready", log_list[-1]["log_format"])
+        # XXX depends on log-text; perhaps a little flaky...
+        self.assertIn("running as", log_list[-1]["log_format"])
 
     def test_start_router_component(self):
         """
         Starting a class-based router component works.
         """
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
@@ -161,7 +163,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -199,7 +201,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -233,7 +235,7 @@ class RouterWorkerSessionTests(TestCase):
         Starting a class-based router component fails when the application
         session isn't derived from ApplicationSession.
         """
-        r = router.RouterWorkerSession(config=self.config)
+        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)

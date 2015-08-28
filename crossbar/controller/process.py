@@ -38,16 +38,18 @@ from datetime import datetime
 import shutilwhich  # noqa
 import shutil
 
-from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.error import ProcessExitedAlready
 from twisted.internet.threads import deferToThread
+from twisted.python.filepath import FilePath
+from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 from autobahn.twisted.util import sleep
 
+import crossbar
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
@@ -84,7 +86,7 @@ class NodeControllerSession(NativeProcessSession):
         :param node: The node singleton for this node controller session.
         :type node: obj
         """
-        NativeProcessSession.__init__(self)
+        NativeProcessSession.__init__(self, reactor=node._reactor)
 
         # associated node
         self._node = node
@@ -346,7 +348,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # all native workers (routers and containers for now) start from the same script
         #
-        filename = pkg_resources.resource_filename('crossbar', 'worker/process.py')
+        filename = FilePath(crossbar.__file__).parent().child("worker").child("process.py").path
 
         # assemble command line for forking the worker
         #
@@ -362,11 +364,6 @@ class NodeControllerSession(NativeProcessSession):
         #
         if options.get('title', None):
             args.extend(['--title', options['title']])
-
-        # allow overriding debug flag from options
-        #
-        if options.get('debug', self.debug):
-            args.append('--debug')
 
         # forward explicit reactor selection
         #
@@ -405,9 +402,25 @@ class NodeControllerSession(NativeProcessSession):
 
         self._workers[id] = worker
 
-        # create a (custom) process endpoint
+        # create a (custom) process endpoint.
         #
-        ep = WorkerProcessEndpoint(self._node._reactor, exe, args, env=worker_env, worker=worker)
+        if platform.isWindows():
+            childFDs = None  # Use the default Twisted ones
+        else:
+            # The communication between controller and container workers is
+            # using WAMP running over 2 pipes.
+            # For controller->container traffic this runs over FD 0 (`stdin`)
+            # and for the container->controller traffic, this runs over FD 3.
+            #
+            # Note: We use FD 3, not FD 1 (`stdout`) or FD 2 (`stderr`) for
+            # container->controller traffic, so that components running in the
+            # container which happen to write to `stdout` or `stderr` do not
+            # interfere with the container-controller communication.
+            childFDs = {0: "w", 1: "r", 2: "r", 3: "r"}
+
+        ep = WorkerProcessEndpoint(
+            self._node._reactor, exe, args, env=worker_env, worker=worker,
+            childFDs=childFDs)
 
         # ready handling
         #
@@ -718,7 +731,7 @@ class NodeControllerSession(NativeProcessSession):
                     def on_shutdown():
                         worker.watcher.stop()
 
-                    reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
+                    self._node._reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
 
                     # this handler will get fired by the watcher upon detecting an FS event
                     def on_fsevent(evt):
@@ -727,7 +740,7 @@ class NodeControllerSession(NativeProcessSession):
 
                         if options['watch'].get('action', None) == 'restart':
                             self.log.info("Restarting guest ..")
-                            reactor.callLater(0.1, self.start_guest, id, config, details)
+                            self._node._reactor.callLater(0.1, self.start_guest, id, config, details)
 
                     # now run the watcher on a background thread
                     deferToThread(worker.watcher.loop, on_fsevent)
@@ -885,7 +898,7 @@ def create_process_env(options):
             penv[k] = v
 
         # PYTHONPATH is also a special thing...
-        penv["PYTHONPATH"] = ":".join(sys.path)
+        penv["PYTHONPATH"] = os.pathsep.join(sys.path)
 
     # explicit environment vars from config
     if 'env' in options and 'vars' in options['env']:

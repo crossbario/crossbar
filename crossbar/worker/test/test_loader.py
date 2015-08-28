@@ -107,3 +107,23 @@ class AppSessionLoaderTests(TestCase):
         self.assertIn(
             ("ImportError"),
             str(e.exception.args[0]))
+
+    def test_class_syntaxerror(self):
+        """
+        Loading a class which has a SyntaxError raises that up.
+        """
+        config = {
+            "type": "class",
+            "classname": "crossbar.worker.test.examples.syntaxerror.AppSession"
+        }
+
+        with self.assertRaises(ApplicationError) as e:
+            _appsession_loader(config)
+
+        self.assertIn(
+            ("Failed to import class 'crossbar.worker.test.examples.syntaxerr"
+             "or.AppSession'"),
+            str(e.exception.args[0]))
+        self.assertIn(
+            ("SyntaxError"),
+            str(e.exception.args[0]))

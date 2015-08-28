@@ -1,5 +1,7 @@
 [run]
 source = crossbar
+omit =
+     crossbar/worker/test/examples/syntaxerror.py
 branch = True
 
 [report]
