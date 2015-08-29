@@ -18,11 +18,11 @@ This guide is for developers of the Crossbar.io code itself, not for application
 
 [Milestone for 0.12.0](https://github.com/crossbario/crossbar/milestones/0.12.0)
 
-* PostgreSQL integration
-* RawSocket ping/pong
-* Reverse Proxy service
-* Web hook service
-* various bug fixes and enhancement
+* **PostgreSQL integration** - This is about extending WAMP right into PostgreSQL procedural languages. The Publisher role needs some finishing touches. The Callee role we had in the past in WebMQ, and this needs to be rewritten. The Subscriber role would work similar to Callee, wheras the Caller role we can do using the HTTP bridge.
+* **RawSocket ping/pong** - This is just a feature from the spec we are missing in the Autobahn implementation. And once we have it there, we need to expose the related ping/pong knobs in the config.
+* **Reverse Proxy service** - This is a feature request for a Web service which can be configured on a path and provides reverse proxying of HTTP traffic to a backend server. Essentially, expose the Twisted Web resource that is available.
+* **Web hook service** - This feature allows Crossbar.io receive Web hook requests from Web services like GitHub and inject WAMP events. The service would work generic enough to digest requests from various Web services.
+* **various bug fixes and enhancement**
 
 ### 0.13.0
 
