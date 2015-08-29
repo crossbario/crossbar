@@ -2,13 +2,13 @@
 
 **Crossbar.io** is an open-source **[WAMP](http://wamp.ws/) application router** that allows to build advanced applications from loosely-coupled components that can talk in real-time with each other.
 
-[![Build Status](https://travis-ci.org/crossbario/crossbar.png?branch=master)](https://travis-ci.org/crossbario/crossbar)
-&nbsp; [![Version](https://pypip.in/v/crossbar/badge.png)](https://pypi.python.org/pypi/crossbar)
-&nbsp; [![Downloads](https://pypip.in/d/crossbar/badge.png)](https://pypi.python.org/pypi/crossbar)
+[![Build Status](https://travis-ci.org/crossbario/crossbar.svg?branch=master)](https://travis-ci.org/crossbario/crossbar)
+&nbsp; [![Version](https://img.shields.io/pypi/v/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
+&nbsp; [![Downloads](https://img.shields.io/pypi/dm/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
 
 *Join the [mailing list](https://groups.google.com/forum/#!forum/crossbario), follow us on [Twitter](https://twitter.com/crossbario) or jump into the [Quick Start](http://crossbar.io/docs/Quick-Start/)*
 
-------------
+---
 
 *Resources:*
 
@@ -25,7 +25,6 @@
 * [Free Your Code - Backends in the Browser](http://tavendo.com/blog/post/free-your-code-backends-in-the-browser/)
 * [Getting started with Arduino Yun and Autobahn](http://tavendo.com/blog/post/arduino-yun-with-autobahn/)
 
-
-------------
+---
 
 Copyright (C) 2014-2015 [Tavendo GmbH](http://www.tavendo.com). Documentation licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). Code licensed under the [AGPL 3.0](http://www.gnu.org/licenses/agpl-3.0.en.html). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.

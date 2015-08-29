@@ -8,11 +8,11 @@ This guide is for developers of the Crossbar.io code itself, not for application
 
 [Milestone for 0.11.0](https://github.com/crossbario/crossbar/milestones/0.11.0)
 
-* Python 3
-* new logging
-* various improvements in error handling
-* File Upload service
-* various bug fixes and enhancement
+* **Python 3** - Crossbar.io runs on Python 3 now!
+* **new logging** - All the code uses a completely new logging system. Lots of improvements to logged information amount and selection.
+* **various improvements in error handling**
+* **File Upload service** - A Web service that provides file upload from browser that works with large files and can be resumed.
+* **various bug fixes and enhancement** - Really a lot. In particular startup, shutdown and failure behavior, treatment of errors originating in user code and so on.
 
 ### 0.12.0
 
@@ -28,9 +28,12 @@ This guide is for developers of the Crossbar.io code itself, not for application
 
 [Milestone for 0.13.0](https://github.com/crossbario/crossbar/milestones/0.13.0)
 
-* Timeouts at different levels (WAMP action, ..)
-* Various authentication features
-* Reflection, API docs generation, payload validation
+* **Call Cancelling**
+* **Timeouts at different levels**
+* **Various authentication features**
+* **Reflection**
+* **API docs generation**
+* **Payload validation**
 
 ### 0.14.0
 
