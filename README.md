@@ -7,12 +7,12 @@
 
 **[Crossbar.io](http://crossbar.io)** is an open-source [WAMP](http://wamp.ws/) **application router** that allows to build advanced applications from loosely-coupled components that can talk in real-time with each other.
 
-Read more on the [Crossbar.io project homepage](http://crossbar.io).
-
-Jump into the [Quick Start](http://crossbar.io/docs/Quick-Start/) or checkout the complete [Documentation](http://crossbar.io/docs/).
-
-*Join the [mailing list](https://groups.google.com/forum/#!forum/crossbario), follow us on [Twitter](https://twitter.com/crossbario) or [ask a question](http://stackoverflow.com/questions/ask?tags=crossbar,wamp).
+* Read more on the **[Crossbar.io project homepage](http://crossbar.io)**
+* Jump into the **[Quick Start](http://crossbar.io/docs/Quick-Start/)**
+* Checkout the complete **[Documentation](http://crossbar.io/docs/)**
+* Join the **[Mailing List](https://groups.google.com/forum/#!forum/crossbario)**
+* Follow us on **[Twitter](https://twitter.com/crossbario)**
+* Ask a question on **[StackOverflow](http://stackoverflow.com/questions/ask?tags=crossbar,wamp)**
+* Read our **[Legal Notes](legal/README.md)**
 
 ---
-
-> Copyright (C) 2014-2015 [Tavendo GmbH](http://www.tavendo.com). Documentation licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). Code licensed under the [AGPL 3.0](http://www.gnu.org/licenses/agpl-3.0.en.html). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH. Please see the [legal notes](legal/README.md).
