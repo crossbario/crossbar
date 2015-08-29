@@ -2,9 +2,10 @@
 
 **Crossbar.io** is an open-source **[WAMP](http://wamp.ws/) application router** that allows to build advanced applications from loosely-coupled components that can talk in real-time with each other.
 
-[![Build Status](https://travis-ci.org/crossbario/crossbar.svg?branch=master)](https://travis-ci.org/crossbario/crossbar)
-&nbsp; [![Version](https://img.shields.io/pypi/v/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
+[![Version](https://img.shields.io/pypi/v/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
 &nbsp; [![Downloads](https://img.shields.io/pypi/dm/crossbar.svg)](https://pypi.python.org/pypi/crossbar)
+&nbsp; [![Build Status](https://travis-ci.org/crossbario/crossbar.svg?branch=master)](https://travis-ci.org/crossbario/crossbar)
+&nbsp; [![Coverage](https://img.shields.io/codecov/c/github/crossbario/crossbar/master.svg)](https://codecov.io/github/crossbario/crossbar)
 
 *Join the [mailing list](https://groups.google.com/forum/#!forum/crossbario), follow us on [Twitter](https://twitter.com/crossbario) or jump into the [Quick Start](http://crossbar.io/docs/Quick-Start/)*
 
