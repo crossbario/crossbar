@@ -66,7 +66,6 @@ class RunningTests(CLITestBase):
         if "%s" in config:
             config = config % ("/".join(code_location.split(os.sep),))
 
-
         with open(self.config, "w") as f:
             f.write(config)
 
