@@ -187,9 +187,10 @@ class NodeControllerSession(NativeProcessSession):
         }
 
         yield self.publish(shutdown_topic, shutdown_info, options=PublishOptions(acknowledge=True))
-        yield sleep(3)
+        yield sleep(3, reactor=self._node._reactor)
 
-        self._node._reactor.stop()
+        if self._node._reactor.running:
+            self._node._reactor.stop()
 
     def get_info(self, details=None):
         """
