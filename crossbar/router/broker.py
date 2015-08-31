@@ -79,6 +79,7 @@ class Broker(object):
         # supported features from "WAMP Advanced Profile"
         self._role_features = role.RoleBrokerFeatures(publisher_identification=True,
                                                       pattern_based_subscription=True,
+                                                      session_meta_api=True,
                                                       subscription_meta_api=True,
                                                       subscriber_blackwhite_listing=True,
                                                       publisher_exclusion=True,
