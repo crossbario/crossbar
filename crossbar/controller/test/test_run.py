@@ -31,9 +31,6 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import sys
-
-from twisted.internet import reactor as _reactor
 
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall

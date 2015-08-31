@@ -34,7 +34,6 @@ from six import StringIO as NativeStringIO
 
 from twisted.trial import unittest
 from twisted.internet.selectreactor import SelectReactor
-from twisted.internet.task import LoopingCall
 
 from crossbar.controller import cli
 from crossbar import _logging
