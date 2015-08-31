@@ -49,7 +49,7 @@ def make_lc(reactor, func):
     return lc
 
 
-class RunningTests(CLITestBase):
+class ContainerRunningTests(CLITestBase):
 
     def setUp(self):
 
@@ -888,4 +888,4 @@ class MySession(ApplicationSession):
 
 
 if not os.environ.get("CB_FULLTESTS"):
-    del RunningTests
+    del ContainerRunningTests
