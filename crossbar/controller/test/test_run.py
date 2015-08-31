@@ -32,6 +32,8 @@ from __future__ import absolute_import, division, print_function
 
 import os
 
+from six import PY3
+
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall
 
@@ -284,6 +286,395 @@ class MySession(ApplicationSession):
         expected_stdout = []
         expected_stderr = ["No module named"]
         _check = lambda _1, _2: None
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
+    def test_failure2(self):
+
+        config = """{
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["%s"]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "myapp.MySession2",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  },
+                  "url": "ws://127.0.0.1:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+        myapp = """
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    def __init__(self, config):
+        self.log.info("MySession.__init__()")
+        ApplicationSession.__init__(self, config)
+
+    def onJoin(self, details):
+        self.log.info("MySession.onJoin()")
+"""
+
+        _check = lambda _1, _2: None
+        expected_stdout = []
+        expected_stderr = ["'module' object has no attribute 'MySession2'"]
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
+    def test_failure3(self):
+
+        config = """{
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["%s"]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "myapp.MySession",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  },
+                  "url": "ws://127.0.0.1:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+        myapp = """
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    def __init__(self, config):
+        a = 1 / 0
+        self.log.info("MySession.__init__()")
+        ApplicationSession.__init__(self, config)
+
+    def onJoin(self, details):
+        self.log.info("MySession.onJoin()")
+"""
+
+        _check = lambda _1, _2: None
+        expected_stdout = []
+        expected_stderr = ["Component instantiation failed"]
+        if PY3:
+            expected_stderr.append("division by zero")
+        else:
+            expected_stderr.append("integer division or modulo by zero")
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
+    def test_failure4(self):
+
+        config = """{
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["%s"]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "myapp.MySession",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  },
+                  "url": "ws://127.0.0.1:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+
+        myapp = """
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    def __init__(self, config):
+        self.log.info("MySession.__init__()")
+        ApplicationSession.__init__(self, config)
+
+    def onJoin(self, details):
+        self.log.info("MySession.onJoin()")
+        a = 1 / 0 # trigger exception
+"""
+
+        _check = lambda _1, _2: None
+        expected_stdout = []
+        expected_stderr = ["Fatal error in component", "While firing onJoin"]
+        if PY3:
+            expected_stderr.append("division by zero")
+        else:
+            expected_stderr.append("integer division or modulo by zero")
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
+    def test_failure5(self):
+
+        config = """{
+   "controller": {
+   },
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["%s"]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "myapp.MySession",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  },
+                  "url": "ws://127.0.0.1:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+
+        myapp = """
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    def __init__(self, config):
+        self.log.info("MySession.__init__()")
+        ApplicationSession.__init__(self, config)
+
+    def onJoin(self, details):
+        self.log.info("MySession.onJoin()")
+        self.leave()
+
+    def onLeave(self, details):
+        self.log.info("Session ended: {details}", details=details)
+        self.disconnect()
+"""
+
+        _check = lambda _1, _2: None
+        expected_stdout = []
+        expected_stderr = [
+            "Component 'component1' failed to start; shutting down node."
+        ]
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
