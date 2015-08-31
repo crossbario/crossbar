@@ -41,7 +41,7 @@ from .test_cli import CLITestBase
 
 def make_lc(reactor, func):
     lc = LoopingCall(func)
-    lc.a = (lc,)
+    lc.a = (lc, reactor)
     lc.clock = reactor
     lc.start(0.1)
     return lc
@@ -58,15 +58,55 @@ class RunningTests(CLITestBase):
         os.mkdir(self.cbdir)
         self.config = os.path.abspath(os.path.join(self.cbdir, "config.json"))
 
-    def test_start_run(self):
-        """
-        A basic start, that enters the reactor.
-        """
+    def _start_run(self, config, app, stdout_expected, stderr_expected,
+                   end_on):
         code_location = os.path.abspath(self.mktemp())
         os.mkdir(code_location)
 
         with open(self.config, "w") as f:
-            f.write("""{
+            f.write(config % ("/".join(code_location.split(os.sep),)))
+
+        with open(code_location + "/myapp.py", "w") as f:
+            f.write(app)
+
+        reactor = SelectReactor()
+
+        make_lc(reactor, end_on)
+
+        # In case it hard-locks
+        reactor.callLater(self._subprocess_timeout, reactor.stop)
+
+        cli.run("crossbar",
+                ["start",
+                 "--cbdir={}".format(self.cbdir),
+                 "--logformat=syslogd"],
+                reactor=reactor)
+
+        for i in stdout_expected:
+            self.assertIn(i, self.stdout.getvalue())
+
+        for i in stderr_expected:
+            self.assertIn(i, self.stderr.getvalue())
+
+
+    def test_start_run(self):
+        """
+        A basic start, that enters the reactor.
+        """
+        expected_stdout = [
+            "Entering reactor event loop", "Loaded the component!"
+        ]
+
+
+        def _check(lc, reactor):
+            if "Loaded the component!" in self.stdout.getvalue():
+                lc.stop()
+                try:
+                    reactor.stop()
+                except:
+                    pass
+
+        self._start_run("""{
    "controller": {
    },
    "workers": [
@@ -121,7 +161,7 @@ class RunningTests(CLITestBase):
          "components": [
             {
                "type": "class",
-               "classname": "test.AppSession",
+               "classname": "myapp.MySession",
                "realm": "realm1",
                "transport": {
                   "type": "websocket",
@@ -137,47 +177,21 @@ class RunningTests(CLITestBase):
       }
    ]
 }
-            """ % ("/".join(code_location.split(os.sep),)))
-
-        with open(code_location + "/test.py", "w") as f:
-            f.write("""#!/usr/bin/env python
+            """,
+"""#!/usr/bin/env python
 from twisted.internet.defer import inlineCallbacks
 from twisted.logger import Logger
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 
-class AppSession(ApplicationSession):
+class MySession(ApplicationSession):
 
     log = Logger()
 
     @inlineCallbacks
     def onJoin(self, details):
         self.log.info("Loaded the component!")
-""")
-
-        reactor = SelectReactor()
-
-        def _check(lc):
-            if "Loaded the component!" in self.stdout.getvalue():
-                lc.stop()
-                try:
-                    reactor.stop()
-                except:
-                    pass
-
-        make_lc(reactor, _check)
-
-        # In case it hard-locks
-        reactor.callLater(self._subprocess_timeout, reactor.stop)
-
-        cli.run("crossbar",
-                ["start",
-                 "--cbdir={}".format(self.cbdir),
-                 "--logformat=syslogd"],
-                reactor=reactor)
-
-        self.assertIn("Entering reactor event loop", self.stdout.getvalue())
-        self.assertIn("Loaded the component!", self.stdout.getvalue())
+""", expected_stdout, [], _check)
 
 
 if not os.environ.get("CB_FULLTESTS"):
