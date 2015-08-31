@@ -679,5 +679,213 @@ class MySession(ApplicationSession):
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
 
+    def test_failure6(self):
+
+        config = """{
+   "controller": {
+   },
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["%s"]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "myapp.MySession",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  },
+                  "url": "ws://127.0.0.1:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+
+        myapp = """
+from twisted.logger import Logger
+from twisted.internet.defer import inlineCallbacks
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.twisted.util import sleep
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    def __init__(self, config):
+        self.log.info("MySession.__init__()")
+        ApplicationSession.__init__(self, config)
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        self.log.info("MySession.onJoin()")
+        self.log.info("Sleeping a couple of secs and then shutting down ..")
+        yield sleep(2)
+        self.leave()
+
+    def onLeave(self, details):
+        self.log.info("Session ended: {details}", details=details)
+        self.disconnect()
+
+"""
+
+        _check = lambda _1, _2: None
+        expected_stdout = [
+            "Session ended: CloseDetails",
+            "Sleeping a couple of secs and then shutting down",
+            "Container is hosting no more components: shutting down"
+        ]
+        expected_stderr = []
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
+    def test_failure7(self):
+
+        config = """{
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "options": {
+            "pythonpath": ["%s"]
+         },
+         "components": [
+            {
+               "type": "class",
+               "classname": "myapp.MySession",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8090
+                  },
+                  "url": "ws://127.0.0.1:8090/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+
+        myapp = """
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    def __init__(self, config):
+        self.log.info("MySession.__init__()")
+        ApplicationSession.__init__(self, config)
+
+    def onJoin(self, details):
+        self.log.info("MySession.onJoin()")
+        self.leave()
+"""
+
+        _check = lambda _1, _2: None
+        expected_stdout = []
+        expected_stderr = [
+            ("Could not connect container component to router - transport "
+             "establishment failed")
+        ]
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
+
 if not os.environ.get("CB_FULLTESTS"):
     del RunningTests
