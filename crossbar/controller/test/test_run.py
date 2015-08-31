@@ -97,7 +97,6 @@ class RunningTests(CLITestBase):
             "Entering reactor event loop", "Loaded the component!"
         ]
 
-
         def _check(lc, reactor):
             if "Loaded the component!" in self.stdout.getvalue():
                 lc.stop()
