@@ -63,8 +63,12 @@ class RunningTests(CLITestBase):
         code_location = os.path.abspath(self.mktemp())
         os.mkdir(code_location)
 
+        if "%s" in config:
+            config = config % ("/".join(code_location.split(os.sep),))
+
+
         with open(self.config, "w") as f:
-            f.write(config % ("/".join(code_location.split(os.sep),)))
+            f.write(config)
 
         with open(code_location + "/myapp.py", "w") as f:
             f.write(app)
@@ -196,6 +200,94 @@ class MySession(ApplicationSession):
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
 
+    def test_failure1(self):
+
+        config = """{
+   "workers": [
+      {
+         "type": "router",
+         "realms": [
+            {
+               "name": "realm1",
+               "roles": [
+                  {
+                     "name": "anonymous",
+                     "permissions": [
+                        {
+                           "uri": "*",
+                           "publish": true,
+                           "subscribe": true,
+                           "call": true,
+                           "register": true
+                        }
+                     ]
+                  }
+               ]
+            }
+         ],
+         "transports": [
+            {
+               "type": "web",
+               "endpoint": {
+                  "type": "tcp",
+                  "port": 8080
+               },
+               "paths": {
+                  "/": {
+                     "type": "static",
+                     "directory": ".."
+                  },
+                  "ws": {
+                     "type": "websocket"
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "type": "container",
+         "components": [
+            {
+               "type": "class",
+               "classname": "myapp.MySession",
+               "realm": "realm1",
+               "transport": {
+                  "type": "websocket",
+                  "endpoint": {
+                     "type": "tcp",
+                     "host": "127.0.0.1",
+                     "port": 8080
+                  },
+                  "url": "ws://127.0.0.1:8080/ws"
+               }
+            }
+         ]
+      }
+   ]
+}
+"""
+        myapp = """from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    def __init__(self, config):
+        self.log.info("MySession.__init__()")
+        ApplicationSession.__init__(self, config)
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        self.log.info("MySession.onJoin()")
+"""
+
+        expected_stdout = []
+        expected_stderr = ["No module named"]
+        _check = lambda _1, _2: None
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
 
 if not os.environ.get("CB_FULLTESTS"):
     del RunningTests
