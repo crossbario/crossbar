@@ -88,7 +88,6 @@ class RunningTests(CLITestBase):
         for i in stderr_expected:
             self.assertIn(i, self.stderr.getvalue())
 
-
     def test_start_run(self):
         """
         A basic start, that enters the reactor.
@@ -96,6 +95,7 @@ class RunningTests(CLITestBase):
         expected_stdout = [
             "Entering reactor event loop", "Loaded the component!"
         ]
+        expected_stderr = []
 
         def _check(lc, reactor):
             if "Loaded the component!" in self.stdout.getvalue():
@@ -105,7 +105,7 @@ class RunningTests(CLITestBase):
                 except:
                     pass
 
-        self._start_run("""{
+        config = """{
    "controller": {
    },
    "workers": [
@@ -176,8 +176,9 @@ class RunningTests(CLITestBase):
       }
    ]
 }
-            """,
-"""#!/usr/bin/env python
+            """
+
+        myapp = """#!/usr/bin/env python
 from twisted.internet.defer import inlineCallbacks
 from twisted.logger import Logger
 from autobahn.twisted.wamp import ApplicationSession
@@ -190,7 +191,10 @@ class MySession(ApplicationSession):
     @inlineCallbacks
     def onJoin(self, details):
         self.log.info("Loaded the component!")
-""", expected_stdout, [], _check)
+"""
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
 
 
 if not os.environ.get("CB_FULLTESTS"):
