@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import os
 import six
@@ -40,6 +40,7 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ClientEndpoint, \
     UNIXServerEndpoint, \
     UNIXClientEndpoint
+from twisted.python.filepath import FilePath
 
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
@@ -51,6 +52,7 @@ except ImportError:
 else:
     _HAS_TLS = True
 
+from crossbar._logging import make_logger
 from crossbar.twisted.sharedport import SharedPort
 
 __all__ = ('create_listening_endpoint_from_config',
@@ -74,6 +76,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
     :returns obj -- An instance implementing IStreamServerEndpoint
     """
+    log = make_logger()
     endpoint = None
 
     # a TCP endpoint
@@ -167,11 +170,18 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
         # the path
         #
-        path = os.path.abspath(os.path.join(cbdir, config['path']))
+        path = FilePath(os.path.join(cbdir, config['path']))
+
+        # if there is already something there, delete it.
+        #
+        if path.exists():
+            log.info(("{path} exists, attempting to remove before using as a "
+                     "UNIX socket"), path=path)
+            path.remove()
 
         # create the endpoint
         #
-        endpoint = UNIXServerEndpoint(reactor, path, backlog=backlog)
+        endpoint = UNIXServerEndpoint(reactor, path.path, backlog=backlog)
 
     else:
         raise Exception("invalid endpoint type '{}'".format(config['type']))
