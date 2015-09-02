@@ -378,6 +378,11 @@ class NodeControllerSession(NativeProcessSession):
         #
         worker_env = create_process_env(options)
 
+        # We need to use the same PYTHONPATH we were started with, so we can
+        # find the Crossbar we're working with -- it may not be the same as the
+        # one on the default path
+        worker_env["PYTHONPATH"] = os.pathsep.join(sys.path)
+
         # log name of worker
         #
         worker_logname = {'router': 'Router', 'container': 'Container'}.get(wtype, 'Worker')
@@ -917,9 +922,6 @@ def create_process_env(options):
         # must do deepcopy like this (os.environ is a "special" thing ..)
         for k, v in os.environ.items():
             penv[k] = v
-
-        # PYTHONPATH is also a special thing...
-        penv["PYTHONPATH"] = os.pathsep.join(sys.path)
 
     # explicit environment vars from config
     if 'env' in options and 'vars' in options['env']:
