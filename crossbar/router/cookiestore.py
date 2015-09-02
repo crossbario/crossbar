@@ -257,6 +257,8 @@ class CookieStoreFileBacked(CookieStore):
             'authid': c['authid'], 'authrole': c['authrole'],
             'authmethod': c['authmethod']
         }) + '\n')
+        self._cookie_file.flush()
+        os.fsync(self._cookie_file.fileno())
 
     def _init_store(self):
         n = 0
