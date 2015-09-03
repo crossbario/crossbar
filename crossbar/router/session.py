@@ -391,7 +391,9 @@ class _RouterSession(BaseSession):
 
                 self._router.detach(self)
 
-                self._transport.close()
+                # don't close the transport, as WAMP allows to reattach a session
+                # to the same or a different realm without closing the transport
+                # self._transport.close()
 
             else:
 
