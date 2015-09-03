@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+import json
 import os
 
 from six import PY3
@@ -59,19 +60,16 @@ class ContainerRunningTests(CLITestBase):
         self.cbdir = os.path.abspath(self.mktemp())
         os.mkdir(self.cbdir)
         self.config = os.path.abspath(os.path.join(self.cbdir, "config.json"))
+        self.code_location = os.path.abspath(self.mktemp())
+        os.mkdir(self.code_location)
 
     def _start_run(self, config, app, stdout_expected, stderr_expected,
                    end_on):
-        code_location = os.path.abspath(self.mktemp())
-        os.mkdir(code_location)
-
-        if "%s" in config:
-            config = config % ("/".join(code_location.split(os.sep),))
 
         with open(self.config, "w") as f:
-            f.write(config)
+            f.write(json.dumps(config))
 
-        with open(code_location + "/myapp.py", "w") as f:
+        with open(self.code_location + "/myapp.py", "w") as f:
             f.write(app)
 
         reactor = SelectReactor()
@@ -110,78 +108,77 @@ class ContainerRunningTests(CLITestBase):
                 except:
                     pass
 
-        config = """{
-   "controller": {
-   },
-   "workers": [
-      {
-         "type": "router",
-         "options": {
-            "pythonpath": ["."]
-         },
-         "realms": [
-            {
-               "name": "realm1",
-               "roles": [
-                  {
-                     "name": "anonymous",
-                     "permissions": [
-                        {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
-                        }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-            "/": {
-              "directory": ".",
-              "type": "static"
+        config = {
+            "controller": {
             },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      },
-      {
-         "type": "container",
-         "options": {
-            "pythonpath": ["%s"]
-         },
-         "components": [
-            {
-               "type": "class",
-               "classname": "myapp.MySession",
-               "realm": "realm1",
-               "transport": {
-                  "type": "websocket",
-                  "endpoint": {
-                     "type": "tcp",
-                     "host": "127.0.0.1",
-                     "port": 8080
-                  },
-                  "url": "ws://127.0.0.1:8080/ws"
-               }
-            }
-         ]
-      }
-   ]
-}
-            """
+            "workers": [
+                {
+                    "type": "router",
+                    "options": {
+                        "pythonpath": ["."]
+                    },
+                    "realms": [
+                        {
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "directory": ".",
+                                    "type": "static"
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
 
         myapp = """#!/usr/bin/env python
 from twisted.internet.defer import inlineCallbacks
@@ -203,70 +200,70 @@ class MySession(ApplicationSession):
 
     def test_failure1(self):
 
-        config = """{
-   "workers": [
-      {
-         "type": "router",
-         "realms": [
-            {
-               "name": "realm1",
-               "roles": [
-                  {
-                     "name": "anonymous",
-                     "permissions": [
+        config = {
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
                         {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      },
-      {
-         "type": "container",
-         "components": [
-            {
-               "type": "class",
-               "classname": "myapp.MySession",
-               "realm": "realm1",
-               "transport": {
-                  "type": "websocket",
-                  "endpoint": {
-                     "type": "tcp",
-                     "host": "127.0.0.1",
-                     "port": 8080
-                  },
-                  "url": "ws://127.0.0.1:8080/ws"
-               }
-            }
-         ]
-      }
-   ]
-}
-"""
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "type": "static",
+                                    "directory": ".."
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
         myapp = """from twisted.logger import Logger
 from autobahn.twisted.wamp import ApplicationSession
 
@@ -292,73 +289,73 @@ class MySession(ApplicationSession):
 
     def test_failure2(self):
 
-        config = """{
-   "workers": [
-      {
-         "type": "router",
-         "realms": [
-            {
-               "name": "realm1",
-               "roles": [
-                  {
-                     "name": "anonymous",
-                     "permissions": [
+        config = {
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
                         {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      },
-      {
-         "type": "container",
-         "options": {
-            "pythonpath": ["%s"]
-         },
-         "components": [
-            {
-               "type": "class",
-               "classname": "myapp.MySession2",
-               "realm": "realm1",
-               "transport": {
-                  "type": "websocket",
-                  "endpoint": {
-                     "type": "tcp",
-                     "host": "127.0.0.1",
-                     "port": 8080
-                  },
-                  "url": "ws://127.0.0.1:8080/ws"
-               }
-            }
-         ]
-      }
-   ]
-}
-"""
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "type": "static",
+                                    "directory": ".."
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession2",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
         myapp = """
 from twisted.logger import Logger
 from autobahn.twisted.wamp import ApplicationSession
@@ -384,73 +381,73 @@ class MySession(ApplicationSession):
 
     def test_failure3(self):
 
-        config = """{
-   "workers": [
-      {
-         "type": "router",
-         "realms": [
-            {
-               "name": "realm1",
-               "roles": [
-                  {
-                     "name": "anonymous",
-                     "permissions": [
+        config = {
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
                         {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      },
-      {
-         "type": "container",
-         "options": {
-            "pythonpath": ["%s"]
-         },
-         "components": [
-            {
-               "type": "class",
-               "classname": "myapp.MySession",
-               "realm": "realm1",
-               "transport": {
-                  "type": "websocket",
-                  "endpoint": {
-                     "type": "tcp",
-                     "host": "127.0.0.1",
-                     "port": 8080
-                  },
-                  "url": "ws://127.0.0.1:8080/ws"
-               }
-            }
-         ]
-      }
-   ]
-}
-"""
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "type": "static",
+                                    "directory": ".."
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
         myapp = """
 from twisted.logger import Logger
 from autobahn.twisted.wamp import ApplicationSession
@@ -481,73 +478,72 @@ class MySession(ApplicationSession):
 
     def test_failure4(self):
 
-        config = """{
-   "workers": [
-      {
-         "type": "router",
-         "realms": [
-            {
-               "name": "realm1",
-               "roles": [
-                  {
-                     "name": "anonymous",
-                     "permissions": [
+        config = {
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
                         {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      },
-      {
-         "type": "container",
-         "options": {
-            "pythonpath": ["%s"]
-         },
-         "components": [
-            {
-               "type": "class",
-               "classname": "myapp.MySession",
-               "realm": "realm1",
-               "transport": {
-                  "type": "websocket",
-                  "endpoint": {
-                     "type": "tcp",
-                     "host": "127.0.0.1",
-                     "port": 8080
-                  },
-                  "url": "ws://127.0.0.1:8080/ws"
-               }
-            }
-         ]
-      }
-   ]
-}
-"""
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "type": "static",
+                                    "directory": ".."
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
 
         myapp = """
 from twisted.logger import Logger
@@ -579,75 +575,74 @@ class MySession(ApplicationSession):
 
     def test_failure5(self):
 
-        config = """{
-   "controller": {
-   },
-   "workers": [
-      {
-         "type": "router",
-         "realms": [
-            {
-               "name": "realm1",
-               "roles": [
-                  {
-                     "name": "anonymous",
-                     "permissions": [
+        config = {
+            "controller": {
+            },
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
                         {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      },
-      {
-         "type": "container",
-         "options": {
-            "pythonpath": ["%s"]
-         },
-         "components": [
-            {
-               "type": "class",
-               "classname": "myapp.MySession",
-               "realm": "realm1",
-               "transport": {
-                  "type": "websocket",
-                  "endpoint": {
-                     "type": "tcp",
-                     "host": "127.0.0.1",
-                     "port": 8080
-                  },
-                  "url": "ws://127.0.0.1:8080/ws"
-               }
-            }
-         ]
-      }
-   ]
-}
-"""
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "type": "static",
+                                    "directory": ".."
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
 
         myapp = """
 from twisted.logger import Logger
@@ -681,75 +676,74 @@ class MySession(ApplicationSession):
 
     def test_failure6(self):
 
-        config = """{
-   "controller": {
-   },
-   "workers": [
-      {
-         "type": "router",
-         "realms": [
-            {
-               "name": "realm1",
-               "roles": [
-                  {
-                     "name": "anonymous",
-                     "permissions": [
+        config = {
+            "controller": {
+            },
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
                         {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      },
-      {
-         "type": "container",
-         "options": {
-            "pythonpath": ["%s"]
-         },
-         "components": [
-            {
-               "type": "class",
-               "classname": "myapp.MySession",
-               "realm": "realm1",
-               "transport": {
-                  "type": "websocket",
-                  "endpoint": {
-                     "type": "tcp",
-                     "host": "127.0.0.1",
-                     "port": 8080
-                  },
-                  "url": "ws://127.0.0.1:8080/ws"
-               }
-            }
-         ]
-      }
-   ]
-}
-"""
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "type": "static",
+                                    "directory": ".."
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
 
         myapp = """
 from twisted.logger import Logger
@@ -791,73 +785,72 @@ class MySession(ApplicationSession):
 
     def test_failure7(self):
 
-        config = """{
-   "workers": [
-      {
-         "type": "router",
-         "realms": [
-            {
-               "name": "realm1",
-               "roles": [
-                  {
-                     "name": "anonymous",
-                     "permissions": [
+        config = {
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
                         {
-                           "uri": "*",
-                           "publish": true,
-                           "subscribe": true,
-                           "call": true,
-                           "register": true
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                     ]
-                  }
-               ]
-            }
-         ],
-         "transports": [
-            {
-               "type": "web",
-               "endpoint": {
-                  "type": "tcp",
-                  "port": 8080
-               },
-               "paths": {
-                  "/": {
-                     "type": "static",
-                     "directory": ".."
-                  },
-                  "ws": {
-                     "type": "websocket"
-                  }
-               }
-            }
-         ]
-      },
-      {
-         "type": "container",
-         "options": {
-            "pythonpath": ["%s"]
-         },
-         "components": [
-            {
-               "type": "class",
-               "classname": "myapp.MySession",
-               "realm": "realm1",
-               "transport": {
-                  "type": "websocket",
-                  "endpoint": {
-                     "type": "tcp",
-                     "host": "127.0.0.1",
-                     "port": 8090
-                  },
-                  "url": "ws://127.0.0.1:8090/ws"
-               }
-            }
-         ]
-      }
-   ]
-}
-"""
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "type": "static",
+                                    "directory": ".."
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8090
+                                },
+                                "url": "ws://127.0.0.1:8090/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
 
         myapp = """
 from twisted.logger import Logger
