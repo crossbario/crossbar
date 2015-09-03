@@ -375,6 +375,10 @@ class _RouterSession(BaseSession):
                     # This is the peer's GOODBYE reply to our own earlier GOODBYE
                     pass
 
+                # We need to first detach the session from the router before
+                # erasing the session ID below ..
+                self._router.detach(self)
+
                 # At this point, we've either sent GOODBYE already earlier,
                 # or we have just responded with GOODBYE. In any case, we MUST NOT
                 # send any WAMP message from now on:
@@ -388,8 +392,6 @@ class _RouterSession(BaseSession):
 
                 # fire callback and close the transport
                 self.onLeave(types.CloseDetails(msg.reason, msg.message))
-
-                self._router.detach(self)
 
                 # don't close the transport, as WAMP allows to reattach a session
                 # to the same or a different realm without closing the transport
