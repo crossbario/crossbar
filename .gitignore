@@ -25,7 +25,7 @@ build
 *.zip
 *.egg
 /.crossbar
-_trial_temp
+_trial_temp*
 node_modules
 .tox
 *.swp
