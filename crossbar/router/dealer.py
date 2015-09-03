@@ -100,6 +100,7 @@ class Dealer(object):
         # supported features from "WAMP Advanced Profile"
         self._role_features = role.RoleDealerFeatures(caller_identification=True,
                                                       pattern_based_registration=True,
+                                                      session_meta_api=True,
                                                       registration_meta_api=True,
                                                       shared_registration=True,
                                                       progressive_call_results=True,
