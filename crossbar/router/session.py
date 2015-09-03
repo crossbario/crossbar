@@ -1012,12 +1012,11 @@ class RouterSession(_RouterSession):
         # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
         self._session_details = {
+            'session': details.session,
             'authid': details.authid,
             'authrole': details.authrole,
             'authmethod': details.authmethod,
             'authprovider': details.authprovider,
-            'realm': details.realm,
-            'session': details.session,
             'transport': self._transport._transport_info
         }
 
