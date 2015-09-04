@@ -260,7 +260,9 @@ class Broker(object):
                                                 topic=topic)
                             for receiver in receivers:
                                 if me_also or receiver != session:
-                                    # the receiving subscriber session might have been lost in the meantime ..
+                                    # the receiving subscriber session
+                                    # might have no transport, or no
+                                    # longer be joined
                                     if receiver._session_id and receiver._transport:
                                         receiver._transport.send(msg)
 
