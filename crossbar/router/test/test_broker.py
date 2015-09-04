@@ -43,14 +43,14 @@ from autobahn.twisted.wamp import ApplicationSession
 from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
 from crossbar.router.router import RouterFactory
-from crossbar.router.session import RouterSessionFactory
+from crossbar.router.session import RouterSessionFactory, RouterSession
 from crossbar.router.broker import Broker
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 
 
 class TestBrokerPublish(unittest.TestCase):
     """
-    Test cases for application session running embedded in router.
+    Tests for crossbar.router.broker.Broker
     """
 
     def setUp(self):
@@ -259,3 +259,49 @@ class TestBrokerPublish(unittest.TestCase):
         # neither session should have sent anything on its transport
         self.assertEquals(session0._transport.method_calls, [])
         self.assertEquals(session1._transport.method_calls, [])
+
+
+class TestRouterSession(unittest.TestCase):
+    """
+    Tests for crossbar.router.session.RouterSession
+    """
+
+    def test_onleave_publish(self):
+        """
+        Receiving a Goodbye should put the session in a "detached" state
+        *before* the onLeave method is triggered
+        """
+
+        router = mock.MagicMock()
+        utest = self
+        class TestSession(RouterSession):
+            def __init__(self, *args, **kw):
+                super(TestSession, self).__init__(*args, **kw)
+                # for this test, pretend we're connected (without
+                # going through sending a Hello etc.)
+                self._transport = mock.MagicMock()
+                self._session_id = 1234
+                self._router = router  # normally done in Hello processing
+                self.on_leave_called = False  # so the test ensures onLeave called
+
+            def onLeave(self, reason):
+                utest.assertFalse(self.on_leave_called)
+                # we check that when this method is called, we look
+                # like we're un-joined
+                utest.assertIs(None, self._session_id)
+                utest.assertTrue(self._goodbye_sent)
+                # on the router, .detach() should have been called
+                utest.assertEqual(1, len(router.method_calls))
+                utest.assertEqual('detach', router.method_calls[0][0])
+                self.on_leave_called = True
+
+        router_factory = mock.MagicMock()
+        session = TestSession(router_factory)
+        goodbye = message.Goodbye(u'wamp.close.normal', u'hi there')
+
+        self.assertFalse(session._goodbye_sent)
+
+        # do the test; we check results in onLeave
+        self.assertFalse(session.on_leave_called)
+        session.onMessage(goodbye)
+        self.assertTrue(session.on_leave_called)
