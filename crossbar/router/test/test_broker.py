@@ -40,7 +40,6 @@ from autobahn.wamp import message
 from autobahn.wamp import role
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory, RouterSession
@@ -274,6 +273,7 @@ class TestRouterSession(unittest.TestCase):
 
         router = mock.MagicMock()
         utest = self
+
         class TestSession(RouterSession):
             def __init__(self, *args, **kw):
                 super(TestSession, self).__init__(*args, **kw)
