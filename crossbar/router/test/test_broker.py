@@ -204,11 +204,7 @@ class TestBrokerPublish(unittest.TestCase):
         class TestSession(ApplicationSession):
 
             def onJoin(self, details):
-                # noinspection PyUnusedLocal
-                def on_event(*arg, **kwargs):
-                    pass
-
-                d2 = self.subscribe(on_event, u'com.example.topic1')
+                d2 = self.subscribe(lambda: None, u'com.example.topic1')
 
                 def ok(_):
                     txaio.resolve(d, None)
