@@ -93,34 +93,44 @@ class TestBrokerPublish(unittest.TestCase):
 
         return d
 
-    def _test_application_session_internal_error(self):
+    def test_application_session_internal_error(self):
         """
         simulate an internal error triggering the 'onJoin' error-case from
         _RouterApplicationSession's send() method (from the Hello msg)
         """
         # setup
         the_exception = RuntimeError("sadness")
+        errors = []
 
         class TestSession(ApplicationSession):
             def onJoin(self, *args, **kw):
                 raise the_exception
+
+            def onUserError(self, fail, msg):
+                errors.append((fail, msg))
+
         session = TestSession(types.ComponentConfig(u'realm1'))
         from crossbar.router.session import _RouterApplicationSession
 
-        # execute, first patching-out the logger so we can see that
-        # log.failure() was called when our exception triggers.
+        # Note to self: original code was logging directly in
+        # _RouterApplicationSession -- which *may* actually be better?
+        # or not...
         with mock.patch.object(_RouterApplicationSession, 'log') as logger:
             # this should call onJoin, triggering our error
             self.session_factory.add(session)
 
-            # check we got the right log.failure() call
-            self.assertTrue(len(logger.method_calls) > 0)
-            call = logger.method_calls[0]
-            # for a MagicMock call-object, 0th thing is the method-name, 1st
-            # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'failure')
-            self.assertTrue('failure' in call[2])
-            self.assertEqual(call[2]['failure'].value, the_exception)
+            if True:
+                self.assertEqual(1, len(errors), "Didn't see our error")
+                self.assertEqual(the_exception, errors[0][0])
+
+            else:
+                # check we got the right log.failure() call
+                self.assertTrue(len(logger.method_calls) > 0)
+                call = logger.method_calls[0]
+                # for a MagicMock call-object, 0th thing is the method-name, 1st
+                # thing is the arg-tuple, 2nd thing is the kwargs.
+                self.assertEqual(call[0], 'failure')
+                self.assertEqual(call[1][0].value, the_exception)
 
     def test_router_session_internal_error_onHello(self):
         """
