@@ -133,7 +133,7 @@ setup(
         'setuptools>=18.1',           # Python Software Foundation license
         'zope.interface>=3.6.0',      # Zope Public license
         'twisted>=15.3.0',            # MIT license
-        'autobahn[twisted]>=0.10.5',  # MIT license
+        'autobahn[twisted]>=0.10.6',  # MIT license
         'netaddr>=0.7.15',            # BSD license
         'pytrie>=0.2',                # BSD license
         'jinja2>=2.8',                # BSD license
