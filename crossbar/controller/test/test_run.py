@@ -282,7 +282,9 @@ class MySession(ApplicationSession):
 
         expected_stdout = []
         expected_stderr = ["No module named"]
-        _check = lambda _1, _2: None
+
+        def _check(_1, _2):
+            pass
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
@@ -372,7 +374,8 @@ class MySession(ApplicationSession):
         self.log.info("MySession.onJoin()")
 """
 
-        _check = lambda _1, _2: None
+        def _check(_1, _2):
+            pass
         expected_stdout = []
         expected_stderr = ["'module' object has no attribute 'MySession2'"]
 
@@ -465,7 +468,8 @@ class MySession(ApplicationSession):
         self.log.info("MySession.onJoin()")
 """
 
-        _check = lambda _1, _2: None
+        def _check(_1, _2):
+            pass
         expected_stdout = []
         expected_stderr = ["Component instantiation failed"]
         if PY3:
@@ -562,7 +566,8 @@ class MySession(ApplicationSession):
         a = 1 / 0 # trigger exception
 """
 
-        _check = lambda _1, _2: None
+        def _check(_1, _2):
+            pass
         expected_stdout = []
         expected_stderr = ["Fatal error in component", "While firing onJoin"]
         if PY3:
@@ -665,7 +670,8 @@ class MySession(ApplicationSession):
         self.disconnect()
 """
 
-        _check = lambda _1, _2: None
+        def _check(_1, _2):
+            pass
         expected_stdout = []
         expected_stderr = [
             "Component 'component1' failed to start; shutting down node."
@@ -772,7 +778,8 @@ class MySession(ApplicationSession):
 
 """
 
-        _check = lambda _1, _2: None
+        def _check(_1, _2):
+            pass
         expected_stdout = [
             "Session ended: CloseDetails",
             "Sleeping a couple of secs and then shutting down",
@@ -869,7 +876,8 @@ class MySession(ApplicationSession):
         self.leave()
 """
 
-        _check = lambda _1, _2: None
+        def _check(_1, _2):
+            pass
         expected_stdout = []
         expected_stderr = [
             ("Could not connect container component to router - transport "
