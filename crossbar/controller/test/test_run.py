@@ -36,31 +36,37 @@ import sys
 
 from six import PY3
 
+from twisted.python.filepath import FilePath
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall
 
 from crossbar.controller import cli
 from .test_cli import CLITestBase
 
-DEBUG = True
+# Turn this to `True` to print the stdout/stderr of the Crossbars spawned
+DEBUG = False
 
 
 def make_lc(self, reactor, func):
 
     if DEBUG:
-        stdout_length = 0
-        stderr_length = 0
+        self.stdout_length = 0
+        self.stderr_length = 0
 
     def _(lc, reactor):
         if DEBUG:
             stdout = self.stdout.getvalue()
             stderr = self.stderr.getvalue()
 
-            print(self.stdout.getvalue()[stdout_length:], file=sys.__stdout__)
-            print(self.stderr.getvalue()[stderr_length:], file=sys.__stderr__)
+            if self.stdout.getvalue()[self.stdout_length:]:
+                print(self.stdout.getvalue()[self.stdout_length:],
+                      file=sys.__stdout__)
+            if self.stderr.getvalue()[self.stderr_length:]:
+                print(self.stderr.getvalue()[self.stderr_length:],
+                      file=sys.__stderr__)
 
-            stdout_length = len(stdout)
-            stderr_length = len(stderr)
+            self.stdout_length = len(stdout)
+            self.stderr_length = len(stderr)
 
         return func(lc, reactor)
 
@@ -252,7 +258,7 @@ class MySession(ApplicationSession):
                                 "port": 8080
                             },
                             "paths": {
-                                "/": {
+                                 "/": {
                                     "type": "static",
                                     "directory": ".."
                                 },
@@ -909,5 +915,48 @@ class MySession(ApplicationSession):
                         _check)
 
 
+class InitTests(CLITestBase):
+
+    def test_hello(self):
+
+        def _check(lc, reactor):
+            if "published to 'oncounter'" in self.stdout.getvalue():
+                lc.stop()
+                try:
+                    reactor.stop()
+                except:
+                    pass
+
+        appdir = FilePath(self.mktemp())
+        cbdir = appdir.child(".crossbar")
+
+        reactor = SelectReactor()
+        cli.run("crossbar",
+                ["init",
+                 "--appdir={}".format(appdir.path),
+                 "--template=hello:python"],
+                reactor=reactor)
+
+
+        self.assertIn("Application template initialized",
+                      self.stdout.getvalue())
+
+        reactor = SelectReactor()
+        make_lc(self, reactor, _check)
+
+        # In case it hard-locks
+        reactor.callLater(self._subprocess_timeout, reactor.stop)
+
+        cli.run("crossbar",
+                ["start",
+                 "--cbdir={}".format(cbdir.path),
+                 "--logformat=syslogd"],
+                reactor=reactor)
+
+        stdout_expected = ["published to 'oncounter'"]
+
+
+
 if not os.environ.get("CB_FULLTESTS"):
     del ContainerRunningTests
+    del InitTests
