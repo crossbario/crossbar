@@ -366,18 +366,35 @@ class _RouterSession(BaseSession):
 
             elif isinstance(msg, message.Goodbye):
                 if not self._goodbye_sent:
-                    # the peer wants to close: send GOODBYE reply
+                    # The peer wants to close: answer with GOODBYE reply.
+                    # Note: We MUST NOT send any WAMP message _after_ GOODBYE
                     reply = message.Goodbye()
                     self._transport.send(reply)
+                    self._goodbye_sent = True
+                else:
+                    # This is the peer's GOODBYE reply to our own earlier GOODBYE
+                    pass
+
+                # We need to first detach the session from the router before
+                # erasing the session ID below ..
+                self._router.detach(self)
+
+                # At this point, we've either sent GOODBYE already earlier,
+                # or we have just responded with GOODBYE. In any case, we MUST NOT
+                # send any WAMP message from now on:
+                # clear out session ID, so that anything that might be triggered
+                # in the onLeave below is prohibited from sending WAMP stuff.
+                # E.g. the client might have been subscribed to meta events like
+                # wamp.session.on_leave - and we must not send that client's own
+                # leave to itself!
+                self._session_id = None
+                self._pending_session_id = None
 
                 # fire callback and close the transport
                 self.onLeave(types.CloseDetails(msg.reason, msg.message))
 
-                self._router.detach(self)
-
-                self._session_id = None
-                self._pending_session_id = None
-
+                # don't close the transport, as WAMP allows to reattach a session
+                # to the same or a different realm without closing the transport
                 # self._transport.close()
 
             else:
@@ -1012,12 +1029,11 @@ class RouterSession(_RouterSession):
         # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
         self._session_details = {
+            'session': details.session,
             'authid': details.authid,
             'authrole': details.authrole,
             'authmethod': details.authmethod,
             'authprovider': details.authprovider,
-            'realm': details.realm,
-            'session': details.session,
             'transport': self._transport._transport_info
         }
 

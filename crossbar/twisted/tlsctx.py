@@ -295,7 +295,7 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 else:
                     self.log.info("Ok, OpenSSL Diffie-Hellman ciphers parameter file loaded.")
             else:
-                self.log.warning("OpenSSL DH modes not active - missing DH param file")
+                self.log.warn("OpenSSL DH modes not active - missing DH param file")
 
             # Activate ECDH(E)
             #

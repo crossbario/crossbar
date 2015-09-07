@@ -39,25 +39,18 @@ from setuptools import setup, find_packages
 CPY = platform.python_implementation() == 'CPython'
 PYPY = platform.python_implementation() == 'PyPy'
 
-# Get package version and docstring from crossbar/__init__.py
-#
-PACKAGE_FILE = "crossbar/__init__.py"
-initfile = open(PACKAGE_FILE, "rt").read()
+LONGSDESC = open('README.rst').read()
 
+# Get package version from crossbar/__init__.py
+#
+VERSIONFILE = "crossbar/__init__.py"
+verstrline = open(VERSIONFILE, "rt").read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, initfile, re.M)
+mo = re.search(VSRE, verstrline, re.M)
 if mo:
     verstr = mo.group(1)
 else:
-    raise RuntimeError("Unable to find version string in {}.".format(PACKAGE_FILE))
-
-DSRE = r"__doc__ = \"\"\"(.*)\"\"\""
-mo = re.search(DSRE, initfile, re.DOTALL)
-if mo:
-    docstr = mo.group(1)
-else:
-    raise RuntimeError("Unable to find doc string in {}.".format(PACKAGE_FILE))
-
+    raise RuntimeError("Unable to find version string in {}.".format(VERSIONFILE))
 
 #
 # extra requirements for install variants
@@ -67,10 +60,10 @@ extras_require_system = [
     'psutil>=3.1.1',        # BSD license
 ]
 if sys.platform.startswith('linux'):
-    extras_require_system.append('setproctitle>=1.1.9')  # BSD license
-    extras_require_system.append('pyinotify>=0.9.6')  # MIT license
+    extras_require_system.append('setproctitle>=1.1.9')     # BSD license
+    extras_require_system.append('pyinotify>=0.9.6')        # MIT license
 if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
-    extras_require_system.append('setproctitle>=1.1.9')  # BSD license
+    extras_require_system.append('setproctitle>=1.1.9')     # BSD license
 
 extras_require_db = [
     'lmdb>=0.87',           # OpenLDAP BSD
@@ -123,7 +116,7 @@ setup(
     name='crossbar',
     version=verstr,
     description='Crossbar.io - The Unified Application Router',
-    long_description=docstr,
+    long_description=LONGSDESC,
     author='Tavendo GmbH',
     author_email='autobahnws@googlegroups.com',
     url='http://crossbar.io/',
@@ -133,7 +126,7 @@ setup(
         'setuptools>=18.1',           # Python Software Foundation license
         'zope.interface>=3.6.0',      # Zope Public license
         'twisted>=15.3.0',            # MIT license
-        'autobahn[twisted]>=0.10.5',  # MIT license
+        'autobahn[twisted]>=0.10.7',  # MIT license
         'netaddr>=0.7.15',            # BSD license
         'pytrie>=0.2',                # BSD license
         'jinja2>=2.8',                # BSD license

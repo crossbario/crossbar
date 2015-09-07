@@ -4,14 +4,19 @@ sudo: false
 install:
   - pip install tox codecov
 
+# PyPy is deactivated for now due to:
+# https://github.com/crossbario/crossbar/issues/440
+# https://github.com/travis-ci/travis-ci/issues/4756
 env:
   - TOX_ENV=flake8
-  - TOX_ENV=py27-twcurrent
-  - TOX_ENV=pypy-twcurrent
-  - TOX_ENV=py27-twtrunk
-  - TOX_ENV=py33-twtrunk
-  - TOX_ENV=py34-twtrunk
-  - TOX_ENV=pypy-twtrunk
+  - TOX_ENV=py27-twtrunk-abtrunk
+#  - TOX_ENV=pypy-twtrunk-abtrunk
+  - TOX_ENV=py33-twtrunk-abtrunk
+  - TOX_ENV=py34-twtrunk-abtrunk
+  - TOX_ENV=py27-twcurrent-abcurrent
+#  - TOX_ENV=pypy-twcurrent-abcurrent
+  - TOX_ENV=py33-twcurrent-abcurrent
+  - TOX_ENV=py34-twcurrent-abcurrent
 
 script:
   - tox -c tox.ini -e $TOX_ENV
