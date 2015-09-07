@@ -258,7 +258,7 @@ class MySession(ApplicationSession):
                                 "port": 8080
                             },
                             "paths": {
-                                 "/": {
+                                "/": {
                                     "type": "static",
                                     "directory": ".."
                                 },
@@ -937,7 +937,6 @@ class InitTests(CLITestBase):
                  "--template=hello:python"],
                 reactor=reactor)
 
-
         self.assertIn("Application template initialized",
                       self.stdout.getvalue())
 
@@ -955,6 +954,8 @@ class InitTests(CLITestBase):
 
         stdout_expected = ["published to 'oncounter'"]
 
+        for i in stdout_expected:
+            self.assertIn(i, self.stdout.getvalue())
 
 
 if not os.environ.get("CB_FULLTESTS"):
