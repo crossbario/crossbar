@@ -32,6 +32,7 @@ from __future__ import absolute_import, division, print_function
 
 import json
 import os
+import sys
 
 from six import PY3
 
@@ -41,9 +42,29 @@ from twisted.internet.task import LoopingCall
 from crossbar.controller import cli
 from .test_cli import CLITestBase
 
+DEBUG = True
 
-def make_lc(reactor, func):
-    lc = LoopingCall(func)
+
+def make_lc(self, reactor, func):
+
+    if DEBUG:
+        stdout_length = 0
+        stderr_length = 0
+
+    def _(lc, reactor):
+        if DEBUG:
+            stdout = self.stdout.getvalue()
+            stderr = self.stderr.getvalue()
+
+            print(self.stdout.getvalue()[stdout_length:], file=sys.__stdout__)
+            print(self.stderr.getvalue()[stderr_length:], file=sys.__stderr__)
+
+            stdout_length = len(stdout)
+            stderr_length = len(stderr)
+
+        return func(lc, reactor)
+
+    lc = LoopingCall(_)
     lc.a = (lc, reactor)
     lc.clock = reactor
     lc.start(0.1)
@@ -74,7 +95,7 @@ class ContainerRunningTests(CLITestBase):
 
         reactor = SelectReactor()
 
-        make_lc(reactor, end_on)
+        make_lc(self, reactor, end_on)
 
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
