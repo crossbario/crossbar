@@ -187,7 +187,7 @@ class NativeWorkerSession(NativeProcessSession):
         self.log.debug("{klass}.get_cpu_affinity", klass=self.__class__.__name__)
 
         if not _HAS_PSUTIL:
-            emsg = "ERROR: unable to get CPU affinity - required package 'psutil' is not installed"
+            emsg = "Unable to get CPU affinity: required package 'psutil' is not installed"
             self.log.warn(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
@@ -195,7 +195,7 @@ class NativeWorkerSession(NativeProcessSession):
             p = psutil.Process(os.getpid())
             current_affinity = p.cpu_affinity()
         except Exception as e:
-            emsg = "ERROR: could not get CPU affinity ({})".format(e)
+            emsg = "Could not get CPU affinity: {}".format(e)
             self.log.failure(emsg)
             raise ApplicationError("crossbar.error.runtime_error", emsg)
         else:
@@ -212,7 +212,7 @@ class NativeWorkerSession(NativeProcessSession):
         self.log.debug("{klass}.set_cpu_affinity", klass=self.__class__.__name__)
 
         if not _HAS_PSUTIL:
-            emsg = "ERROR: unable to set CPU affinity - required package 'psutil' is not installed"
+            emsg = "Unable to set CPU affinity: required package 'psutil' is not installed"
             self.log.warn(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
@@ -221,7 +221,7 @@ class NativeWorkerSession(NativeProcessSession):
             p.cpu_affinity(cpus)
             new_affinity = p.cpu_affinity()
         except Exception as e:
-            emsg = "ERROR: could not set CPU affinity ({})".format(e)
+            emsg = "Could not set CPU affinity: {}".format(e)
             self.log.failure(emsg)
             raise ApplicationError("crossbar.error.runtime_error", emsg)
         else:
@@ -269,7 +269,7 @@ class NativeWorkerSession(NativeProcessSession):
             if os.path.isdir(path_to_add):
                 paths_added.append({'requested': p, 'resolved': path_to_add})
             else:
-                emsg = "ERROR: cannot add Python search path '{}' - resolved path '{}' is not a directory".format(p, path_to_add)
+                emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(p, path_to_add)
                 self.log.failure(emsg)
                 raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
 

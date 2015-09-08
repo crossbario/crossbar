@@ -436,7 +436,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # prohibit starting a component twice
         #
         if id in self.components:
-            emsg = "ERROR: could not start component - a component with ID '{}'' is already running (or starting)".format(id)
+            emsg = "Could not start component: a component with ID '{}'' is already running (or starting)".format(id)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
@@ -445,7 +445,7 @@ class RouterWorkerSession(NativeWorkerSession):
         try:
             checkconfig.check_router_component(config)
         except Exception as e:
-            emsg = "ERROR: invalid router component configuration ({})".format(e)
+            emsg = "Invalid router component configuration: {}".format(e)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
@@ -547,7 +547,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # prohibit starting a transport twice
         #
         if id in self.transports:
-            emsg = "ERROR: could not start transport - a transport with ID '{}'' is already running (or starting)".format(id)
+            emsg = "Could not start transport: a transport with ID '{}' is already running (or starting)".format(id)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.already_running', emsg)
 
@@ -556,7 +556,7 @@ class RouterWorkerSession(NativeWorkerSession):
         try:
             checkconfig.check_router_transport(config)
         except Exception as e:
-            emsg = "ERROR: invalid router transport configuration ({})".format(e)
+            emsg = "Invalid router transport configuration: {}".format(e)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
         else:
@@ -623,14 +623,14 @@ class RouterWorkerSession(NativeWorkerSession):
                     try:
                         mod = importlib.import_module(root_config['package'])
                     except ImportError as e:
-                        emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(root_config['resource'], root_config['package'], e)
+                        emsg = "Could not import resource {} from package {}: {}".format(root_config['resource'], root_config['package'], e)
                         self.log.error(emsg)
                         raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                     else:
                         try:
                             root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['package'], root_config['resource']))
                         except Exception as e:
-                            emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(root_config['resource'], root_config['package'], e)
+                            emsg = "Could not import resource {} from package {}: {}".format(root_config['resource'], root_config['package'], e)
                             self.log.error(emsg)
                             raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                         else:
@@ -835,7 +835,7 @@ class RouterWorkerSession(NativeWorkerSession):
             return
 
         def fail(err):
-            emsg = "ERROR: cannot listen on transport endpoint ({})".format(err.value)
+            emsg = "Cannot listen on transport endpoint: {}".format(err.value)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
@@ -899,14 +899,14 @@ class RouterWorkerSession(NativeWorkerSession):
                 try:
                     mod = importlib.import_module(path_config['package'])
                 except ImportError as e:
-                    emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+                    emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
                     self.log.error(emsg)
                     raise ApplicationError("crossbar.error.invalid_configuration", emsg)
                 else:
                     try:
                         static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
                     except Exception as e:
-                        emsg = "ERROR: could not import resource '{}' from package '{}' - {}".format(path_config['resource'], path_config['package'], e)
+                        emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
                         self.log.error(emsg)
                         raise ApplicationError("crossbar.error.invalid_configuration", emsg)
 
@@ -1171,7 +1171,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # FIXME
         if id not in self.transports:
             #      if not id in self.transports or self.transports[id].status != 'started':
-            emsg = "ERROR: cannot stop transport - no transport with ID '{}' (or already stopping)".format(id)
+            emsg = "Cannot stop transport: no transport with ID '{}' or transport is already stopping".format(id)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.not_running', emsg)
 

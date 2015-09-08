@@ -368,7 +368,7 @@ class NativeProcessSession(ApplicationSession):
         if self._pinfo:
             return self._pinfo.get_info()
         else:
-            emsg = "ERROR: could not retrieve process statistics - required packages not installed"
+            emsg = "Could not retrieve process statistics: required packages not installed"
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
     def get_process_stats(self, details=None):
@@ -382,7 +382,7 @@ class NativeProcessSession(ApplicationSession):
         if self._pinfo:
             return self._pinfo.get_stats()
         else:
-            emsg = "ERROR: could not retrieve process statistics - required packages not installed"
+            emsg = "Could not retrieve process statistics: required packages not installed"
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
     def set_process_stats_monitoring(self, interval, details=None):
@@ -421,7 +421,7 @@ class NativeProcessSession(ApplicationSession):
 
                 self.publish(stats_monitor_set_topic, interval, options=PublishOptions(exclude=[details.caller]))
         else:
-            emsg = "ERROR: cannot setup process statistics monitor - required packages not installed"
+            emsg = "Cannot setup process statistics monitor: required packages not installed"
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
     def trigger_gc(self, details=None):
@@ -448,19 +448,19 @@ class NativeProcessSession(ApplicationSession):
                        cls=self.__class__.__name__, config=config)
 
         if not _HAS_MANHOLE:
-            emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
+            emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if self._manhole_service:
-            emsg = "ERROR: could not start manhole - already running (or starting)"
+            emsg = "Could not start manhole - already running (or starting)"
             self.log.warn(emsg)
             raise ApplicationError("crossbar.error.already_started", emsg)
 
         try:
             checkconfig.check_manhole(config)
         except Exception as e:
-            emsg = "ERROR: could not start manhole - invalid configuration ({})".format(e)
+            emsg = "Could not start manhole: invalid configuration ({})".format(e)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
@@ -506,7 +506,7 @@ class NativeProcessSession(ApplicationSession):
             self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'], factory, self.cbdir, self._reactor)
         except Exception as e:
             self._manhole_service = None
-            emsg = "ERROR: manhole service endpoint cannot listen - {}".format(e)
+            emsg = "Manhole service endpoint cannot listen: {}".format(e)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.cannot_listen", emsg)
 
@@ -528,12 +528,12 @@ class NativeProcessSession(ApplicationSession):
         self.log.debug("{cls}.stop_manhole", cls=self.__class__.__name__)
 
         if not _HAS_MANHOLE:
-            emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
+            emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 
         if not self._manhole_service or self._manhole_service.status != 'started':
-            emsg = "ERROR: cannot stop manhole - not running (or already shutting down)"
+            emsg = "Cannot stop manhole: not running (or already shutting down)"
             raise ApplicationError("crossbar.error.not_started", emsg)
 
         self._manhole_service.status = 'stopping'
@@ -551,7 +551,7 @@ class NativeProcessSession(ApplicationSession):
         try:
             yield self._manhole_service.port.stopListening()
         except Exception as e:
-            raise Exception("INTERNAL ERROR: don't know how to handle a failed called to stopListening() - {}".format(e))
+            raise Exception("Internal Error: don't know how to handle a failed called to stopListening() - {}".format(e))
 
         self._manhole_service = None
 
@@ -570,7 +570,7 @@ class NativeProcessSession(ApplicationSession):
         self.log.debug("{cls}.get_manhole", cls=self.__class__.__name__)
 
         if not _HAS_MANHOLE:
-            emsg = "ERROR: could not start manhole - required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
+            emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.feature_unavailable", emsg)
 

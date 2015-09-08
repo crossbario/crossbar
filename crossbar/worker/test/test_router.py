@@ -223,10 +223,7 @@ class RouterWorkerSessionTests(TestCase):
         with self.assertRaises(ApplicationError) as e:
             r.start_router_component("newcomponent", component_config)
 
-        self.assertIn(
-            ("ERROR: invalid router component configuration (invalid value "
-             "'notathingcrossbarsupports' for component type)"),
-            str(e.exception.args[0]))
+        self.assertEqual(e.exception.error, u"crossbar.error.invalid_configuration")
 
         self.assertEqual(len(r.get_router_components()), 0)
 

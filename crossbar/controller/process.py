@@ -133,10 +133,10 @@ class NodeControllerSession(NativeProcessSession):
                     # signaling "worker ready"
                     ready.callback(id)
                 else:
-                    self.log.error("INTERNAL ERROR: on_worker_ready() fired for process {process} - ready already called",
+                    self.log.error("Internal error: on_worker_ready() fired for process {process}, but already called earlier",
                                    process=id)
             else:
-                self.log.error("INTERNAL ERROR: on_worker_ready() fired for process {process} - no process with that ID",
+                self.log.error("Internal error: on_worker_ready() fired for process {process}, but no process with that ID",
                                process=id)
 
         self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node_id))
@@ -267,7 +267,7 @@ class NodeControllerSession(NativeProcessSession):
         :returns: list -- Buffered log.
         """
         if id not in self._workers:
-            emsg = "ERROR: no worker with ID '{}'".format(id)
+            emsg = "No worker with ID '{}'".format(id)
             raise ApplicationError('crossbar.error.no_such_worker', emsg)
 
         return self._workers[id].getlog(limit)
@@ -309,7 +309,7 @@ class NodeControllerSession(NativeProcessSession):
         # prohibit starting a worker twice
         #
         if id in self._workers:
-            emsg = "ERROR: could not start worker - a worker with ID '{}'' is already running (or starting)".format(id)
+            emsg = "Could not start worker: a worker with ID '{}' is already running (or starting)".format(id)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.worker_already_running', emsg)
 
@@ -324,7 +324,7 @@ class NodeControllerSession(NativeProcessSession):
             else:
                 raise Exception("logic error")
         except Exception as e:
-            emsg = "ERROR: could not start native worker - invalid configuration ({})".format(e)
+            emsg = "Could not start native worker: invalid configuration ({})".format(e)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
@@ -336,14 +336,14 @@ class NodeControllerSession(NativeProcessSession):
             # the executable must be an absolute path, e.g. /home/oberstet/pypy-2.2.1-linux64/bin/pypy
             #
             if not os.path.isabs(exe):
-                emsg = "ERROR: python '{}' from worker options must be an absolute path".format(exe)
+                emsg = "Invalid worker configuration: python executable '{}' must be an absolute path".format(exe)
                 self.log.error(emsg)
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
             # of course the path must exist and actually be executable
             #
             if not (os.path.isfile(exe) and os.access(exe, os.X_OK)):
-                emsg = "ERROR: python '{}' from worker options does not exist or isn't an executable".format(exe)
+                emsg = "Invalid worker configuration: python executable '{}' does not exist or isn't an executable".format(exe)
                 self.log.error(emsg)
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
         else:
@@ -458,7 +458,7 @@ class NodeControllerSession(NativeProcessSession):
         def on_ready_error(err):
             del self._workers[worker.id]
 
-            emsg = 'ERROR: failed to start native worker - {}'.format(err.value)
+            emsg = 'Failed to start native worker: {}'.format(err.value)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.cannot_start", emsg, worker.getlog())
 
@@ -545,7 +545,7 @@ class NodeControllerSession(NativeProcessSession):
         def on_connect_error(err):
 
             # not sure when this errback is triggered at all ..
-            self.log.error("ERROR: Connecting forked native worker failed - {err}", err=err)
+            self.log.error("Interal error: connection to forked native worker failed ({err})", err=err)
 
             # in any case, forward the error ..
             worker.ready.errback(err)
@@ -624,13 +624,13 @@ class NodeControllerSession(NativeProcessSession):
         assert(wtype in ['router', 'container'])
 
         if id not in self._workers or self._workers[id].TYPE != wtype:
-            emsg = "ERROR: no {} worker with ID '{}' currently running".format(wtype, id)
+            emsg = "Could not stop native worker: no {} worker with ID '{}' currently running".format(wtype, id)
             raise ApplicationError('crossbar.error.worker_not_running', emsg)
 
         worker = self._workers[id]
 
         if worker.status != 'started':
-            emsg = "ERROR: worker with ID '{}' is not in 'started' status (current status: '{}')".format(id, worker.status)
+            emsg = "Could not stop native worker: worker with ID '{}' is not in status 'started', but status: '{}')".format(id, worker.status)
             raise ApplicationError('crossbar.error.worker_not_running', emsg)
 
         if kill:
@@ -655,7 +655,7 @@ class NodeControllerSession(NativeProcessSession):
         # prohibit starting a worker twice
         #
         if id in self._workers:
-            emsg = "ERROR: could not start worker - a worker with ID '{}' is already running (or starting)".format(id)
+            emsg = "Could not start worker: a worker with ID '{}' is already running (or starting)".format(id)
             self.log.error(emsg)
             raise ApplicationError('crossbar.error.worker_already_running', emsg)
 
@@ -691,7 +691,7 @@ class NodeControllerSession(NativeProcessSession):
                 self.log.info("Using guest worker executable '{exe}' (executable path detected from environment)",
                               exe=exe)
             else:
-                emsg = "ERROR: could not start worker - could not find and executable for '{}'".format(config['executable'])
+                emsg = "Could not start worker: could not find and executable for '{}'".format(config['executable'])
                 self.log.error(emsg)
                 raise ApplicationError('crossbar.error.invalid_configuration', emsg)
 
@@ -791,7 +791,7 @@ class NodeControllerSession(NativeProcessSession):
         def on_ready_error(err):
             del self._workers[worker.id]
 
-            emsg = 'ERROR: failed to start guest worker - {}'.format(err.value)
+            emsg = 'Failed to start guest worker: {}'.format(err.value)
             self.log.error(emsg)
             raise ApplicationError("crossbar.error.cannot_start", emsg, ep.getlog())
 
@@ -863,7 +863,7 @@ class NodeControllerSession(NativeProcessSession):
         def on_connect_error(err):
 
             # not sure when this errback is triggered at all .. see above.
-            self.log.error("ERROR: Connecting forked guest worker failed - {}".format(err))
+            self.log.error("Internal error: connection to forked guest worker failed ({})".format(err))
 
             # in any case, forward the error ..
             worker.ready.errback(err)
@@ -883,7 +883,7 @@ class NodeControllerSession(NativeProcessSession):
                        id=id, kill=kill)
 
         if id not in self._workers or self._workers[id].worker_type != 'guest':
-            emsg = "ERROR: no guest worker with ID '{}' currently running".format(id)
+            emsg = "Could not stop guest worker: no guest worker with ID '{}' currently running".format(id)
             raise ApplicationError('crossbar.error.worker_not_running', emsg)
 
         try:
@@ -892,7 +892,7 @@ class NodeControllerSession(NativeProcessSession):
             else:
                 self._workers[id].proto.transport.loseConnection()
         except Exception as e:
-            emsg = "ERROR: could not stop guest worker '{}' - {}".format(id, e)
+            emsg = "Could not stop guest worker with ID '{}': {}".format(id, e)
             raise ApplicationError('crossbar.error.stop_worker_failed', emsg)
         else:
             del self._workers[id]
