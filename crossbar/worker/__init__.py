@@ -60,15 +60,19 @@ def _appsession_loader(config):
 
             if not issubclass(component, ApplicationSession):
                 raise ApplicationError(
-                    "crossbar.error.class_import_failed",
-                    "session not derived of ApplicationSession")
+                    u"crossbar.error.class_import_failed", "session not derived of ApplicationSession"
+                )
 
         except Exception as e:
             emsg = "Failed to import class '{}'\n{}".format(
                 klassname, Failure(e).getTraceback())
             log.debug(emsg)
             log.debug("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
-            raise ApplicationError(u"crossbar.error.class_import_failed", emsg, pythonpath=sys.path)
+            raise ApplicationError(
+                u"crossbar.error.class_import_failed",
+                emsg,
+                pythonpath=sys.path
+            )
 
     elif config['type'] == 'wamplet':
 
@@ -90,7 +94,8 @@ def _appsession_loader(config):
 
     else:
         raise ApplicationError(
-            "crossbar.error.invalid_configuration",
-            "invalid component type '{}'".format(config['type']))
+            u"crossbar.error.invalid_configuration",
+            "invalid component type '{}'".format(config['type'])
+        )
 
     return component

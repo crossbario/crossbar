@@ -96,7 +96,7 @@ class _CommonResource(Resource):
         self.log.debug("[request denied] - {code} / " + reason,
                        code=code, **kwargs)
         request.setResponseCode(code)
-        return reason.format(**kwargs).encode("utf8") + b"\n"
+        return reason.format(**kwargs).encode('utf8') + b"\n"
 
     def render(self, request):
         self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
@@ -161,7 +161,7 @@ class _CommonResource(Resource):
 
         charset_encoding = encoding_parts.get("charset", "utf-8")
 
-        if charset_encoding not in ["utf-8", "utf8"]:
+        if charset_encoding not in ["utf-8", 'utf8']:
             return self._deny_request(
                 request, 400,
                 (u"'{charset_encoding}' is not an accepted charset encoding, "
@@ -312,7 +312,7 @@ class _CommonResource(Resource):
                 request, 400,
                 u"invalid request event - HTTP/POST body was invalid UTF-8")
 
-        event = body.decode("utf8")
+        event = body.decode('utf8')
 
         if self.decode_as_json:
             try:

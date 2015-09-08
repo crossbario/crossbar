@@ -71,6 +71,9 @@ class JsonResource(Resource):
         else:
             self._data = json.dumps(value, separators=(',', ':'), ensure_ascii=False)
 
+        # Twisted Web render_METHOD methods are expected to return a byte string
+        self._data = self._data.encode('utf8')
+
         self._allow_cross_origin = options.get('allow_cross_origin', True)
         self._discourage_caching = options.get('discourage_caching', False)
 
@@ -81,25 +84,28 @@ class JsonResource(Resource):
     def render_GET(self, request):
         # we produce JSON: set correct response content type
         #
+        # note: both args to request.setHeader are supposed to be byte strings
+        # https://twistedmatrix.com/documents/current/api/twisted.web.http.Request.html#setHeader
+        #
         request.setHeader(b'content-type', b'application/json; charset=utf8-8')
 
         # set response headers for cross-origin requests
         #
         if self._allow_cross_origin:
-            origin = request.getHeader("origin")
-            if origin is None or origin == "null":
-                origin = "*"
-            request.setHeader('access-control-allow-origin', origin)
-            request.setHeader('access-control-allow-credentials', 'true')
+            origin = request.getHeader(b'origin')
+            if origin is None or origin == b'null':
+                origin = b'*'
+            request.setHeader(b'access-control-allow-origin', origin)
+            request.setHeader(b'access-control-allow-credentials', b'true')
 
-            headers = request.getHeader('access-control-request-headers')
+            headers = request.getHeader(b'access-control-request-headers')
             if headers is not None:
-                request.setHeader('access-control-allow-headers', headers)
+                request.setHeader(b'access-control-allow-headers', headers)
 
         # set response headers to disallow caching
         #
         if self._discourage_caching:
-            request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+            request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
 
         self._requests_served += 1
         if self._requests_served % 10000 == 0:
@@ -510,12 +516,11 @@ class StaticResource(File):
 
     def __init__(self, *args, **kwargs):
         self._cache_timeout = kwargs.pop('cache_timeout', None)
-
         File.__init__(self, *args, **kwargs)
 
     def render_GET(self, request):
         if self._cache_timeout is not None:
-            request.setHeader(b'cache-control', 'max-age={}, public'.format(self._cache_timeout))
+            request.setHeader(b'cache-control', u'max-age={}, public'.format(self._cache_timeout).encode('utf8'))
             request.setHeader(b'expires', http.datetimeToString(time.time() + self._cache_timeout))
 
         return File.render_GET(self, request)
@@ -619,9 +624,6 @@ class WampLongPollResource(longpoll.WampLongPollResource):
 
 
 class SchemaDocResource(Resource):
-
-    """
-    """
 
     isLeaf = True
 

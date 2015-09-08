@@ -478,7 +478,7 @@ def run_command_start(options, reactor=None):
         sys.exit(1)
     else:
         fp = os.path.join(options.cbdir, _PID_FILENAME)
-        with open(fp, 'w') as fd:
+        with open(fp, 'wb') as fd:
             argv = options.argv
             options_dump = vars(options)
             pid_data = {
@@ -487,7 +487,14 @@ def run_command_start(options, reactor=None):
                 'options': {x: y for x, y in options_dump.items()
                             if x not in ["func", "argv"]}
             }
-            fd.write("{}\n".format(json.dumps(pid_data, sort_keys=False, indent=3, separators=(',', ': '))))
+            fd.write("{}\n".format(
+                json.dumps(
+                    pid_data,
+                    sort_keys=False,
+                    indent=3,
+                    separators=(', ', ': ')
+                )
+            ))
 
     # remove node PID file when reactor exits
     #
