@@ -30,12 +30,14 @@
 
 from __future__ import absolute_import
 
+import os
 from twisted.trial import unittest
 
 from crossbar.router.role import RouterRoleStaticAuth
+from crossbar.router.auth import PendingAuthWampCra
 
 
-class Test_RouterRoleStaticAuth(unittest.TestCase):
+class TestRouterRoleStaticAuth(unittest.TestCase):
 
     def test_ruleset_empty(self):
         permissions = []
@@ -79,3 +81,12 @@ class Test_RouterRoleStaticAuth(unittest.TestCase):
         for uri, allow in uris:
             for action in actions:
                 self.assertEqual(role.authorize(None, uri, action), allow)
+
+
+class TestPendingAuth(unittest.TestCase):
+    def test_wamp_cra_challenge(self):
+        secret = os.urandom(32)
+        pend = PendingAuthWampCra(1234, u'authid', u'authrole', None, secret)
+
+        self.assertTrue(isinstance(pend.challenge, bytes))
+        self.assertTrue(isinstance(pend.signature, bytes))

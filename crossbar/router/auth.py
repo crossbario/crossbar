@@ -100,7 +100,8 @@ class PendingAuthWampCra(PendingAuth):
             'timestamp': util.utcnow()
         }
 
-        self.challenge = json.dumps(challenge_obj)
+        # challenge must be bytes
+        self.challenge = json.dumps(challenge_obj).encode('utf-8')
         self.signature = auth.compute_wcs(secret, self.challenge)
 
 
