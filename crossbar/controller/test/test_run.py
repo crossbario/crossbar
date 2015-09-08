@@ -32,18 +32,45 @@ from __future__ import absolute_import, division, print_function
 
 import json
 import os
+import sys
 
 from six import PY3
 
+from twisted.python.filepath import FilePath
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall
 
 from crossbar.controller import cli
 from .test_cli import CLITestBase
 
+# Turn this to `True` to print the stdout/stderr of the Crossbars spawned
+DEBUG = False
 
-def make_lc(reactor, func):
-    lc = LoopingCall(func)
+
+def make_lc(self, reactor, func):
+
+    if DEBUG:
+        self.stdout_length = 0
+        self.stderr_length = 0
+
+    def _(lc, reactor):
+        if DEBUG:
+            stdout = self.stdout.getvalue()
+            stderr = self.stderr.getvalue()
+
+            if self.stdout.getvalue()[self.stdout_length:]:
+                print(self.stdout.getvalue()[self.stdout_length:],
+                      file=sys.__stdout__)
+            if self.stderr.getvalue()[self.stderr_length:]:
+                print(self.stderr.getvalue()[self.stderr_length:],
+                      file=sys.__stderr__)
+
+            self.stdout_length = len(stdout)
+            self.stderr_length = len(stderr)
+
+        return func(lc, reactor)
+
+    lc = LoopingCall(_)
     lc.a = (lc, reactor)
     lc.clock = reactor
     lc.start(0.1)
@@ -74,7 +101,7 @@ class ContainerRunningTests(CLITestBase):
 
         reactor = SelectReactor()
 
-        make_lc(reactor, end_on)
+        make_lc(self, reactor, end_on)
 
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
@@ -888,5 +915,49 @@ class MySession(ApplicationSession):
                         _check)
 
 
+class InitTests(CLITestBase):
+
+    def test_hello(self):
+
+        def _check(lc, reactor):
+            if "published to 'oncounter'" in self.stdout.getvalue():
+                lc.stop()
+                try:
+                    reactor.stop()
+                except:
+                    pass
+
+        appdir = FilePath(self.mktemp())
+        cbdir = appdir.child(".crossbar")
+
+        reactor = SelectReactor()
+        cli.run("crossbar",
+                ["init",
+                 "--appdir={}".format(appdir.path),
+                 "--template=hello:python"],
+                reactor=reactor)
+
+        self.assertIn("Application template initialized",
+                      self.stdout.getvalue())
+
+        reactor = SelectReactor()
+        make_lc(self, reactor, _check)
+
+        # In case it hard-locks
+        reactor.callLater(self._subprocess_timeout, reactor.stop)
+
+        cli.run("crossbar",
+                ["start",
+                 "--cbdir={}".format(cbdir.path),
+                 "--logformat=syslogd"],
+                reactor=reactor)
+
+        stdout_expected = ["published to 'oncounter'"]
+
+        for i in stdout_expected:
+            self.assertIn(i, self.stdout.getvalue())
+
+
 if not os.environ.get("CB_FULLTESTS"):
     del ContainerRunningTests
+    del InitTests
