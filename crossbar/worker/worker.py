@@ -189,7 +189,7 @@ class NativeWorkerSession(NativeProcessSession):
         if not _HAS_PSUTIL:
             emsg = "Unable to get CPU affinity: required package 'psutil' is not installed"
             self.log.warn(emsg)
-            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
         try:
             p = psutil.Process(os.getpid())
@@ -197,7 +197,7 @@ class NativeWorkerSession(NativeProcessSession):
         except Exception as e:
             emsg = "Could not get CPU affinity: {}".format(e)
             self.log.failure(emsg)
-            raise ApplicationError("crossbar.error.runtime_error", emsg)
+            raise ApplicationError(u"crossbar.error.runtime_error", emsg)
         else:
             res = {'affinity': current_affinity}
             return res
@@ -214,7 +214,7 @@ class NativeWorkerSession(NativeProcessSession):
         if not _HAS_PSUTIL:
             emsg = "Unable to set CPU affinity: required package 'psutil' is not installed"
             self.log.warn(emsg)
-            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
         try:
             p = psutil.Process(os.getpid())
@@ -223,7 +223,7 @@ class NativeWorkerSession(NativeProcessSession):
         except Exception as e:
             emsg = "Could not set CPU affinity: {}".format(e)
             self.log.failure(emsg)
-            raise ApplicationError("crossbar.error.runtime_error", emsg)
+            raise ApplicationError(u"crossbar.error.runtime_error", emsg)
         else:
 
             # publish info to all but the caller ..
@@ -271,7 +271,7 @@ class NativeWorkerSession(NativeProcessSession):
             else:
                 emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(p, path_to_add)
                 self.log.failure(emsg)
-                raise ApplicationError('crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
+                raise ApplicationError(u'crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
 
         # now extend python module search path
         #

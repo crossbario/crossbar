@@ -357,7 +357,7 @@ class RouterWorkerSession(NativeWorkerSession):
         self.log.debug("{}.get_router_realm_roles".format(self.__class__.__name__), id=id)
 
         if id not in self.realms:
-            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
 
         return self.realms[id].roles.values()
 
@@ -376,10 +376,10 @@ class RouterWorkerSession(NativeWorkerSession):
                        id=id, role_id=role_id, config=config)
 
         if id not in self.realms:
-            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
 
         if role_id in self.realms[id].roles:
-            raise ApplicationError("crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, id))
+            raise ApplicationError(u"crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, id))
 
         self.realms[id].roles[role_id] = RouterRealmRole(role_id, config)
 
@@ -399,10 +399,10 @@ class RouterWorkerSession(NativeWorkerSession):
                        id=id, role_id=role_id)
 
         if id not in self.realms:
-            raise ApplicationError("crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
 
         if role_id not in self.realms[id].roles:
-            raise ApplicationError("crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, id))
+            raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, id))
 
         del self.realms[id].roles[role_id]
 
@@ -438,7 +438,7 @@ class RouterWorkerSession(NativeWorkerSession):
         if id in self.components:
             emsg = "Could not start component: a component with ID '{}'' is already running (or starting)".format(id)
             self.log.error(emsg)
-            raise ApplicationError('crossbar.error.already_running', emsg)
+            raise ApplicationError(u'crossbar.error.already_running', emsg)
 
         # check configuration
         #
@@ -447,7 +447,7 @@ class RouterWorkerSession(NativeWorkerSession):
         except Exception as e:
             emsg = "Invalid router component configuration: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
         else:
             self.log.debug("Starting {type}-component on router.",
                            type=config['type'])
@@ -463,11 +463,11 @@ class RouterWorkerSession(NativeWorkerSession):
                 else:
                     emsg = "cannot resolve reference '{}' - no '{}' with ID '{}'".format(ref, ref_type, ref_id)
                     self.log.error(emsg)
-                    raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
             else:
                 emsg = "cannot resolve reference '{}' - invalid reference type '{}'".format(ref, ref_type)
                 self.log.error(emsg)
-                raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
 
         # create component config
         #
@@ -513,9 +513,9 @@ class RouterWorkerSession(NativeWorkerSession):
                 self._session_factory.remove(self.components[id])
                 del self.components[id]
             except Exception as e:
-                raise ApplicationError("crossbar.error.component.cannot_stop", "Failed to stop component {}: {}".format(id, e))
+                raise ApplicationError(u"crossbar.error.component.cannot_stop", "Failed to stop component {}: {}".format(id, e))
         else:
-            raise ApplicationError("crossbar.error.no_such_component", "No component {}".format(id))
+            raise ApplicationError(u"crossbar.error.no_such_component", "No component {}".format(id))
 
     def get_router_transports(self, details=None):
         """
@@ -549,7 +549,7 @@ class RouterWorkerSession(NativeWorkerSession):
         if id in self.transports:
             emsg = "Could not start transport: a transport with ID '{}' is already running (or starting)".format(id)
             self.log.error(emsg)
-            raise ApplicationError('crossbar.error.already_running', emsg)
+            raise ApplicationError(u'crossbar.error.already_running', emsg)
 
         # check configuration
         #
@@ -558,7 +558,7 @@ class RouterWorkerSession(NativeWorkerSession):
         except Exception as e:
             emsg = "Invalid router transport configuration: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
         else:
             self.log.debug("Starting {}-transport on router.".format(config['type']))
 
@@ -618,27 +618,27 @@ class RouterWorkerSession(NativeWorkerSession):
                 elif 'package' in root_config:
 
                     if 'resource' not in root_config:
-                        raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
+                        raise ApplicationError(u"crossbar.error.invalid_configuration", "missing resource")
 
                     try:
                         mod = importlib.import_module(root_config['package'])
                     except ImportError as e:
                         emsg = "Could not import resource {} from package {}: {}".format(root_config['resource'], root_config['package'], e)
                         self.log.error(emsg)
-                        raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+                        raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
                     else:
                         try:
                             root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['package'], root_config['resource']))
                         except Exception as e:
                             emsg = "Could not import resource {} from package {}: {}".format(root_config['resource'], root_config['package'], e)
                             self.log.error(emsg)
-                            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+                            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
                         else:
                             mod_version = getattr(mod, '__version__', '?.?.?')
                             self.log.info("Loaded static Web resource '{}' from package '{} {}' (filesystem path {})".format(root_config['resource'], root_config['package'], mod_version, root_dir))
 
                 else:
-                    raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", "missing web spec")
 
                 root_dir = root_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
                 self.log.debug("Starting Web service at root directory {}".format(root_dir))
@@ -670,26 +670,26 @@ class RouterWorkerSession(NativeWorkerSession):
             elif root_type == 'wsgi':
 
                 if not _HAS_WSGI:
-                    raise ApplicationError("crossbar.error.invalid_configuration", "WSGI unsupported")
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI unsupported")
 
                 # wsgi_options = root_config.get('options', {})
 
                 if 'module' not in root_config:
-                    raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app module")
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app module")
 
                 if 'object' not in root_config:
-                    raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app object")
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app object")
 
                 # import WSGI app module and object
                 mod_name = root_config['module']
                 try:
                     mod = importlib.import_module(mod_name)
                 except ImportError as e:
-                    raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
                 else:
                     obj_name = root_config['object']
                     if obj_name not in mod.__dict__:
-                        raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
+                        raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
                     else:
                         app = getattr(mod, obj_name)
 
@@ -697,7 +697,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 try:
                     wsgi_resource = WSGIResource(self._reactor, self._reactor.reactor.getThreadPool(), app)
                 except Exception as e:
-                    raise ApplicationError("crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
                 else:
                     # create a root resource serving everything via WSGI
                     root = WSGIRootResource(wsgi_resource, {})
@@ -780,12 +780,12 @@ class RouterWorkerSession(NativeWorkerSession):
                     self.log.error(emsg)
                     self.log.error("PYTHONPATH: {pythonpath}",
                                    pythonpath=sys.path)
-                    raise ApplicationError("crossbar.error.class_import_failed", emsg)
+                    raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
 
             # Invalid root resource
             #
             else:
-                raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web root path type '{}'".format(root_type))
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "invalid Web root path type '{}'".format(root_type))
 
             # create Twisted Web resources on all non-root paths configured
             #
@@ -837,7 +837,7 @@ class RouterWorkerSession(NativeWorkerSession):
         def fail(err):
             emsg = "Cannot listen on transport endpoint: {}".format(err.value)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.cannot_listen", emsg)
+            raise ApplicationError(u"crossbar.error.cannot_listen", emsg)
 
         d.addCallbacks(ok, fail)
         return d
@@ -894,25 +894,25 @@ class RouterWorkerSession(NativeWorkerSession):
             elif 'package' in path_config:
 
                 if 'resource' not in path_config:
-                    raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", "missing resource")
 
                 try:
                     mod = importlib.import_module(path_config['package'])
                 except ImportError as e:
                     emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
                     self.log.error(emsg)
-                    raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
                 else:
                     try:
                         static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
                     except Exception as e:
                         emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
                         self.log.error(emsg)
-                        raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+                        raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
 
             else:
 
-                raise ApplicationError("crossbar.error.invalid_configuration", "missing web spec")
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "missing web spec")
 
             static_dir = static_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
 
@@ -945,26 +945,26 @@ class RouterWorkerSession(NativeWorkerSession):
         elif path_config['type'] == 'wsgi':
 
             if not _HAS_WSGI:
-                raise ApplicationError("crossbar.error.invalid_configuration", "WSGI unsupported")
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI unsupported")
 
             # wsgi_options = path_config.get('options', {})
 
             if 'module' not in path_config:
-                raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app module")
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app module")
 
             if 'object' not in path_config:
-                raise ApplicationError("crossbar.error.invalid_configuration", "missing WSGI app object")
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app object")
 
             # import WSGI app module and object
             mod_name = path_config['module']
             try:
                 mod = importlib.import_module(mod_name)
             except ImportError as e:
-                raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
             else:
                 obj_name = path_config['object']
                 if obj_name not in mod.__dict__:
-                    raise ApplicationError("crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
                 else:
                     app = getattr(mod, obj_name)
 
@@ -972,7 +972,7 @@ class RouterWorkerSession(NativeWorkerSession):
             try:
                 wsgi_resource = WSGIResource(self._reactor, self._reactor.getThreadPool(), app)
             except Exception as e:
-                raise ApplicationError("crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
             else:
                 return wsgi_resource
 
@@ -1077,7 +1077,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if not os.path.isdir(upload_directory):
                 emsg = "configured upload directory '{}' in file upload resource isn't a directory".format(upload_directory)
                 self.log.error(emsg)
-                raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
 
             if 'temp_directory' in path_config:
                 temp_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
@@ -1091,7 +1091,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if not os.path.isdir(temp_directory):
                 emsg = "configured temp directory '{}' in file upload resource isn't a directory".format(temp_directory)
                 self.log.error(emsg)
-                raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
 
             # file upload progress and finish events are published via this session
             #
@@ -1122,7 +1122,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 emsg = "Failed to import class '{}' - {}".format(klassname, e)
                 self.log.error(emsg)
                 self.log.error("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
-                raise ApplicationError("crossbar.error.class_import_failed", emsg)
+                raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
 
         # Schema Docs resource
         #
@@ -1131,7 +1131,7 @@ class RouterWorkerSession(NativeWorkerSession):
             realm = path_config['realm']
 
             if realm not in self.realm_to_id:
-                raise ApplicationError("crossbar.error.no_such_object", "No realm with URI '{}' configured".format(realm))
+                raise ApplicationError(u"crossbar.error.no_such_object", "No realm with URI '{}' configured".format(realm))
 
             realm_id = self.realm_to_id[realm]
 
@@ -1157,7 +1157,7 @@ class RouterWorkerSession(NativeWorkerSession):
             return nested_resource
 
         else:
-            raise ApplicationError("crossbar.error.invalid_configuration", "invalid Web path type '{}'".format(path_config['type']))
+            raise ApplicationError(u"crossbar.error.invalid_configuration", "invalid Web path type '{}'".format(path_config['type']))
 
     def stop_router_transport(self, id, details=None):
         """
@@ -1173,7 +1173,7 @@ class RouterWorkerSession(NativeWorkerSession):
             #      if not id in self.transports or self.transports[id].status != 'started':
             emsg = "Cannot stop transport: no transport with ID '{}' or transport is already stopping".format(id)
             self.log.error(emsg)
-            raise ApplicationError('crossbar.error.not_running', emsg)
+            raise ApplicationError(u'crossbar.error.not_running', emsg)
 
         self.log.debug("Stopping transport with ID '{}'".format(id))
 
@@ -1183,7 +1183,7 @@ class RouterWorkerSession(NativeWorkerSession):
             del self.transports[id]
 
         def fail(err):
-            raise ApplicationError("crossbar.error.cannot_stop", "Failed to stop transport: {}".format(str(err.value)))
+            raise ApplicationError(u"crossbar.error.cannot_stop", "Failed to stop transport: {}".format(str(err.value)))
 
         d.addCallbacks(ok, fail)
         return d

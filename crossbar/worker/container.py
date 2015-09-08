@@ -168,7 +168,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         if id in self.components:
             emsg = "Could not start component - a component with ID '{}'' is already running (or starting)".format(id)
             self.log.error(emsg)
-            raise ApplicationError('crossbar.error.already_running', emsg)
+            raise ApplicationError(u'crossbar.error.already_running', emsg)
 
         # check configuration
         #
@@ -177,7 +177,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         except Exception as e:
             emsg = "Invalid container component configuration ({})".format(e)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
         else:
             self.log.debug("Starting {type}-component in container.",
                            type=config['type'])
@@ -327,7 +327,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             if isinstance(err.value, internet.error.ConnectError):
                 emsg = "Could not connect container component to router - transport establishment failed ({})".format(err.value)
                 self.log.error(emsg)
-                raise ApplicationError('crossbar.error.cannot_connect', emsg)
+                raise ApplicationError(u'crossbar.error.cannot_connect', emsg)
             else:
                 # should not arrive here (since all errors arriving here should be subclasses of ConnectError)
                 raise err
@@ -364,7 +364,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         :returns dict -- A dict with combined info from component stopping/starting.
         """
         if id not in self.components:
-            raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
+            raise ApplicationError(u'crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
         component = self.components[id]
 
@@ -387,7 +387,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         :returns dict -- A dict with component start information.
         """
         if id not in self.components:
-            raise ApplicationError('crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
+            raise ApplicationError(u'crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
 
         component = self.components[id]
         try:

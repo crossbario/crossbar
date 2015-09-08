@@ -68,7 +68,7 @@ def _appsession_loader(config):
                 klassname, Failure(e).getTraceback())
             log.debug(emsg)
             log.debug("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
-            raise ApplicationError("crossbar.error.class_import_failed", emsg, pythonpath=sys.path)
+            raise ApplicationError(u"crossbar.error.class_import_failed", emsg, pythonpath=sys.path)
 
     elif config['type'] == 'wamplet':
 
@@ -86,7 +86,7 @@ def _appsession_loader(config):
             emsg = "Failed to import wamplet '{}/{}'\n{}".format(
                 dist, name, Failure(e).getTraceback())
             log.error(emsg)
-            raise ApplicationError("crossbar.error.class_import_failed", emsg)
+            raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
 
     else:
         raise ApplicationError(

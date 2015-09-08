@@ -268,7 +268,7 @@ class NodeControllerSession(NativeProcessSession):
         """
         if id not in self._workers:
             emsg = "No worker with ID '{}'".format(id)
-            raise ApplicationError('crossbar.error.no_such_worker', emsg)
+            raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
 
         return self._workers[id].getlog(limit)
 
@@ -311,7 +311,7 @@ class NodeControllerSession(NativeProcessSession):
         if id in self._workers:
             emsg = "Could not start worker: a worker with ID '{}' is already running (or starting)".format(id)
             self.log.error(emsg)
-            raise ApplicationError('crossbar.error.worker_already_running', emsg)
+            raise ApplicationError(u'crossbar.error.worker_already_running', emsg)
 
         # check worker options
         #
@@ -326,7 +326,7 @@ class NodeControllerSession(NativeProcessSession):
         except Exception as e:
             emsg = "Could not start native worker: invalid configuration ({})".format(e)
             self.log.error(emsg)
-            raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+            raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
 
         # allow override Python executable from options
         #
@@ -338,14 +338,14 @@ class NodeControllerSession(NativeProcessSession):
             if not os.path.isabs(exe):
                 emsg = "Invalid worker configuration: python executable '{}' must be an absolute path".format(exe)
                 self.log.error(emsg)
-                raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+                raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
 
             # of course the path must exist and actually be executable
             #
             if not (os.path.isfile(exe) and os.access(exe, os.X_OK)):
                 emsg = "Invalid worker configuration: python executable '{}' does not exist or isn't an executable".format(exe)
                 self.log.error(emsg)
-                raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+                raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
         else:
             exe = sys.executable
 
@@ -460,7 +460,7 @@ class NodeControllerSession(NativeProcessSession):
 
             emsg = 'Failed to start native worker: {}'.format(err.value)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.cannot_start", emsg, worker.getlog())
+            raise ApplicationError(u"crossbar.error.cannot_start", emsg, worker.getlog())
 
         worker.ready.addCallbacks(on_ready_success, on_ready_error)
 
@@ -625,13 +625,13 @@ class NodeControllerSession(NativeProcessSession):
 
         if id not in self._workers or self._workers[id].TYPE != wtype:
             emsg = "Could not stop native worker: no {} worker with ID '{}' currently running".format(wtype, id)
-            raise ApplicationError('crossbar.error.worker_not_running', emsg)
+            raise ApplicationError(u'crossbar.error.worker_not_running', emsg)
 
         worker = self._workers[id]
 
         if worker.status != 'started':
             emsg = "Could not stop native worker: worker with ID '{}' is not in status 'started', but status: '{}')".format(id, worker.status)
-            raise ApplicationError('crossbar.error.worker_not_running', emsg)
+            raise ApplicationError(u'crossbar.error.worker_not_running', emsg)
 
         if kill:
             self.log.info("Killing {wtype} worker with ID '{id}'",
@@ -657,12 +657,12 @@ class NodeControllerSession(NativeProcessSession):
         if id in self._workers:
             emsg = "Could not start worker: a worker with ID '{}' is already running (or starting)".format(id)
             self.log.error(emsg)
-            raise ApplicationError('crossbar.error.worker_already_running', emsg)
+            raise ApplicationError(u'crossbar.error.worker_already_running', emsg)
 
         try:
             checkconfig.check_guest(config)
         except Exception as e:
-            raise ApplicationError('crossbar.error.invalid_configuration', 'invalid guest worker configuration: {}'.format(e))
+            raise ApplicationError(u'crossbar.error.invalid_configuration', 'invalid guest worker configuration: {}'.format(e))
 
         options = config.get('options', {})
 
@@ -693,7 +693,7 @@ class NodeControllerSession(NativeProcessSession):
             else:
                 emsg = "Could not start worker: could not find and executable for '{}'".format(config['executable'])
                 self.log.error(emsg)
-                raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+                raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
 
         # guest process command line arguments
         #
@@ -793,7 +793,7 @@ class NodeControllerSession(NativeProcessSession):
 
             emsg = 'Failed to start guest worker: {}'.format(err.value)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.cannot_start", emsg, ep.getlog())
+            raise ApplicationError(u"crossbar.error.cannot_start", emsg, ep.getlog())
 
         worker.ready.addCallbacks(on_ready_success, on_ready_error)
 
@@ -884,7 +884,7 @@ class NodeControllerSession(NativeProcessSession):
 
         if id not in self._workers or self._workers[id].worker_type != 'guest':
             emsg = "Could not stop guest worker: no guest worker with ID '{}' currently running".format(id)
-            raise ApplicationError('crossbar.error.worker_not_running', emsg)
+            raise ApplicationError(u'crossbar.error.worker_not_running', emsg)
 
         try:
             if kill:
@@ -893,7 +893,7 @@ class NodeControllerSession(NativeProcessSession):
                 self._workers[id].proto.transport.loseConnection()
         except Exception as e:
             emsg = "Could not stop guest worker with ID '{}': {}".format(id, e)
-            raise ApplicationError('crossbar.error.stop_worker_failed', emsg)
+            raise ApplicationError(u'crossbar.error.stop_worker_failed', emsg)
         else:
             del self._workers[id]
 

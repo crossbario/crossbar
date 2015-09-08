@@ -268,7 +268,7 @@ class NativeProcessSession(ApplicationSession):
         if id in self._connections:
             emsg = "cannot start connection: a connection with id={} is already started".format(id)
             self.log.warn(emsg)
-            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
 
         # check configuration
         #
@@ -277,7 +277,7 @@ class NativeProcessSession(ApplicationSession):
         except Exception as e:
             emsg = "invalid connection configuration ({})".format(e)
             self.log.warn(emsg)
-            raise ApplicationError("crossbar.error.invalid_configuration", emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
         else:
             self.log.info("Starting {} in process.".format(config['type']))
 
@@ -287,7 +287,7 @@ class NativeProcessSession(ApplicationSession):
             else:
                 emsg = "unable to start connection - required PostgreSQL driver package not installed"
                 self.log.warn(emsg)
-                raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+                raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
         else:
             # should not arrive here
             raise Exception("logic error")
@@ -322,7 +322,7 @@ class NativeProcessSession(ApplicationSession):
         self.log.debug("stop_connection: id={id}", id=id)
 
         if id not in self._connections:
-            raise ApplicationError('crossbar.error.no_such_object', 'no connection with ID {} running in this process'.format(id))
+            raise ApplicationError(u'crossbar.error.no_such_object', 'no connection with ID {} running in this process'.format(id))
 
         connection = self._connections[id]
 
@@ -369,7 +369,7 @@ class NativeProcessSession(ApplicationSession):
             return self._pinfo.get_info()
         else:
             emsg = "Could not retrieve process statistics: required packages not installed"
-            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
     def get_process_stats(self, details=None):
         """
@@ -383,7 +383,7 @@ class NativeProcessSession(ApplicationSession):
             return self._pinfo.get_stats()
         else:
             emsg = "Could not retrieve process statistics: required packages not installed"
-            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
     def set_process_stats_monitoring(self, interval, details=None):
         """
@@ -422,7 +422,7 @@ class NativeProcessSession(ApplicationSession):
                 self.publish(stats_monitor_set_topic, interval, options=PublishOptions(exclude=[details.caller]))
         else:
             emsg = "Cannot setup process statistics monitor: required packages not installed"
-            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
     def trigger_gc(self, details=None):
         """
@@ -450,19 +450,19 @@ class NativeProcessSession(ApplicationSession):
         if not _HAS_MANHOLE:
             emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
         if self._manhole_service:
             emsg = "Could not start manhole - already running (or starting)"
             self.log.warn(emsg)
-            raise ApplicationError("crossbar.error.already_started", emsg)
+            raise ApplicationError(u"crossbar.error.already_started", emsg)
 
         try:
             checkconfig.check_manhole(config)
         except Exception as e:
             emsg = "Could not start manhole: invalid configuration ({})".format(e)
             self.log.error(emsg)
-            raise ApplicationError('crossbar.error.invalid_configuration', emsg)
+            raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
 
         # setup user authentication
         #
@@ -508,7 +508,7 @@ class NativeProcessSession(ApplicationSession):
             self._manhole_service = None
             emsg = "Manhole service endpoint cannot listen: {}".format(e)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.cannot_listen", emsg)
+            raise ApplicationError(u"crossbar.error.cannot_listen", emsg)
 
         # alright, manhole has started
         self._manhole_service.started = datetime.utcnow()
@@ -530,11 +530,11 @@ class NativeProcessSession(ApplicationSession):
         if not _HAS_MANHOLE:
             emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
         if not self._manhole_service or self._manhole_service.status != 'started':
             emsg = "Cannot stop manhole: not running (or already shutting down)"
-            raise ApplicationError("crossbar.error.not_started", emsg)
+            raise ApplicationError(u"crossbar.error.not_started", emsg)
 
         self._manhole_service.status = 'stopping'
 
@@ -572,7 +572,7 @@ class NativeProcessSession(ApplicationSession):
         if not _HAS_MANHOLE:
             emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
             self.log.error(emsg)
-            raise ApplicationError("crossbar.error.feature_unavailable", emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
         if not self._manhole_service:
             return None
