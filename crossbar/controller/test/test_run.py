@@ -93,8 +93,8 @@ class ContainerRunningTests(CLITestBase):
     def _start_run(self, config, app, stdout_expected, stderr_expected,
                    end_on):
 
-        with open(self.config, "w") as f:
-            f.write(json.dumps(config))
+        with open(self.config, "wb") as f:
+            f.write(json.dumps(config, ensure_ascii=False).encode('utf8'))
 
         with open(self.code_location + "/myapp.py", "w") as f:
             f.write(app)

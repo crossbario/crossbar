@@ -37,7 +37,7 @@ full_test: clean flake8
 
 # This will run pep8, pyflakes and can skip lines that end with # noqa
 flake8:
-	flake8 --ignore=E501 crossbar
+	flake8 --ignore=E501,N801,N802,N803,N805,N806 crossbar
 
 version:
 	PYTHONPATH=. python -m crossbar.controller.cli version

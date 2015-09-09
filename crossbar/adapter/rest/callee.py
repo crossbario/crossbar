@@ -60,9 +60,9 @@ class RESTCallee(ApplicationSession):
             newURL = urljoin(baseURL, url)
 
             res = yield self._webtransport.request(
-                method.encode("utf8"),
-                newURL.encode("utf8"),
-                data=body.encode("utf8"),
+                method.encode('utf8'),
+                newURL.encode('utf8'),
+                data=body.encode('utf8'),
                 headers=Headers(headers),
                 params=params
             )

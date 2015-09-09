@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import json
-import six
 
 from twisted.web import server
 
@@ -109,12 +108,9 @@ class PublisherResource(_CommonResource):
         def on_publish_ok(pub):
             res = {'id': pub.id}
             self.log.debug("request succeeded with result {res}", res=res)
-            body = json.dumps(res, separators=(',', ':'))
-            if six.PY3:
-                body = body.encode('utf8')
-
-            request.setHeader('content-type', 'application/json; charset=UTF-8')
-            request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+            body = json.dumps(res, separators=(',', ':'), ensure_ascii=False).encode('utf8')
+            request.setHeader(b'content-type', b'application/json; charset=UTF-8')
+            request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
             request.setResponseCode(202)
             request.write(body)
             request.finish()

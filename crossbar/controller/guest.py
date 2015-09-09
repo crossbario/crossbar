@@ -71,8 +71,7 @@ class GuestWorkerClientProtocol(protocol.Protocol):
                 self.log.debug("GuestWorkerClientProtocol: stdin to guest closed")
             else:
                 if options['stdin']['type'] == 'json':
-
-                    self.transport.write(json.dumps(options['stdin']['value']))
+                    self.transport.write(json.dumps(options['stdin']['value'], ensure_ascii=False).encode('utf8'))
                     self.log.debug("GuestWorkerClientProtocol: JSON value written to stdin on guest")
 
                 elif options['stdin']['type'] == 'msgpack':

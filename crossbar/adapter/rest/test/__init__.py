@@ -35,7 +35,7 @@ import hashlib
 import random
 import base64
 
-from six import b as networkString
+from six import b as network_string
 
 from datetime import datetime
 
@@ -86,10 +86,10 @@ def _utcnow():
 
 def makeSignedArguments(params, signKey, signSecret, body):
 
-    params[b'timestamp'] = [networkString(_utcnow())]
+    params[b'timestamp'] = [network_string(_utcnow())]
     params[b'seq'] = [b"1"]
-    params[b'key'] = [networkString(signKey)]
-    params[b'nonce'] = [networkString(str(random.randint(0, 9007199254740992)))]
+    params[b'key'] = [network_string(signKey)]
+    params[b'nonce'] = [network_string(str(random.randint(0, 9007199254740992)))]
 
     # HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
 

@@ -96,11 +96,9 @@ class CallerResource(_CommonResource):
         d = self._session.call(procedure, *args, **kwargs)
 
         def return_call_result(res):
-            body = json.dumps(res, separators=(',', ':'))
-            body = body.encode('utf8')
-
-            request.setHeader('content-type', 'application/json; charset=UTF-8')
-            request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+            body = json.dumps(res, separators=(',', ':'), ensure_ascii=False).encode('utf8')
+            request.setHeader(b'content-type', b'application/json; charset=UTF-8')
+            request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
             request.setResponseCode(200)
             request.write(body)
             request.finish()

@@ -59,21 +59,28 @@ class MessageForwarder(ApplicationSession):
         subscriptions = self.config.extra["subscriptions"]
 
         debug = self.config.extra.get("debug", False)
-        method = self.config.extra.get("method", u"POST").encode("utf8")
+        method = self.config.extra.get("method", u"POST")
         expectedCode = self.config.extra.get("expectedcode")
 
         @inlineCallbacks
         def on_event(url, *args, **kwargs):
 
             headers = Headers({
-                "Content-Type": ["application/json"]
+                b"Content-Type": [b"application/json"]
             })
 
-            body = json.dumps({"args": args, "kwargs": kwargs},
-                              sort_keys=True, separators=(',', ':'))
+            body = json.dumps(
+                {"args": args, "kwargs": kwargs},
+                sort_keys=True,
+                separators=(',', ':'),
+                ensure_ascii=False
+            )
+
+            # http://treq.readthedocs.org/en/latest/api.html#treq.request
             res = yield self._webtransport.request(
-                method, url.encode("utf8"),
-                data=body,
+                method.encode('utf8'),
+                url.encode('utf8'),
+                data=body.encode('utf8'),
                 headers=headers
             )
 
