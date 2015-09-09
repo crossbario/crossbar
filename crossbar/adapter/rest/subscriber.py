@@ -66,8 +66,7 @@ class MessageForwarder(ApplicationSession):
         def on_event(url, *args, **kwargs):
 
             headers = Headers({
-                # FIXME: are keys/values supposed to be byte strings?
-                "Content-Type": ["application/json"]
+                b"Content-Type": [b"application/json"]
             })
 
             body = json.dumps(
