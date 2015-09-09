@@ -492,9 +492,10 @@ def run_command_start(options, reactor=None):
                     pid_data,
                     sort_keys=False,
                     indent=3,
-                    separators=(', ', ': ')
+                    separators=(', ', ': '),
+                    ensure_ascii=False
                 )
-            ))
+            ).encode('utf8'))
 
     # remove node PID file when reactor exits
     #
