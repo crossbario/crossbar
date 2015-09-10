@@ -695,7 +695,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
                 # create a Twisted Web WSGI resource from the user's WSGI application object
                 try:
-                    wsgi_resource = WSGIResource(self._reactor, self._reactor.reactor.getThreadPool(), app)
+                    wsgi_resource = WSGIResource(self._reactor, self._reactor.getThreadPool(), app)
                 except Exception as e:
                     raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
                 else:
