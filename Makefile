@@ -39,6 +39,9 @@ full_test: clean flake8
 flake8:
 	flake8 --ignore=E501,N801,N802,N803,N805,N806 crossbar
 
+flake8_stats:
+	flake8 --statistics --max-line-length=119 -qq crossbar
+
 version:
 	PYTHONPATH=. python -m crossbar.controller.cli version
 
