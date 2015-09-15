@@ -71,9 +71,7 @@ except (ImportError, SyntaxError):
     # Twisted hasn't ported this to Python 3 yet
     _HAS_WSGI = False
 
-from autobahn.twisted.resource import WebSocketResource, \
-    WSGIRootResource, \
-    HTTPChannelHixie76Aware
+from autobahn.twisted.resource import WebSocketResource, WSGIRootResource
 
 from crossbar.twisted.resource import WampLongPollResource, \
     SchemaDocResource
@@ -813,11 +811,6 @@ class RouterWorkerSession(NativeWorkerSession):
                     transport_factory.requestFactory = createHSTSRequestFactory(transport_factory.requestFactory, hsts_max_age)
                 else:
                     self.log.warn("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
-
-            # enable Hixie-76 on Twisted Web
-            #
-            if options.get('hixie76_aware', False):
-                transport_factory.protocol = HTTPChannelHixie76Aware  # needed if Hixie76 is to be supported
 
         # Unknown transport type
         #
