@@ -92,7 +92,7 @@ from crossbar.twisted.resource import JsonResource, \
     FileUploadResource, \
     RedirectResource
 
-from autobahn.twisted.flashpolicy import FlashPolicyFactory
+from crossbar.twisted.flashpolicy import FlashPolicyFactory
 
 from autobahn.wamp.types import ComponentConfig
 
