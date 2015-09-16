@@ -108,8 +108,8 @@ def run():
     # make sure logging to something else than stdio is setup _first_
     #
     from crossbar._logging import make_JSON_observer, cb_logging_aware, _stderr
-    from crossbar._logging import make_logger, log_publisher, start_logging
-    from crossbar._logging import set_global_log_level
+    from crossbar._logging import make_logger, start_logging, set_global_log_level
+    from twisted.logger import globalLogPublisher as log_publisher
 
     # Set the global log level
     set_global_log_level(options.loglevel)
