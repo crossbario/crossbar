@@ -39,12 +39,12 @@ from twisted.web.http import NOT_FOUND
 from twisted.web.resource import Resource, NoResource
 from twisted.web.static import File
 
-from autobahn.twisted import longpoll
 from autobahn.wamp.types import PublishOptions
 
 import crossbar
 from crossbar._compat import native_string
 from crossbar._logging import make_logger
+from crossbar.router import longpoll
 
 try:
     # triggers module level reactor import

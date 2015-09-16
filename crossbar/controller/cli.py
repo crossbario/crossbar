@@ -399,17 +399,20 @@ def run_command_stop(options, exit=True, **kwargs):
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
 
 
-def _startlog(options):
+def _startlog(options, reactor):
     """
     Start the logging in a way that all the subcommands can use it.
     """
-    from crossbar._logging import log_publisher, start_logging
-    from crossbar._logging import set_global_log_level
+    from crossbar._logging import start_logging, set_global_log_level
+    from crossbar._logging import globalLogPublisher as log_publisher
 
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
 
     set_global_log_level(loglevel)
+
+    # The log observers (things that print to stderr, file, etc)
+    observers = []
 
     if getattr(options, "logtofile", False):
         # We want to log to a file
@@ -427,7 +430,7 @@ def _startlog(options):
         else:
             show_source = True
 
-        log_publisher.addObserver(make_logfile_observer(logfile, show_source))
+        observers.append(make_logfile_observer(logfile, show_source))
     else:
         # We want to log to stdout/stderr.
         from crossbar._logging import make_stdout_observer
@@ -438,26 +441,33 @@ def _startlog(options):
             pass
         elif loglevel in ["error", "warn", "info"]:
             # Print info to stdout, warn+ to stderr
-            log_publisher.addObserver(make_stdout_observer(show_source=False,
-                                                           format=logformat))
-            log_publisher.addObserver(make_stderr_observer(show_source=False,
-                                                           format=logformat))
+            observers.append(make_stdout_observer(show_source=False,
+                                                  format=logformat))
+            observers.append(make_stderr_observer(show_source=False,
+                                                  format=logformat))
         elif loglevel == "debug":
             # Print debug+info to stdout, warn+ to stderr, with the class
             # source
-            log_publisher.addObserver(make_stdout_observer(show_source=True,
-                                                           format=logformat))
-            log_publisher.addObserver(make_stderr_observer(show_source=True,
-                                                           format=logformat))
+            observers.append(make_stdout_observer(show_source=True,
+                                                  format=logformat))
+            observers.append(make_stderr_observer(show_source=True,
+                                                  format=logformat))
         elif loglevel == "trace":
             # Print trace+, with the class source
-            log_publisher.addObserver(make_stdout_observer(show_source=True,
-                                                           format=logformat,
-                                                           trace=True))
-            log_publisher.addObserver(make_stderr_observer(show_source=True,
-                                                           format=logformat))
+            observers.append(make_stdout_observer(show_source=True,
+                                                  format=logformat,
+                                                  trace=True))
+            observers.append(make_stderr_observer(show_source=True,
+                                                  format=logformat))
         else:
             assert False, "Shouldn't ever get here."
+
+    for observer in observers:
+        log_publisher.addObserver(observer)
+
+        # Make sure that it goes away
+        reactor.addSystemEventTrigger('after', 'shutdown',
+                                      log_publisher.removeObserver, observer)
 
     # Actually start the logger.
     start_logging()
@@ -817,9 +827,6 @@ def run(prog=None, args=None, reactor=None):
                     print("Could not create log directory: {}".format(e))
                     sys.exit(1)
 
-    # Start the logger
-    _startlog(options)
-
     if not reactor:
         # try and get the log verboseness we want -- not all commands have a
         # loglevel, so just default to info in that case
@@ -828,6 +835,9 @@ def run(prog=None, args=None, reactor=None):
         # we use an Autobahn utility to import the "best" available Twisted
         # reactor
         reactor = install_reactor(options.reactor, debug)
+
+    # Start the logger
+    _startlog(options, reactor)
 
     # run the subcommand selected
     #

@@ -74,8 +74,6 @@ def set_websocket_options(factory, options):
     factory._requireWebSocketSubprotocol = c.pop("require_websocket_subprotocol", True)
 
     versions = []
-    if c.get("enable_hixie76", True):
-        versions.append(0)
     if c.get("enable_hybi10", True):
         versions.append(8)
     if c.get("enable_rfc6455", True):
@@ -104,7 +102,6 @@ def set_websocket_options(factory, options):
         autoPingTimeout = float(c["auto_ping_timeout"]) / 1000.
 
     factory.setProtocolOptions(versions=versions,
-                               allowHixie76=c.get("enable_hixie76", True),
                                webStatus=c.get("enable_webstatus", True),
                                utf8validateIncoming=c.get("validate_utf8", True),
                                maskServerFrames=c.get("mask_server_frames", False),

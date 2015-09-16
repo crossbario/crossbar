@@ -668,7 +668,6 @@ def check_websocket_options(options):
             # WebSocket options
             'allowed_origins',
             'external_port',
-            'enable_hixie76',
             'enable_hybi10',
             'enable_rfc6455',
             'open_handshake_timeout',
@@ -1215,11 +1214,6 @@ def check_listening_transport_web(transport):
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
             if hsts_max_age < 0:
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
-
-        if 'hixie76_aware' in options:
-            hixie76_aware = options['hixie76_aware']
-            if not isinstance(hixie76_aware, bool):
-                raise InvalidConfigException("'hixie76_aware' attribute in 'options' in Web transport must be bool ({} encountered)".format(type(hixie76_aware)))
 
 
 _WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
