@@ -41,15 +41,13 @@ from functools import partial
 
 from zope.interface import provider
 
-from twisted.logger import ILogObserver, formatEvent, Logger, LogPublisher
+from twisted.logger import ILogObserver, formatEvent, Logger, globalLogPublisher
 from twisted.logger import LogLevel, globalLogBeginner, formatTime
 
 from twisted.python.constants import NamedConstant
 from twisted.python.reflect import qual
 
 from weakref import WeakKeyDictionary
-
-log_publisher = LogPublisher()
 
 record_separator = u"\x1e"
 cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
@@ -394,7 +392,7 @@ def make_logger(log_level=None, logger=Logger, observer=None):
     it uses the current global log level.
     """
     if observer is None:
-        observer = log_publisher
+        observer = globalLogPublisher
 
     # Get the caller's frame
     cf = inspect.currentframe().f_back
@@ -429,4 +427,4 @@ def start_logging():
     """
     Start logging to the publisher.
     """
-    globalLogBeginner.beginLoggingTo([log_publisher])
+    globalLogBeginner.beginLoggingTo([])

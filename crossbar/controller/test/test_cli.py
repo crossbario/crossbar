@@ -38,14 +38,11 @@ from twisted.internet.selectreactor import SelectReactor
 from crossbar.controller import cli
 from crossbar import _logging
 
-from twisted.logger import LogPublisher, LogBeginner
-
 from weakref import WeakKeyDictionary
 
 import os
 import sys
 import platform
-import warnings
 import twisted
 
 
@@ -61,13 +58,8 @@ class CLITestBase(unittest.TestCase):
         self.stderr = NativeStringIO()
         self.stdout = NativeStringIO()
 
-        self.publisher = LogPublisher()
-        self.beginner = LogBeginner(LogPublisher(), self.stderr, sys, warnings)
-
         self.patch(_logging, "_stderr", self.stderr)
         self.patch(_logging, "_stdout", self.stdout)
-        self.patch(_logging, "log_publisher", self.publisher)
-        self.patch(_logging, "globalLogBeginner", self.beginner)
         self.patch(_logging, "_loggers", WeakKeyDictionary())
         self.patch(_logging, "_loglevel", "info")
 
