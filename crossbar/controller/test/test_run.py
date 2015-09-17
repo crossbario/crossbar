@@ -112,6 +112,10 @@ class ContainerRunningTests(CLITestBase):
                  "--logformat=syslogd"],
                 reactor=reactor)
 
+        if DEBUG:
+            print(self.stdout.getvalue(), file=sys.__stdout__)
+            print(self.stderr.getvalue(), file=sys.__stdout__)
+
         for i in stdout_expected:
             self.assertIn(i, self.stdout.getvalue())
 
@@ -208,7 +212,6 @@ class ContainerRunningTests(CLITestBase):
         }
 
         myapp = """#!/usr/bin/env python
-from twisted.internet.defer import inlineCallbacks
 from twisted.logger import Logger
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
@@ -217,7 +220,6 @@ class MySession(ApplicationSession):
 
     log = Logger()
 
-    @inlineCallbacks
     def onJoin(self, details):
         self.log.info("Loaded the component!")
 """
@@ -299,6 +301,111 @@ class MySession(ApplicationSession):
 
         myapp = """#!/usr/bin/env python
 print("Loaded the component!")
+"""
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
+    def test_start_utf8_logging(self):
+        """
+        Logging things that are UTF8 but not Unicode should work fine.
+        """
+        expected_stdout = [
+            "Entering reactor event loop", u"\u2603"
+        ]
+        expected_stderr = []
+
+        def _check(lc, reactor):
+            if u"\u2603" in self.stdout.getvalue():
+                lc.stop()
+                try:
+                    reactor.stop()
+                except:
+                    pass
+
+        config = {
+            "controller": {
+            },
+            "workers": [
+                {
+                    "type": "router",
+                    "options": {
+                        "pythonpath": ["."]
+                    },
+                    "realms": [
+                        {
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "directory": ".",
+                                    "type": "static"
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
+        myapp = """#!/usr/bin/env python
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import ApplicationError
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    def onJoin(self, details):
+        self.log.info(u"\\u2603")
 """
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
