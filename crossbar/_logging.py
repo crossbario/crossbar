@@ -92,9 +92,9 @@ except ImportError:
         LIGHTWHITE_EX = ""
     Fore = _Fore()
 
-COLOUR_FORMAT = "{}{} [{}]{} {}"
-NOCOLOUR_FORMAT = "{} [{}] {}"
-SYSLOGD_FORMAT = "[{}] {}"
+COLOUR_FORMAT = u"{}{} [{}]{} {}"
+NOCOLOUR_FORMAT = u"{} [{}] {}"
+SYSLOGD_FORMAT = u"[{}] {}"
 
 POSSIBLE_LEVELS = ["none", "critical", "error", "warn", "info", "debug",
                    "trace"]
