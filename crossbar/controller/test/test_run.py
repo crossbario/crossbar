@@ -225,6 +225,85 @@ class MySession(ApplicationSession):
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
 
+    def test_start_run_guest(self):
+        """
+        A basic start of a guest.
+        """
+        expected_stdout = [
+            "Entering reactor event loop", "Loaded the component!"
+        ]
+        expected_stderr = []
+
+        def _check(lc, reactor):
+            if "Loaded the component!" in self.stdout.getvalue():
+                lc.stop()
+                try:
+                    reactor.stop()
+                except:
+                    pass
+
+        config = {
+            "controller": {
+            },
+            "workers": [
+                {
+                    "type": "router",
+                    "options": {
+                        "pythonpath": ["."]
+                    },
+                    "realms": [
+                        {
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "directory": ".",
+                                    "type": "static"
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "guest",
+                    "executable": sys.executable,
+                    "arguments": [os.path.join(self.code_location, "myapp.py")]
+                }
+            ]
+        }
+
+        myapp = """#!/usr/bin/env python
+print("Loaded the component!")
+"""
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
     def test_failure1(self):
 
         config = {

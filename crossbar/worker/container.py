@@ -54,7 +54,6 @@ __all__ = ('ContainerWorkerSession',)
 
 
 class ContainerComponent(object):
-
     """
     An application component running inside a container.
 
