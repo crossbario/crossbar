@@ -643,6 +643,7 @@ def run(prog=None, args=None, reactor=None):
     subparsers = parser.add_subparsers(dest='command',
                                        title='commands',
                                        help='Crossbar.io command to run')
+    subparsers.required = True
 
     # "version" command
     #
