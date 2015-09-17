@@ -127,7 +127,8 @@ class WorkerProcess(object):
 
         system = "{:<10} {:>6}".format(self.LOGNAME, self.pid)
 
-        if childFD == 1:
+        if self._log_rich and childFD == 1:
+            # For "rich logger" workers:
             # This is a log message made from some super dumb software that
             # writes directly to FD1 instead of sys.stdout (which is captured
             # by the logger). Because of this, we can't trust any portion of it
