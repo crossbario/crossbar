@@ -33,3 +33,7 @@ notifications:
 
 matrix:
   fast_finish: true
+  allow_failures:
+    - env: TOX_ENV=py27-twtrunk-abtrunk
+    - env: TOX_ENV=py33-twtrunk-abtrunk
+    - env: TOX_ENV=py34-twtrunk-abtrunk
