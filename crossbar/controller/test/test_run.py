@@ -411,7 +411,6 @@ class MySession(ApplicationSession):
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
 
-
     def test_run_exception_utf8(self):
         """
         Raising an ApplicationError with Unicode will raise that error through
