@@ -517,7 +517,7 @@ class MySession(ApplicationSession):
         expected_stderr = []
 
         def _check(lc, reactor):
-            if u"Loaded the component" in self.stdout.getvalue():
+            if "Loaded the component" in self.stdout.getvalue():
                 lc.stop()
                 try:
                     reactor.stop()
