@@ -511,7 +511,10 @@ class MySession(ApplicationSession):
         self.log.info("Loaded the component")
 """
 
-        expected_stdout = ["Loaded the component", "\\u2603", "Caught error:"]
+        if PY3:
+            expected_stdout = ["Loaded the component", "\u2603", "Caught error:"]
+        else:
+            expected_stdout = ["Loaded the component", "\\u2603", "Caught error:"]
         expected_stderr = []
 
         def _check(lc, reactor):
