@@ -493,27 +493,25 @@ class MySession(ApplicationSession):
 
     log = Logger()
 
-    def __init__(self, config):
-        self.log.info("MySession.__init__()")
-        ApplicationSession.__init__(self, config)
-
     @inlineCallbacks
     def onJoin(self, details):
 
         def _err():
             raise ApplicationError(u"com.example.error.form_error", u"\\u2603")
-        yield self.register(_err, 'com.example.err')
+        e = yield self.register(_err, u'com.example.err')
 
         try:
-            yield self.call('com.example.err')
+            yield self.call(u'com.example.err')
         except ApplicationError as e:
             assert e.args[0] == u"\\u2603"
             print("Caught error:", e)
+        except:
+            print('other err:', e)
 
         self.log.info("Loaded the component")
 """
 
-        expected_stdout = ["Loaded the component", "\\u2603"]
+        expected_stdout = ["Loaded the component", "\\u2603", "Caught error:"]
         expected_stderr = []
 
         def _check(lc, reactor):
