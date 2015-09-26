@@ -411,6 +411,123 @@ class MySession(ApplicationSession):
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
 
+    def test_run_exception_utf8(self):
+        """
+        Raising an ApplicationError with Unicode will raise that error through
+        to the caller.
+        """
+        config = {
+            "workers": [
+                {
+                    "type": "router",
+                    "realms": [
+                        {
+                            "name": "realm1",
+                            "roles": [
+                                {
+                                    "name": "anonymous",
+                                    "permissions": [
+                                        {
+                                            "uri": "*",
+                                            "publish": True,
+                                            "subscribe": True,
+                                            "call": True,
+                                            "register": True
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "transports": [
+                        {
+                            "type": "web",
+                            "endpoint": {
+                                "type": "tcp",
+                                "port": 8080
+                            },
+                            "paths": {
+                                "/": {
+                                    "type": "static",
+                                    "directory": ".."
+                                },
+                                "ws": {
+                                    "type": "websocket"
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "options": {
+                        "pythonpath": [self.code_location]
+                    },
+                    "components": [
+                        {
+                            "type": "class",
+                            "classname": "myapp.MySession",
+                            "realm": "realm1",
+                            "transport": {
+                                "type": "websocket",
+                                "endpoint": {
+                                    "type": "tcp",
+                                    "host": "127.0.0.1",
+                                    "port": 8080
+                                },
+                                "url": "ws://127.0.0.1:8080/ws"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
+        myapp = """from __future__ import absolute_import, print_function
+from twisted.logger import Logger
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import ApplicationError
+from twisted.internet.defer import inlineCallbacks
+
+class MySession(ApplicationSession):
+
+    log = Logger()
+
+    @inlineCallbacks
+    def onJoin(self, details):
+
+        def _err():
+            raise ApplicationError(u"com.example.error.form_error", u"\\u2603")
+        e = yield self.register(_err, u'com.example.err')
+
+        try:
+            yield self.call(u'com.example.err')
+        except ApplicationError as e:
+            assert e.args[0] == u"\\u2603"
+            print("Caught error:", e)
+        except:
+            print('other err:', e)
+
+        self.log.info("Loaded the component")
+"""
+
+        if PY3:
+            expected_stdout = ["Loaded the component", "\u2603", "Caught error:"]
+        else:
+            expected_stdout = ["Loaded the component", "\\u2603", "Caught error:"]
+        expected_stderr = []
+
+        def _check(lc, reactor):
+            if "Loaded the component" in self.stdout.getvalue():
+                lc.stop()
+                try:
+                    reactor.stop()
+                except:
+                    pass
+
+        self._start_run(config, myapp, expected_stdout, expected_stderr,
+                        _check)
+
     def test_failure1(self):
 
         config = {
@@ -488,7 +605,6 @@ class MySession(ApplicationSession):
         self.log.info("MySession.__init__()")
         ApplicationSession.__init__(self, config)
 
-    @inlineCallbacks
     def onJoin(self, details):
         self.log.info("MySession.onJoin()")
 """
