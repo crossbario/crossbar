@@ -67,7 +67,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Crossbar.io'
+project = u'Crossbar.io Management API'
 author = u'Tavendo GmbH'
 this_year = u'{0}'.format(time.strftime('%Y'))
 if this_year != u'2014':
@@ -182,7 +182,14 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {
+    '**': [
+        'globaltoc.html',
+        'relations.html',
+        'sourcelink.html',
+        'searchbox.html'
+    ],
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

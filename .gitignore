@@ -30,3 +30,4 @@ node_modules
 .tox
 *.swp
 *.ropeproject
+docs/_build

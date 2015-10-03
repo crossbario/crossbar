@@ -426,23 +426,115 @@ class NativeProcessSession(ApplicationSession):
 
     def trigger_gc(self, details=None):
         """
-        Triggers a garbage collection.
+        Manually trigger a garbage collection in this native process.
 
-        :returns: float -- Time consumed for GC in ms.
+        This procedure is registered under
+        ``crossbar.node.<node_id>.worker.<worker_id>.trigger_gc``
+        for native workers and under
+        ``crossbar.node.<node_id>.controller.trigger_gc``
+        for node controllers.
+
+        The procedure will publish an event when the garabage collection has finished to 
+        ``crossbar.node.<node_id>.worker.<worker_id>.on_gc_finished``
+        for native workers and
+        ``crossbar.node.<node_id>.controller.on_gc_finished``
+        for node controllers:
+
+        .. code-block:: javascript
+
+            {
+                "requester": {
+                    "session_id": 982734923,
+                    "auth_id": "bob",
+                    "auth_role": "admin"
+                },
+                "duration": 190
+            }
+
+        .. note:: The caller of this procedure will NOT receive the event.
+
+        :returns: Time (wall clock) consumed for garbage collection in ms.
+        :rtype: int
         """
         self.msg.debug("{cls}.trigger_gc", cls=self.__class__.__name__)
 
         started = rtime()
+
+        # now trigger GC .. this is blocking!
         gc.collect()
-        return 1000. * (rtime() - started)
+
+        duration = int(round(1000. * (rtime() - started)))
+
+        on_gc_finished = u'{}.on_gc_finished'.format(self._uri_prefix)
+        self.publish(
+            on_gc_finished,
+            {
+                u'requester': {
+                    u'session_id': details.caller,
+                    # FIXME:
+                    u'auth_id': None,
+                    u'auth_role': None
+                },
+                u'duration': duration
+            },
+            options=PublishOptions(exclude=[details.caller])
+        )
+
+        return duration
 
     @inlineCallbacks
     def start_manhole(self, config, details=None):
         """
-        Start a manhole (SSH) within this worker.
+        Start a Manhole service within this process.
 
-        :param config: Manhole configuration.
-        :type config: obj
+        **Usage:**
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.start_manhole`` - for native workers
+        * ``crossbar.node.<node_id>.controller.start_manhole`` - for node controllers
+
+        The procedure takes a Manhole service configuration which defines
+        a listening endpoint for the service and a list of users including
+        passwords, e.g.
+
+        .. code-block:: javascript
+
+            {
+                "endpoint": {
+                    "type": "tcp",
+                    "port": 6022
+                },
+                "users": [
+                    {
+                        "user": "oberstet",
+                        "password": "secret"
+                    }
+                ]
+            }
+
+        **Errors:**
+
+        The procedure may raise the following errors:
+
+        * ``crossbar.error.invalid_configuration`` - the provided configuration is invalid
+        * ``crossbar.error.already_started`` - the Manhole service is already running (or starting)
+        * ``crossbar.error.feature_unavailable`` - the required support packages are not installed
+
+        **Events:**
+
+        The procedure will publish an event when the service **is starting** to
+        
+        * ``crossbar.node.<node_id>.worker.<worker_id>.on_manhole_starting`` - for native workers
+        * ``crossbar.node.<node_id>.controller.on_manhole_starting`` - for node controllers
+
+        and publish an event when the service **has started** to
+        
+        * ``crossbar.node.<node_id>.worker.<worker_id>.on_manhole_started`` - for native workers
+        * ``crossbar.node.<node_id>.controller.on_manhole_started`` - for node controllers
+
+        :param config: Manhole service configuration.
+        :type config: dict
         """
         self.log.debug("{cls}.start_manhole(config = {config})",
                        cls=self.__class__.__name__, config=config)
@@ -523,14 +615,28 @@ class NativeProcessSession(ApplicationSession):
     @inlineCallbacks
     def stop_manhole(self, details=None):
         """
-        Stop Manhole.
+        Stop the Manhole service running in this process.
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.stop_manhole`` for native workers and under
+        * ``crossbar.node.<node_id>.controller.stop_manhole`` for node controllers
+
+        When no Manhole service is currently running within this process,
+        or the Manhole service is already shutting down, a
+        ``crossbar.error.not_started`` WAMP error is raised.
+
+        The procedure will publish an event when the service **is stopping** to
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.on_manhole_stopping`` for native workers and
+        * ``crossbar.node.<node_id>.controller.on_manhole_stopping`` for node controllers
+
+        and will publish an event when the service **has stopped** to
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.on_manhole_stopped`` for native workers and
+        * ``crossbar.node.<node_id>.controller.on_manhole_stopped`` for node controllers
         """
         self.log.debug("{cls}.stop_manhole", cls=self.__class__.__name__)
-
-        if not _HAS_MANHOLE:
-            emsg = "Could not start manhole: required packages are missing ({})".format(_MANHOLE_MISSING_REASON)
-            self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
         if not self._manhole_service or self._manhole_service.status != 'started':
             emsg = "Cannot stop manhole: not running (or already shutting down)"
@@ -538,7 +644,7 @@ class NativeProcessSession(ApplicationSession):
 
         self._manhole_service.status = 'stopping'
 
-        stopping_topic = '{}.on_manhole_stopping'.format(self._uri_prefix)
+        stopping_topic = u'{}.on_manhole_stopping'.format(self._uri_prefix)
         stopping_info = None
 
         # the caller gets a progressive result ..
@@ -551,11 +657,11 @@ class NativeProcessSession(ApplicationSession):
         try:
             yield self._manhole_service.port.stopListening()
         except Exception as e:
-            raise Exception("Internal Error: don't know how to handle a failed called to stopListening() - {}".format(e))
+            self.log.warn("error while stop listening on endpoint: {error}", error=e)
 
         self._manhole_service = None
 
-        stopped_topic = '{}.on_manhole_stopped'.format(self._uri_prefix)
+        stopped_topic = u'{}.on_manhole_stopped'.format(self._uri_prefix)
         stopped_info = None
         self.publish(stopped_topic, stopped_info, options=PublishOptions(exclude=[details.caller]))
 
@@ -583,7 +689,15 @@ class NativeProcessSession(ApplicationSession):
         """
         Return current time as determined from within this process.
 
-        :returns str -- Current time (UTC) in UTC ISO 8601 format.
+        **Usage:**
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.utcnow`` for native workers and under
+        * ``crossbar.node.<node_id>.controller.utcnow`` for node controllers
+
+        :returns: Current time (UTC) in UTC ISO 8601 format.
+        :rtype: unicode
         """
         self.log.debug("{cls}.utcnow", cls=self.__class__.__name__)
 
@@ -593,7 +707,15 @@ class NativeProcessSession(ApplicationSession):
         """
         Return start time of this process.
 
-        :returns str -- Start time (UTC) in UTC ISO 8601 format.
+        **Usage:**
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.started`` for native workers and under
+        * ``crossbar.node.<node_id>.controller.started`` for node controllers
+
+        :returns: Start time (UTC) in UTC ISO 8601 format.
+        :rtype: unicode
         """
         self.log.debug("{cls}.started", cls=self.__class__.__name__)
 
@@ -603,7 +725,15 @@ class NativeProcessSession(ApplicationSession):
         """
         Uptime of this process.
 
-        :returns float -- Uptime in seconds.
+        **Usage:**
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.uptime`` for native workers and under
+        * ``crossbar.node.<node_id>.controller.uptime`` for node controllers
+
+        :returns: Uptime in seconds.
+        :rtype: float
         """
         self.log.debug("{cls}.uptime", cls=self.__class__.__name__)
 
