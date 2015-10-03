@@ -13,4 +13,4 @@ html:
 	sphinx-build -b html -d _build/doctrees . _build/html
 
 publish: html
-	s3cmd sync -P --skip-existing --delete-removed ./_build/html/ s3://crossbar.io/management-api/
+	s3cmd sync -P --delete-removed ./_build/html/ s3://crossbar.io/management-api/

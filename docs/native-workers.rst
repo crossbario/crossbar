@@ -23,11 +23,11 @@ CPU Affinity
 
 Crossbar.io support the binding of running native workers to specific sets of CPU cores. Fixed binding to CPU cores can reduce cache trashing and increase performance.
 
-.. automethod:: crossbar.worker.worker.NativeWorkerSession.get_cpu_count
+.. automethod:: crossbar.worker.worker.NativeWorkerSession.get_cpu_count(logical)
 
-.. automethod:: crossbar.worker.worker.NativeWorkerSession.get_cpu_affinity
+.. automethod:: crossbar.worker.worker.NativeWorkerSession.get_cpu_affinity()
 
-.. automethod:: crossbar.worker.worker.NativeWorkerSession.set_cpu_affinity
+.. automethod:: crossbar.worker.worker.NativeWorkerSession.set_cpu_affinity(cpus)
 
 
 Profiling

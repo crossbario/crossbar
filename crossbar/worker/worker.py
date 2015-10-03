@@ -261,11 +261,17 @@ class NativeWorkerSession(NativeProcessSession):
         """
         Returns the CPU core count on the machine this process is running on.
 
-        This procedure is registered under WAMP URI
-        ``crossbar.node.<node_id>.worker.<worker_id>.get_cpu_count``.
+        **Usage:**
 
-        When the required support packages are not installed, raises a WAMP error
-        ``crossbar.error.feature_unavailable``.
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.get_cpu_count``
+
+        **Errors:**
+
+        The procedure may raise the following errors:
+
+        * ``crossbar.error.feature_unavailable`` - the required support packages are not installed
 
         :param logical: If enabled (default), include logical CPU cores ("Hyperthreading"),
             else only count physical CPU cores.
@@ -284,14 +290,18 @@ class NativeWorkerSession(NativeProcessSession):
         """
         Get CPU affinity of this process.
 
-        This procedure is registered under WAMP URI
-        ``crossbar.node.<node_id>.worker.<worker_id>.get_cpu_affinity``.
+        **Usage:**
 
-        When the required support packages are not installed, raises a WAMP error
-        ``crossbar.error.feature_unavailable``.
+        This procedure is registered under
 
-        When the CPU affinity cannot be determined, a WAMP error
-        ``crossbar.error.runtime_error`` is raised.
+        * ``crossbar.node.<node_id>.worker.<worker_id>.get_cpu_affinity``
+
+        **Errors:**
+
+        The procedure may raise the following errors:
+
+        * ``crossbar.error.feature_unavailable`` - the required support packages are not installed
+        * ``crossbar.error.runtime_error`` - the CPU affinity could not be determined for some reason
 
         :returns: List of CPU IDs the process affinity is set to.
         :rtype: list of int
@@ -315,14 +325,23 @@ class NativeWorkerSession(NativeProcessSession):
         """
         Set CPU affinity of this process.
 
-        This procedure is registered under WAMP URI
-        ``crossbar.node.<node_id>.worker.<worker_id>.set_cpu_affinity``.
+        **Usage:**
 
-        When the CPU affinity has been successfully set, a WAMP event is published
-        to ``crossbar.node.{}.worker.{}.on_cpu_affinity_set``
+        This procedure is registered under
 
-        When the required support packages are not installed, raises a WAMP error
-        ``crossbar.error.feature_unavailable``.
+        * ``crossbar.node.<node_id>.worker.<worker_id>.set_cpu_affinity``
+
+        **Errors:**
+
+        The procedure may raise the following errors:
+
+        * ``crossbar.error.feature_unavailable`` - the required support packages are not installed
+
+        **Events:**
+
+        When the CPU affinity has been successfully set, an event is published to
+
+        * ``crossbar.node.{}.worker.{}.on_cpu_affinity_set``
 
         :param cpus: List of CPU IDs to set process affinity to. Each CPU ID must be
             from the list `[0 .. N_CPUs]`, where N_CPUs can be retrieved via
