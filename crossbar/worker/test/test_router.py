@@ -112,8 +112,6 @@ class RouterWorkerSessionTests(TestCase):
         transport = FakeWAMPTransport(r)
         r.onOpen(transport)
 
-        # Should have 35 registers, all for the management interface
-        self.assertEqual(len(transport._get(Register)), 35)
         # XXX depends on log-text; perhaps a little flaky...
         self.assertIn("running as", log_list[-1]["log_format"])
 
