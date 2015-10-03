@@ -404,7 +404,7 @@ def _startlog(options, reactor):
     Start the logging in a way that all the subcommands can use it.
     """
     from crossbar._logging import start_logging, set_global_log_level
-    from crossbar._logging import globalLogPublisher as log_publisher
+    from crossbar._logging import globalLogPublisher
 
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
@@ -463,11 +463,11 @@ def _startlog(options, reactor):
             assert False, "Shouldn't ever get here."
 
     for observer in observers:
-        log_publisher.addObserver(observer)
+        globalLogPublisher.addObserver(observer)
 
         # Make sure that it goes away
         reactor.addSystemEventTrigger('after', 'shutdown',
-                                      log_publisher.removeObserver, observer)
+                                      globalLogPublisher.removeObserver, observer)
 
     # Actually start the logger.
     start_logging()

@@ -109,7 +109,7 @@ def run():
     #
     from crossbar._logging import make_JSON_observer, cb_logging_aware, _stderr
     from crossbar._logging import make_logger, start_logging, set_global_log_level
-    from twisted.logger import globalLogPublisher as log_publisher
+    from twisted.logger import globalLogPublisher
 
     # Set the global log level
     set_global_log_level(options.loglevel)
@@ -122,7 +122,7 @@ def run():
     _stderr.flush()
 
     flo = make_JSON_observer(_stderr)
-    log_publisher.addObserver(flo)
+    globalLogPublisher.addObserver(flo)
     start_logging()
 
     try:

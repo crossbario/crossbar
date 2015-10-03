@@ -434,7 +434,7 @@ class NativeProcessSession(ApplicationSession):
         ``crossbar.node.<node_id>.controller.trigger_gc``
         for node controllers.
 
-        The procedure will publish an event when the garabage collection has finished to 
+        The procedure will publish an event when the garabage collection has finished to
         ``crossbar.node.<node_id>.worker.<worker_id>.on_gc_finished``
         for native workers and
         ``crossbar.node.<node_id>.controller.on_gc_finished``
@@ -524,12 +524,12 @@ class NativeProcessSession(ApplicationSession):
         **Events:**
 
         The procedure will publish an event when the service **is starting** to
-        
+
         * ``crossbar.node.<node_id>.worker.<worker_id>.on_manhole_starting`` - for native workers
         * ``crossbar.node.<node_id>.controller.on_manhole_starting`` - for node controllers
 
         and publish an event when the service **has started** to
-        
+
         * ``crossbar.node.<node_id>.worker.<worker_id>.on_manhole_started`` - for native workers
         * ``crossbar.node.<node_id>.controller.on_manhole_started`` - for node controllers
 
