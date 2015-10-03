@@ -10,7 +10,7 @@ install:
 env:
   - TOX_ENV=flake8
   - TOX_ENV=py27-twtrunk-abtrunk
-  - TOX_ENV=pypy-twtrunk-abtrunk
+#  - TOX_ENV=pypy-twtrunk-abtrunk
   - TOX_ENV=py33-twtrunk-abtrunk
   - TOX_ENV=py34-twtrunk-abtrunk
 #  - TOX_ENV=py27-twcurrent-abcurrent
