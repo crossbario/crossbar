@@ -15,6 +15,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   node-controllers
    native-processes
    native-workers
    router-workers

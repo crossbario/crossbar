@@ -261,15 +261,19 @@ class RouterWorkerSession(NativeWorkerSession):
             'get_router_realms',
             'start_router_realm',
             'stop_router_realm',
+
             'get_router_realm_roles',
             'start_router_realm_role',
             'stop_router_realm_role',
+
             'get_router_components',
             'start_router_component',
             'stop_router_component',
+
             'get_router_transports',
             'start_router_transport',
             'stop_router_transport',
+
             'get_router_links',
             'start_router_link',
             'stop_router_link'
@@ -498,8 +502,21 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         Stop an application component running on this router.
 
+        **Usage:**
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.stop_router_component``
+
+        **Errors:**
+
+        The procedure may raise the following errors:
+
+        * ``crossbar.error.no_such_object`` - no component with given ID is currently running in this router
+        * ``crossbar.error.cannot_stop`` - failed to stop the component running in this router
+
         :param id: The ID of the component to stop.
-        :type id: str
+        :type id: unicode
         """
         self.log.debug("{}.stop_router_component".format(self.__class__.__name__), id=id)
 
@@ -511,13 +528,22 @@ class RouterWorkerSession(NativeWorkerSession):
                 self._session_factory.remove(self.components[id])
                 del self.components[id]
             except Exception as e:
-                raise ApplicationError(u"crossbar.error.component.cannot_stop", "Failed to stop component {}: {}".format(id, e))
+                raise ApplicationError(u"crossbar.error.cannot_stop", "Failed to stop component {}: {}".format(id, e))
         else:
-            raise ApplicationError(u"crossbar.error.no_such_component", "No component {}".format(id))
+            raise ApplicationError(u"crossbar.error.no_such_object", "No component {}".format(id))
 
     def get_router_transports(self, details=None):
         """
         List currently running transports.
+
+        **Usage:**
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.get_router_transports``
+
+        :returns: List of transports currently running.
+        :rtype: list of dict
         """
         self.log.debug("{}.get_router_transports".format(self.__class__.__name__))
 
@@ -532,10 +558,47 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def start_router_transport(self, id, config, details=None):
         """
-        Start a transport on this router.
+        Start a transport on this router and return when the transport has started.
+
+        **Usage:**
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.start_router_transport``
+
+        The procedure takes a WAMP transport configuration with a listening endpoint, e.g.
+
+        .. code-block:: javascript
+
+            {
+                "type": "websocket",
+                "endpoint": {
+                    "type": "tcp",
+                    "port": 8080
+                }
+            }
+
+        **Errors:**
+
+        The procedure may raise the following errors:
+
+        * ``crossbar.error.invalid_configuration`` - the provided transport configuration is invalid
+        * ``crossbar.error.already_running`` - a transport with the given ID is already running (or starting)
+        * ``crossbar.error.cannot_listen`` - could not listen on the configured listening endpoint of the transport
+        * ``crossbar.error.class_import_failed`` - a side-by-side component could not be instantiated
+
+        **Events:**
+
+        The procedure will publish an event when the transport **is starting** to
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.on_router_transport_starting``
+
+        and publish an event when the transport **has started** to
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.on_router_transport_started``
 
         :param id: The ID of the transport to start.
-        :type id: str
+        :type id: unicode
         :param config: The transport configuration.
         :type config: dict
         """
@@ -1154,10 +1217,34 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def stop_router_transport(self, id, details=None):
         """
-        Stop a transport on this router on this router.
+        Stop a transport currently running in this router and return when
+        the transport has stopped.
+
+        **Usage:**
+
+        This procedure is registered under
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.stop_router_transport``
+
+        **Errors:**
+
+        The procedure may raise the following errors:
+
+        * ``crossbar.error.not_running`` - no transport with given ID is currently running on this router (or the transport is already stopping)
+        * ``crossbar.error.cannot_stop`` - could not stop listening on the transport listening endpoint
+
+        **Events:**
+
+        The procedure will publish an event when the transport **is stopping** to
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.on_router_transport_stopping``
+
+        and publish an event when the transport **has stopped** to
+
+        * ``crossbar.node.<node_id>.worker.<worker_id>.on_router_transport_stopped``
 
         :param id: The ID of the transport to stop.
-        :type id: dict
+        :type id: unicode
         """
         self.log.debug("{}.stop_router_transport".format(self.__class__.__name__), id=id)
 
