@@ -169,14 +169,14 @@ class _RouterApplicationSession(object):
 
         # app-to-router
         #
-        elif isinstance(msg, message.Publish) or \
-            isinstance(msg, message.Subscribe) or \
-            isinstance(msg, message.Unsubscribe) or \
-            isinstance(msg, message.Call) or \
-            isinstance(msg, message.Yield) or \
-            isinstance(msg, message.Register) or \
-            isinstance(msg, message.Unregister) or \
-            isinstance(msg, message.Cancel) or \
+        elif isinstance(msg, (message.Publish,
+                              message.Subscribe,
+                              message.Unsubscribe,
+                              message.Call,
+                              message.Yield,
+                              message.Register,
+                              message.Unregister,
+                              message.Cancel)) or \
             (isinstance(msg, message.Error) and
              msg.request_type == message.Invocation.MESSAGE_TYPE):
 
@@ -186,22 +186,23 @@ class _RouterApplicationSession(object):
 
         # router-to-app
         #
-        elif isinstance(msg, message.Event) or \
-            isinstance(msg, message.Invocation) or \
-            isinstance(msg, message.Result) or \
-            isinstance(msg, message.Published) or \
-            isinstance(msg, message.Subscribed) or \
-            isinstance(msg, message.Unsubscribed) or \
-            isinstance(msg, message.Registered) or \
-            isinstance(msg, message.Unregistered) or \
-            (isinstance(msg, message.Error) and (
-                msg.request_type == message.Call.MESSAGE_TYPE or
-                msg.request_type == message.Cancel.MESSAGE_TYPE or
-                msg.request_type == message.Register.MESSAGE_TYPE or
-                msg.request_type == message.Unregister.MESSAGE_TYPE or
-                msg.request_type == message.Publish.MESSAGE_TYPE or
-                msg.request_type == message.Subscribe.MESSAGE_TYPE or
-                msg.request_type == message.Unsubscribe.MESSAGE_TYPE)):
+        elif isinstance(msg, (message.Event,
+                              message.Invocation,
+                              message.Result,
+                              message.Published,
+                              message.Subscribed,
+                              message.Unsubscribed,
+                              message.Registered,
+                              message.Unregistered)) or \
+            (isinstance(msg, message.Error) and (msg.request_type in {
+                message.Call.MESSAGE_TYPE,
+                message.Cancel.MESSAGE_TYPE,
+                message.Register.MESSAGE_TYPE,
+                message.Unregister.MESSAGE_TYPE,
+                message.Publish.MESSAGE_TYPE,
+                message.Subscribe.MESSAGE_TYPE,
+                message.Unsubscribe.MESSAGE_TYPE,
+                })):
 
             # deliver message to app session
             #

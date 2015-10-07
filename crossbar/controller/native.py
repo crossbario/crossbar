@@ -78,7 +78,7 @@ class NativeWorkerClientProtocol(WampWebSocketClientProtocol):
                     self.factory._on_exit.errback(reason)
                 else:
                     self.log.error("unhandled code path (1) in WorkerClientProtocol.connectionLost: {reason}", reason=reason.value)
-        elif isinstance(reason.value, ProcessDone) or isinstance(reason.value, ConnectionDone):
+        elif isinstance(reason.value, (ProcessDone, ConnectionDone)):
             # the worker exited cleanly
             if not self.factory._on_exit.called:
                 self.factory._on_exit.callback(None)
