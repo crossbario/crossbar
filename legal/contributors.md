@@ -1,20 +1,22 @@
 Contributors with signed CAAs
 
-* pataelmo
 * dimddev
 * eth3lbert
 * hawkowl
+* markope
 * meejah
 * paranaix
+* pataelmo
 * rlamy
+* schoonc
 * si618
 * svpcom
 * taion
 * voidfuture
 * wilbertom
 
-
 Entity CAAs
 
-* Recode Systems
 * Quantum SI Inc
+* Recode Systems
+
