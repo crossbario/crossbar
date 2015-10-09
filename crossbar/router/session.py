@@ -201,8 +201,7 @@ class _RouterApplicationSession(object):
                 message.Unregister.MESSAGE_TYPE,
                 message.Publish.MESSAGE_TYPE,
                 message.Subscribe.MESSAGE_TYPE,
-                message.Unsubscribe.MESSAGE_TYPE,
-                })):
+                message.Unsubscribe.MESSAGE_TYPE})):
 
             # deliver message to app session
             #
