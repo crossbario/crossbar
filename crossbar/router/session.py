@@ -379,6 +379,10 @@ class _RouterSession(BaseSession):
                 # erasing the session ID below ..
                 self._router.detach(self)
 
+                # In order to send wamp.session.on_leave properly
+                # (i.e. *with* the proper session_id) we save it
+                previous_session_id = self._session_id
+
                 # At this point, we've either sent GOODBYE already earlier,
                 # or we have just responded with GOODBYE. In any case, we MUST NOT
                 # send any WAMP message from now on:
@@ -389,6 +393,15 @@ class _RouterSession(BaseSession):
                 # leave to itself!
                 self._session_id = None
                 self._pending_session_id = None
+
+                # publish event, *after* self._session_id is None so
+                # that we don't publish to ourselves as well (if this
+                # session happens to be subscribed to wamp.session.on_leave)
+                if self._service_session:
+                    self._service_session.publish(
+                        u'wamp.session.on_leave',
+                        previous_session_id,
+                    )
 
                 # fire callback and close the transport
                 self.onLeave(types.CloseDetails(msg.reason, msg.message))
@@ -1046,7 +1059,7 @@ class RouterSession(_RouterSession):
 
         # dispatch session metaevent from WAMP AP
         #
-        if self._service_session:
+        if self._service_session and self._session_id:
             self._service_session.publish(u'wamp.session.on_leave', self._session_id)
 
         self._session_details = None
