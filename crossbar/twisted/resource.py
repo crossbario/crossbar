@@ -169,7 +169,7 @@ class FileUploadResource(Resource):
         self.log.debug("Scanned pending uploads: {uploads}", uploads=self._uploads)
 
     def render_POST(self, request):
-        headers = {x.decode('iso-8859-1'):y.decode('iso-8859-1')
+        headers = {x.decode('iso-8859-1'): y.decode('iso-8859-1')
                    for x, y in request.getAllHeaders().items()}
 
         origin = headers['host']
@@ -548,8 +548,6 @@ class StaticResourceNoListing(StaticResource):
 
 
 if _HAS_CGI:
-
-    from twisted.python.filepath import FilePath
 
     class CgiScript(CGIScript):
 
