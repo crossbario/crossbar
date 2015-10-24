@@ -767,7 +767,10 @@ class NodeControllerSession(NativeProcessSession):
 
                         if options['watch'].get('action', None) == 'restart':
                             self.log.info("Restarting guest ..")
-                            self._node._reactor.callLater(0.1, self.start_guest, id, config, details)
+                            # Add a timeout large enough (perhaps add a config option later)
+                            self._node._reactor.callLater(10.1, self.start_guest, id, config, details)
+                            # Shut the worker down, after the restart event is scheduled
+                            worker.stop()
 
                     # now run the watcher on a background thread
                     deferToThread(worker.watcher.loop, on_fsevent)
