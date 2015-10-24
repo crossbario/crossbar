@@ -749,7 +749,7 @@ class NodeControllerSession(NativeProcessSession):
                     watched_dirs = []
                     for d in options['watch'].get('directories', []):
                         watched_dirs.append(os.path.abspath(os.path.join(self._node._cbdir, d)))
-                        
+
                     worker.watch_timeout = options['watch'].get('timeout', 1)
 
                     # create a directory watcher
