@@ -101,7 +101,6 @@ class FileUploadTests(TestCase):
         with upload_dir.child("examplefile.txt").open("rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
 
-
     def test_multichunk(self):
         """
         Uploading files that are in multiple chunks works.
