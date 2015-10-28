@@ -750,6 +750,8 @@ class NodeControllerSession(NativeProcessSession):
                     for d in options['watch'].get('directories', []):
                         watched_dirs.append(os.path.abspath(os.path.join(self._node._cbdir, d)))
 
+                    worker.watch_timeout = options['watch'].get('timeout', 1)
+
                     # create a directory watcher
                     worker.watcher = DirWatcher(dirs=watched_dirs, notify_once=True)
 
@@ -767,7 +769,10 @@ class NodeControllerSession(NativeProcessSession):
 
                         if options['watch'].get('action', None) == 'restart':
                             self.log.info("Restarting guest ..")
-                            self._node._reactor.callLater(0.1, self.start_guest, id, config, details)
+                            # Add a timeout large enough (perhaps add a config option later)
+                            self._node._reactor.callLater(worker.watch_timeout, self.start_guest, id, config, details)
+                            # Shut the worker down, after the restart event is scheduled
+                            worker.stop()
 
                     # now run the watcher on a background thread
                     deferToThread(worker.watcher.loop, on_fsevent)
