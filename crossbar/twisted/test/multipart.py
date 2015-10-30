@@ -34,7 +34,8 @@ Tools for generating multipart requests.
 
 from uuid import uuid4
 
-_boundary_segment = b"-----------------------------"
+_boundary_segment = b"---------------------------"
+
 
 class _Part(object):
 
@@ -87,23 +88,23 @@ class Multipart(object):
         self._parts.append(_Part(name, content, content_type=content_type,
                                  filename=filename))
 
-
     def render(self):
+        """
+        Render this Multipart into content and the requisite headers.
+        """
+        boundary = _boundary_segment + self._boundary
 
         end_content = []
-
-        boundary = b"-----------------------------" + self._boundary
-
-        end_content.append(boundary + b"\r\n")
-        end_content.append((boundary + b"\r\n").join([part.render()
-                                          for part in self._parts]))
-        end_content.append(boundary)
+        end_content.append(b"--" + boundary + b"\r\n")
+        end_content.append((b"--" + boundary + b"\r\n").join(
+            [part.render() for part in self._parts]))
+        end_content.append(b"--" + boundary)
         end_content.append(b"--\r\n")
-        end_content = b"".join(end_content)
+        content = b"".join(end_content)
 
         headers = {
-            b"Content-Type": [b"multipart/form-data; boundary=" + boundary],
-            b"Content-Length": [str(len(end_content)).encode('ascii')]
+            b"content-type": [b"multipart/form-data; boundary=" + boundary],
+            b"content-length": [str(len(content)).encode('ascii')]
         }
 
-        return (end_content, headers)
+        return (content, headers)
