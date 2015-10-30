@@ -38,6 +38,7 @@ from twisted.trial.unittest import TestCase
 
 from mock import Mock
 
+from .multipart import Multipart
 
 class FileUploadTests(TestCase):
     """
@@ -71,13 +72,34 @@ class FileUploadTests(TestCase):
 
         multipart_body = b"""-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableChunkNumber"\r\n\r\n1\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableChunkSize"\r\n\r\n1048576\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableCurrentChunkSize"\r\n\r\n16\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableTotalSize"\r\n\r\n16\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableType"\r\n\r\ntext/plain\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableIdentifier"\r\n\r\n16-examplefiletxt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableFilename"\r\n\r\nexamplefile.txt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableRelativePath"\r\n\r\nexamplefile.txt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableTotalChunks"\r\n\r\n1\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="on_progress"\r\n\r\ncom.example.upload.on_progress\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="session"\r\n\r\n6891276359801283\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="file"; filename="blob"\r\nContent-Type: application/octet-stream\r\n\r\nhello Crossbar!\n\r\n-----------------------------478904261175205671481632460--\r\n"""
 
+
+        mp = Multipart()
+
+        mp.add_part(b"resumableChunkNumber", b"1")
+        mp.add_part(b"resumableChunkSize", b"1048576")
+        mp.add_part(b"resumableCurrentChunkSize", b"16")
+        mp.add_part(b"resumableTotalSize", b"16")
+        mp.add_part(b"resumableType", b"text/plain")
+        mp.add_part(b"resumableIdentifier", b"16-examplefiletxt")
+        mp.add_part(b"resumableFilename", b"examplefile.txt")
+        mp.add_part(b"resumableRelativePath", b"examplefile.txt")
+        mp.add_part(b"resumableTotalChunks", b"1")
+        mp.add_part(b"on_progress", b"com.example.upload.on_progress")
+        mp.add_part(b"session", b"6891276359801283")
+        mp.add_part(b"file", b"hello Crossbar!\n",
+                    content_type=b"application/octet-stream",
+                    filename=b"blob")
+
+        body, headers = mp.render()
+
+        print(body)
+        print(headers)
+
+
         d = renderResource(
             resource, b"/", method="POST",
-            headers={
-                b"content-type": [b"multipart/form-data; boundary=---------------------------478904261175205671481632460"],
-                b"Content-Length": [b"1678"]
-            },
-            body=multipart_body
+            headers=headers,
+            body=body
         )
 
         res = self.successResultOf(d)
