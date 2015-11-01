@@ -394,9 +394,13 @@ class Dealer(object):
                     # caller disclosure
                     #
                     if call.disclose_me:
-                        caller = session._session_id
+                        caller_session = session._session_id
+                        caller_role = session._authrole
+                        caller_id = session._authid
                     else:
-                        caller = None
+                        caller_session = None
+                        caller_role = None
+                        caller_id = None
 
                     # for pattern-based registrations, the INVOCATION must contain
                     # the actual procedure being called
@@ -412,7 +416,9 @@ class Dealer(object):
                                                     kwargs=call.kwargs,
                                                     timeout=call.timeout,
                                                     receive_progress=call.receive_progress,
-                                                    caller=caller,
+                                                    caller=caller_session,
+                                                    caller_role=caller_role,
+                                                    caller_id=caller_id,
                                                     procedure=procedure)
 
                     self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)
