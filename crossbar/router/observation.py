@@ -32,7 +32,7 @@ from __future__ import absolute_import
 import six
 
 from pytrie import StringTrie
-from pmatcher import PatternMatcher
+from crossbar.router.pmatcher import PatternMatcher
 
 from autobahn import util
 
