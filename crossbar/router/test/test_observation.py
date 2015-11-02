@@ -76,8 +76,6 @@ class TestObservation(unittest.TestCase):
         self.assertEqual(obs1.uri, u"com.example..create")
         self.assertEqual(obs1.match, u"wildcard")
         self.assertEqual(obs1.observers, set())
-        self.assertEqual(obs1.pattern, (False, False, True, False))
-        self.assertEqual(obs1.pattern_len, 4)
 
     def test_pickle(self):
         """
