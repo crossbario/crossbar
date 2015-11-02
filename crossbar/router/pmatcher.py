@@ -1,5 +1,6 @@
 import collections
 
+
 class _Node(dict):
     __slots__ = 'value'
     NULL = object()
@@ -76,6 +77,7 @@ class PatternMatcher(collections.MutableMapping):
     def look_for(self, key, joker=''):
         key = key.split('.')
         key_len = len(key)
+
         def rec(node, i):
             if i == key_len:
                 if node.value is not node.NULL:
@@ -89,6 +91,7 @@ class PatternMatcher(collections.MutableMapping):
                 if nd is not None:
                     for e in rec(nd, i + 1):
                         yield e
+
         return rec(self._root, 0)
 
     def __repr__(self):
