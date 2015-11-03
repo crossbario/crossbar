@@ -288,7 +288,7 @@ class UriObservationMap(object):
         for observation in self._observations_prefix.iter_prefix_values(uri):
             observations.append(observation)
 
-        for observation in self._observations_wildcard.look_for(uri):
+        for observation in self._observations_wildcard.iter_matches(uri):
             observations.append(observation)
 
         return observations
@@ -326,7 +326,7 @@ class UriObservationMap(object):
         # We first need a definition of "most selective", and then we need to implement
         # this here.
         #
-        for observation in self._observations_wildcard.look_for(uri):
+        for observation in self._observations_wildcard.iter_matches(uri):
             return observation
 
     def get_observation_by_id(self, id):
