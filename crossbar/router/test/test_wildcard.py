@@ -27,7 +27,7 @@ class TestWildcardMatcher(unittest.TestCase):
         for i, w in enumerate(WILDCARDS):
             self.assertEqual(matcher[w], i)
         try:
-            v = matcher['NA']
+            matcher['NA']
         except Exception as e:
             self.assertTrue(type(e) is KeyError)
 
@@ -80,7 +80,7 @@ class TestWildcardTrieMatcher(unittest.TestCase):
         for i, w in enumerate(WILDCARDS):
             self.assertEqual(matcher[w], i)
         try:
-            v = matcher['NA']
+            matcher['NA']
         except Exception as e:
             self.assertTrue(type(e) is KeyError)
 
