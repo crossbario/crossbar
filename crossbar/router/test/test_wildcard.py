@@ -3,13 +3,17 @@ import unittest
 
 from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
-WILDCARDS = ['a..c', 'a.b.', 'a..', '.b.']
+WILDCARDS = ['.', 'a..c', 'a.b.', 'a..', '.b.', 
+            '..', 'x..', '.x.', '..x', 'x..x', 'x.x.', '.x.x', 'x.x.x']
 MATCHES = {
-    'a.b': [],
-    'a.b.c': ['a..c', 'a.b.', 'a..', '.b.'],
-    'a.x.c': ['a..c', 'a..'],
-    'a.b.x': ['a.b.', 'a..', '.b.'],
-    'a.x.x': ['a..']
+    'abc': [],
+    'a.b': ['.'],
+    'a.b.c': ['a..c', 'a.b.', 'a..', '.b.', '..'],
+    'a.x.c': ['a..c', 'a..', '..', '.x.'],
+    'a.b.x': ['a.b.', 'a..', '.b.', '..', '..x'],
+    'a.x.x': ['a..', '..', '.x.', '..x', '.x.x'],
+    'x.y.z': ['..', 'x..'],
+    'a.b.c.d': []
 }
 
 
@@ -39,6 +43,10 @@ class TestWildcardMatcher(unittest.TestCase):
             del matcher[w]
         for w in WILDCARDS:
             self.assertFalse(w in matcher)
+        try:
+            del matcher['NA']
+        except Exception as e:
+            self.assertTrue(type(e) is KeyError)
 
     def test_contains(self):
         matcher = WildcardMatcher()
@@ -92,6 +100,10 @@ class TestWildcardTrieMatcher(unittest.TestCase):
             del matcher[w]
         for w in WILDCARDS:
             self.assertFalse(w in matcher)
+        try:
+            del matcher['NA']
+        except Exception as e:
+            self.assertTrue(type(e) is KeyError)
 
     def test_contains(self):
         matcher = WildcardTrieMatcher()
