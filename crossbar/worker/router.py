@@ -32,7 +32,6 @@ from __future__ import absolute_import
 
 import os
 import sys
-import jinja2
 import importlib
 import pkg_resources
 import tempfile
@@ -227,13 +226,6 @@ class RouterWorkerSession(NativeWorkerSession):
         Called when worker process has joined the node's management realm.
         """
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
-
-        # Jinja2 templates for Web (like WS status page et al)
-        #
-        templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
-        self.log.debug("Using Web templates from {templates_dir}",
-                       templates_dir=templates_dir)
-        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
 
         # factory for producing (per-realm) routers
         self._router_factory = RouterFactory()

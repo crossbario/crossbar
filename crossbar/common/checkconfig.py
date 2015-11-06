@@ -1948,6 +1948,10 @@ def check_container_options(options):
     check_native_worker_options(options)
 
 
+def check_websocket_testee_options(options):
+    check_native_worker_options(options)
+
+
 def check_manhole(manhole, silence=False):
     """
     Check a process manhole configuration.

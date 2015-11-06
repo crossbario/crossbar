@@ -264,6 +264,9 @@ class Node(object):
             elif worker_type == 'container':
                 worker_logname = "Container '{}'".format(worker_id)
 
+            elif worker_type == 'websocket-testee':
+                worker_logname = "WebSocketTestee '{}'".format(worker_id)
+
             elif worker_type == 'guest':
                 worker_logname = "Guest '{}'".format(worker_id)
 
@@ -272,7 +275,7 @@ class Node(object):
 
             # router/container
             #
-            if worker_type in ['router', 'container']:
+            if worker_type in ['router', 'container', 'websocket-testee']:
 
                 # start a new native worker process ..
                 #
@@ -281,6 +284,9 @@ class Node(object):
 
                 elif worker_type == 'container':
                     yield self._controller.start_container(worker_id, worker_options, details=call_details)
+
+                elif worker_type == 'websocket-testee':
+                    yield self._controller.start_websocket_testee(worker_id, worker_options, details=call_details)
 
                 else:
                     raise Exception("logic error")
@@ -465,6 +471,30 @@ class Node(object):
 
                     # after 2 seconds, consider all the application components running
                     self._reactor.callLater(2, component_stop_sub.unsubscribe)
+
+                # setup websocket-testee worker
+                #
+                elif worker_type == 'websocket-testee':
+
+                    # start transports on router
+                    #
+                    transport = worker['transport']
+                    transport_no = 1
+                    transport_id = 'transport{}'.format(transport_no)
+
+                    yield self._controller.call('crossbar.node.{}.worker.{}.start_websocket_testee_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
+                    self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
+
+                    # for transport in worker['transports']:
+
+                    #     if 'id' in transport:
+                    #         transport_id = transport.pop('id')
+                    #     else:
+                    #         transport_id = 'transport{}'.format(transport_no)
+                    #         transport_no += 1
+
+                    #     yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
+                    #     self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
 
                 else:
                     raise Exception("logic error")

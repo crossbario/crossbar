@@ -30,13 +30,19 @@
 
 from __future__ import absolute_import
 
+from twisted.internet.defer import inlineCallbacks, DeferredList
 from twisted.internet import protocol
 
 from autobahn.twisted.websocket import WebSocketServerFactory, \
     WebSocketServerProtocol
+from autobahn.wamp.types import RegisterOptions
+from autobahn.wamp.exception import ApplicationError
 
 import crossbar
 from crossbar.router.protocol import set_websocket_options
+from crossbar.worker.worker import NativeWorkerSession
+from crossbar.common import checkconfig
+from crossbar.twisted.endpoint import create_listening_port_from_config
 
 __all__ = (
     'WebSocketTesteeServerFactory',
@@ -129,3 +135,103 @@ class WebSocketTesteeServerFactory(WebSocketServerFactory):
 
         # set WebSocket options
         set_websocket_options(self, options)
+
+
+class WebSocketTesteeWorkerSession(NativeWorkerSession):
+    """
+    A native Crossbar.io worker that runs a WebSocket testee.
+    """
+    WORKER_TYPE = 'websocket-testee'
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        """
+        Called when worker process has joined the node's management realm.
+        """
+        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
+
+        # the procedures registered
+        procs = [
+            'get_websocket_testee_transport',
+            'start_websocket_testee_transport',
+            'stop_websocket_testee_transport',
+        ]
+
+        dl = []
+        for proc in procs:
+            uri = '{}.{}'.format(self._uri_prefix, proc)
+            self.log.debug("Registering management API procedure {proc}", proc=uri)
+            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
+
+        regs = yield DeferredList(dl)
+
+        self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+
+        # NativeWorkerSession.publish_ready()
+        yield self.publish_ready()
+
+    def get_websocket_testee_transport(self, details=None):
+        """
+        """
+        self.log.debug("{}.get_websocket_testee_transport".format(self.__class__.__name__))
+
+    def start_websocket_testee_transport(self, id, config, details=None):
+        """
+        """
+        self.log.debug("{}.start_websocket_testee_transport".format(self.__class__.__name__),
+                       id=id, config=config)
+
+        # prohibit starting a transport twice
+        #
+        # FIXME
+        # if id in self.transports:
+        #     emsg = "Could not start transport: a transport with ID '{}' is already running (or starting)".format(id)
+        #     self.log.error(emsg)
+        #     raise ApplicationError(u'crossbar.error.already_running', emsg)
+
+        # check configuration
+        #
+        try:
+            checkconfig.check_listening_transport_websocket(config)
+        except Exception as e:
+            emsg = "Invalid WebSocket testee transport configuration: {}".format(e)
+            self.log.error(emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+        else:
+            self.log.debug("Starting {}-transport on websocket-testee.".format(config['type']))
+
+        # WebSocket testee pseudo transport
+        #
+        if config['type'] == 'websocket':
+
+            transport_factory = WebSocketTesteeServerFactory(config, self._templates)
+
+        # Unknown transport type
+        #
+        else:
+            # should not arrive here, since we did check_transport() in the beginning
+            raise Exception("logic error")
+
+        # create transport endpoint / listening port from transport factory
+        #
+        d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, self._reactor)
+
+        def ok(port):
+            # FIXME
+            # self.transports[id] = RouterTransport(id, config, transport_factory, port)
+            self.log.debug("Router transport '{}'' started and listening".format(id))
+            return
+
+        def fail(err):
+            emsg = "Cannot listen on transport endpoint: {}".format(err.value)
+            self.log.error(emsg)
+            raise ApplicationError(u"crossbar.error.cannot_listen", emsg)
+
+        d.addCallbacks(ok, fail)
+        return d
+
+    def stop_websocket_testee_transport(self, id, details=None):
+        """
+        """
+        self.log.debug("{}.stop_websocket_testee_transport".format(self.__class__.__name__), id=id)
+        raise NotImplementedError()

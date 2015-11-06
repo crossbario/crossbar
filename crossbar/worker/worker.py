@@ -33,6 +33,7 @@ from __future__ import absolute_import
 import os
 import sys
 import pkg_resources
+import jinja2
 
 from twisted.internet.defer import DeferredList, inlineCallbacks
 
@@ -81,6 +82,13 @@ class NativeWorkerSession(NativeProcessSession):
         self._module_tracker = TrackingModuleReloader(debug=True)
 
         self._profiles = {}
+
+        # Jinja2 templates for Web (like WS status page et al)
+        #
+        templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
+        self.log.debug("Using Web templates from {templates_dir}",
+                       templates_dir=templates_dir)
+        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
 
         self.join(self.config.realm)
 

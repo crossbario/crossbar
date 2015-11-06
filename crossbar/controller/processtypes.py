@@ -46,7 +46,8 @@ from crossbar._logging import cb_logging_aware, escape_formatting
 
 __all__ = ('RouterWorkerProcess',
            'ContainerWorkerProcess',
-           'GuestWorkerProcess')
+           'GuestWorkerProcess',
+           'WebSocketTesteeWorkerProcess')
 
 
 class WorkerProcess(object):
@@ -235,6 +236,15 @@ class ContainerWorkerProcess(NativeWorkerProcess):
 
     TYPE = 'container'
     LOGNAME = 'Container'
+
+
+class WebSocketTesteeWorkerProcess(NativeWorkerProcess):
+    """
+    Internal run-time representation of a websocket-testee worker process.
+    """
+
+    TYPE = 'websocket-testee'
+    LOGNAME = 'WebSocketTestee'
 
 
 class GuestWorkerProcess(WorkerProcess):

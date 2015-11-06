@@ -56,7 +56,8 @@ from crossbar.controller.native import create_native_worker_client_factory
 from crossbar.controller.guest import create_guest_worker_client_factory
 from crossbar.controller.processtypes import RouterWorkerProcess, \
     ContainerWorkerProcess, \
-    GuestWorkerProcess
+    GuestWorkerProcess, \
+    WebSocketTesteeWorkerProcess
 from crossbar.common.process import NativeProcessSession
 from crossbar.platform import HAS_FSNOTIFY, DirWatcher
 from crossbar._logging import make_logger, _loglevel
@@ -156,6 +157,8 @@ class NodeControllerSession(NativeProcessSession):
             'stop_container',
             'start_guest',
             'stop_guest',
+            'start_websocket_testee',
+            'stop_websocket_testee',
         ]
 
         dl = []
@@ -302,9 +305,24 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._start_native_worker('container', id, options, details=details)
 
+    def start_websocket_testee(self, id, options=None, details=None):
+        """
+        Start a new websocket-testee worker: a Crossbar.io native worker process
+        that runs a plain echo'ing WebSocket server.
+
+        :param id: The worker ID to start this router with.
+        :type id: str
+        :param options: The worker options.
+        :type options: dict
+        """
+        self.log.debug("NodeControllerSession.start_websocket_testee({id}, options={options})",
+                       id=id, options=options)
+
+        return self._start_native_worker('websocket-testee', id, options, details=details)
+
     def _start_native_worker(self, wtype, id, options=None, details=None):
 
-        assert(wtype in ['router', 'container'])
+        assert(wtype in ['router', 'container', 'websocket-testee'])
 
         # prohibit starting a worker twice
         #
@@ -321,6 +339,8 @@ class NodeControllerSession(NativeProcessSession):
                 checkconfig.check_router_options(options)
             elif wtype == 'container':
                 checkconfig.check_container_options(options)
+            elif wtype == 'websocket-testee':
+                checkconfig.check_websocket_testee_options(options)
             else:
                 raise Exception("logic error")
         except Exception as e:
@@ -386,7 +406,11 @@ class NodeControllerSession(NativeProcessSession):
 
         # log name of worker
         #
-        worker_logname = {'router': 'Router', 'container': 'Container'}.get(wtype, 'Worker')
+        worker_logname = {
+            'router': 'Router',
+            'container': 'Container',
+            'websocket-testee': 'WebSocketTestee'
+        }.get(wtype, 'Worker')
 
         # topic URIs used (later)
         #
@@ -396,6 +420,9 @@ class NodeControllerSession(NativeProcessSession):
         elif wtype == 'container':
             starting_topic = 'crossbar.node.{}.on_container_starting'.format(self._node_id)
             started_topic = 'crossbar.node.{}.on_container_started'.format(self._node_id)
+        elif wtype == 'websocket-testee':
+            starting_topic = 'crossbar.node.{}.on_websocket_testee_starting'.format(self._node_id)
+            started_topic = 'crossbar.node.{}.on_websocket_testee_started'.format(self._node_id)
         else:
             raise Exception("logic error")
 
@@ -405,6 +432,8 @@ class NodeControllerSession(NativeProcessSession):
             worker = RouterWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
         elif wtype == 'container':
             worker = ContainerWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
+        elif wtype == 'websocket-testee':
+            worker = WebSocketTesteeWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
         else:
             raise Exception("logic error")
 
@@ -619,9 +648,24 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._stop_native_worker('container', id, kill, details=details)
 
+    def stop_websocket_testee(self, id, kill=False, details=None):
+        """
+        Stops a currently running websocket-testee worker.
+
+        :param id: The ID of the worker to stop.
+        :type id: str
+        :param kill: If `True`, kill the process. Otherwise, gracefully
+                     shut down the worker.
+        :type kill: bool
+        """
+        self.log.debug("NodeControllerSession.stop_websocket_testee({id}, kill={kill})",
+                       id=id, kill=kill)
+
+        return self._stop_native_worker('websocket-testee', id, kill, details=details)
+
     def _stop_native_worker(self, wtype, id, kill, details=None):
 
-        assert(wtype in ['router', 'container'])
+        assert(wtype in ['router', 'container', 'websocket-testee'])
 
         if id not in self._workers or self._workers[id].TYPE != wtype:
             emsg = "Could not stop native worker: no {} worker with ID '{}' currently running".format(wtype, id)

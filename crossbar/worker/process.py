@@ -95,7 +95,7 @@ def run():
 
     parser.add_argument('-t',
                         '--type',
-                        choices=['router', 'container'],
+                        choices=['router', 'container', 'websocket-testee'],
                         help='Worker type (required).')
 
     parser.add_argument('--title',
@@ -137,7 +137,8 @@ def run():
         else:
             WORKER_TYPE_TO_TITLE = {
                 'router': 'crossbar-worker [router]',
-                'container': 'crossbar-worker [container]'
+                'container': 'crossbar-worker [container]',
+                'websocket-testee': 'crossbar-worker [websocket-testee]'
             }
             setproctitle.setproctitle(WORKER_TYPE_TO_TITLE[options.type].strip())
 
@@ -157,10 +158,12 @@ def run():
 
     from crossbar.worker.router import RouterWorkerSession
     from crossbar.worker.container import ContainerWorkerSession
+    from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
     WORKER_TYPE_TO_CLASS = {
         'router': RouterWorkerSession,
-        'container': ContainerWorkerSession
+        'container': ContainerWorkerSession,
+        'websocket-testee': WebSocketTesteeWorkerSession
     }
 
     from autobahn.twisted.websocket import WampWebSocketServerProtocol
