@@ -461,7 +461,7 @@ class _RouterSession(BaseSession):
 
         DO NOT attach to Deferreds that are returned to calling code.
         """
-        self.log.failure("Internal error (2): {log_failure.value}", failure=fail)
+        self.log.error("Internal error (2): {log_failure.value}", log_failure=fail)
 
         # tell other side we're done
         reply = message.Abort(u"wamp.error.authorization_failed", u"Internal server error")

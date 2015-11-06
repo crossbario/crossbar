@@ -64,11 +64,7 @@ class NativeWorkerSession(NativeProcessSession):
     log = make_logger()
 
     def onUserError(self, err, errmsg):
-        # FIXME: this works for me now ..
-        sys.stderr.write(errmsg)
-        # .. not sure why this doesn't:
-        # self.log.error(errmsg)
-        # print(errmsg)
+        self.log.error("NativeWorkerSession.onUserError", log_failure=err)
 
     def onConnect(self):
         """
