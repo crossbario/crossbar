@@ -111,7 +111,7 @@ class _RouterApplicationSession(object):
     def _swallow_error(self, fail, msg):
         try:
             if self._session:
-                self._session.onUserError(fail.value, msg)
+                self._session.onUserError(fail, msg)
         except:
             pass
         return None
