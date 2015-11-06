@@ -843,3 +843,8 @@ def run(prog=None, args=None, reactor=None):
     # run the subcommand selected
     #
     options.func(options, reactor=reactor)
+
+
+if __name__ == '__main__':
+    import sys
+    run(args=sys.argv[1:])

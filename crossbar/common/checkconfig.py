@@ -2151,6 +2151,26 @@ def check_guest(guest, silence=False):
             check_process_env(options['env'])
 
 
+def check_websocket_testee(worker, silence=False):
+    """
+    Checks a WebSocket testee worker configuration.
+
+    :param worker: The configuration to check.
+    :type worker: dict
+    """
+    for k in worker:
+        if k not in ['id', 'type', 'options', 'transport']:
+            raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket testee configuration".format(k))
+
+    if 'options' in worker:
+        check_native_worker_options(worker['options'])
+
+    if 'transport' not in worker:
+        raise InvalidConfigException("missing mandatory attribute 'transport' in WebSocket testee configuration")
+
+    check_listening_transport_websocket(worker['transport'])
+
+
 def check_worker(worker, silence=False):
     """
     Check a node worker configuration item.
@@ -2169,7 +2189,7 @@ def check_worker(worker, silence=False):
 
     ptype = worker['type']
 
-    if ptype not in ['router', 'container', 'guest']:
+    if ptype not in ['router', 'container', 'guest', 'websocket-testee']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item\n\n{}".format(ptype, pformat(worker)))
 
     if ptype == 'router':
@@ -2180,6 +2200,9 @@ def check_worker(worker, silence=False):
 
     elif ptype == 'guest':
         check_guest(worker, silence)
+
+    elif ptype == 'websocket-testee':
+        check_websocket_testee(worker, silence)
 
     else:
         raise InvalidConfigException("logic error")
