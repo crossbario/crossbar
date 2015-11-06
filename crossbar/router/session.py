@@ -840,7 +840,7 @@ class RouterSession(_RouterSession):
         """
         Callback fired when a client responds to an authentication challenge.
         """
-        print("onAuthenticate: {} {}".format(signature, extra))
+        self.log.debug("onAuthenticate: {signature} {extra}", signature=signature, extra=extra)
 
         # if there is a pending auth, check the challenge response. The specifics
         # of how to check depend on the authentication method
@@ -861,6 +861,11 @@ class RouterSession(_RouterSession):
                 else:
                     # WAMP-CRA authentication signature was invalid: deny client
                     #
+                    self.log.debug(
+                        'Invalid sig: "{got}" != "{wanted}"',
+                        got=signature,
+                        wanted=self._pending_auth.signature,
+                    )
                     return types.Deny(message=u"signature is invalid")
 
             # WAMP-Ticket
