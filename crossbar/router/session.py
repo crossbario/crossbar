@@ -611,11 +611,13 @@ class RouterSession(_RouterSession):
 
                                         # construct a pending WAMP-CRA authentication
                                         #
-                                        self._pending_auth = PendingAuthWampCra(details.pending_session,
-                                                                                authid,
-                                                                                user['role'],
-                                                                                u'static',
-                                                                                user['secret'].encode('utf8'))
+                                        self._pending_auth = PendingAuthWampCra(
+                                            details.pending_session,
+                                            authid,
+                                            user['role'],
+                                            u'static',
+                                            user['secret'].encode('utf8'),
+                                        )
 
                                         # send challenge to client
                                         #
