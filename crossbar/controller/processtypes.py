@@ -97,6 +97,10 @@ class WorkerProcess(object):
 
         self._log_rich = None  # Does not support rich logs
 
+        # track stats for worker->controller traffic
+        self._stats = {}
+        self._stats_printer = None
+
         # A deferred that resolves when the worker is ready.
         self.ready = Deferred()
 
@@ -194,6 +198,33 @@ class WorkerProcess(object):
                 if self._log_topic:
                     self._controller.publish(self._log_topic, row)
 
+    def track_stats(self, fd, dlen):
+        """
+        Tracks statistics about bytes received from native worker
+        over one of the pipes used for communicating with the worker.
+        """
+        if fd not in self._stats:
+            self._stats[fd] = {
+                'count': 0,
+                'bytes': 0
+            }
+        self._stats[fd]['count'] += 1
+        self._stats[fd]['bytes'] += dlen
+
+    def log_stats(self, period=0):
+        if not period:
+            if self._stats_printer:
+                self._stats_printer.stop()
+                self._stats_printer = None
+        else:
+            if self._stats_printer:
+                self._stats_printer.stop()
+
+            def print_stats():
+                self._logger.debug("Worker {id} -> Controller traffic: {stats}", id=self.id, stats=self._stats)
+            self._stats_printer = LoopingCall(print_stats)
+            self._stats_printer.start(period)
+
 
 class NativeWorkerProcess(WorkerProcess):
     """
@@ -219,36 +250,6 @@ class NativeWorkerProcess(WorkerProcess):
 
         self.factory = None
         self.proto = None
-        self._stats = {}
-        self._stats_printer = None
-
-    def track_stats(self, fd, dlen):
-        """
-        Tracks statistics about bytes received from native worker
-        over one of the pipes used for communicating with the worker.
-        """
-        if fd not in self._stats:
-            self._stats[fd] = {
-                'count': 0,
-                'bytes': 0
-            }
-        self._stats[fd]['count'] += 1
-        self._stats[fd]['bytes'] += dlen
-
-    def log_stats(self, period=0):
-        if not period:
-            if self._stats_printer:
-                self._stats_printer.stop()
-                self._stats_printer = None
-        else:
-            if self._stats_printer:
-                self._stats_printer.stop()
-
-            def print_stats():
-                # self._logger.info("Worker {id} -> Controller traffic: {stats}", id=self.id, stats=self._stats)
-                print("Worker {} -> Controller traffic: {}".format(self.id, self._stats))
-            self._stats_printer = LoopingCall(print_stats)
-            self._stats_printer.start(period)
 
 
 class RouterWorkerProcess(NativeWorkerProcess):
