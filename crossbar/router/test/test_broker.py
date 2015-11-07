@@ -121,7 +121,7 @@ class TestBrokerPublish(unittest.TestCase):
 
             if True:
                 self.assertEqual(1, len(errors), "Didn't see our error")
-                self.assertEqual(the_exception, errors[0][0])
+                self.assertEqual(the_exception, errors[0][0].value)
 
             else:
                 # check we got the right log.failure() call
@@ -160,8 +160,8 @@ class TestBrokerPublish(unittest.TestCase):
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
             self.assertEqual(call[0], 'failure')
-            self.assertTrue('failure' in call[2])
-            self.assertEqual(call[2]['failure'].value, the_exception)
+            self.assertTrue('log_failure' in call[2])
+            self.assertEqual(call[2]['log_failure'].value, the_exception)
 
     def test_router_session_internal_error_onAuthenticate(self):
         """
@@ -191,8 +191,8 @@ class TestBrokerPublish(unittest.TestCase):
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
             self.assertEqual(call[0], 'failure')
-            self.assertTrue('failure' in call[2])
-            self.assertEqual(call[2]['failure'].value, the_exception)
+            self.assertTrue('log_failure' in call[2])
+            self.assertEqual(call[2]['log_failure'].value, the_exception)
 
     def test_add_and_subscribe(self):
         """
