@@ -480,13 +480,15 @@ class NodeControllerSession(NativeProcessSession):
                 'who': worker.who
             }
 
+            # FIXME: make start of stats printer dependent on log level ..
+            worker.log_stats(5.)
+
             self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
 
             return started_info
 
         def on_ready_error(err):
             del self._workers[worker.id]
-
             emsg = 'Failed to start native worker: {}'.format(err.value)
             self.log.error(emsg)
             raise ApplicationError(u"crossbar.error.cannot_start", emsg, worker.getlog())
@@ -494,10 +496,12 @@ class NodeControllerSession(NativeProcessSession):
         worker.ready.addCallbacks(on_ready_success, on_ready_error)
 
         def on_exit_success(res):
+            worker.log_stats(0)
             del self._workers[worker.id]
             return worker.id
 
         def on_exit_error(err):
+            worker.log_stats(0)
             del self._workers[worker.id]
             return worker.id
 
