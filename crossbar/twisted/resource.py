@@ -110,7 +110,7 @@ class JsonResource(Resource):
 
         self._requests_served += 1
         if self._requests_served % 10000 == 0:
-            self.log.info("Served {requests_served} requests", requests_served=self._requests_served)
+            self.log.debug("Served {requests_served} requests", requests_served=self._requests_served)
 
         return self._data
 
