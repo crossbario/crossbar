@@ -14,6 +14,7 @@ Contributors with signed CAAs
 * taion
 * voidfuture
 * wilbertom
+* yoch
 
 Entity CAAs
 
