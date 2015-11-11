@@ -72,6 +72,10 @@ if sys.platform.startswith('linux'):
     except:
         pass
 
+elif sys.platform == 'win32':
+    # http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t/14388707#14388707
+    _HAS_SHARED_LOADBALANCED_SOCKET = True
+
 
 def create_stream_socket(addressFamily, shared=False):
     """
@@ -93,10 +97,17 @@ def create_stream_socket(addressFamily, shared=False):
 
     if shared:
         if addressFamily not in [socket.AF_INET, socket.AF_INET6]:
-            raise Exception("shared sockets are only supported for TCP")
+            raise Exception("shared sockets are only supported for IPv4 and IPv6")
 
         if _HAS_SHARED_LOADBALANCED_SOCKET:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            if sys.platform.startswith('linux'):
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            elif sys.platform == 'win32':
+                # http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t/14388707#14388707
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                # s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            else:
+                raise Exception("logic error")
         else:
             raise Exception("shared sockets unsupported on this system")
 
@@ -124,5 +135,15 @@ class SharedPort(tcp.Port):
     def createInternetSocket(self):
         s = tcp.Port.createInternetSocket(self)
         if self._shared:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            if _HAS_SHARED_LOADBALANCED_SOCKET:
+                if sys.platform.startswith('linux'):
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                elif sys.platform == 'win32':
+                    # http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t/14388707#14388707
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    # s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+                else:
+                    raise Exception("logic error")
+            else:
+                raise Exception("shared sockets unsupported on this system")
         return s
