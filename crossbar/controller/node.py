@@ -169,7 +169,10 @@ class Node(object):
         self._router_factory = RouterFactory()
         self._router_session_factory = RouterSessionFactory(self._router_factory)
 
-        rlm = RouterRealm(None, {'name': self._realm})
+        rlm_config = {
+            'name': self._realm
+        }
+        rlm = RouterRealm(None, rlm_config)
 
         # create a new router for the realm
         router = self._router_factory.start_realm(rlm)

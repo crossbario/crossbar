@@ -480,6 +480,35 @@ class RouterServiceSession(ApplicationSession):
         else:
             raise ApplicationError(ApplicationError.NO_SUCH_SUBSCRIPTION, message="no subscription with ID {} exists on this broker".format(subscription_id))
 
+    @wamp.register(u'wamp.subscription.get_events')
+    def subscription_get_events(self, subscription_id, limit=10):
+        """
+        Return history of events for given subscription.
+
+        :param subscription_id: The ID of the subscription to get events for.
+        :type subscription_id: int
+        :param limit: Return at most this many events.
+        :type limit: int
+
+        :returns: List of events.
+        :rtype: list
+        """
+        self.log.info("subscription_get_events({subscription_id}, {limit})", subscription_id=subscription_id, limit=limit)
+        subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
+        if subscription and not is_protected_uri(subscription.uri):
+            events = self._router._broker._event_store.get_events(subscription_id, limit)
+            if events is None:
+                raise Exception("event history for the given subscription is unavailable")
+                raise ApplicationError(u'wamp.error.history_unavailable', message="event history for the given subscription is unavailable")
+            else:
+                return events
+        else:
+            raise ApplicationError(ApplicationError.NO_SUCH_SUBSCRIPTION, message="no subscription with ID {} exists on this broker".format(subscription_id))
+
+    @wamp.register(u'wamp.test.exception')
+    def test_exception(self):
+        raise ApplicationError(u'wamp.error.history_unavailable')
+
     @wamp.register(u'wamp.schema.describe')
     def schema_describe(self, uri=None):
         """

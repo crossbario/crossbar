@@ -34,6 +34,7 @@ from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
 from crossbar.router import RouterOptions, RouterAction
+from crossbar.router.realmstore import HAS_LMDB, LmdbRealmStore, MemoryRealmStore
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
@@ -72,7 +73,7 @@ class Router(object):
     The dealer class this router will use.
     """
 
-    def __init__(self, factory, realm, options=None):
+    def __init__(self, factory, realm, options=None, store=None):
         """
 
         :param factory: The router factory this router was created by.
@@ -84,6 +85,7 @@ class Router(object):
         """
         self._factory = factory
         self._options = options or RouterOptions()
+        self._store = store
         self._realm = realm
         self.realm = realm.config['name']
 
@@ -309,11 +311,32 @@ class RouterFactory(object):
         self.log.debug("CrossbarRouterFactory.start_realm(realm = {realm})",
                        realm=realm)
 
+        # get name of realm (an URI in general)
+        #
         uri = realm.config['name']
         assert(uri not in self._routers)
 
-        router = Router(self, realm, self._options)
+        # if configuration of realm contains a "store" item, set up a
+        # realm store as appropriate ..
+        store = None
+        if 'store' in realm.config:
+            store_config = realm.config['store']
 
+            if store_config['type'] == 'lmdb':
+                # if LMDB is available, and a realm store / database is configured,
+                # create an LMDB environment
+                if not HAS_LMDB:
+                    raise Exception("LDMB not available")
+                store = LmdbRealmStore(store_config)
+
+            elif store_config['type'] == 'memory':
+                store = MemoryRealmStore(store_config)
+            else:
+                raise Exception('logic error')
+
+        # now create a router for the realm
+        #
+        router = Router(self, realm, self._options, store=store)
         self._routers[uri] = router
         self.log.debug("Router created for realm '{uri}'", uri=uri)
 

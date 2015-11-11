@@ -85,6 +85,17 @@ class Broker(object):
                                                       publisher_exclusion=True,
                                                       subscription_revocation=True)
 
+        # store for event history
+        if self._router._store:
+            self._event_store = self._router._store.event_store
+        else:
+            self._event_store = None
+
+        # if there is a store, let the store attach itself to all the subscriptions
+        # it is configured to track
+        if self._event_store:
+            self._event_store.attach_subscription_map(self._subscription_map)
+
     def attach(self, session):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.attach`
@@ -151,10 +162,26 @@ class Broker(object):
         #
         subscriptions = self._subscription_map.match_observations(publish.topic)
 
-        # go on if there are any active subscriptions or the publish is to be acknowledged
-        # otherwise there isn't anything to do anyway.
+        # check if the event is being persisted by checking if we ourself are among the observers.
+        # we've been added to observer lists on subscriptions ultimately from node configuration
+        # and during the broker starts up.
+        store_event = False
+        if self._event_store:
+            for s in subscriptions:
+                if self._event_store in s.observers:
+                    store_event = True
+                    break
+        if store_event:
+            self.log.debug("event on topic '{topic}'' is being persisted", topic=publish.topic)
+
+        # go on if (otherwise there isn't anything to do anyway):
         #
-        if subscriptions or publish.acknowledge:
+        #   - there are any active subscriptions OR
+        #   - the publish is to be acknowledged OR
+        #   - the event is to be persistet
+        #
+        if subscriptions or publish.acknowledge or store_event:
+
             # validate payload
             #
             try:
@@ -186,6 +213,11 @@ class Broker(object):
                     #
                     publication = util.id()
 
+                    # persist event
+                    #
+                    if store_event:
+                        self._event_store.store_event(session._session_id, publication, publish.topic, publish.args, publish.kwargs)
+
                     # send publish acknowledge immediately when requested
                     #
                     if publish.acknowledge:
@@ -209,6 +241,12 @@ class Broker(object):
                     # iterate over all subscriptions ..
                     #
                     for subscription in subscriptions:
+
+                        # persist event history
+                        #
+                        if store_event:
+                            self._event_store.store_event_history(publication, subscription.id)
+
                         # initial list of receivers are all subscribers on a subscription ..
                         #
                         receivers = subscription.observers
@@ -242,7 +280,8 @@ class Broker(object):
 
                         # if receivers is non-empty, dispatch event ..
                         #
-                        if receivers:
+                        receivers_cnt = len(receivers) - (1 if self in receivers else 0)
+                        if receivers_cnt:
 
                             # for pattern-based subscriptions, the EVENT must contain
                             # the actual topic being published to
@@ -259,7 +298,7 @@ class Broker(object):
                                                 publisher=publisher,
                                                 topic=topic)
                             for receiver in receivers:
-                                if me_also or receiver != session:
+                                if (me_also or receiver != session) and receiver != self._event_store:
                                     # the receiving subscriber session
                                     # might have no transport, or no
                                     # longer be joined
