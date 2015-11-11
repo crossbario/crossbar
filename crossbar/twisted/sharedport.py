@@ -28,22 +28,6 @@
 #
 #####################################################################################
 
-# https://lwn.net/Articles/542629/
-# http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
-# http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t
-# http://www.freebsd.org/cgi/man.cgi?query=setsockopt&sektion=2
-# "SO_REUSEPORT on FreeBSD doesn't load balance incoming connections."
-# http://lists.freebsd.org/pipermail/freebsd-net/2013-July/036131.html
-# https://github.com/kavu/go_reuseport
-# http://freeprogrammersblog.vhex.net/post/linux-39-introdued-new-way-of-writing-socket-servers/2
-# http://gitweb.dragonflybsd.org/dragonfly.git/commitdiff/740d1d9f7b7bf9c9c021abb8197718d7a2d441c9
-# http://stackoverflow.com/questions/12542700/setsockopt-before-connect-for-reactor-connecttcp
-# http://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorSocket.html
-# http://stackoverflow.com/questions/10077745/twistedweb-on-multicore-multiprocessor
-# http://msdn.microsoft.com/de-de/library/windows/desktop/cc150667(v=vs.85).aspx
-# http://freeprogrammersblog.vhex.net/post/linux-39-introduced-new-way-of-writing-socket-servers/2
-
-
 import sys
 import socket
 import platform
@@ -75,6 +59,8 @@ if sys.platform.startswith('linux'):
 elif sys.platform == 'win32':
     # http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t/14388707#14388707
     _HAS_SHARED_LOADBALANCED_SOCKET = True
+
+# FIXME: DragonFly BSD claims support: http://lists.dragonflybsd.org/pipermail/commits/2013-May/130083.html
 
 
 def create_stream_socket(addressFamily, shared=False):
@@ -115,7 +101,6 @@ def create_stream_socket(addressFamily, shared=False):
 
 
 class SharedPort(tcp.Port):
-
     """
     A custom port which sets socket options for sharing TCP ports between multiple processes.
 
