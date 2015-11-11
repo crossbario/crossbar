@@ -32,6 +32,7 @@ from __future__ import absolute_import
 import six
 
 from pytrie import StringTrie
+from crossbar.router.wildcard import WildcardTrieMatcher
 
 from autobahn import util
 
@@ -131,15 +132,6 @@ class WildcardUriObservation(UriObservation):
     """
     match = u"wildcard"
 
-    def __init__(self, uri, ordered=False, extra=None):
-        UriObservation.__init__(self, uri, ordered, extra)
-
-        # an URI pattern like "com.example..create" will have a pattern (False, False, True, False)
-        self.pattern = tuple([part == "" for part in self.uri.split('.')])
-
-        # length of the pattern (above would have length 4, as it consists of 4 URI components)
-        self.pattern_len = len(self.pattern)
-
 
 class UriObservationMap(object):
 
@@ -161,10 +153,7 @@ class UriObservationMap(object):
         self._observations_prefix = StringTrie()
 
         # map: URI => WildcardUriObservation
-        self._observations_wildcard = {}
-
-        # map: pattern length => (map: pattern => pattern count)
-        self._observations_wildcard_patterns = {}
+        self._observations_wildcard = WildcardTrieMatcher()
 
         # map: observation ID => UriObservation
         self._observation_id_to_observation = {}
@@ -220,22 +209,8 @@ class UriObservationMap(object):
             # if the wildcard-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_wildcard:
-
-                observation = WildcardUriObservation(uri, ordered=self._ordered, extra=extra)
-
-                self._observations_wildcard[uri] = observation
+                self._observations_wildcard[uri] = WildcardUriObservation(uri, ordered=self._ordered, extra=extra)
                 is_first_observer = True
-
-                # setup map: pattern length -> patterns
-                if observation.pattern_len not in self._observations_wildcard_patterns:
-                    self._observations_wildcard_patterns[observation.pattern_len] = {}
-
-                # setup map: (pattern length, pattern) -> pattern count
-                if observation.pattern not in self._observations_wildcard_patterns[observation.pattern_len]:
-                    self._observations_wildcard_patterns[observation.pattern_len][observation.pattern] = 1
-                else:
-                    self._observations_wildcard_patterns[observation.pattern_len][observation.pattern] += 1
-
             else:
                 is_first_observer = False
 
@@ -313,13 +288,8 @@ class UriObservationMap(object):
         for observation in self._observations_prefix.iter_prefix_values(uri):
             observations.append(observation)
 
-        uri_parts = tuple(uri.split('.'))
-        uri_parts_len = len(uri_parts)
-        if uri_parts_len in self._observations_wildcard_patterns:
-            for pattern in self._observations_wildcard_patterns[uri_parts_len]:
-                patterned_uri = '.'.join(['' if pattern[i] else uri_parts[i] for i in range(uri_parts_len)])
-                if patterned_uri in self._observations_wildcard:
-                    observations.append(self._observations_wildcard[patterned_uri])
+        for observation in self._observations_wildcard.iter_matches(uri):
+            observations.append(observation)
 
         return observations
 
@@ -356,13 +326,8 @@ class UriObservationMap(object):
         # We first need a definition of "most selective", and then we need to implement
         # this here.
         #
-        uri_parts = tuple(uri.split('.'))
-        uri_parts_len = len(uri_parts)
-        if uri_parts_len in self._observations_wildcard_patterns:
-            for pattern in self._observations_wildcard_patterns[uri_parts_len]:
-                patterned_uri = '.'.join(['' if pattern[i] else uri_parts[i] for i in range(uri_parts_len)])
-                if patterned_uri in self._observations_wildcard:
-                    return self._observations_wildcard[patterned_uri]
+        for observation in self._observations_wildcard.iter_matches(uri):
+            return observation
 
     def get_observation_by_id(self, id):
         """
@@ -409,17 +374,6 @@ class UriObservationMap(object):
                     del self._observations_prefix[observation.uri]
 
                 elif observation.match == u"wildcard":
-
-                    # cleanup if this was the last observation with given pattern
-                    self._observations_wildcard_patterns[observation.pattern_len][observation.pattern] -= 1
-                    if not self._observations_wildcard_patterns[observation.pattern_len][observation.pattern]:
-                        del self._observations_wildcard_patterns[observation.pattern_len][observation.pattern]
-
-                    # cleanup if this was the last observation with given pattern length
-                    if not self._observations_wildcard_patterns[observation.pattern_len]:
-                        del self._observations_wildcard_patterns[observation.pattern_len]
-
-                    # remove actual observation
                     del self._observations_wildcard[observation.uri]
 
                 else:
