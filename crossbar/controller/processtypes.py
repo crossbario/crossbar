@@ -40,6 +40,7 @@ from datetime import datetime
 
 from twisted.internet.defer import Deferred
 from twisted.python.runtime import platform
+from twisted.internet.task import LoopingCall
 
 from crossbar._logging import make_logger, LogLevel, record_separator
 from crossbar._logging import cb_logging_aware, escape_formatting
@@ -95,6 +96,10 @@ class WorkerProcess(object):
         self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
 
         self._log_rich = None  # Does not support rich logs
+
+        # track stats for worker->controller traffic
+        self._stats = {}
+        self._stats_printer = None
 
         # A deferred that resolves when the worker is ready.
         self.ready = Deferred()
@@ -192,6 +197,33 @@ class WorkerProcess(object):
 
                 if self._log_topic:
                     self._controller.publish(self._log_topic, row)
+
+    def track_stats(self, fd, dlen):
+        """
+        Tracks statistics about bytes received from native worker
+        over one of the pipes used for communicating with the worker.
+        """
+        if fd not in self._stats:
+            self._stats[fd] = {
+                'count': 0,
+                'bytes': 0
+            }
+        self._stats[fd]['count'] += 1
+        self._stats[fd]['bytes'] += dlen
+
+    def log_stats(self, period=0):
+        if not period:
+            if self._stats_printer:
+                self._stats_printer.stop()
+                self._stats_printer = None
+        else:
+            if self._stats_printer:
+                self._stats_printer.stop()
+
+            def print_stats():
+                self._logger.debug("Worker {id} -> Controller traffic: {stats}", id=self.id, stats=self._stats)
+            self._stats_printer = LoopingCall(print_stats)
+            self._stats_printer.start(period)
 
 
 class NativeWorkerProcess(WorkerProcess):
