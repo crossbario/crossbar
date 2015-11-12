@@ -70,7 +70,7 @@ class MemoryEventStore(object):
     def attach_subscription_map(self, subscription_map):
         # example topic being configured as persistent
         for sub in self._config.get('event-history', []):
-            limit = sub.get('limit', self._limit)
+            # FIXME: limit = sub.get('limit', self._limit)
             subscription_map.add_observer(self, uri=sub['uri'], match=sub.get('match', u'exact'))
 
     def store_event(self, publisher_id, publication_id, topic, args=None, kwargs=None):
