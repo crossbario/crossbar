@@ -42,18 +42,22 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     UNIXClientEndpoint
 from twisted.python.filepath import FilePath
 
+from crossbar._logging import make_logger
+from crossbar.twisted.sharedport import SharedPort
+
+_HAS_TLS = None
+_LACKS_TLS_MSG = None
+
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
     from crossbar.twisted.tlsctx import TlsServerContextFactory, \
         TlsClientContextFactory
-except ImportError:
+except ImportError as e:
     _HAS_TLS = False
+    _LACKS_TLS_MSG = "{}".format(e)
 else:
     _HAS_TLS = True
-
-from crossbar._logging import make_logger
-from crossbar.twisted.sharedport import SharedPort
 
 __all__ = ('create_listening_endpoint_from_config',
            'create_listening_port_from_config',
@@ -142,7 +146,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                     raise Exception("invalid TCP protocol version {}".format(version))
 
             else:
-                raise Exception("TLS transport requested, but TLS packages not available")
+                raise Exception("TLS transport requested, but TLS packages not available:\n{}".format(_LACKS_TLS_MSG))
 
         else:
             # create a non-TLS server endpoint
@@ -293,7 +297,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                     raise Exception("invalid TCP protocol version {}".format(version))
 
             else:
-                raise Exception("TLS transport requested, but TLS packages not available")
+                raise Exception("TLS transport requested, but TLS packages not available:\n{}".format(_LACKS_TLS_MSG))
 
         else:
             # create a non-TLS client endpoint
