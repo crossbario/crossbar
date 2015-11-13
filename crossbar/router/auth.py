@@ -101,8 +101,8 @@ class PendingAuthWampCra(PendingAuth):
         }
 
         # challenge must be bytes
-        self.challenge = json.dumps(challenge_obj, ensure_ascii=False).encode('utf8')
-        self.signature = auth.compute_wcs(secret, self.challenge)
+        self.challenge = json.dumps(challenge_obj, ensure_ascii=False)
+        self.signature = auth.compute_wcs(secret, self.challenge.encode('utf8'))
 
 
 class PendingAuthTicket(PendingAuth):
