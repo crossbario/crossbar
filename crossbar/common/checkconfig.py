@@ -449,7 +449,7 @@ def check_listening_endpoint_tls(tls):
             # all options except "ciphers" are filenames
             if k[0] != 'ciphers' and not exists(tls[k[0]]):
                 raise InvalidConfigException(
-                    "Path '{}' doesn't exist for {} in tls config".format(tls[k[0]], k[0])
+                    "Path '{}' doesn't exist for '{}' in TLS config".format(tls[k[0]], k[0])
                 )
 
 
