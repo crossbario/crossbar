@@ -215,8 +215,7 @@ class Node(object):
             yield self._startup(self._config)
         except ApplicationError as e:
             panic = True
-            for line in e.args[0].strip().splitlines():
-                self.log.error(line)
+            self.log.error("{msg}", msg=e.error_message())
         except Exception:
             panic = True
             traceback.print_exc()
