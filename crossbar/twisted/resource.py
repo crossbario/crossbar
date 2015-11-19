@@ -387,7 +387,6 @@ class FileUploadResource(Resource):
             # Merge all files into one file and remove the temp files
             # TODO: How to avoid the extra file IO ?
             finalFileName = self._dir.child(fileId)
-            print(self._uploads[fileId]['chunk_list'])
             _finalFileName = self._dir.child('#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
             with open(_finalFileName.path, 'wb') as finalFile:
                 # Write each chunk into the resultant file, in chunk ID order
