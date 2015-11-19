@@ -236,9 +236,11 @@ def create_listening_port_from_config(config, factory, cbdir, reactor):
             return defer.fail(e)
 
     else:
-
-        endpoint = create_listening_endpoint_from_config(config, cbdir, reactor)
-        return endpoint.listen(factory)
+        try:
+            endpoint = create_listening_endpoint_from_config(config, cbdir, reactor)
+            return endpoint.listen(factory)
+        except Exception:
+            return defer.fail()
 
 
 def create_connecting_endpoint_from_config(config, cbdir, reactor):
