@@ -38,14 +38,15 @@ _boundary_segment = b"---------------------------"
 
 
 class _Part(object):
-
+    """
+    A multipart "part".
+    """
     def __init__(self, name, content, filename=None, content_type=None):
 
         self._content = content
         self._name = name
         self._content_type = content_type
         self._filename = filename
-
 
     def render(self):
 
@@ -77,11 +78,9 @@ class Multipart(object):
     """
     A multipart request.
     """
-
     def __init__(self):
         self._parts = []
         self._boundary = uuid4().hex.encode('ascii')
-
 
     def add_part(self, name, content, filename=None, content_type=None):
 

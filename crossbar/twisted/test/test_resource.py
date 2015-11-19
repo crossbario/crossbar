@@ -40,6 +40,7 @@ from mock import Mock
 
 from .multipart import Multipart
 
+
 class FileUploadTests(TestCase):
     """
     Tests for crossbar.twisted.resource.FileUploadResource.
@@ -236,7 +237,6 @@ class FileUploadTests(TestCase):
         self.assertEqual(len(upload_dir.listdir()), 1)
         with upload_dir.child("examplefile.txt").open("rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
-
 
     def test_resumed_upload(self):
         """
