@@ -64,6 +64,24 @@ class CheckDictArgsTests(TestCase):
                          str(e.exception))
 
 
+class CheckTlsTests(TestCase):
+    """
+    Tests for L{crossbar.common.checkconfig.check_container}.
+    """
+    def test_missing_dhparams(self):
+        cfg = dict(
+            key=u'/invalid',
+            certificate=u'/invalid',
+            dhparam=u'/invalid',
+            ciphers=u'/invalid',
+        )
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as e:
+            checkconfig.check_listening_endpoint_tls(cfg)
+
+        self.assertTrue("doesn't exist" in str(e))
+
+
 class CheckContainerTests(TestCase):
     """
     Tests for L{crossbar.common.checkconfig.check_container}.
