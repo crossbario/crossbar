@@ -1060,6 +1060,10 @@ class RouterSession(_RouterSession):
         # dispatch session metaevent from WAMP AP
         #
         if self._service_session and self._session_id:
+            # if we got a proper Goodbye, we already sent out the
+            # on_leave and our self._session_id is already None; if
+            # the transport vanished our _session_id will still be
+            # valid.
             self._service_session.publish(u'wamp.session.on_leave', self._session_id)
 
         self._session_details = None
