@@ -34,6 +34,7 @@ import os
 import json
 import re
 import six
+from os.path import exists
 
 from pprint import pformat
 
@@ -445,6 +446,11 @@ def check_listening_endpoint_tls(tls):
         if k[0] in tls:
             if not isinstance(tls[k[0]], six.text_type):
                 raise InvalidConfigException("'{}' in listening endpoint TLS configuration must be string ({} encountered)".format(k[0], type(tls[k[0]])))
+            # all options except "ciphers" are filenames
+            if k[0] != 'ciphers' and not exists(tls[k[0]]):
+                raise InvalidConfigException(
+                    "Path '{}' doesn't exist for {} in tls config".format(tls[k[0]], k[0])
+                )
 
 
 def check_connecting_endpoint_tls(tls):

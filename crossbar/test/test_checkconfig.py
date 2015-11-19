@@ -76,10 +76,10 @@ class CheckTlsTests(TestCase):
             ciphers=u'/invalid',
         )
 
-        with self.assertRaises(checkconfig.InvalidConfigException) as e:
+        with self.assertRaises(checkconfig.InvalidConfigException) as err:
             checkconfig.check_listening_endpoint_tls(cfg)
 
-        self.assertTrue("doesn't exist" in str(e))
+        self.assertTrue("doesn't exist" in str(err.exception))
 
 
 class CheckContainerTests(TestCase):
