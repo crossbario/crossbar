@@ -271,6 +271,39 @@ class TestRouterSession(unittest.TestCase):
     Tests for crossbar.router.session.RouterSession
     """
 
+    def test_wamp_session_on_leave(self):
+        """
+        wamp.session.on_leave receives valid session_id
+        """
+
+        router = mock.MagicMock()
+        utest = self
+
+        class TestSession(RouterSession):
+            def __init__(self, *args, **kw):
+                super(TestSession, self).__init__(*args, **kw)
+                # for this test, pretend we're connected (without
+                # going through sending a Hello etc.)
+                self._transport = mock.MagicMock()
+                self._session_id = 1234
+                self._router = router  # normally done in Hello processing
+                self._service_session = mock.MagicMock()
+
+        router_factory = mock.MagicMock()
+        session = TestSession(router_factory)
+        goodbye = message.Goodbye(u'wamp.close.normal', u'hi there')
+
+        self.assertFalse(session._goodbye_sent)
+
+        # do the test; we should publish wamp.session.on_leave via the
+        # service-session
+        session.onMessage(goodbye)
+        publishes = [call for call in session._service_session.mock_calls if call[0] == 'publish']
+        self.assertEqual(1, len(publishes))
+        call = publishes[0]
+        self.assertEqual(call[0], "publish")
+        self.assertEqual(call[1], (u"wamp.session.on_leave", 1234))
+
     def test_onleave_publish(self):
         """
         Receiving a Goodbye should put the session in a "detached" state
@@ -285,6 +318,7 @@ class TestRouterSession(unittest.TestCase):
                 super(TestSession, self).__init__(*args, **kw)
                 # for this test, pretend we're connected (without
                 # going through sending a Hello etc.)
+                self._service_session = mock.MagicMock()
                 self._transport = mock.MagicMock()
                 self._session_id = 1234
                 self._router = router  # normally done in Hello processing
