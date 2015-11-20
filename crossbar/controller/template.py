@@ -62,8 +62,6 @@ class Templates:
             "help": "A minimal Python WAMP application hosted in a router and a HTML5 client.",
             "basedir": "templates/hello/python",
             "params": {
-                "appname": "hello",
-                "realm": "realm1",
             }
         },
 
