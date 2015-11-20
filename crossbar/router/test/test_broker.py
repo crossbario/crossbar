@@ -277,7 +277,6 @@ class TestRouterSession(unittest.TestCase):
         """
 
         router = mock.MagicMock()
-        utest = self
 
         class TestSession(RouterSession):
             def __init__(self, *args, **kw):
