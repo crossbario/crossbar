@@ -111,7 +111,7 @@ class _RouterApplicationSession(object):
     def _swallow_error(self, fail, msg):
         try:
             if self._session:
-                self._session.onUserError(fail.value, msg)
+                self._session.onUserError(fail, msg)
         except:
             pass
         return None
@@ -461,7 +461,7 @@ class _RouterSession(BaseSession):
 
         DO NOT attach to Deferreds that are returned to calling code.
         """
-        self.log.failure("Internal error (2): {log_failure.value}", failure=fail)
+        self.log.failure("Internal error (2): {log_failure.value}", log_failure=fail)
 
         # tell other side we're done
         reply = message.Abort(u"wamp.error.authorization_failed", u"Internal server error")
@@ -611,11 +611,13 @@ class RouterSession(_RouterSession):
 
                                         # construct a pending WAMP-CRA authentication
                                         #
-                                        self._pending_auth = PendingAuthWampCra(details.pending_session,
-                                                                                authid,
-                                                                                user['role'],
-                                                                                u'static',
-                                                                                user['secret'].encode('utf8'))
+                                        self._pending_auth = PendingAuthWampCra(
+                                            details.pending_session,
+                                            authid,
+                                            user['role'],
+                                            u'static',
+                                            user['secret'].encode('utf8'),
+                                        )
 
                                         # send challenge to client
                                         #
@@ -840,7 +842,7 @@ class RouterSession(_RouterSession):
         """
         Callback fired when a client responds to an authentication challenge.
         """
-        print("onAuthenticate: {} {}".format(signature, extra))
+        self.log.debug("onAuthenticate: {signature} {extra}", signature=signature, extra=extra)
 
         # if there is a pending auth, check the challenge response. The specifics
         # of how to check depend on the authentication method
@@ -861,6 +863,11 @@ class RouterSession(_RouterSession):
                 else:
                     # WAMP-CRA authentication signature was invalid: deny client
                     #
+                    self.log.debug(
+                        'Invalid sig: "{got}" != "{wanted}"',
+                        got=signature,
+                        wanted=self._pending_auth.signature,
+                    )
                     return types.Deny(message=u"signature is invalid")
 
             # WAMP-Ticket

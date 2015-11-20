@@ -31,6 +31,8 @@
 from __future__ import absolute_import
 
 import os
+import six
+
 from twisted.trial import unittest
 
 from crossbar.router.role import RouterRoleStaticAuth
@@ -88,5 +90,5 @@ class TestPendingAuth(unittest.TestCase):
         secret = os.urandom(32)
         pend = PendingAuthWampCra(1234, u'authid', u'authrole', None, secret)
 
-        self.assertTrue(isinstance(pend.challenge, bytes))
-        self.assertTrue(isinstance(pend.signature, bytes))
+        self.assertTrue(isinstance(pend.challenge, six.text_type))
+        self.assertTrue(isinstance(pend.signature, six.text_type))

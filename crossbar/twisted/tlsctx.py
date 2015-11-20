@@ -254,8 +254,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                  chainedCertificate=True,
                  dhParamFilename=None,
                  ciphers=None):
-        self._privateKeyString = str(privateKeyString)
-        self._certificateString = str(certificateString)
+        self._privateKeyString = str(privateKeyString).encode('utf8')
+        self._certificateString = str(certificateString).encode('utf8')
         self._chainedCertificate = chainedCertificate
         self._dhParamFilename = str(dhParamFilename) if dhParamFilename else None
         self._ciphers = str(ciphers) if ciphers else None
