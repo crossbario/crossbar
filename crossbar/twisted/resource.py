@@ -180,7 +180,6 @@ class FileUploadResource(Resource):
             environ={"REQUEST_METHOD": "POST"})
 
         f = self._form_fields
-
         filename = content[f['file_name']].value
         totalSize = int(content[f['total_size']].value)
         totalChunks = int(content[f['total_chunks']].value)
@@ -390,8 +389,9 @@ class FileUploadResource(Resource):
             finalFileName = self._dir.child(fileId)
             _finalFileName = self._dir.child('#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
             with open(_finalFileName.path, 'wb') as finalFile:
-                for tfileName in fileTempDir.listdir():
-                    with open(fileTempDir.child(tfileName).path, 'rb') as tfile:
+                # Write each chunk into the resultant file, in chunk ID order
+                for chunk in sorted(self._uploads[fileId]['chunk_list'].keys()):
+                    with fileTempDir.child("chunk_" + str(chunk)).open('rb') as tfile:
                         finalFile.write(tfile.read())
             _finalFileName.moveTo(finalFileName)
 
