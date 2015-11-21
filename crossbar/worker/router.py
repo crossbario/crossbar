@@ -1148,6 +1148,8 @@ class RouterWorkerSession(NativeWorkerSession):
 
             self._router_session_factory.add(upload_session, authrole=path_config.get('role', 'anonymous'))
 
+            self.log.info("File upload resource started. Uploads to {upl} using temp folder {tmp}.", upl=upload_directory, tmp=temp_directory)
+
             return FileUploadResource(upload_directory, temp_directory, path_config['form_fields'], upload_session, path_config.get('options', {}))
 
         # Generic Twisted Web resource
