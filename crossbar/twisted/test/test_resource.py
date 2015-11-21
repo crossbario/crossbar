@@ -370,9 +370,154 @@ class FileUploadTests(TestCase):
         self.assertEqual(mock_session.method_calls[3][1][1]["id"], "examplefile.txt")
         self.assertEqual(mock_session.method_calls[3][1][1]["chunk"], 2)
 
-        # One item in the temp dir which we made earlier, one item in the
-        # upload dir
-        self.assertEqual(len(temp_dir.listdir()), 1)
+        # No item in the temp dir which we made earlier, one item in the
+        # upload dir. Otherjunk is removed because it belongs to no upload.
+        self.assertEqual(len(temp_dir.listdir()), 0)
         self.assertEqual(len(upload_dir.listdir()), 1)
+        with upload_dir.child("examplefile.txt").open("rb") as f:
+            self.assertEqual(f.read(), b"hello Crossbar!\n")
+
+    def test_multichunk_shuffle(self):
+        """
+        Uploading files that are in multiple chunks and are uploaded in different order works.
+        """
+        upload_dir = FilePath(self.mktemp())
+        upload_dir.makedirs()
+        temp_dir = FilePath(self.mktemp())
+        temp_dir.makedirs()
+
+        fields = {
+            "file_name": "resumableFilename",
+            "mime_type": "resumableType",
+            "total_size": "resumableTotalSize",
+            "chunk_number": "resumableChunkNumber",
+            "chunk_size": "resumableChunkSize",
+            "total_chunks": "resumableTotalChunks",
+            "content": "file",
+            "on_progress": "on_progress",
+            "session": "session"
+        }
+
+        mock_session = Mock()
+
+        resource = FileUploadResource(upload_dir.path, temp_dir.path, fields, mock_session)
+
+        #
+        # Chunk 2
+
+        multipart_body = b"""-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableChunkNumber"\r\n\r\n2\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableChunkSize"\r\n\r\n10\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableCurrentChunkSize"\r\n\r\n6\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableTotalSize"\r\n\r\n16\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableType"\r\n\r\ntext/plain\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableIdentifier"\r\n\r\n16-examplefiletxt\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableFilename"\r\n\r\nexamplefile.txt\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableRelativePath"\r\n\r\nexamplefile.txt\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="resumableTotalChunks"\r\n\r\n2\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="on_progress"\r\n\r\ncom.example.upload.on_progress\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="session"\r\n\r\n8887465641628580\r\n-----------------------------42560029919436807832069165364\r\nContent-Disposition: form-data; name="file"; filename="blob"\r\nContent-Type: application/octet-stream\r\n\r\nsbar!\n\r\n-----------------------------42560029919436807832069165364--\r\n"""
+
+        d = renderResource(
+            resource, b"/", method="POST",
+            headers={
+                b"content-type": [b"multipart/form-data; boundary=---------------------------42560029919436807832069165364"],
+                b"Content-Length": [b"1688"]
+            },
+            body=multipart_body
+        )
+
+        res = self.successResultOf(d)
+        res.setResponseCode.assert_called_once_with(200)
+
+        # One directory in the temp dir, nothing in the upload dir, temp dir
+        # contains one chunk
+        self.assertEqual(len(temp_dir.listdir()), 1)
+        self.assertEqual(len(temp_dir.child("examplefile.txt").listdir()), 1)
+        with temp_dir.child("examplefile.txt").child("chunk_2").open("rb") as f:
+            # print(f.read())
+            self.assertEqual(f.read(), b"sbar!\n")
+        self.assertEqual(len(upload_dir.listdir()), 0)
+        #
+        # Chunk 1
+
+        multipart_body = b"""-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableChunkNumber"\r\n\r\n1\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableChunkSize"\r\n\r\n10\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableCurrentChunkSize"\r\n\r\n10\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableTotalSize"\r\n\r\n16\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableType"\r\n\r\ntext/plain\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableIdentifier"\r\n\r\n16-examplefiletxt\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableFilename"\r\n\r\nexamplefile.txt\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableRelativePath"\r\n\r\nexamplefile.txt\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="resumableTotalChunks"\r\n\r\n2\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="on_progress"\r\n\r\ncom.example.upload.on_progress\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="session"\r\n\r\n8887465641628580\r\n-----------------------------1311987731215707521443909311\r\nContent-Disposition: form-data; name="file"; filename="blob"\r\nContent-Type: application/octet-stream\r\n\r\nhello Cros\r\n-----------------------------1311987731215707521443909311--\r\n"""
+
+        d = renderResource(
+            resource, b"/", method="POST",
+            headers={
+                b"content-type": [b"multipart/form-data; boundary=---------------------------1311987731215707521443909311"],
+                b"Content-Length": [b"1680"]
+            },
+            body=multipart_body
+        )
+
+        res = self.successResultOf(d)
+        res.setResponseCode.assert_called_once_with(200)
+
+        self.assertEqual(len(mock_session.method_calls), 4)
+
+        # Starting the upload
+        self.assertEqual(mock_session.method_calls[0][1][0], u"com.example.upload.on_progress")
+        self.assertEqual(mock_session.method_calls[0][1][1]["status"], "started")
+        self.assertEqual(mock_session.method_calls[0][1][1]["id"], "examplefile.txt")
+        self.assertEqual(mock_session.method_calls[0][1][1]["chunk"], 2)
+
+        # Progress, first chunk done
+        self.assertEqual(mock_session.method_calls[1][1][0], u"com.example.upload.on_progress")
+        self.assertEqual(mock_session.method_calls[1][1][1]["status"], "progress")
+        self.assertEqual(mock_session.method_calls[1][1][1]["id"], "examplefile.txt")
+        self.assertEqual(mock_session.method_calls[1][1][1]["chunk"], 2)
+
+        # Progress, second chunk done
+        self.assertEqual(mock_session.method_calls[2][1][0], u"com.example.upload.on_progress")
+        self.assertEqual(mock_session.method_calls[2][1][1]["status"], "progress")
+        self.assertEqual(mock_session.method_calls[2][1][1]["id"], "examplefile.txt")
+        self.assertEqual(mock_session.method_calls[2][1][1]["chunk"], 1)
+
+        # Upload complete
+        self.assertEqual(mock_session.method_calls[3][1][0], u"com.example.upload.on_progress")
+        self.assertEqual(mock_session.method_calls[3][1][1]["status"], "finished")
+        self.assertEqual(mock_session.method_calls[3][1][1]["id"], "examplefile.txt")
+        self.assertEqual(mock_session.method_calls[3][1][1]["chunk"], 1)
+
+        # Nothing in the temp dir, one file in the upload
+        self.assertEqual(len(temp_dir.listdir()), 0)
+        self.assertEqual(len(upload_dir.listdir()), 1)
+        with upload_dir.child("examplefile.txt").open("rb") as f:
+            self.assertEqual(f.read(), b"hello Crossbar!\n")
+
+    def test_remains_cleanup(self):
+        """
+        Upload a basic file using the FileUploadResource, in a single chunk on top of an old upload.
+        """
+
+        upload_dir = FilePath(self.mktemp())
+        upload_dir.makedirs()
+        temp_dir = FilePath(self.mktemp())
+        temp_dir.makedirs()
+        # create remaining file temp dir of a previous upload
+        x = temp_dir.child("examplefile.txt")
+        x.makedirs()
+
+        fields = {
+            "file_name": "resumableFilename",
+            "mime_type": "resumableType",
+            "total_size": "resumableTotalSize",
+            "chunk_number": "resumableChunkNumber",
+            "chunk_size": "resumableChunkSize",
+            "total_chunks": "resumableTotalChunks",
+            "content": "file",
+            "on_progress": "on_progress",
+            "session": "session"
+        }
+
+        mock_session = Mock()
+
+        resource = FileUploadResource(upload_dir.path, temp_dir.path, fields, mock_session)
+
+        multipart_body = b"""-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableChunkNumber"\r\n\r\n1\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableChunkSize"\r\n\r\n1048576\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableCurrentChunkSize"\r\n\r\n16\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableTotalSize"\r\n\r\n16\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableType"\r\n\r\ntext/plain\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableIdentifier"\r\n\r\n16-examplefiletxt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableFilename"\r\n\r\nexamplefile.txt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableRelativePath"\r\n\r\nexamplefile.txt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableTotalChunks"\r\n\r\n1\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="on_progress"\r\n\r\ncom.example.upload.on_progress\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="session"\r\n\r\n6891276359801283\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="file"; filename="blob"\r\nContent-Type: application/octet-stream\r\n\r\nhello Crossbar!\n\r\n-----------------------------478904261175205671481632460--\r\n"""
+
+        d = renderResource(
+            resource, b"/", method="POST",
+            headers={
+                b"content-type": [b"multipart/form-data; boundary=---------------------------478904261175205671481632460"],
+                b"Content-Length": [b"1678"]
+            },
+            body=multipart_body
+        )
+
+        res = self.successResultOf(d)
+        res.setResponseCode.assert_called_once_with(200)
+
         with upload_dir.child("examplefile.txt").open("rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
