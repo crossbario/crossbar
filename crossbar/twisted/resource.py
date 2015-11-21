@@ -371,7 +371,8 @@ class FileUploadResource(Resource):
                                    "remaining": 0,
                                    "status": "finished",
                                    "progress": 1.,
-                                   "finish_extra": finish_extra
+                                   "finish_extra": finish_extra,
+                                   "chunk_extra": chunk_extra
                                    })
 
                 self._uploads.pop(fileId, None)
@@ -459,7 +460,8 @@ class FileUploadResource(Resource):
                                    "remaining": 0,
                                    "status": "finished",
                                    "progress": 1.,
-                                   "finish_extra": finish_extra
+                                   "finish_extra": finish_extra,
+                                   "chunk_extra": chunk_extra
                                    })
 
                 # remove the file temp folder
