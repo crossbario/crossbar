@@ -320,9 +320,6 @@ class FileUploadResource(Resource):
         if chunk_is_first:
             # first chunk of file
 
-            # clean the temp dir once per file upload
-            self._remove_stale_uploads()
-
             # publish file upload start
             #
             fileupload_publish({
@@ -346,12 +343,14 @@ class FileUploadResource(Resource):
 
                 self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
+                _finalFileName.moveTo(finalFileName)
+
                 if self._file_permissions:
                     perm = int(self._file_permissions, 8)
                     try:
-                        _finalFileName.chmod(perm)
+                        finalFileName.chmod(perm)
                     except Exception as e:
-                        finalFileName.remove()
+                        # finalFileName.remove()
                         msg = "Could not change file permissions of uploaded file"
                         self.log.debug(msg)
                         self.log.debug(e)
@@ -359,8 +358,6 @@ class FileUploadResource(Resource):
                         return msg.encode('utf8')
                     else:
                         self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
-
-                _finalFileName.moveTo(finalFileName)
 
                 # publish file upload progress to file_progress_URI
                 fileupload_publish({
@@ -380,7 +377,8 @@ class FileUploadResource(Resource):
             else:
                 # first of more chunks
                 # fileTempDir.remove()  # any potential conflict should have been resolved above. This should not be necessary!
-                fileTempDir.makedirs()
+                if not os.path.isdir(fileTempDir.path):
+                    fileTempDir.makedirs()
                 with open(_chunkName.path, 'wb') as chunk:
                     chunk.write(fileContent)
                 _chunkName.moveTo(chunkName)  # atomic file system operation
@@ -400,8 +398,14 @@ class FileUploadResource(Resource):
                                    "chunk_extra": chunk_extra
                                    })
 
+            # clean the temp dir once per file upload
+            self._remove_stale_uploads()
+
         else:
             # intermediate chunk
+            if not os.path.isdir(fileTempDir.path):
+                fileTempDir.makedirs()
+
             with open(_chunkName.path, 'wb') as chunk:
                 chunk.write(fileContent)
             _chunkName.moveTo(chunkName)
@@ -435,10 +439,12 @@ class FileUploadResource(Resource):
                         with open(fileTempDir.child('chunk_' + str(cn)).path, 'rb') as ff:
                             _finalFile.write(ff.read())
 
+                _finalFileName.moveTo(finalFileName)
+
                 if self._file_permissions:
                     perm = int(self._file_permissions, 8)
                     try:
-                        _finalFileName.chmod(perm)
+                        finalFileName.chmod(perm)
                     except Exception as e:
                         msg = "file upload resource - could not change file permissions of uploaded file"
                         self.log.debug(msg)
@@ -448,8 +454,6 @@ class FileUploadResource(Resource):
                         return msg.encode('utf8')
                     else:
                         self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
-
-                _finalFileName.moveTo(finalFileName)
 
                 # publish file upload progress to file_progress_URI
                 fileupload_publish({
