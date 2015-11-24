@@ -41,6 +41,7 @@ from datetime import datetime
 
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
+from twisted.python.threadpool import ThreadPool
 
 from autobahn.util import utcstr
 from autobahn.twisted.wamp import ApplicationSession
@@ -995,7 +996,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if not _HAS_WSGI:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI unsupported")
 
-            # wsgi_options = path_config.get('options', {})
+            wsgi_options = path_config.get('options', {})
 
             if 'module' not in path_config:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app module")
@@ -1016,9 +1017,13 @@ class RouterWorkerSession(NativeWorkerSession):
                 else:
                     app = getattr(mod, obj_name)
 
+            # Create a threadpool for running the WSGI requests in
+            pool = ThreadPool(maxthreads=wsgi_options.get("threads", 20),
+                              name="crossbar_wsgi_threadpool")
+
             # create a Twisted Web WSGI resource from the user's WSGI application object
             try:
-                wsgi_resource = WSGIResource(self._reactor, self._reactor.getThreadPool(), app)
+                wsgi_resource = WSGIResource(self._reactor, pool, app)
             except Exception as e:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
             else:
