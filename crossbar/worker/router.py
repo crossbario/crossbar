@@ -1020,8 +1020,9 @@ class RouterWorkerSession(NativeWorkerSession):
             # Create a threadpool for running the WSGI requests in
             pool = ThreadPool(maxthreads=wsgi_options.get("threads", 20),
                               name="crossbar_wsgi_threadpool")
+            self._reactor.addSystemEventTrigger('before', 'shutdown', pool.stop)
 
-            # create a Twisted Web WSGI resource from the user's WSGI application object
+            # Create a Twisted Web WSGI resource from the user's WSGI application object
             try:
                 wsgi_resource = WSGIResource(self._reactor, pool, app)
             except Exception as e:

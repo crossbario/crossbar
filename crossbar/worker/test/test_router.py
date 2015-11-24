@@ -31,7 +31,10 @@
 from __future__ import absolute_import, division, print_function
 
 from twisted.internet import reactor
+from twisted.internet.selectreactor import SelectReactor
+from twisted.python.filepath import FilePath
 from twisted.trial.unittest import TestCase
+from twisted.logger import globalLogPublisher
 
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 from crossbar.worker import router
@@ -44,6 +47,17 @@ from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
 from autobahn.wamp.types import ComponentConfig
 
 from .examples.goodclass import _
+
+log = make_logger()
+
+
+try:
+    from twisted.web.wsgi import WSGIResource  # noqa
+    import treq
+except (ImportError, SyntaxError):
+    WSGI_TESTS = "Twisted WSGI support is not available."
+else:
+    WSGI_TESTS = False
 
 
 class DottableDict(dict):
@@ -257,3 +271,72 @@ class RouterWorkerSessionTests(TestCase):
             str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
+
+
+class WSGITests(TestCase):
+
+    skip = WSGI_TESTS
+
+    def setUp(self):
+        self.cbdir = FilePath(self.mktemp())
+        self.cbdir.createDirectory()
+        config_extras = DottableDict({"node": "testnode",
+                                      "worker": "worker1",
+                                      "cbdir": self.cbdir.path})
+        self.config = ComponentConfig("realm1", extra=config_extras)
+
+    def test_basic(self):
+        """
+        A basic WSGI app can be ran.
+        """
+        temp_reactor = SelectReactor()
+        logs = []
+
+        globalLogPublisher.addObserver(logs.append)
+        self.addCleanup(globalLogPublisher.removeObserver, logs.append)
+
+        r = router.RouterWorkerSession(config=self.config,
+                                       reactor=temp_reactor)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        r.start_router_realm("realm1", realm_config)
+        r.start_router_transport(
+            "component1",
+            {
+                u"type": u"web",
+                u"endpoint": {
+                    u"type": u"tcp",
+                    u"port": 8080
+                },
+                u"paths": {
+                    u"/": {
+                        "module": u"crossbar.worker.test.test_router",
+                        "object": u"hello",
+                        "type": u"wsgi"
+                    }
+                }
+            })
+
+        # Make a request to the WSGI app.
+        d = treq.get("http://localhost:8080/", reactor=temp_reactor)
+        d.addCallback(treq.content)
+        d.addCallback(self.assertEqual, b"hello!")
+        d.addCallback(lambda _: temp_reactor.stop())
+
+        temp_reactor.run()
+
+        return d
+
+
+def hello(environ, start_response):
+    start_response('200 OK', [('Content-Type', 'text/html')])
+    log.info('serving response')
+    return [b'hello!']
