@@ -657,7 +657,7 @@ class RouterWorkerSession(NativeWorkerSession):
             # create Twisted Web root resource
             #
             root_config = config['paths']['/']
-            root = self.create_resource(root_config, path_type='root')
+            root = self.create_resource(root_config, nested=False)
 
             # create Twisted Web resources on all non-root paths configured
             #
@@ -728,7 +728,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if path != b"/":
                 resource.putChild(webPath, self.create_resource(paths[path]))
 
-    def create_resource(self, path_config, path_type='nested'):
+    def create_resource(self, path_config, nested=True):
         """
         Creates child resource to be added to the parent.
 
@@ -844,6 +844,9 @@ class RouterWorkerSession(NativeWorkerSession):
             # Create a Twisted Web WSGI resource from the user's WSGI application object
             try:
                 wsgi_resource = WSGIResource(self._reactor, pool, app)
+
+                if not nested:
+                    wsgi_resource = WSGIRootResource(wsgi_resource, {})
             except Exception as e:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
             else:
@@ -1033,7 +1036,8 @@ class RouterWorkerSession(NativeWorkerSession):
 
         else:
             raise ApplicationError(u"crossbar.error.invalid_configuration",
-                                   "invalid Web path type '{}' in {} config".format(path_config['type'], path_type))
+                                   "invalid Web path type '{}' in {} config".format(path_config['type'],
+                                                                                    'nested' if nested else 'root'))
 
     def stop_router_transport(self, id, details=None):
         """
