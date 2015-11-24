@@ -441,7 +441,10 @@ def hello(environ, start_response):
     start_response('200 OK', [('Content-Type', 'text/html')])
     return [b'hello!']
 
+
+# Ugh global state, but it's just for a test...
 count = []
+
 
 def sleep(environ, start_response):
     """
