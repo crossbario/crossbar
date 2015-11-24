@@ -47,9 +47,6 @@ from autobahn.wamp.types import ComponentConfig
 
 from .examples.goodclass import _
 
-log = make_logger()
-
-
 try:
     from twisted.web.wsgi import WSGIResource  # noqa
     import treq
