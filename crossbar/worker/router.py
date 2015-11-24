@@ -814,8 +814,6 @@ class RouterWorkerSession(NativeWorkerSession):
             if not _HAS_WSGI:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI unsupported")
 
-            wsgi_options = path_config.get('options', {})
-
             if 'module' not in path_config:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app module")
 
@@ -836,7 +834,8 @@ class RouterWorkerSession(NativeWorkerSession):
                     app = getattr(mod, obj_name)
 
             # Create a threadpool for running the WSGI requests in
-            pool = ThreadPool(maxthreads=wsgi_options.get("threads", 20),
+            pool = ThreadPool(maxthreads=path_config.get("maxthreads", 20),
+                              minthreads=path_config.get("minthreads", 5),
                               name="crossbar_wsgi_threadpool")
             self._reactor.addSystemEventTrigger('before', 'shutdown', pool.stop)
             pool.start()

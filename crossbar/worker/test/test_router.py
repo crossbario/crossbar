@@ -30,7 +30,7 @@
 
 from __future__ import absolute_import, division, print_function
 
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet.selectreactor import SelectReactor
 from twisted.python.filepath import FilePath
 from twisted.trial.unittest import TestCase
@@ -376,6 +376,63 @@ class WSGITests(TestCase):
 
         return d
 
+    def test_threads(self):
+        """
+        A basic WSGI app can be ran, with subresources
+        """
+        temp_reactor = SelectReactor()
+        r = router.RouterWorkerSession(config=self.config,
+                                       reactor=temp_reactor)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        threads = 20
+
+        r.start_router_realm("realm1", realm_config)
+        r.start_router_transport(
+            "component1",
+            {
+                u"type": u"web",
+                u"endpoint": {
+                    u"type": u"tcp",
+                    u"port": 8080
+                },
+                u"paths": {
+                    u"/": {
+                        "module": u"crossbar.worker.test.test_router",
+                        "object": u"sleep",
+                        "type": u"wsgi",
+                        "maxthreads": threads,
+                    }
+                }
+            })
+
+        deferreds = []
+        results = []
+
+        for i in range(threads):
+
+            d = treq.get("http://localhost:8080/", reactor=temp_reactor)
+            d.addCallback(treq.content)
+            d.addCallback(results.append)
+            deferreds.append(d)
+
+        d = defer.DeferredList(deferreds)
+        d.addCallback(lambda _: self.assertIn(str(threads).encode('ascii'),
+                                              results))
+        d.addCallback(lambda _: temp_reactor.stop())
+
+        temp_reactor.run()
+
+        return d
+
 
 def hello(environ, start_response):
     """
@@ -383,3 +440,18 @@ def hello(environ, start_response):
     """
     start_response('200 OK', [('Content-Type', 'text/html')])
     return [b'hello!']
+
+count = []
+
+def sleep(environ, start_response):
+    """
+    A super dumb WSGI app for testing.
+    """
+    from time import sleep
+    start_response('200 OK', [('Content-Type', 'text/html')])
+    # Count how many concurrent responses there are.
+    count.append(None)
+    res = len(count)
+    sleep(0.1)
+    count.pop(0)
+    return [str(res).encode('ascii')]

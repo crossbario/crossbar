@@ -805,7 +805,9 @@ def check_web_path_service_wsgi(config):
     check_dict_args({
         'type': (True, [six.text_type]),
         'module': (True, [six.text_type]),
-        'object': (True, [six.text_type])
+        'object': (True, [six.text_type]),
+        'minthreads': (False, [int]),
+        'maxthreads': (False, [int]),
     }, config, "Web transport 'wsgi' path service")
 
 
