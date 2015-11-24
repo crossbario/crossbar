@@ -329,6 +329,55 @@ class WSGITests(TestCase):
 
         return d
 
+    def test_basic_subresources(self):
+        """
+        A basic WSGI app can be ran, with subresources
+        """
+        temp_reactor = SelectReactor()
+        r = router.RouterWorkerSession(config=self.config,
+                                       reactor=temp_reactor)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        r.start_router_realm("realm1", realm_config)
+        r.start_router_transport(
+            "component1",
+            {
+                u"type": u"web",
+                u"endpoint": {
+                    u"type": u"tcp",
+                    u"port": 8080
+                },
+                u"paths": {
+                    u"/": {
+                        "module": u"crossbar.worker.test.test_router",
+                        "object": u"hello",
+                        "type": u"wsgi"
+                    },
+                    u"json": {
+                        "type": u"json",
+                        "value": {}
+                    }
+                }
+            })
+
+        # Make a request to the WSGI app.
+        d = treq.get("http://localhost:8080/json", reactor=temp_reactor)
+        d.addCallback(treq.content)
+        d.addCallback(self.assertEqual, b"{}")
+        d.addCallback(lambda _: temp_reactor.stop())
+
+        temp_reactor.run()
+
+        return d
+
 
 def hello(environ, start_response):
     start_response('200 OK', [('Content-Type', 'text/html')])
