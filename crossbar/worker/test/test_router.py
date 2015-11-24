@@ -34,7 +34,6 @@ from twisted.internet import reactor
 from twisted.internet.selectreactor import SelectReactor
 from twisted.python.filepath import FilePath
 from twisted.trial.unittest import TestCase
-from twisted.logger import globalLogPublisher
 
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 from crossbar.worker import router
@@ -290,11 +289,6 @@ class WSGITests(TestCase):
         A basic WSGI app can be ran.
         """
         temp_reactor = SelectReactor()
-        logs = []
-
-        globalLogPublisher.addObserver(logs.append)
-        self.addCleanup(globalLogPublisher.removeObserver, logs.append)
-
         r = router.RouterWorkerSession(config=self.config,
                                        reactor=temp_reactor)
 
