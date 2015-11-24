@@ -368,7 +368,8 @@ class WSGITests(TestCase):
                 }
             })
 
-        # Make a request to the WSGI app.
+        # Make a request to the /json endpoint, which is technically a child of
+        # the WSGI app, but is not served by WSGI.
         d = treq.get("http://localhost:8080/json", reactor=temp_reactor)
         d.addCallback(treq.content)
         d.addCallback(self.assertEqual, b"{}")
@@ -380,6 +381,8 @@ class WSGITests(TestCase):
 
 
 def hello(environ, start_response):
+    """
+    A super dumb WSGI app for testing.
+    """
     start_response('200 OK', [('Content-Type', 'text/html')])
-    log.info('serving response')
     return [b'hello!']
