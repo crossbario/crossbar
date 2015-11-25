@@ -42,9 +42,6 @@ if sys.platform == 'win32' and version >= (3, 0):
     raise RuntimeError("Crossbar does not support Python 3 on Windows.")
 
 
-CPY = platform.python_implementation() == 'CPython'
-PYPY = platform.python_implementation() == 'PyPy'
-
 LONGSDESC = open('README.rst').read()
 
 # Get package version from crossbar/__init__.py
@@ -61,69 +58,59 @@ else:
 #
 # extra requirements for install variants
 #
+extras_require = {
+    'db': [
+        'lmdb>=0.87',                   # OpenLDAP BSD
+    ],
+    'dev': [
+        "colorama>=0.3.3",              # BSD license
+        "mock>=1.3.0",                  # BSD license
+    ],
+    'tls': [
+        'cryptography>=0.9.3',          # Apache license
+        'pyOpenSSL>=0.15.1',            # Apache license
+        'pyasn1>=0.1.8',                # BSD license
+        'pyasn1-modules>=0.0.7',        # BSD license
+        'service_identity>=14.0.0',     # MIT license
+    ],
+    'manhole:python_implementation=="CPython"': [
+        'pyasn1>=0.1.8',                # BSD license
+        'pycrypto>=2.6.1',              # Public Domain license
+    ],
+    'msgpack': [
+        'msgpack-python>=0.4.6',        # Apache license
+    ],
+    'system': [
+        'psutil>=3.2.1',                # BSD license
+    ],
+    'system:sys_platform=="linux2" or ' \
+    '"bsd" in sys_platform or sys_platform=="darwin"': [
+        'setproctitle>=1.1.9',          # BSD license
+    ],
+    'system:sys_platform=="linux2"': [
+        'pyinotify>=0.9.6',             # MIT license
+    ],
+    'accelerate:python_implementation=="CPython"': [
+        "wsaccel>=0.6.2",               # Apache 2.0
+    ],
+    'accelerate:sys_platform!="win32" and ' \
+    'python_implementation == "CPython"': [
+        "ujson>=1.33",                  # BSD license
+    ],
+    'oracle': [
+        'cx_Oracle>=5.2',               # Python Software Foundation license
+    ],
+    "postgres": [
+        'txpostgres>=1.4.0',            # MIT license
+    ],
+    'postgres:python_implementation=="CPython"': [
+        'psycopg2>=2.6.1',              # LGPL license
+    ],
+    'postgres:python_implementation=="PyPy"': [
+        'psycopg2cffi>=2.7.2',          # LGPL license
+    ],
+}
 
-extras_require_system = [
-    'psutil>=3.2.1',        # BSD license
-]
-if sys.platform.startswith('linux'):
-    extras_require_system.append('setproctitle>=1.1.9')     # BSD license
-    extras_require_system.append('pyinotify>=0.9.6')        # MIT license
-if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
-    extras_require_system.append('setproctitle>=1.1.9')     # BSD license
-
-extras_require_db = [
-    'lmdb>=0.87',           # OpenLDAP BSD
-]
-if PYPY:
-    os.environ['LMDB_FORCE_CFFI'] = '1'
-
-extras_require_manhole = [
-    'pyasn1>=0.1.8',        # BSD license
-    'pycrypto>=2.6.1'       # Public Domain license
-]
-
-extras_require_msgpack = [
-    'msgpack-python>=0.4.6'  # Apache license
-]
-
-extras_require_tls = [
-    'cryptography>=0.9.3',          # Apache license
-    'pyOpenSSL>=0.15.1',            # Apache license
-    'pyasn1>=0.1.8',                # BSD license
-    'pyasn1-modules>=0.0.7',        # BSD license
-    'service_identity>=14.0.0',     # MIT license
-]
-
-# only for CPy (skip for PyPy)!
-if CPY:
-    extras_require_accelerate = [
-        "wsaccel>=0.6.2"            # Apache 2.0
-    ]
-
-    # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
-    if sys.platform != 'win32':
-        extras_require_accelerate.append("ujson>=1.33")     # BSD license
-else:
-    extras_require_accelerate = []
-
-# Extra requirements which enhance the development experience
-extras_require_dev = [
-    "colorama>=0.3.3",       # BSD license
-    "mock>=1.3.0",           # BSD license
-]
-
-extras_require_postgres = [
-    'txpostgres>=1.4.0'   # MIT license
-]
-if CPY:
-    # LGPL license
-    extras_require_postgres.append('psycopg2>=2.6.1')
-else:
-    extras_require_postgres.append('psycopg2cffi>=2.7.2')
-
-extras_require_all = extras_require_system + extras_require_db + \
-    extras_require_manhole + extras_require_msgpack + extras_require_tls + \
-    extras_require_accelerate + extras_require_dev
 
 setup(
     name='crossbar',
@@ -134,6 +121,7 @@ setup(
     author_email='autobahnws@googlegroups.com',
     url='http://crossbar.io/',
     platforms=('Any'),
+    license="AGPL3",
     install_requires=[
         'click>=5.1',                 # BSD license
         'setuptools>=18.3.1',         # Python Software Foundation license
@@ -149,20 +137,7 @@ setup(
         'shutilwhich>=1.1.0',         # PSF license
         'treq>=15.0.0',               # MIT license
     ],
-    extras_require={
-        'all': extras_require_all,
-        'db': extras_require_db,
-        'dev': extras_require_dev,
-        'tls': extras_require_tls,
-        'manhole': extras_require_manhole,
-        'msgpack': extras_require_msgpack,
-        'system': extras_require_system,
-        'accelerate': extras_require_accelerate,
-        'oracle': [
-            'cx_Oracle>=5.2'         # Python Software Foundation license
-        ],
-        'postgres': extras_require_postgres,
-    },
+    extras_require=extras_require,
     entry_points={
         'console_scripts': [
             'crossbar = crossbar.controller.cli:run'
@@ -183,6 +158,7 @@ setup(
                  "Programming Language :: Python :: 2.7",
                  "Programming Language :: Python :: 3.3",
                  "Programming Language :: Python :: 3.4",
+                 "Programming Language :: Python :: 3.5",
                  "Programming Language :: Python :: Implementation :: CPython",
                  "Programming Language :: Python :: Implementation :: PyPy",
                  "Topic :: Internet",
