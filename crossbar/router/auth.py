@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import json
+import six
 
 from autobahn import util
 from autobahn.wamp import auth
@@ -101,6 +102,12 @@ class PendingAuthWampCra(PendingAuth):
         }
 
         self.challenge = json.dumps(challenge_obj, ensure_ascii=False)
+
+        # Sometimes, if it doesn't have to be Unicode, PyPy won't make it
+        # Unicode. Make it Unicode, even if it's just ASCII.
+        if not isinstance(self.challenge, six.text_type):
+            self.challenge = self.challenge.decode('utf8')
+
         self.signature = auth.compute_wcs(secret, self.challenge.encode('utf8')).decode('ascii')
 
 

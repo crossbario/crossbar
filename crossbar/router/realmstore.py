@@ -30,12 +30,17 @@
 
 from __future__ import absolute_import, division, print_function
 
+import os
+import platform
+
 from collections import deque
 
 from autobahn.util import utcnow
 from crossbar._logging import make_logger
 
 try:
+    if platform.python_implementation() == "PyPy":
+        os.environ['LMDB_FORCE_CFFI'] = '1'
     import lmdb
     HAS_LMDB = True
 except ImportError:

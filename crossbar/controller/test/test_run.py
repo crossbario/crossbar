@@ -804,7 +804,8 @@ class MySession(ApplicationSession):
         if PY3:
             expected_stderr.append("division by zero")
         else:
-            expected_stderr.append("integer division or modulo by zero")
+            expected_stderr.append("integer division")
+            expected_stderr.append("by zero")
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
@@ -902,7 +903,8 @@ class MySession(ApplicationSession):
         if PY3:
             expected_stderr.append("division by zero")
         else:
-            expected_stderr.append("integer division or modulo by zero")
+            expected_stderr.append("integer division")
+            expected_stderr.append("by zero")
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
