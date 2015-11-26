@@ -112,10 +112,6 @@ class ContainerRunningTests(CLITestBase):
                  "--logformat=syslogd"],
                 reactor=reactor)
 
-        if DEBUG:
-            print(self.stdout.getvalue(), file=sys.__stdout__)
-            print(self.stderr.getvalue(), file=sys.__stdout__)
-
         for i in stdout_expected:
             self.assertIn(i, self.stdout.getvalue())
 

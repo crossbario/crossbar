@@ -41,6 +41,7 @@ from datetime import datetime
 
 from twisted.internet.defer import DeferredList
 from twisted.internet.defer import inlineCallbacks
+from twisted.python.threadpool import ThreadPool
 
 from autobahn.util import utcstr
 from autobahn.twisted.wamp import ApplicationSession
@@ -656,189 +657,7 @@ class RouterWorkerSession(NativeWorkerSession):
             # create Twisted Web root resource
             #
             root_config = config['paths']['/']
-
-            root_type = root_config['type']
-            root_options = root_config.get('options', {})
-
-            # Static file hierarchy root resource
-            #
-            if root_type == 'static':
-
-                if 'directory' in root_config:
-
-                    root_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, root_config['directory']))
-
-                elif 'package' in root_config:
-
-                    if 'resource' not in root_config:
-                        raise ApplicationError(u"crossbar.error.invalid_configuration", "missing resource")
-
-                    try:
-                        mod = importlib.import_module(root_config['package'])
-                    except ImportError as e:
-                        emsg = "Could not import resource {} from package {}: {}".format(root_config['resource'], root_config['package'], e)
-                        self.log.error(emsg)
-                        raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-                    else:
-                        try:
-                            root_dir = os.path.abspath(pkg_resources.resource_filename(root_config['package'], root_config['resource']))
-                        except Exception as e:
-                            emsg = "Could not import resource {} from package {}: {}".format(root_config['resource'], root_config['package'], e)
-                            self.log.error(emsg)
-                            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-                        else:
-                            mod_version = getattr(mod, '__version__', '?.?.?')
-                            self.log.info("Loaded static Web resource '{}' from package '{} {}' (filesystem path {})".format(root_config['resource'], root_config['package'], mod_version, root_dir))
-
-                else:
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", "missing web spec")
-
-                root_dir = root_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-                self.log.debug("Starting Web service at root directory {}".format(root_dir))
-
-                # create resource for file system hierarchy
-                #
-                if root_options.get('enable_directory_listing', False):
-                    static_resource_class = StaticResource
-                else:
-                    static_resource_class = StaticResourceNoListing
-
-                cache_timeout = root_options.get('cache_timeout', DEFAULT_CACHE_TIMEOUT)
-
-                root = static_resource_class(root_dir, cache_timeout=cache_timeout)
-
-                # set extra MIME types
-                #
-                root.contentTypes.update(EXTRA_MIME_TYPES)
-                if 'mime_types' in root_options:
-                    root.contentTypes.update(root_options['mime_types'])
-                patchFileContentTypes(root)
-
-                # render 404 page on any concrete path not found
-                #
-                root.childNotFound = Resource404(self._templates, root_dir)
-
-            # WSGI root resource
-            #
-            elif root_type == 'wsgi':
-
-                if not _HAS_WSGI:
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI unsupported")
-
-                # wsgi_options = root_config.get('options', {})
-
-                if 'module' not in root_config:
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app module")
-
-                if 'object' not in root_config:
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app object")
-
-                # import WSGI app module and object
-                mod_name = root_config['module']
-                try:
-                    mod = importlib.import_module(mod_name)
-                except ImportError as e:
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
-                else:
-                    obj_name = root_config['object']
-                    if obj_name not in mod.__dict__:
-                        raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
-                    else:
-                        app = getattr(mod, obj_name)
-
-                # create a Twisted Web WSGI resource from the user's WSGI application object
-                try:
-                    wsgi_resource = WSGIResource(self._reactor, self._reactor.getThreadPool(), app)
-                except Exception as e:
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
-                else:
-                    # create a root resource serving everything via WSGI
-                    root = WSGIRootResource(wsgi_resource, {})
-
-            # Redirecting root resource
-            #
-            elif root_type == 'redirect':
-
-                redirect_url = root_config['url'].encode('ascii', 'ignore')
-                root = RedirectResource(redirect_url)
-
-            # Publisher resource (part of REST-bridge)
-            #
-            elif root_type == 'publisher':
-
-                # create a vanilla session: the publisher will use this to inject events
-                #
-                publisher_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
-                publisher_session = ApplicationSession(publisher_session_config)
-
-                # add the publishing session to the router
-                #
-                self._router_session_factory.add(publisher_session, authrole=root_config.get('role', 'anonymous'))
-
-                # now create the publisher Twisted Web resource and add it to resource tree
-                #
-                root = PublisherResource(root_config.get('options', {}), publisher_session)
-
-            # Webhook resource (part of REST-bridge)
-            #
-            elif root_type == 'webhook':
-
-                # create a vanilla session: the webhook will use this to inject events
-                #
-                webhook_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
-                webhook_session = ApplicationSession(webhook_session_config)
-
-                # add the publishing session to the router
-                #
-                self._router_session_factory.add(webhook_session, authrole=root_config.get('role', 'anonymous'))
-
-                # now create the webhook Twisted Web resource and add it to resource tree
-                #
-                root = WebhookResource(root_config.get('options', {}), webhook_session)
-
-            # Caller resource (part of REST-bridge)
-            #
-            elif root_type == 'caller':
-
-                # create a vanilla session: the caller will use this to inject calls
-                #
-                caller_session_config = ComponentConfig(realm=root_config['realm'], extra=None)
-                caller_session = ApplicationSession(caller_session_config)
-
-                # add the calling session to the router
-                #
-                self._router_session_factory.add(caller_session, authrole=root_config.get('role', 'anonymous'))
-
-                # now create the caller Twisted Web resource and add it to resource tree
-                #
-                root = CallerResource(root_config.get('options', {}), caller_session)
-
-            # Generic Twisted Web resource
-            #
-            elif root_type == 'resource':
-
-                try:
-                    klassname = root_config['classname']
-
-                    self.log.debug("Starting class '{}'".format(klassname))
-
-                    c = klassname.split('.')
-                    module_name, klass_name = '.'.join(c[:-1]), c[-1]
-                    module = importlib.import_module(module_name)
-                    make = getattr(module, klass_name)
-                    root = make(root_config.get('extra', {}))
-
-                except Exception as e:
-                    emsg = "Failed to import class '{}' - {}".format(klassname, e)
-                    self.log.error(emsg)
-                    self.log.error("PYTHONPATH: {pythonpath}",
-                                   pythonpath=sys.path)
-                    raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
-
-            # Invalid root resource
-            #
-            else:
-                raise ApplicationError(u"crossbar.error.invalid_configuration", "invalid Web root path type '{}'".format(root_type))
+            root = self.create_resource(root_config, nested=False)
 
             # create Twisted Web resources on all non-root paths configured
             #
@@ -909,7 +728,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if path != b"/":
                 resource.putChild(webPath, self.create_resource(paths[path]))
 
-    def create_resource(self, path_config):
+    def create_resource(self, path_config, nested=True):
         """
         Creates child resource to be added to the parent.
 
@@ -995,8 +814,6 @@ class RouterWorkerSession(NativeWorkerSession):
             if not _HAS_WSGI:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI unsupported")
 
-            # wsgi_options = path_config.get('options', {})
-
             if 'module' not in path_config:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app module")
 
@@ -1016,9 +833,19 @@ class RouterWorkerSession(NativeWorkerSession):
                 else:
                     app = getattr(mod, obj_name)
 
-            # create a Twisted Web WSGI resource from the user's WSGI application object
+            # Create a threadpool for running the WSGI requests in
+            pool = ThreadPool(maxthreads=path_config.get("maxthreads", 20),
+                              minthreads=path_config.get("minthreads", 0),
+                              name="crossbar_wsgi_threadpool")
+            self._reactor.addSystemEventTrigger('before', 'shutdown', pool.stop)
+            pool.start()
+
+            # Create a Twisted Web WSGI resource from the user's WSGI application object
             try:
-                wsgi_resource = WSGIResource(self._reactor, self._reactor.getThreadPool(), app)
+                wsgi_resource = WSGIResource(self._reactor, pool, app)
+
+                if not nested:
+                    wsgi_resource = WSGIRootResource(wsgi_resource, {})
             except Exception as e:
                 raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
             else:
@@ -1207,7 +1034,9 @@ class RouterWorkerSession(NativeWorkerSession):
             return nested_resource
 
         else:
-            raise ApplicationError(u"crossbar.error.invalid_configuration", "invalid Web path type '{}'".format(path_config['type']))
+            raise ApplicationError(u"crossbar.error.invalid_configuration",
+                                   "invalid Web path type '{}' in {} config".format(path_config['type'],
+                                                                                    'nested' if nested else 'root'))
 
     def stop_router_transport(self, id, details=None):
         """

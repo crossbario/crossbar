@@ -30,7 +30,9 @@
 
 from __future__ import absolute_import, division, print_function
 
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
+from twisted.internet.selectreactor import SelectReactor
+from twisted.python.filepath import FilePath
 from twisted.trial.unittest import TestCase
 
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
@@ -44,6 +46,14 @@ from autobahn.wamp.role import RoleBrokerFeatures, RoleDealerFeatures
 from autobahn.wamp.types import ComponentConfig
 
 from .examples.goodclass import _
+
+try:
+    from twisted.web.wsgi import WSGIResource  # noqa
+    import treq
+except (ImportError, SyntaxError):
+    WSGI_TESTS = "Twisted WSGI support is not available."
+else:
+    WSGI_TESTS = False
 
 
 class DottableDict(dict):
@@ -257,3 +267,194 @@ class RouterWorkerSessionTests(TestCase):
             str(e.exception.args[0]))
 
         self.assertEqual(len(r.get_router_components()), 0)
+
+
+class WSGITests(TestCase):
+
+    skip = WSGI_TESTS
+
+    def setUp(self):
+        self.cbdir = FilePath(self.mktemp())
+        self.cbdir.createDirectory()
+        config_extras = DottableDict({"node": "testnode",
+                                      "worker": "worker1",
+                                      "cbdir": self.cbdir.path})
+        self.config = ComponentConfig("realm1", extra=config_extras)
+
+    def test_basic(self):
+        """
+        A basic WSGI app can be ran.
+        """
+        temp_reactor = SelectReactor()
+        r = router.RouterWorkerSession(config=self.config,
+                                       reactor=temp_reactor)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        r.start_router_realm("realm1", realm_config)
+        r.start_router_transport(
+            "component1",
+            {
+                u"type": u"web",
+                u"endpoint": {
+                    u"type": u"tcp",
+                    u"port": 8080
+                },
+                u"paths": {
+                    u"/": {
+                        "module": u"crossbar.worker.test.test_router",
+                        "object": u"hello",
+                        "type": u"wsgi"
+                    }
+                }
+            })
+
+        # Make a request to the WSGI app.
+        d = treq.get("http://localhost:8080/", reactor=temp_reactor)
+        d.addCallback(treq.content)
+        d.addCallback(self.assertEqual, b"hello!")
+        d.addCallback(lambda _: temp_reactor.stop())
+
+        temp_reactor.run()
+
+        return d
+
+    def test_basic_subresources(self):
+        """
+        A basic WSGI app can be ran, with subresources
+        """
+        temp_reactor = SelectReactor()
+        r = router.RouterWorkerSession(config=self.config,
+                                       reactor=temp_reactor)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        r.start_router_realm("realm1", realm_config)
+        r.start_router_transport(
+            "component1",
+            {
+                u"type": u"web",
+                u"endpoint": {
+                    u"type": u"tcp",
+                    u"port": 8080
+                },
+                u"paths": {
+                    u"/": {
+                        "module": u"crossbar.worker.test.test_router",
+                        "object": u"hello",
+                        "type": u"wsgi"
+                    },
+                    u"json": {
+                        "type": u"json",
+                        "value": {}
+                    }
+                }
+            })
+
+        # Make a request to the /json endpoint, which is technically a child of
+        # the WSGI app, but is not served by WSGI.
+        d = treq.get("http://localhost:8080/json", reactor=temp_reactor)
+        d.addCallback(treq.content)
+        d.addCallback(self.assertEqual, b"{}")
+        d.addCallback(lambda _: temp_reactor.stop())
+
+        temp_reactor.run()
+
+        return d
+
+    def test_threads(self):
+        """
+        A basic WSGI app can be ran, with subresources
+        """
+        temp_reactor = SelectReactor()
+        r = router.RouterWorkerSession(config=self.config,
+                                       reactor=temp_reactor)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        threads = 20
+
+        r.start_router_realm("realm1", realm_config)
+        r.start_router_transport(
+            "component1",
+            {
+                u"type": u"web",
+                u"endpoint": {
+                    u"type": u"tcp",
+                    u"port": 8080
+                },
+                u"paths": {
+                    u"/": {
+                        "module": u"crossbar.worker.test.test_router",
+                        "object": u"sleep",
+                        "type": u"wsgi",
+                        "maxthreads": threads,
+                    }
+                }
+            })
+
+        deferreds = []
+        results = []
+
+        for i in range(threads):
+
+            d = treq.get("http://localhost:8080/", reactor=temp_reactor)
+            d.addCallback(treq.content)
+            d.addCallback(results.append)
+            deferreds.append(d)
+
+        d = defer.DeferredList(deferreds)
+        d.addCallback(lambda _: self.assertIn(str(threads).encode('ascii'),
+                                              results))
+        d.addCallback(lambda _: temp_reactor.stop())
+
+        temp_reactor.run()
+
+        return d
+
+
+def hello(environ, start_response):
+    """
+    A super dumb WSGI app for testing.
+    """
+    start_response('200 OK', [('Content-Type', 'text/html')])
+    return [b'hello!']
+
+
+# Ugh global state, but it's just for a test...
+count = []
+
+
+def sleep(environ, start_response):
+    """
+    A super dumb WSGI app for testing.
+    """
+    from time import sleep
+    start_response('200 OK', [('Content-Type', 'text/html')])
+    # Count how many concurrent responses there are.
+    count.append(None)
+    res = len(count)
+    sleep(0.1)
+    count.pop(0)
+    return [str(res).encode('ascii')]
