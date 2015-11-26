@@ -32,15 +32,9 @@ from __future__ import absolute_import
 
 import sys
 import re
-import os
-import platform
 from setuptools import setup, find_packages
 
 version = getattr(sys, "version_info", (0,))
-
-if sys.platform == 'win32' and version >= (3, 0):
-    raise RuntimeError("Crossbar does not support Python 3 on Windows.")
-
 
 LONGSDESC = open('README.rst').read()
 
