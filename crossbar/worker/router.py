@@ -660,7 +660,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 root_config = config['paths']['/']
                 root = self.create_resource(root_config, nested=False)
             else:
-                root = Resource404(self._templates, '')
+                root = Resource404(self._templates, b'')
 
             # create Twisted Web resources on all non-root paths configured
             #
