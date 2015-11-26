@@ -271,6 +271,9 @@ class RouterWorkerSessionTests(TestCase):
 
 class WebTests(TestCase):
 
+    # XXX: Treq isn't ported yet
+    skip = WSGI_TESTS
+
     def setUp(self):
         self.cbdir = FilePath(self.mktemp())
         self.cbdir.createDirectory()
