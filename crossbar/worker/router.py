@@ -835,7 +835,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             # Create a threadpool for running the WSGI requests in
             pool = ThreadPool(maxthreads=path_config.get("maxthreads", 20),
-                              minthreads=path_config.get("minthreads", 5),
+                              minthreads=path_config.get("minthreads", 0),
                               name="crossbar_wsgi_threadpool")
             self._reactor.addSystemEventTrigger('before', 'shutdown', pool.stop)
             pool.start()
