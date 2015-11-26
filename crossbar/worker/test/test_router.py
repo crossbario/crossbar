@@ -322,6 +322,11 @@ class WSGITests(TestCase):
         d.addCallback(self.assertEqual, b"hello!")
         d.addCallback(lambda _: temp_reactor.stop())
 
+        def escape():
+            if temp_reactor.running:
+                temp_reactor.stop()
+
+        temp_reactor.callLater(1, escape)
         temp_reactor.run()
 
         return d
@@ -372,6 +377,11 @@ class WSGITests(TestCase):
         d.addCallback(self.assertEqual, b"{}")
         d.addCallback(lambda _: temp_reactor.stop())
 
+        def escape():
+            if temp_reactor.running:
+                temp_reactor.stop()
+
+        temp_reactor.callLater(1, escape)
         temp_reactor.run()
 
         return d
@@ -418,20 +428,25 @@ class WSGITests(TestCase):
         results = []
 
         for i in range(threads):
-
             d = treq.get("http://localhost:8080/", reactor=temp_reactor)
             d.addCallback(treq.content)
             d.addCallback(results.append)
             deferreds.append(d)
 
-        d = defer.DeferredList(deferreds)
-        d.addCallback(lambda _: self.assertIn(str(threads).encode('ascii'),
-                                              results))
-        d.addCallback(lambda _: temp_reactor.stop())
+        def done(_):
+            max_concurrency = max([int(x) for x in results])
 
+            assert max_concurrency == threads, "Maximum concurrency was %s, not %s" % (max_concurrency, threads)
+            temp_reactor.stop()
+
+        defer.DeferredList(deferreds).addCallback(done)
+
+        def escape():
+            if temp_reactor.running:
+                temp_reactor.stop()
+
+        temp_reactor.callLater(1, escape)
         temp_reactor.run()
-
-        return d
 
 
 def hello(environ, start_response):
