@@ -1193,9 +1193,6 @@ def check_listening_transport_web(transport):
     if not isinstance(paths, dict):
         raise InvalidConfigException("'paths' attribute in Web transport configuration must be dictionary ({} encountered)".format(type(paths)))
 
-    if '/' not in paths:
-        raise InvalidConfigException("missing mandatory path '/' in 'paths' in Web transport configuration")
-
     check_paths(paths)
 
     if 'options' in transport:

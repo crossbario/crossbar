@@ -269,6 +269,83 @@ class RouterWorkerSessionTests(TestCase):
         self.assertEqual(len(r.get_router_components()), 0)
 
 
+class WebTests(TestCase):
+
+    # XXX: Treq isn't ported yet, so just tie it with the WSGI tests for now
+    skip = WSGI_TESTS
+
+    def setUp(self):
+        self.cbdir = FilePath(self.mktemp())
+        self.cbdir.createDirectory()
+        config_extras = DottableDict({"node": "testnode",
+                                      "worker": "worker1",
+                                      "cbdir": self.cbdir.path})
+        self.config = ComponentConfig("realm1", extra=config_extras)
+
+    def test_root_not_required(self):
+        """
+        Not including a '/' path will mean that path has a 404, but children
+        will still be routed correctly.
+        """
+        temp_reactor = SelectReactor()
+        r = router.RouterWorkerSession(config=self.config,
+                                       reactor=temp_reactor)
+
+        # Open the transport
+        transport = FakeWAMPTransport(r)
+        r.onOpen(transport)
+
+        realm_config = {
+            u"name": u"realm1",
+            u'roles': []
+        }
+
+        # Make a file
+        self.cbdir.child('file.txt').setContent(b"hello!")
+
+        r.start_router_realm("realm1", realm_config)
+        r.start_router_transport(
+            "component1",
+            {
+                u"type": u"web",
+                u"endpoint": {
+                    u"type": u"tcp",
+                    u"port": 8080
+                },
+                u"paths": {
+                    u"static": {
+                        "directory": self.cbdir.asTextMode().path,
+                        "type": u"static"
+                    }
+                }
+            })
+
+        # Make a request to the WSGI app.
+        d1 = treq.get("http://localhost:8080/", reactor=temp_reactor)
+        d1.addCallback(lambda resp: self.assertEqual(resp.code, 404))
+
+        d2 = treq.get("http://localhost:8080/static/file.txt",
+                      reactor=temp_reactor)
+        d2.addCallback(treq.content)
+        d2.addCallback(self.assertEqual, b"hello!")
+
+        def done(results):
+            for item in results:
+                if not item[0]:
+                    raise item[1]
+
+        d = defer.DeferredList([d1, d2])
+        d.addCallback(done)
+        d.addCallback(lambda _: temp_reactor.stop())
+
+        def escape():
+            if temp_reactor.running:
+                temp_reactor.stop()
+
+        temp_reactor.callLater(1, escape)
+        temp_reactor.run()
+
+
 class WSGITests(TestCase):
 
     skip = WSGI_TESTS
