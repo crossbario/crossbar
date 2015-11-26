@@ -271,7 +271,7 @@ class RouterWorkerSessionTests(TestCase):
 
 class WebTests(TestCase):
 
-    # XXX: Treq isn't ported yet
+    # XXX: Treq isn't ported yet, so just tie it with the WSGI tests for now
     skip = WSGI_TESTS
 
     def setUp(self):
