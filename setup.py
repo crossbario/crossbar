@@ -73,43 +73,73 @@ extras_require = {
         'pyasn1-modules>=0.0.7',        # BSD license
         'service_identity>=14.0.0',     # MIT license
     ],
-    'manhole:python_implementation=="CPython"': [
-        'pyasn1>=0.1.8',                # BSD license
-        'pycrypto>=2.6.1',              # Public Domain license
+    'manhole': [
+        {
+            'environment': 'python_implementation=="CPython"',
+            'requires': [
+                'pyasn1>=0.1.8',        # BSD license
+                'pycrypto>=2.6.1',      # Public Domain license
+            ]
+        }
     ],
     'msgpack': [
         'msgpack-python>=0.4.6',        # Apache license
     ],
     'system': [
         'psutil>=3.2.1',                # BSD license
+        {
+            "environment": 'sys_platform=="linux2" or "bsd" in sys_platform or sys_platform=="darwin"',
+            'requires': [
+                'setproctitle>=1.1.9',  # BSD license
+            ]
+        },
+        {
+            "environment": 'sys_platform=="linux2"',
+            'requires': [
+                'pyinotify>=0.9.6',     # MIT license
+            ]
+        }
     ],
-    'system:sys_platform=="linux2" or ' \
-    '"bsd" in sys_platform or sys_platform=="darwin"': [
-        'setproctitle>=1.1.9',          # BSD license
-    ],
-    'system:sys_platform=="linux2"': [
-        'pyinotify>=0.9.6',             # MIT license
-    ],
-    'accelerate:python_implementation=="CPython"': [
-        "wsaccel>=0.6.2",               # Apache 2.0
-    ],
-    'accelerate:sys_platform!="win32" and ' \
-    'python_implementation == "CPython"': [
-        "ujson>=1.33",                  # BSD license
+    'accelerate': [
+
+        {
+            'environment': 'python_implementation=="CPython"',
+            'requires': [
+                "wsaccel>=0.6.2",        # Apache 2.0
+            ]
+        },
+        {
+            'environment': 'sys_platform!="win32" and python_implementation == "CPython"',
+            'requires': [
+                "ujson>=1.33",           # BSD license
+            ]
+        }
     ],
     'oracle': [
         'cx_Oracle>=5.2',               # Python Software Foundation license
     ],
     "postgres": [
         'txpostgres>=1.4.0',            # MIT license
-    ],
-    'postgres:python_implementation=="CPython"': [
-        'psycopg2>=2.6.1',              # LGPL license
-    ],
-    'postgres:python_implementation=="PyPy"': [
-        'psycopg2cffi>=2.7.2',          # LGPL license
+        {
+            'environment': 'python_implementation=="CPython"',
+            'requires': [
+                'psycopg2>=2.6.1',      # LGPL license
+            ]
+        },
+        {
+            'environment': 'python_implementation=="PyPy"',
+            'requires': [
+                'psycopg2cffi>=2.7.2',  # LGPL license
+            ]
+        },
     ],
 }
+
+extras_require["all"] = (extras_require['db'] + extras_require['dev'] +
+                         extras_require['tls'] + extras_require['manhole'] +
+                         extras_require['msgpack'] + extras_require['system'] +
+                         extras_require['accelerate'] +
+                         extras_require['postgres'])
 
 
 setup(
