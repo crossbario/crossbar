@@ -39,18 +39,19 @@ import six
 
 from datetime import datetime
 
-from twisted.internet.defer import DeferredList
+from twisted.internet.defer import Deferred, DeferredList
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.threadpool import ThreadPool
 
 from autobahn.util import utcstr
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
+from autobahn.twisted.wamp import ApplicationRunner
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
 from crossbar.router.session import RouterSessionFactory
-from crossbar.router.service import RouterServiceSession
+from crossbar.router.service import RouterServiceSession, RouterUplinkSession
 from crossbar.router.router import RouterFactory
 
 from crossbar.router.protocol import WampWebSocketServerFactory, \
@@ -293,6 +294,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         raise Exception("not implemented")
 
+    @inlineCallbacks
     def start_router_realm(self, id, config, schemas=None, details=None):
         """
         Starts a realm managed by this router.
@@ -320,7 +322,41 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # add a router/realm service session
         cfg = ComponentConfig(realm)
-        rlm.session = RouterServiceSession(cfg, router, schemas)
+
+        # uplink core router connection
+        uplink_session = None
+        if 'uplink' in config:
+            extra = {
+                'onready': Deferred(),
+
+                # authentication information for connecting to uplinkg CDC router
+                # using WAMP-CRA authentication
+                #
+                'authid': config['uplink'].get('authid', None),
+                'authkey': config['uplink'].get('authkey', None)
+            }
+            transport = config['uplink']['transport']
+
+            self.log.info("Realm connecting to Crossbar.io uplink router ...")
+
+            if True:
+                try:
+                    runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra, debug_wamp=False)
+                    runner.run(RouterUplinkSession, start_reactor=False)
+                except Exception as e:
+                    self.log.error(e)
+            else:
+                extra['onready'].callback(None)
+
+            # wait until we have attached to the uplink CDC
+            try:
+                uplink_session = yield extra['onready']
+            except Exception as e:
+                self.log.error(e)
+
+            self.log.info("Realm is connected to Crossbar.io uplink router")
+
+        rlm.session = RouterServiceSession(cfg, router, uplink_session=uplink_session, schemas=schemas)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
     def stop_router_realm(self, id, close_sessions=False, details=None):

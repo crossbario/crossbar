@@ -35,17 +35,62 @@ import json
 from twisted.internet.defer import inlineCallbacks
 
 from autobahn import wamp
+from autobahn.wamp import auth
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.observation import is_protected_uri
 from crossbar._logging import make_logger
 
-__all__ = ('RouterServiceSession',)
+__all__ = (
+    'RouterUplinkSession',
+    'RouterServiceSession',
+)
 
 
 def is_restricted_session(session):
     return session._authrole is None or session._authrole == u"trusted"
+
+
+class RouterUplinkSession(ApplicationSession):
+    """
+    This session is used for any uplink router connection.
+    """
+
+    log = make_logger()
+
+    def onConnect(self):
+        self.log.info("Connected")
+        realm = self.config.realm
+        authid = self.config.extra.get('authid', None)
+        if authid:
+            self.log.info("Connected. Joining realm '{}' as '{}' ..".format(realm, authid))
+            self.join(realm, [u"wampcra"], authid)
+        else:
+            self.log.info("Connected. Joining realm '{}' ..".format(realm))
+            self.join(realm)
+
+    def onChallenge(self, challenge):
+        if challenge.method == u"wampcra":
+            authkey = self.config.extra['authkey'].encode('utf8')
+            signature = auth.compute_wcs(authkey, challenge.extra['challenge'].encode('utf8'))
+            return signature.decode('ascii')
+        else:
+            raise Exception("don't know how to compute challenge for authmethod {}".format(challenge.method))
+
+    def onJoin(self, details):
+        self.log.info("Joined realm '{realm}' on uplink router", realm=details.realm)
+        self.config.extra['onready'].callback(self)
+
+    def onLeave(self, details):
+        if details.reason != u"wamp.close.normal":
+            self.log.warn("Session detached: {}".format(details))
+        else:
+            self.log.debug("Session detached: {}".format(details))
+        self.disconnect()
+
+    def onDisconnect(self):
+        self.log.debug("Disconnected.")
 
 
 class RouterServiceSession(ApplicationSession):
@@ -58,7 +103,7 @@ class RouterServiceSession(ApplicationSession):
 
     log = make_logger()
 
-    def __init__(self, config, router, schemas=None):
+    def __init__(self, config, router, uplink_session=None, schemas=None):
         """
         Ctor.
 
@@ -71,6 +116,7 @@ class RouterServiceSession(ApplicationSession):
         """
         ApplicationSession.__init__(self, config)
         self._router = router
+        self._uplink_session = uplink_session
         self._schemas = {}
         if schemas:
             self._schemas.update(schemas)
