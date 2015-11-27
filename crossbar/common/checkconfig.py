@@ -467,8 +467,19 @@ def check_connecting_endpoint_tls(tls):
         raise InvalidConfigException("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
 
     for k in tls:
-        if k not in []:
+        if k not in ['ca_certificates', 'hostname']:
             raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
+
+    if 'ca_certificates' in tls:
+        if not isinstance(tls['ca_certificates'], list):
+            raise InvalidConfigException("'ca_certificates' must be a list")
+        for fname in tls['ca_certificates']:
+            if not os.path.exists(fname):
+                raise InvalidConfigException("'ca_certificates' contains non-existant path '{}'".format(fname))
+
+    for req_k in ['hostname']:
+        if req_k not in tls:
+            raise InvalidConfigException("listening endpoint TLS configuration requires '{}'".format(req_k))
 
 
 def check_listening_endpoint_tcp(endpoint):

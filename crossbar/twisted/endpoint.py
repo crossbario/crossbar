@@ -34,6 +34,9 @@ import os
 import six
 
 from twisted.internet import defer
+from twisted.internet._sslverify import OpenSSLCertificateAuthorities, ClientTLSOptions
+from twisted.internet.ssl import CertificateOptions
+from twisted.internet.ssl import optionsForClientTLS
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ServerEndpoint, \
     TCP4ClientEndpoint, \
@@ -259,6 +262,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
     :returns obj -- An instance implementing IStreamClientEndpoint
     """
     endpoint = None
+    log = make_logger()
 
     # a TCP endpoint
     #
@@ -281,18 +285,39 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
         timeout = int(config.get('timeout', 10))
 
         if 'tls' in config:
-
             if _HAS_TLS:
-                ctx = TlsClientContextFactory()
+                # if the config specified any CA certificates, we use those (only!)
+                if 'ca_certificates' in config['tls']:
+                    from OpenSSL import crypto
+                    ca_certs = []
+                    for cert_fname in config['tls']['ca_certificates']:
+                        cert = crypto.load_certificate(
+                            crypto.FILETYPE_PEM,
+                            six.u(open(cert_fname, 'r').read())
+                        )
+                        log.info("Loaded CA certificate '{fname}'", fname=cert_fname)
+                        ca_certs.append(cert)
+                    ca_options = CertificateOptions(
+                        trustRoot=OpenSSLCertificateAuthorities(ca_certs)
+                    )
+                    options = ClientTLSOptions(
+                        config['tls']['hostname'],
+                        ca_options.getContext()
+                    )
+                else:
+                    options = optionsForClientTLS(config['tls']['hostname'])
+                ctx = options
 
                 # create a TLS client endpoint
                 #
                 if version == 4:
-                    endpoint = SSL4ClientEndpoint(reactor,
-                                                  host,
-                                                  port,
-                                                  ctx,
-                                                  timeout=timeout)
+                    endpoint = SSL4ClientEndpoint(
+                        reactor,
+                        host,
+                        port,
+                        ctx,
+                        timeout=timeout,
+                    )
                 elif version == 6:
                     raise Exception("TLS on IPv6 not implemented")
                 else:
