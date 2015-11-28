@@ -435,7 +435,7 @@ def check_listening_endpoint_tls(tls):
         raise InvalidConfigException("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
 
     for k in tls:
-        if k not in ['key', 'certificate', 'dhparam', 'ciphers']:
+        if k not in ['key', 'certificate', 'dhparam', 'ciphers', 'ca_certificates']:
             raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
 
     for k in [('key', True), ('certificate', True), ('dhparam', False), ('ciphers', False)]:
@@ -447,7 +447,7 @@ def check_listening_endpoint_tls(tls):
             if not isinstance(tls[k[0]], six.text_type):
                 raise InvalidConfigException("'{}' in listening endpoint TLS configuration must be string ({} encountered)".format(k[0], type(tls[k[0]])))
             # all options except "ciphers" are filenames
-            if k[0] != 'ciphers' and not exists(tls[k[0]]):
+            if k[0] not in ['ciphers', 'ca_certificates'] and not exists(tls[k[0]]):
                 raise InvalidConfigException(
                     "Path '{}' doesn't exist for '{}' in TLS config".format(tls[k[0]], k[0])
                 )

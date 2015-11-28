@@ -133,7 +133,17 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                         key = key_file.read()
                         cert = cert_file.read()
                         ciphers = config['tls'].get('ciphers', None)
-                        ctx = TlsServerContextFactory(key, cert, ciphers=ciphers, dhParamFilename=dhparam_filepath)
+                        ca_certs = []
+                        if 'ca_certificates' in config['tls']:
+                            for fname in config['tls']['ca_certificates']:
+                                with open(fname, 'r') as f:
+                                    ca_certs.append(f.read())
+                        ctx = TlsServerContextFactory(
+                            key, cert,
+                            ciphers=ciphers,
+                            dhParamFilename=dhparam_filepath,
+                            ca_certs=ca_certs,
+                        )
 
                 # create a TLS server endpoint
                 #
@@ -298,7 +308,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                         log.info("Loaded CA certificate '{fname}'", fname=cert_fname)
                         ca_certs.append(cert)
 
-                    kwarg = {}
+                    client_cert = None
                     if 'key' in config['tls']:
                         with open(config['tls']['certificate'], 'r') as f:
                             cert = Certificate.load(
@@ -313,7 +323,6 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                             log.info("private {key}", key=private_key)
                         client_cert = PrivateCertificate.fromCertificateAndKeyPair(
                             cert, private_key)
-                        kwarg['clientCertificate'] = client_cert
 
                     options = optionsForClientTLS(
                         config['tls']['hostname'],

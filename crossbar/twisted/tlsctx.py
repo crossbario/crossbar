@@ -253,12 +253,14 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                  certificateString,
                  chainedCertificate=True,
                  dhParamFilename=None,
-                 ciphers=None):
+                 ciphers=None,
+                 ca_certs=[]):
         self._privateKeyString = str(privateKeyString).encode('utf8')
         self._certificateString = str(certificateString).encode('utf8')
         self._chainedCertificate = chainedCertificate
         self._dhParamFilename = str(dhParamFilename) if dhParamFilename else None
         self._ciphers = str(ciphers) if ciphers else None
+        self._ca_certs = ca_certs  # additional CA certificates to trust
 
         # do a SSLv2-compatible handshake even for TLS
         #
@@ -266,6 +268,9 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
 
         self._contextFactory = SSL.Context
         self.cacheContext()
+
+    def _verify_peer(self, conn, cert, errno, depth, preverify_ok):
+        return preverify_ok
 
     def cacheContext(self):
         if self._context is None:
@@ -327,6 +332,12 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 f.write(self._certificateString)
                 f.close()
                 ctx.use_certificate_chain_file(f.name)
+
+            store = ctx.get_cert_store()
+            for certdata in self._ca_certs:
+                cert = crypto.load_certificate(crypto.FILETYPE_PEM, certdata)
+                store.add_cert(cert)
+            ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self._verify_peer)
 
             # load private key into context
             #
