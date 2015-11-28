@@ -35,7 +35,7 @@ import six
 
 from twisted.internet import defer
 from twisted.internet._sslverify import OpenSSLCertificateAuthorities, ClientTLSOptions
-from twisted.internet.ssl import CertificateOptions
+from twisted.internet.ssl import CertificateOptions, PrivateCertificate, Certificate, KeyPair
 from twisted.internet.ssl import optionsForClientTLS
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ServerEndpoint, \
@@ -297,16 +297,31 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                         )
                         log.info("Loaded CA certificate '{fname}'", fname=cert_fname)
                         ca_certs.append(cert)
-                    ca_options = CertificateOptions(
-                        trustRoot=OpenSSLCertificateAuthorities(ca_certs)
-                    )
-                    options = ClientTLSOptions(
+
+                    kwarg = {}
+                    if 'key' in config['tls']:
+                        with open(config['tls']['certificate'], 'r') as f:
+                            cert = Certificate.load(
+                                f.read(),
+                                format=crypto.FILETYPE_PEM,
+                            )
+                        with open(config['tls']['key'], 'r') as f:
+                            private_key = KeyPair.load(
+                                f.read(),
+                                format=crypto.FILETYPE_PEM,
+                            )
+                            log.info("private {key}", key=private_key)
+                        client_cert = PrivateCertificate.fromCertificateAndKeyPair(
+                            cert, private_key)
+                        kwarg['clientCertificate'] = client_cert
+
+                    options = optionsForClientTLS(
                         config['tls']['hostname'],
-                        ca_options.getContext()
+                        OpenSSLCertificateAuthorities(ca_certs),
+                        client_cert,
                     )
                 else:
                     options = optionsForClientTLS(config['tls']['hostname'])
-                ctx = options
 
                 # create a TLS client endpoint
                 #
@@ -315,7 +330,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                         reactor,
                         host,
                         port,
-                        ctx,
+                        options,
                         timeout=timeout,
                     )
                 elif version == 6:
