@@ -270,6 +270,22 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
         self.cacheContext()
 
     def _verify_peer(self, conn, cert, errno, depth, preverify_ok):
+        if not preverify_ok:
+            self.log.info(
+                "TLS verification failing at depth {depth}; err={err}",
+                depth=depth,
+                err=errno,  # can we convert this to string/symbolic code?
+            )
+            # X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN		19
+            # X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY	20
+            if errno in [19, 20]:
+                self.log.debug(
+                    "Can't find CA certificate to verify against or self-signed "
+                    "certificate."
+                )
+                self.log.debug(
+                    "Is 'ca_certificates' endpoint configuration missing a cert?"
+                )
         return preverify_ok
 
     def cacheContext(self):
