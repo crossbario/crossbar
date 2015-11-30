@@ -351,9 +351,9 @@ class RouterServiceSession(ApplicationSession):
                 subscriptions_prefix.append(subscription.id)
 
         subscriptions_wildcard = []
-        for subscription in subscription_map._observations_wildcard.values():
-            if not is_protected_uri(subscription.uri):
-                subscriptions_wildcard.append(subscription.id)
+        #for subscription in subscription_map._observations_wildcard.values():
+        #    if not is_protected_uri(subscription.uri):
+        #        subscriptions_wildcard.append(subscription.id)
 
         return {
             'exact': subscriptions_exact,
