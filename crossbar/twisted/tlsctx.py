@@ -350,9 +350,8 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 ctx.use_certificate_chain_file(f.name)
 
             store = ctx.get_cert_store()
-            for certdata in self._ca_certs:
-                cert = crypto.load_certificate(crypto.FILETYPE_PEM, certdata)
-                store.add_cert(cert)
+            for cert in self._ca_certs:
+                store.add_cert(cert.original)
             ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self._verify_peer)
 
             # load private key into context

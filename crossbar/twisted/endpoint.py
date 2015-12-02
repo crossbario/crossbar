@@ -34,9 +34,9 @@ import os
 import six
 
 from twisted.internet import defer
-from twisted.internet._sslverify import OpenSSLCertificateAuthorities, ClientTLSOptions
+from twisted.internet._sslverify import OpenSSLCertificateAuthorities
 from twisted.internet.ssl import CertificateOptions, PrivateCertificate, Certificate, KeyPair
-from twisted.internet.ssl import optionsForClientTLS
+from twisted.internet.ssl import optionsForClientTLS, DiffieHellmanParameters
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ServerEndpoint, \
     TCP4ClientEndpoint, \
@@ -125,8 +125,13 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
                         if 'dhparam' in config['tls']:
                             dhparam_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['dhparam']))
+                            dh_params = DiffieHellmanParameters.fromFile(
+                                FilePath(dhparam_filepath)
+                            )
                         else:
                             dhparam_filepath = None
+                            # XXX won't be doing ANY EDH curvews...
+                            dh_params = None
 
                         # create a TLS context factory
                         #
@@ -137,13 +142,19 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                         if 'ca_certificates' in config['tls']:
                             for fname in config['tls']['ca_certificates']:
                                 with open(fname, 'r') as f:
-                                    ca_certs.append(f.read())
-                        ctx = TlsServerContextFactory(
-                            key, cert,
-                            ciphers=ciphers,
-                            dhParamFilename=dhparam_filepath,
-                            ca_certs=ca_certs,
+                                    ca_certs.append(Certificate.loadPEM(f.read()).original)
+                        ctx = CertificateOptions(
+                            verify=True,
+                            caCerts=ca_certs,
+                            dhParameters=dh_params,
                         )
+                        print("BLAMMO", ctx)
+                        # ctx = TlsServerContextFactory(
+                        #     key, cert,
+                        #     ciphers=ciphers,
+                        #     dhParamFilename=dhparam_filepath,
+                        #     ca_certs=ca_certs,
+                        # )
 
                 # create a TLS server endpoint
                 #
@@ -324,6 +335,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                         client_cert = PrivateCertificate.fromCertificateAndKeyPair(
                             cert, private_key)
 
+                    # XXX FIXME private class OpenSSLCertificateAuthorities...
                     options = optionsForClientTLS(
                         config['tls']['hostname'],
                         OpenSSLCertificateAuthorities(ca_certs),
