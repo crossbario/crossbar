@@ -30,8 +30,9 @@
 
 from __future__ import absolute_import, division
 
-import os
 import six
+from os import environ
+from os.path import join, abspath
 
 from twisted.internet import defer
 from twisted.internet._sslverify import OpenSSLCertificateAuthorities
@@ -95,7 +96,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
         if type(config['port']) is six.text_type:
             # read port from environment variable ..
             try:
-                port = int(os.environ[config['port'][1:]])
+                port = int(environ[config['port'][1:]])
             except Exception as e:
                 print("Could not read listening port from env var: {}".format(e))
                 raise e
@@ -111,23 +112,24 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
         backlog = int(config.get('backlog', 50))
 
         if 'tls' in config:
-
             if _HAS_TLS:
-                key_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['key']))
-                cert_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['certificate']))
+                key_filepath = abspath(join(cbdir, config['tls']['key']))
+                cert_filepath = abspath(join(cbdir, config['tls']['certificate']))
 
                 with open(key_filepath) as key_file:
                     with open(cert_filepath) as cert_file:
 
                         if 'dhparam' in config['tls']:
-                            dhparam_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['dhparam']))
-                            dh_params = DiffieHellmanParameters.fromFile(
-                                FilePath(dhparam_filepath)
+                            dhpath = FilePath(
+                                abspath(join(cbdir, config['tls']['dhparam']))
                             )
+                            dh_params = DiffieHellmanParameters.fromFile(dhpath)
                         else:
-                            dhparam_filepath = None
-                            # XXX won't be doing ANY EDH curvews...
+                            # XXX won't be doing ANY EDH
+                            # curves... maybe make dhparam required?
+                            # or do "whatever tlxctx was doing"
                             dh_params = None
+                            self.log.warn("OpenSSL DH modes not active (no 'dhparam')")
 
                         # create a TLS context factory
                         #
@@ -148,6 +150,14 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                             caCerts=ca_certs,
                             dhParameters=dh_params,
                         )
+                        if ctx._ecCurve is None:
+                            log.warn("OpenSSL failed to set ECDH default curve")
+                        else:
+                            log.info(
+                                "Ok, OpenSSL is using ECDH elliptic curve {curve}",
+                                curve=ctx._ecCurve.snName,
+                            )
+
 
                 # create a TLS server endpoint
                 #
@@ -161,7 +171,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                     raise Exception("TLS on IPv6 not implemented")
                 else:
                     raise Exception("invalid TCP protocol version {}".format(version))
-
             else:
                 raise Exception("TLS transport requested, but TLS packages not available:\n{}".format(_LACKS_TLS_MSG))
 
@@ -191,7 +200,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
         # the path
         #
-        path = FilePath(os.path.join(cbdir, config['path']))
+        path = FilePath(join(cbdir, config['path']))
 
         # if there is already something there, delete it.
         #
@@ -388,7 +397,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
 
         # the path
         #
-        path = os.path.abspath(os.path.join(cbdir, config['path']))
+        path = abspath(join(cbdir, config['path']))
 
         # connection timeout in seconds
         #
