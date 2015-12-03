@@ -38,6 +38,7 @@ from twisted.internet import defer
 from twisted.internet._sslverify import OpenSSLCertificateAuthorities
 from twisted.internet.ssl import CertificateOptions, PrivateCertificate, Certificate, KeyPair
 from twisted.internet.ssl import optionsForClientTLS, DiffieHellmanParameters
+from twisted.internet.ssl import AcceptableCiphers
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ServerEndpoint, \
     TCP4ClientEndpoint, \
@@ -143,12 +144,22 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                                 with open(fname, 'r') as f:
                                     ca_certs.append(Certificate.loadPEM(f.read()).original)
 
+                        crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
+                            'ECDHE-RSA-AES128-GCM-SHA256:'
+                            'DHE-RSA-AES128-GCM-SHA256:'
+                            'ECDHE-RSA-AES128-SHA256:'
+                            'DHE-RSA-AES128-SHA256:'
+                            'ECDHE-RSA-AES128-SHA:'
+                            'DHE-RSA-AES128-SHA'
+                        )
+
                         ctx = CertificateOptions(
                             privateKey=KeyPair.load(key, crypto.FILETYPE_PEM).original,
                             certificate=Certificate.loadPEM(cert).original,
                             verify=True,
                             caCerts=ca_certs,
                             dhParameters=dh_params,
+                            acceptableCiphers=crossbar_ciphers,
                         )
                         if ctx._ecCurve is None:
                             log.warn("OpenSSL failed to set ECDH default curve")
