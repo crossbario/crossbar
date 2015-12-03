@@ -156,7 +156,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                         ctx = CertificateOptions(
                             privateKey=KeyPair.load(key, crypto.FILETYPE_PEM).original,
                             certificate=Certificate.loadPEM(cert).original,
-                            verify=True,
+                            verify=(ca_certs is not None),
                             caCerts=ca_certs,
                             dhParameters=dh_params,
                             acceptableCiphers=crossbar_ciphers,
@@ -359,11 +359,18 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                         client_cert = PrivateCertificate.fromCertificateAndKeyPair(
                             cert, private_key)
 
-                    # XXX FIXME private class OpenSSLCertificateAuthorities...
+                    # XXX OpenSSLCertificateAuthorities is a "private"
+                    # class, in _sslverify, so we shouldn't really be
+                    # using it. However, while you can pass a single
+                    # Certificate as trustRoot= there's no way to pass
+                    # multiple ones.
+                    # XXX ...but maybe the config should only allow
+                    # the user to configure a single cert to trust
+                    # here anyway?
                     options = optionsForClientTLS(
                         config['tls']['hostname'],
-                        OpenSSLCertificateAuthorities(ca_certs),
-                        client_cert,
+                        trustRoot=OpenSSLCertificateAuthorities(ca_certs),
+                        clientCertificate=client_cert,
                     )
                 else:
                     options = optionsForClientTLS(config['tls']['hostname'])
