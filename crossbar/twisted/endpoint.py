@@ -33,6 +33,7 @@ from __future__ import absolute_import, division
 import os
 import six
 
+from OpenSSL import crypto
 from twisted.internet import defer
 from twisted.internet._sslverify import OpenSSLCertificateAuthorities
 from twisted.internet.ssl import CertificateOptions, PrivateCertificate, Certificate, KeyPair
@@ -138,12 +139,16 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                         key = key_file.read()
                         cert = cert_file.read()
                         ciphers = config['tls'].get('ciphers', None)
-                        ca_certs = []
+                        ca_certs = None
                         if 'ca_certificates' in config['tls']:
+                            ca_certs = []
                             for fname in config['tls']['ca_certificates']:
                                 with open(fname, 'r') as f:
                                     ca_certs.append(Certificate.loadPEM(f.read()).original)
+
                         ctx = CertificateOptions(
+                            privateKey=KeyPair.load(key, crypto.FILETYPE_PEM).original,
+                            certificate=Certificate.loadPEM(cert).original,
                             verify=True,
                             caCerts=ca_certs,
                             dhParameters=dh_params,
@@ -309,7 +314,6 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
             if _HAS_TLS:
                 # if the config specified any CA certificates, we use those (only!)
                 if 'ca_certificates' in config['tls']:
-                    from OpenSSL import crypto
                     ca_certs = []
                     for cert_fname in config['tls']['ca_certificates']:
                         cert = crypto.load_certificate(
@@ -322,16 +326,28 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                     client_cert = None
                     if 'key' in config['tls']:
                         with open(config['tls']['certificate'], 'r') as f:
-                            cert = Certificate.load(
+                            cert = Certificate.loadPEM(
                                 f.read(),
-                                format=crypto.FILETYPE_PEM,
                             )
+                            log.info(
+                                "{fname}: CN={subj.CN}, sha={sha}",
+                                fname=config['tls']['certificate'],
+                                subj=cert.getSubject(),
+                                sha=cert.digest('sha'),
+                            )
+
                         with open(config['tls']['key'], 'r') as f:
                             private_key = KeyPair.load(
                                 f.read(),
                                 format=crypto.FILETYPE_PEM,
                             )
-                            log.info("private {key}", key=private_key)
+
+                            log.info(
+                                "{fname}: {key}",
+                                fname=config['tls']['key'],
+                                key=private_key.inspect(),
+                            )
+
                         client_cert = PrivateCertificate.fromCertificateAndKeyPair(
                             cert, private_key)
 
