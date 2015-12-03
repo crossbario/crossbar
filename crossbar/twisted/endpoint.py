@@ -33,7 +33,6 @@ from __future__ import absolute_import, division
 import os
 import six
 
-from OpenSSL import crypto
 from twisted.internet import defer
 from twisted.internet._sslverify import OpenSSLCertificateAuthorities
 from twisted.internet.ssl import CertificateOptions, PrivateCertificate, Certificate, KeyPair
@@ -49,19 +48,15 @@ from twisted.python.filepath import FilePath
 from crossbar._logging import make_logger
 from crossbar.twisted.sharedport import SharedPort
 
-_HAS_TLS = None
-_LACKS_TLS_MSG = None
-
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
-    from crossbar.twisted.tlsctx import TlsServerContextFactory, \
-        TlsClientContextFactory
+    from OpenSSL import crypto
+    _HAS_TLS = True
+    _LACKS_TLS_MSG = None
 except ImportError as e:
     _HAS_TLS = False
     _LACKS_TLS_MSG = "{}".format(e)
-else:
-    _HAS_TLS = True
 
 __all__ = ('create_listening_endpoint_from_config',
            'create_listening_port_from_config',
@@ -153,13 +148,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                             caCerts=ca_certs,
                             dhParameters=dh_params,
                         )
-                        print("BLAMMO", ctx)
-                        # ctx = TlsServerContextFactory(
-                        #     key, cert,
-                        #     ciphers=ciphers,
-                        #     dhParamFilename=dhparam_filepath,
-                        #     ca_certs=ca_certs,
-                        # )
 
                 # create a TLS server endpoint
                 #
