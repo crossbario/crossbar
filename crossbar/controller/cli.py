@@ -529,6 +529,9 @@ def run_command_start(options, reactor=None):
     log.info()
 
     log.info("Starting from node directory {}".format(options.cbdir))
+    # relative path validation won't work if we aren't in our
+    # working-dir when doing the validation
+    os.chdir(options.cbdir)
 
     from crossbar.controller.node import Node
     from crossbar.common.checkconfig import InvalidConfigException

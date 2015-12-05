@@ -30,10 +30,15 @@
 
 from __future__ import absolute_import, division
 
-import os
 import six
+from os import environ
+from os.path import join, abspath
 
 from twisted.internet import defer
+from twisted.internet._sslverify import OpenSSLCertificateAuthorities
+from twisted.internet.ssl import CertificateOptions, PrivateCertificate, Certificate, KeyPair
+from twisted.internet.ssl import optionsForClientTLS, DiffieHellmanParameters
+from twisted.internet.ssl import AcceptableCiphers
 from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ServerEndpoint, \
     TCP4ClientEndpoint, \
@@ -45,19 +50,15 @@ from twisted.python.filepath import FilePath
 from crossbar._logging import make_logger
 from crossbar.twisted.sharedport import SharedPort
 
-_HAS_TLS = None
-_LACKS_TLS_MSG = None
-
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
-    from crossbar.twisted.tlsctx import TlsServerContextFactory, \
-        TlsClientContextFactory
+    from OpenSSL import crypto
+    _HAS_TLS = True
+    _LACKS_TLS_MSG = None
 except ImportError as e:
     _HAS_TLS = False
     _LACKS_TLS_MSG = "{}".format(e)
-else:
-    _HAS_TLS = True
 
 __all__ = ('create_listening_endpoint_from_config',
            'create_listening_port_from_config',
@@ -96,7 +97,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
         if type(config['port']) is six.text_type:
             # read port from environment variable ..
             try:
-                port = int(os.environ[config['port'][1:]])
+                port = int(environ[config['port'][1:]])
             except Exception as e:
                 print("Could not read listening port from env var: {}".format(e))
                 raise e
@@ -112,25 +113,62 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
         backlog = int(config.get('backlog', 50))
 
         if 'tls' in config:
-
             if _HAS_TLS:
-                key_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['key']))
-                cert_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['certificate']))
+                key_filepath = abspath(join(cbdir, config['tls']['key']))
+                cert_filepath = abspath(join(cbdir, config['tls']['certificate']))
 
                 with open(key_filepath) as key_file:
                     with open(cert_filepath) as cert_file:
 
                         if 'dhparam' in config['tls']:
-                            dhparam_filepath = os.path.abspath(os.path.join(cbdir, config['tls']['dhparam']))
+                            dhpath = FilePath(
+                                abspath(join(cbdir, config['tls']['dhparam']))
+                            )
+                            dh_params = DiffieHellmanParameters.fromFile(dhpath)
                         else:
-                            dhparam_filepath = None
+                            # XXX won't be doing ANY EDH
+                            # curves... maybe make dhparam required?
+                            # or do "whatever tlxctx was doing"
+                            dh_params = None
+                            self.log.warn("OpenSSL DH modes not active (no 'dhparam')")
 
                         # create a TLS context factory
                         #
                         key = key_file.read()
                         cert = cert_file.read()
                         ciphers = config['tls'].get('ciphers', None)
-                        ctx = TlsServerContextFactory(key, cert, ciphers=ciphers, dhParamFilename=dhparam_filepath)
+                        ca_certs = None
+                        if 'ca_certificates' in config['tls']:
+                            ca_certs = []
+                            for fname in config['tls']['ca_certificates']:
+                                with open(fname, 'r') as f:
+                                    ca_certs.append(Certificate.loadPEM(f.read()).original)
+
+                        crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
+                            'ECDHE-RSA-AES128-GCM-SHA256:'
+                            'DHE-RSA-AES128-GCM-SHA256:'
+                            'ECDHE-RSA-AES128-SHA256:'
+                            'DHE-RSA-AES128-SHA256:'
+                            'ECDHE-RSA-AES128-SHA:'
+                            'DHE-RSA-AES128-SHA'
+                        )
+
+                        ctx = CertificateOptions(
+                            privateKey=KeyPair.load(key, crypto.FILETYPE_PEM).original,
+                            certificate=Certificate.loadPEM(cert).original,
+                            verify=(ca_certs is not None),
+                            caCerts=ca_certs,
+                            dhParameters=dh_params,
+                            acceptableCiphers=crossbar_ciphers,
+                        )
+                        if ctx._ecCurve is None:
+                            log.warn("OpenSSL failed to set ECDH default curve")
+                        else:
+                            log.info(
+                                "Ok, OpenSSL is using ECDH elliptic curve {curve}",
+                                curve=ctx._ecCurve.snName,
+                            )
+
 
                 # create a TLS server endpoint
                 #
@@ -144,7 +182,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                     raise Exception("TLS on IPv6 not implemented")
                 else:
                     raise Exception("invalid TCP protocol version {}".format(version))
-
             else:
                 raise Exception("TLS transport requested, but TLS packages not available:\n{}".format(_LACKS_TLS_MSG))
 
@@ -174,7 +211,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
         # the path
         #
-        path = FilePath(os.path.join(cbdir, config['path']))
+        path = FilePath(join(cbdir, config['path']))
 
         # if there is already something there, delete it.
         #
@@ -259,6 +296,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
     :returns obj -- An instance implementing IStreamClientEndpoint
     """
     endpoint = None
+    log = make_logger()
 
     # a TCP endpoint
     #
@@ -281,18 +319,72 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
         timeout = int(config.get('timeout', 10))
 
         if 'tls' in config:
-
             if _HAS_TLS:
-                ctx = TlsClientContextFactory()
+                # if the config specified any CA certificates, we use those (only!)
+                if 'ca_certificates' in config['tls']:
+                    ca_certs = []
+                    for cert_fname in config['tls']['ca_certificates']:
+                        cert = crypto.load_certificate(
+                            crypto.FILETYPE_PEM,
+                            six.u(open(cert_fname, 'r').read())
+                        )
+                        log.info("Loaded CA certificate '{fname}'", fname=cert_fname)
+                        ca_certs.append(cert)
+
+                    client_cert = None
+                    if 'key' in config['tls']:
+                        with open(config['tls']['certificate'], 'r') as f:
+                            cert = Certificate.loadPEM(
+                                f.read(),
+                            )
+                            log.info(
+                                "{fname}: CN={subj.CN}, sha={sha}",
+                                fname=config['tls']['certificate'],
+                                subj=cert.getSubject(),
+                                sha=cert.digest('sha'),
+                            )
+
+                        with open(config['tls']['key'], 'r') as f:
+                            private_key = KeyPair.load(
+                                f.read(),
+                                format=crypto.FILETYPE_PEM,
+                            )
+
+                            log.info(
+                                "{fname}: {key}",
+                                fname=config['tls']['key'],
+                                key=private_key.inspect(),
+                            )
+
+                        client_cert = PrivateCertificate.fromCertificateAndKeyPair(
+                            cert, private_key)
+
+                    # XXX OpenSSLCertificateAuthorities is a "private"
+                    # class, in _sslverify, so we shouldn't really be
+                    # using it. However, while you can pass a single
+                    # Certificate as trustRoot= there's no way to pass
+                    # multiple ones.
+                    # XXX ...but maybe the config should only allow
+                    # the user to configure a single cert to trust
+                    # here anyway?
+                    options = optionsForClientTLS(
+                        config['tls']['hostname'],
+                        trustRoot=OpenSSLCertificateAuthorities(ca_certs),
+                        clientCertificate=client_cert,
+                    )
+                else:
+                    options = optionsForClientTLS(config['tls']['hostname'])
 
                 # create a TLS client endpoint
                 #
                 if version == 4:
-                    endpoint = SSL4ClientEndpoint(reactor,
-                                                  host,
-                                                  port,
-                                                  ctx,
-                                                  timeout=timeout)
+                    endpoint = SSL4ClientEndpoint(
+                        reactor,
+                        host,
+                        port,
+                        options,
+                        timeout=timeout,
+                    )
                 elif version == 6:
                     raise Exception("TLS on IPv6 not implemented")
                 else:
@@ -323,7 +415,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
 
         # the path
         #
-        path = os.path.abspath(os.path.join(cbdir, config['path']))
+        path = abspath(join(cbdir, config['path']))
 
         # connection timeout in seconds
         #
