@@ -253,12 +253,14 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                  certificateString,
                  chainedCertificate=True,
                  dhParamFilename=None,
-                 ciphers=None):
+                 ciphers=None,
+                 ca_certs=[]):
         self._privateKeyString = str(privateKeyString).encode('utf8')
         self._certificateString = str(certificateString).encode('utf8')
         self._chainedCertificate = chainedCertificate
         self._dhParamFilename = str(dhParamFilename) if dhParamFilename else None
         self._ciphers = str(ciphers) if ciphers else None
+        self._ca_certs = ca_certs  # additional CA certificates to trust
 
         # do a SSLv2-compatible handshake even for TLS
         #
@@ -266,6 +268,25 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
 
         self._contextFactory = SSL.Context
         self.cacheContext()
+
+    def _verify_peer(self, conn, cert, errno, depth, preverify_ok):
+        if not preverify_ok:
+            self.log.info(
+                "TLS verification failing at depth {depth}; err={err}",
+                depth=depth,
+                err=errno,  # can we convert this to string/symbolic code?
+            )
+            # X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN		19
+            # X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY	20
+            if errno in [19, 20]:
+                self.log.debug(
+                    "Can't find CA certificate to verify against or self-signed "
+                    "certificate."
+                )
+                self.log.debug(
+                    "Is 'ca_certificates' endpoint configuration missing a cert?"
+                )
+        return preverify_ok
 
     def cacheContext(self):
         if self._context is None:
@@ -327,6 +348,11 @@ class TlsServerContextFactory(DefaultOpenSSLContextFactory):
                 f.write(self._certificateString)
                 f.close()
                 ctx.use_certificate_chain_file(f.name)
+
+            store = ctx.get_cert_store()
+            for cert in self._ca_certs:
+                store.add_cert(cert.original)
+            ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, self._verify_peer)
 
             # load private key into context
             #
