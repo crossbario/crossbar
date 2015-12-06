@@ -127,7 +127,7 @@ EXTRA_MIME_TYPES = {
 class RouterTransport(object):
 
     """
-    A transport attached to a router.
+    A (listening) transport running on a router worker.
     """
 
     def __init__(self, id, config, factory, port):
@@ -153,7 +153,7 @@ class RouterTransport(object):
 class RouterComponent(object):
 
     """
-    An embedded application component running inside a router instance.
+    A application component hosted and running inside a router worker.
     """
 
     def __init__(self, id, config, session):
@@ -176,7 +176,7 @@ class RouterComponent(object):
 class RouterRealm(object):
 
     """
-    A realm managed by a router.
+    A realm running in a router worker.
     """
 
     def __init__(self, id, config, session=None):
@@ -195,12 +195,13 @@ class RouterRealm(object):
         self.session = session
         self.created = datetime.utcnow()
         self.roles = {}
+        self.uplinks = {}
 
 
 class RouterRealmRole(object):
 
     """
-    A role in a realm managed by a router.
+    A role in a realm running in a router worker.
     """
 
     def __init__(self, id, config):
@@ -210,6 +211,23 @@ class RouterRealmRole(object):
         :param id: The role ID within the realm.
         :type id: str
         :param config: The role configuration.
+        :type config: dict
+        """
+
+
+class RouterRealmUplink(object):
+
+    """
+    An uplink in a realm running in a router worker.
+    """
+
+    def __init__(self, id, config):
+        """
+        Ctor.
+
+        :param id: The uplink ID within the realm.
+        :type id: str
+        :param config: The uplink configuration.
         :type config: dict
         """
 
@@ -241,14 +259,11 @@ class RouterWorkerSession(NativeWorkerSession):
         # map: realm URI -> realm ID
         self.realm_to_id = {}
 
-        # map: transport ID -> RouterTransport
-        self.transports = {}
-
-        # map: link ID -> RouterLink
-        self.links = {}
-
         # map: component ID -> RouterComponent
         self.components = {}
+
+        # map: transport ID -> RouterTransport
+        self.transports = {}
 
         # the procedures registered
         procs = [
@@ -260,6 +275,10 @@ class RouterWorkerSession(NativeWorkerSession):
             'start_router_realm_role',
             'stop_router_realm_role',
 
+            'get_router_realm_uplinks',
+            'start_router_realm_uplink',
+            'stop_router_realm_uplink',
+
             'get_router_components',
             'start_router_component',
             'stop_router_component',
@@ -267,10 +286,6 @@ class RouterWorkerSession(NativeWorkerSession):
             'get_router_transports',
             'start_router_transport',
             'stop_router_transport',
-
-            'get_router_links',
-            'start_router_link',
-            'stop_router_link'
         ]
 
         dl = []
@@ -288,7 +303,10 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def get_router_realms(self, details=None):
         """
-        List realms currently managed by this router.
+        Get realms currently running on this router worker.
+
+        :returns: List of realms currently running.
+        :rtype: list of dict
         """
         self.log.debug("{}.get_router_realms".format(self.__class__.__name__))
 
@@ -297,7 +315,7 @@ class RouterWorkerSession(NativeWorkerSession):
     @inlineCallbacks
     def start_router_realm(self, id, config, schemas=None, details=None):
         """
-        Starts a realm managed by this router.
+        Starts a realm on this router worker.
 
         :param id: The ID of the realm to start.
         :type id: str
@@ -361,7 +379,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def stop_router_realm(self, id, close_sessions=False, details=None):
         """
-        Stop a router realm.
+        Stop a realm currently running on this router worker.
 
         When a realm has stopped, no new session will be allowed to attach to the realm.
         Optionally, close all sessions currently attached to the realm.
@@ -379,11 +397,13 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def get_router_realm_roles(self, id, details=None):
         """
+        Get roles currently running on a realm running on this router worker.
 
-        :param id: The ID of the router realm to list roles for.
+        :param id: The ID of the realm to list roles for.
         :type id: str
 
-        :returns: list -- A list of roles.
+        :returns: A list of roles.
+        :rtype: list of dicts
         """
         self.log.debug("{}.get_router_realm_roles".format(self.__class__.__name__), id=id)
 
@@ -394,16 +414,16 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def start_router_realm_role(self, id, role_id, config, details=None):
         """
-        Adds a role to a realm.
+        Start a role on a realm running on this router worker.
 
-        :param id: The ID of the realm the role should be added to.
+        :param id: The ID of the realm the role should be started on.
         :type id: str
-        :param role_id: The ID of the role to add.
+        :param role_id: The ID of the role to start under.
         :type role_id: str
         :param config: The role configuration.
         :type config: dict
         """
-        self.log.debug("{}.add_router_realm_role".format(self.__class__.__name__),
+        self.log.debug("{}.start_router_realm_role".format(self.__class__.__name__),
                        id=id, role_id=role_id, config=config)
 
         if id not in self.realms:
@@ -419,14 +439,14 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def stop_router_realm_role(self, id, role_id, details=None):
         """
-        Drop a role from a realm.
+        Stop a role currently running on a realm running on this router worker.
 
-        :param id: The ID of the realm to drop a role from.
+        :param id: The ID of the realm of the role to be stopped.
         :type id: str
-        :param role_id: The ID of the role within the realm to drop.
+        :param role_id: The ID of the role to be stopped.
         :type role_id: str
         """
-        self.log.debug("{}.drop_router_realm_role".format(self.__class__.__name__),
+        self.log.debug("{}.stop_router_realm_role".format(self.__class__.__name__),
                        id=id, role_id=role_id)
 
         if id not in self.realms:
@@ -437,9 +457,58 @@ class RouterWorkerSession(NativeWorkerSession):
 
         del self.realms[id].roles[role_id]
 
+    def get_router_realm_uplinks(self, id, details=None):
+        """
+        Get uplinks currently running on a realm running on this router worker.
+
+        :param id: The ID of the router realm to list uplinks for.
+        :type id: str
+
+        :returns: A list of uplinks.
+        :rtype: list of dicts
+        """
+        self.log.debug("{}.get_router_realm_uplinks".format(self.__class__.__name__))
+
+        if id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+
+        return self.realms[id].uplinks.values()
+
+    def start_router_realm_uplink(self, id, uplink_id, config, details=None):
+        """
+        Start an uplink on a realm running on this router worker.
+
+        :param id: The ID of the realm the uplink should be started on.
+        :type id: str
+        :param uplink_id: The ID of the uplink to start.
+        :type uplink_id: str
+        :param config: The uplink configuration.
+        :type config: dict
+        """
+        self.log.debug("{}.start_router_realm_uplink".format(self.__class__.__name__),
+                       id=id, uplink_id=uplink_id, config=config)
+        raise NotImplementedError()
+
+    def stop_router_realm_uplink(self, id, uplink_id, details=None):
+        """
+        Stop an uplink currently running on a realm running on this router worker.
+
+        :param id: The ID of the realm to stop an uplink on.
+        :type id: str
+        :param uplink_id: The ID of the uplink within the realm to stop.
+        :type uplink_id: str
+        """
+        self.log.debug("{}.stop_router_realm_uplink".format(self.__class__.__name__),
+                       id=id, uplink_id=uplink_id)
+
+        raise NotImplementedError()
+
     def get_router_components(self, details=None):
         """
-        List application components currently running (embedded) in this router.
+        Get app components currently running in this router worker.
+
+        :returns: List of app components currently running.
+        :rtype: list of dict
         """
         self.log.debug("{}.get_router_components".format(self.__class__.__name__))
 
@@ -454,7 +523,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def start_router_component(self, id, config, details=None):
         """
-        Dynamically start an application component to run next to the router in "embedded mode".
+        Start an app component in this router worker.
 
         :param id: The ID of the component to start.
         :type id: str
@@ -529,23 +598,10 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def stop_router_component(self, id, details=None):
         """
-        Stop an application component running on this router.
-
-        **Usage:**
-
-        This procedure is registered under
-
-        * ``crossbar.node.<node_id>.worker.<worker_id>.stop_router_component``
-
-        **Errors:**
-
-        The procedure may raise the following errors:
-
-        * ``crossbar.error.no_such_object`` - no component with given ID is currently running in this router
-        * ``crossbar.error.cannot_stop`` - failed to stop the component running in this router
+        Stop an app component currently running in this router worker.
 
         :param id: The ID of the component to stop.
-        :type id: unicode
+        :type id: str
         """
         self.log.debug("{}.stop_router_component".format(self.__class__.__name__), id=id)
 
@@ -563,13 +619,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def get_router_transports(self, details=None):
         """
-        List currently running transports.
-
-        **Usage:**
-
-        This procedure is registered under
-
-        * ``crossbar.node.<node_id>.worker.<worker_id>.get_router_transports``
+        Get transports currently running in this router worker.
 
         :returns: List of transports currently running.
         :rtype: list of dict
@@ -587,47 +637,10 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def start_router_transport(self, id, config, details=None):
         """
-        Start a transport on this router and return when the transport has started.
-
-        **Usage:**
-
-        This procedure is registered under
-
-        * ``crossbar.node.<node_id>.worker.<worker_id>.start_router_transport``
-
-        The procedure takes a WAMP transport configuration with a listening endpoint, e.g.
-
-        .. code-block:: javascript
-
-            {
-                "type": "websocket",
-                "endpoint": {
-                    "type": "tcp",
-                    "port": 8080
-                }
-            }
-
-        **Errors:**
-
-        The procedure may raise the following errors:
-
-        * ``crossbar.error.invalid_configuration`` - the provided transport configuration is invalid
-        * ``crossbar.error.already_running`` - a transport with the given ID is already running (or starting)
-        * ``crossbar.error.cannot_listen`` - could not listen on the configured listening endpoint of the transport
-        * ``crossbar.error.class_import_failed`` - a side-by-side component could not be instantiated
-
-        **Events:**
-
-        The procedure will publish an event when the transport **is starting** to
-
-        * ``crossbar.node.<node_id>.worker.<worker_id>.on_router_transport_starting``
-
-        and publish an event when the transport **has started** to
-
-        * ``crossbar.node.<node_id>.worker.<worker_id>.on_router_transport_started``
+        Start a transport on this router worker.
 
         :param id: The ID of the transport to start.
-        :type id: unicode
+        :type id: str
         :param config: The transport configuration.
         :type config: dict
         """
@@ -694,13 +707,13 @@ class RouterWorkerSession(NativeWorkerSession):
             #
             if '/' in config['paths']:
                 root_config = config['paths']['/']
-                root = self.create_resource(root_config, nested=False)
+                root = self._create_resource(root_config, nested=False)
             else:
                 root = Resource404(self._templates, b'')
 
             # create Twisted Web resources on all non-root paths configured
             #
-            self.add_paths(root, config.get('paths', {}))
+            self._add_paths(root, config.get('paths', {}))
 
             # create the actual transport factory
             #
@@ -748,7 +761,7 @@ class RouterWorkerSession(NativeWorkerSession):
         d.addCallbacks(ok, fail)
         return d
 
-    def add_paths(self, resource, paths):
+    def _add_paths(self, resource, paths):
         """
         Add all configured non-root paths under a resource.
 
@@ -765,9 +778,9 @@ class RouterWorkerSession(NativeWorkerSession):
                 webPath = path
 
             if path != b"/":
-                resource.putChild(webPath, self.create_resource(paths[path]))
+                resource.putChild(webPath, self._create_resource(paths[path]))
 
-    def create_resource(self, path_config, nested=True):
+    def _create_resource(self, path_config, nested=True):
         """
         Creates child resource to be added to the parent.
 
@@ -1062,13 +1075,13 @@ class RouterWorkerSession(NativeWorkerSession):
             nested_paths = path_config.get('paths', {})
 
             if '/' in nested_paths:
-                nested_resource = self.create_resource(nested_paths['/'])
+                nested_resource = self._create_resource(nested_paths['/'])
             else:
                 nested_resource = Resource()
 
             # nest subpaths under the current entry
             #
-            self.add_paths(nested_resource, nested_paths)
+            self._add_paths(nested_resource, nested_paths)
 
             return nested_resource
 
@@ -1079,34 +1092,10 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def stop_router_transport(self, id, details=None):
         """
-        Stop a transport currently running in this router and return when
-        the transport has stopped.
-
-        **Usage:**
-
-        This procedure is registered under
-
-        * ``crossbar.node.<node_id>.worker.<worker_id>.stop_router_transport``
-
-        **Errors:**
-
-        The procedure may raise the following errors:
-
-        * ``crossbar.error.not_running`` - no transport with given ID is currently running on this router (or the transport is already stopping)
-        * ``crossbar.error.cannot_stop`` - could not stop listening on the transport listening endpoint
-
-        **Events:**
-
-        The procedure will publish an event when the transport **is stopping** to
-
-        * ``crossbar.node.<node_id>.worker.<worker_id>.on_router_transport_stopping``
-
-        and publish an event when the transport **has stopped** to
-
-        * ``crossbar.node.<node_id>.worker.<worker_id>.on_router_transport_stopped``
+        Stop a transport currently running in this router worker.
 
         :param id: The ID of the transport to stop.
-        :type id: unicode
+        :type id: str
         """
         self.log.debug("{}.stop_router_transport".format(self.__class__.__name__), id=id)
 
@@ -1129,37 +1118,3 @@ class RouterWorkerSession(NativeWorkerSession):
 
         d.addCallbacks(ok, fail)
         return d
-
-    def get_router_links(self, details=None):
-        """
-        List currently running router links.
-        """
-        self.log.debug("{}.get_router_links".format(self.__class__.__name__))
-
-        raise NotImplementedError()
-
-    def start_router_link(self, id, config, details=None):
-        """
-        Start a link on this router.
-
-        :param id: The ID of the link to start.
-        :type id: str
-        :param config: The link configuration.
-        :type config: dict
-        """
-        self.log.debug("{}.start_router_link".format(self.__class__.__name__),
-                       id=id, config=config)
-
-        raise NotImplementedError()
-
-    def stop_router_link(self, id, details=None):
-        """
-        Stop a link on this router.
-
-        :param id: The ID of the link to stop.
-        :type id: str
-        """
-        self.log.debug("{}.stop_router_link".format(self.__class__.__name__),
-                       id=id)
-
-        raise NotImplementedError()
