@@ -110,21 +110,28 @@ def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecur
 
     raise SkipTest()
 
-    params = {} if params is None else params
-    headers = {} if params is None else headers
+# def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecure=False,
+#                    headers=None, sign=False, signKey=None, signSecret=None):
 
-    def _cb(result, request):
-        return request
+#     from unittest import SkipTest
 
-    if sign:
-        params = makeSignedArguments(params, signKey, signSecret, body)
+#     raise SkipTest()
 
-    req = _requestMock(path, args=params, method=method, isSecure=isSecure,
-                       headers=headers, body=body)
+#     params = {} if params is None else params
+#     headers = {} if params is None else headers
 
-    d = _render(resource, req)
-    d.addCallback(_cb, req)
-    return d
+#     def _cb(result, request):
+#         return request
+
+#     if sign:
+#         params = makeSignedArguments(params, signKey, signSecret, body)
+
+#     req = _requestMock(path, args=params, method=method, isSecure=isSecure,
+#                        headers=headers, body=body)
+
+#     d = _render(resource, req)
+#     d.addCallback(_cb, req)
+#     return d
 
 
 MockResponse = namedtuple("MockResponse", ["code", "headers"])
