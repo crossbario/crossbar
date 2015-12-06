@@ -130,13 +130,12 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                             # curves... maybe make dhparam required?
                             # or do "whatever tlxctx was doing"
                             dh_params = None
-                            self.log.warn("OpenSSL DH modes not active (no 'dhparam')")
+                            log.warn("OpenSSL DH modes not active (no 'dhparam')")
 
                         # create a TLS context factory
                         #
                         key = key_file.read()
                         cert = cert_file.read()
-                        ciphers = config['tls'].get('ciphers', None)
                         ca_certs = None
                         if 'ca_certificates' in config['tls']:
                             ca_certs = []
@@ -168,7 +167,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                                 "Ok, OpenSSL is using ECDH elliptic curve {curve}",
                                 curve=ctx._ecCurve.snName,
                             )
-
 
                 # create a TLS server endpoint
                 #
