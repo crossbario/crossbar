@@ -754,8 +754,8 @@ class RouterWorkerSession(NativeWorkerSession):
             return
 
         def fail(err):
-            emsg = "Cannot listen on transport endpoint: {}".format(err.value)
-            self.log.error(emsg)
+            emsg = "Cannot listen on transport endpoint: {log_failure}"
+            self.log.error(emsg, log_failure=err)
             raise ApplicationError(u"crossbar.error.cannot_listen", emsg)
 
         d.addCallbacks(ok, fail)
