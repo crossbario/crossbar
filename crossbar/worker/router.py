@@ -46,12 +46,12 @@ from twisted.python.threadpool import ThreadPool
 from autobahn.util import utcstr
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
-from autobahn.twisted.wamp import ApplicationRunner
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
 from crossbar.router.session import RouterSessionFactory
-from crossbar.router.service import RouterServiceSession, RouterUplinkSession
+from crossbar.router.service import RouterServiceSession
+from crossbar.router.uplink import RouterUplinkSession
 from crossbar.router.router import RouterFactory
 
 from crossbar.router.protocol import WampWebSocketServerFactory, \
@@ -213,6 +213,8 @@ class RouterRealmRole(object):
         :param config: The role configuration.
         :type config: dict
         """
+        self.id = id
+        self.config = config
 
 
 class RouterRealmUplink(object):
@@ -230,6 +232,9 @@ class RouterRealmUplink(object):
         :param config: The uplink configuration.
         :type config: dict
         """
+        self.id = id
+        self.config = config
+        self.session = None
 
 
 class RouterWorkerSession(NativeWorkerSession):
@@ -339,43 +344,16 @@ class RouterWorkerSession(NativeWorkerSession):
         router = self._router_factory.start_realm(rlm)
 
         # add a router/realm service session
-        cfg = ComponentConfig(realm)
-
-        # uplink core router connection
-        uplink_session = None
-        if 'uplink' in config:
-            extra = {
-                'onready': Deferred(),
-
-                # authentication information for connecting to uplinkg CDC router
-                # using WAMP-CRA authentication
-                #
-                'authid': config['uplink'].get('authid', None),
-                'authkey': config['uplink'].get('authkey', None)
-            }
-            transport = config['uplink']['transport']
-
-            self.log.info("Realm connecting to Crossbar.io uplink router ...")
-
-            if True:
-                try:
-                    runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra, debug_wamp=False)
-                    runner.run(RouterUplinkSession, start_reactor=False)
-                except Exception as e:
-                    self.log.error(e)
-            else:
-                extra['onready'].callback(None)
-
-            # wait until we have attached to the uplink CDC
-            try:
-                uplink_session = yield extra['onready']
-            except Exception as e:
-                self.log.error(e)
-
-            self.log.info("Realm is connected to Crossbar.io uplink router")
-
-        rlm.session = RouterServiceSession(cfg, router, uplink_session=uplink_session, schemas=schemas)
+        extra = {
+            'onready': Deferred()
+        }
+        cfg = ComponentConfig(realm, extra)
+        rlm.session = RouterServiceSession(cfg, router, schemas=schemas)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
+
+        yield extra['onready']
+
+        self.log.info("Realm '{realm}' started", realm=realm)
 
     def stop_router_realm(self, id, close_sessions=False, details=None):
         """
@@ -474,20 +452,50 @@ class RouterWorkerSession(NativeWorkerSession):
 
         return self.realms[id].uplinks.values()
 
-    def start_router_realm_uplink(self, id, uplink_id, config, details=None):
+    @inlineCallbacks
+    def start_router_realm_uplink(self, realm_id, uplink_id, uplink_config, details=None):
         """
         Start an uplink on a realm running on this router worker.
 
-        :param id: The ID of the realm the uplink should be started on.
-        :type id: str
+        :param realm_id: The ID of the realm the uplink should be started on.
+        :type realm_id: unicode
         :param uplink_id: The ID of the uplink to start.
-        :type uplink_id: str
-        :param config: The uplink configuration.
-        :type config: dict
+        :type uplink_id: unicode
+        :param uplink_config: The uplink configuration.
+        :type uplink_config: dict
         """
         self.log.debug("{}.start_router_realm_uplink".format(self.__class__.__name__),
-                       id=id, uplink_id=uplink_id, config=config)
-        raise NotImplementedError()
+                       realm_id=realm_id, uplink_id=uplink_id, uplink_config=uplink_config)
+
+        # check arguments
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        if uplink_id in self.realms[realm_id].uplinks:
+            raise ApplicationError(u"crossbar.error.already_exists", "An uplink with ID '{}' already exists in realm with ID '{}'".format(uplink_id, realm_id))
+
+        # create a representation of the uplink
+        self.realms[realm_id].uplinks[uplink_id] = RouterRealmUplink(uplink_id, uplink_config)
+
+        # create the local session of the bridge
+        realm = self.realms[realm_id].config['name']
+        extra = {
+            'onready': Deferred(),
+            'uplink': uplink_config
+        }
+        uplink_session = RouterUplinkSession(ComponentConfig(realm, extra))
+        self._router_session_factory.add(uplink_session, authrole=u'trusted')
+
+        # wait until the uplink is ready
+        try:
+            uplink_session = yield extra['onready']
+        except Exception as e:
+            self.log.error(e)
+            raise e
+
+        self.realms[realm_id].uplinks[uplink_id].session = uplink_session
+
+        self.log.info("Realm is connected to Crossbar.io uplink router")
 
     def stop_router_realm_uplink(self, id, uplink_id, details=None):
         """

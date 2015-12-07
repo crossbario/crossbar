@@ -143,7 +143,7 @@ class Node(object):
             extra = {
                 'onready': Deferred(),
 
-                # authentication information for connecting to uplinkg CDC router
+                # authentication information for connecting to uplink CDC router
                 # using WAMP-CRA authentication
                 #
                 'authid': self._node_id,
@@ -371,6 +371,19 @@ class Node(object):
 
                             yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
                             self.log.info("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
+
+                        # start uplinks for realm
+                        #
+                        uplink_no = 1
+                        for uplink in realm.get('uplinks', []):
+                            if 'id' in uplink:
+                                uplink_id = uplink.pop('id')
+                            else:
+                                uplink_id = 'uplink{}'.format(uplink_no)
+                                uplink_no += 1
+
+                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_uplink'.format(self._node_id, worker_id), realm_id, uplink_id, uplink, options=call_options)
+                            self.log.info("{}: uplink '{}' started on realm '{}'".format(worker_logname, uplink_id, realm_id))
 
                     # start connections (such as PostgreSQL database connection pools)
                     # to run embedded in the router
