@@ -32,11 +32,8 @@ from __future__ import absolute_import
 
 from twisted.internet.defer import Deferred, inlineCallbacks
 
-from autobahn.twisted.util import sleep
-
 from autobahn.wamp import auth
 from autobahn.wamp.types import SubscribeOptions
-from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 from crossbar._logging import make_logger
@@ -67,7 +64,7 @@ class BridgeSession(ApplicationSession):
 
             def on_event(*args, **kwargs):
                 self.log.info("forwarding event from {} to {}".format(other, self))
-                details = kwargs.pop('details')
+                # details = kwargs.pop('details')
                 self.publish(uri, *args, **kwargs)
 
             sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details_arg="details"))
