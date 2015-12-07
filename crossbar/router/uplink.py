@@ -56,7 +56,7 @@ class BridgeSession(ApplicationSession):
         #
         @inlineCallbacks
         def on_subscription_create(sub_id, sub_details, details=None):
-            self.log.info(self, sub_id, sub_details, details)
+            self.log.info("Subscription created: {} {} {} {}".format(self, sub_id, sub_details, details))
 
             self._subs[sub_id] = sub_details
 
@@ -64,7 +64,7 @@ class BridgeSession(ApplicationSession):
 
             def on_event(*args, **kwargs):
                 self.log.info("forwarding event from {} to {}".format(other, self))
-                # details = kwargs.pop('details')
+                kwargs.pop('details')
                 self.publish(uri, *args, **kwargs)
 
             sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details_arg="details"))
@@ -78,7 +78,7 @@ class BridgeSession(ApplicationSession):
         #
         @inlineCallbacks
         def on_subscription_delete(session_id, sub_id, details=None):
-            self.log.info(self, session_id, sub_id, details)
+            self.log.info("Subscription deleted: {} {} {} {}".format(self, session_id, sub_id, details))
 
             sub_details = self._subs.get(sub_id, None)
             if not sub_details:
@@ -120,11 +120,13 @@ class RouterUplinkSession(BridgeSession):
 
         extra = {
             'onready': Deferred(),
+            'local': self,
         }
         runner = ApplicationRunner(url=uplink_transport['url'], realm=details.realm, extra=extra)
         yield runner.run(RouterUplinkRemoteSession, start_reactor=False)
 
         edge_session = yield extra['onready']
+
         yield self._setup_event_forwarding(edge_session)
 
         if self.config.extra and 'onready' in self.config.extra:
@@ -159,8 +161,11 @@ class RouterUplinkRemoteSession(BridgeSession):
         else:
             raise Exception("don't know how to compute challenge for authmethod {}".format(challenge.method))
 
+    @inlineCallbacks
     def onJoin(self, details):
         self.log.info("Uplink joined realm '{realm}' on uplink router", realm=details.realm)
+
+        yield self._setup_event_forwarding(self.config.extra['local'])
 
         if self.config.extra and 'onready' in self.config.extra:
             self.config.extra['onready'].callback(self)
