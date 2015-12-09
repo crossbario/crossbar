@@ -338,17 +338,15 @@ class FileUploadResource(Resource):
                 finalFileName = self._uploadRoot.child(fileId)
                 _finalFileName = self._tempDirRoot.child('#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
 
-                with open(_finalFileName.path, 'wb') as finalFile:
-                    finalFile.write(fileContent)
+                with open(_finalFileName.path, 'wb') as _finalFile:
+                    _finalFile.write(fileContent)
 
                 self._uploads[fileId]['chunk_list'].append(chunkNumber)
-
-                _finalFileName.moveTo(finalFileName)
 
                 if self._file_permissions:
                     perm = int(self._file_permissions, 8)
                     try:
-                        finalFileName.chmod(perm)
+                        _finalFileName.chmod(perm)
                     except Exception as e:
                         # finalFileName.remove()
                         msg = "Could not change file permissions of uploaded file"
@@ -358,6 +356,8 @@ class FileUploadResource(Resource):
                         return msg.encode('utf8')
                     else:
                         self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
+
+                _finalFileName.moveTo(finalFileName)
 
                 # publish file upload progress to file_progress_URI
                 fileupload_publish({
@@ -379,6 +379,7 @@ class FileUploadResource(Resource):
                 # fileTempDir.remove()  # any potential conflict should have been resolved above. This should not be necessary!
                 if not os.path.isdir(fileTempDir.path):
                     fileTempDir.makedirs()
+
                 with open(_chunkName.path, 'wb') as chunk:
                     chunk.write(fileContent)
                 _chunkName.moveTo(chunkName)  # atomic file system operation
@@ -433,7 +434,7 @@ class FileUploadResource(Resource):
                 # Merge all files into one file and remove the temp files
                 # TODO: How to avoid the extra file IO ?
                 finalFileName = self._uploadRoot.child(fileId)
-                _finalFileName = self._uploadRoot.child('#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
+                _finalFileName = fileTempDir.child('#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
                 with open(_finalFileName.path, 'wb') as _finalFile:
                     for cn in range(1, totalChunks + 1):
                         with open(fileTempDir.child('chunk_' + str(cn)).path, 'rb') as ff:
