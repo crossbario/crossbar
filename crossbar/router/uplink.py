@@ -33,12 +33,12 @@ from __future__ import absolute_import
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from autobahn.wamp import auth
-from autobahn.wamp.types import SubscribeOptions
+from autobahn.wamp.types import SubscribeOptions, PublishOptions
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 from crossbar._logging import make_logger
 
-__all__ = ('RouterUplinkSession',)
+__all__ = ('LocalSession',)
 
 
 class BridgeSession(ApplicationSession):
@@ -63,9 +63,10 @@ class BridgeSession(ApplicationSession):
             uri = sub_details['uri']
 
             def on_event(*args, **kwargs):
-                self.log.info("forwarding event from {} to {}".format(other, self))
-                kwargs.pop('details')
-                self.publish(uri, *args, **kwargs)
+                details = kwargs.pop('details')
+                self.publish(uri, *args, options=PublishOptions(disclose_me=True), **kwargs)
+                # self.log.info("forwarded event from {} to {} - args={}, details={}\n".format(other, self, args, details))
+                self.log.info("forwarded from {} event to {} ({}): args={}, details={}\n".format(other, self, self._DIR, args, details))
 
             sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details_arg="details"))
             self._subs[sub_id]['sub'] = sub
@@ -105,25 +106,27 @@ class BridgeSession(ApplicationSession):
         self.log.info("event forwarding setup done.")
 
 
-class RouterUplinkSession(BridgeSession):
+class LocalSession(BridgeSession):
     """
-    This session is the local leg of the router uplink and runs
-    and embedded in the local router.
+    This session is the local leg of the router uplink and runs embedded inside the local router.
     """
 
     log = make_logger()
 
+    _DIR = "=>"
+
     @inlineCallbacks
     def onJoin(self, details):
         uplink_config = self.config.extra['uplink']
+        uplink_realm = details.realm
         uplink_transport = uplink_config['transport']
 
         extra = {
             'onready': Deferred(),
             'local': self,
         }
-        runner = ApplicationRunner(url=uplink_transport['url'], realm=details.realm, extra=extra)
-        yield runner.run(RouterUplinkRemoteSession, start_reactor=False)
+        runner = ApplicationRunner(url=uplink_transport['url'], realm=uplink_realm, extra=extra)
+        yield runner.run(RemoteSession, start_reactor=False)
 
         edge_session = yield extra['onready']
 
@@ -131,15 +134,16 @@ class RouterUplinkSession(BridgeSession):
 
         if self.config.extra and 'onready' in self.config.extra:
             self.config.extra['onready'].callback(self)
-            pass
 
 
-class RouterUplinkRemoteSession(BridgeSession):
+class RemoteSession(BridgeSession):
     """
     This session is the remote leg of the router uplink.
     """
 
     log = make_logger()
+
+    _DIR = "<="
 
     def onConnect(self):
         self.log.info("Uplink connected")

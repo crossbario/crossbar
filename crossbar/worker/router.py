@@ -49,9 +49,9 @@ from autobahn.wamp.exception import ApplicationError
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
+from crossbar.router import uplink
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
-from crossbar.router.uplink import RouterUplinkSession
 from crossbar.router.router import RouterFactory
 
 from crossbar.router.protocol import WampWebSocketServerFactory, \
@@ -483,7 +483,7 @@ class RouterWorkerSession(NativeWorkerSession):
             'onready': Deferred(),
             'uplink': uplink_config
         }
-        uplink_session = RouterUplinkSession(ComponentConfig(realm, extra))
+        uplink_session = uplink.LocalSession(ComponentConfig(realm, extra))
         self._router_session_factory.add(uplink_session, authrole=u'trusted')
 
         # wait until the uplink is ready
