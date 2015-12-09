@@ -225,13 +225,17 @@ class NativeProcessSession(ApplicationSession):
             'start_manhole',
             'stop_manhole',
             'get_manhole',
+
             'start_connection',
             'stop_connection',
             'get_connections',
+
             'trigger_gc',
+
             'utcnow',
             'started',
             'uptime',
+
             'get_process_info',
             'get_process_stats',
             'set_process_stats_monitoring'
@@ -723,7 +727,7 @@ class NativeProcessSession(ApplicationSession):
 
     def uptime(self, details=None):
         """
-        Uptime of this process.
+        Return uptime of this process.
 
         **Usage:**
 

@@ -112,10 +112,6 @@ class ContainerRunningTests(CLITestBase):
                  "--logformat=syslogd"],
                 reactor=reactor)
 
-        if DEBUG:
-            print(self.stdout.getvalue(), file=sys.__stdout__)
-            print(self.stderr.getvalue(), file=sys.__stdout__)
-
         for i in stdout_expected:
             self.assertIn(i, self.stdout.getvalue())
 
@@ -804,7 +800,8 @@ class MySession(ApplicationSession):
         if PY3:
             expected_stderr.append("division by zero")
         else:
-            expected_stderr.append("integer division or modulo by zero")
+            expected_stderr.append("integer division")
+            expected_stderr.append("by zero")
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
@@ -902,7 +899,8 @@ class MySession(ApplicationSession):
         if PY3:
             expected_stderr.append("division by zero")
         else:
-            expected_stderr.append("integer division or modulo by zero")
+            expected_stderr.append("integer division")
+            expected_stderr.append("by zero")
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)

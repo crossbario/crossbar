@@ -147,16 +147,21 @@ class NodeControllerSession(NativeProcessSession):
         # register node controller procedures: 'crossbar.node.<ID>.<PROCEDURE>'
         #
         procs = [
-            'shutdown',
             'get_info',
+            'shutdown',
+
             'get_workers',
             'get_worker_log',
+
             'start_router',
             'stop_router',
+
             'start_container',
             'stop_container',
+
             'start_guest',
             'stop_guest',
+
             'start_websocket_testee',
             'stop_websocket_testee',
         ]
@@ -177,6 +182,21 @@ class NodeControllerSession(NativeProcessSession):
 
         self.log.debug("Node controller ready")
 
+    def get_info(self, details=None):
+        """
+        Return basic information about this node.
+
+        :returns: Information on the Crossbar.io node.
+        :rtype: dict
+        """
+        return {
+            'started': self._started,
+            'pid': self._pid,
+            'workers': len(self._workers),
+            'directory': self.cbdir,
+            'wamplets': self._get_wamplets()
+        }
+
     @inlineCallbacks
     def shutdown(self, restart=False, details=None):
         """
@@ -194,18 +214,6 @@ class NodeControllerSession(NativeProcessSession):
 
         if self._node._reactor.running:
             self._node._reactor.stop()
-
-    def get_info(self, details=None):
-        """
-        Return node information.
-        """
-        return {
-            'started': self._started,
-            'pid': self._pid,
-            'workers': len(self._workers),
-            'directory': self.cbdir,
-            'wamplets': self._get_wamplets()
-        }
 
     def _get_wamplets(self):
         """
@@ -240,9 +248,10 @@ class NodeControllerSession(NativeProcessSession):
 
     def get_workers(self, details=None):
         """
-        Returns the list of processes currently running on this node.
+        Returns the list of workers currently running on this node.
 
-        :returns: list -- List of worker processes.
+        :returns: List of worker processes.
+        :rtype: list of dicts
         """
         now = datetime.utcnow()
         res = []
@@ -261,13 +270,14 @@ class NodeControllerSession(NativeProcessSession):
 
     def get_worker_log(self, id, limit=None, details=None):
         """
-        Get buffered worker log.
+        Get buffered log for a worker.
 
         :param limit: Optionally, limit the amount of log entries returned
            to the last N entries.
         :type limit: None or int
 
-        :returns: list -- Buffered log.
+        :return: Buffered log for worker.
+        :rtype: list
         """
         if id not in self._workers:
             emsg = "No worker with ID '{}'".format(id)
