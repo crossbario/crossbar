@@ -266,12 +266,12 @@ class FileUploadResource(Resource):
                            file_name=fileId, total_size=totalSize, total_chunks=totalChunks, chunk_size=chunkSize, chunk_number=chunkNumber)
         else:
             chunk_is_first = False
-            self.log.debug('Will try to resume upload of file: file_name={file_name}, total_size={total_size}, total_chunks={total_chunks}, chunk_size={chunk_size}, chunk_number={chunk_number}',
-                           file_name=fileId, total_size=totalSize, total_chunks=totalChunks, chunk_size=chunkSize, chunk_number=chunkNumber)
             # If the chunks are read at startup of crossbar any client may claim and resume the pending upload !
             #
             upl = self._uploads[fileId]
             if upl['origin'] == 'startup':
+                self.log.debug('Will try to resume upload of file: file_name={file_name}, total_size={total_size}, total_chunks={total_chunks}, chunk_size={chunk_size}, chunk_number={chunk_number}',
+                               file_name=fileId, total_size=totalSize, total_chunks=totalChunks, chunk_size=chunkSize, chunk_number=chunkNumber)
                 upl['origin'] = origin
             else:
                 # check if another session is uploading this file already
@@ -321,7 +321,7 @@ class FileUploadResource(Resource):
             # every chunk has to check if it is the last chunk written, except in a single chunk scenario
             if totalChunks > 1 and len(self._uploads[fileId]['chunk_list']) == totalChunks:
                 # last chunk
-                self.log.debug('Finished file upload after chunk {chunk_number}', chunk_number=chunkNumber)
+                self.log.debug('Finished file upload after chunk {chunk_number} with chunk_list {chunk_list}', chunk_number=chunkNumber, chunk_list=self._uploads[fileId]['chunk_list'])
 
                 # Merge all files into one file and remove the temp files
                 # TODO: How to avoid the extra file IO ?
@@ -348,6 +348,11 @@ class FileUploadResource(Resource):
                     else:
                         self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
 
+                # remove the file temp folder
+                fileTempDir.remove()
+
+                self._uploads.pop(fileId, None)
+
                 # publish file upload progress to file_progress_URI
                 fileupload_publish({
                                    "id": fileId,
@@ -360,11 +365,6 @@ class FileUploadResource(Resource):
                                    "finish_extra": finish_extra,
                                    "chunk_extra": chunk_extra
                                    })
-
-                # remove the file temp folder
-                fileTempDir.remove()
-
-                self._uploads.pop(fileId, None)
 
         if chunk_is_first:
             # first chunk of file
@@ -407,6 +407,8 @@ class FileUploadResource(Resource):
                 _finalFileName.moveTo(finalFileName)
                 self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
+                self._uploads.pop(fileId, None)
+
                 # publish file upload progress to file_progress_URI
                 fileupload_publish({
                                    "id": fileId,
@@ -419,8 +421,6 @@ class FileUploadResource(Resource):
                                    "finish_extra": finish_extra,
                                    "chunk_extra": chunk_extra
                                    })
-
-                self._uploads.pop(fileId, None)
 
             else:
                 # first of more chunks
