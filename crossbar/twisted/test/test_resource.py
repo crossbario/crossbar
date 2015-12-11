@@ -50,6 +50,7 @@ class FileUploadTests(TestCase):
         """
         Upload a basic file using the FileUploadResource, in just a single chunk.
         """
+        assert False, self.mktemp()
         upload_dir = FilePath(self.mktemp())
         upload_dir.makedirs()
         temp_dir = FilePath(self.mktemp())
