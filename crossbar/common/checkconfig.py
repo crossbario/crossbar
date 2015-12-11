@@ -1777,12 +1777,16 @@ def check_router_realm(realm, silence=False):
         check_router_realm_role(role, silence=silence)
 
 def check_router_realm_role(role, silence=False):
+    """
+    Checks a single role from a router realm 'roles' list
+    """
+    if 'authorizer' in role and 'permissions' in role:
+        raise InvalidConfigException(
+            "Can't specify both 'authorizer' and 'permissions' at once"
+        )
+
     # dynamic authorization
     if 'authorizer' in role:
-        if 'permissions' in role:
-            raise InvalidConfigException(
-                "Can't specify both 'authorizer' and 'permissions' at once"
-            )
         auth_uri = role['authorizer']
         check_or_raise_uri(
             auth_uri,
@@ -1791,10 +1795,6 @@ def check_router_realm_role(role, silence=False):
 
     # 'static' permissions
     if 'permissions' in role:
-        if 'authorizer' in role:
-            raise InvalidConfigException(
-                "Can't specify both 'authorizer' and 'permissions' at once"
-            )
         permissions = role['permissions']
         if not isinstance(permissions, list):
             raise InvalidConfigException(

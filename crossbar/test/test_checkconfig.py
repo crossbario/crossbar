@@ -171,3 +171,158 @@ class CheckContainerTests(TestCase):
 
         self.assertIn("invalid component configuration - missing mandatory attribute 'transport'",
                       str(e.exception))
+
+
+class CheckRealmTests(TestCase):
+    """
+    Tests for check_router_realm, check_router_realm_role
+    """
+
+    def test_dynamic_authorizer(self):
+        config_realm = {
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": u"dynamic",
+                    "authorizer": u"com.example.foo"
+                }
+            ]
+        }
+
+        checkconfig.check_router_realm(config_realm)
+
+    def test_static_permissions(self):
+        config_realm = {
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": [
+                        {
+                            "uri": u"*",
+                            "publish": True,
+                            "subscribe": True,
+                            "call": True,
+                            "register": True
+                        }
+                    ]
+                }
+            ]
+        }
+
+        checkconfig.check_router_realm(config_realm)
+
+    def test_static_permissions_invalid_uri(self):
+        config_realm = {
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": [
+                        {
+                            "uri": u"*foo",
+                            "publish": True,
+                            "subscribe": True,
+                            "call": True,
+                            "register": True
+                        }
+                    ]
+                }
+            ]
+        }
+
+        self.assertRaises(
+            checkconfig.InvalidConfigException,
+            checkconfig.check_router_realm, config_realm,
+        )
+
+    def test_static_permissions_and_authorizer(self):
+        config_realm = {
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "authorizer": "com.example.foo",
+                    "permissions": [],
+                }
+            ]
+        }
+
+        self.assertRaises(
+            checkconfig.InvalidConfigException,
+            checkconfig.check_router_realm, config_realm,
+        )
+
+    def test_static_permissions_isnt_list(self):
+        config_realm = {
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": {},
+                }
+            ]
+        }
+
+        self.assertRaises(
+            checkconfig.InvalidConfigException,
+            checkconfig.check_router_realm, config_realm,
+        )
+
+    def test_static_permissions_not_dict(self):
+        config_realm = {
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": [
+                        "not a dict"
+                    ]
+                }
+            ]
+        }
+
+        self.assertRaises(
+            checkconfig.InvalidConfigException,
+            checkconfig.check_router_realm, config_realm,
+        )
+
+    def test_static_permissions_lacks_uri(self):
+        config_realm = {
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": [
+                        {
+                            "call": True,
+                        }
+                    ]
+                }
+            ]
+        }
+
+        self.assertRaises(
+            checkconfig.InvalidConfigException,
+            checkconfig.check_router_realm, config_realm,
+        )
+
+    def test_static_permissions_uri_not_a_string(self):
+        config_realm = {
+            "name": "realm1",
+            "roles": [
+                {
+                    "name": "backend",
+                    "permissions": [
+                        {
+                            "uri": {}
+                        }
+                    ]
+                }
+            ]
+        }
+
+        self.assertRaises(
+            checkconfig.InvalidConfigException,
+            checkconfig.check_router_realm, config_realm,
+        )
