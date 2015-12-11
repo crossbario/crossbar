@@ -42,5 +42,7 @@ class TestCase(_TestCase):
     """
     def setUp(self):
         cb_original_dir = getcwd()
+        print(cb_original_dir)
+        self.addCleanup(lambda: print(getcwd()))
         self.addCleanup(lambda: chdir(cb_original_dir))
         return super(TestCase, self).setUp()
