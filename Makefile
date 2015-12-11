@@ -25,6 +25,9 @@ clean:
 install:
 	pip install --upgrade -e .[all]
 
+install3:
+	pip3 install --upgrade -e .[all]
+
 publish: clean
 	python setup.py register
 	python setup.py sdist upload

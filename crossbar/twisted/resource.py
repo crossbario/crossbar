@@ -288,9 +288,11 @@ class FileUploadResource(Resource):
                     if chunkNumber in upl['chunk_list']:
                         msg = "Chunk beeing uploaded is already uploading."
                         self.log.debug(msg)
+                        # Don't throw a conflict. This may be a wanted behaviour.
+                        # Even if an upload would be resumable, you don't have to resume.
                         # 409 Conflict
-                        request.setResponseCode(409, msg.encode('utf8'))
-                        return msg.encode('utf8')
+                        # request.setResponseCode(409, msg.encode('utf8'))
+                        # return msg.encode('utf8')
 
         # check file size
         #
@@ -319,9 +321,9 @@ class FileUploadResource(Resource):
 
         def mergeFile():
             # every chunk has to check if it is the last chunk written, except in a single chunk scenario
-            if totalChunks > 1 and len(self._uploads[fileId]['chunk_list']) == totalChunks:
+            if totalChunks > 1 and len(self._uploads[fileId]['chunk_list']) >= totalChunks:
                 # last chunk
-                self.log.debug('Finished file upload after chunk {chunk_number} with chunk_list {chunk_list}', chunk_number=chunkNumber, chunk_list=self._uploads[fileId]['chunk_list'])
+                self.log.debug('Finished file upload after chunk {chunk_number} with chunk_list {chunk_list}', chunk_number=chunkNumber, chunk_list=self._uploads)
 
                 # Merge all files into one file and remove the temp files
                 # TODO: How to avoid the extra file IO ?
@@ -405,7 +407,8 @@ class FileUploadResource(Resource):
                         self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
 
                 _finalFileName.moveTo(finalFileName)
-                self._uploads[fileId]['chunk_list'].append(chunkNumber)
+                if chunkNumber not in self._uploads[fileId]['chunk_list']:
+                    self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
                 self._uploads.pop(fileId, None)
 
@@ -431,7 +434,7 @@ class FileUploadResource(Resource):
                 with open(_chunkName.path, 'wb') as chunk:
                     chunk.write(fileContent)
                 _chunkName.moveTo(chunkName)  # atomic file system operation
-
+                self.log.debug('chunk_' + str(chunkNumber) + ' written and moved to ' + chunkName.path)
                 # publish file upload progress
                 #
                 fileupload_publish({
@@ -444,8 +447,8 @@ class FileUploadResource(Resource):
                                    "progress": round(float(chunkSize) / float(totalSize), 3),
                                    "chunk_extra": chunk_extra
                                    })
-
-                self._uploads[fileId]['chunk_list'].append(chunkNumber)
+                if chunkNumber not in self._uploads[fileId]['chunk_list']:
+                    self._uploads[fileId]['chunk_list'].append(chunkNumber)
                 mergeFile()
             # clean the temp dir once per file upload
             self._remove_stale_uploads()
@@ -458,8 +461,10 @@ class FileUploadResource(Resource):
             with open(_chunkName.path, 'wb') as chunk:
                 chunk.write(fileContent)
             _chunkName.moveTo(chunkName)
+            self.log.debug('chunk_' + str(chunkNumber) + ' written and moved to ' + chunkName.path)
 
-            self._uploads[fileId]['chunk_list'].append(chunkNumber)
+            if chunkNumber not in self._uploads[fileId]['chunk_list']:
+                self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
             received = sum(fileTempDir.child(f).getsize() for f in fileTempDir.listdir())
 
@@ -486,7 +491,8 @@ class FileUploadResource(Resource):
         If you don't clean up regularly an attacker could fill up the OS file system
         """
         for fileTempDir in self._tempDirRoot.children():
-            if fileTempDir.isdir() and fileTempDir.basename() not in self._uploads:
+            self.log.debug('REMOVE STALE UPLOADS ' + str(fileTempDir.basename()))
+            if fileTempDir.isdir() and (fileTempDir.basename()).decode('utf8') not in self._uploads:
                 fileTempDir.remove()
 
     def render_GET(self, request):
