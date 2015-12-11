@@ -32,9 +32,9 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
+from crossbar.test import TestCase
 from crossbar._compat import native_string
 from crossbar.adapter.rest import CallerResource
 from crossbar.adapter.rest.test import renderResource

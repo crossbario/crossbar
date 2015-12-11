@@ -62,6 +62,7 @@ class CLITestBase(TestCase):
         self.patch(_logging, "_stdout", self.stdout)
         self.patch(_logging, "_loggers", WeakKeyDictionary())
         self.patch(_logging, "_loglevel", "info")
+        return super(CLITestBase, self).setUp()
 
     def tearDown(self):
         sys.stdout = sys.__stdout__

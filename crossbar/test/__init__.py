@@ -34,6 +34,7 @@ from os import getcwd, chdir
 
 from twisted.trial.unittest import TestCase as _TestCase
 
+
 class TestCase(_TestCase):
     """
     A Trial TestCase that makes sure that it is in the same directory when it
@@ -42,7 +43,5 @@ class TestCase(_TestCase):
     """
     def setUp(self):
         cb_original_dir = getcwd()
-        print(cb_original_dir)
-        self.addCleanup(lambda: print(getcwd()))
         self.addCleanup(lambda: chdir(cb_original_dir))
         return super(TestCase, self).setUp()

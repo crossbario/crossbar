@@ -34,14 +34,13 @@ import json
 
 from six import StringIO as NativeStringIO, PY3
 
-from twisted.trial.unittest import TestCase
-
 from io import StringIO
 
 from mock import Mock
 
 from twisted.logger import formatTime
 
+from crossbar.test import TestCase
 from crossbar._logging import make_logger, CrossbarLogger, LogLevel
 from crossbar import _logging
 
@@ -67,6 +66,7 @@ class LoggerModuleTests(TestCase):
 
     def setUp(self):
         self.existing_level = _logging._loglevel
+        return super(LoggerModuleTests, self).setUp()
 
     def tearDown(self):
         _logging.set_global_log_level(self.existing_level)

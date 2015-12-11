@@ -48,9 +48,9 @@ from crossbar.twisted.endpoint import create_listening_endpoint_from_config
 class ListeningEndpointTests(TestCase):
 
     def setUp(self):
-
         self.cbdir = self.mktemp()
         FilePath(self.cbdir).makedirs()
+        return super(ListeningEndpointTests, self).setUp()
 
     def test_unix(self):
         """
