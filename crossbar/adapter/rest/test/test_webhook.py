@@ -30,9 +30,9 @@
 
 from __future__ import absolute_import
 
-from twisted.trial.unittest import TestCase
 from twisted.internet.defer import inlineCallbacks
 
+from crossbar.test import TestCase
 from crossbar._compat import native_string
 from crossbar.adapter.rest import WebhookResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource

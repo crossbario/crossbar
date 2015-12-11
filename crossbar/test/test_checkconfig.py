@@ -28,8 +28,9 @@
 #
 #####################################################################################
 
-from twisted.trial.unittest import TestCase
+from __future__ import absolute_import, division, print_function
 
+from crossbar.test import TestCase
 from crossbar.common import checkconfig
 
 import json

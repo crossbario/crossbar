@@ -33,8 +33,8 @@ from __future__ import absolute_import, division, print_function
 from twisted.internet import reactor, defer
 from twisted.internet.selectreactor import SelectReactor
 from twisted.python.filepath import FilePath
-from twisted.trial.unittest import TestCase
 
+from crossbar.test import TestCase
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 from crossbar.worker import router
 from crossbar._logging import make_logger
