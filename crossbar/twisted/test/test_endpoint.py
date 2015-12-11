@@ -38,10 +38,10 @@ from twisted.internet.endpoints import UNIXServerEndpoint
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.protocol import Factory
 from twisted.protocols.wire import Echo
-from twisted.trial.unittest import TestCase
 from twisted.python.filepath import FilePath
 from twisted.python.runtime import platform
 
+from crossbar.test import TestCase
 from crossbar.twisted.endpoint import create_listening_endpoint_from_config
 
 

@@ -30,11 +30,13 @@
 
 from __future__ import absolute_import, division, print_function
 
+import os
+
 from crossbar.adapter.rest.test import renderResource
 from crossbar.twisted.resource import FileUploadResource
+from crossbar.test import TestCase
 
 from twisted.python.filepath import FilePath
-from twisted.trial.unittest import TestCase
 
 from mock import Mock
 
@@ -50,7 +52,6 @@ class FileUploadTests(TestCase):
         """
         Upload a basic file using the FileUploadResource, in just a single chunk.
         """
-        assert False, self.mktemp()
         upload_dir = FilePath(self.mktemp())
         upload_dir.makedirs()
         temp_dir = FilePath(self.mktemp())

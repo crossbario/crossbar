@@ -32,9 +32,9 @@ from __future__ import absolute_import, division, print_function
 
 from six import StringIO as NativeStringIO
 
-from twisted.trial import unittest
 from twisted.internet.selectreactor import SelectReactor
 
+from crossbar.test import TestCase
 from crossbar.controller import cli
 from crossbar import _logging
 
@@ -46,7 +46,7 @@ import platform
 import twisted
 
 
-class CLITestBase(unittest.TestCase):
+class CLITestBase(TestCase):
 
     def setUp(self):
 
