@@ -2384,7 +2384,7 @@ def convert_config_file(configfile):
     configbase, configext = os.path.splitext(configfile)
     configfile = os.path.abspath(configfile)
 
-    with open(configfile, 'rb') as infile:
+    with open(configfile, 'r') as infile:
         if configext == '.yaml':
             log.info("converting YAML configuration {} to JSON ...".format(configfile))
             try:
@@ -2393,7 +2393,7 @@ def convert_config_file(configfile):
                 raise InvalidConfigException("configuration file does not seem to be proper YAML ('{}'')".format(e))
             else:
                 newconfig = os.path.abspath(configbase + '.json')
-                with open(newconfig, 'wb') as outfile:
+                with open(newconfig, 'w') as outfile:
                     json.dump(config, outfile, ensure_ascii=False, separators=(', ', ': '), indent=3, sort_keys=False)
                     log.info("ok, JSON formatted configuration written to {}".format(newconfig))
         else:
@@ -2404,7 +2404,7 @@ def convert_config_file(configfile):
                 raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}'')".format(e))
             else:
                 newconfig = os.path.abspath(configbase + '.yaml')
-                with open(newconfig, 'wb') as outfile:
+                with open(newconfig, 'w') as outfile:
                     yaml.safe_dump(config, outfile)
                     log.info("ok, YAML formatted configuration written to {}".format(newconfig))
 
