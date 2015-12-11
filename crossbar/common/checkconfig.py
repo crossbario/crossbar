@@ -1776,6 +1776,7 @@ def check_router_realm(realm, silence=False):
     for role in realm['roles']:
         check_router_realm_role(role, silence=silence)
 
+
 def check_router_realm_role(role, silence=False):
     """
     Checks a single role from a router realm 'roles' list
@@ -1808,7 +1809,7 @@ def check_router_realm_role(role, silence=False):
                     "each role in 'permissions' must be a dict ({} encountered)".format(type(role))
                 )
             for k in ['uri']:
-                if not k in role:
+                if k not in role:
                     raise InvalidConfigException(
                         "each role must have '{}' key".format(k)
                     )
