@@ -588,6 +588,8 @@ def run_command_check(options, **kwargs):
 
     print("Checking local configuration file {}".format(configfile))
 
+    old_dir = os.path.abspath(os.path.curdir)
+    os.chdir(options.cbdir)
     try:
         check_config_file(configfile)
     except Exception as e:
@@ -596,6 +598,8 @@ def run_command_check(options, **kwargs):
     else:
         print("Ok, configuration file looks good.")
         sys.exit(0)
+    finally:
+        os.chdir(old_dir)
 
 
 def run_command_convert(options, **kwargs):
