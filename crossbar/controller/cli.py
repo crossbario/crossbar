@@ -758,6 +758,8 @@ def run(prog=None, args=None, reactor=None):
     parser_check = subparsers.add_parser('check',
                                          help='Check a Crossbar.io node`s local configuration file.')
 
+    parser_check.add_argument('--loglevel',
+                              **loglevel_args)
     parser_check.set_defaults(func=run_command_check)
 
     parser_check.add_argument('--cbdir',
