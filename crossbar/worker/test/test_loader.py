@@ -30,10 +30,9 @@
 
 from __future__ import absolute_import, division, print_function
 
-from twisted.trial.unittest import TestCase
-
 from autobahn.wamp.exception import ApplicationError
 
+from crossbar.test import TestCase
 from crossbar.worker import _appsession_loader
 
 

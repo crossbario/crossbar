@@ -588,6 +588,8 @@ def run_command_check(options, **kwargs):
 
     print("Checking local configuration file {}".format(configfile))
 
+    old_dir = os.path.abspath(os.path.curdir)
+    os.chdir(options.cbdir)
     try:
         check_config_file(configfile)
     except Exception as e:
@@ -596,6 +598,8 @@ def run_command_check(options, **kwargs):
     else:
         print("Ok, configuration file looks good.")
         sys.exit(0)
+    finally:
+        os.chdir(old_dir)
 
 
 def run_command_convert(options, **kwargs):
@@ -758,6 +762,8 @@ def run(prog=None, args=None, reactor=None):
     parser_check = subparsers.add_parser('check',
                                          help='Check a Crossbar.io node`s local configuration file.')
 
+    parser_check.add_argument('--loglevel',
+                              **loglevel_args)
     parser_check.set_defaults(func=run_command_check)
 
     parser_check.add_argument('--cbdir',

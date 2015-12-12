@@ -112,11 +112,15 @@ class ContainerRunningTests(CLITestBase):
                  "--logformat=syslogd"],
                 reactor=reactor)
 
+        out = self.stdout.getvalue()
+        err = self.stderr.getvalue()
         for i in stdout_expected:
-            self.assertIn(i, self.stdout.getvalue())
+            if i not in out:
+                self.fail(u"Error: '{}' not in:\n{}".format(i, out))
 
         for i in stderr_expected:
-            self.assertIn(i, self.stderr.getvalue())
+            if i not in err:
+                self.fail(u"Error: '{}' not in:\n{}".format(i, err))
 
     def test_start_run(self):
         """
@@ -702,7 +706,10 @@ class MySession(ApplicationSession):
         def _check(_1, _2):
             pass
         expected_stdout = []
-        expected_stderr = ["'module' object has no attribute 'MySession2'"]
+        if sys.version_info >= (3, 5):
+            expected_stderr = ["module 'myapp' has no attribute 'MySession2'"]
+        else:
+            expected_stderr = ["'module' object has no attribute 'MySession2'"]
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
