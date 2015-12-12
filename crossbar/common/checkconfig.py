@@ -41,7 +41,7 @@ from pprint import pformat
 from autobahn.websocket.protocol import parseWsUrl
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
-# from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY
+from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
 
 from crossbar._logging import make_logger
 
@@ -170,7 +170,6 @@ def check_dict_args(spec, config, msg):
 def check_or_raise_uri(value, message):
     if not isinstance(value, six.text_type):
         raise InvalidConfigException("{}: invalid type {} for URI".format(message, type(value)))
-    # if not _URI_PAT_LOOSE_NON_EMPTY.match(value):
     if not _URI_PAT_STRICT_NON_EMPTY.match(value):
         raise InvalidConfigException("{}: invalid value '{}' for URI".format(message, value))
     return value
@@ -1769,44 +1768,69 @@ def check_container_components(components, silence=False):
 
 
 def check_router_realm(realm, silence=False):
-    # FIXME
-    return
+    """
+    Checks the configuration for a router realm entry, which can be *either* a dynamic authorizer or static permissions.
+    """
+    # router/router.py and router/role.py
 
-    # permissions
-    #
-    if 'permissions' in realm:
-        permissions = realm['permissions']
-        if not isinstance(permissions, dict):
-            raise InvalidConfigException("'permissions' in 'realm' must be a dictionary ({} encountered)\n\n{}".format(type(permissions), realm))
+    for role in realm['roles']:
+        check_router_realm_role(role, silence=silence)
 
-        for role in sorted(permissions):
-            check_or_raise_uri(role, "invalid role URI '{}' in realm permissions".format(role))
+
+def check_router_realm_role(role, silence=False):
+    """
+    Checks a single role from a router realm 'roles' list
+    """
+    if 'authorizer' in role and 'permissions' in role:
+        raise InvalidConfigException(
+            "Can't specify both 'authorizer' and 'permissions' at once"
+        )
+
+    # dynamic authorization
+    if 'authorizer' in role:
+        auth_uri = role['authorizer']
+        check_or_raise_uri(
+            auth_uri,
+            "invalid dynamic authorizer URI '{}' in role permissions".format(auth_uri),
+        )
+
+    # 'static' permissions
+    if 'permissions' in role:
+        permissions = role['permissions']
+        if not isinstance(permissions, list):
+            raise InvalidConfigException(
+                "'permissions' in 'role' must be a list "
+                "({} encountered)".format(type(permissions))
+            )
+
+        for role in permissions:
+            if not isinstance(role, dict):
+                raise InvalidConfigException(
+                    "each role in 'permissions' must be a dict ({} encountered)".format(type(role))
+                )
+            for k in ['uri']:
+                if k not in role:
+                    raise InvalidConfigException(
+                        "each role must have '{}' key".format(k)
+                    )
+
+            role_uri = role['uri']
+            if not isinstance(role_uri, six.text_type):
+                raise InvalidConfigException("'uri' must be a string")
+
+            if role_uri.endswith('*'):
+                role_uri = role_uri[:-1]
+            if not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
+                raise InvalidConfigException(
+                    "invalid role URI '{}' in role permissions".format(role['uri']),
+                )
             check_dict_args({
-                'create': (False, [bool]),
-                'join': (False, [bool]),
-                'access': (False, [dict]),
-            }, permissions[role], "invalid grant in realm permissions")
-
-            if 'access' in permissions[role]:
-                access = permissions[role]['access']
-                if not isinstance(access, dict):
-                    raise InvalidConfigException("'access' attribute in realm-role permissions must be a dictionary ({} encountered)".format(type(access)))
-
-                for uri in sorted(access.keys()):
-                    if len(uri) > 0 and uri[-1] == '*':
-                        check_uri = uri[:-1]
-                    else:
-                        check_uri = uri
-                    check_or_raise_uri(check_uri, "invalid role URI '{}' in realm-role access grants".format(uri))
-
-                    grants = access[uri]
-
-                    check_dict_args({
-                        'publish': (False, [bool]),
-                        'subscribe': (False, [bool]),
-                        'call': (False, [bool]),
-                        'register': (False, [bool]),
-                    }, grants, "invalid grant in realm permissions")
+                'uri': (True, [six.text_type]),
+                'call': (False, [bool]),
+                'register': (False, [bool]),
+                'publish': (False, [bool]),
+                'subscribe': (False, [bool]),
+            }, role, "invalid grant in role permissions")
 
 
 def check_router_components(components, silence=False):
