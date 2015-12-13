@@ -99,7 +99,7 @@ class CallerTestCase(TestCase):
             body=b'{"procedure": "com.test.add2", "args": [1,2]}')
 
         self.assertEqual(request.code, 200)
-        self.assertEqual(json.loads(native_string(request.getWrittenData())),
+        self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"args": [3]})
 
     @inlineCallbacks
@@ -118,7 +118,7 @@ class CallerTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertEqual(
             b"invalid request event - missing 'procedure' in HTTP/POST body\n",
-            request.getWrittenData())
+            request.get_written_data())
 
     @inlineCallbacks
     def test_no_body(self):
@@ -135,4 +135,4 @@ class CallerTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn(
             b"invalid request event - HTTP/POST body must be valid JSON: ",
-            request.getWrittenData())
+            request.get_written_data())

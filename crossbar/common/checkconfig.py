@@ -2494,7 +2494,7 @@ def convert_config_file(configfile):
                 with open(newconfig, 'w') as outfile:
                     json.dump(config, outfile, ensure_ascii=False, separators=(', ', ': '), indent=3, sort_keys=False)
                     log.info("ok, JSON formatted configuration written to {}".format(newconfig))
-        else:
+        elif configext == ".json":
             log.info("converting JSON formatted configuration {} to YAML format ...".format(configfile))
             try:
                 config = json.load(infile)
@@ -2505,6 +2505,9 @@ def convert_config_file(configfile):
                 with open(newconfig, 'w') as outfile:
                     yaml.safe_dump(config, outfile)
                     log.info("ok, YAML formatted configuration written to {}".format(newconfig))
+
+        else:
+            raise InvalidConfigException("configuration file needs to be '.json' or '.yaml'.")
 
 
 def fill_config_from_env(config, keys=None, debug=False):

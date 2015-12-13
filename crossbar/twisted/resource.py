@@ -492,7 +492,7 @@ class FileUploadResource(Resource):
         """
         for fileTempDir in self._tempDirRoot.children():
             self.log.debug('REMOVE STALE UPLOADS ' + str(fileTempDir.basename()))
-            if fileTempDir.isdir() and (fileTempDir.basename()).decode('utf8') not in self._uploads:
+            if fileTempDir.isdir() and (fileTempDir.basename()) not in self._uploads:
                 fileTempDir.remove()
 
     def render_GET(self, request):

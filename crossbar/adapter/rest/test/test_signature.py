@@ -66,7 +66,7 @@ class SignatureTestCase(TestCase):
             sign=True, signKey="bazapp", signSecret="foobar")
 
         self.assertEqual(request.code, 202)
-        self.assertEqual(json.loads(native_string(request.getWrittenData())),
+        self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"id": session._published_messages[0]["id"]})
 
     @inlineCallbacks
@@ -87,7 +87,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 401)
         self.assertIn(b"invalid request signature",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_unknown_key(self):
@@ -105,7 +105,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"unknown key 'spamapp' in signed request",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_no_timestamp(self):
@@ -125,7 +125,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"signed request required, but mandatory 'timestamp' field missing",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_wrong_timestamp(self):
@@ -146,7 +146,7 @@ class SignatureTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn(b"invalid timestamp 'notatimestamp' (must be UTC/ISO-8601,"
                       b" e.g. '2011-10-14T16:59:51.123Z')",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_outdated_delta(self):
@@ -169,7 +169,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"request expired (delta",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_invalid_nonce(self):
@@ -189,7 +189,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"invalid nonce 'notanonce' (must be an integer)",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_no_nonce(self):
@@ -209,7 +209,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"signed request required, but mandatory 'nonce' field missing",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_no_signature(self):
@@ -229,7 +229,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"signed request required, but mandatory 'signature' field missing",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_no_key(self):
@@ -249,7 +249,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"signed request required, but mandatory 'key' field missing",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_no_seq(self):
@@ -269,7 +269,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"signed request required, but mandatory 'seq' field missing",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     @inlineCallbacks
     def test_wrong_seq(self):
@@ -289,4 +289,4 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"invalid sequence number 'notaseq' (must be an integer)",
-                      request.getWrittenData())
+                      request.get_written_data())

@@ -63,7 +63,7 @@ class PublisherTestCase(TestCase):
         self.assertEqual(session._published_messages[0]["args"], (1,))
 
         self.assertEqual(request.code, 202)
-        self.assertEqual(json.loads(native_string(request.getWrittenData())),
+        self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"id": session._published_messages[0]["id"]})
 
     @inlineCallbacks
@@ -85,4 +85,4 @@ class PublisherTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn(
             b"invalid request event - missing 'topic' in HTTP/POST body",
-            request.getWrittenData())
+            request.get_written_data())
