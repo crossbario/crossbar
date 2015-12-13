@@ -54,6 +54,27 @@ __all__ = ('check_config',
            'check_guest')
 
 
+NODE_RUN_STANDALONE = u'runmode_standalone'
+"""
+The Crossbar.io node runs in "standalone mode", thus started and configured
+from a local node configuration.
+"""
+
+NODE_RUN_MANAGED = u'runmode_managed'
+"""
+The Crossbar.io node runs in "managed mode", thus connecting to an uplink
+management application.
+"""
+
+NODE_RUN_MODES = (
+    NODE_RUN_STANDALONE,
+    NODE_RUN_MANAGED
+)
+"""
+Permissible node run modes.
+"""
+
+
 NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED = u'shutdown_on_shutdown_requested'
 """
 Shutdown the node when explicitly asked to (by calling the management
@@ -432,7 +453,7 @@ def check_endpoint_timeout(timeout):
     """
     Check a connecting endpoint timeout parameter.
 
-    :param timeout: The timeout to check.
+    :param timeout: The timeout (seconds) to check.
     :type timeout: int
     """
     if type(timeout) not in six.integer_types:
@@ -497,11 +518,11 @@ def check_connecting_endpoint_tls(tls):
     :type tls: dict
     """
     if not isinstance(tls, dict):
-        raise InvalidConfigException("'tls' in endpoint must be dictionary ({} encountered)".format(type(tls)))
+        raise InvalidConfigException("'tls' in connecting endpoint must be dictionary ({} encountered)".format(type(tls)))
 
     for k in tls:
         if k not in ['ca_certificates', 'hostname', 'certificate', 'key']:
-            raise InvalidConfigException("encountered unknown attribute '{}' in listening endpoint TLS configuration".format(k))
+            raise InvalidConfigException("encountered unknown attribute '{}' in connecting endpoint TLS configuration".format(k))
 
     for k in ['certificate', 'key']:
         if k in tls and not os.path.exists(tls[k]):
@@ -519,7 +540,7 @@ def check_connecting_endpoint_tls(tls):
 
     for req_k in ['hostname']:
         if req_k not in tls:
-            raise InvalidConfigException("listening endpoint TLS configuration requires '{}'".format(req_k))
+            raise InvalidConfigException("connecting endpoint TLS configuration requires '{}'".format(req_k))
 
 
 def check_listening_endpoint_tcp(endpoint):
@@ -2337,7 +2358,7 @@ def check_controller(controller, silence=False):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'manhole', 'manager', 'connections']:
+        if k not in ['id', 'options', 'manhole', 'devops', 'connections']:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -2349,32 +2370,37 @@ def check_controller(controller, silence=False):
     if 'manhole' in controller:
         check_manhole(controller['manhole'])
 
-    if 'manager' in controller:
-        check_manager(controller['manager'])
+    if 'devops' in controller:
+        check_devops(controller['devops'])
+        mode = NODE_RUN_MANAGED
+    else:
+        mode = NODE_RUN_STANDALONE
 
     # connections
     #
     connections = controller.get('connections', [])
     check_connections(connections, silence=silence)
 
+    return mode
 
-def check_manager(manager, silence=False):
-    """
-    Check a node manager configuration item.
 
-    :param manager: The manager configuration to check.
-    :type manager: dict
+def check_devops(devops, silence=False):
     """
-    if not isinstance(manager, dict):
-        raise InvalidConfigException("manager items must be dictionaries ({} encountered)\n\n{}".format(type(manager), pformat(manager)))
+    Check a node devops configuration item.
+
+    :param devops: The devops configuration to check.
+    :type devops: dict
+    """
+    if not isinstance(devops, dict):
+        raise InvalidConfigException("'devops' items must be dictionaries ({} encountered)\n\n{}".format(type(devops), pformat(devops)))
 
     check_dict_args({
         'key': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
         'transport': (True, [dict]),
-    }, manager, "invalid manager configuration")
+    }, devops, "invalid 'devops' configuration")
 
-    check_connecting_transport(manager['transport'])
+    check_connecting_transport(devops['transport'])
 
 
 def check_config(config, silence=False):
@@ -2396,9 +2422,15 @@ def check_config(config, silence=False):
 
     # check controller config
     #
+    mode = NODE_RUN_STANDALONE
     if 'controller' in config:
         log.debug("Checking controller item ..")
-        check_controller(config['controller'])
+        mode = check_controller(config['controller'])
+
+    # workers can only be configured locally in standalone mode
+    #
+    # if mode == NODE_RUN_MANAGED and 'workers' in config:
+    #    raise InvalidConfigException("Workers can only be configured locally when running in 'standalone mode', not in 'managed mode' (when connecting to Crossbar.io DevOps Center)")
 
     # check worker configs
     #

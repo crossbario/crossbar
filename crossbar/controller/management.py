@@ -52,7 +52,7 @@ class NodeManagementSession(ApplicationSession):
     def onConnect(self):
         authid = self.config.extra['authid']
         realm = self.config.realm
-        self.log.info("Connected. Joining realm '{}' as '{}' ..".format(realm, authid))
+        self.log.info("DevOps session connected: joining realm '{}' under authid '{}' ..".format(realm, authid))
         self.join(realm, [u"wampcra"], authid)
 
     def onChallenge(self, challenge):
@@ -64,18 +64,22 @@ class NodeManagementSession(ApplicationSession):
             raise Exception("don't know how to compute challenge for authmethod {}".format(challenge.method))
 
     def onJoin(self, details):
-        self.log.info("Joined realm '{realm}' on uplink CDC router", realm=details.realm)
+        self.log.info("DevOps session joined realm '{realm}'", realm=details.realm)
         self.config.extra['onready'].callback(self)
 
     def onLeave(self, details):
         if details.reason != u"wamp.close.normal":
-            self.log.warn("Session detached: {}".format(details))
+            self.log.warn("DevOps session detached: '{reason}' - {message}", reason=details.reason, message=details.message)
         else:
-            self.log.debug("Session detached: {}".format(details))
+            self.log.debug("DevOps session detached: '{reason}' - {message}", reason=details.reason, message=details.message)
+
+        if not self.config.extra['onready'].called:
+            self.config.extra['onready'].errback(Exception("DevOps session failed to get ready"))
+
         self.disconnect()
 
     def onDisconnect(self):
-        self.log.debug("Disconnected.")
+        self.log.debug("DevOps session disconnected")
 
 
 class NodeManagementBridgeSession(ApplicationSession):

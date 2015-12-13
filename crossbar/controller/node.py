@@ -150,18 +150,40 @@ class Node(object):
 
         # standalone vs managed mode
         #
-        if 'manager' in controller_config:
+        if 'devops' in controller_config:
+
+            devops_config = controller_config['devops']
+
+            # connecting transport configuration for uplink to management app
+            if 'transport' in devops_config:
+                transport = devops_config['transport']
+            else:
+                transport = {
+                    "type": "websocket",
+                    "url": "wss://cdc.crossbario.com/ws",
+                    "endpoint": {
+                        "type": "tcp",
+                        "host": "cdc.crossbario.com",
+                        "port": 443,
+                        "timeout": 5,
+                        "tls": {
+                        }
+                    }
+                }
+
+            realm = devops_config['realm']
+
             extra = {
                 'onready': Deferred(),
+                'onexit': Deferred(),
 
                 # authentication information for connecting to uplink CDC router
                 # using WAMP-CRA authentication
                 #
                 'authid': self._node_id,
-                'authkey': controller_config['manager']['key']
+                'authkey': devops_config['key']
             }
-            realm = controller_config['manager']['realm']
-            transport = controller_config['manager']['transport']
+
             runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra, debug_wamp=False)
             runner.run(NodeManagementSession, start_reactor=False)
 
