@@ -60,15 +60,15 @@ class WebhookTestCase(TestCase):
         self.assertEqual(len(session._published_messages), 1)
         self.assertEqual(
             {
-                "body": '{"foo": "has happened"}',
-                "headers": {
-                    "Content-Type": [],
-                    'Date': ['Tue, 01 Jan 2014 01:01:01 GMT'],
-                    'Host': ['localhost:8080']
+                u"body": u'{"foo": "has happened"}',
+                u"headers": {
+                    u"Content-Type": [],
+                    u'Date': [u'Sun, 1 Jan 2013 15:21:01 GMT'],
+                    u'Host': [u'localhost:8000']
                 }
             },
             session._published_messages[0]["args"][0])
 
         self.assertEqual(request.code, 202)
-        self.assertEqual(native_string(request.getWrittenData()),
+        self.assertEqual(native_string(request.get_written_data()),
                          "OK")
