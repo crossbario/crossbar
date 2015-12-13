@@ -39,6 +39,7 @@ import signal
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import DeferredList, inlineCallbacks
 
+from autobahn.util import utcnow
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
@@ -164,9 +165,11 @@ class NativeWorkerSession(NativeProcessSession):
         self.log.debug("Worker '{worker}' running as PID {pid}",
                        worker=self.config.extra.node, pid=os.getpid())
 
+    @inlineCallbacks
     def shutdown(self, details=None):
         """
         Registered under: ``crossbar.node.<node_id>.worker.<worker_id>.shutdown``
+        Event published under: ``crossbar.node.<node_id>.worker.<worker_id>.on_shutdown_requested``
         """
         if self._is_shutting_down:
             # ignore: we are already shutting down ..
@@ -177,9 +180,21 @@ class NativeWorkerSession(NativeProcessSession):
 
         self.log.info("Shutdown of worker requested!")
 
+        # publish management API event
+        #
+        yield self.publish(
+            u'crossbar.node.{}.worker.{}.on_shutdown_requested'.format(self.config.extra.node, self.config.extra.worker),
+            {
+                u'who': details.caller if details else None,
+                u'when': utcnow()
+            },
+            options=PublishOptions(exclude=[details.caller] if details else None, acknowledge=True)
+        )
+
         # we now call self.leave() to initiate the clean, orderly shutdown of the native worker.
         # the call is scheduled to run on the next reactor iteration only, because we want to first
         # return from the WAMP call when this procedure is called from the node controller
+        #
         self._reactor.callLater(0, self.leave)
 
     def get_profilers(self, details=None):

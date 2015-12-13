@@ -38,7 +38,7 @@ from datetime import datetime
 import shutilwhich  # noqa
 import shutil
 
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
+from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
 from twisted.internet.error import ProcessExitedAlready
 from twisted.internet.threads import deferToThread
 from twisted.python.filepath import FilePath
@@ -47,7 +47,6 @@ from twisted.python.runtime import platform
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
-from autobahn.twisted.util import sleep
 
 import crossbar
 from crossbar.common import checkconfig
@@ -198,22 +197,38 @@ class NodeControllerSession(NativeProcessSession):
         }
 
     @inlineCallbacks
-    def shutdown(self, restart=False, details=None):
+    def shutdown(self, restart=False, mode=None, details=None):
         """
         Stop this node.
         """
+        if self._shutdown_requested:
+            # we're already shutting down .. ignore ..
+            return
+
+        self._shutdown_requested = True
+
         self.log.warn("Shutting down node...")
 
-        shutdown_topic = 'crossbar.node.{}.on_shutdown'.format(self._node_id)
-
+        # publish management API event
         shutdown_info = {
+            'restart': restart,
+            'mode': mode,
+            'who': details.caller if details else None,
+            'when': utcnow()
         }
+        yield self.publish(
+            'crossbar.node.{}.on_shutdown'.format(self._node_id),
+            shutdown_info,
+            options=PublishOptions(exclude=[details.caller] if details else None, acknowledge=True)
+        )
 
-        yield self.publish(shutdown_topic, shutdown_info, options=PublishOptions(acknowledge=True))
-        yield sleep(3, reactor=self._node._reactor)
+        def stop_reactor():
+            if self._reactor.running:
+                self._reactor.stop()
 
-        if self._node._reactor.running:
-            self._node._reactor.stop()
+        self._reactor.callLater(3, stop_reactor)
+
+        returnValue(shutdown_info)
 
     def _get_wamplets(self):
         """
@@ -543,7 +558,6 @@ class NodeControllerSession(NativeProcessSession):
             if shutdown:
                 if not self._shutdown_requested:
                     self.log.info("Node shutting down ..")
-                    self._shutdown_requested = True
                     self.shutdown()
                 else:
                     # ignore: shutdown already initiated ..
@@ -664,6 +678,9 @@ class NodeControllerSession(NativeProcessSession):
         :param kill: If `True`, kill the process. Otherwise, gracefully
                      shut down the worker.
         :type kill: bool
+
+        :returns: Stopping information from the worker.
+        :rtype: dict
         """
         self.log.debug("NodeControllerSession.stop_router({id}, kill={kill})",
                        id=id, kill=kill)
@@ -679,6 +696,9 @@ class NodeControllerSession(NativeProcessSession):
         :param kill: If `True`, kill the process. Otherwise, gracefully
                      shut down the worker.
         :type kill: bool
+
+        :returns: Stopping information from the worker.
+        :rtype: dict
         """
         self.log.debug("NodeControllerSession.stop_container({id}, kill={kill})",
                        id=id, kill=kill)
@@ -694,12 +714,16 @@ class NodeControllerSession(NativeProcessSession):
         :param kill: If `True`, kill the process. Otherwise, gracefully
                      shut down the worker.
         :type kill: bool
+
+        :returns: Stopping information from the worker.
+        :rtype: dict
         """
         self.log.debug("NodeControllerSession.stop_websocket_testee({id}, kill={kill})",
                        id=id, kill=kill)
 
         return self._stop_native_worker('websocket-testee', id, kill, details=details)
 
+    @inlineCallbacks
     def _stop_native_worker(self, wtype, id, kill, details=None):
 
         assert(wtype in ['router', 'container', 'websocket-testee'])
@@ -714,6 +738,24 @@ class NodeControllerSession(NativeProcessSession):
             emsg = "Could not stop native worker: worker with ID '{}' is not in status 'started', but status: '{}')".format(id, worker.status)
             raise ApplicationError(u'crossbar.error.worker_not_running', emsg)
 
+        stop_info = {
+            'id': worker.id,
+            'type': wtype,
+            'kill': kill,
+            'who': details.caller if details else None,
+            'when': utcnow()
+        }
+
+        # publish management API event
+        #
+        yield self.publish(
+            'crossbar.node.{}.worker.{}.on_stop_requested'.format(self._node_id, worker.id),
+            stop_info,
+            options=PublishOptions(exclude=[details.caller] if details else None, acknowledge=True)
+        )
+
+        # send SIGKILL or SIGTERM to worker
+        #
         if kill:
             self.log.info("Killing {wtype} worker with ID '{id}'",
                           wtype=wtype, id=id)
@@ -723,6 +765,8 @@ class NodeControllerSession(NativeProcessSession):
                           wtype=wtype, id=id)
             self._workers[id].factory.stopFactory()
             self._workers[id].proto.transport.signalProcess('TERM')
+
+        returnValue(stop_info)
 
     def start_guest(self, id, config, details=None):
         """
