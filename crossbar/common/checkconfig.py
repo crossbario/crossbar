@@ -54,6 +54,40 @@ __all__ = ('check_config',
            'check_guest')
 
 
+NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED = u'shutdown_on_shutdown_requested'
+"""
+Shutdown the node when explicitly asked to (by calling the management
+procedure 'crossbar.node.<node_id>.shutdown'). This is the default when running
+in "managed mode".
+"""
+
+NODE_SHUTDOWN_ON_WORKER_EXIT = u'shutdown_on_worker_exit'
+"""
+Shutdown the node whenever a worker exits with success or error. This is the default
+when running in "standalone mode".
+"""
+
+NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR = u'shutdown_on_worker_exit_with_error'
+"""
+Shutdown the node whenever a worker exits with error.
+"""
+
+NODE_SHUTDOWN_ON_LAST_WORKER_EXIT = u'shutdown_on_last_worker_exit'
+"""
+Shutdown the node whenever there are no more workers running.
+"""
+
+NODE_SHUTDOWN_MODES = (
+    NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED,
+    NODE_SHUTDOWN_ON_WORKER_EXIT,
+    NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR,
+    NODE_SHUTDOWN_ON_LAST_WORKER_EXIT,
+)
+"""
+Permissible node shutdown modes.
+"""
+
+
 # Hack: force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
 #
 # http://stackoverflow.com/a/2967461/884770
@@ -2273,13 +2307,20 @@ def check_controller_options(options, silence=False):
         raise InvalidConfigException("'options' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(options)))
 
     for k in options:
-        if k not in ['title']:
+        if k not in ['title', 'shutdown']:
             raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in controller configuration".format(k))
 
     if 'title' in options:
         title = options['title']
         if not isinstance(title, six.text_type):
             raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
+
+    if 'shutdown' in options:
+        if type(options['shutdown']) != list:
+            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown_mode'])))
+        for shutdown_mode in options['shutdown']:
+            if shutdown_mode not in NODE_SHUTDOWN_MODES:
+                raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
 
 
 def check_controller(controller, silence=False):

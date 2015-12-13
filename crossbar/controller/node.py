@@ -47,7 +47,7 @@ from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
-from crossbar.common.checkconfig import check_config_file
+from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
 from crossbar.controller.management import NodeManagementBridgeSession
 from crossbar.controller.management import NodeManagementSession
@@ -65,6 +65,9 @@ class Node(object):
     A single Crossbar.io node runs exactly one instance of this class, hence
     this class can be considered a system singleton.
     """
+
+    log = make_logger()
+
     def __init__(self, reactor, options):
         """
         Ctor.
@@ -74,12 +77,11 @@ class Node(object):
         :param options: Options from command line.
         :type options: obj
         """
-        self.log = make_logger()
-
-        self.options = options
-
         # the reactor under which we run
         self._reactor = reactor
+
+        # options saved from command line
+        self.options = options
 
         # shortname for reactor to run (when given via explicit option) or None
         self._reactor_shortname = options.reactor
@@ -100,6 +102,13 @@ class Node(object):
         # config of this node.
         self._config = None
 
+        # if run in "managed mode", this will contain the uplink WAMP session
+        # from the node controller to the mananagement application
+        self._management_session = None
+
+        # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
+        self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
+
     def check_config(self):
         """
         Check the configuration of this node.
@@ -109,7 +118,7 @@ class Node(object):
         configfile = os.path.join(self.options.cbdir, self.options.config)
         self.log.info("Loading node configuration file '{configfile}'",
                       configfile=configfile)
-        self._config = check_config_file(configfile, silence=True)
+        self._config = checkconfig.check_config_file(configfile, silence=True)
 
     @inlineCallbacks
     def start(self):
@@ -157,9 +166,17 @@ class Node(object):
             # wait until we have attached to the uplink CDC
             self._management_session = yield extra['onready']
 
+            # in managed mode, a node only shuts down when explicitly asked to,
+            # or upon a fatal error in the node controller
+            self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED]
+
             self.log.info("Node is connected to Crossbar.io DevOps Center (CDC)")
         else:
             self._management_session = None
+
+            # in standalone mode, a node is shutting down whenever a worker
+            # exits (successfully or with error)
+            self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
 
         # the node's management realm
         self._realm = controller_config.get('realm', 'crossbar')
