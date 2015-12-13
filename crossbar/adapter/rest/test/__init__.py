@@ -41,6 +41,8 @@ from datetime import datetime
 
 from collections import namedtuple
 
+from ._request import request, _render
+
 from twisted.internet.defer import maybeDeferred, Deferred
 from twisted.internet import reactor
 
@@ -106,32 +108,21 @@ def makeSignedArguments(params, signKey, signSecret, body):
 def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecure=False,
                    headers=None, sign=False, signKey=None, signSecret=None):
 
-    from unittest import SkipTest
+    params = {} if params is None else params
+    headers = {} if params is None else headers
 
-    raise SkipTest()
+    def _cb(result, request):
+        return request
 
-# def renderResource(resource, path, params=None, method=b"GET", body=b"", isSecure=False,
-#                    headers=None, sign=False, signKey=None, signSecret=None):
+    if sign:
+        params = makeSignedArguments(params, signKey, signSecret, body)
 
-#     from unittest import SkipTest
+    req = request(path, args=params, method=method, isSecure=isSecure,
+                  headers=headers, body=body)
 
-#     raise SkipTest()
-
-#     params = {} if params is None else params
-#     headers = {} if params is None else headers
-
-#     def _cb(result, request):
-#         return request
-
-#     if sign:
-#         params = makeSignedArguments(params, signKey, signSecret, body)
-
-#     req = _requestMock(path, args=params, method=method, isSecure=isSecure,
-#                        headers=headers, body=body)
-
-#     d = _render(resource, req)
-#     d.addCallback(_cb, req)
-#     return d
+    d = _render(resource, req)
+    d.addCallback(_cb, req)
+    return d
 
 
 MockResponse = namedtuple("MockResponse", ["code", "headers"])
