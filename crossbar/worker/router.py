@@ -332,6 +332,22 @@ class RouterWorkerSession(NativeWorkerSession):
         self.log.debug("{}.start_router_realm".format(self.__class__.__name__),
                        id=id, config=config, schemas=schemas)
 
+        # prohibit starting a realm twice
+        #
+        if id in self.realms:
+            emsg = "Could not start realm: a realm with ID '{}' is already running (or starting)".format(id)
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.already_running', emsg)
+
+        # check configuration
+        #
+        try:
+            checkconfig.check_router_realm(config)
+        except Exception as e:
+            emsg = "Invalid router realm configuration: {}".format(e)
+            self.log.error(emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+
         # URI of the realm to start
         realm = config['name']
 

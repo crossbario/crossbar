@@ -1828,7 +1828,7 @@ def check_router_realm(realm, silence=False):
     """
     # router/router.py and router/role.py
 
-    for role in realm['roles']:
+    for role in realm.get('roles', []):
         check_router_realm_role(role, silence=silence)
 
 
