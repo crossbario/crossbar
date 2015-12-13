@@ -46,7 +46,22 @@ def request(path, method=b"GET", args=[], isSecure=False, headers={}, body=b''):
     req.requestHeaders = Headers(headers)
     req.requestHeaders.setRawHeaders(b"Date", [b"Sun, 1 Jan 2013 15:21:01 GMT"])
 
+    req.content = BytesIO(body)
 
 
+    _written_data = BytesIO()
+
+    def _write(data):
+        print(data)
+        assert not req.finished
+        req.startedWriting = True
+        _written_data.write(data)
+
+    req.write = _write
+
+    def _get_written_data():
+        return _written_data.getvalue()
+
+    req.get_written_data = _get_written_data
 
     return req

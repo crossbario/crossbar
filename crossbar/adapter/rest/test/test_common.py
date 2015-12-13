@@ -84,7 +84,7 @@ class IPWhitelistingTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"request denied based on IP address",
-                      request.getWrittenData())
+                      request.get_written_data())
 
 
 class SecureTransportTestCase(TestCase):
@@ -152,7 +152,7 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertEqual((b"bad or missing content type, "
                           b"should be 'application/json'\n"),
-                         request.getWrittenData())
+                         request.get_written_data())
 
     def test_allow_charset_in_content_type(self):
         """
@@ -168,7 +168,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 202)
         self.assertIn(b'{"id":',
-                      request.getWrittenData())
+                      request.get_written_data())
 
     def test_allow_caps_in_content_type(self):
         """
@@ -184,7 +184,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 202)
         self.assertIn(b'{"id":',
-                      request.getWrittenData())
+                      request.get_written_data())
 
     def test_bad_content_type(self):
         """
@@ -200,7 +200,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"bad or missing content type",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     def test_bad_method(self):
         """
@@ -216,7 +216,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 405)
         self.assertIn(b"HTTP/PUT not allowed",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     def test_too_large_body(self):
         """
@@ -232,7 +232,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn("HTTP/POST body length ({}) exceeds maximum ({})".format(len(publishBody), 1),
-                      native_string(request.getWrittenData()))
+                      native_string(request.get_written_data()))
 
     def test_multiple_content_length(self):
         """
@@ -249,7 +249,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn("Multiple Content-Length headers are not allowed",
-                      native_string(request.getWrittenData()))
+                      native_string(request.get_written_data()))
 
     def test_not_matching_bodylength(self):
         """
@@ -267,7 +267,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn("HTTP/POST body length ({}) is different to Content-Length ({})".format(len(publishBody), 1),
-                      native_string(request.getWrittenData()))
+                      native_string(request.get_written_data()))
 
     def test_invalid_JSON_body(self):
         """
@@ -283,7 +283,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
         self.assertIn(b"invalid request event - HTTP/POST body must be valid JSON:",
-                      request.getWrittenData())
+                      request.get_written_data())
 
     def test_JSON_list_body(self):
         """
@@ -300,7 +300,7 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn(
             b"invalid request event - HTTP/POST body must be a JSON dict",
-            request.getWrittenData())
+            request.get_written_data())
 
     def test_UTF8_assumption(self):
         """
@@ -316,7 +316,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 202)
         self.assertIn(b'{"id":',
-                      request.getWrittenData())
+                      request.get_written_data())
 
     def test_ASCII_denied(self):
         """
@@ -333,7 +333,7 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertIn((b"'ascii' is not an accepted charset encoding, must be "
                        b"utf-8"),
-                      request.getWrittenData())
+                      request.get_written_data())
 
     def test_decodes_UTF8(self):
         """
@@ -350,7 +350,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 202)
         self.assertIn(b'{"id":',
-                      request.getWrittenData())
+                      request.get_written_data())
 
     def test_undecodable_UTF8(self):
         """
@@ -367,7 +367,7 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertEqual(
             (b"invalid request event - HTTP/POST body was invalid UTF-8\n"),
-            request.getWrittenData())
+            request.get_written_data())
 
     def test_unknown_encoding(self):
         """
@@ -385,7 +385,7 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertEqual(
             (b"'blarg' is not an accepted charset encoding, must be utf-8\n"),
-            request.getWrittenData())
+            request.get_written_data())
 
     def test_broken_contenttype(self):
         """
@@ -402,7 +402,7 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertEqual(
             b"mangled Content-Type header\n",
-            request.getWrittenData())
+            request.get_written_data())
 
         request = self.successResultOf(renderResource(
             resource, b"/", method=b"POST",
@@ -412,4 +412,4 @@ class RequestBodyTestCase(TestCase):
         self.assertEqual(request.code, 400)
         self.assertEqual(
             b"bad or missing content type, should be 'application/json'\n",
-            request.getWrittenData())
+            request.get_written_data())
