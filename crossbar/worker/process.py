@@ -166,23 +166,46 @@ def run():
         'websocket-testee': WebSocketTesteeWorkerSession
     }
 
+    from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol
 
     class WorkerServerProtocol(WampWebSocketServerProtocol):
 
         def connectionLost(self, reason):
+            # the behavior here differs slightly whether we're shutting down orderly
+            # or shutting down because of "issues"
+            if isinstance(reason.value, ConnectionDone):
+                was_clean = True
+            else:
+                was_clean = False
+
             try:
                 # this log message is unlikely to reach the controller (unless
                 # only stdin/stdout pipes were lost, but not stderr)
-                log.warn("Connection to node controller lost.")
+                if was_clean:
+                    log.info("Connection to node controller closed cleanly")
+                else:
+                    log.warn("Connection to node controller lost: {reason}", reason=reason)
+
+                # give the WAMP transport a change to do it's thing
                 WampWebSocketServerProtocol.connectionLost(self, reason)
             except:
+                # we're in the process of shutting down .. so ignore ..
                 pass
             finally:
-                # losing the connection to the node controller is fatal:
-                # stop the reactor and exit with error
-                log.info("No more controller connection; shutting down.")
-                reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
+                # after the connection to the node controller is gone,
+                # the worker is "orphane", and should exit
+
+                # determine process exit code
+                if was_clean:
+                    exit_code = 0
+                else:
+                    exit_code = 1
+
+                # exit the whole worker process when the reactor has stopped
+                reactor.addSystemEventTrigger('after', 'shutdown', os._exit, exit_code)
+
+                # stop the reactor
                 try:
                     reactor.stop()
                 except ReactorNotRunning:

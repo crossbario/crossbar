@@ -35,6 +35,7 @@ import sys
 import pkg_resources
 import jinja2
 
+from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import DeferredList, inlineCallbacks
 
 from autobahn.wamp.exception import ApplicationError
@@ -96,6 +97,9 @@ class NativeWorkerSession(NativeProcessSession):
         yield NativeProcessSession.onJoin(self, details)
 
         procs = [
+            # orderly shutdown worker "from inside"
+            'shutdown',
+
             # CPU affinity for this worker process
             'get_cpu_count',
             'get_cpu_affinity',
@@ -114,7 +118,7 @@ class NativeWorkerSession(NativeProcessSession):
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
+            self.log.info("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
@@ -124,18 +128,40 @@ class NativeWorkerSession(NativeProcessSession):
         if publish_ready:
             yield self.publish_ready()
 
+    def onLeave(self, details):
+        self.log.info("Worker-to-controller session detached")
+        self.disconnect()
+
+    def onDisconnect(self):
+        self.log.info("Worker-to-controller session disconnected")
+        # stop the reactor
+        try:
+            self._reactor.stop()
+        except ReactorNotRunning:
+            pass
+
     @inlineCallbacks
     def publish_ready(self):
         # signal that this worker is ready for setup. the actual setup procedure
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
-        #
         yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
                            {'type': self.WORKER_TYPE, 'id': self.config.extra.worker, 'pid': os.getpid()},
                            options=PublishOptions(acknowledge=True))
 
         self.log.debug("Worker '{worker}' running as PID {pid}",
                        worker=self.config.extra.node, pid=os.getpid())
+
+    def shutdown(self, details=None):
+        """
+        Registered under: ``crossbar.node.<node_id>.worker.<worker_id>.shutdown``
+        """
+        self.log.info("Initiating orderly shutdown upon request ..")
+
+        # we now call self.leave() to initiate the clean, orderly shutdown of the native worker.
+        # the call is scheduled to run on the next reactor iteration only, because we want to first
+        # return from the WAMP call when this procedure is called from the node controller
+        self._reactor.callLater(0, self.leave)
 
     def get_profilers(self, details=None):
         """
