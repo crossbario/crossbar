@@ -95,7 +95,7 @@ class FileUploadTests(TestCase):
         )
 
         res = self.successResultOf(d)
-        res.setResponseCode.assert_called_once_with(200)
+        self.assertEqual(res.code, 200)
 
         self.assertEqual(len(mock_session.method_calls), 2)
 
@@ -167,7 +167,7 @@ class FileUploadTests(TestCase):
         )
 
         res = self.successResultOf(d)
-        res.setResponseCode.assert_called_once_with(200)
+        self.assertEqual(res.code, 200)
 
         # One directory in the temp dir, nothing in the upload dir, temp dir
         # contains one chunk
@@ -204,7 +204,7 @@ class FileUploadTests(TestCase):
         )
 
         res = self.successResultOf(d)
-        res.setResponseCode.assert_called_once_with(200)
+        self.assertEqual(res.code, 200)
 
         self.assertEqual(len(mock_session.method_calls), 4)
 
@@ -296,7 +296,7 @@ class FileUploadTests(TestCase):
         )
 
         res = self.successResultOf(d)
-        res.setResponseCode.assert_called_once_with(200)
+        self.assertEqual(res.code, 200)
 
         # One directory in the temp dir, nothing in the upload dir, temp dir
         # contains one chunk
@@ -342,7 +342,7 @@ class FileUploadTests(TestCase):
         )
 
         res = self.successResultOf(d)
-        res.setResponseCode.assert_called_once_with(200)
+        self.assertEqual(res.code, 200)
 
         self.assertEqual(len(mock_session.method_calls), 4)
 
@@ -417,14 +417,13 @@ class FileUploadTests(TestCase):
         )
 
         res = self.successResultOf(d)
-        res.setResponseCode.assert_called_once_with(200)
+        self.assertEqual(res.code, 200)
 
         # One directory in the temp dir, nothing in the upload dir, temp dir
         # contains one chunk
         self.assertEqual(len(temp_dir.listdir()), 1)
         self.assertEqual(len(temp_dir.child("examplefile.txt").listdir()), 1)
         with temp_dir.child("examplefile.txt").child("chunk_2").open("rb") as f:
-            # print(f.read())
             self.assertEqual(f.read(), b"sbar!\n")
         self.assertEqual(len(upload_dir.listdir()), 0)
         #
@@ -442,7 +441,7 @@ class FileUploadTests(TestCase):
         )
 
         res = self.successResultOf(d)
-        res.setResponseCode.assert_called_once_with(200)
+        self.assertEqual(res.code, 200)
 
         self.assertEqual(len(mock_session.method_calls), 4)
 
@@ -517,7 +516,7 @@ class FileUploadTests(TestCase):
         )
 
         res = self.successResultOf(d)
-        res.setResponseCode.assert_called_once_with(200)
+        self.assertEqual(res.code, 200)
 
         with upload_dir.child("examplefile.txt").open("rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
