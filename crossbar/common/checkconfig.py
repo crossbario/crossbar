@@ -2429,8 +2429,9 @@ def check_config(config, silence=False):
 
     # workers can only be configured locally in standalone mode
     #
-    # if mode == NODE_RUN_MANAGED and 'workers' in config:
-    #    raise InvalidConfigException("Workers can only be configured locally when running in 'standalone mode', not in 'managed mode' (when connecting to Crossbar.io DevOps Center)")
+    if False:
+        if mode == NODE_RUN_MANAGED and 'workers' in config:
+            raise InvalidConfigException("Workers can only be configured locally when running in 'standalone mode', not in 'managed mode' (when connecting to Crossbar.io DevOps Center)")
 
     # check worker configs
     #
