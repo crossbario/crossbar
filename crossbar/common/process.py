@@ -460,7 +460,7 @@ class NativeProcessSession(ApplicationSession):
         :returns: Time (wall clock) consumed for garbage collection in ms.
         :rtype: int
         """
-        self.msg.debug("{cls}.trigger_gc", cls=self.__class__.__name__)
+        self.log.debug("{cls}.trigger_gc", cls=self.__class__.__name__)
 
         started = rtime()
 
