@@ -32,6 +32,7 @@ from __future__ import absolute_import, division, print_function
 
 from six import StringIO as NativeStringIO
 
+from twisted.python.filepath import FilePath
 from twisted.internet.selectreactor import SelectReactor
 
 from crossbar.test import TestCase
@@ -70,7 +71,9 @@ class CLITestBase(TestCase):
 
 
 class VersionTests(CLITestBase):
-
+    """
+    Tests for `crossbar version`.
+    """
     def test_basic(self):
         """
         Just running `crossbar version` gets us the versions.
@@ -107,7 +110,9 @@ class VersionTests(CLITestBase):
 
 
 class StartTests(CLITestBase):
-
+    """
+    Tests for `crossbar start`.
+    """
     def setUp(self):
 
         CLITestBase.setUp(self)
@@ -200,4 +205,27 @@ class StartTests(CLITestBase):
              "with PID {pid}) {fp} removed").format(
                  fp=os.path.abspath(os.path.join(self.cbdir, "node.pid")),
                  pid=9999999),
+            self.stdout.getvalue())
+
+
+class ConvertTests(CLITestBase):
+    """
+    Tests for `crossbar convert`.
+    """
+    def test_unknown_format(self):
+        """
+        Running `crossbar convert` with an unknown config file produces an
+        error.
+        """
+        cbdir = FilePath(self.mktemp())
+        cbdir.makedirs()
+        config_file = cbdir.child("config.blah")
+        config_file.setContent(b'')
+
+        with self.assertRaises(SystemExit) as e:
+            cli.run("crossbar",
+                    ["convert", "--config={}".format(config_file.path)])
+
+        self.assertIn(
+            ("Error: configuration file needs to be '.json' or '.yaml'."),
             self.stdout.getvalue())
