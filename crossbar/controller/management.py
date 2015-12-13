@@ -144,7 +144,7 @@ class NodeManagementBridgeSession(ApplicationSession):
             reg = yield self._management_session.register(forward_call, procedure)
             self._regs[registration['id']] = reg
 
-            self.log.info("Management procedure registered: '{procedure}'", procedure=reg.procedure)
+            self.log.debug("Management procedure registered: '{procedure}'", procedure=reg.procedure)
 
         yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
 
@@ -154,10 +154,10 @@ class NodeManagementBridgeSession(ApplicationSession):
 
             if reg:
                 yield reg.unregister()
-                self.log.info("Management procedure unregistered: '{procedure}'", procedure=reg.procedure)
+                self.log.debug("Management procedure unregistered: '{procedure}'", procedure=reg.procedure)
             else:
                 self.log.warn("Could not remove forwarding for unmapped registration_id {reg_id}", reg_id=registration_id)
 
         yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
 
-        self.log.info("Management bridge ready")
+        self.log.info("Management bridge ready!")

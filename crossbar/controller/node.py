@@ -148,6 +148,8 @@ class Node(object):
         else:
             self._node_id = socket.gethostname()
 
+        # standalone vs managed mode
+        #
         if 'manager' in controller_config:
             extra = {
                 'onready': Deferred(),
@@ -166,7 +168,7 @@ class Node(object):
             # wait until we have attached to the uplink CDC
             self._management_session = yield extra['onready']
 
-            # in managed mode, a node only shuts down when explicitly asked to,
+            # in managed mode, a node - by default - only shuts down when explicitly asked to,
             # or upon a fatal error in the node controller
             self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED]
 
@@ -174,9 +176,17 @@ class Node(object):
         else:
             self._management_session = None
 
-            # in standalone mode, a node is shutting down whenever a worker
-            # exits (successfully or with error)
+            # in standalone mode, a node - by default - is immediately shutting down whenever
+            # a worker exits (successfully or with error)
             self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
+
+        # allow to override node shutdown triggers
+        #
+        if 'shutdown' in controller_options:
+            self.log.info("Overriding default node shutdown triggers with {} from node config".format(controller_options['shutdown']))
+            self._node_shutdown_triggers = controller_options['shutdown']
+        else:
+            self.log.info("Using default node shutdown triggers {}".format(self._node_shutdown_triggers))
 
         # the node's management realm
         self._realm = controller_config.get('realm', 'crossbar')

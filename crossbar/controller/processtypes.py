@@ -108,7 +108,8 @@ class WorkerProcess(object):
         self.exit = Deferred()
         self.exit.addBoth(self._dump_remaining_log)
 
-    def getlog(self):
+    def getlog(self, limit=None):
+        # FIXME: return reversed, limited log
         return list(self._log_entries)
 
     def _dump_remaining_log(self, result):
