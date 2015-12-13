@@ -34,11 +34,10 @@ from mock import Mock
 
 from io import BytesIO
 
+from twisted.internet.address import IPv4Address
 from twisted.web import server
 from twisted.web.http_headers import Headers
-from twisted.web.test._util import _render
 from twisted.web.test.test_web import DummyChannel
-from twisted.internet.address import IPv4Address
 
 
 def request(path, method=b"GET", args=[], isSecure=False, headers={}, body=b'',

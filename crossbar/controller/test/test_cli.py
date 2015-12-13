@@ -222,7 +222,7 @@ class ConvertTests(CLITestBase):
         config_file = cbdir.child("config.blah")
         config_file.setContent(b'')
 
-        with self.assertRaises(SystemExit) as e:
+        with self.assertRaises(SystemExit):
             cli.run("crossbar",
                     ["convert", "--config={}".format(config_file.path)])
 

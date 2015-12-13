@@ -41,10 +41,11 @@ from datetime import datetime
 
 from collections import namedtuple
 
-from ._request import request, _render
+from ._request import request
 
-from twisted.internet.defer import maybeDeferred, Deferred
 from twisted.internet import reactor
+from twisted.internet.defer import maybeDeferred, Deferred
+from twisted.web.test._util import _render
 
 from autobahn.wamp import message
 from autobahn.wamp import serializer
