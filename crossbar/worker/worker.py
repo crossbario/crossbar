@@ -34,6 +34,7 @@ import os
 import sys
 import pkg_resources
 import jinja2
+import signal
 
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import DeferredList, inlineCallbacks
@@ -80,6 +81,9 @@ class NativeWorkerSession(NativeProcessSession):
 
         self._profiles = {}
 
+        # flag indicating when worker is shutting down
+        self._is_shutting_down = False
+
         # Jinja2 templates for Web (like WS status page et al)
         #
         templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
@@ -125,16 +129,24 @@ class NativeWorkerSession(NativeProcessSession):
 
         self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
 
+        # setup SIGTERM handler to orderly shutdown the worker
+        def shutdown(sig, frame):
+            self.log.warn("Native worker received SIGTERM - shutting down ..")
+            self.shutdown()
+        signal.signal(signal.SIGTERM, shutdown)
+
+        # the worker is ready for work!
         if publish_ready:
             yield self.publish_ready()
 
     def onLeave(self, details):
-        self.log.info("Worker-to-controller session detached")
+        self.log.debug("Worker-to-controller session detached")
         self.disconnect()
 
     def onDisconnect(self):
-        self.log.info("Worker-to-controller session disconnected")
-        # stop the reactor
+        self.log.debug("Worker-to-controller session disconnected")
+
+        # when the native worker is done, stop the reactor
         try:
             self._reactor.stop()
         except ReactorNotRunning:
@@ -156,7 +168,14 @@ class NativeWorkerSession(NativeProcessSession):
         """
         Registered under: ``crossbar.node.<node_id>.worker.<worker_id>.shutdown``
         """
-        self.log.info("Initiating orderly shutdown upon request ..")
+        if self._is_shutting_down:
+            # ignore: we are already shutting down ..
+            return
+            # raise ApplicationError(u'crossbar.error.operation_in_progress', 'cannot shutdown - the worker is already shutting down')
+        else:
+            self._is_shutting_down = True
+
+        self.log.info("Shutdown of worker requested!")
 
         # we now call self.leave() to initiate the clean, orderly shutdown of the native worker.
         # the call is scheduled to run on the next reactor iteration only, because we want to first
