@@ -126,7 +126,7 @@ class NodeManagementBridgeSession(ApplicationSession):
             try:
                 yield self._management_session.publish(topic, *args, options=PublishOptions(acknowledge=True), **kwargs)
             except Exception as e:
-                self.log.error(e)
+                self.log.error("Failed to forward-publish management event on topic '{topic}': {error}", topic=topic, error=e)
             else:
                 self.log.debug("Forwarded event on topic '{topic}'", topic=topic)
 
@@ -145,10 +145,13 @@ class NodeManagementBridgeSession(ApplicationSession):
             def forward_call(*args, **kwargs):
                 return self.call(registration['uri'], *args, **kwargs)
 
-            reg = yield self._management_session.register(forward_call, procedure)
-            self._regs[registration['id']] = reg
-
-            self.log.debug("Management procedure registered: '{procedure}'", procedure=reg.procedure)
+            try:
+                reg = yield self._management_session.register(forward_call, procedure)
+            except Exception as e:
+                self.log.error("Failed to register management procedure '{procedure}': {error}", procedure=procedure, error=e)
+            else:
+                self._regs[registration['id']] = reg
+                self.log.debug("Management procedure registered: '{procedure}'", procedure=reg.procedure)
 
         yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
 
