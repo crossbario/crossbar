@@ -851,7 +851,13 @@ def run(prog=None, args=None, reactor=None):
 
     # run the subcommand selected
     #
-    options.func(options, reactor=reactor)
+    try:
+        options.func(options, reactor=reactor)
+    except SystemExit as e:
+        # SystemExit(0) is okay! Anything other than that is bad and should be
+        # re-raised.
+        if e.args[0] != 0:
+            raise
 
 
 if __name__ == '__main__':

@@ -222,10 +222,112 @@ class ConvertTests(CLITestBase):
         config_file = cbdir.child("config.blah")
         config_file.setContent(b'')
 
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(SystemExit) as e:
             cli.run("crossbar",
                     ["convert", "--config={}".format(config_file.path)])
 
+        self.assertEqual(e.exception.args[0], 1)
         self.assertIn(
             ("Error: configuration file needs to be '.json' or '.yaml'."),
+            self.stdout.getvalue())
+
+    def test_yaml_to_json(self):
+        """
+        Running `crossbar convert` with a YAML config file will convert it to
+        JSON.
+        """
+        cbdir = FilePath(self.mktemp())
+        cbdir.makedirs()
+        config_file = cbdir.child("config.yaml")
+        config_file.setContent(b"""
+foo:
+    bar: spam
+    baz:
+        foo: cat
+        """)
+
+        cli.run("crossbar",
+                ["convert", "--config={}".format(config_file.path)])
+
+        self.assertIn(
+            ("JSON formatted configuration written"),
+            self.stdout.getvalue())
+
+        with open(cbdir.child("config.json").path) as f:
+            self.assertEqual(f.read(), """{
+   "foo": {
+      "bar": "spam",
+      "baz": {
+         "foo": "cat"
+      }
+   }
+}""")
+
+    def test_invalid_yaml_to_json(self):
+        """
+        Running `crossbar convert` with an invalid YAML config file will error
+        saying it is invalid.
+        """
+        cbdir = FilePath(self.mktemp())
+        cbdir.makedirs()
+        config_file = cbdir.child("config.yaml")
+        config_file.setContent(b"""{{{{{{{{""")
+
+        with self.assertRaises(SystemExit) as e:
+            cli.run("crossbar",
+                    ["convert", "--config={}".format(config_file.path)])
+
+        self.assertEqual(e.exception.args[0], 1)
+        self.assertIn(
+            ("not seem to be proper YAML"),
+            self.stdout.getvalue())
+
+    def test_json_to_yaml(self):
+        """
+        Running `crossbar convert` with a YAML config file will convert it to
+        JSON.
+        """
+        cbdir = FilePath(self.mktemp())
+        cbdir.makedirs()
+        config_file = cbdir.child("config.json")
+        config_file.setContent(b"""{
+   "foo": {
+      "bar": "spam",
+      "baz": {
+         "foo": "cat"
+      }
+   }
+}""")
+
+        cli.run("crossbar",
+                ["convert", "--config={}".format(config_file.path)])
+
+        self.assertIn(
+            ("YAML formatted configuration written"),
+            self.stdout.getvalue())
+
+        with open(cbdir.child("config.yaml").path) as f:
+            self.assertEqual(f.read(), """foo:
+  bar: spam
+  baz:
+    foo: cat
+""")
+
+    def test_invalid_json_to_yaml(self):
+        """
+        Running `crossbar convert` with an invalid JSON config file will error
+        saying it is invalid.
+        """
+        cbdir = FilePath(self.mktemp())
+        cbdir.makedirs()
+        config_file = cbdir.child("config.json")
+        config_file.setContent(b"""{{{{{{{{""")
+
+        with self.assertRaises(SystemExit) as e:
+            cli.run("crossbar",
+                    ["convert", "--config={}".format(config_file.path)])
+
+        self.assertEqual(e.exception.args[0], 1)
+        self.assertIn(
+            ("not seem to be proper JSON"),
             self.stdout.getvalue())
