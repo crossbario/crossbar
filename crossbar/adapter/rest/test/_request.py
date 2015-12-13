@@ -41,7 +41,7 @@ from twisted.web.test.test_web import DummyChannel
 
 
 def request(path, method=b"GET", args=[], isSecure=False, headers={}, body=b'',
-            host="localhost", port=8000, reactor=None):
+            host=b"localhost", port=8000, reactor=None):
     """
     A fake `server.Request` which implements just enough for our tests.
     """
