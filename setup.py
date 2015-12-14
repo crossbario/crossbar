@@ -32,9 +32,14 @@ from __future__ import absolute_import
 
 import sys
 import re
+import os
+import platform
 from setuptools import setup, find_packages
 
 version = getattr(sys, "version_info", (0,))
+
+CPY = platform.python_implementation() == 'CPython'
+PYPY = platform.python_implementation() == 'PyPy'
 
 LONGSDESC = open('README.rst').read()
 
@@ -52,88 +57,70 @@ else:
 #
 # extra requirements for install variants
 #
-extras_require = {
-    'db': [
-        'lmdb>=0.87',                   # OpenLDAP BSD
-    ],
-    'dev': [
-        "colorama>=0.3.3",              # BSD license
-        "mock>=1.3.0",                  # BSD license
-    ],
-    'tls': [
-        'cryptography>=0.9.3',          # Apache license
-        'pyOpenSSL>=0.15.1',            # Apache license
-        'pyasn1>=0.1.8',                # BSD license
-        'pyasn1-modules>=0.0.7',        # BSD license
-        'service_identity>=14.0.0',     # MIT license
-    ],
-    'manhole': [
-        {
-            'environment': 'python_implementation=="CPython"',
-            'requires': [
-                'pyasn1>=0.1.8',        # BSD license
-                'pycrypto>=2.6.1',      # Public Domain license
-            ]
-        }
-    ],
-    'msgpack': [
-        'msgpack-python>=0.4.6',        # Apache license
-    ],
-    'system': [
-        'psutil>=3.2.1',                # BSD license
-        {
-            "environment": 'sys_platform=="linux2" or "bsd" in sys_platform or sys_platform=="darwin"',
-            'requires': [
-                'setproctitle>=1.1.9',  # BSD license
-            ]
-        },
-        {
-            "environment": 'sys_platform=="linux2"',
-            'requires': [
-                'pyinotify>=0.9.6',     # MIT license
-            ]
-        }
-    ],
-    'accelerate': [
+extras_require_system = [
+    'psutil>=3.2.1',                # BSD license
+]
+if sys.platform.startswith('linux'):
+    extras_require_system.append('setproctitle>=1.1.9')     # BSD license
+    extras_require_system.append('pyinotify>=0.9.6')        # MIT license
+if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
+    extras_require_system.append('setproctitle>=1.1.9')     # BSD license
 
-        {
-            'environment': 'python_implementation=="CPython"',
-            'requires': [
-                "wsaccel>=0.6.2",        # Apache 2.0
-            ]
-        },
-        {
-            'environment': 'sys_platform!="win32" and python_implementation == "CPython"',
-            'requires': [
-                "ujson>=1.33",           # BSD license
-            ]
-        }
-    ],
-    'oracle': [
-        'cx_Oracle>=5.2',               # Python Software Foundation license
-    ],
-    "postgres": [
-        'txpostgres>=1.4.0',            # MIT license
-        {
-            'environment': 'python_implementation=="CPython"',
-            'requires': [
-                'psycopg2>=2.6.1',      # LGPL license
-            ]
-        },
-        {
-            'environment': 'python_implementation=="PyPy"',
-            'requires': [
-                'psycopg2cffi>=2.7.2',  # LGPL license
-            ]
-        },
-    ],
-}
+extras_require_db = [
+    'lmdb>=0.87',                   # OpenLDAP BSD
+]
+if PYPY:
+    os.environ['LMDB_FORCE_CFFI'] = '1'
 
-extras_require["all"] = (extras_require['db'] + extras_require['dev'] +
-                         extras_require['tls'] + extras_require['manhole'] +
-                         extras_require['msgpack'] + extras_require['system'] +
-                         extras_require['accelerate'] +
-                         extras_require['postgres'])
+extras_require_manhole = [
+    'pyasn1>=0.1.8',                # BSD license
+    'pycrypto>=2.6.1'               # Public Domain license
+]
+
+extras_require_msgpack = [
+    'msgpack-python>=0.4.6'         # Apache license
+]
+
+extras_require_tls = [
+    'cryptography>=0.9.3',          # Apache license
+    'pyOpenSSL>=0.15.1',            # Apache license
+    'pyasn1>=0.1.8',                # BSD license
+    'pyasn1-modules>=0.0.7',        # BSD license
+    'service_identity>=14.0.0',     # MIT license
+]
+
+# only for CPy (skip for PyPy)!
+if CPY:
+    extras_require_accelerate = [
+        "wsaccel>=0.6.2"            # Apache 2.0
+    ]
+
+    # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
+    if sys.platform != 'win32':
+        extras_require_accelerate.append("ujson>=1.33")     # BSD license
+else:
+    extras_require_accelerate = []
+
+extras_require_dev = [
+    "colorama>=0.3.3",              # BSD license
+    "mock>=1.3.0",                  # BSD license
+]
+
+extras_require_postgres = [
+    'txpostgres>=1.4.0'             # MIT license
+]
+if CPY:
+    extras_require_postgres.append('psycopg2>=2.6.1')       # LGPL license
+else:
+    extras_require_postgres.append('psycopg2cffi>=2.7.2')   # LGPL license
+
+extras_require_oracle = [
+    'cx_Oracle>=5.2',               # Python Software Foundation license
+]
+
+extras_require_all = extras_require_system + extras_require_db + \
+    extras_require_manhole + extras_require_msgpack + extras_require_tls + \
+    extras_require_accelerate + extras_require_dev
 
 
 setup(
@@ -161,7 +148,18 @@ setup(
         'shutilwhich>=1.1.0',         # PSF license
         'treq>=15.0.0',               # MIT license
     ],
-    extras_require=extras_require,
+    extras_require={
+        'all': extras_require_all,
+        'db': extras_require_db,
+        'dev': extras_require_dev,
+        'tls': extras_require_tls,
+        'manhole': extras_require_manhole,
+        'msgpack': extras_require_msgpack,
+        'system': extras_require_system,
+        'accelerate': extras_require_accelerate,
+        'oracle': extras_require_oracle,
+        'postgres': extras_require_postgres,
+    },
     entry_points={
         'console_scripts': [
             'crossbar = crossbar.controller.cli:run'
