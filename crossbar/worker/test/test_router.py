@@ -463,67 +463,68 @@ class WSGITests(TestCase):
 
         return d
 
-    def test_threads(self):
-        """
-        A basic WSGI app can be ran, with subresources
-        """
-        temp_reactor = SelectReactor()
-        r = router.RouterWorkerSession(config=self.config,
-                                       reactor=temp_reactor)
+    # This test relies on timing artifacts (read: it's unstable, eg https://travis-ci.org/crossbario/crossbar/jobs/96633875)
+    # def test_threads(self):
+    #     """
+    #     A basic WSGI app can be ran, with subresources
+    #     """
+    #     temp_reactor = SelectReactor()
+    #     r = router.RouterWorkerSession(config=self.config,
+    #                                    reactor=temp_reactor)
 
-        # Open the transport
-        transport = FakeWAMPTransport(r)
-        r.onOpen(transport)
+    #     # Open the transport
+    #     transport = FakeWAMPTransport(r)
+    #     r.onOpen(transport)
 
-        realm_config = {
-            u"name": u"realm1",
-            u'roles': []
-        }
+    #     realm_config = {
+    #         u"name": u"realm1",
+    #         u'roles': []
+    #     }
 
-        threads = 20
+    #     threads = 20
 
-        r.start_router_realm("realm1", realm_config)
-        r.start_router_transport(
-            "component1",
-            {
-                u"type": u"web",
-                u"endpoint": {
-                    u"type": u"tcp",
-                    u"port": 8080
-                },
-                u"paths": {
-                    u"/": {
-                        "module": u"crossbar.worker.test.test_router",
-                        "object": u"sleep",
-                        "type": u"wsgi",
-                        "maxthreads": threads,
-                    }
-                }
-            })
+    #     r.start_router_realm("realm1", realm_config)
+    #     r.start_router_transport(
+    #         "component1",
+    #         {
+    #             u"type": u"web",
+    #             u"endpoint": {
+    #                 u"type": u"tcp",
+    #                 u"port": 8080
+    #             },
+    #             u"paths": {
+    #                 u"/": {
+    #                     "module": u"crossbar.worker.test.test_router",
+    #                     "object": u"sleep",
+    #                     "type": u"wsgi",
+    #                     "maxthreads": threads,
+    #                 }
+    #             }
+    #         })
 
-        deferreds = []
-        results = []
+    #     deferreds = []
+    #     results = []
 
-        for i in range(threads):
-            d = treq.get("http://localhost:8080/", reactor=temp_reactor)
-            d.addCallback(treq.content)
-            d.addCallback(results.append)
-            deferreds.append(d)
+    #     for i in range(threads):
+    #         d = treq.get("http://localhost:8080/", reactor=temp_reactor)
+    #         d.addCallback(treq.content)
+    #         d.addCallback(results.append)
+    #         deferreds.append(d)
 
-        def done(_):
-            max_concurrency = max([int(x) for x in results])
+    #     def done(_):
+    #         max_concurrency = max([int(x) for x in results])
 
-            assert max_concurrency == threads, "Maximum concurrency was %s, not %s" % (max_concurrency, threads)
-            temp_reactor.stop()
+    #         assert max_concurrency == threads, "Maximum concurrency was %s, not %s" % (max_concurrency, threads)
+    #         temp_reactor.stop()
 
-        defer.DeferredList(deferreds).addCallback(done)
+    #     defer.DeferredList(deferreds).addCallback(done)
 
-        def escape():
-            if temp_reactor.running:
-                temp_reactor.stop()
+    #     def escape():
+    #         if temp_reactor.running:
+    #             temp_reactor.stop()
 
-        temp_reactor.callLater(1, escape)
-        temp_reactor.run()
+    #     temp_reactor.callLater(1, escape)
+    #     temp_reactor.run()
 
 
 def hello(environ, start_response):
