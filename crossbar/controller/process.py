@@ -38,6 +38,7 @@ from datetime import datetime
 import shutilwhich  # noqa
 import shutil
 
+from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
 from twisted.internet.error import ProcessExitedAlready
 from twisted.internet.threads import deferToThread
@@ -223,8 +224,10 @@ class NodeControllerSession(NativeProcessSession):
         )
 
         def stop_reactor():
-            if self._reactor.running:
+            try:
                 self._reactor.stop()
+            except ReactorNotRunning:
+                pass
 
         self._reactor.callLater(0, stop_reactor)
 
