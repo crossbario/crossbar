@@ -137,20 +137,24 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                         key = key_file.read()
                         cert = cert_file.read()
                         ca_certs = None
+
                         if 'ca_certificates' in config['tls']:
                             ca_certs = []
                             for fname in config['tls']['ca_certificates']:
                                 with open(fname, 'r') as f:
                                     ca_certs.append(Certificate.loadPEM(f.read()).original)
 
-                        crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
-                            'ECDHE-RSA-AES128-GCM-SHA256:'
-                            'DHE-RSA-AES128-GCM-SHA256:'
-                            'ECDHE-RSA-AES128-SHA256:'
-                            'DHE-RSA-AES128-SHA256:'
-                            'ECDHE-RSA-AES128-SHA:'
-                            'DHE-RSA-AES128-SHA'
-                        )
+                        if 'ciphers' in config['tls']:
+                            crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(config['tls']['ciphers'])
+                        else:
+                            crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
+                                'ECDHE-RSA-AES128-GCM-SHA256:'
+                                'DHE-RSA-AES128-GCM-SHA256:'
+                                'ECDHE-RSA-AES128-SHA256:'
+                                'DHE-RSA-AES128-SHA256:'
+                                'ECDHE-RSA-AES128-SHA:'
+                                'DHE-RSA-AES128-SHA'
+                            )
 
                         ctx = CertificateOptions(
                             privateKey=KeyPair.load(key, crypto.FILETYPE_PEM).original,
