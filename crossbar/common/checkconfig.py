@@ -1531,8 +1531,8 @@ def check_listening_transport_rawsocket(transport):
         if not isinstance(serializers, list):
             raise InvalidConfigException("'serializers' in RawSocket transport configuration must be list ({} encountered)".format(type(serializers)))
         for serializer in serializers:
-            if serializer not in [u'json', u'msgpack']:
-                raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
+            if serializer not in [u'json', u'msgpack', u'cbor']:
+                raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor']".format(serializer))
 
     if 'max_message_size' in transport:
         check_transport_max_message_size(transport['max_message_size'])
@@ -1625,8 +1625,8 @@ def check_connecting_transport_rawsocket(transport):
     if not isinstance(serializer, six.text_type):
         raise InvalidConfigException("'serializer' in RawSocket transport configuration must be a string ({} encountered)".format(type(serializer)))
 
-    if serializer not in ['json', 'msgpack']:
-        raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack']".format(serializer))
+    if serializer not in ['json', 'msgpack', 'cbor']:
+        raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor']".format(serializer))
 
     if 'debug' in transport:
         debug = transport['debug']
