@@ -226,7 +226,7 @@ class NodeControllerSession(NativeProcessSession):
             if self._reactor.running:
                 self._reactor.stop()
 
-        self._reactor.callLater(3, stop_reactor)
+        self._reactor.callLater(0, stop_reactor)
 
         returnValue(shutdown_info)
 
