@@ -164,19 +164,33 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                                     ca_certs.append(Certificate.loadPEM(f.read()).original)
                                 log.info("Loading server TLS CA certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
 
-                        # chiphers we accept
-                        # https://wiki.mozilla.org/Talk:Security/Server_Side_TLS
+                        # ciphers we accept
+                        #
+                        # We prefer to make every single cipher (6 in total) _explicit_ (to reduce chances either we or the pattern-matching
+                        # language inside OpenSSL messes up) and drop support for Windows XP (we do WebSocket anyway).
+                        #
+                        # We don't use AES256 and SHA384, to reduce number of ciphers and since the additional
+                        # security gain seems not worth the additional performance drain.
+                        #
+                        # We also don't use ECDSA, since EC certificates a rare in the wild.
+                        #
+                        # References:
+                        #  * https://www.ssllabs.com/ssltest/analyze.html?d=myserver.com
+                        #  * http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+                        #  * http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
+                        #  * https://wiki.mozilla.org/Talk:Security/Server_Side_TLS
+                        #
                         if 'ciphers' in config['tls']:
                             crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(config['tls']['ciphers'])
                         else:
                             crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
                                 # AEAD modes (GCM)
-                                'ECDHE-ECDSA-AES128-GCM-SHA256:'
+                                # 'ECDHE-ECDSA-AES128-GCM-SHA256:'
                                 'ECDHE-RSA-AES128-GCM-SHA256:'
-                                'ECDHE-ECDSA-AES256-GCM-SHA384:'
-                                'ECDHE-RSA-AES256-GCM-SHA384:'
+                                # 'ECDHE-ECDSA-AES256-GCM-SHA384:'
+                                # 'ECDHE-RSA-AES256-GCM-SHA384:'
                                 'DHE-RSA-AES128-GCM-SHA256:'
-                                'DHE-RSA-AES256-GCM-SHA384:'
+                                # 'DHE-RSA-AES256-GCM-SHA384:'
 
                                 # CBC modes
                                 'ECDHE-RSA-AES128-SHA256:'
@@ -197,17 +211,29 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
                         # Without a curve being set, ECDH won't be available even if listed
                         # in acceptable ciphers!
+                        #
                         # The curves available in OpenSSL can be listed: openssl ecparam -list_curves
+                        #
+                        # prime256v1: X9.62/SECG curve over a 256 bit prime field
+                        #
+                        # This is elliptic curve "NIST P-256" from here
+                        # http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
+                        #
+                        # This seems to be the most widely used curve
+                        #
+                        # http://crypto.stackexchange.com/questions/11310/with-openssl-and-ecdhe-how-to-show-the-actual-curve-being-used
+                        #
+                        # and researchers think it is "ok" (other than wrt timing attacks etc)
+                        #
+                        # https://twitter.com/hyperelliptic/status/394258454342148096
+                        #
                         if ctx._ecCurve is None:
-                            log.warn("OpenSSL failed to set ECDH default curve")
+                            log.warn("OpenSSL failed to set default elliptic curve - EC-modes will be unavailable!")
                         else:
-                            if ctx._ecCurve != "prime256v1":
-                                log.info(
-                                    "Ok, OpenSSL is using ECDH elliptic curve {curve}",
-                                    curve=ctx._ecCurve.snName,
-                                )
+                            if ctx._ecCurve.snName != "prime256v1":
+                                log.info("OpenSSL is using elliptic curve {curve}", curve=ctx._ecCurve.snName)
                             else:
-                                log.info("Ok, OpenSSL is using common ECDH elliptic curve 'prime256v1'")
+                                log.info("OpenSSL is using most common elliptic curve (prime256v1 / NIST P-256)")
 
                 # create a TLS server endpoint
                 #
