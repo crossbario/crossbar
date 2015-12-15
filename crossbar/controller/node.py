@@ -179,6 +179,7 @@ class Node(object):
             realm = cdc_config['realm']
 
             extra = {
+                'node': self,
                 'onready': Deferred(),
                 'onexit': Deferred(),
 
@@ -241,7 +242,7 @@ class Node(object):
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
         if self._manager:
-            self._bridge_session = NodeManagementBridgeSession(cfg, self._manager)
+            self._bridge_session = NodeManagementBridgeSession(cfg, self, self._manager)
             self._router_session_factory.add(self._bridge_session, authrole=u'trusted')
         else:
             self._bridge_session = None

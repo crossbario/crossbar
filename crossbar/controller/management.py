@@ -81,6 +81,15 @@ class NodeManagementSession(ApplicationSession):
     def onDisconnect(self):
         self.log.debug("CDC session disconnected")
 
+        node = self.config.extra['node']
+
+        # FIXME: the node shutdown behavior should be more sophisticated than this!
+        shutdown_on_cdc_lost = True
+
+        if shutdown_on_cdc_lost:
+            if node._controller:
+                node._controller.shutdown()
+
 
 class NodeManagementBridgeSession(ApplicationSession):
 
@@ -94,7 +103,7 @@ class NodeManagementBridgeSession(ApplicationSession):
 
     log = make_logger()
 
-    def __init__(self, config, manager):
+    def __init__(self, config, node, manager):
         """
 
         :param config: Session configuration.
@@ -103,6 +112,7 @@ class NodeManagementBridgeSession(ApplicationSession):
         :type manager: instance of `autobahn.wamp.protocol.ApplicationSession`
         """
         ApplicationSession.__init__(self, config)
+        self._node = node
         self._manager = manager
         self._regs = {}
 
@@ -114,7 +124,11 @@ class NodeManagementBridgeSession(ApplicationSession):
         # setup event forwarding
         #
         @inlineCallbacks
-        def on_event(*args, **kwargs):
+        def on_management_event(*args, **kwargs):
+            if not self._manager.is_attached():
+                self.log.warn("Can't foward management event: CDC session not attached")
+                return
+
             details = kwargs.pop('details')
 
             # a node local event such as 'crossbar.node.on_ready' is mogrified to 'local.crossbar.node.on_ready'
@@ -126,11 +140,11 @@ class NodeManagementBridgeSession(ApplicationSession):
             try:
                 yield self._manager.publish(topic, *args, options=PublishOptions(acknowledge=True), **kwargs)
             except Exception as e:
-                self.log.error("Failed to forward-publish management event on topic '{topic}': {error}", topic=topic, error=e)
+                self.log.error("Failed to forward event on topic '{topic}': {error}", topic=topic, error=e)
             else:
-                self.log.debug("Forwarded event on topic '{topic}'", topic=topic)
+                self.log.debug("Forwarded management event on topic '{topic}'", topic=topic)
 
-        yield self.subscribe(on_event, u"crossbar.node", options=SubscribeOptions(match=u"prefix", details_arg="details"))
+        yield self.subscribe(on_management_event, u"crossbar.node", options=SubscribeOptions(match=u"prefix", details_arg="details"))
 
         # setup call forwarding
         #
