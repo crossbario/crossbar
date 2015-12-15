@@ -114,8 +114,24 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
         if 'tls' in config:
             if _HAS_TLS:
+                # server private key
                 key_filepath = abspath(join(cbdir, config['tls']['key']))
+                log.info("using server TLS key from {key_filepath}", key_filepath=key_filepath)
+
+                # server certificate (but only the server cert, no chain certs)
                 cert_filepath = abspath(join(cbdir, config['tls']['certificate']))
+                log.info("using server TLS certificate from {cert_filepath}", cert_filepath=cert_filepath)
+
+                # list of certificates that complete your verification chain (but not the
+                # server cert itself)
+                # see: https://twistedmatrix.com/documents/current/api/twisted.internet.ssl.CertificateOptions.html
+                extra_certs_filepaths = None
+                if 'chain_certificates' in config['tls']:
+                    extra_certs_filepaths = []
+                    for f in config['tls']['chain_certificates']:
+                        extra_cert_filepath = abspath(join(cbdir, f))
+                        extra_certs_filepaths.append(extra_cert_filepath)
+                        log.info("using server TLS chain certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
 
                 with open(key_filepath) as key_file:
                     with open(cert_filepath) as cert_file:
@@ -134,16 +150,29 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
                         # create a TLS context factory
                         #
-                        key = key_file.read()
-                        cert = cert_file.read()
-                        ca_certs = None
 
+                        # server key/cert
+                        key = KeyPair.load(key_file.read(), crypto.FILETYPE_PEM).original
+                        cert = Certificate.loadPEM(cert_file.read()).original
+
+                        # chain certificates
+                        if extra_certs_filepaths:
+                            extra_certs = []
+                            for f in extra_certs_filepaths:
+                                with open(f) as extra_cert_file:
+                                    extra_certs.append(Certificate.loadPEM(extra_cert_file.read().original))
+                        else:
+                            extra_certs = None
+
+                        # CA issuing server cert
+                        ca_certs = None
                         if 'ca_certificates' in config['tls']:
                             ca_certs = []
                             for fname in config['tls']['ca_certificates']:
                                 with open(fname, 'r') as f:
                                     ca_certs.append(Certificate.loadPEM(f.read()).original)
 
+                        # chiphers we accept
                         if 'ciphers' in config['tls']:
                             crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(config['tls']['ciphers'])
                         else:
@@ -157,8 +186,9 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                             )
 
                         ctx = CertificateOptions(
-                            privateKey=KeyPair.load(key, crypto.FILETYPE_PEM).original,
-                            certificate=Certificate.loadPEM(cert).original,
+                            privateKey=key,
+                            certificate=cert,
+                            extraCertChain=extra_certs,
                             verify=(ca_certs is not None),
                             caCerts=ca_certs,
                             dhParameters=dh_params,
