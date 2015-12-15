@@ -116,11 +116,11 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
             if _HAS_TLS:
                 # server private key
                 key_filepath = abspath(join(cbdir, config['tls']['key']))
-                log.info("using server TLS key from {key_filepath}", key_filepath=key_filepath)
+                log.info("Loading server TLS key from {key_filepath}", key_filepath=key_filepath)
 
                 # server certificate (but only the server cert, no chain certs)
                 cert_filepath = abspath(join(cbdir, config['tls']['certificate']))
-                log.info("using server TLS certificate from {cert_filepath}", cert_filepath=cert_filepath)
+                log.info("Loading server TLS certificate from {cert_filepath}", cert_filepath=cert_filepath)
 
                 with open(key_filepath) as key_file:
                     with open(cert_filepath) as cert_file:
@@ -152,7 +152,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                                 extra_cert_filepath = abspath(join(cbdir, fname))
                                 with open(extra_cert_filepath, 'r') as f:
                                     extra_certs.append(Certificate.loadPEM(f.read()).original)
-                                log.info("using server TLS chain certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
+                                log.info("Loading server TLS chain certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
 
                         # list of certificate authority certificate objects to use to verify the peer's certificate
                         ca_certs = None
@@ -162,19 +162,27 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                                 ca_cert_filepath = abspath(join(cbdir, fname))
                                 with open(ca_cert_filepath, 'r') as f:
                                     ca_certs.append(Certificate.loadPEM(f.read()).original)
-                                log.info("using server TLS CA certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
+                                log.info("Loading server TLS CA certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
 
                         # chiphers we accept
+                        # https://wiki.mozilla.org/Talk:Security/Server_Side_TLS
                         if 'ciphers' in config['tls']:
                             crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(config['tls']['ciphers'])
                         else:
                             crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
+                                # AEAD modes (GCM)
+                                'ECDHE-ECDSA-AES128-GCM-SHA256:'
                                 'ECDHE-RSA-AES128-GCM-SHA256:'
+                                'ECDHE-ECDSA-AES256-GCM-SHA384:'
+                                'ECDHE-RSA-AES256-GCM-SHA384:'
                                 'DHE-RSA-AES128-GCM-SHA256:'
+                                'DHE-RSA-AES256-GCM-SHA384:'
+
+                                # CBC modes
                                 'ECDHE-RSA-AES128-SHA256:'
                                 'DHE-RSA-AES128-SHA256:'
                                 'ECDHE-RSA-AES128-SHA:'
-                                'DHE-RSA-AES128-SHA'
+                                'DHE-RSA-AES128-SHA:'
                             )
 
                         ctx = CertificateOptions(
@@ -186,13 +194,20 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                             dhParameters=dh_params,
                             acceptableCiphers=crossbar_ciphers,
                         )
+
+                        # Without a curve being set, ECDH won't be available even if listed
+                        # in acceptable ciphers!
+                        # The curves available in OpenSSL can be listed: openssl ecparam -list_curves
                         if ctx._ecCurve is None:
                             log.warn("OpenSSL failed to set ECDH default curve")
                         else:
-                            log.info(
-                                "Ok, OpenSSL is using ECDH elliptic curve {curve}",
-                                curve=ctx._ecCurve.snName,
-                            )
+                            if ctx._ecCurve != "prime256v1":
+                                log.info(
+                                    "Ok, OpenSSL is using ECDH elliptic curve {curve}",
+                                    curve=ctx._ecCurve.snName,
+                                )
+                            else:
+                                log.info("Ok, OpenSSL is using common ECDH elliptic curve 'prime256v1'")
 
                 # create a TLS server endpoint
                 #
