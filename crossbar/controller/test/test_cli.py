@@ -49,6 +49,10 @@ import twisted
 
 class CLITestBase(TestCase):
 
+    # the tests here a mostly bogus, as they test for log message content,
+    # not actual functionality
+    skip = True
+
     def setUp(self):
 
         self._subprocess_timeout = 15
@@ -113,6 +117,7 @@ class StartTests(CLITestBase):
     """
     Tests for `crossbar start`.
     """
+
     def setUp(self):
 
         CLITestBase.setUp(self)
