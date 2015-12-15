@@ -160,13 +160,14 @@ class Node(object):
             else:
                 transport = {
                     "type": "websocket",
-                    "url": "wss://cdc.crossbario.com/ws",
+                    "url": "wss://devops.crossbario.com/ws",
                     "endpoint": {
                         "type": "tcp",
-                        "host": "cdc.crossbario.com",
+                        "host": "devops.crossbario.com",
                         "port": 443,
                         "timeout": 5,
                         "tls": {
+                            "hostname": "devops.crossbario.com"
                         }
                     }
                 }
@@ -184,7 +185,8 @@ class Node(object):
                 'authkey': devops_config['key']
             }
 
-            runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra, debug_wamp=False)
+            runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra,
+                                       debug=False, debug_wamp=False)
             runner.run(NodeManagementSession, start_reactor=False)
 
             # wait until we have attached to the uplink CDC
