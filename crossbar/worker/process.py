@@ -125,13 +125,23 @@ def run():
     globalLogPublisher.addObserver(flo)
     start_logging()
 
+    # we use an Autobahn utility to import the "best" available Twisted reactor
+    #
+    from autobahn.twisted.choosereactor import install_reactor
+    reactor = install_reactor(options.reactor)
+
+    from twisted.python.reflect import qual
+    log.info("Worker process starting ({python}-{reactor}) ..",
+             python=platform.python_implementation(),
+             reactor=qual(reactor.__class__).split('.')[-1])
+
+    # set process title if requested to
+    #
     try:
         import setproctitle
     except ImportError:
         log.debug("Could not set worker process title (setproctitle not installed)")
     else:
-        # set process title if requested to
-        #
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
@@ -142,16 +152,8 @@ def run():
             }
             setproctitle.setproctitle(WORKER_TYPE_TO_TITLE[options.type].strip())
 
-    # we use an Autobahn utility to import the "best" available Twisted reactor
+    # node directory
     #
-    from autobahn.twisted.choosereactor import install_reactor
-    reactor = install_reactor(options.reactor)
-
-    from twisted.python.reflect import qual
-    log.info("Worker running under {python}-{reactor}",
-             python=platform.python_implementation(),
-             reactor=qual(reactor.__class__).split('.')[-1])
-
     options.cbdir = os.path.abspath(options.cbdir)
     os.chdir(options.cbdir)
     # log.msg("Starting from node directory {}".format(options.cbdir))

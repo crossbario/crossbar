@@ -523,12 +523,15 @@ def run_command_start(options, reactor=None):
 
     bannerFormat = "{:>12} {:<24}"
     log.info(bannerFormat.format("Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
-    # log.info(bannerFormat.format("Python:", click.style(platform.python_implementation(), fg='yellow', bold=True)))
-    # log.info(bannerFormat.format("Reactor:", click.style(qual(reactor.__class__).split('.')[-1], fg='yellow', bold=True)))
-    # log.info(bannerFormat.format("Started:", click.style(utcnow(), fg='yellow', bold=True)))
     log.info()
 
-    log.info("Starting from node directory {}".format(options.cbdir))
+    log.info("Running from node directory '{cbdir}'", cbdir=options.cbdir)
+
+    from twisted.python.reflect import qual
+    log.info("Controller process starting ({python}-{reactor}) ..",
+             python=platform.python_implementation(),
+             reactor=qual(reactor.__class__).split('.')[-1])
+
     # relative path validation won't work if we aren't in our
     # working-dir when doing the validation
     os.chdir(options.cbdir)
@@ -821,16 +824,15 @@ def run(prog=None, args=None, reactor=None):
     # Crossbar.io node configuration file
     #
     if hasattr(options, 'config'):
+        # if not explicit config filename is given, try to auto-detect .
         if not options.config:
             for f in ['config.json', 'config.yaml']:
-                f = os.path.join(options.cbdir, f)
-                if os.path.isfile(f) and os.access(f, os.R_OK):
+                fn = os.path.join(options.cbdir, f)
+                if os.path.isfile(fn) and os.access(fn, os.R_OK):
                     options.config = f
                     break
             if not options.config:
                 raise Exception("No config file specified, and neither CBDIR/config.json nor CBDIR/config.yaml exists")
-        else:
-            options.config = os.path.join(options.cbdir, options.config)
 
     # Log directory
     #

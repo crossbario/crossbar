@@ -104,14 +104,19 @@ class Node(object):
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
 
-    def load(self, configfile=u'config.json'):
+    def load(self, configfile):
         """
         Check and load the node configuration (usually, from ".crossbar/config.json").
         """
-        configfile = os.path.join(self._cbdir, configfile)
-        self.log.info("Loading node configuration from {configfile}",
+        configpath = os.path.join(self._cbdir, configfile)
+
+        self.log.debug("Loading node configuration from '{configpath}' ..",
+                       configpath=configpath)
+
+        self._config = checkconfig.check_config_file(configpath, silence=True)
+
+        self.log.info("Node configuration loaded from '{configfile}'",
                       configfile=configfile)
-        self._config = checkconfig.check_config_file(configfile, silence=True)
 
     @inlineCallbacks
     def start(self):
@@ -148,13 +153,13 @@ class Node(object):
 
         # standalone vs managed mode
         #
-        if 'devops' in controller_config:
+        if 'cdc' in controller_config:
 
-            devops_config = controller_config['devops']
+            cdc_config = controller_config['cdc']
 
             # connecting transport configuration for uplink to management app
-            if 'transport' in devops_config:
-                transport = devops_config['transport']
+            if 'transport' in cdc_config:
+                transport = cdc_config['transport']
             else:
                 transport = {
                     "type": "websocket",
@@ -170,8 +175,8 @@ class Node(object):
                     }
                 }
 
-            # the node's devops (management) realm
-            realm = devops_config['realm']
+            # the node's cdc (management) realm
+            realm = cdc_config['realm']
 
             extra = {
                 'onready': Deferred(),
@@ -181,14 +186,14 @@ class Node(object):
                 # using WAMP-CRA authentication
                 # WAMP
                 'authid': self._node_id,
-                'authkey': devops_config['key']
+                'authkey': cdc_config['key']
             }
 
             runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra,
                                        debug=False, debug_wamp=False)
 
             try:
-                self.log.info("Connecting to {url} at {realm}", url=transport['url'], realm=realm)
+                self.log.info("CDC connecting to {url} ..", url=transport['url'])
                 yield runner.run(NodeManagementSession, start_reactor=False)
 
                 # wait until we have attached to the uplink CDC

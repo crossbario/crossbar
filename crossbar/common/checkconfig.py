@@ -2358,7 +2358,7 @@ def check_controller(controller, silence=False):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'manhole', 'devops', 'connections']:
+        if k not in ['id', 'options', 'manhole', 'cdc', 'connections']:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -2370,8 +2370,8 @@ def check_controller(controller, silence=False):
     if 'manhole' in controller:
         check_manhole(controller['manhole'])
 
-    if 'devops' in controller:
-        check_devops(controller['devops'])
+    if 'cdc' in controller:
+        check_cdc(controller['cdc'])
         mode = NODE_RUN_MANAGED
     else:
         mode = NODE_RUN_STANDALONE
@@ -2384,23 +2384,23 @@ def check_controller(controller, silence=False):
     return mode
 
 
-def check_devops(devops, silence=False):
+def check_cdc(config, silence=False):
     """
-    Check a node devops configuration item.
+    Check a node CDC configuration item.
 
-    :param devops: The devops configuration to check.
-    :type devops: dict
+    :param config: The CDC configuration to check.
+    :type config: dict
     """
-    if not isinstance(devops, dict):
-        raise InvalidConfigException("'devops' items must be dictionaries ({} encountered)\n\n{}".format(type(devops), pformat(devops)))
+    if not isinstance(config, dict):
+        raise InvalidConfigException("'config' item with CDC configuration must of type dictionary ({} encountered)\n\n{}".format(type(config), pformat(config)))
 
     check_dict_args({
         'key': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
         'transport': (True, [dict]),
-    }, devops, "invalid 'devops' configuration")
+    }, config, "invalid 'config' configuration")
 
-    check_connecting_transport(devops['transport'])
+    check_connecting_transport(config['transport'])
 
 
 def check_config(config, silence=False):
