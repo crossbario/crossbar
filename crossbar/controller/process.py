@@ -420,8 +420,9 @@ class NodeControllerSession(NativeProcessSession):
         #
         if 'reactor' in options and sys.platform in options['reactor']:
             args.extend(['--reactor', options['reactor'][sys.platform]])
-        elif self._node.options.reactor:
-            args.extend(['--reactor', self._node.options.reactor])
+        # FIXME
+        # elif self._node.options.reactor:
+        #    args.extend(['--reactor', self._node.options.reactor])
 
         # create worker process environment
         #

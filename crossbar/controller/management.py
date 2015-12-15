@@ -94,16 +94,16 @@ class NodeManagementBridgeSession(ApplicationSession):
 
     log = make_logger()
 
-    def __init__(self, config, management_session):
+    def __init__(self, config, manager):
         """
 
         :param config: Session configuration.
         :type config: instance of `autobahn.wamp.types.ComponentConfig`
-        :param management_session: uplink session.
-        :type management_session: instance of `autobahn.wamp.protocol.ApplicationSession`
+        :param manager: uplink session.
+        :type manager: instance of `autobahn.wamp.protocol.ApplicationSession`
         """
         ApplicationSession.__init__(self, config)
-        self._management_session = management_session
+        self._manager = manager
         self._regs = {}
 
     @inlineCallbacks
@@ -124,7 +124,7 @@ class NodeManagementBridgeSession(ApplicationSession):
             topic = u"local.{}".format(details.topic)
 
             try:
-                yield self._management_session.publish(topic, *args, options=PublishOptions(acknowledge=True), **kwargs)
+                yield self._manager.publish(topic, *args, options=PublishOptions(acknowledge=True), **kwargs)
             except Exception as e:
                 self.log.error("Failed to forward-publish management event on topic '{topic}': {error}", topic=topic, error=e)
             else:
@@ -146,7 +146,7 @@ class NodeManagementBridgeSession(ApplicationSession):
                 return self.call(registration['uri'], *args, **kwargs)
 
             try:
-                reg = yield self._management_session.register(forward_call, procedure)
+                reg = yield self._manager.register(forward_call, procedure)
             except Exception as e:
                 self.log.error("Failed to register management procedure '{procedure}': {error}", procedure=procedure, error=e)
             else:

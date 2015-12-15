@@ -535,35 +535,42 @@ def run_command_start(options, reactor=None):
 
     from crossbar.controller.node import Node
     from crossbar.common.checkconfig import InvalidConfigException
-    node = Node(reactor, options)
 
+    # represents the running Crossbar.io node
+    #
+    node = Node(options.cbdir, reactor=reactor)
+
+    # check and load the node configuration
+    #
     try:
-        node.check_config()
+        node.load(options.config)
     except InvalidConfigException as e:
-        log.error("*** Configuration validation failed ***")
+        log.error("Invalid node configuration")
         log.error("{e!s}", e=e)
         sys.exit(1)
     except:
         raise
 
+    # now actually start the node ..
+    #
     def start_crossbar():
-        """
-        Start the crossbar node.
-        """
         d = node.start()
 
         def on_error(err):
-            log.error("Could not start node: {error}", error=err.value)
+            log.error("{e!s}", e=err.value)
+            log.error("Could not start node")
             if reactor.running:
                 reactor.stop()
         d.addErrback(on_error)
+
     reactor.callWhenRunning(start_crossbar)
 
+    # enter event loop
+    #
     try:
-        log.info("Entering reactor event loop...")
         reactor.run()
     except Exception:
-        log.failure("Could not start reactor: {log_failure.value}")
+        log.failure("Could not start reactor - {log_failure.value}")
 
 
 def run_command_restart(options, **kwargs):

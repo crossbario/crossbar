@@ -68,26 +68,21 @@ class Node(object):
 
     log = make_logger()
 
-    def __init__(self, reactor, options):
+    def __init__(self, cbdir=None, reactor=None):
         """
-        Ctor.
 
+        :param cbdir: The node directory to run from.
+        :type cbdir: unicode
         :param reactor: Reactor to run on.
-        :type reactor: obj
-        :param options: Options from command line.
-        :type options: obj
+        :type reactor: obj or None
         """
-        # the reactor under which we run
-        self._reactor = reactor
-
-        # options saved from command line
-        self.options = options
-
-        # shortname for reactor to run (when given via explicit option) or None
-        self._reactor_shortname = options.reactor
-
         # node directory
-        self._cbdir = options.cbdir
+        self._cbdir = cbdir or u'.'
+
+        # reactor we should run on
+        if reactor is None:
+            from twisted.internet import reactor
+        self._reactor = reactor
 
         # the node's name (must be unique within the management realm)
         self._node_id = None
@@ -95,28 +90,26 @@ class Node(object):
         # the node's management realm
         self._realm = None
 
-        # node controller session (a singleton ApplicationSession embedded
-        # in the node's management router)
-        self._controller = None
-
         # config of this node.
         self._config = None
 
-        # if run in "managed mode", this will contain the uplink WAMP session
+        # node controller session (a singleton ApplicationSession embedded
+        # in the local node router)
+        self._controller = None
+
+        # when run in "managed mode", this will hold the uplink WAMP session
         # from the node controller to the mananagement application
-        self._management_session = None
+        self._manager = None
 
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
 
-    def check_config(self):
+    def load(self, configfile=u'config.json'):
         """
-        Check the configuration of this node.
+        Check and load the node configuration (usually, from ".crossbar/config.json").
         """
-        # for now, a node is always started from a local configuration
-        #
-        configfile = os.path.join(self.options.cbdir, self.options.config)
-        self.log.info("Loading node configuration file '{configfile}'",
+        configfile = os.path.join(self._cbdir, configfile)
+        self.log.info("Loading node configuration from {configfile}",
                       configfile=configfile)
         self._config = checkconfig.check_config_file(configfile, silence=True)
 
@@ -127,22 +120,27 @@ class Node(object):
         processes as needed.
         """
         if not self._config:
-            self.check_config()
+            raise Exception("No node configuration loaded")
 
         controller_config = self._config.get('controller', {})
-
         controller_options = controller_config.get('options', {})
 
-        controller_title = controller_options.get('title', 'crossbar-controller')
-
+        # set controller process title
+        #
         try:
             import setproctitle
         except ImportError:
             self.log.warn("Warning, could not set process title (setproctitle not installed)")
         else:
-            setproctitle.setproctitle(controller_title)
+            setproctitle.setproctitle(controller_options.get('title', 'crossbar-controller'))
 
-        # the node's name (must be unique within the management realm)
+        # the node's local realm
+        #
+        self._realm = controller_config.get('realm', 'crossbar')
+
+        # the node's name (must be unique within the management realm when running
+        # in "managed mode")
+        #
         if 'id' in controller_config:
             self._node_id = controller_config['id']
         else:
@@ -172,6 +170,7 @@ class Node(object):
                     }
                 }
 
+            # the node's devops (management) realm
             realm = devops_config['realm']
 
             extra = {
@@ -180,25 +179,30 @@ class Node(object):
 
                 # authentication information for connecting to uplink CDC router
                 # using WAMP-CRA authentication
-                #
+                # WAMP
                 'authid': self._node_id,
                 'authkey': devops_config['key']
             }
 
             runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra,
                                        debug=False, debug_wamp=False)
-            runner.run(NodeManagementSession, start_reactor=False)
 
-            # wait until we have attached to the uplink CDC
-            self._management_session = yield extra['onready']
+            try:
+                self.log.info("Connecting to {url} at {realm}", url=transport['url'], realm=realm)
+                yield runner.run(NodeManagementSession, start_reactor=False)
+
+                # wait until we have attached to the uplink CDC
+                self._manager = yield extra['onready']
+            except Exception as e:
+                raise Exception("Could not connect to CDC - {}".format(e))
 
             # in managed mode, a node - by default - only shuts down when explicitly asked to,
             # or upon a fatal error in the node controller
             self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED]
 
-            self.log.info("Node is connected to Crossbar.io DevOps Center (CDC)")
+            self.log.info("Connected to Crossbar.io DevOps Center (CDC)")
         else:
-            self._management_session = None
+            self._manager = None
 
             # in standalone mode, a node - by default - is immediately shutting down whenever
             # a worker exits (successfully or with error)
@@ -211,9 +215,6 @@ class Node(object):
             self._node_shutdown_triggers = controller_options['shutdown']
         else:
             self.log.info("Using default node shutdown triggers {}".format(self._node_shutdown_triggers))
-
-        # the node's management realm
-        self._realm = controller_config.get('realm', 'crossbar')
 
         # router and factory that creates router sessions
         #
@@ -234,8 +235,8 @@ class Node(object):
         rlm.session = RouterServiceSession(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
-        if self._management_session:
-            self._bridge_session = NodeManagementBridgeSession(cfg, self._management_session)
+        if self._manager:
+            self._bridge_session = NodeManagementBridgeSession(cfg, self._manager)
             self._router_session_factory.add(self._bridge_session, authrole=u'trusted')
         else:
             self._bridge_session = None
@@ -258,7 +259,7 @@ class Node(object):
                 self.log.info("WAMPlet {dist}.{name}",
                               dist=wpl['dist'], name=wpl['name'])
         else:
-            self.log.info("No WAMPlets detected in enviroment.")
+            self.log.debug("No WAMPlets detected in enviroment.")
 
         panic = False
 
@@ -279,8 +280,6 @@ class Node(object):
 
     @inlineCallbacks
     def _startup(self, config):
-        # Setup node according to the local configuration provided.
-
         # fake call details information when calling into
         # remoted procedure locally
         #
@@ -386,7 +385,7 @@ class Node(object):
                             cnt_files = 0
                             cnt_decls = 0
                             for schema_file in realm.pop('schemas'):
-                                schema_file = os.path.join(self.options.cbdir, schema_file)
+                                schema_file = os.path.join(self._cbdir, schema_file)
                                 self.log.info("{worker}: processing WAMP-flavored Markdown file {schema_file} for WAMP schema declarations",
                                               worker=worker_logname, schema_file=schema_file)
                                 with open(schema_file, 'r') as f:
@@ -550,17 +549,6 @@ class Node(object):
 
                     yield self._controller.call('crossbar.node.{}.worker.{}.start_websocket_testee_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
                     self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
-
-                    # for transport in worker['transports']:
-
-                    #     if 'id' in transport:
-                    #         transport_id = transport.pop('id')
-                    #     else:
-                    #         transport_id = 'transport{}'.format(transport_no)
-                    #         transport_no += 1
-
-                    #     yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
-                    #     self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
 
                 else:
                     raise Exception("logic error")
