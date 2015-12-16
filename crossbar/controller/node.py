@@ -38,6 +38,7 @@ import socket
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.ssl import optionsForClientTLS
 
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
@@ -177,6 +178,10 @@ class Node(object):
 
             # the node's cdc (management) realm
             realm = cdc_config['realm']
+            hostname = 'devops.crossbario.com'
+            if 'tls' in transport['endpoint']:
+                if 'hostname' in transport['endpoint']['tls']:
+                    hostname = transport['endpoint']['tls']['hostname']
 
             extra = {
                 'node': self,
@@ -190,8 +195,11 @@ class Node(object):
                 'authkey': cdc_config['key']
             }
 
-            runner = ApplicationRunner(url=transport['url'], realm=realm, extra=extra,
-                                       debug=False, debug_wamp=False)
+            runner = ApplicationRunner(
+                url=transport['url'], realm=realm, extra=extra,
+                ssl=optionsForClientTLS(hostname),
+                debug=False, debug_wamp=False,
+            )
 
             try:
                 self.log.info("CDC connecting to {url} ..", url=transport['url'])
