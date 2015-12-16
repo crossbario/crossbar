@@ -63,9 +63,9 @@ def _appsession_loader(config):
                     u"crossbar.error.class_import_failed", "session not derived of ApplicationSession"
                 )
 
-        except Exception as e:
+        except Exception:
             emsg = "Failed to import class '{}'\n{}".format(
-                klassname, Failure(e).getTraceback())
+                klassname, Failure().getTraceback())
             log.debug(emsg)
             log.debug("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
             raise ApplicationError(
@@ -86,9 +86,9 @@ def _appsession_loader(config):
             component = pkg_resources.load_entry_point(
                 dist, 'autobahn.twisted.wamplet', name)
 
-        except Exception as e:
+        except Exception:
             emsg = "Failed to import wamplet '{}/{}'\n{}".format(
-                dist, name, Failure(e).getTraceback())
+                dist, name, Failure().getTraceback())
             log.error(emsg)
             raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
 
