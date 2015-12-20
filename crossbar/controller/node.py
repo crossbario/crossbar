@@ -149,10 +149,10 @@ class Node(object):
         #
         if 'id' in controller_config:
             self._node_id = controller_config['id']
-            self.log.info("Node id set from config: {node_id}", node_id=node_id)
+            self.log.info("Node ID '{node_id}' set from config", node_id=self._node_id)
         else:
             self._node_id = u'{}'.format(socket.gethostname())
-            self.log.info("Node id set from hostname: {node_id}", node_id=self._node_id)
+            self.log.info("Node ID '{node_id}' set from hostname", node_id=self._node_id)
 
         # standalone vs managed mode
         #
