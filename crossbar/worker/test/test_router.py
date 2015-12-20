@@ -56,6 +56,9 @@ else:
     WSGI_TESTS = False
 
 
+WSGI_TESTS = True
+
+
 class DottableDict(dict):
     def __getattr__(self, name):
         return self[name]
@@ -98,6 +101,8 @@ class FakeWAMPTransport(object):
 
 
 class RouterWorkerSessionTests(TestCase):
+
+    skip = True
 
     def setUp(self):
         """

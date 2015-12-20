@@ -227,14 +227,14 @@ class _RouterSession(BaseSession):
 
     log = make_logger()
 
-    def __init__(self, routerFactory):
+    def __init__(self, router_factory):
         """
         Constructor.
         """
         BaseSession.__init__(self)
         self._transport = None
 
-        self._router_factory = routerFactory
+        self._router_factory = router_factory
         self._router = None
         self._realm = None
 
@@ -274,7 +274,7 @@ class _RouterSession(BaseSession):
             if not self._pending_session_id:
                 self._pending_session_id = util.id()
 
-            def welcome(realm, authid=None, authrole=None, authmethod=None, authprovider=None):
+            def welcome(realm, authid=None, authrole=None, authmethod=None, authprovider=None, custom_details=None):
                 self._session_id = self._pending_session_id
                 self._pending_session_id = None
                 self._goodbye_sent = False
@@ -290,7 +290,7 @@ class _RouterSession(BaseSession):
 
                 roles = self._router.attach(self)
 
-                msg = message.Welcome(self._session_id, roles, authid=authid, authrole=authrole, authmethod=authmethod, authprovider=authprovider)
+                msg = message.Welcome(self._session_id, roles, authid=authid, authrole=authrole, authmethod=authmethod, authprovider=authprovider, custom_details=custom_details)
                 self._transport.send(msg)
 
                 self.onJoin(SessionDetails(self._realm, self._session_id, self._authid, self._authrole, self._authmethod, self._authprovider))
@@ -309,7 +309,10 @@ class _RouterSession(BaseSession):
                     msg = None
 
                     if isinstance(res, types.Accept):
-                        welcome(self._realm, res.authid, res.authrole, res.authmethod, res.authprovider)
+                        custom_details = {
+                            u'x_cb_node_id': self._router_factory._node_id
+                        }
+                        welcome(self._realm, res.authid, res.authrole, res.authmethod, res.authprovider, custom_details)
 
                     elif isinstance(res, types.Challenge):
                         msg = message.Challenge(res.method, res.extra)
@@ -333,7 +336,10 @@ class _RouterSession(BaseSession):
                     msg = None
 
                     if isinstance(res, types.Accept):
-                        welcome(self._realm, res.authid, res.authrole, res.authmethod, res.authprovider)
+                        custom_details = {
+                            u'x_cb_node_id': self._router_factory._node_id
+                        }
+                        welcome(self._realm, res.authid, res.authrole, res.authmethod, res.authprovider, custom_details)
 
                     elif isinstance(res, types.Deny):
                         msg = message.Abort(res.reason, res.message)

@@ -58,7 +58,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         """
 
         # create a router factory
-        self.router_factory = RouterFactory()
+        self.router_factory = RouterFactory(u'mynode')
 
         # start a realm
         self.router_factory.start_realm(RouterRealm(None, {u'name': u'realm1'}))

@@ -39,6 +39,8 @@ import platform
 import signal
 import sys
 
+import six
+
 from twisted.python.reflect import qual
 
 from autobahn.twisted.choosereactor import install_reactor
@@ -258,6 +260,14 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         msgpack_ver = '-'
 
+    # CBOR Serializer
+    #
+    try:
+        import cbor  # noqa
+        cbor_ver = 'cbor-%s' % pkg_resources.require('cbor')[0].version
+    except ImportError:
+        cbor_ver = '-'
+
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
@@ -276,6 +286,7 @@ def run_command_version(options, reactor=None, **kwargs):
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
     log.info("     JSON Codec     : {ver}", ver=decorate(json_ver))
     log.info("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
+    log.info("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver),
@@ -680,12 +691,12 @@ def run(prog=None, args=None, reactor=None):
     parser_init.set_defaults(func=run_command_init)
 
     parser_init.add_argument('--template',
-                             type=str,
+                             type=six.text_type,
                              default='default',
                              help="Template for initialization")
 
     parser_init.add_argument('--appdir',
-                             type=str,
+                             type=six.text_type,
                              default=None,
                              help="Application base directory where to create app and node from template.")
 
@@ -704,17 +715,17 @@ def run(prog=None, args=None, reactor=None):
     parser_start.set_defaults(func=run_command_start)
 
     parser_start.add_argument('--cbdir',
-                              type=str,
+                              type=six.text_type,
                               default=None,
                               help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser_start.add_argument('--config',
-                              type=str,
+                              type=six.text_type,
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
     parser_start.add_argument('--logdir',
-                              type=str,
+                              type=six.text_type,
                               default=None,
                               help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
 
@@ -726,7 +737,7 @@ def run(prog=None, args=None, reactor=None):
                               **loglevel_args)
 
     parser_start.add_argument('--logformat',
-                              type=str,
+                              type=six.text_type,
                               default='colour',
                               choices=['syslogd', 'nocolour', 'colour'],
                               help="The format of the logs -- suitable for syslogd, not coloured, or coloured.")
@@ -737,7 +748,7 @@ def run(prog=None, args=None, reactor=None):
                                         help='Stop a Crossbar.io node.')
 
     parser_stop.add_argument('--cbdir',
-                             type=str,
+                             type=six.text_type,
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
@@ -749,7 +760,7 @@ def run(prog=None, args=None, reactor=None):
                                            help='Restart a Crossbar.io node.')
 
     parser_restart.add_argument('--cbdir',
-                                type=str,
+                                type=six.text_type,
                                 default=None,
                                 help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
@@ -761,7 +772,7 @@ def run(prog=None, args=None, reactor=None):
                                           help='Checks whether a Crossbar.io node is running.')
 
     parser_status.add_argument('--cbdir',
-                               type=str,
+                               type=six.text_type,
                                default=None,
                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
@@ -777,12 +788,12 @@ def run(prog=None, args=None, reactor=None):
     parser_check.set_defaults(func=run_command_check)
 
     parser_check.add_argument('--cbdir',
-                              type=str,
+                              type=six.text_type,
                               default=None,
                               help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser_check.add_argument('--config',
-                              type=str,
+                              type=six.text_type,
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
@@ -794,12 +805,12 @@ def run(prog=None, args=None, reactor=None):
     parser_check.set_defaults(func=run_command_convert)
 
     parser_check.add_argument('--cbdir',
-                              type=str,
+                              type=six.text_type,
                               default=None,
                               help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser_check.add_argument('--config',
-                              type=str,
+                              type=six.text_type,
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 

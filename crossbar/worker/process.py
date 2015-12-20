@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, print_function
 
+import six
+
 from twisted.internet.error import ReactorNotRunning
 
 __all__ = ('run',)
@@ -75,22 +77,22 @@ def run():
 
     parser.add_argument('-c',
                         '--cbdir',
-                        type=str,
+                        type=six.text_type,
                         help="Crossbar.io node directory (required).")
 
     parser.add_argument('-n',
                         '--node',
-                        type=str,
+                        type=six.text_type,
                         help='Crossbar.io node ID (required).')
 
     parser.add_argument('-w',
                         '--worker',
-                        type=str,
+                        type=six.text_type,
                         help='Crossbar.io worker ID (required).')
 
     parser.add_argument('-r',
                         '--realm',
-                        type=str,
+                        type=six.text_type,
                         help='Crossbar.io node (management) realm (required).')
 
     parser.add_argument('-t',
@@ -99,7 +101,7 @@ def run():
                         help='Worker type (required).')
 
     parser.add_argument('--title',
-                        type=str,
+                        type=six.text_type,
                         default=None,
                         help='Worker process title to set (optional).')
 

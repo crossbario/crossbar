@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, division, print_function
 
+import six
+
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
@@ -263,12 +265,14 @@ class RouterFactory(object):
     The router class this factory will create router instances from.
     """
 
-    def __init__(self, options=None):
+    def __init__(self, node_id, options=None):
         """
 
         :param options: Default router options.
         :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
         """
+        assert(type(node_id) == six.text_type)
+        self._node_id = node_id
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False

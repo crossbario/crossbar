@@ -253,7 +253,7 @@ class RouterWorkerSession(NativeWorkerSession):
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
         # factory for producing (per-realm) routers
-        self._router_factory = RouterFactory()
+        self._router_factory = RouterFactory(self._node_id)
 
         # factory for producing router sessions
         self._router_session_factory = RouterSessionFactory(self._router_factory)

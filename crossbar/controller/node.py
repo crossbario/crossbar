@@ -151,8 +151,8 @@ class Node(object):
             self._node_id = controller_config['id']
             self.log.info("Node id set from config: {node_id}", node_id=node_id)
         else:
+            self._node_id = u'{}'.format(socket.gethostname())
             self.log.info("Node id set from hostname: {node_id}", node_id=self._node_id)
-            self._node_id = socket.gethostname()
 
         # standalone vs managed mode
         #
@@ -252,7 +252,7 @@ class Node(object):
 
         # router and factory that creates router sessions
         #
-        self._router_factory = RouterFactory()
+        self._router_factory = RouterFactory(self._node_id)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         rlm_config = {
