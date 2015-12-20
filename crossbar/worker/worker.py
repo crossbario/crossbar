@@ -74,6 +74,7 @@ class NativeWorkerSession(NativeProcessSession):
         """
         Called when the worker has connected to the node's management router.
         """
+        self._node_id = self.config.extra.node
         self._uri_prefix = 'crossbar.node.{}.worker.{}'.format(self.config.extra.node, self.config.extra.worker)
 
         NativeProcessSession.onConnect(self, False)
