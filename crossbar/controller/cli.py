@@ -258,6 +258,14 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         msgpack_ver = '-'
 
+    # CBOR Serializer
+    #
+    try:
+        import cbor  # noqa
+        cbor_ver = 'cbor-%s' % pkg_resources.require('cbor')[0].version
+    except ImportError:
+        cbor_ver = '-'
+
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
@@ -276,6 +284,7 @@ def run_command_version(options, reactor=None, **kwargs):
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
     log.info("     JSON Codec     : {ver}", ver=decorate(json_ver))
     log.info("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
+    log.info("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver),
