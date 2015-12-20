@@ -174,7 +174,12 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                         #
                         # We also don't use ECDSA, since EC certificates a rare in the wild.
                         #
+                        # The effective list of ciphers determined from an OpenSSL cipher string:
+                        #
+                        #   openssl ciphers -v 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:'
+                        #
                         # References:
+                        #
                         #  * https://www.ssllabs.com/ssltest/analyze.html?d=myserver.com
                         #  * http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
                         #  * http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
@@ -212,7 +217,9 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                         # Without a curve being set, ECDH won't be available even if listed
                         # in acceptable ciphers!
                         #
-                        # The curves available in OpenSSL can be listed: openssl ecparam -list_curves
+                        # The curves available in OpenSSL can be listed:
+                        #
+                        #   openssl ecparam -list_curves
                         #
                         # prime256v1: X9.62/SECG curve over a 256 bit prime field
                         #
