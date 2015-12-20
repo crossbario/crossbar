@@ -15,18 +15,20 @@ explicitly with the copyright in APIs.
 
 In order to give you certainty about your rights regarding the APIs
 implemented by the code in this project and how they may affect your
-rights in the code itself, we add this explicit API copyright license.
+rights in the code itself, we add this explicit API copyright license regarding the APIs implemented in Crossbar.io.
 
 Nothing in this license is intended to take away rights which the
 open source license to the Program grants you.
 
+The following does not apply to the WAMP meta API as Crossbar.io 
+implements it.
 
                             Definitions
 
 Tavendo (We/Us) - Tavendo GmbH, Germany
 
-Program - The open source project which this license has been
-    applied to. 
+Program - The Crossbar.io WAMP router and any associated code contained
+    in its repository.
 
 API - An interaction surface for external code with the Program, as
     intended by the contributors to the Program. An API is defined
@@ -62,3 +64,15 @@ Licensed usage does not include modifying the program
 Extending an API includes implementing roles for API calls which the
 implemented API does not support, e.g. implementing the caller role for
 an API call where only an endpoint for this call is implemented.
+
+
+                             API Identification
+
+The Crossbar.io APIs include all procedures, events and errors which employ
+URIs having "crossbar." as a prefix.
+
+To help in identifying the copyrighted APIs within Crossbar.io, we include a
+listing of such URIs in the file "management_api.md" in the "legal" folder of 
+this repository. The listing in this file does not constitute a definition 
+of the API, and may omit some URIs, be outdated or otherwise in conflict with 
+the actual currently implemented API.
