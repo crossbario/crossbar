@@ -2384,12 +2384,14 @@ def check_cdc(config, silence=False):
         raise InvalidConfigException("'config' item with CDC configuration must of type dictionary ({} encountered)\n\n{}".format(type(config), pformat(config)))
 
     check_dict_args({
-        'key': (True, [six.text_type]),
-        'realm': (True, [six.text_type]),
-        'transport': (True, [dict]),
-    }, config, "invalid 'config' configuration")
+        'enabled': (True, [bool]),
+        'key': (False, [six.text_type]),
+        'realm': (False, [six.text_type]),
+        'transport': (False, [dict]),
+    }, config, "invalid 'cdc' configuration")
 
-    check_connecting_transport(config['transport'])
+    if 'transport' in config:
+        check_connecting_transport(config['transport'])
 
 
 def check_config(config, silence=False):

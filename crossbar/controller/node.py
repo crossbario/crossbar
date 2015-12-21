@@ -156,7 +156,7 @@ class Node(object):
 
         # standalone vs managed mode
         #
-        if 'cdc' in controller_config:
+        if 'cdc' in controller_config and controller_config['cdc'].get('enabled', False):
 
             cdc_config = controller_config['cdc']
 
@@ -168,44 +168,48 @@ class Node(object):
                     hostname = transport['endpoint']['tls']['hostname']
                 else:
                     raise Exception("TLS activated on CDC connection, but 'hostname' not provided")
+                self.log.warn("CDC transport configuration: overriding from node config!")
             else:
                 transport = {
-                    "type": "websocket",
-                    "url": "wss://devops.crossbario.com/ws",
+                    "type": u"websocket",
+                    "url": u"wss://devops.crossbario.com/ws",
                     "endpoint": {
-                        "type": "tcp",
-                        "host": "devops.crossbario.com",
+                        "type": u"tcp",
+                        "host": u"devops.crossbario.com",
                         "port": 443,
                         "timeout": 5,
                         "tls": {
-                            "hostname": "devops.crossbario.com"
+                            "hostname": u"devops.crossbario.com"
                         }
                     }
                 }
-                hostname = 'devops.crossbario.com'
+                hostname = u'devops.crossbario.com'
+                self.log.info("CDC, connecting to cdc.crossbario.com")
 
             # CDC management realm
             #
             if 'realm' in cdc_config:
                 realm = cdc_config['realm']
+                self.log.info("CDC management realm set from config")
             elif 'CDC_REALM' in os.environ:
-                realm = "{}".format(os.environ['CDC_REALM']).strip()
+                realm = u"{}".format(os.environ['CDC_REALM']).strip()
+                self.log.info("CDC management realm loaded from enviroment variable")
             else:
                 raise Exception("CDC management realm not set - either 'realm' must be set in node configuration, or in CDC_REALM enviroment variable")
 
-            # WAMP-CRA authentication credentials
+            # CDC authentication credentials (for WAMP-CRA)
             #
             authid = self._node_id
             if 'key' in cdc_config:
                 authkey = cdc_config['key']
                 self.log.info("CDC authentication key loaded from config")
             elif 'CDC_KEY' in os.environ:
-                authkey = "{}".format(os.environ['CDC_KEY']).strip()
+                authkey = u"{}".format(os.environ['CDC_KEY']).strip()
                 self.log.info("CDC authentication key loaded from environment variable")
             else:
                 raise Exception("CDC authentication key not set - either 'key' must be set in node configuration, or in CDC_KEY enviroment variable")
 
-            # extra forwarded to CDC client session
+            # extra info forwarded to CDC client session
             #
             extra = {
                 'node': self,
