@@ -245,7 +245,46 @@ class _RouterSession(BaseSession):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onOpen`
         """
+        # this is a WAMP transport instance
         self._transport = transport
+
+        # this is a Twisted stream transport instance
+        stream_transport = self._transport.transport
+
+        from twisted.protocols.tls import TLSMemoryBIOProtocol
+
+        if isinstance(stream_transport, TLSMemoryBIOProtocol):
+
+            def extract_x509(cert):
+                """
+                Extract x509 name components from an OpenSSL X509Name object.
+                """
+                # pkey = cert.get_pubkey()
+
+                result = {
+                    u'sha1': u'{}'.format(cert.digest('sha1')).upper(),
+                    u'sha256': u'{}'.format(cert.digest('sha256')).upper(),
+                    u'expired': cert.has_expired(),
+                    u'hash': cert.subject_name_hash(),
+                    u'serial': cert.get_serial_number(),
+                    u'signature_algorithm': cert.get_signature_algorithm(),
+                    u'version': cert.get_version(),
+                    u'not_before': cert.get_notBefore(),
+                    u'not_after': cert.get_notAfter(),
+                    u'extensions': []
+                }
+                for i in range(cert.get_extension_count()):
+                    ext = cert.get_extension(i)
+#                    print(dir(ext))
+                    print("{} {}".format(ext.get_critical(), ext.get_short_name()))
+                for entity, name in [(u'subject', cert.get_subject()), (u'issuer', cert.get_issuer())]:
+                    result[entity] = {}
+                    for key, value in name.get_components():
+                        result[entity][u'{}'.format(key).upper()] = u'{}'.format(value)
+                return result
+
+            client_cert = self._transport.transport.getPeerCertificate()
+            print(extract_x509(client_cert))
 
         self._realm = None
         self._session_id = None
