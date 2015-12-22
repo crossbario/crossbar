@@ -252,7 +252,7 @@ class _RouterSession(BaseSession):
         # this is a Twisted stream transport instance
         stream_transport = self._transport.transport
 
-        # check if transport is a TLSMemoryBIOProtocol
+        # check if stream_transport is a TLSMemoryBIOProtocol
         if hasattr(stream_transport, 'getPeerCertificate') and ISSLTransport.providedBy(stream_transport):
 
             def extract_x509(cert):
@@ -288,12 +288,15 @@ class _RouterSession(BaseSession):
                 return result
 
             self._client_cert = extract_x509(self._transport.transport.getPeerCertificate())
-            self.log.info("Client connecting with TLS certificate cn='{cert_cn}', sha256={cert_sha256}.., expired={cert_expired}",
-                          cert_cn=self._client_cert['subject']['CN'],
-                          cert_sha256=self._client_cert['sha256'][:12],
-                          cert_expired=self._client_cert['expired'])
+            self.log.debug("Client connecting with TLS certificate cn='{cert_cn}', sha256={cert_sha256}.., expired={cert_expired}",
+                           cert_cn=self._client_cert['subject']['CN'],
+                           cert_sha256=self._client_cert['sha256'][:12],
+                           cert_expired=self._client_cert['expired'])
         else:
             self._client_cert = None
+
+        if self._transport._transport_info:
+            self._transport._transport_info[u'client_cert'] = self._client_cert
 
         self._realm = None
         self._session_id = None
