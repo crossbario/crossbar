@@ -2385,7 +2385,7 @@ def check_cdc(config, silence=False):
 
     check_dict_args({
         'enabled': (True, [bool]),
-        'key': (False, [six.text_type]),
+        'secret': (False, [six.text_type]),
         'realm': (False, [six.text_type]),
         'transport': (False, [dict]),
     }, config, "invalid 'cdc' configuration")

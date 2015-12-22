@@ -105,19 +105,31 @@ class Node(object):
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
 
-    def load(self, configfile):
+    def load(self, configfile=None):
         """
-        Check and load the node configuration (usually, from ".crossbar/config.json").
+        Check and load the node configuration (usually, from ".crossbar/config.json")
+        or load built-in CDC default config.
         """
-        configpath = os.path.join(self._cbdir, configfile)
+        if configfile:
+            configpath = os.path.join(self._cbdir, configfile)
 
-        self.log.debug("Loading node configuration from '{configpath}' ..",
-                       configpath=configpath)
+            self.log.debug("Loading node configuration from '{configpath}' ..",
+                           configpath=configpath)
 
-        self._config = checkconfig.check_config_file(configpath, silence=True)
+            self._config = checkconfig.check_config_file(configpath, silence=True)
 
-        self.log.info("Node configuration loaded from '{configfile}'",
-                      configfile=configfile)
+            self.log.info("Node configuration loaded from '{configfile}'",
+                          configfile=configfile)
+        else:
+            self._config = {
+                u"controller": {
+                    u"cdc": {
+                        u"enabled": True
+                    }
+                }
+            }
+            checkconfig.check_config(self._config)
+            self.log.info("Node configuration loaded from built-in CDC config.")
 
     @inlineCallbacks
     def start(self):
@@ -150,6 +162,9 @@ class Node(object):
         if 'id' in controller_config:
             self._node_id = controller_config['id']
             self.log.info("Node ID '{node_id}' set from config", node_id=self._node_id)
+        elif 'CDC_ID' in os.environ:
+            self._node_id = u'{}'.format(os.environ['CDC_ID'])
+            self.log.info("Node ID '{node_id}' set from environment variable CDC_ID", node_id=self._node_id)
         else:
             self._node_id = u'{}'.format(socket.gethostname())
             self.log.info("Node ID '{node_id}' set from hostname", node_id=self._node_id)
@@ -168,7 +183,7 @@ class Node(object):
                     hostname = transport['endpoint']['tls']['hostname']
                 else:
                     raise Exception("TLS activated on CDC connection, but 'hostname' not provided")
-                self.log.warn("CDC transport configuration: overriding from node config!")
+                self.log.warn("CDC transport configuration overridden from node config!")
             else:
                 transport = {
                     "type": u"websocket",
@@ -184,30 +199,29 @@ class Node(object):
                     }
                 }
                 hostname = u'devops.crossbario.com'
-                self.log.info("CDC, connecting to cdc.crossbario.com")
 
             # CDC management realm
             #
             if 'realm' in cdc_config:
                 realm = cdc_config['realm']
-                self.log.info("CDC management realm set from config")
+                self.log.info("CDC management realm '{realm}' set from config", realm=realm)
             elif 'CDC_REALM' in os.environ:
                 realm = u"{}".format(os.environ['CDC_REALM']).strip()
-                self.log.info("CDC management realm loaded from enviroment variable")
+                self.log.info("CDC management realm '{realm}' set from enviroment variable CDC_REALM", realm=realm)
             else:
                 raise Exception("CDC management realm not set - either 'realm' must be set in node configuration, or in CDC_REALM enviroment variable")
 
             # CDC authentication credentials (for WAMP-CRA)
             #
             authid = self._node_id
-            if 'key' in cdc_config:
-                authkey = cdc_config['key']
-                self.log.info("CDC authentication key loaded from config")
-            elif 'CDC_KEY' in os.environ:
-                authkey = u"{}".format(os.environ['CDC_KEY']).strip()
-                self.log.info("CDC authentication key loaded from environment variable")
+            if 'secret' in cdc_config:
+                authkey = cdc_config['secret']
+                self.log.info("CDC authentication secret loaded from config")
+            elif 'CDC_SECRET' in os.environ:
+                authkey = u"{}".format(os.environ['CDC_SECRET']).strip()
+                self.log.info("CDC authentication secret loaded from environment variable CDC_SECRET")
             else:
-                raise Exception("CDC authentication key not set - either 'key' must be set in node configuration, or in CDC_KEY enviroment variable")
+                raise Exception("CDC authentication secret not set - either 'secret' must be set in node configuration, or in CDC_SECRET enviroment variable")
 
             # extra info forwarded to CDC client session
             #
@@ -226,7 +240,7 @@ class Node(object):
             )
 
             try:
-                self.log.info("CDC connecting to {url} ..", url=transport['url'])
+                self.log.info("Connecting to CDC at '{url}' ..", url=transport['url'])
                 yield runner.run(NodeManagementSession, start_reactor=False)
 
                 # wait until we have attached to the uplink CDC
@@ -238,7 +252,7 @@ class Node(object):
             # or upon a fatal error in the node controller
             self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED]
 
-            self.log.info("Connected to Crossbar.io DevOps Center (CDC)")
+            self.log.info("Connected to Crossbar.io DevOps Center (CDC)! Your node runs in managed mode.")
         else:
             self._manager = None
 
