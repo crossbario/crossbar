@@ -162,7 +162,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
                                 ca_cert_filepath = abspath(join(cbdir, fname))
                                 with open(ca_cert_filepath, 'r') as f:
                                     ca_certs.append(Certificate.loadPEM(f.read()).original)
-                                log.info("Loading server TLS CA certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
+                                log.info("Loading server TLS CA certificate from {ca_cert_filepath}", ca_cert_filepath=ca_cert_filepath)
 
                         # ciphers we accept
                         #
