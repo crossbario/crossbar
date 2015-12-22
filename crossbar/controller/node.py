@@ -129,7 +129,7 @@ class Node(object):
                 }
             }
             checkconfig.check_config(self._config)
-            self.log.info("Node is running in managed mode, using built-in CDC config.")
+            self.log.info("Node configuration loaded from built-in CDC config.")
 
     @inlineCallbacks
     def start(self):
@@ -183,7 +183,7 @@ class Node(object):
                     hostname = transport['endpoint']['tls']['hostname']
                 else:
                     raise Exception("TLS activated on CDC connection, but 'hostname' not provided")
-                self.log.warn("CDC transport configuration: overriding from node config!")
+                self.log.warn("CDC transport configuration overridden from node config!")
             else:
                 transport = {
                     "type": u"websocket",
@@ -199,7 +199,6 @@ class Node(object):
                     }
                 }
                 hostname = u'devops.crossbario.com'
-                self.log.info("CDC, connecting to cdc.crossbario.com")
 
             # CDC management realm
             #
@@ -208,7 +207,7 @@ class Node(object):
                 self.log.info("CDC management realm '{realm}' set from config", realm=realm)
             elif 'CDC_REALM' in os.environ:
                 realm = u"{}".format(os.environ['CDC_REALM']).strip()
-                self.log.info("CDC management realm '{}' set from enviroment variable CDC_REALM", realm=realm)
+                self.log.info("CDC management realm '{realm}' set from enviroment variable CDC_REALM", realm=realm)
             else:
                 raise Exception("CDC management realm not set - either 'realm' must be set in node configuration, or in CDC_REALM enviroment variable")
 
@@ -241,7 +240,7 @@ class Node(object):
             )
 
             try:
-                self.log.info("CDC connecting to {url} ..", url=transport['url'])
+                self.log.info("Connecting to CDC at '{url}' ..", url=transport['url'])
                 yield runner.run(NodeManagementSession, start_reactor=False)
 
                 # wait until we have attached to the uplink CDC
@@ -253,7 +252,7 @@ class Node(object):
             # or upon a fatal error in the node controller
             self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED]
 
-            self.log.info("Connected to Crossbar.io DevOps Center (CDC)")
+            self.log.info("Connected to Crossbar.io DevOps Center (CDC)! Your node runs in managed mode.")
         else:
             self._manager = None
 

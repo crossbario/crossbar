@@ -64,7 +64,7 @@ class NodeManagementSession(ApplicationSession):
             raise Exception("don't know how to compute challenge for authmethod {}".format(challenge.method))
 
     def onJoin(self, details):
-        self.log.info("CDC session joined")
+        self.log.info("CDC uplink (remote leg) ready!")
         self.config.extra['onready'].callback(self)
 
     def onLeave(self, details):
@@ -181,4 +181,4 @@ class NodeManagementBridgeSession(ApplicationSession):
 
         yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
 
-        self.log.info("Management bridge ready!")
+        self.log.info("CDC uplink (local leg) ready!")

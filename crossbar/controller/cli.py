@@ -841,8 +841,10 @@ def run(prog=None, args=None, reactor=None):
         if not options.cbdir:
             if "CROSSBAR_DIR" in os.environ:
                 options.cbdir = os.environ['CROSSBAR_DIR']
-            else:
+            elif os.path.isdir('.crossbar'):
                 options.cbdir = '.crossbar'
+            else:
+                options.cbdir = '.'
         options.cbdir = os.path.abspath(options.cbdir)
 
     # Crossbar.io node configuration file
@@ -856,8 +858,13 @@ def run(prog=None, args=None, reactor=None):
                     options.config = f
                     break
 
-            if not options.config and not options.cdc:
-                raise Exception("No config file specified, and neither CBDIR/config.json nor CBDIR/config.yaml exists")
+            if not options.config:
+                if options.cdc:
+                    # in CDC mode, we will use a built-in default config
+                    # if not overridden from explicit config file
+                    pass
+                else:
+                    raise Exception("No config file specified, and neither CBDIR/config.json nor CBDIR/config.yaml exists")
 
     # Log directory
     #
