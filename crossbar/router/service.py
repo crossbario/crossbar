@@ -307,9 +307,10 @@ class RouterServiceSession(ApplicationSession):
                 registrations_prefix.append(registration.id)
 
         registrations_wildcard = []
-        for registration in registration_map._observations_wildcard.values():
-            if not is_protected_uri(registration.uri):
-                registrations_wildcard.append(registration.id)
+        # FIXME
+        # for registration in registration_map._observations_wildcard.values():
+        #     if not is_protected_uri(registration.uri):
+        #         registrations_wildcard.append(registration.id)
 
         return {
             'exact': registrations_exact,
