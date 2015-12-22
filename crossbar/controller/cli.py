@@ -557,7 +557,15 @@ def run_command_start(options, reactor=None):
     # check and load the node configuration
     #
     try:
-        node.load(options.config)
+        if options.config:
+            # load node config from file
+            node.load(options.config)
+        elif options.cdc:
+            # load built-in CDC config
+            node.load()
+        else:
+            # no config file, and not running CDC mode
+            raise Exception("Neither a node config was found, nor CDC mode is active.")
     except InvalidConfigException as e:
         log.error("Invalid node configuration")
         log.error("{e!s}", e=e)
@@ -714,6 +722,11 @@ def run(prog=None, args=None, reactor=None):
 
     parser_start.set_defaults(func=run_command_start)
 
+    parser_start.add_argument('--cdc',
+                              action='store_true',
+                              default=False,
+                              help='Start node in managed mode, connecting to Crossbar.io DevOps Center (CDC).')
+
     parser_start.add_argument('--cbdir',
                               type=six.text_type,
                               default=None,
@@ -842,7 +855,8 @@ def run(prog=None, args=None, reactor=None):
                 if os.path.isfile(fn) and os.access(fn, os.R_OK):
                     options.config = f
                     break
-            if not options.config:
+
+            if not options.config and not options.cdc:
                 raise Exception("No config file specified, and neither CBDIR/config.json nor CBDIR/config.yaml exists")
 
     # Log directory
