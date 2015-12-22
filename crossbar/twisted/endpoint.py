@@ -31,6 +31,7 @@
 from __future__ import absolute_import, division
 
 import six
+import os
 from os import environ
 from os.path import join, abspath
 
@@ -395,41 +396,31 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
                 # if the config specified any CA certificates, we use those (only!)
                 if 'ca_certificates' in config['tls']:
                     ca_certs = []
-                    for cert_fname in config['tls']['ca_certificates']:
+                    pp = [os.path.abspath(os.path.join(cbdir, x)) for x in (config['tls']['ca_certificates'])]
+                    for cert_fname in pp:
                         cert = crypto.load_certificate(
                             crypto.FILETYPE_PEM,
                             six.u(open(cert_fname, 'r').read())
                         )
-                        log.info("Loaded CA certificate '{fname}'", fname=cert_fname)
+                        log.info("Loaded client TLS CA certificate from '{fname}'", fname=cert_fname)
                         ca_certs.append(cert)
 
                     client_cert = None
                     if 'key' in config['tls']:
-                        with open(config['tls']['certificate'], 'r') as f:
-                            cert = Certificate.loadPEM(
-                                f.read(),
-                            )
-                            log.info(
-                                "{fname}: CN={subj.CN}, sha={sha}",
-                                fname=config['tls']['certificate'],
-                                subj=cert.getSubject(),
-                                sha=cert.digest('sha'),
-                            )
+                        cert_fname = os.path.abspath(os.path.join(cbdir, config['tls']['certificate']))
+                        with open(cert_fname, 'r') as f:
+                            cert = Certificate.loadPEM(f.read(),)
+                            log.info("Loaded client TLS certificate from '{cert_fname}' (cn='{cert_cn}', sha256={cert_sha256}..)",
+                                     cert_fname=cert_fname,
+                                     cert_cn=cert.getSubject().CN,
+                                     cert_sha256=cert.digest('sha256')[:12])
 
-                        with open(config['tls']['key'], 'r') as f:
-                            private_key = KeyPair.load(
-                                f.read(),
-                                format=crypto.FILETYPE_PEM,
-                            )
+                        key_fname = os.path.abspath(os.path.join(cbdir, config['tls']['key']))
+                        with open(key_fname, 'r') as f:
+                            private_key = KeyPair.load(f.read(), format=crypto.FILETYPE_PEM)
+                            log.info("Loaded client TLS key from '{key_fname}'", key_fname=key_fname)
 
-                            log.info(
-                                "{fname}: {key}",
-                                fname=config['tls']['key'],
-                                key=private_key.inspect(),
-                            )
-
-                        client_cert = PrivateCertificate.fromCertificateAndKeyPair(
-                            cert, private_key)
+                        client_cert = PrivateCertificate.fromCertificateAndKeyPair(cert, private_key)
 
                     # XXX OpenSSLCertificateAuthorities is a "private"
                     # class, in _sslverify, so we shouldn't really be

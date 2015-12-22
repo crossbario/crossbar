@@ -37,6 +37,7 @@ import six
 from six.moves import urllib
 
 from twisted.internet.defer import Deferred
+from twisted.internet.interfaces import ISSLTransport
 
 from autobahn import util
 from autobahn.websocket.compress import *  # noqa
@@ -251,9 +252,8 @@ class _RouterSession(BaseSession):
         # this is a Twisted stream transport instance
         stream_transport = self._transport.transport
 
-        from twisted.protocols.tls import TLSMemoryBIOProtocol
-
-        if isinstance(stream_transport, TLSMemoryBIOProtocol):
+        # check if transport is a TLSMemoryBIOProtocol
+        if hasattr(stream_transport, 'getPeerCertificate') and ISSLTransport.providedBy(stream_transport):
 
             def extract_x509(cert):
                 """
@@ -275,16 +275,25 @@ class _RouterSession(BaseSession):
                 }
                 for i in range(cert.get_extension_count()):
                     ext = cert.get_extension(i)
-#                    print(dir(ext))
-                    print("{} {}".format(ext.get_critical(), ext.get_short_name()))
+                    ext_info = {
+                        u'name': u'{}'.format(ext.get_short_name()),
+                        u'value': u'{}'.format(ext),
+                        u'criticial': ext.get_critical() != 0
+                    }
+                    result[u'extensions'].append(ext_info)
                 for entity, name in [(u'subject', cert.get_subject()), (u'issuer', cert.get_issuer())]:
                     result[entity] = {}
                     for key, value in name.get_components():
                         result[entity][u'{}'.format(key).upper()] = u'{}'.format(value)
                 return result
 
-            client_cert = self._transport.transport.getPeerCertificate()
-            print(extract_x509(client_cert))
+            self._client_cert = extract_x509(self._transport.transport.getPeerCertificate())
+            self.log.info("Client connecting with TLS certificate cn='{cert_cn}', sha256={cert_sha256}.., expired={cert_expired}",
+                          cert_cn=self._client_cert['subject']['CN'],
+                          cert_sha256=self._client_cert['sha256'][:12],
+                          cert_expired=self._client_cert['expired'])
+        else:
+            self._client_cert = None
 
         self._realm = None
         self._session_id = None
