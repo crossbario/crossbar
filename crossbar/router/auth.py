@@ -38,7 +38,6 @@ from autobahn.wamp import auth
 
 __all__ = (
     'PendingAuth',
-    'PendingAuthPersona',
     'PendingAuthWampCra',
     'PendingAuthTicket'
 )
@@ -49,19 +48,6 @@ class PendingAuth:
     """
     Base class for pending WAMP authentications.
     """
-
-
-class PendingAuthPersona(PendingAuth):
-
-    """
-    Pending Mozilla Persona authentication.
-    """
-
-    def __init__(self, provider, audience, role=None):
-        self.authmethod = u"mozilla_persona"
-        self.provider = provider
-        self.audience = audience
-        self.role = role
 
 
 class PendingAuthWampCra(PendingAuth):

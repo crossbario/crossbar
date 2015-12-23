@@ -30,14 +30,12 @@
 
 from __future__ import absolute_import, division, print_function
 
-import json
 import traceback
 import six
 
-from six.moves import urllib
-
-from twisted.internet.defer import Deferred
 from twisted.internet.interfaces import ISSLTransport
+
+import txaio
 
 from autobahn import util
 from autobahn.websocket.compress import *  # noqa
@@ -51,13 +49,8 @@ from autobahn.wamp.exception import ProtocolError, SessionNotReady
 from autobahn.wamp.types import SessionDetails
 from autobahn.wamp.interfaces import ITransportHandler
 
-import txaio
-
 from crossbar._logging import make_logger
-
-from crossbar.router.auth import PendingAuthPersona, \
-    PendingAuthWampCra, \
-    PendingAuthTicket
+from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
 
 
 __all__ = (
@@ -820,28 +813,6 @@ class RouterSession(_RouterSession):
                                 else:
                                     return types.Deny(message="illegal WAMP-Ticket authentication config (type '{0}' is unknown)".format(cfg['type']))
 
-                            # "Mozilla Persona" authentication
-                            #
-                            elif authmethod == u"mozilla_persona":
-                                cfg = self._transport_config['auth']['mozilla_persona']
-
-                                audience = cfg.get('audience', self._transport._origin)
-                                provider = cfg.get('provider', "https://verifier.login.persona.org/verify")
-
-                                # authrole mapping
-                                #
-                                authrole = cfg.get('role', 'anonymous')
-
-                                # check if role exists on realm anyway
-                                #
-                                if not self._router_factory[realm].has_role(authrole):
-                                    return types.Deny(ApplicationError.NO_SUCH_ROLE, message="authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
-
-                                # ok, now challenge the client for doing Mozilla Persona auth.
-                                #
-                                self._pending_auth = PendingAuthPersona(provider, audience, authrole)
-                                return types.Challenge("mozilla-persona")
-
                             # "Anonymous" authentication
                             #
                             elif authmethod == u"anonymous":
@@ -1005,90 +976,13 @@ class RouterSession(_RouterSession):
 
                     return d
 
-            elif isinstance(self._pending_auth, PendingAuthPersona):
-
-                dres = Deferred()
-
-                # The client did it's Mozilla Persona authentication thing
-                # and now wants to verify the authentication and login.
-                assertion = signature
-                audience = str(self._pending_auth.audience)  # eg "http://192.168.1.130:8080/"
-                provider = str(self._pending_auth.provider)  # eg "https://verifier.login.persona.org/verify"
-
-                # To verify the authentication, we need to send a HTTP/POST
-                # to Mozilla Persona. When successful, Persona will send us
-                # back something like:
-
-                # {
-                #    "audience": "http://192.168.1.130:8080/",
-                #    "expires": 1393681951257,
-                #    "issuer": "gmail.login.persona.org",
-                #    "email": "tobias.oberstein@gmail.com",
-                #    "status": "okay"
-                # }
-
-                headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-                body = urllib.urlencode({'audience': audience, 'assertion': assertion})
-
-                from twisted.web.client import getPage
-                d = getPage(url=provider,
-                            method='POST',
-                            postdata=body,
-                            headers=headers)
-
-                self.log.info("Authentication request sent.")
-
-                def done(res):
-                    res = json.loads(res)
-                    try:
-                        if res['status'] == 'okay':
-
-                            # awesome: Mozilla Persona successfully authenticated the user
-                            self._transport._authid = res['email']
-                            self._transport._authrole = self._pending_auth.role
-                            self._transport._authmethod = 'mozilla_persona'
-
-                            self.log.info("Authenticated user {} with role {}".format(self._transport._authid, self._transport._authrole))
-                            dres.callback(types.Accept(authid=self._transport._authid, authrole=self._transport._authrole, authmethod=self._transport._authmethod))
-
-                            # remember the user's auth info (this marks the cookie as authenticated)
-                            if self._transport._cbtid and self._transport.factory._cookiestore:
-                                cs = self._transport.factory._cookiestore
-                                cs.setAuth(self._transport._cbtid, self._transport._authid, self._transport._authrole, self._transport._authmethod)
-
-                                # kick all sessions using same cookie (but not _this_ connection)
-                                if True:
-                                    for proto in cs.getProtos(self._transport._cbtid):
-                                        if proto and proto != self._transport:
-                                            try:
-                                                proto.close()
-                                            except Exception as e:
-                                                pass
-                        else:
-                            self.log.info("Authentication failed!")
-                            self.log.info(res)
-                            dres.callback(types.Deny(reason="wamp.error.authorization_failed", message=res.get("reason", None)))
-                    except Exception as e:
-                        self.log.info("internal error during authentication verification: {}".format(e))
-                        dres.callback(types.Deny(reason="wamp.error.internal_error", message=str(e)))
-
-                def error(err):
-                    self.log.info("Authentication request failed: {}".format(err.value))
-                    dres.callback(types.Deny(reason="wamp.error.authorization_request_failed", message=str(err.value)))
-
-                d.addCallbacks(done, error)
-
-                return dres
-
+            # should not arrive here: logic error
             else:
-
                 self.log.info("don't know how to authenticate")
-
                 return types.Deny()
 
+        # should not arrive here: client misbehaving
         else:
-
-            # deny client
             return types.Deny(message=u"no pending authentication")
 
     def onJoin(self, details):
