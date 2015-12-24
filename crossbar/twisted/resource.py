@@ -534,12 +534,22 @@ class Resource404(Resource):
         Resource.__init__(self)
         self._page = templates.get_template('cb_web_404.html')
         self._directory = native_string(directory)
+        self._pid = u'{}'.format(os.getpid())
 
     def render_GET(self, request):
         request.setResponseCode(NOT_FOUND)
 
+        try:
+            peer = request.transport.getPeer()
+            peer = u'{}:{}'.format(peer.host, peer.port)
+        except:
+            peer = u'?:?'
+
         s = self._page.render(cbVersion=crossbar.__version__,
-                              directory=self._directory)
+                              directory=self._directory,
+                              workerPid=self._pid,
+                              peer=peer)
+
         return s.encode('utf8')
 
     def render_HEAD(self, request):
