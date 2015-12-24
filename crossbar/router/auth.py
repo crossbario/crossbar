@@ -134,7 +134,7 @@ class PendingAuthTicket(PendingAuth):
 
 
 try:
-    import pynacl
+    import nacl
     HAS_ED25519 = True
 except ImportError:
     HAS_ED25519 = False
@@ -170,7 +170,7 @@ if HAS_ED25519:
             self.authrole = authrole
             self.authprovider = authprovider
             self.verify_key = verify_key
-            self._verify_key = pynacl.signing.VerifyKey(verify_key, encoder=pynacl.encoding.HexEncoder)
+            self._verify_key = nacl.signing.VerifyKey(verify_key, encoder=nacl.encoding.HexEncoder)
 
             challenge_obj = {
                 'authid': self.authid,
@@ -190,13 +190,13 @@ if HAS_ED25519:
                 self.challenge = self.challenge.decode('utf8')
 
         def verify(self, signature):
-            signed = pynacl.signing.SignedMessage(signature + self.challenge)
+            signed = nacl.signing.SignedMessage(signature + self.challenge)
             # Check the validity of a message's signature
             # Will raise nacl.exceptions.BadSignatureError if the signature check fails
             try:
                 self._verify_key.verify(signed)
                 return True
-            except pynacl.exceptions.BadSignatureError:
+            except nacl.exceptions.BadSignatureError:
                 return False
 
     __all__.append('PendingAuthEd25519')
