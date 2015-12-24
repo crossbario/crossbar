@@ -115,133 +115,127 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
         if 'tls' in config:
             if _HAS_TLS:
+
                 # server private key
                 key_filepath = abspath(join(cbdir, config['tls']['key']))
                 log.info("Loading server TLS key from {key_filepath}", key_filepath=key_filepath)
-
-                # server certificate (but only the server cert, no chain certs)
-                cert_filepath = abspath(join(cbdir, config['tls']['certificate']))
-                log.info("Loading server TLS certificate from {cert_filepath}", cert_filepath=cert_filepath)
-
                 with open(key_filepath) as key_file:
+                    # server certificate (but only the server cert, no chain certs)
+                    cert_filepath = abspath(join(cbdir, config['tls']['certificate']))
+                    log.info("Loading server TLS certificate from {cert_filepath}", cert_filepath=cert_filepath)
                     with open(cert_filepath) as cert_file:
-
-                        if 'dhparam' in config['tls']:
-                            dhpath = FilePath(
-                                abspath(join(cbdir, config['tls']['dhparam']))
-                            )
-                            dh_params = DiffieHellmanParameters.fromFile(dhpath)
-                        else:
-                            # XXX won't be doing ANY EDH
-                            # curves... maybe make dhparam required?
-                            # or do "whatever tlsctx was doing"
-                            dh_params = None
-                            log.warn("OpenSSL DH modes not active (no 'dhparam')")
-
-                        # create a TLS context factory
-                        # see: https://twistedmatrix.com/documents/current/api/twisted.internet.ssl.CertificateOptions.html
-
-                        # server key/cert
                         key = KeyPair.load(key_file.read(), crypto.FILETYPE_PEM).original
                         cert = Certificate.loadPEM(cert_file.read()).original
 
-                        # list of certificates that complete your verification chain
-                        extra_certs = None
-                        if 'chain_certificates' in config['tls']:
-                            extra_certs = []
-                            for fname in config['tls']['chain_certificates']:
-                                extra_cert_filepath = abspath(join(cbdir, fname))
-                                with open(extra_cert_filepath, 'r') as f:
-                                    extra_certs.append(Certificate.loadPEM(f.read()).original)
-                                log.info("Loading server TLS chain certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
+                # list of certificates that complete your verification chain
+                extra_certs = None
+                if 'chain_certificates' in config['tls']:
+                    extra_certs = []
+                    for fname in config['tls']['chain_certificates']:
+                        extra_cert_filepath = abspath(join(cbdir, fname))
+                        with open(extra_cert_filepath, 'r') as f:
+                            extra_certs.append(Certificate.loadPEM(f.read()).original)
+                        log.info("Loading server TLS chain certificate from {extra_cert_filepath}", extra_cert_filepath=extra_cert_filepath)
 
-                        # list of certificate authority certificate objects to use to verify the peer's certificate
-                        ca_certs = None
-                        if 'ca_certificates' in config['tls']:
-                            ca_certs = []
-                            for fname in config['tls']['ca_certificates']:
-                                ca_cert_filepath = abspath(join(cbdir, fname))
-                                with open(ca_cert_filepath, 'r') as f:
-                                    ca_certs.append(Certificate.loadPEM(f.read()).original)
-                                log.info("Loading server TLS CA certificate from {ca_cert_filepath}", ca_cert_filepath=ca_cert_filepath)
+                # list of certificate authority certificate objects to use to verify the peer's certificate
+                ca_certs = None
+                if 'ca_certificates' in config['tls']:
+                    ca_certs = []
+                    for fname in config['tls']['ca_certificates']:
+                        ca_cert_filepath = abspath(join(cbdir, fname))
+                        with open(ca_cert_filepath, 'r') as f:
+                            ca_certs.append(Certificate.loadPEM(f.read()).original)
+                        log.info("Loading server TLS CA certificate from {ca_cert_filepath}", ca_cert_filepath=ca_cert_filepath)
 
-                        # ciphers we accept
-                        #
-                        # We prefer to make every single cipher (6 in total) _explicit_ (to reduce chances either we or the pattern-matching
-                        # language inside OpenSSL messes up) and drop support for Windows XP (we do WebSocket anyway).
-                        #
-                        # We don't use AES256 and SHA384, to reduce number of ciphers and since the additional
-                        # security gain seems not worth the additional performance drain.
-                        #
-                        # We also don't use ECDSA, since EC certificates a rare in the wild.
-                        #
-                        # The effective list of ciphers determined from an OpenSSL cipher string:
-                        #
-                        #   openssl ciphers -v 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:'
-                        #
-                        # References:
-                        #
-                        #  * https://www.ssllabs.com/ssltest/analyze.html?d=myserver.com
-                        #  * http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-                        #  * http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
-                        #  * https://wiki.mozilla.org/Talk:Security/Server_Side_TLS
-                        #
-                        if 'ciphers' in config['tls']:
-                            crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(config['tls']['ciphers'])
-                        else:
-                            crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
-                                # AEAD modes (GCM)
-                                # 'ECDHE-ECDSA-AES128-GCM-SHA256:'
-                                'ECDHE-RSA-AES128-GCM-SHA256:'
-                                # 'ECDHE-ECDSA-AES256-GCM-SHA384:'
-                                # 'ECDHE-RSA-AES256-GCM-SHA384:'
-                                'DHE-RSA-AES128-GCM-SHA256:'
-                                # 'DHE-RSA-AES256-GCM-SHA384:'
+                # ciphers we accept
+                #
+                # We prefer to make every single cipher (6 in total) _explicit_ (to reduce chances either we or the pattern-matching
+                # language inside OpenSSL messes up) and drop support for Windows XP (we do WebSocket anyway).
+                #
+                # We don't use AES256 and SHA384, to reduce number of ciphers and since the additional
+                # security gain seems not worth the additional performance drain.
+                #
+                # We also don't use ECDSA, since EC certificates a rare in the wild.
+                #
+                # The effective list of ciphers determined from an OpenSSL cipher string:
+                #
+                #   openssl ciphers -v 'ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:'
+                #
+                # References:
+                #
+                #  * https://www.ssllabs.com/ssltest/analyze.html?d=myserver.com
+                #  * http://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+                #  * http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
+                #  * https://wiki.mozilla.org/Talk:Security/Server_Side_TLS
+                #
+                if 'ciphers' in config['tls']:
+                    log.info("Using explicit TLS ciphers from config")
+                    crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(config['tls']['ciphers'])
+                else:
+                    log.info("Using secure default TLS ciphers")
+                    crossbar_ciphers = AcceptableCiphers.fromOpenSSLCipherString(
+                        # AEAD modes (GCM)
+                        # 'ECDHE-ECDSA-AES128-GCM-SHA256:'
+                        'ECDHE-RSA-AES128-GCM-SHA256:'
+                        # 'ECDHE-ECDSA-AES256-GCM-SHA384:'
+                        # 'ECDHE-RSA-AES256-GCM-SHA384:'
+                        'DHE-RSA-AES128-GCM-SHA256:'
+                        # 'DHE-RSA-AES256-GCM-SHA384:'
 
-                                # CBC modes
-                                'ECDHE-RSA-AES128-SHA256:'
-                                'DHE-RSA-AES128-SHA256:'
-                                'ECDHE-RSA-AES128-SHA:'
-                                'DHE-RSA-AES128-SHA:'
-                            )
+                        # CBC modes
+                        'ECDHE-RSA-AES128-SHA256:'
+                        'DHE-RSA-AES128-SHA256:'
+                        'ECDHE-RSA-AES128-SHA:'
+                        'DHE-RSA-AES128-SHA:'
+                    )
 
-                        ctx = CertificateOptions(
-                            privateKey=key,
-                            certificate=cert,
-                            extraCertChain=extra_certs,
-                            verify=(ca_certs is not None),
-                            caCerts=ca_certs,
-                            dhParameters=dh_params,
-                            acceptableCiphers=crossbar_ciphers,
-                        )
+                # DH modes require a parameter file
+                if 'dhparam' in config['tls']:
+                    dhpath = FilePath(abspath(join(cbdir, config['tls']['dhparam'])))
+                    dh_params = DiffieHellmanParameters.fromFile(dhpath)
+                else:
+                    dh_params = None
+                    log.warn("No OpenSSL DH parameter file set - DH cipher modes will be deactive!")
 
-                        # Without a curve being set, ECDH won't be available even if listed
-                        # in acceptable ciphers!
-                        #
-                        # The curves available in OpenSSL can be listed:
-                        #
-                        #   openssl ecparam -list_curves
-                        #
-                        # prime256v1: X9.62/SECG curve over a 256 bit prime field
-                        #
-                        # This is elliptic curve "NIST P-256" from here
-                        # http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
-                        #
-                        # This seems to be the most widely used curve
-                        #
-                        # http://crypto.stackexchange.com/questions/11310/with-openssl-and-ecdhe-how-to-show-the-actual-curve-being-used
-                        #
-                        # and researchers think it is "ok" (other than wrt timing attacks etc)
-                        #
-                        # https://twitter.com/hyperelliptic/status/394258454342148096
-                        #
-                        if ctx._ecCurve is None:
-                            log.warn("OpenSSL failed to set default elliptic curve - EC-modes will be unavailable!")
-                        else:
-                            if ctx._ecCurve.snName != "prime256v1":
-                                log.info("OpenSSL is using elliptic curve {curve}", curve=ctx._ecCurve.snName)
-                            else:
-                                log.info("OpenSSL is using most common elliptic curve (prime256v1 / NIST P-256)")
+                # create a TLS context factory
+                # see: https://twistedmatrix.com/documents/current/api/twisted.internet.ssl.CertificateOptions.html
+                ctx = CertificateOptions(
+                    privateKey=key,
+                    certificate=cert,
+                    extraCertChain=extra_certs,
+                    verify=(ca_certs is not None),
+                    caCerts=ca_certs,
+                    dhParameters=dh_params,
+                    acceptableCiphers=crossbar_ciphers,
+                )
+
+                # Without a curve being set, ECDH won't be available even if listed
+                # in acceptable ciphers!
+                #
+                # The curves available in OpenSSL can be listed:
+                #
+                #   openssl ecparam -list_curves
+                #
+                # prime256v1: X9.62/SECG curve over a 256 bit prime field
+                #
+                # This is elliptic curve "NIST P-256" from here
+                # http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
+                #
+                # This seems to be the most widely used curve
+                #
+                # http://crypto.stackexchange.com/questions/11310/with-openssl-and-ecdhe-how-to-show-the-actual-curve-being-used
+                #
+                # and researchers think it is "ok" (other than wrt timing attacks etc)
+                #
+                # https://twitter.com/hyperelliptic/status/394258454342148096
+                #
+                if ctx._ecCurve is None:
+                    log.warn("No OpenSSL elliptic curve set - EC cipher modes will be deactive!")
+                else:
+                    if ctx._ecCurve.snName != "prime256v1":
+                        log.info("OpenSSL is using elliptic curve {curve}", curve=ctx._ecCurve.snName)
+                    else:
+                        log.info("OpenSSL is using most common elliptic curve (prime256v1 / NIST P-256)")
 
                 # create a TLS server endpoint
                 #
