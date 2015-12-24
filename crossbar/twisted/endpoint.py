@@ -393,53 +393,53 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
 
         if 'tls' in config:
             if _HAS_TLS:
-                # if the config specified any CA certificates, we use those (only!)
+                # server hostname: The expected name of the remote host.
+                hostname = config['tls']['hostname']
+
+                # explicit trust (certificate) root
+                ca_certs = None
                 if 'ca_certificates' in config['tls']:
+                    log.info("TLS client using explicit trust ({cnt_certs} certificates)", cnt_certs=len(config['tls']['ca_certificates']))
                     ca_certs = []
-                    pp = [os.path.abspath(os.path.join(cbdir, x)) for x in (config['tls']['ca_certificates'])]
-                    for cert_fname in pp:
+                    for cert_fname in [os.path.abspath(os.path.join(cbdir, x)) for x in (config['tls']['ca_certificates'])]:
                         cert = crypto.load_certificate(
                             crypto.FILETYPE_PEM,
                             six.u(open(cert_fname, 'r').read())
                         )
-                        log.info("Loaded client TLS CA certificate from '{fname}'", fname=cert_fname)
+                        log.info("TLS client trust root CA certificate loaded from '{fname}'", fname=cert_fname)
                         ca_certs.append(cert)
-
-                    client_cert = None
-                    if 'key' in config['tls']:
-                        cert_fname = os.path.abspath(os.path.join(cbdir, config['tls']['certificate']))
-                        with open(cert_fname, 'r') as f:
-                            cert = Certificate.loadPEM(f.read(),)
-                            log.info("Loaded client TLS certificate from '{cert_fname}' (cn='{cert_cn}', sha256={cert_sha256}..)",
-                                     cert_fname=cert_fname,
-                                     cert_cn=cert.getSubject().CN,
-                                     cert_sha256=cert.digest('sha256')[:12])
-
-                        key_fname = os.path.abspath(os.path.join(cbdir, config['tls']['key']))
-                        with open(key_fname, 'r') as f:
-                            private_key = KeyPair.load(f.read(), format=crypto.FILETYPE_PEM)
-                            log.info("Loaded client TLS key from '{key_fname}'", key_fname=key_fname)
-
-                        client_cert = PrivateCertificate.fromCertificateAndKeyPair(cert, private_key)
-
-                    # XXX OpenSSLCertificateAuthorities is a "private"
-                    # class, in _sslverify, so we shouldn't really be
-                    # using it. However, while you can pass a single
-                    # Certificate as trustRoot= there's no way to pass
-                    # multiple ones.
-                    # XXX ...but maybe the config should only allow
-                    # the user to configure a single cert to trust
-                    # here anyway?
-                    options = optionsForClientTLS(
-                        config['tls']['hostname'],
-                        trustRoot=OpenSSLCertificateAuthorities(ca_certs),
-                        clientCertificate=client_cert,
-                    )
+                    ca_certs = OpenSSLCertificateAuthorities(ca_certs)
                 else:
-                    options = optionsForClientTLS(config['tls']['hostname'])
+                    log.info("TLS client using platform trust")
+
+                # client key/cert to use
+                client_cert = None
+                if 'key' in config['tls']:
+                    if 'certificate' not in config['tls']:
+                        raise Exception('TLS client key present, but certificate missing')
+
+                    key_fname = os.path.abspath(os.path.join(cbdir, config['tls']['key']))
+                    with open(key_fname, 'r') as f:
+                        private_key = KeyPair.load(f.read(), format=crypto.FILETYPE_PEM)
+                        log.info("Loaded client TLS key from '{key_fname}'", key_fname=key_fname)
+
+                    cert_fname = os.path.abspath(os.path.join(cbdir, config['tls']['certificate']))
+                    with open(cert_fname, 'r') as f:
+                        cert = Certificate.loadPEM(f.read(),)
+                        log.info("Loaded client TLS certificate from '{cert_fname}' (cn='{cert_cn}', sha256={cert_sha256}..)",
+                                 cert_fname=cert_fname,
+                                 cert_cn=cert.getSubject().CN,
+                                 cert_sha256=cert.digest('sha256')[:12])
+
+                    client_cert = PrivateCertificate.fromCertificateAndKeyPair(cert, private_key)
+                else:
+                    if 'certificate' in config['tls']:
+                        log.warn('TLS client certificate present, but key is missing')
+
+                # create TLS client options
+                options = optionsForClientTLS(hostname, trustRoot=ca_certs, clientCertificate=client_cert)
 
                 # create a TLS client endpoint
-                #
                 if version == 4:
                     endpoint = SSL4ClientEndpoint(
                         reactor,
