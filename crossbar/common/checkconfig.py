@@ -296,6 +296,30 @@ def check_transport_auth_wampcra(config):
         raise InvalidConfigException("logic error")
 
 
+def check_transport_auth_tls(config):
+    """
+    Check a WAMP-CRA configuration item.
+
+    http://crossbar.io/docs/
+    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/auth/Challenge-Response-Authentication.md
+    """
+    if 'type' not in config:
+        raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-TLS configuration")
+
+    if config['type'] not in ['static', 'dynamic']:
+        raise InvalidConfigException("invalid type '{}' for WAMP-TLS authentication type - must be one of 'static', 'dynamic'".format(config['type']))
+
+    if config['type'] == 'static':
+        # FIXME
+        pass
+    elif config['type'] == 'dynamic':
+        if 'authenticator' not in config:
+            raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-TLS configuration")
+        check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-TLS configuration".format(config['authenticator']))
+    else:
+        raise InvalidConfigException("logic error")
+
+
 def check_transport_auth_cookie(config):
     """
     Check a WAMP-Cookie configuration item.
@@ -331,6 +355,7 @@ def check_transport_auth(auth):
         'anonymous': check_transport_auth_anonymous,
         'ticket': check_transport_auth_ticket,
         'wampcra': check_transport_auth_wampcra,
+        'tls': check_transport_auth_tls,
         'cookie': check_transport_auth_cookie
     }
     for k in auth:

@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import
 
+import types
 import json
 import six
 
@@ -199,4 +200,7 @@ if HAS_ED25519:
             except nacl.exceptions.BadSignatureError:
                 return False
 
-    __all__.append('PendingAuthEd25519')
+else:
+    PendingAuthEd25519 = types.NoneType
+
+__all__.append('PendingAuthEd25519')

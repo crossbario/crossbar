@@ -51,6 +51,7 @@ from autobahn.wamp.interfaces import ITransportHandler
 
 from crossbar._logging import make_logger
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
+from crossbar.router.auth import HAS_ED25519, PendingAuthEd25519
 
 
 __all__ = (
@@ -277,12 +278,12 @@ class _RouterSession(BaseSession):
                 for entity, name in [(u'subject', cert.get_subject()), (u'issuer', cert.get_issuer())]:
                     result[entity] = {}
                     for key, value in name.get_components():
-                        result[entity][u'{}'.format(key).upper()] = u'{}'.format(value)
+                        result[entity][u'{}'.format(key).lower()] = u'{}'.format(value)
                 return result
 
             self._client_cert = extract_x509(self._transport.transport.getPeerCertificate())
             self.log.debug("Client connecting with TLS certificate cn='{cert_cn}', sha256={cert_sha256}.., expired={cert_expired}",
-                           cert_cn=self._client_cert['subject']['CN'],
+                           cert_cn=self._client_cert['subject']['cn'],
                            cert_sha256=self._client_cert['sha256'][:12],
                            cert_expired=self._client_cert['expired'])
         else:
@@ -753,7 +754,7 @@ class RouterSession(_RouterSession):
                                     def on_authenticate_error(err):
 
                                         error = None
-                                        message = "dynamic WAMP-CRA credential getter failed: {}".format(err)
+                                        message = "WAMP-CRA dynamic authenticator failed: {}".format(err)
 
                                         if isinstance(err.value, ApplicationError):
                                             error = err.value.error
@@ -769,6 +770,166 @@ class RouterSession(_RouterSession):
                                 else:
 
                                     return types.Deny(message="illegal WAMP-CRA authentication config (type '{0}' is unknown)".format(cfg['type']))
+
+                            # "WAMP-Ed25519" authentication
+                            #
+                            elif authmethod == u"ed25519":
+                                cfg = self._transport_config['auth']['ed25519']
+
+                                if cfg['type'] == 'static':
+
+                                    if details.authid in cfg.get('users', {}):
+
+                                        user = cfg['users'][details.authid]
+
+                                        # the authid the session will be authenticated as is from the user data, or when
+                                        # the user data doesn't contain an authid, from the HELLO message the client sent
+                                        #
+                                        authid = user.get("authid", details.authid)
+
+                                        # construct a pending WAMP-CRA authentication
+                                        #
+                                        self._pending_auth = PendingAuthEd25519(
+                                            details.pending_session,
+                                            authid,
+                                            user['role'],
+                                            u'static',
+                                            user['verify_key'],
+                                        )
+
+                                        # send challenge to client
+                                        #
+                                        extra = {
+                                            u'challenge': self._pending_auth.challenge
+                                        }
+
+                                        return types.Challenge(u'ed25519', extra)
+
+                                    else:
+                                        return types.Deny(message="no user with authid '{}' in user database".format(details.authid))
+
+                                elif cfg['type'] == 'dynamic':
+
+                                    # call the configured dynamic authenticator procedure
+                                    # via the router's service session
+                                    #
+                                    service_session = self._router_factory.get(realm)._realm.session
+                                    session_details = {
+                                        # forward transport level details of the WAMP session that
+                                        # wishes to authenticate
+                                        'transport': self._transport._transport_info,
+
+                                        # the following WAMP session ID will be assigned to the session
+                                        # if (and only if) the subsequent authentication succeeds.
+                                        'session': self._pending_session_id
+                                    }
+                                    d = service_session.call(cfg['authenticator'], realm, details.authid, session_details)
+
+                                    def on_authenticate_ok(user):
+
+                                        # the authid the session will be authenticated as is from the dynamic
+                                        # authenticator response, or when the response doesn't contain an authid,
+                                        # from the HELLO message the client sent
+                                        #
+                                        authid = user.get("authid", details.authid)
+
+                                        # construct a pending WAMP-CRA authentication
+                                        #
+                                        self._pending_auth = PendingAuthEd25519(details.pending_session,
+                                                                                authid,
+                                                                                user['role'],
+                                                                                u'dynamic',
+                                                                                user['verify_key'])
+
+                                        # send challenge to client
+                                        #
+                                        extra = {
+                                            u'challenge': self._pending_auth.challenge
+                                        }
+
+                                        return types.Challenge(u'ed25519', extra)
+
+                                    def on_authenticate_error(err):
+
+                                        error = None
+                                        message = "WAMP-Ed25519 dynamic authenticator failed: {}".format(err)
+
+                                        if isinstance(err.value, ApplicationError):
+                                            error = err.value.error
+                                            if err.value.args and len(err.value.args):
+                                                message = str(err.value.args[0])  # exception does not need to contain a string
+
+                                        return types.Deny(error, message)
+
+                                    d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+                                    return d
+
+                                else:
+
+                                    return types.Deny(message="illegal WAMP-Ed25519 authentication config (type '{0}' is unknown)".format(cfg['type']))
+
+                            # "WAMP-TLS" authentication
+                            #
+                            elif authmethod == u"tls":
+                                cfg = self._transport_config['auth']['tls']
+
+                                if cfg['type'] == 'static':
+
+                                    raise Exception("not implemented")
+
+                                elif cfg['type'] == 'dynamic':
+
+                                    # call the configured dynamic authenticator procedure
+                                    # via the router's service session
+                                    #
+                                    service_session = self._router_factory.get(realm)._realm.session
+                                    session_details = {
+                                        # forward transport level details of the WAMP session that
+                                        # wishes to authenticate
+                                        'transport': self._transport._transport_info,
+
+                                        # the following WAMP session ID will be assigned to the session
+                                        # if (and only if) the subsequent authentication succeeds.
+                                        'session': self._pending_session_id
+                                    }
+                                    d = service_session.call(cfg['authenticator'], realm, details.authid, session_details)
+
+                                    def on_authenticate_ok(user):
+
+                                        # the authid the session will be authenticated as is from the dynamic
+                                        # authenticator response, or when the response doesn't contain an authid,
+                                        # from the HELLO message the client sent
+                                        #
+                                        authid = user.get("authid", details.authid)
+                                        authrole = user['role']
+
+                                        self._transport._authid = authid
+                                        self._transport._authrole = authrole
+                                        self._transport._authmethod = u'tls'
+                                        self._transport._authprovider = u'dynamic'
+
+                                        return types.Accept(authid=authid, authrole=authrole, authmethod=self._transport._authmethod)
+
+                                    def on_authenticate_error(err):
+
+                                        error = None
+                                        message = "WAMP-TLS dynamic authenticator failed: {}".format(err)
+
+                                        if isinstance(err.value, ApplicationError):
+                                            error = err.value.error
+                                            if err.value.args and len(err.value.args):
+                                                message = str(err.value.args[0])  # exception does not need to contain a string
+
+                                        return types.Deny(error, message)
+
+                                    d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+                                    return d
+
+                                else:
+
+                                    return types.Deny(message="illegal WAMP-TLS authentication config (type '{0}' is unknown)".format(cfg['type']))
 
                             # WAMP-Ticket authentication
                             #
@@ -890,48 +1051,55 @@ class RouterSession(_RouterSession):
         #
         if self._pending_auth:
 
-            # WAMP-CRA
+            # WAMP-CRA authentication
             #
             if isinstance(self._pending_auth, PendingAuthWampCra):
 
                 if self._pending_auth.verify(signature):
-                    # WAMP-CRA authentication signature was valid: accept the client
-                    #
+                    # signature was valid: accept the client
                     return types.Accept(authid=self._pending_auth.authid,
                                         authrole=self._pending_auth.authrole,
                                         authmethod=self._pending_auth.authmethod,
                                         authprovider=self._pending_auth.authprovider)
                 else:
-                    # WAMP-CRA authentication signature was invalid: deny client
-                    #
-                    self.log.debug(
-                        'Invalid sig: "{got}" != "{wanted}"',
-                        got=signature,
-                        wanted=self._pending_auth.signature,
-                    )
-                    return types.Deny(message=u"signature is invalid")
+                    # signature was invalid: deny the client
+                    return types.Deny(message=u"WAMP-CRA signature is invalid")
 
-            # WAMP-Ticket
+            # WAMP-Ed25519 authentication
+            #
+            elif HAS_ED25519 and isinstance(self._pending_auth, PendingAuthEd25519):
+
+                if self._pending_auth.verify(signature):
+                    # signature was valid: accept the client
+                    return types.Accept(authid=self._pending_auth.authid,
+                                        authrole=self._pending_auth.authrole,
+                                        authmethod=self._pending_auth.authmethod,
+                                        authprovider=self._pending_auth.authprovider)
+                else:
+                    # signature was invalid: deny client
+                    return types.Deny(message=u"WAMP-Ed25519 signature is invalid")
+
+            # WAMP-Ticket authentication
             #
             elif isinstance(self._pending_auth, PendingAuthTicket):
 
-                # when doing WAMP-Ticket from static configuration, the ticket we
-                # expect was store on the pending authentication object and we just compare ..
+                # WAMP-Ticket "static"
                 #
                 if self._pending_auth.authprovider == 'static':
+
+                    # when doing WAMP-Ticket from static configuration, the ticket we
+                    # expect was store on the pending authentication object and we just compare ..
                     if self._pending_auth.verify(signature):
-                        # WAMP-Ticket authentication ticket was valid: accept the client
-                        #
+                        # ticket was valid: accept the client
                         return types.Accept(authid=self._pending_auth.authid,
                                             authrole=self._pending_auth.authrole,
                                             authmethod=self._pending_auth.authmethod,
                                             authprovider=self._pending_auth.authprovider)
                     else:
-                        # WAMP-Ticket authentication ticket was invalid: deny client
-                        #
-                        return types.Deny(message=u"ticket is invalid")
+                        # ticket was invalid: deny client
+                        return types.Deny(message=u"WAMP-Ticket ticket is invalid")
 
-                # WAMP-Ticket dynamic ..
+                # WAMP-Ticket "dynamic"
                 #
                 else:
                     # call the configured dynamic authenticator procedure
@@ -963,7 +1131,7 @@ class RouterSession(_RouterSession):
 
                     def on_authenticate_error(err):
                         error = None
-                        message = "dynamic WAMP-Ticket credential getter failed: {}".format(err)
+                        message = "WAMP-Ticket dynamic authenticator failed: {}".format(err)
 
                         if isinstance(err.value, ApplicationError):
                             error = err.value.error
