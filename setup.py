@@ -87,6 +87,7 @@ extras_require_tls = [
     'pyasn1>=0.1.8',                # BSD license
     'pyasn1-modules>=0.0.7',        # BSD license
     'service_identity>=14.0.0',     # MIT license
+    'pynacl>=0.3.0',                # Apache license
 ]
 
 # only for CPy (skip for PyPy)!

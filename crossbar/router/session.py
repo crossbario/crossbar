@@ -894,7 +894,7 @@ class RouterSession(_RouterSession):
             #
             if isinstance(self._pending_auth, PendingAuthWampCra):
 
-                if signature == self._pending_auth.signature:
+                if self._pending_auth.verify(signature):
                     # WAMP-CRA authentication signature was valid: accept the client
                     #
                     return types.Accept(authid=self._pending_auth.authid,
@@ -919,7 +919,7 @@ class RouterSession(_RouterSession):
                 # expect was store on the pending authentication object and we just compare ..
                 #
                 if self._pending_auth.authprovider == 'static':
-                    if signature == self._pending_auth.ticket:
+                    if self._pending_auth.verify(signature):
                         # WAMP-Ticket authentication ticket was valid: accept the client
                         #
                         return types.Accept(authid=self._pending_auth.authid,

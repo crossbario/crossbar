@@ -36,11 +36,11 @@ import six
 from autobahn import util
 from autobahn.wamp import auth
 
-__all__ = (
+__all__ = [
     'PendingAuth',
     'PendingAuthWampCra',
     'PendingAuthTicket'
-)
+]
 
 
 class PendingAuth:
@@ -49,12 +49,16 @@ class PendingAuth:
     Base class for pending WAMP authentications.
     """
 
+    authmethod = u'abstract'
+
 
 class PendingAuthWampCra(PendingAuth):
 
     """
     Pending WAMP-CRA authentication.
     """
+
+    authmethod = u'wampcra'
 
     def __init__(self, session, authid, authrole, authprovider, secret):
         """
@@ -72,7 +76,6 @@ class PendingAuthWampCra(PendingAuth):
         :type secret: str
         """
         self.session = session
-        self.authmethod = u"wampcra"
         self.authid = authid
         self.authrole = authrole
         self.authprovider = authprovider
@@ -80,10 +83,10 @@ class PendingAuthWampCra(PendingAuth):
         challenge_obj = {
             'authid': self.authid,
             'authrole': self.authrole,
-            'authmethod': u'wampcra',
+            'authmethod': self.authmethod,
             'authprovider': self.authprovider,
             'session': self.session,
-            'nonce': util.newid(),
+            'nonce': util.newid(64),
             'timestamp': util.utcnow()
         }
 
@@ -96,12 +99,17 @@ class PendingAuthWampCra(PendingAuth):
 
         self.signature = auth.compute_wcs(secret, self.challenge.encode('utf8')).decode('ascii')
 
+    def verify(self, signature):
+        return signature == self.signature
+
 
 class PendingAuthTicket(PendingAuth):
 
     """
     Pending Ticket-based authentication.
     """
+
+    authmethod = u'ticket'
 
     def __init__(self, realm, authid, authrole, authprovider, ticket):
         """
@@ -115,9 +123,80 @@ class PendingAuthTicket(PendingAuth):
         :param ticket: The secret/ticket the authenticating principal will need to provide (or `None` when using dynamic authenticator).
         :type ticket: bytes or None
         """
-        self.authmethod = u"ticket"
         self.realm = realm
         self.authid = authid
         self.authrole = authrole
         self.authprovider = authprovider
         self.ticket = ticket
+
+    def verify(self, signature):
+        return signature == self.ticket
+
+
+try:
+    import pynacl
+    HAS_ED25519 = True
+except ImportError:
+    HAS_ED25519 = False
+
+__all__.append('HAS_ED25519')
+
+
+if HAS_ED25519:
+
+    class PendingAuthEd25519(PendingAuth):
+        """
+        Pending Ed25519 authentication.
+        """
+
+        authmethod = u'ed25519'
+
+        def __init__(self, session, authid, authrole, authprovider, verify_key):
+            """
+            :param session: The WAMP session ID of the session being authenticated.
+            :type session: int
+            :param authid: The authentication ID of the authenticating principal.
+            :type authid: unicode
+            :param authrole: The role under which the principal will be authenticated when
+               the authentication succeeds.
+            :type authrole: unicode
+            :param authprovider: Optional authentication provider.
+            :type authprovider: unicode or None
+            :param verify_key: Hex representation of (public) verification key (64 chars for 32-byte value).
+            :type verify_key: unicode
+            """
+            self.session = session
+            self.authid = authid
+            self.authrole = authrole
+            self.authprovider = authprovider
+            self.verify_key = verify_key
+            self._verify_key = pynacl.signing.VerifyKey(verify_key, encoder=pynacl.encoding.HexEncoder)
+
+            challenge_obj = {
+                'authid': self.authid,
+                'authrole': self.authrole,
+                'authmethod': self.authmethod,
+                'authprovider': self.authprovider,
+                'session': self.session,
+                'nonce': util.newid(64),
+                'timestamp': util.utcnow()
+            }
+
+            self.challenge = json.dumps(challenge_obj, ensure_ascii=False)
+
+            # Sometimes, if it doesn't have to be Unicode, PyPy won't make it
+            # Unicode. Make it Unicode, even if it's just ASCII.
+            if not isinstance(self.challenge, six.text_type):
+                self.challenge = self.challenge.decode('utf8')
+
+        def verify(self, signature):
+            signed = pynacl.signing.SignedMessage(signature + self.challenge)
+            # Check the validity of a message's signature
+            # Will raise nacl.exceptions.BadSignatureError if the signature check fails
+            try:
+                self._verify_key.verify(signed)
+                return True
+            except pynacl.exceptions.BadSignatureError:
+                return False
+
+    __all__.append('PendingAuthEd25519')
