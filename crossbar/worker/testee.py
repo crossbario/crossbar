@@ -214,7 +214,11 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
 
         # create transport endpoint / listening port from transport factory
         #
-        d = create_listening_port_from_config(config['endpoint'], transport_factory, self.config.extra.cbdir, self._reactor)
+        d = create_listening_port_from_config(config['endpoint'],
+                                              self.config.extra.cbdir,
+                                              transport_factory,
+                                              self._reactor,
+                                              self.log)
 
         def ok(port):
             # FIXME

@@ -32,7 +32,7 @@ import sys
 import socket
 import platform
 
-from twisted.internet import fdesc, tcp
+from twisted.internet import fdesc, tcp, ssl
 from twisted.python.runtime import platformType
 
 # Flag indiciating support for creating shared sockets with in-kernel
@@ -61,6 +61,8 @@ elif sys.platform == 'win32':
     _HAS_SHARED_LOADBALANCED_SOCKET = True
 
 # FIXME: DragonFly BSD claims support: http://lists.dragonflybsd.org/pipermail/commits/2013-May/130083.html
+
+__all__ = ('create_stream_socket', 'SharedPort', 'SharedTLSPort')
 
 
 def create_stream_socket(addressFamily, shared=False):
@@ -102,20 +104,16 @@ def create_stream_socket(addressFamily, shared=False):
 
 class SharedPort(tcp.Port):
     """
-    A custom port which sets socket options for sharing TCP ports between multiple processes.
-
-    port = SharedPort(9000, factory, shared = True)
-    port.startListening()
+    A custom TCP port which allows to set socket options for sharing TCP ports between multiple processes.
     """
 
     def __init__(self, port, factory, backlog=50, interface='', reactor=None, shared=False):
-
         if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
             raise Exception("shared sockets unsupported on this system")
+        else:
+            self._shared = shared
 
         tcp.Port.__init__(self, port, factory, backlog, interface, reactor)
-
-        self._shared = shared
 
     def createInternetSocket(self):
         s = tcp.Port.createInternetSocket(self)
@@ -132,3 +130,17 @@ class SharedPort(tcp.Port):
             else:
                 raise Exception("shared sockets unsupported on this system")
         return s
+
+
+class SharedTLSPort(SharedPort, ssl.Port):
+    """
+    A custom TLS port which allows to set socket options for sharing (the underlying) TCP ports between multiple processes.
+    """
+
+    def __init__(self, port, factory, ctxFactory, backlog=50, interface='', reactor=None, shared=False):
+        if shared and not _HAS_SHARED_LOADBALANCED_SOCKET:
+            raise Exception("shared sockets unsupported on this system")
+        else:
+            self._shared = shared
+
+        ssl.Port.__init__(self, port, factory, ctxFactory, backlog, interface, reactor)

@@ -43,9 +43,12 @@ from twisted.python.runtime import platform
 
 from crossbar.test import TestCase
 from crossbar.twisted.endpoint import create_listening_endpoint_from_config
+from crossbar._logging import make_logger
 
 
 class ListeningEndpointTests(TestCase):
+
+    log = make_logger()
 
     def setUp(self):
         self.cbdir = self.mktemp()
@@ -66,8 +69,7 @@ class ListeningEndpointTests(TestCase):
             "path": path
         }
 
-        endpoint = create_listening_endpoint_from_config(config, self.cbdir,
-                                                         reactor)
+        endpoint = create_listening_endpoint_from_config(config, self.cbdir, reactor, self.log)
         self.assertTrue(isinstance(endpoint, UNIXServerEndpoint))
 
         factory = Factory.forProtocol(Echo)
@@ -95,7 +97,7 @@ class ListeningEndpointTests(TestCase):
         }
 
         endpoint = create_listening_endpoint_from_config(config, self.cbdir,
-                                                         reactor)
+                                                         reactor, self.log)
         self.assertTrue(isinstance(endpoint, UNIXServerEndpoint))
 
         factory = Factory.forProtocol(Echo)
@@ -127,7 +129,8 @@ class ListeningEndpointTests(TestCase):
         }
 
         with self.assertRaises(OSError) as e:
-            create_listening_endpoint_from_config(config, self.cbdir, reactor)
+            create_listening_endpoint_from_config(config, self.cbdir,
+                                                  reactor, self.log)
         self.assertEqual(e.exception.errno, 13)  # Permission Denied
 
         parent_fp.chmod(0o777)

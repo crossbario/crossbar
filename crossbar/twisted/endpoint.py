@@ -48,8 +48,7 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     UNIXClientEndpoint
 from twisted.python.filepath import FilePath
 
-from crossbar._logging import make_logger
-from crossbar.twisted.sharedport import SharedPort
+from crossbar.twisted.sharedport import SharedPort, SharedTLSPort
 
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
@@ -67,7 +66,7 @@ __all__ = ('create_listening_endpoint_from_config',
            'create_connecting_port_from_config')
 
 
-def _create_tls_server_context(log, config, cbdir):
+def _create_tls_server_context(config, cbdir, log):
     """
     Create a CertificateOptions object for use with TLS listening endpoints.
     """
@@ -195,7 +194,7 @@ def _create_tls_server_context(log, config, cbdir):
     return ctx
 
 
-def _create_tls_client_context(log, config, cbdir):
+def _create_tls_client_context(config, cbdir, log):
     """
     Create a CertificateOptions object for use with TLS listening endpoints.
     """
@@ -248,7 +247,7 @@ def _create_tls_client_context(log, config, cbdir):
     return ctx
 
 
-def create_listening_endpoint_from_config(config, cbdir, reactor):
+def create_listening_endpoint_from_config(config, cbdir, reactor, log):
     """
     Create a Twisted stream server endpoint from a Crossbar.io transport configuration.
 
@@ -263,7 +262,6 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
 
     :returns obj -- An instance implementing IStreamServerEndpoint
     """
-    log = make_logger()
     endpoint = None
 
     # a TCP endpoint
@@ -299,7 +297,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
             #
             if _HAS_TLS:
                 # TLS server context
-                context = _create_tls_server_context(log, config['tls'], cbdir)
+                context = _create_tls_server_context(config['tls'], cbdir, log)
 
                 if version == 4:
                     endpoint = SSL4ServerEndpoint(reactor,
@@ -359,7 +357,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor):
     return endpoint
 
 
-def create_listening_port_from_config(config, factory, cbdir, reactor):
+def create_listening_port_from_config(config, cbdir, factory, reactor, log):
     """
     Create a Twisted listening port from a Crossbar.io transport configuration.
 
@@ -379,8 +377,8 @@ def create_listening_port_from_config(config, factory, cbdir, reactor):
     if config['type'] == 'tcp' and config.get('shared', False):
 
         # the TCP protocol version (v4 or v6)
-        # FIXME: handle v6
-        # version = int(config.get('version', 4))
+        #
+        version = int(config.get('version', 4))
 
         # the listening port
         #
@@ -394,7 +392,28 @@ def create_listening_port_from_config(config, factory, cbdir, reactor):
         #
         backlog = int(config.get('backlog', 50))
 
-        listening_port = SharedPort(port, factory, backlog, interface, reactor, shared=True)
+        # the TCP socket sharing option
+        #
+        shared = config.get('shared', False)
+
+        # create a listening port
+        #
+        if 'tls' in config:
+            if _HAS_TLS:
+                # TLS server context
+                context = _create_tls_server_context(config['tls'], cbdir, log)
+
+                if version == 4:
+                    listening_port = SharedTLSPort(port, factory, context, backlog, interface, reactor, shared=shared)
+                elif version == 6:
+                    raise Exception("TLS on IPv6 not implemented")
+                else:
+                    raise Exception("invalid TCP protocol version {}".format(version))
+            else:
+                raise Exception("TLS transport requested, but TLS packages not available:\n{}".format(_LACKS_TLS_MSG))
+        else:
+            listening_port = SharedPort(port, factory, backlog, interface, reactor, shared=shared)
+
         try:
             listening_port.startListening()
             return defer.succeed(listening_port)
@@ -403,13 +422,13 @@ def create_listening_port_from_config(config, factory, cbdir, reactor):
 
     else:
         try:
-            endpoint = create_listening_endpoint_from_config(config, cbdir, reactor)
+            endpoint = create_listening_endpoint_from_config(config, cbdir, reactor, log)
             return endpoint.listen(factory)
         except Exception:
             return defer.fail()
 
 
-def create_connecting_endpoint_from_config(config, cbdir, reactor):
+def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
     """
     Create a Twisted stream client endpoint from a Crossbar.io transport configuration.
 
@@ -425,7 +444,6 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
     :returns obj -- An instance implementing IStreamClientEndpoint
     """
     endpoint = None
-    log = make_logger()
 
     # a TCP endpoint
     #
@@ -452,7 +470,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
             #
             if _HAS_TLS:
                 # TLS client context
-                context = _create_tls_client_context(log, config['tls'], cbdir)
+                context = _create_tls_client_context(config['tls'], cbdir, log)
 
                 if version == 4:
                     endpoint = SSL4ClientEndpoint(
@@ -508,7 +526,7 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor):
     return endpoint
 
 
-def create_connecting_port_from_config(config, factory, cbdir, reactor):
+def create_connecting_port_from_config(config, cbdir, factory, reactor, log):
     """
     Create a Twisted connecting port from a Crossbar.io transport configuration.
 
@@ -525,5 +543,5 @@ def create_connecting_port_from_config(config, factory, cbdir, reactor):
 
     :returns obj -- A Deferred that results in an IProtocol upon successful connection otherwise a ConnectError
     """
-    endpoint = create_connecting_endpoint_from_config(config, cbdir, reactor)
+    endpoint = create_connecting_endpoint_from_config(config, cbdir, reactor, log)
     return endpoint.connect(factory)

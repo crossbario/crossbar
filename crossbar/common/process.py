@@ -599,7 +599,11 @@ class NativeProcessSession(ApplicationSession):
         self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
 
         try:
-            self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'], factory, self.cbdir, self._reactor)
+            self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'],
+                                                                                 self.cbdir,
+                                                                                 factory,
+                                                                                 self._reactor,
+                                                                                 self.log)
         except Exception as e:
             self._manhole_service = None
             emsg = "Manhole service endpoint cannot listen: {}".format(e)
