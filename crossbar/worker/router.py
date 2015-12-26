@@ -318,7 +318,7 @@ class RouterWorkerSession(NativeWorkerSession):
         raise Exception("not implemented")
 
     @inlineCallbacks
-    def start_router_realm(self, id, config, schemas=None, details=None):
+    def start_router_realm(self, id, config, schemas=None, enable_trace=False, details=None):
         """
         Starts a realm on this router worker.
 
@@ -358,6 +358,11 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # create a new router for the realm
         router = self._router_factory.start_realm(rlm)
+        if enable_trace:
+            router._trace_traffic = True
+            router._trace_traffic_roles_include = None
+            router._trace_traffic_roles_exclude = [u'trusted']
+            self.log.info(">>> Traffic tracing enabled! <<<")
 
         # add a router/realm service session
         extra = {

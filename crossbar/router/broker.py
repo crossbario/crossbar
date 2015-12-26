@@ -144,7 +144,7 @@ class Broker(object):
         if not uri_is_valid:
             if publish.acknowledge:
                 reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with invalid topic URI '{0}' (URI strict checking {1})".format(publish.topic, self._option_uri_strict)])
-                session._transport.send(reply)
+                self._router.send(session, reply)
             return
 
         # disallow publication to topics starting with "wamp." and "crossbar." other than for
@@ -155,7 +155,7 @@ class Broker(object):
             if is_restricted:
                 if publish.acknowledge:
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with restricted topic URI '{0}'".format(publish.topic)])
-                    session._transport.send(reply)
+                    self._router.send(session, reply)
                 return
 
         # get subscriptions active on the topic published to
@@ -189,7 +189,7 @@ class Broker(object):
             except Exception as e:
                 if publish.acknowledge:
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [u"publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
-                    session._transport.send(reply)
+                    self._router.send(session, reply)
                 return
 
             # authorize PUBLISH action
@@ -205,7 +205,7 @@ class Broker(object):
 
                     if publish.acknowledge:
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, [u"session not authorized to publish to topic '{0}'".format(publish.topic)])
-                        session._transport.send(reply)
+                        self._router.send(session, reply)
 
                 else:
 
@@ -221,8 +221,8 @@ class Broker(object):
                     # send publish acknowledge immediately when requested
                     #
                     if publish.acknowledge:
-                        msg = message.Published(publish.request, publication)
-                        session._transport.send(msg)
+                        reply = message.Published(publish.request, publication)
+                        self._router.send(session, reply)
 
                     # publisher disclosure
                     #
@@ -291,19 +291,29 @@ class Broker(object):
                             else:
                                 topic = None
 
-                            msg = message.Event(subscription.id,
-                                                publication,
-                                                args=publish.args,
-                                                kwargs=publish.kwargs,
-                                                publisher=publisher,
-                                                topic=topic)
+                            if publish.ep_payload:
+                                msg = message.Event(subscription.id,
+                                                    publication,
+                                                    ep_algo=publish.ep_algo,
+                                                    ep_key=publish.ep_key,
+                                                    ep_serializer=publish.ep_serializer,
+                                                    ep_payload=publish.ep_payload,
+                                                    publisher=publisher,
+                                                    topic=topic)
+                            else:
+                                msg = message.Event(subscription.id,
+                                                    publication,
+                                                    args=publish.args,
+                                                    kwargs=publish.kwargs,
+                                                    publisher=publisher,
+                                                    topic=topic)
                             for receiver in receivers:
                                 if (me_also or receiver != session) and receiver != self._event_store:
                                     # the receiving subscriber session
                                     # might have no transport, or no
                                     # longer be joined
                                     if receiver._session_id and receiver._transport:
-                                        receiver._transport.send(msg)
+                                        self._router.send(receiver, msg)
 
             def on_authorize_error(err):
                 """
@@ -319,7 +329,7 @@ class Broker(object):
                         ApplicationError.AUTHORIZATION_FAILED,
                         [u"failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)]
                     )
-                    session._transport.send(reply)
+                    self._router.send(session, reply)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
@@ -349,7 +359,7 @@ class Broker(object):
 
         if not uri_is_valid:
             reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, [u"subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
-            session._transport.send(reply)
+            self._router.send(session, reply)
             return
 
         # authorize action
@@ -392,7 +402,7 @@ class Broker(object):
 
             # send out reply to subscribe requestor
             #
-            session._transport.send(reply)
+            self._router.send(session, reply)
 
         def on_authorize_error(err):
             """
@@ -408,7 +418,7 @@ class Broker(object):
                 ApplicationError.AUTHORIZATION_FAILED,
                 [u"failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)]
             )
-            session._transport.send(reply)
+            self._router.send(session, reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
@@ -437,7 +447,7 @@ class Broker(object):
             #
             reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
 
-        session._transport.send(reply)
+        self._router.send(session, reply)
 
     def _unsubscribe(self, subscription, session):
 
@@ -470,6 +480,6 @@ class Broker(object):
 
         if 'subscriber' in session._session_roles and session._session_roles['subscriber'] and session._session_roles['subscriber'].subscription_revocation:
             reply = message.Unsubscribed(0, subscription=subscription.id, reason=reason)
-            session._transport.send(reply)
+            self._router.send(session, reply)
 
         return was_subscribed, was_last_subscriber

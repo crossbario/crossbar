@@ -538,9 +538,10 @@ class Node(object):
                             self.log.info("{worker}: processed {cnt_files} files extracting {cnt_decls} schema declarations and {len_schemas} URIs",
                                           worker=worker_logname, cnt_files=cnt_files, cnt_decls=cnt_decls, len_schemas=len(schemas))
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas, options=call_options)
+                        enable_trace = realm.get('trace', False)
+                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas, enable_trace=enable_trace, options=call_options)
                         self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
-                                      worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
+                                      worker=worker_logname, realm_id=realm_id, realm_name=realm['name'], enable_trace=enable_trace)
 
                         # add roles to realm
                         #

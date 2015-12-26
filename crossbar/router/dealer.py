@@ -160,7 +160,7 @@ class Dealer(object):
 
         if not uri_is_valid:
             reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [u"register for invalid procedure URI '{0}' (URI strict checking {1})".format(register.procedure, self._option_uri_strict)])
-            session._transport.send(reply)
+            self._router.send(session, reply)
             return
 
         # disallow registration of procedures starting with "wamp." and  "crossbar." other than for
@@ -170,7 +170,7 @@ class Dealer(object):
             is_restricted = register.procedure.startswith(u"wamp.") or register.procedure.startswith(u"crossbar.")
             if is_restricted:
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [u"register for restricted procedure URI '{0}')".format(register.procedure)])
-                session._transport.send(reply)
+                self._router.send(session, reply)
                 return
 
         # get existing registration for procedure / matching strategy - if any
@@ -183,7 +183,7 @@ class Dealer(object):
             #
             if registration.extra.invoke == message.Register.INVOKE_SINGLE:
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, [u"register for already registered procedure '{0}'".format(register.procedure)])
-                session._transport.send(reply)
+                self._router.send(session, reply)
                 return
 
             # there is an existing registration, and that has an invokation strategy different from the one
@@ -191,7 +191,7 @@ class Dealer(object):
             #
             if registration.extra.invoke != register.invoke:
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, [u"register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra.invoke, register.invoke)])
-                session._transport.send(reply)
+                self._router.send(session, reply)
                 return
 
         # authorize action
@@ -236,7 +236,7 @@ class Dealer(object):
 
             # send out reply to register requestor
             #
-            session._transport.send(reply)
+            self._router.send(session, reply)
 
         def on_authorize_error(err):
             """
@@ -251,7 +251,7 @@ class Dealer(object):
                 ApplicationError.AUTHORIZATION_FAILED,
                 [u"failed to authorize session for registering procedure '{0}': {1}".format(register.procedure, err.value)]
             )
-            session._transport.send(reply)
+            self._router.send(session, reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
@@ -280,7 +280,7 @@ class Dealer(object):
             #
             reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
 
-        session._transport.send(reply)
+        self._router.send(session, reply)
 
     def _unregister(self, registration, session):
 
@@ -315,7 +315,7 @@ class Dealer(object):
         #
         if 'callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].registration_revocation:
             reply = message.Unregistered(0, registration=registration.id, reason=reason)
-            session._transport.send(reply)
+            self._router.send(session, reply)
 
         return was_registered, was_last_callee
 
@@ -332,7 +332,7 @@ class Dealer(object):
 
         if not uri_is_valid:
             reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_URI, [u"call with invalid procedure URI '{0}' (URI strict checking {1})".format(call.procedure, self._option_uri_strict)])
-            session._transport.send(reply)
+            self._router.send(session, reply)
             return
 
         # get registrations active on the procedure called
@@ -347,7 +347,7 @@ class Dealer(object):
                 self._router.validate('call', call.procedure, call.args, call.kwargs)
             except Exception as e:
                 reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
-                session._transport.send(reply)
+                self._router.send(session, reply)
                 return
 
             # authorize CALL action
@@ -361,7 +361,7 @@ class Dealer(object):
                 #
                 if not authorized:
                     reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to call procedure '{0}'".format(call.procedure)])
-                    session._transport.send(reply)
+                    self._router.send(session, reply)
 
                 else:
 
@@ -416,7 +416,7 @@ class Dealer(object):
                                                     procedure=procedure)
 
                     self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)
-                    callee._transport.send(invocation)
+                    self._router.send(callee, invocation)
 
             def on_authorize_error(err):
                 """
@@ -431,13 +431,13 @@ class Dealer(object):
                     ApplicationError.AUTHORIZATION_FAILED,
                     [u"failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)]
                 )
-                session._transport.send(reply)
+                self._router.send(session, reply)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
         else:
             reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, [u"no callee registered for procedure '{0}'".format(call.procedure)])
-            session._transport.send(reply)
+            self._router.send(session, reply)
 
     # noinspection PyUnusedLocal
     def processCancel(self, session, cancel):
@@ -474,7 +474,7 @@ class Dealer(object):
             # the calling session might have been lost in the meantime ..
             #
             if invocation_request.caller._transport:
-                invocation_request.caller._transport.send(reply)
+                self._router.send(invocation_request.caller, reply)
 
             # the call is done if it's a regular call (non-progressive) or if the payload was invalid
             #
@@ -508,7 +508,7 @@ class Dealer(object):
             # the calling session might have been lost in the meantime ..
             #
             if invocation_request.caller._transport:
-                invocation_request.caller._transport.send(reply)
+                self._router.send(invocation_request.caller, reply)
 
             # the call is done
             #

@@ -91,6 +91,10 @@ class Router(object):
         self._realm = realm
         self.realm = realm.config['name']
 
+        self._trace_traffic = False
+        self._trace_traffic_roles_include = None
+        self._trace_traffic_roles_exclude = [u'trusted']
+
         # map: session_id -> session
         self._session_id_to_session = {}
 
@@ -139,11 +143,26 @@ class Router(object):
         if not self._attached:
             self._factory.onLastDetach(self)
 
+    def _check_trace(self, session, msg):
+        if not self._trace_traffic:
+            return False
+        if self._trace_traffic_roles_include and session._authrole not in self._trace_traffic_roles_include:
+            return False
+        if self._trace_traffic_roles_exclude and session._authrole in self._trace_traffic_roles_exclude:
+            return False
+        return True
+
+    def send(self, session, msg):
+        if self._check_trace(session, msg):
+            self.log.info("<<TX<< {msg}", msg=msg)
+        session._transport.send(msg)
+
     def process(self, session, msg):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.process`
         """
-        self.log.trace("Router.process: {msg}", msg=msg)
+        if self._check_trace(session, msg):
+            self.log.info(">>RX>> {msg}", msg=msg)
 
         # Broker
         #

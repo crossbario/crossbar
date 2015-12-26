@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import
 
-import types
 import json
 import six
 
@@ -201,6 +200,6 @@ if HAS_ED25519:
                 return False
 
 else:
-    PendingAuthEd25519 = types.NoneType
+    PendingAuthEd25519 = type(None)
 
 __all__.append('PendingAuthEd25519')
