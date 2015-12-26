@@ -131,8 +131,87 @@ class Node(object):
             checkconfig.check_config(self._config)
             self.log.info("Node configuration loaded from built-in CDC config.")
 
+    def _prepare_node_keys(self):
+        from nacl.signing import SigningKey
+        from nacl.encoding import HexEncoder
+
+        # make sure CBDIR/.cdc exists
+        #
+        cdc_dir = os.path.join(self._cbdir, '.cdc')
+        if os.path.isdir(cdc_dir):
+            pass
+        elif os.path.exists(cdc_dir):
+            raise Exception(".cdc exists, but isn't a directory")
+        else:
+            os.mkdir(cdc_dir)
+            self.log.info("CDC directory created")
+
+        # load node ID, either from .cdc/node.id or from CDC_NODE_ID
+        #
+        def split_nid(nid_s):
+            nid_c = nid_s.strip().split('@')
+            if len(nid_c) != 2:
+                raise Exception("illegal node principal '{}' - must follow the form <node id>@<management realm>".format(nid_s))
+            node_id, realm = nid_c
+            # FIXME: regex check node_id and realm
+            return node_id, realm
+
+        nid_file = os.path.join(cdc_dir, 'node.id')
+        node_id, realm = None, None
+        if os.path.isfile(nid_file):
+            with open(nid_file, 'r') as f:
+                node_id, realm = split_nid(f.read())
+        elif os.path.exists(nid_file):
+            raise Exception("{} exists, but isn't a file".format(nid_file))
+        else:
+            if 'CDC_NODE_ID' in os.environ:
+                node_id, realm = split_nid(os.environ['CDC_NODE_ID'])
+            else:
+                raise Exception("Neither node ID file {} exists nor CDC_NODE_ID environment variable set".format(nid_file))
+
+        # Load the node key, either from .cdc/node.key or from CDC_NODE_KEY.
+        # The node key is a Ed25519 key in either raw format (32 bytes) or in
+        # hex-encoded form (64 characters).
+        #
+        # Actually, what's loaded is not the secret Ed25519 key, but the _seed_
+        # for that key. Private keys are derived from this 32-byte (256-bit)
+        # random seed value. It is thus the seed value which is sensitive and
+        # must be protected.
+        #
+        skey_file = os.path.join(cdc_dir, 'node.key')
+        skey = None
+        if os.path.isfile(skey_file):
+            # FIXME: check file permissions are 0600!
+
+            # This value is read in here.
+            skey_len = os.path.getsize(skey_file)
+            if skey_len in (32, 64):
+                with open(skey_file, 'r') as f:
+                    skey_seed = f.read()
+                    encoder = None
+                    if skey_len == 64:
+                        encoder = HexEncoder
+                    skey = SigningKey(skey_seed, encoder=encoder)
+                self.log.info("Existing CDC node key loaded from {skey_file}.", skey_file=skey_file)
+            else:
+                raise Exception("invalid node key length {} (key must either be 32 raw bytes or hex encoded 32 bytes, hence 64 byte char length)")
+        elif os.path.exists(skey_file):
+            raise Exception("{} exists, but isn't a file".format(skey_file))
+        else:
+            skey = SigningKey.generate()
+            skey_seed = skey.encode(encoder=HexEncoder)
+            with open(skey_file, 'w') as f:
+                f.write(skey_seed)
+
+            # set file mode to read only for owner
+            # 384 (decimal) == 0600 (octal) - we use that for Py2/3 reasons
+            os.chmod(skey_file, 384)
+            self.log.info("New CDC node key {skey_file} generated.", skey_file=skey_file)
+
+        return realm, node_id, skey
+
     @inlineCallbacks
-    def start(self):
+    def start(self, cdc_mode=False):
         """
         Starts this node. This will start a node controller and then spawn new worker
         processes as needed.
@@ -172,6 +251,8 @@ class Node(object):
         # standalone vs managed mode
         #
         if 'cdc' in controller_config and controller_config['cdc'].get('enabled', False):
+
+            self._prepare_node_keys()
 
             cdc_config = controller_config['cdc']
 

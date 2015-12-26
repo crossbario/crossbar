@@ -576,7 +576,7 @@ def run_command_start(options, reactor=None):
     # now actually start the node ..
     #
     def start_crossbar():
-        d = node.start()
+        d = node.start(cdc_mode=options.cdc)
 
         def on_error(err):
             log.error("{e!s}", e=err.value)
