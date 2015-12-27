@@ -104,7 +104,9 @@ class Dealer(object):
                                                       registration_meta_api=True,
                                                       shared_registration=True,
                                                       progressive_call_results=True,
-                                                      registration_revocation=True)
+                                                      registration_revocation=True,
+                                                      payload_transparency=True,
+                                                      payload_encryption_wpe3=True)
 
     def attach(self, session):
         """

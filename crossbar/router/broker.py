@@ -83,7 +83,9 @@ class Broker(object):
                                                       subscription_meta_api=True,
                                                       subscriber_blackwhite_listing=True,
                                                       publisher_exclusion=True,
-                                                      subscription_revocation=True)
+                                                      subscription_revocation=True,
+                                                      payload_transparency=True,
+                                                      payload_encryption_wpe3=True)
 
         # store for event history
         if self._router._store:
@@ -291,13 +293,13 @@ class Broker(object):
                             else:
                                 topic = None
 
-                            if publish.ep_payload:
+                            if publish.payload:
                                 msg = message.Event(subscription.id,
                                                     publication,
-                                                    ep_algo=publish.ep_algo,
-                                                    ep_key=publish.ep_key,
-                                                    ep_serializer=publish.ep_serializer,
-                                                    ep_payload=publish.ep_payload,
+                                                    enc_algo=publish.enc_algo,
+                                                    enc_key=publish.enc_key,
+                                                    enc_serializer=publish.enc_serializer,
+                                                    payload=publish.payload,
                                                     publisher=publisher,
                                                     topic=topic)
                             else:
