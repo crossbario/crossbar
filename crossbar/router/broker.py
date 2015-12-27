@@ -186,13 +186,14 @@ class Broker(object):
 
             # validate payload
             #
-            try:
-                self._router.validate('event', publish.topic, publish.args, publish.kwargs)
-            except Exception as e:
-                if publish.acknowledge:
-                    reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [u"publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
-                    self._router.send(session, reply)
-                return
+            if publish.payload is None:
+                try:
+                    self._router.validate('event', publish.topic, publish.args, publish.kwargs)
+                except Exception as e:
+                    if publish.acknowledge:
+                        reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [u"publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
+                        self._router.send(session, reply)
+                    return
 
             # authorize PUBLISH action
             #
@@ -296,12 +297,12 @@ class Broker(object):
                             if publish.payload:
                                 msg = message.Event(subscription.id,
                                                     publication,
-                                                    enc_algo=publish.enc_algo,
-                                                    enc_key=publish.enc_key,
-                                                    enc_serializer=publish.enc_serializer,
                                                     payload=publish.payload,
                                                     publisher=publisher,
-                                                    topic=topic)
+                                                    topic=topic,
+                                                    enc_algo=publish.enc_algo,
+                                                    enc_key=publish.enc_key,
+                                                    enc_serializer=publish.enc_serializer)
                             else:
                                 msg = message.Event(subscription.id,
                                                     publication,

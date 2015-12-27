@@ -343,14 +343,15 @@ class Dealer(object):
 
         if registration:
 
-            # validate payload
+            # validate payload (skip in "payload_transparency" mode)
             #
-            try:
-                self._router.validate('call', call.procedure, call.args, call.kwargs)
-            except Exception as e:
-                reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
-                self._router.send(session, reply)
-                return
+            if call.payload is None:
+                try:
+                    self._router.validate('call', call.procedure, call.args, call.kwargs)
+                except Exception as e:
+                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
+                    self._router.send(session, reply)
+                    return
 
             # authorize CALL action
             #
@@ -408,14 +409,26 @@ class Dealer(object):
                     else:
                         procedure = None
 
-                    invocation = message.Invocation(invocation_request_id,
-                                                    registration.id,
-                                                    args=call.args,
-                                                    kwargs=call.kwargs,
-                                                    timeout=call.timeout,
-                                                    receive_progress=call.receive_progress,
-                                                    caller=caller,
-                                                    procedure=procedure)
+                    if call.payload:
+                        invocation = message.Invocation(invocation_request_id,
+                                                        registration.id,
+                                                        payload=call.payload,
+                                                        timeout=call.timeout,
+                                                        receive_progress=call.receive_progress,
+                                                        caller=caller,
+                                                        procedure=procedure,
+                                                        enc_algo=call.enc_algo,
+                                                        enc_key=call.enc_key,
+                                                        enc_serializer=call.enc_serializer)
+                    else:
+                        invocation = message.Invocation(invocation_request_id,
+                                                        registration.id,
+                                                        args=call.args,
+                                                        kwargs=call.kwargs,
+                                                        timeout=call.timeout,
+                                                        receive_progress=call.receive_progress,
+                                                        caller=caller,
+                                                        procedure=procedure)
 
                     self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)
                     self._router.send(callee, invocation)
@@ -462,16 +475,20 @@ class Dealer(object):
             #
             invocation_request = self._invocations[yield_.request]
 
-            # validate payload
-            #
             is_valid = True
-            try:
-                self._router.validate('call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
-            except Exception as e:
-                is_valid = False
-                reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+            if yield_.payload is None:
+                # validate payload
+                #
+                try:
+                    self._router.validate('call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
+                except Exception as e:
+                    is_valid = False
+                    reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+                else:
+                    reply = message.Result(invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
             else:
-                reply = message.Result(invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
+                reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress,
+                                       enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
 
             # the calling session might have been lost in the meantime ..
             #
