@@ -34,13 +34,6 @@ from twisted.internet import reactor, defer
 from twisted.internet.selectreactor import SelectReactor
 from twisted.python.filepath import FilePath
 
-# WebSocket protocol gets used below, and the latter
-# calls txaio.make_logger(). If we don't explicitly select
-# the network framework before, we get an exception
-# "To use txaio, you must first select a framework" from txaio
-import txaio
-txaio.use_twisted()  # noqa
-
 from crossbar.test import TestCase
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 from crossbar.worker import router

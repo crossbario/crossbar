@@ -31,10 +31,17 @@
 from __future__ import absolute_import
 
 from mock import MagicMock
+
 from twisted.trial import unittest
 from twisted.internet.defer import Deferred
 from twisted.internet import task
 
+# WebSocket protocol gets used below, and the latter
+# calls txaio.make_logger(). If we don't explicitly select
+# the network framework before, we get an exception
+# "To use txaio, you must first select a framework" from txaio
+import txaio
+txaio.use_twisted()  # noqa
 
 from crossbar.controller.process import NodeControllerSession
 
