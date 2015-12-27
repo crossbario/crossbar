@@ -85,7 +85,7 @@ class Broker(object):
                                                       publisher_exclusion=True,
                                                       subscription_revocation=True,
                                                       payload_transparency=True,
-                                                      payload_encryption_crypto_box=True)
+                                                      payload_encryption_cryptobox=True)
 
         # store for event history
         if self._router._store:

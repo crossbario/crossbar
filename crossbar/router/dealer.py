@@ -106,7 +106,7 @@ class Dealer(object):
                                                       progressive_call_results=True,
                                                       registration_revocation=True,
                                                       payload_transparency=True,
-                                                      payload_encryption_crypto_box=True)
+                                                      payload_encryption_cryptobox=True)
 
     def attach(self, session):
         """
