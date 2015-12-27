@@ -292,6 +292,13 @@ class WebTests(TestCase):
         Not including a '/' path will mean that path has a 404, but children
         will still be routed correctly.
         """
+        # WebSocket protocol gets used below, and the latter
+        # calls txaio.make_logger(). If we don't explicitly select
+        # the network framework before, we get an exception
+        # "To use txaio, you must first select a framework" from txaio
+        import txaio
+        txaio.use_twisted()
+
         temp_reactor = SelectReactor()
         r = router.RouterWorkerSession(config=self.config,
                                        reactor=temp_reactor)
