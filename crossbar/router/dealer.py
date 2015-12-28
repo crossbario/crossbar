@@ -477,8 +477,7 @@ class Dealer(object):
 
             is_valid = True
             if yield_.payload is None:
-                # validate payload
-                #
+                # validate normal args/kwargs payload
                 try:
                     self._router.validate('call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
                 except Exception as e:
@@ -515,14 +514,30 @@ class Dealer(object):
             #
             invocation_request = self._invocations[error.request]
 
-            # validate payload
-            #
-            try:
-                self._router.validate('call_error', invocation_request.call.procedure, error.args, error.kwargs)
-            except Exception as e:
-                reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [u"call error from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+            is_valid = True
+            if error.payload is None:
+                # validate normal args/kwargs payload
+                try:
+                    self._router.validate('call_error', invocation_request.call.procedure, error.args, error.kwargs)
+                except Exception as e:
+                    reply = message.Error(message.Call.MESSAGE_TYPE,
+                                          invocation_request.call.request,
+                                          ApplicationError.INVALID_ARGUMENT,
+                                          [u"call error from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+                else:
+                    reply = message.Error(message.Call.MESSAGE_TYPE,
+                                          invocation_request.call.request,
+                                          error.error,
+                                          args=error.args,
+                                          kwargs=error.kwargs)
             else:
-                reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, error.error, args=error.args, kwargs=error.kwargs)
+                reply = message.Error(message.Call.MESSAGE_TYPE,
+                                      invocation_request.call.request,
+                                      error.error,
+                                      payload=error.payload,
+                                      enc_algo=error.enc_algo,
+                                      enc_key=error.enc_key,
+                                      enc_serializer=error.enc_serializer)
 
             # the calling session might have been lost in the meantime ..
             #
