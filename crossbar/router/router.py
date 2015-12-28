@@ -383,7 +383,8 @@ class RouterFactory(object):
         elif 'authorizer' in config:
             role = RouterRoleDynamicAuth(router, uri, config['authorizer'])
         else:
-            role = RouterRole(router, uri)
+            allow_by_default = config.get('allow-by-default', False)
+            role = RouterRole(router, uri, allow_by_default=allow_by_default)
 
         router.add_role(role)
 

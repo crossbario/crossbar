@@ -55,7 +55,7 @@ class RouterRole(object):
     """
     log = make_logger()
 
-    def __init__(self, router, uri):
+    def __init__(self, router, uri, allow_by_default=False):
         """
         Ctor.
 
@@ -64,6 +64,7 @@ class RouterRole(object):
         """
         self.router = router
         self.uri = uri
+        self.allow_by_default = allow_by_default
 
     def authorize(self, session, uri, action):
         """
@@ -81,7 +82,7 @@ class RouterRole(object):
         """
         self.log.debug("CrossbarRouterRole.authorize {uri} {action}",
                        uri=uri, action=action)
-        return False
+        return self.allow_by_default
 
 
 class RouterTrustedRole(RouterRole):
