@@ -278,32 +278,32 @@ def check_transport_auth_ticket(config):
     https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/auth/Ticket-Authentication.md
     """
     if 'type' not in config:
-        raise InvalidConfigException("missing mandatory attribute 'type' in Ticket-based authentication configuration")
+        raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-Ticket configuration")
 
     if config['type'] not in ['static', 'dynamic']:
-        raise InvalidConfigException("invalid type '{}' for Ticket-based authentication type - must be one of 'static', 'dynamic'".format(config['type']))
+        raise InvalidConfigException("invalid type '{}' in WAMP-Ticket configuration - must be one of 'static', 'dynamic'".format(config['type']))
 
     if config['type'] == 'static':
         if 'principals' not in config:
-            raise InvalidConfigException("missing mandatory attribute 'principals' in static Ticket-based authentication configuration")
+            raise InvalidConfigException("missing mandatory attribute 'principals' in static WAMP-Ticket configuration")
 
         if not isinstance(config['principals'], dict):
-            raise InvalidConfigException("invalid type for attribute 'principals' in static Ticket-based authentication configuration - expected dict, got {}".format(type(config['users'])))
+            raise InvalidConfigException("invalid type for attribute 'principals' in static WAMP-Ticket configuration - expected dict, got {}".format(type(config['users'])))
 
         # check map of principals
         for authid, principal in config['principals'].items():
             check_dict_args({
                 'ticket': (True, [six.text_type]),
                 'role': (False, [six.text_type]),
-            }, principal, "Ticket-based authentication configuration - principal '{}' configuration".format(authid))
+            }, principal, "WAMP-Ticket - principal '{}' configuration".format(authid))
 
             # allow to set value from environment variable
             principal['ticket'] = maybe_from_env('auth.ticket.principals["{}"].ticket'.format(authid), principal['ticket'])
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
-            raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic Ticket-based authentication configuration")
-        check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic Ticket-based authentication configuration".format(config['authenticator']))
+            raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-Ticket configuration")
+        check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-Ticket configuration".format(config['authenticator']))
     else:
         raise InvalidConfigException("logic error")
 
@@ -319,7 +319,7 @@ def check_transport_auth_wampcra(config):
         raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-CRA configuration")
 
     if config['type'] not in ['static', 'dynamic']:
-        raise InvalidConfigException("invalid type '{}' for WAMP-CRA authentication type - must be one of 'static', 'dynamic'".format(config['type']))
+        raise InvalidConfigException("invalid type '{}' in WAMP-CRA configuration - must be one of 'static', 'dynamic'".format(config['type']))
 
     if config['type'] == 'static':
         if 'users' not in config:
@@ -333,7 +333,7 @@ def check_transport_auth_wampcra(config):
                 'salt': (False, [six.text_type]),
                 'iterations': (False, six.integer_types),
                 'keylen': (False, six.integer_types)
-            }, user, "WAMP-CRA user '{}' configuration".format(authid))
+            }, user, "WAMP-CRA - user '{}' configuration".format(authid))
 
             # allow to set value from environment variable
             user['secret'] = maybe_from_env('auth.wampcra.users["{}"].secret'.format(authid), user['secret'])
@@ -357,7 +357,7 @@ def check_transport_auth_tls(config):
         raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-TLS configuration")
 
     if config['type'] not in ['static', 'dynamic']:
-        raise InvalidConfigException("invalid type '{}' for WAMP-TLS authentication type - must be one of 'static', 'dynamic'".format(config['type']))
+        raise InvalidConfigException("invalid type '{}' in WAMP-TLS configuration - must be one of 'static', 'dynamic'".format(config['type']))
 
     if config['type'] == 'static':
         # FIXME

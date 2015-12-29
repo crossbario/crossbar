@@ -1102,18 +1102,20 @@ class RouterSession(_RouterSession):
                 # WAMP-Ticket "dynamic"
                 #
                 else:
-                    # call the configured dynamic authenticator procedure
-                    # via the router's service session
-                    #
                     service_session = self._router_factory.get(self._pending_auth.realm)._realm.session
+
+                    session_details = {
+                        'transport': self._transport._transport_info,
+                        'session': self._pending_session_id,
+                        'ticket': signature
+                    }
 
                     d = service_session.call(self._pending_auth.authprovider,
                                              self._pending_auth.realm,
                                              self._pending_auth.authid,
-                                             signature)
+                                             session_details)
 
                     def on_authenticate_ok(principal):
-
                         if isinstance(principal, dict):
                             # dynamic ticket authenticator returned a dictionary (new)
                             authid = principal.get("authid", self._pending_auth.authid)
