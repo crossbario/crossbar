@@ -162,6 +162,24 @@ def _readenv(var, msg):
         raise InvalidConfigException("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
 
 
+_ENVPAT = re.compile(u"^\$\{(.+)\}$")
+
+
+def maybe_from_env(config_item, value):
+    log.debug("checkconfig: maybe_from_env('{value}')", value=value)
+    if type(value) == six.text_type:
+        match = _ENVPAT.match(value)
+        if match and match.groups():
+            var = match.groups()[0]
+            if var in os.environ:
+                new_value = os.environ[var].decode('utf8')
+                # for security reasons, we log only a starred version of the value read!
+                log.info("Configuration '{config_item}' set from environment variable ${var}", config_item=config_item, var=var)
+                return new_value
+    log.debug("literal value from config")
+    return value
+
+
 def get_config_value(config, item, default=None):
     """
     Get an item from a configuration dict, possibly trying to read the
@@ -266,13 +284,19 @@ def check_transport_auth_ticket(config):
     if config['type'] == 'static':
         if 'principals' not in config:
             raise InvalidConfigException("missing mandatory attribute 'principals' in static Ticket-based authentication configuration")
+
         if not isinstance(config['principals'], dict):
             raise InvalidConfigException("invalid type for attribute 'principals' in static Ticket-based authentication configuration - expected dict, got {}".format(type(config['users'])))
-        for u, principal in config['principals'].items():
+
+        # check map of principals
+        for authid, principal in config['principals'].items():
             check_dict_args({
                 'ticket': (True, [six.text_type]),
                 'role': (False, [six.text_type]),
-            }, principal, "Ticket-based authentication configuration - principal '{}' configuration".format(u))
+            }, principal, "Ticket-based authentication configuration - principal '{}' configuration".format(authid))
+
+            # allow to set value from environment variable
+            principal['ticket'] = maybe_from_env('auth.ticket.principals["{}"].ticket'.format(authid), principal['ticket'])
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:
@@ -300,14 +324,17 @@ def check_transport_auth_wampcra(config):
             raise InvalidConfigException("missing mandatory attribute 'users' in static WAMP-CRA configuration")
         if not isinstance(config['users'], dict):
             raise InvalidConfigException("invalid type for attribute 'users' in static WAMP-CRA configuration - expected dict, got {}".format(type(config['users'])))
-        for u, user in config['users'].items():
+        for authid, user in config['users'].items():
             check_dict_args({
                 'secret': (True, [six.text_type]),
                 'role': (False, [six.text_type]),
                 'salt': (False, [six.text_type]),
                 'iterations': (False, six.integer_types),
                 'keylen': (False, six.integer_types)
-            }, user, "WAMP-CRA user '{}' configuration".format(u))
+            }, user, "WAMP-CRA user '{}' configuration".format(authid))
+
+            # allow to set value from environment variable
+            user['secret'] = maybe_from_env('auth.wampcra.users["{}"].secret'.format(authid), user['secret'])
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:

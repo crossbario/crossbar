@@ -116,6 +116,9 @@ class Node(object):
             self.log.debug("Loading node configuration from '{configpath}' ..",
                            configpath=configpath)
 
+            # the following will read the config, check the config and replace
+            # environment variable references in configuration values ("${MYVAR}") and
+            # finally return the parsed configuration object
             self._config = checkconfig.check_config_file(configpath, silence=True)
 
             self.log.info("Node configuration loaded from '{configfile}'",
