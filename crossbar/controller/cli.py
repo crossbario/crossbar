@@ -612,10 +612,13 @@ def run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
-    from crossbar.common.checkconfig import check_config_file
+    from crossbar.common.checkconfig import check_config_file, color_json
     configfile = os.path.join(options.cbdir, options.config)
 
-    print("Checking local configuration file {}".format(configfile))
+    print("\nChecking node configuration file '{}':\n".format(configfile))
+
+    with open(configfile, 'r') as f:
+        print(color_json(f.read().decode('utf8')))
 
     old_dir = os.path.abspath(os.path.curdir)
     os.chdir(options.cbdir)
@@ -625,7 +628,7 @@ def run_command_check(options, **kwargs):
         print("\nError: {}\n".format(e))
         sys.exit(1)
     else:
-        print("Ok, configuration file looks good.")
+        print("Ok, node configuration looks good!\n")
         sys.exit(0)
     finally:
         os.chdir(old_dir)

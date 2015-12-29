@@ -37,6 +37,8 @@ import six
 
 from pprint import pformat
 
+from pygments import highlight, lexers, formatters
+
 from autobahn.websocket.protocol import parseWsUrl
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
@@ -108,6 +110,31 @@ Permissible node shutdown modes.
 """
 
 
+log = make_logger()
+
+
+class InvalidConfigException(Exception):
+    pass
+
+
+def color_json(json_str):
+    """
+    Given an already formatted JSON string, return a colored variant which will
+    produce colored output on terminals.
+    """
+    assert(type(json_str) == six.text_type)
+    return highlight(json_str, lexers.JsonLexer(), formatters.TerminalFormatter())
+
+
+def pprint_json(obj, log_to=None):
+    json_str = json.dumps(obj, separators=(', ', ': '), sort_keys=False, indent=3, ensure_ascii=False)
+    output_str = color_json(json_str)
+    if log_to:
+        log_to.info(output_str)
+    else:
+        print(output_str)
+
+
 # Hack: force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
 #
 # http://stackoverflow.com/a/2967461/884770
@@ -121,12 +148,6 @@ SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
 _ENV_VAR_PAT_STR = "^\$([A-Z0-9_]+)$"
 _ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
-
-log = make_logger()
-
-
-class InvalidConfigException(Exception):
-    pass
 
 
 def _readenv(var, msg):
