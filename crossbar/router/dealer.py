@@ -514,7 +514,6 @@ class Dealer(object):
             #
             invocation_request = self._invocations[error.request]
 
-            is_valid = True
             if error.payload is None:
                 # validate normal args/kwargs payload
                 try:
