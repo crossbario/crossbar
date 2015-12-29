@@ -176,6 +176,8 @@ def maybe_from_env(config_item, value):
                 # for security reasons, we log only a starred version of the value read!
                 log.info("Configuration '{config_item}' set from environment variable ${var}", config_item=config_item, var=var)
                 return new_value
+            else:
+                log.warn("Environment variable ${var} not set - needed in configuration '{config_item}'", config_item=config_item, var=var)
     log.debug("literal value from config")
     return value
 
