@@ -32,8 +32,10 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+import re
 import six
 import inspect
+import json
 
 from json import JSONEncoder
 
@@ -46,6 +48,8 @@ from twisted.logger import LogLevel, globalLogBeginner, formatTime
 
 from twisted.python.constants import NamedConstant
 from twisted.python.reflect import qual
+
+from pygments import highlight, lexers, formatters
 
 from weakref import WeakKeyDictionary
 
@@ -109,6 +113,17 @@ assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
 # infinite loop -- which we don't want.
 _stderr, _stdout = sys.stderr, sys.stdout
 
+# A regex that matches ANSI escape sequences
+# http://stackoverflow.com/a/33925425
+_ansi_cleaner = re.compile(ur"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+
+
+def strip_ansi(text):
+    """
+    Strip ANSI codes.
+    """
+    return _ansi_cleaner.sub('', text)
+
 
 def escape_formatting(text):
     """
@@ -164,6 +179,9 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
         else:
             assert False
 
+        if not format == "colour":
+            eventString = strip_ansi(eventString)
+
         print(eventString, file=_file)
 
     return StandardOutObserver
@@ -216,6 +234,9 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
             eventString = formatEvent(event)
         else:
             assert False
+
+        if not format == "colour":
+            eventString = strip_ansi(eventString)
 
         print(eventString, file=_file)
 
@@ -428,3 +449,32 @@ def start_logging():
     Start logging to the publisher.
     """
     globalLogBeginner.beginLoggingTo([])
+
+
+def color_json(json_str):
+    """
+    Given an already formatted JSON string, return a colored variant which will
+    produce colored output on terminals.
+    """
+    assert(type(json_str) == six.text_type)
+    return highlight(json_str, lexers.JsonLexer(), formatters.TerminalFormatter())
+
+
+class JSON(object):
+    """
+    An object which encapsulates a JSON-dumpable item, and will colourise it
+    when it is __str__'d.
+    """
+    def __init__(self, item):
+        self._item = item
+
+    def __str__(self):
+        json_str = json.dumps(self._item, separators=(', ', ': '),
+                              sort_keys=False, indent=3, ensure_ascii=False)
+        output_str = os.linesep + color_json(json_str)
+
+        if bytes == str:
+            # In case json.dumps returns a not-str on Py2, we will encode
+            output_str = output_str.encode('utf8')
+
+        return output_str
