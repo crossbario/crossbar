@@ -115,7 +115,7 @@ _stderr, _stdout = sys.stderr, sys.stdout
 
 # A regex that matches ANSI escape sequences
 # http://stackoverflow.com/a/33925425
-_ansi_cleaner = re.compile(ur"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+_ansi_cleaner = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
 
 
 def strip_ansi(text):
