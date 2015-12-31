@@ -103,6 +103,10 @@ class PendingAuthWampCra(PendingAuth):
         return signature == self.signature
 
 
+from autobahn.wamp import types
+from autobahn.wamp.exception import ApplicationError
+
+
 class PendingAuthTicket(PendingAuth):
 
     """
@@ -111,8 +115,9 @@ class PendingAuthTicket(PendingAuth):
 
     authmethod = u'ticket'
 
-    def __init__(self, realm, authid, authrole, authprovider, ticket):
+    def __init__(self, session, realm=None, authid=None, authrole=None, authprovider=None, ticket=None, authenticator=None):
         """
+
         :param authid: The authentication ID of the authenticating principal.
         :type authid: unicode
         :param authrole: The role under which the principal will be authenticated when
@@ -123,14 +128,82 @@ class PendingAuthTicket(PendingAuth):
         :param ticket: The secret/ticket the authenticating principal will need to provide (or `None` when using dynamic authenticator).
         :type ticket: bytes or None
         """
+        self.session = session
         self.realm = realm
         self.authid = authid
         self.authrole = authrole
         self.authprovider = authprovider
         self.ticket = ticket
+        self.authenticator = authenticator
+
+    def __str__(self):
+        return u"PendingAuthTicket(realm={}, authid={}, authrole={}, authprovider={}, ticket={}, authenticator={})".format(self.realm, self.authid, self.authrole, self.authprovider, self.ticket, self.authenticator)
 
     def verify(self, signature):
-        return signature == self.ticket
+        """
+        The WAMP client has answered with a WAMP AUTHENTICATE message. Verify the message and
+        return `types.Accept` or `types.Deny`.
+        """
+        # WAMP-Ticket "static"
+        #
+        if self.authprovider == 'static':
+
+            # when doing WAMP-Ticket from static configuration, the ticket we
+            # expect was store on the pending authentication object and we just compare ..
+            if signature == self.ticket:
+                # ticket was valid: accept the client
+                return types.Accept(realm=self.realm,
+                                    authid=self.authid,
+                                    authrole=self.authrole,
+                                    authmethod=self.authmethod,
+                                    authprovider=self.authprovider)
+            else:
+                # ticket was invalid: deny client
+                return types.Deny(message=u"WAMP-Ticket ticket is invalid")
+
+        # WAMP-Ticket "dynamic"
+        #
+        else:
+            session_details = {
+                'transport': self.session._transport._transport_info,
+                'session': self.session._pending_session_id,
+                'ticket': signature
+            }
+            d = self.authenticator(self.realm, self.authid, session_details)
+
+            def on_authenticate_ok(principal):
+                if isinstance(principal, dict):
+                    # dynamic ticket authenticator returned a dictionary (new)
+                    realm = principal.get("realm", self.realm)
+                    authid = principal.get("authid", self.authid)
+                    authrole = principal["role"]
+                else:
+                    # backwards compatibility: dynamic ticket authenticator
+                    # was expected to return a role directly
+                    realm = self.realm
+                    authid = self.authid
+                    authrole = principal
+
+                return types.Accept(realm=realm,
+                                    authid=authid,
+                                    authrole=authrole,
+                                    authmethod=self.authmethod,
+                                    authprovider=self.authprovider)
+
+            def on_authenticate_error(err):
+                error = None
+                message = "WAMP-Ticket dynamic authenticator failed: {}".format(err)
+
+                if isinstance(err.value, ApplicationError):
+                    error = err.value.error
+                    if err.value.args and len(err.value.args):
+                        message = err.value.args[0]
+
+                return types.Deny(error, message)
+
+            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+            return d
 
 
 try:

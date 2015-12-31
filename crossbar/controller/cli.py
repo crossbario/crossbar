@@ -537,7 +537,8 @@ def run_command_start(options, reactor=None):
     for line in BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
-    bannerFormat = "{:>22} {:<24}"
+    # bannerFormat = "{:<18} {:<24}"
+    bannerFormat = "    {} {}"
     log.info(bannerFormat.format("Crossbar.io Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
     log.info(bannerFormat.format("Node Public Key:", click.style(pubkey, fg='yellow', bold=True)))
     log.info()

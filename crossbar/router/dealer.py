@@ -451,7 +451,7 @@ class Dealer(object):
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
         else:
-            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, [u"no callee registered for procedure '{0}'".format(call.procedure)])
+            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, [u"no callee registered for procedure <{0}>".format(call.procedure)])
             self._router.send(session, reply)
 
     # noinspection PyUnusedLocal

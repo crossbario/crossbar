@@ -137,7 +137,7 @@ def color_yaml(yaml_str):
 
 def pprint_json(obj, log_to=None):
     json_str = json.dumps(obj, separators=(', ', ': '), sort_keys=False, indent=3, ensure_ascii=False)
-    output_str = color_json(json_str)
+    output_str = color_json(json_str).strip()
     if log_to:
         log_to.info(output_str)
     else:

@@ -304,12 +304,6 @@ class _RouterSession(BaseSession):
         self._authmethod = None
         self._authprovider = None
 
-    def onHello(self, realm, details):
-        return types.Accept()
-
-    def onAuthenticate(self, signature, extra):
-        return types.Accept()
-
     def onMessage(self, msg):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onMessage`
@@ -320,13 +314,15 @@ class _RouterSession(BaseSession):
                 self._pending_session_id = util.id()
 
             def welcome(realm, authid=None, authrole=None, authmethod=None, authprovider=None, custom_details=None):
+                self._realm = realm
                 self._session_id = self._pending_session_id
                 self._pending_session_id = None
                 self._goodbye_sent = False
 
                 self._router = self._router_factory.get(realm)
                 if not self._router:
-                    raise Exception("no such realm")
+                    # should not arrive here
+                    raise Exception("logic error (no realm at a stage were we should have one)")
 
                 self._authid = authid
                 self._authrole = authrole
@@ -335,7 +331,14 @@ class _RouterSession(BaseSession):
 
                 roles = self._router.attach(self)
 
-                msg = message.Welcome(self._session_id, roles, authid=authid, authrole=authrole, authmethod=authmethod, authprovider=authprovider, custom_details=custom_details)
+                msg = message.Welcome(self._session_id,
+                                      roles,
+                                      realm=realm,
+                                      authid=authid,
+                                      authrole=authrole,
+                                      authmethod=authmethod,
+                                      authprovider=authprovider,
+                                      custom_details=custom_details)
                 self._transport.send(msg)
 
                 self.onJoin(SessionDetails(self._realm, self._session_id, self._authid, self._authrole, self._authmethod, self._authprovider))
@@ -343,21 +346,24 @@ class _RouterSession(BaseSession):
             # the first message MUST be HELLO
             if isinstance(msg, message.Hello):
 
-                self._realm = msg.realm
                 self._session_roles = msg.roles
 
-                details = types.HelloDetails(msg.roles, msg.authmethods, msg.authid, self._pending_session_id)
+                details = types.HelloDetails(realm=msg.realm,
+                                             authmethods=msg.authmethods,
+                                             authid=msg.authid,
+                                             authrole=msg.authrole,
+                                             session_roles=msg.roles,
+                                             pending_session=self._pending_session_id)
 
-                d = txaio.as_future(self.onHello, self._realm, details)
+                d = txaio.as_future(self.onHello, msg.realm, details)
 
                 def success(res):
                     msg = None
-
                     if isinstance(res, types.Accept):
                         custom_details = {
                             u'x_cb_node_id': self._router_factory._node_id
                         }
-                        welcome(self._realm, res.authid, res.authrole, res.authmethod, res.authprovider, custom_details)
+                        welcome(res.realm or realm, res.authid, res.authrole, res.authmethod, res.authprovider, custom_details)
 
                     elif isinstance(res, types.Challenge):
                         msg = message.Challenge(res.method, res.extra)
@@ -379,12 +385,11 @@ class _RouterSession(BaseSession):
 
                 def success(res):
                     msg = None
-
                     if isinstance(res, types.Accept):
                         custom_details = {
                             u'x_cb_node_id': self._router_factory._node_id
                         }
-                        welcome(self._realm, res.authid, res.authrole, res.authmethod, res.authprovider, custom_details)
+                        welcome(res.realm or realm, res.authid, res.authrole, res.authmethod, res.authprovider, custom_details)
 
                     elif isinstance(res, types.Deny):
                         msg = message.Abort(res.reason, res.message)
@@ -621,7 +626,7 @@ class RouterSession(_RouterSession):
 
             # check if the realm the session wants to join actually exists
             #
-            if realm not in self._router_factory:
+            if False and realm not in self._router_factory:
                 return types.Deny(ApplicationError.NO_SUCH_REALM, message="no realm '{}' exists on this router".format(realm))
 
             authmethods = details.authmethods or ["anonymous"]
@@ -637,7 +642,8 @@ class RouterSession(_RouterSession):
                 allow = self._router_factory[realm].has_role(self._transport._authrole)
 
                 if allow:
-                    return types.Accept(authid=self._transport._authid,
+                    return types.Accept(realm=realm,
+                                        authid=self._transport._authid,
                                         authrole=self._transport._authrole,
                                         authmethod=self._transport._authmethod,
                                         authprovider=self._transport._authprovider)
@@ -949,11 +955,12 @@ class RouterSession(_RouterSession):
                                         #
                                         authid = principal.get("authid", details.authid)
 
-                                        self._pending_auth = PendingAuthTicket(realm,
-                                                                               authid,
-                                                                               principal['role'],
-                                                                               u'static',
-                                                                               principal['ticket'].encode('utf8'))
+                                        self._pending_auth = PendingAuthTicket(self,
+                                                                               authprovider=u'static',
+                                                                               realm=realm,
+                                                                               authid=authid,
+                                                                               authrole=principal['role'],
+                                                                               ticket=principal['ticket'].encode('utf8'))
 
                                         return types.Challenge(u'ticket')
                                     else:
@@ -963,12 +970,30 @@ class RouterSession(_RouterSession):
                                 #
                                 elif cfg['type'] == 'dynamic':
 
-                                    self._pending_auth = PendingAuthTicket(realm,
-                                                                           details.authid,
-                                                                           None,
-                                                                           cfg['authenticator'],
-                                                                           None)
+                                    from functools import partial
 
+                                    authenticator_realm = None
+                                    if u'authenticator-realm' in cfg:
+                                        authenticator_realm = cfg[u'authenticator-realm']
+                                        if authenticator_realm not in self._router_factory:
+                                            return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"explicit realm <{}> configured for dynamic authenticator does not exist".format(authenticator_realm))
+                                    else:
+                                        if not realm:
+                                            return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
+                                        authenticator_realm = realm
+
+                                    authenticator_proc = cfg['authenticator']
+
+                                    authenticator_service_session = self._router_factory.get(authenticator_realm)._realm.session
+
+                                    authenticator = partial(authenticator_service_session.call, authenticator_proc)
+
+                                    self._pending_auth = PendingAuthTicket(self,
+                                                                           realm=realm,
+                                                                           authid=details.authid,
+                                                                           authrole=details.authrole,
+                                                                           authprovider=u'dynamic',
+                                                                           authenticator=authenticator)
                                     return types.Challenge(u'ticket')
 
                                 else:
@@ -1082,69 +1107,7 @@ class RouterSession(_RouterSession):
             # WAMP-Ticket authentication
             #
             elif isinstance(self._pending_auth, PendingAuthTicket):
-
-                # WAMP-Ticket "static"
-                #
-                if self._pending_auth.authprovider == 'static':
-
-                    # when doing WAMP-Ticket from static configuration, the ticket we
-                    # expect was store on the pending authentication object and we just compare ..
-                    if self._pending_auth.verify(signature):
-                        # ticket was valid: accept the client
-                        return types.Accept(authid=self._pending_auth.authid,
-                                            authrole=self._pending_auth.authrole,
-                                            authmethod=self._pending_auth.authmethod,
-                                            authprovider=self._pending_auth.authprovider)
-                    else:
-                        # ticket was invalid: deny client
-                        return types.Deny(message=u"WAMP-Ticket ticket is invalid")
-
-                # WAMP-Ticket "dynamic"
-                #
-                else:
-                    service_session = self._router_factory.get(self._pending_auth.realm)._realm.session
-
-                    session_details = {
-                        'transport': self._transport._transport_info,
-                        'session': self._pending_session_id,
-                        'ticket': signature
-                    }
-
-                    d = service_session.call(self._pending_auth.authprovider,
-                                             self._pending_auth.realm,
-                                             self._pending_auth.authid,
-                                             session_details)
-
-                    def on_authenticate_ok(principal):
-                        if isinstance(principal, dict):
-                            # dynamic ticket authenticator returned a dictionary (new)
-                            authid = principal.get("authid", self._pending_auth.authid)
-                            authrole = principal["role"]
-                        else:
-                            # backwards compatibility: dynamic ticket authenticator
-                            # was expected to return a role directly
-                            authid = self._pending_auth.authid
-                            authrole = principal
-
-                        return types.Accept(authid=authid,
-                                            authrole=authrole,
-                                            authmethod=self._pending_auth.authmethod,
-                                            authprovider=self._pending_auth.authprovider)
-
-                    def on_authenticate_error(err):
-                        error = None
-                        message = "WAMP-Ticket dynamic authenticator failed: {}".format(err)
-
-                        if isinstance(err.value, ApplicationError):
-                            error = err.value.error
-                            if err.value.args and len(err.value.args):
-                                message = err.value.args[0]
-
-                        return types.Deny(error, message)
-
-                    d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-
-                    return d
+                return self._pending_auth.verify(signature)
 
             # should not arrive here: logic error
             else:
