@@ -528,12 +528,18 @@ def run_command_start(options, reactor=None):
 
     log = make_logger()
 
+    # possibly generate new node key
+    #
+    from crossbar.controller.node import maybe_generate_key
+    pubkey = maybe_generate_key(log, options.cbdir)
+
     # Print the banner.
     for line in BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
-    bannerFormat = "{:>12} {:<24}"
-    log.info(bannerFormat.format("Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
+    bannerFormat = "{:>22} {:<24}"
+    log.info(bannerFormat.format("Crossbar.io Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
+    log.info(bannerFormat.format("Node Public Key:", click.style(pubkey, fg='yellow', bold=True)))
     log.info()
 
     log.info("Running from node directory '{cbdir}'", cbdir=options.cbdir)
@@ -617,8 +623,9 @@ def run_command_check(options, **kwargs):
 
     print("\nChecking node configuration file '{}':\n".format(configfile))
 
+    color = color_json
     with open(configfile, 'r') as f:
-        print(color_json(f.read().decode('utf8')))
+        print(color(f.read().decode('utf8')))
 
     old_dir = os.path.abspath(os.path.curdir)
     os.chdir(options.cbdir)

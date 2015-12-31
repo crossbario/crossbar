@@ -126,6 +126,15 @@ def color_json(json_str):
     return highlight(json_str, lexers.JsonLexer(), formatters.TerminalFormatter())
 
 
+def color_yaml(yaml_str):
+    """
+    Given an already formatted YAML string, return a colored variant which will
+    produce colored output on terminals.
+    """
+    assert(type(yaml_str) == six.text_type)
+    return highlight(yaml_str, lexers.YamlLexer(), formatters.TerminalFormatter())
+
+
 def pprint_json(obj, log_to=None):
     json_str = json.dumps(obj, separators=(', ', ': '), sort_keys=False, indent=3, ensure_ascii=False)
     output_str = color_json(json_str)

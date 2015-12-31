@@ -35,11 +35,13 @@ import re
 import json
 import traceback
 import socket
+import getpass
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.ssl import optionsForClientTLS
 
+from autobahn.util import utcnow
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationRunner
@@ -55,7 +57,99 @@ from crossbar.controller.management import NodeManagementSession
 
 from crossbar._logging import make_logger
 
+try:
+    import nacl  # noqa
+    HAS_NACL = True
+except ImportError:
+    HAS_NACL = False
+
+
 __all__ = ('Node',)
+
+
+def maybe_generate_key(log, cbdir, privkey_path=u'node.key'):
+    if not HAS_NACL:
+        log.warn("Skipping node key generation - NaCl package not installed!")
+        return
+
+    from nacl.signing import SigningKey
+    from nacl.encoding import HexEncoder
+
+    privkey = None
+    privkey_path = os.path.join(cbdir, privkey_path)
+
+    if os.path.exists(privkey_path):
+        # node private key seems to exist already .. check!
+        if os.path.isfile(privkey_path):
+            with open(privkey_path, 'r') as privkey_file:
+                privkey = None
+                # parse key file lines, looking for tag "ed25519-privkey"
+                got_blankline = False
+                for line in privkey_file.read().splitlines():
+                    if line.strip() == '':
+                        got_blankline = True
+                    elif got_blankline:
+                        tag, value = line.split(':', 1)
+                        tag = tag.decode('utf8').strip().lower()
+                        value = value.decode('utf8').strip()
+                        if tag not in [u'private-key-ed25519', u'public-key-ed25519', u'machine-id', u'created-at', u'creator']:
+                            raise Exception("Invalid tag '{}' in node private key file {}".format(tag, privkey_path))
+                        if tag == u'private-key-ed25519':
+                            privkey = value
+                            break
+
+                if not privkey:
+                    raise Exception("Node private key file lacks a 'ed25519-privkey' tag!")
+
+                # recreate a signing key from the base64 encoding
+                privkey_obj = SigningKey(privkey, encoder=HexEncoder)
+                pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder)
+
+            log.debug("Node key already exists (public key: {})".format(pubkey))
+        else:
+            raise Exception("Node private key path '{}' exists, but isn't a file".format(privkey_path))
+    else:
+        # node private key does NOT yet exist: generate one
+        privkey_obj = SigningKey.generate()
+        privkey = privkey_obj.encode(encoder=HexEncoder)
+        privkey_created_at = utcnow()
+
+        pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder)
+
+        # for informational purposes, try to get a machine unique id thing ..
+        machine_id = None
+        try:
+            # why this? see: http://0pointer.de/blog/projects/ids.html
+            with open('/var/lib/dbus/machine-id', 'r') as f:
+                machine_id = f.read().strip()
+        except:
+            pass
+
+        # for informational purposes, try to identify the creator (user@hostname)
+        creator = None
+        try:
+            creator = u'{}@{}'.format(getpass.getuser(), socket.gethostname())
+        except:
+            pass
+
+        # write out the private key file
+        with open(privkey_path, 'w') as privkey_file:
+            privkey_file.write(u'Crossbar.io private key for node authentication - KEEP THIS SAFE!\n\n')
+            if creator:
+                privkey_file.write(u'creator: {}\n'.format(creator))
+            privkey_file.write(u'created-at: {}\n'.format(privkey_created_at))
+            if machine_id:
+                privkey_file.write(u'machine-id: {}\n'.format(machine_id))
+            privkey_file.write(u'public-key-ed25519: {}\n'.format(pubkey))
+            privkey_file.write(u'private-key-ed25519: {}\n'.format(privkey))
+
+        # set file mode to read only for owner
+        # 384 (decimal) == 0600 (octal) - we use that for Py2/3 reasons
+        os.chmod(privkey_path, 384)
+
+        log.info("New node key generated!")
+
+    return pubkey
 
 
 class Node(object):
