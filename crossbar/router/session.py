@@ -956,10 +956,10 @@ class RouterSession(_RouterSession):
                                         authid = principal.get("authid", details.authid)
 
                                         self._pending_auth = PendingAuthTicket(self,
-                                                                               authprovider=u'static',
                                                                                realm=realm,
                                                                                authid=authid,
                                                                                authrole=principal['role'],
+                                                                               authprovider=u'static',
                                                                                ticket=principal['ticket'].encode('utf8'))
 
                                         return types.Challenge(u'ticket')
@@ -970,7 +970,7 @@ class RouterSession(_RouterSession):
                                 #
                                 elif cfg['type'] == 'dynamic':
 
-                                    from functools import partial
+                                    authenticator = cfg['authenticator']
 
                                     authenticator_realm = None
                                     if u'authenticator-realm' in cfg:
@@ -982,18 +982,16 @@ class RouterSession(_RouterSession):
                                             return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
                                         authenticator_realm = realm
 
-                                    authenticator_proc = cfg['authenticator']
-
-                                    authenticator_service_session = self._router_factory.get(authenticator_realm)._realm.session
-
-                                    authenticator = partial(authenticator_service_session.call, authenticator_proc)
+                                    authenticator_session = self._router_factory.get(authenticator_realm)._realm.session
 
                                     self._pending_auth = PendingAuthTicket(self,
                                                                            realm=realm,
                                                                            authid=details.authid,
                                                                            authrole=details.authrole,
                                                                            authprovider=u'dynamic',
-                                                                           authenticator=authenticator)
+                                                                           authenticator=authenticator,
+                                                                           authenticator_session=authenticator_session)
+
                                     return types.Challenge(u'ticket')
 
                                 else:

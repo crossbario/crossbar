@@ -115,8 +115,19 @@ class PendingAuthTicket(PendingAuth):
 
     authmethod = u'ticket'
 
-    def __init__(self, session, realm=None, authid=None, authrole=None, authprovider=None, ticket=None, authenticator=None):
+    def __init__(self,
+                 session,
+                 realm=None,
+                 authid=None,
+                 authrole=None,
+                 authprovider=None,
+                 ticket=None,
+                 authenticator=None,
+                 authenticator_session=None):
         """
+        Pending authentication information for WAMP-Ticket static and dynamic modes.
+        For static WAMP-Ticket, all fields but `authenticator` and `authenticator_session` are filled.
+        For dynamic WAMP-Ticket, all fields but `ticket` are filled.
 
         :param authid: The authentication ID of the authenticating principal.
         :type authid: unicode
@@ -125,8 +136,12 @@ class PendingAuthTicket(PendingAuth):
         :type authrole: unicode
         :param authprovider: Optional authentication provider (URI of procedure to call).
         :type authprovider: unicode or None
-        :param ticket: The secret/ticket the authenticating principal will need to provide (or `None` when using dynamic authenticator).
+        :param ticket: The secret/ticket the authenticating principal will need to provide (filled only in static mode).
         :type ticket: bytes or None
+        :param authenticator: The URI of the authenticator procedure to call (filled only in dynamic mode).
+        :type authenticator: unicode or None
+        :param authenticator_session: The session over which to issue the call to the authenticator (filled only in dynamic mode).
+        :type authenticator_session: obj
         """
         self.session = session
         self.realm = realm
@@ -135,9 +150,10 @@ class PendingAuthTicket(PendingAuth):
         self.authprovider = authprovider
         self.ticket = ticket
         self.authenticator = authenticator
+        self.authenticator_session = authenticator_session
 
     def __str__(self):
-        return u"PendingAuthTicket(realm={}, authid={}, authrole={}, authprovider={}, ticket={}, authenticator={})".format(self.realm, self.authid, self.authrole, self.authprovider, self.ticket, self.authenticator)
+        return u"PendingAuthTicket(realm={}, authid={}, authrole={}, authprovider={}, ticket={}, authenticator={}, authenticator_session={})".format(self.realm, self.authid, self.authrole, self.authprovider, self.ticket, self.authenticator, self.authenticator_session)
 
     def verify(self, signature):
         """
@@ -159,17 +175,17 @@ class PendingAuthTicket(PendingAuth):
                                     authprovider=self.authprovider)
             else:
                 # ticket was invalid: deny client
-                return types.Deny(message=u"WAMP-Ticket ticket is invalid")
+                return types.Deny(message=u"ticket in static WAMP-Ticket authentication is invalid")
 
         # WAMP-Ticket "dynamic"
         #
         else:
-            session_details = {
+            details = {
                 'transport': self.session._transport._transport_info,
                 'session': self.session._pending_session_id,
                 'ticket': signature
             }
-            d = self.authenticator(self.realm, self.authid, session_details)
+            d = self.authenticator_session.call(self.authenticator, self.realm, self.authid, details)
 
             def on_authenticate_ok(principal):
                 if isinstance(principal, dict):
