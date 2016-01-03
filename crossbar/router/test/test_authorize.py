@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import
 
-import os
-import six
-
 from twisted.trial import unittest
 
 from crossbar.router.role import RouterRoleStaticAuth
