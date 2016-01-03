@@ -40,6 +40,7 @@ from nacl.exceptions import BadSignatureError
 
 from autobahn import util
 from autobahn.wamp import types
+from autobahn.wamp.exception import ApplicationError
 
 from crossbar.router.auth.pending import PendingAuth
 

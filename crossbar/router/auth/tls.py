@@ -30,11 +30,6 @@
 
 from __future__ import absolute_import
 
-import json
-import six
-
-from autobahn import util
-from autobahn.wamp import auth
 from autobahn.wamp import types
 from autobahn.wamp.exception import ApplicationError
 
@@ -98,10 +93,10 @@ class PendingAuthTLS(PendingAuth):
                     return error
 
                 # FIXME: not sure about this .. TLS is a transport-level auth mechanism .. so forward
-                self._transport._authid = authid
-                self._transport._authrole = authrole
-                self._transport._authmethod = u'tls'
-                self._transport._authprovider = u'dynamic'
+                self._transport._authid = self._authid
+                self._transport._authrole = self._authrole
+                self._transport._authmethod = self.AUTHMETHOD
+                self._transport._authprovider = self._authprovider
 
                 return types.Accept(realm=self._realm,
                                     authid=self._authid,

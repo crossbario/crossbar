@@ -30,6 +30,9 @@
 
 from __future__ import absolute_import
 
+from autobahn.wamp import types
+from autobahn.wamp.exception import ApplicationError
+
 __all__ = ('PendingAuth',)
 
 
