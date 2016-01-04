@@ -36,7 +36,6 @@ import six
 from autobahn import util
 from autobahn.wamp import auth
 from autobahn.wamp import types
-from autobahn.wamp.exception import ApplicationError
 
 from crossbar.router.auth.pending import PendingAuth
 
@@ -127,19 +126,9 @@ class PendingAuthWampCra(PendingAuth):
 
             self._authprovider = u'dynamic'
 
-            self._authenticator = self._config['authenticator']
-
-            authenticator_realm = None
-            if u'authenticator-realm' in self._config:
-                authenticator_realm = self._config[u'authenticator-realm']
-                if authenticator_realm not in self._router_factory:
-                    return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"explicit realm <{}> configured for dynamic authenticator does not exist".format(authenticator_realm))
-            else:
-                if not realm:
-                    return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
-                authenticator_realm = realm
-
-            self._authenticator_session = self._router_factory.get(authenticator_realm)._realm.session
+            error = self._init_dynamic_authenticator()
+            if error:
+                return error
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
@@ -153,15 +142,7 @@ class PendingAuthWampCra(PendingAuth):
                 return types.Challenge(self.AUTHMETHOD, extra)
 
             def on_authenticate_error(err):
-                error = None
-                message = u'dynamic authenticator failed: {}'.format(err)
-
-                if isinstance(err.value, ApplicationError):
-                    error = err.value.error
-                    if err.value.args and len(err.value.args):
-                        message = str(err.value.args[0])  # exception does not need to contain a string
-
-                return types.Deny(error, message)
+                return self._marshal_dynamic_authenticator_error(err)
 
             d.addCallbacks(on_authenticate_ok, on_authenticate_error)
             return d

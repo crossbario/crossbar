@@ -40,7 +40,6 @@ from nacl.exceptions import BadSignatureError
 
 from autobahn import util
 from autobahn.wamp import types
-from autobahn.wamp.exception import ApplicationError
 
 from crossbar.router.auth.pending import PendingAuth
 
@@ -57,6 +56,29 @@ class PendingAuthCryptosign(PendingAuth):
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
         self._verify_key = None
+
+    def _compute_challenge(self):
+
+        challenge_obj = {
+            u'authid': self._authid,
+            u'authrole': self._authrole,
+            u'authmethod': self.AUTHMETHOD,
+            u'authprovider': self._authprovider,
+            u'session': self._session_details[u'session'],
+            u'nonce': util.newid(64),
+            u'timestamp': util.utcnow()
+        }
+        challenge = json.dumps(challenge_obj, ensure_ascii=False)
+
+        # Sometimes, if it doesn't have to be Unicode, PyPy won't make it
+        # Unicode. Make it Unicode, even if it's just ASCII.
+        if not isinstance(challenge, six.text_type):
+            challenge = challenge.decode('utf8')
+
+        extra = {
+            u'challenge': challenge
+        }
+        return extra, challenge
 
     def hello(self, realm, details):
 
@@ -90,19 +112,9 @@ class PendingAuthCryptosign(PendingAuth):
 
             self._authprovider = u'dynamic'
 
-            self._authenticator = self._config['authenticator']
-
-            authenticator_realm = None
-            if u'authenticator-realm' in self._config:
-                authenticator_realm = self._config[u'authenticator-realm']
-                if authenticator_realm not in self._router_factory:
-                    return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"explicit realm <{}> configured for dynamic authenticator does not exist".format(authenticator_realm))
-            else:
-                if not realm:
-                    return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
-                authenticator_realm = realm
-
-            self._authenticator_session = self._router_factory.get(authenticator_realm)._realm.session
+            error = self._init_dynamic_authenticator()
+            if error:
+                return error
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
@@ -117,15 +129,7 @@ class PendingAuthCryptosign(PendingAuth):
                 return types.Challenge(self.AUTHMETHOD, extra)
 
             def on_authenticate_error(err):
-                error = None
-                message = u'dynamic authenticator failed: {}'.format(err)
-
-                if isinstance(err.value, ApplicationError):
-                    error = err.value.error
-                    if err.value.args and len(err.value.args):
-                        message = str(err.value.args[0])  # exception does not need to contain a string
-
-                return types.Deny(error, message)
+                return self._marshal_dynamic_authenticator_error(err)
 
             d.addCallbacks(on_authenticate_ok, on_authenticate_error)
             return d
@@ -133,29 +137,6 @@ class PendingAuthCryptosign(PendingAuth):
         else:
             # should not arrive here, as config errors should be caught earlier
             return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
-
-    def _compute_challenge(self):
-
-        challenge_obj = {
-            u'authid': self._authid,
-            u'authrole': self._authrole,
-            u'authmethod': self.AUTHMETHOD,
-            u'authprovider': self._authprovider,
-            u'session': self._session_details[u'session'],
-            u'nonce': util.newid(64),
-            u'timestamp': util.utcnow()
-        }
-        challenge = json.dumps(challenge_obj, ensure_ascii=False)
-
-        # Sometimes, if it doesn't have to be Unicode, PyPy won't make it
-        # Unicode. Make it Unicode, even if it's just ASCII.
-        if not isinstance(challenge, six.text_type):
-            challenge = challenge.decode('utf8')
-
-        extra = {
-            u'challenge': challenge
-        }
-        return extra, challenge
 
     def authenticate(self, signature):
         signed = SignedMessage(signature + self._challenge)
