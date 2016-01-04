@@ -379,7 +379,7 @@ class RouterSession(BaseSession):
                         custom = {
                             u'x_cb_node_id': self._router_factory._node_id
                         }
-                        welcome(res.realm or realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
+                        welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
                     elif isinstance(res, types.Challenge):
                         msg = message.Challenge(res.method, res.extra)
@@ -405,7 +405,7 @@ class RouterSession(BaseSession):
                         custom = {
                             u'x_cb_node_id': self._router_factory._node_id
                         }
-                        welcome(res.realm or self._realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
+                        welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
                     elif isinstance(res, types.Deny):
                         msg = message.Abort(res.reason, res.message)
@@ -552,22 +552,15 @@ class RouterSession(BaseSession):
     def onHello(self, realm, details):
 
         try:
-
-            # check if the realm the session wants to join actually exists
-            #
-            if False and realm not in self._router_factory:
-                return types.Deny(ApplicationError.NO_SUCH_REALM, message="no realm '{}' exists on this router".format(realm))
-
+            # default authentication method is "WAMP-Anonymous"
             authmethods = details.authmethods or [u'anonymous']
 
             # perform authentication
-            #
             if self._transport._authid is not None and (self._transport._authmethod == u'trusted' or self._transport._authprovider in authmethods):
 
                 # already authenticated .. e.g. via HTTP Cookie or TLS client-certificate
 
                 # check if role still exists on realm
-                #
                 allow = self._router_factory[realm].has_role(self._transport._authrole)
 
                 if allow:
@@ -592,17 +585,16 @@ class RouterSession(BaseSession):
                     if realm not in self._router_factory:
                         return types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm "{}" exists on this router'.format(realm))
 
-                    if details.authid:
-                        # if client set an authid, let it go ..
-                        authid = details.authid
-                    elif self._transport._cbtid:
+                    # we ignore any details.authid the client might have announced, and use
+                    # a cookie value or a random value
+                    if self._transport._cbtid:
                         # if cookie tracking is enabled, set authid to cookie value
                         authid = self._transport._cbtid
                     else:
                         # if no cookie tracking, generate a random value for authid
                         authid = util.newid(24)
 
-                    return types.Accept(realm=self._realm,
+                    return types.Accept(realm=realm,
                                         authid=authid,
                                         authrole=u'anonymous',
                                         authmethod=u'anonymous',
