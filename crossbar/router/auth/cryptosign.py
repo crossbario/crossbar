@@ -30,8 +30,7 @@
 
 from __future__ import absolute_import
 
-import json
-import six
+import os
 import binascii
 
 import nacl
@@ -39,7 +38,6 @@ from nacl.signing import VerifyKey
 from nacl.signing import SignedMessage
 from nacl.exceptions import BadSignatureError
 
-from autobahn import util
 from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
@@ -59,23 +57,7 @@ class PendingAuthCryptosign(PendingAuth):
         self._verify_key = None
 
     def _compute_challenge(self):
-
-        challenge_obj = {
-            u'authid': self._authid,
-            u'authrole': self._authrole,
-            u'authmethod': self._authmethod,
-            u'authprovider': self._authprovider,
-            u'session': self._session_details[u'session'],
-            u'nonce': util.newid(64),
-            u'timestamp': util.utcnow()
-        }
-        challenge = json.dumps(challenge_obj, ensure_ascii=False)
-
-        # Sometimes, if it doesn't have to be Unicode, PyPy won't make it
-        # Unicode. Make it Unicode, even if it's just ASCII.
-        if not isinstance(challenge, six.text_type):
-            challenge = challenge.decode('utf8')
-
+        challenge = binascii.b2a_hex(os.urandom(32))
         extra = {
             u'challenge': challenge
         }
@@ -157,7 +139,6 @@ class PendingAuthCryptosign(PendingAuth):
             return types.Deny(message=u"invalid signature")
 
         except Exception as e:
-            print("internal error: {}".format(e))
 
-            return types.Deny(message=u"internal error")
-
+            # should not arrive here .. but who knows
+            return types.Deny(message=u"internal error: {}".format(e))
