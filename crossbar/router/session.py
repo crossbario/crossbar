@@ -254,6 +254,7 @@ class _RouterSession(BaseSession):
                 # pkey = cert.get_pubkey()
 
                 result = {
+                    u'md5': u'{}'.format(cert.digest('md5')).upper(),
                     u'sha1': u'{}'.format(cert.digest('sha1')).upper(),
                     u'sha256': u'{}'.format(cert.digest('sha256')).upper(),
                     u'expired': cert.has_expired(),
@@ -280,9 +281,9 @@ class _RouterSession(BaseSession):
                 return result
 
             self._client_cert = extract_x509(self._transport.transport.getPeerCertificate())
-            self.log.debug("Client connecting with TLS certificate cn='{cert_cn}', sha256={cert_sha256}.., expired={cert_expired}",
+            self.log.debug("Client connecting with TLS certificate cn='{cert_cn}', sha1={cert_sha1}.., expired={cert_expired}",
                            cert_cn=self._client_cert['subject']['cn'],
-                           cert_sha256=self._client_cert['sha256'][:12],
+                           cert_sha1=self._client_cert['sha1'][:12],
                            cert_expired=self._client_cert['expired'])
         else:
             self._client_cert = None

@@ -75,7 +75,7 @@ class PendingAuthTicket(PendingAuth):
 
             if self._authid in self._config.get(u'principals', {}):
 
-                principal = self._config[u'principals'][details._authid]
+                principal = self._config[u'principals'][self._authid]
 
                 error = self._assign_principal(principal)
                 if error:
@@ -86,7 +86,7 @@ class PendingAuthTicket(PendingAuth):
 
                 return types.Challenge(self.AUTHMETHOD)
             else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
+                return types.Deny(message=u'no principal with authid "{}" exists'.format(self._authid))
 
         # use configured procedure to dynamically get a ticket for the principal
         elif self._config['type'] == 'dynamic':
@@ -133,6 +133,7 @@ class PendingAuthTicket(PendingAuth):
 
         # WAMP-Ticket "dynamic"
         else:
+            self._session_details[u'ticket'] = signature
             d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
             def on_authenticate_ok(principal):

@@ -48,8 +48,19 @@ class PendingAuthTLS(PendingAuth):
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
 
-        # The signature we expect the client to send in AUTHENTICATE.
-        self._signature = None
+        self._transport = session._transport
+
+        # for static-mode, the config has principals as a dict indexed
+        # by authid, but we need the reverse map: cert-sha1 -> principal
+        self._cert_sha1_to_principal = None
+        if self._config[u'type'] == u'static':
+            self._cert_sha1_to_principal = {}
+            if u'principals' in self._config:
+                for authid, principal in self._config[u'principals'].items():
+                    self._cert_sha1_to_principal[principal[u'certificate-sha1']] = {
+                        u'authid': authid,
+                        u'role': principal[u'role']
+                    }
 
     def hello(self, realm, details):
 
@@ -63,6 +74,27 @@ class PendingAuthTLS(PendingAuth):
         if self._config[u'type'] == u'static':
 
             self._authprovider = u'static'
+
+            client_cert = self._session_details[u'transport'].get(u'client_cert', None)
+            if not client_cert:
+                return types.Deny(message=u'TLS client certificate required')
+            client_cert_sha1 = client_cert[u'sha1']
+
+            if client_cert_sha1 in self._cert_sha1_to_principal:
+
+                principal = self._cert_sha1_to_principal[client_cert_sha1]
+
+                error = self._assign_principal(principal)
+                if error:
+                    return error
+
+                return types.Accept(realm=self._realm,
+                                    authid=self._authid,
+                                    authrole=self._authrole,
+                                    authmethod=self.AUTHMETHOD,
+                                    authprovider=self._authprovider)
+            else:
+                return types.Deny(message=u'no principal with authid "{}" exists'.format(client_cert_sha1))
 
             raise Exception("not implemented")
 

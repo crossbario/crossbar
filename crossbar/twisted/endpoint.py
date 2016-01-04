@@ -189,7 +189,7 @@ def _create_tls_server_context(config, cbdir, log):
         if ctx._ecCurve.snName != "prime256v1":
             log.info("OpenSSL is using elliptic curve {curve}", curve=ctx._ecCurve.snName)
         else:
-            log.info("OpenSSL is using most common elliptic curve (prime256v1 / NIST P-256)")
+            log.info("OpenSSL is using elliptic curve prime256v1 (NIST P-256)")
 
     return ctx
 
