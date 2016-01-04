@@ -57,7 +57,7 @@ from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP, PendingAuthCryptos
 __all__ = ('RouterSessionFactory',)
 
 
-class _RouterApplicationSession(object):
+class RouterApplicationSession(object):
     """
     Wraps an application session to run directly attached to a WAMP router (broker+dealer).
     """
@@ -217,7 +217,7 @@ class _RouterApplicationSession(object):
             raise Exception("RouterApplicationSession.send: unhandled message {0}".format(msg))
 
 
-class _RouterSession(BaseSession):
+class RouterSession(BaseSession):
     """
     WAMP router session. This class implements :class:`autobahn.wamp.interfaces.ITransportHandler`.
     """
@@ -309,6 +309,15 @@ class _RouterSession(BaseSession):
         self._authmethod = None
         self._authprovider = None
         self._authextra = None
+
+        if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
+            self._transport_config = self._transport.factory._config
+        else:
+            self._transport_config = {}
+
+        self._pending_auth = None
+        self._session_details = None
+        self._service_session = None
 
     def onMessage(self, msg):
         """
@@ -504,16 +513,6 @@ class _RouterSession(BaseSession):
         self._authmethod = None
         self._authprovider = None
 
-    def onJoin(self, details):
-        """
-        Implements :func:`autobahn.wamp.interfaces.ISession.onJoin`
-        """
-
-    def onLeave(self, details):
-        """
-        Implements :func:`autobahn.wamp.interfaces.ISession.onLeave`
-        """
-
     def leave(self, reason=None, message=None):
         """
         Implements :func:`autobahn.wamp.interfaces.ISession.leave`
@@ -550,83 +549,6 @@ class _RouterSession(BaseSession):
         self._pending_session_id = None
         return None  # we've handled the error; don't propagate
 
-
-ITransportHandler.register(_RouterSession)
-
-
-class _RouterSessionFactory(object):
-    """
-    WAMP router session factory.
-    """
-
-    log = make_logger()
-
-    session = _RouterSession
-    """
-    WAMP router session class to be used in this factory.
-    """
-
-    def __init__(self, routerFactory):
-        """
-
-        :param routerFactory: The router factory this session factory is working for.
-        :type routerFactory: Instance of :class:`autobahn.wamp.router.RouterFactory`.
-        """
-        self._routerFactory = routerFactory
-        self._app_sessions = {}
-
-    def add(self, session, authid=None, authrole=None):
-        """
-        Adds a WAMP application session to run directly in this router.
-
-        :param: session: A WAMP application session.
-        :type session: A instance of a class that derives of :class:`autobahn.wamp.protocol.WampAppSession`
-        """
-        self._app_sessions[session] = _RouterApplicationSession(session, self._routerFactory, authid, authrole)
-
-    def remove(self, session):
-        """
-        Removes a WAMP application session running directly in this router.
-        """
-        if session in self._app_sessions:
-            self._app_sessions[session]._session.disconnect()
-            del self._app_sessions[session]
-
-    def __call__(self):
-        """
-        Creates a new WAMP router session.
-
-        :returns: -- An instance of the WAMP router session class as
-                     given by `self.session`.
-        """
-        session = self.session(self._routerFactory)
-        session.factory = self
-        return session
-
-
-class RouterSession(_RouterSession):
-
-    """
-    Router-side of (non-embedded) Crossbar.io WAMP sessions.
-    """
-
-    log = make_logger()
-
-    def onOpen(self, transport):
-        """
-        Implements :func:`autobahn.wamp.interfaces.ITransportHandler.onOpen`
-        """
-        _RouterSession.onOpen(self, transport)
-
-        if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
-            self._transport_config = self._transport.factory._config
-        else:
-            self._transport_config = {}
-
-        self._pending_auth = None
-        self._session_details = None
-        self._service_session = None
-
     def onHello(self, realm, details):
 
         try:
@@ -653,7 +575,8 @@ class RouterSession(_RouterSession):
                                         authid=self._transport._authid,
                                         authrole=self._transport._authrole,
                                         authmethod=self._transport._authmethod,
-                                        authprovider=self._transport._authprovider)
+                                        authprovider=self._transport._authprovider,
+                                        authextra=None)
                 else:
                     return types.Deny(ApplicationError.NO_SUCH_ROLE, message="session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'".format(self._transport._authrole, realm))
 
@@ -683,7 +606,8 @@ class RouterSession(_RouterSession):
                                         authid=authid,
                                         authrole=u'anonymous',
                                         authmethod=u'anonymous',
-                                        authprovider=u'static')
+                                        authprovider=u'static',
+                                        authextra=None)
 
                 else:
                     # iterate over authentication methods announced by client ..
@@ -714,11 +638,9 @@ class RouterSession(_RouterSession):
                             cfg = self._transport_config['auth']['anonymous']
 
                             # authrole mapping
-                            #
                             authrole = cfg.get('role', 'anonymous')
 
                             # check if role exists on realm anyway
-                            #
                             if not self._router_factory[realm].has_role(authrole):
                                 return types.Deny(ApplicationError.NO_SUCH_ROLE, message="authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
 
@@ -730,11 +652,22 @@ class RouterSession(_RouterSession):
                                 # if no cookie tracking, generate a random value for authid
                                 authid = util.newid(24)
 
+                            authprovider = u'static'
+                            authextra = None
+
+                            # FIXME: not sure about this .. "anonymous" is a transport-level auth mechanism .. so forward
                             self._transport._authid = authid
                             self._transport._authrole = authrole
                             self._transport._authmethod = authmethod
+                            self._transport._authprovider = authmethod
+                            self._transport._authextra = authmethod
 
-                            return types.Accept(authid=authid, authrole=authrole, authmethod=self._transport._authmethod)
+                            return types.Accept(realm=realm,
+                                                authid=authid,
+                                                authrole=authrole,
+                                                authmethod=authmethod,
+                                                authprovider=authprovider,
+                                                authextra=authextra)
 
                         # WAMP-Cookie authentication
                         elif authmethod == u'cookie':
@@ -837,13 +770,55 @@ class RouterSession(_RouterSession):
                     proto.sendClose()
 
 
-class RouterSessionFactory(_RouterSessionFactory):
+ITransportHandler.register(RouterSession)
 
+
+class RouterSessionFactory(object):
     """
     Factory creating the router side of (non-embedded) Crossbar.io WAMP sessions.
-    This is the session factory that will given to router transports.
+    This is the session factory that will be given to router transports.
     """
 
     log = make_logger()
 
     session = RouterSession
+    """
+    WAMP router session class to be used in this factory.
+    """
+
+    def __init__(self, routerFactory):
+        """
+
+        :param routerFactory: The router factory this session factory is working for.
+        :type routerFactory: Instance of :class:`autobahn.wamp.router.RouterFactory`.
+        """
+        self._routerFactory = routerFactory
+        self._app_sessions = {}
+
+    def add(self, session, authid=None, authrole=None):
+        """
+        Adds a WAMP application session to run directly in this router.
+
+        :param: session: A WAMP application session.
+        :type session: A instance of a class that derives of :class:`autobahn.wamp.protocol.WampAppSession`
+        """
+        self._app_sessions[session] = RouterApplicationSession(session, self._routerFactory, authid, authrole)
+
+    def remove(self, session):
+        """
+        Removes a WAMP application session running directly in this router.
+        """
+        if session in self._app_sessions:
+            self._app_sessions[session]._session.disconnect()
+            del self._app_sessions[session]
+
+    def __call__(self):
+        """
+        Creates a new WAMP router session.
+
+        :returns: -- An instance of the WAMP router session class as
+                     given by `self.session`.
+        """
+        session = self.session(self._routerFactory)
+        session.factory = self
+        return session

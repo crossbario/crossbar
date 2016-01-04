@@ -114,6 +114,7 @@ class PendingAuthTLS(PendingAuth):
                 self._transport._authrole = self._authrole
                 self._transport._authmethod = self._authmethod
                 self._transport._authprovider = self._authprovider
+                self._transport._authextra = self._authextra
 
                 return self._accept()
 
