@@ -80,6 +80,9 @@ class PendingAuth:
         # The authentication method
         self._authmethod = self.AUTHMETHOD
 
+        # Application-specific extra data forwarded to the authenticating client in WELCOME
+        self._authextra = None
+
         # The URI of the authenticator procedure to call (filled only in dynamic mode).
         self._authenticator = None
 
@@ -117,6 +120,10 @@ class PendingAuth:
         if not self._authid:
             return types.Deny(ApplicationError.NO_SUCH_PRINCIPAL, message=u'no authid assigned')
 
+        # allow forwarding of application-specific "welcome data"
+        if u'extra' in principal:
+            self._authextra = principal[u'extra']
+
     def _init_dynamic_authenticator(self):
         self._authenticator = self._config['authenticator']
 
@@ -136,6 +143,14 @@ class PendingAuth:
         error = ApplicationError.AUTHENTICATION_FAILED
         message = u'dynamic authenticator failed: {}'.format(err.value)
         return types.Deny(error, message)
+
+    def _accept(self):
+        return types.Accept(realm=self._realm,
+                            authid=self._authid,
+                            authrole=self._authrole,
+                            authmethod=self._authmethod,
+                            authprovider=self._authprovider,
+                            authextra=self._authextra)
 
     def hello(self, realm, details):
         """

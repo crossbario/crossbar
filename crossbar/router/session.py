@@ -146,15 +146,19 @@ class _RouterApplicationSession(object):
             # FIXME: the following does blow up
             # self._session._authmethod = u'trusted'
             self._session._authprovider = None
+            self._session._authextra = None
 
             # add app session to router
             self._router.attach(self._session)
 
             # fake app session open
-            #
-            details = SessionDetails(self._session._realm, self._session._session_id,
-                                     self._session._authid, self._session._authrole, self._session._authmethod,
-                                     self._session._authprovider)
+            details = SessionDetails(self._session._realm,
+                                     self._session._session_id,
+                                     self._session._authid,
+                                     self._session._authrole,
+                                     self._session._authmethod,
+                                     self._session._authprovider,
+                                     self._session._authextra)
 
             # fire onOpen callback and handle any exception escaping from there
             d = txaio.as_future(self._session.onJoin, details)
@@ -304,6 +308,7 @@ class _RouterSession(BaseSession):
         self._authrole = None
         self._authmethod = None
         self._authprovider = None
+        self._authextra = None
 
     def onMessage(self, msg):
         """
@@ -314,7 +319,7 @@ class _RouterSession(BaseSession):
             if not self._pending_session_id:
                 self._pending_session_id = util.id()
 
-            def welcome(realm, authid=None, authrole=None, authmethod=None, authprovider=None, custom_details=None):
+            def welcome(realm, authid=None, authrole=None, authmethod=None, authprovider=None, authextra=None, custom=None):
                 self._realm = realm
                 self._session_id = self._pending_session_id
                 self._pending_session_id = None
@@ -339,10 +344,11 @@ class _RouterSession(BaseSession):
                                       authrole=authrole,
                                       authmethod=authmethod,
                                       authprovider=authprovider,
-                                      custom_details=custom_details)
+                                      authextra=authextra,
+                                      custom=custom)
                 self._transport.send(msg)
 
-                self.onJoin(SessionDetails(self._realm, self._session_id, self._authid, self._authrole, self._authmethod, self._authprovider))
+                self.onJoin(SessionDetails(self._realm, self._session_id, self._authid, self._authrole, self._authmethod, self._authprovider, self._authextra))
 
             # the first message MUST be HELLO
             if isinstance(msg, message.Hello):
@@ -361,10 +367,10 @@ class _RouterSession(BaseSession):
                 def success(res):
                     msg = None
                     if isinstance(res, types.Accept):
-                        custom_details = {
+                        custom = {
                             u'x_cb_node_id': self._router_factory._node_id
                         }
-                        welcome(res.realm or realm, res.authid, res.authrole, res.authmethod, res.authprovider, custom_details)
+                        welcome(res.realm or realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
                     elif isinstance(res, types.Challenge):
                         msg = message.Challenge(res.method, res.extra)
@@ -387,10 +393,10 @@ class _RouterSession(BaseSession):
                 def success(res):
                     msg = None
                     if isinstance(res, types.Accept):
-                        custom_details = {
+                        custom = {
                             u'x_cb_node_id': self._router_factory._node_id
                         }
-                        welcome(res.realm or self._realm, res.authid, res.authrole, res.authmethod, res.authprovider, custom_details)
+                        welcome(res.realm or self._realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
                     elif isinstance(res, types.Deny):
                         msg = message.Abort(res.reason, res.message)

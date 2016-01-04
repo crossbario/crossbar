@@ -87,11 +87,7 @@ class PendingAuthTLS(PendingAuth):
                 if error:
                     return error
 
-                return types.Accept(realm=self._realm,
-                                    authid=self._authid,
-                                    authrole=self._authrole,
-                                    authmethod=self.AUTHMETHOD,
-                                    authprovider=self._authprovider)
+                return self._accept()
             else:
                 return types.Deny(message=u'no principal with authid "{}" exists'.format(client_cert_sha1))
 
@@ -116,14 +112,10 @@ class PendingAuthTLS(PendingAuth):
                 # FIXME: not sure about this .. TLS is a transport-level auth mechanism .. so forward
                 self._transport._authid = self._authid
                 self._transport._authrole = self._authrole
-                self._transport._authmethod = self.AUTHMETHOD
+                self._transport._authmethod = self._authmethod
                 self._transport._authprovider = self._authprovider
 
-                return types.Accept(realm=self._realm,
-                                    authid=self._authid,
-                                    authrole=self._authrole,
-                                    authmethod=self.AUTHMETHOD,
-                                    authprovider=self._authprovider)
+                return self._accept()
 
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)

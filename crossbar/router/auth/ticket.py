@@ -53,12 +53,6 @@ class PendingAuthTicket(PendingAuth):
         # The secret/ticket the authenticating principal will need to provide (filled only in static mode).
         self._signature = None
 
-        # The URI of the authenticator procedure to call (filled only in dynamic mode).
-        self._authenticator = None
-
-        # The session over which to issue the call to the authenticator (filled only in dynamic mode).
-        self._authenticator_session = None
-
     def hello(self, realm, details):
 
         # remember the realm the client requested to join (if any)
@@ -83,7 +77,7 @@ class PendingAuthTicket(PendingAuth):
                 # now set set signature as expected for WAMP-Ticket
                 self._signature = principal[u'ticket'].encode('utf8')
 
-                return types.Challenge(self.AUTHMETHOD)
+                return types.Challenge(self._authmethod)
             else:
                 return types.Deny(message=u'no principal with authid "{}" exists'.format(self._authid))
 
@@ -96,7 +90,7 @@ class PendingAuthTicket(PendingAuth):
             if error:
                 return error
 
-            return types.Challenge(self.AUTHMETHOD)
+            return types.Challenge(self._authmethod)
 
         else:
             # should not arrive here, as config errors should be caught earlier
@@ -111,11 +105,7 @@ class PendingAuthTicket(PendingAuth):
             # expect was previously stored in self._signature
             if signature == self._signature:
                 # ticket was valid: accept the client
-                return types.Accept(realm=self._realm,
-                                    authid=self._authid,
-                                    authrole=self._authrole,
-                                    authmethod=self._authmethod,
-                                    authprovider=self._authprovider)
+                return self._accept()
             else:
                 # ticket was invalid: deny client
                 return types.Deny(message=u"ticket in static WAMP-Ticket authentication is invalid")
@@ -135,11 +125,7 @@ class PendingAuthTicket(PendingAuth):
                 if error:
                     return error
 
-                return types.Accept(realm=self._realm,
-                                    authid=self._authid,
-                                    authrole=self._authrole,
-                                    authmethod=self.AUTHMETHOD,
-                                    authprovider=self._authprovider)
+                return self._accept()
 
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)

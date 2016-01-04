@@ -62,7 +62,7 @@ class PendingAuthWampCra(PendingAuth):
         challenge_obj = {
             u'authid': self._authid,
             u'authrole': self._authrole,
-            u'authmethod': self.AUTHMETHOD,
+            u'authmethod': self._authmethod,
             u'authprovider': self._authprovider,
             u'session': self._session_details[u'session'],
             u'nonce': util.newid(64),
@@ -117,7 +117,7 @@ class PendingAuthWampCra(PendingAuth):
                 # expected for WAMP-CRA
                 extra, self._signature = self._compute_challenge(principal)
 
-                return types.Challenge(self.AUTHMETHOD, extra)
+                return types.Challenge(self._authmethod, extra)
             else:
                 return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
 
@@ -139,7 +139,7 @@ class PendingAuthWampCra(PendingAuth):
 
                 # now compute CHALLENGE.Extra and signature expected
                 extra, self._signature = self._compute_challenge(principal)
-                return types.Challenge(self.AUTHMETHOD, extra)
+                return types.Challenge(self._authmethod, extra)
 
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)
@@ -155,11 +155,7 @@ class PendingAuthWampCra(PendingAuth):
 
         if signature == self._signature:
             # signature was valid: accept the client
-            return types.Accept(realm=self._realm,
-                                authid=self._authid,
-                                authrole=self._authrole,
-                                authmethod=self.AUTHMETHOD,
-                                authprovider=self._authprovider)
+            return self._accept()
         else:
             # signature was invalid: deny the client
             return types.Deny(message=u"WAMP-CRA signature is invalid")

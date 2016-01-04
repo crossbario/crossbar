@@ -62,7 +62,7 @@ class PendingAuthCryptosign(PendingAuth):
         challenge_obj = {
             u'authid': self._authid,
             u'authrole': self._authrole,
-            u'authmethod': self.AUTHMETHOD,
+            u'authmethod': self._authmethod,
             u'authprovider': self._authprovider,
             u'session': self._session_details[u'session'],
             u'nonce': util.newid(64),
@@ -104,7 +104,7 @@ class PendingAuthCryptosign(PendingAuth):
                 self._verify_key = VerifyKey(principal[u'pubkey'], encoder=nacl.encoding.HexEncoder)
 
                 extra, self._challenge = self._compute_challenge()
-                return types.Challenge(self.AUTHMETHOD, extra)
+                return types.Challenge(self._authmethod, extra)
             else:
                 return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
 
@@ -126,7 +126,7 @@ class PendingAuthCryptosign(PendingAuth):
                 self._verify_key = VerifyKey(principal[u'pubkey'], encoder=nacl.encoding.HexEncoder)
 
                 extra, self._challenge = self._compute_challenge()
-                return types.Challenge(self.AUTHMETHOD, extra)
+                return types.Challenge(self._authmethod, extra)
 
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)
@@ -139,19 +139,16 @@ class PendingAuthCryptosign(PendingAuth):
             return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
 
     def authenticate(self, signature):
+        # signed message = signature | challenge
         signed = SignedMessage(signature + self._challenge)
-        # Check the validity of a message's signature
-        # Will raise nacl.exceptions.BadSignatureError if the signature check fails
         try:
+            # now verify the signed message versus the client public key
             self._verify_key.verify(signed)
 
             # signature was valid: accept the client
-            return types.Accept(realm=self._realm,
-                                authid=self._authid,
-                                authrole=self._authrole,
-                                authmethod=self.AUTHMETHOD,
-                                authprovider=self._authprovider)
+            return self._accept()
 
         except BadSignatureError:
+
             # signature was invalid: deny the client
             return types.Deny(message=u"invalid signature")
