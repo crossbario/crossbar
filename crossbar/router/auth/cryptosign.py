@@ -32,6 +32,7 @@ from __future__ import absolute_import
 
 import json
 import six
+import binascii
 
 import nacl
 from nacl.signing import VerifyKey
@@ -93,9 +94,9 @@ class PendingAuthCryptosign(PendingAuth):
 
             self._authprovider = u'static'
 
-            if self._authid in self._config.get(u'users', {}):
+            if self._authid in self._config.get(u'principals', {}):
 
-                principal = self._config[u'users'][self._authid]
+                principal = self._config[u'principals'][self._authid]
 
                 error = self._assign_principal(principal)
                 if error:
@@ -139,8 +140,10 @@ class PendingAuthCryptosign(PendingAuth):
             return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
 
     def authenticate(self, signature):
-        # signed message = signature | challenge
-        signed = SignedMessage(signature + self._challenge)
+        # signatures in WAMP are strings, hence we roundtrip Hex
+        signature = binascii.a2b_hex(signature)
+
+        signed = SignedMessage(signature)
         try:
             # now verify the signed message versus the client public key
             self._verify_key.verify(signed)
@@ -152,3 +155,9 @@ class PendingAuthCryptosign(PendingAuth):
 
             # signature was invalid: deny the client
             return types.Deny(message=u"invalid signature")
+
+        except Exception as e:
+            print("internal error: {}".format(e))
+
+            return types.Deny(message=u"internal error")
+

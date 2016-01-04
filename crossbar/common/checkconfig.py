@@ -379,6 +379,36 @@ def check_transport_auth_tls(config):
         raise InvalidConfigException("logic error")
 
 
+def check_transport_auth_cryptosign(config):
+    """
+    Check a WAMP-Cryptosign configuration item.
+    """
+    if 'type' not in config:
+        raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-Cryptosign configuration")
+
+    if config['type'] not in ['static', 'dynamic']:
+        raise InvalidConfigException("invalid type '{}' in WAMP-Cryptosign configuration - must be one of 'static', 'dynamic'".format(config['type']))
+
+    if config['type'] == 'static':
+        if 'principals' not in config:
+            raise InvalidConfigException("missing mandatory attribute 'principals' in static WAMP-Cryptosign configuration")
+        if not isinstance(config['principals'], dict):
+            raise InvalidConfigException("invalid type for attribute 'principals' in static WAMP-Cryptosign configuration - expected dict, got {}".format(type(config['principals'])))
+        for authid, principal in config['principals'].items():
+            check_dict_args({
+                'pubkey': (True, [six.text_type]),
+                'role': (True, [six.text_type]),
+                'realm': (False, [six.text_type]),
+            }, principal, "WAMP-Cryptosign - principal '{}' configuration".format(authid))
+
+    elif config['type'] == 'dynamic':
+        if 'authenticator' not in config:
+            raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-Cryptosign configuration")
+        check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-Cryptosign configuration".format(config['authenticator']))
+    else:
+        raise InvalidConfigException("logic error")
+
+
 def check_transport_auth_cookie(config):
     """
     Check a WAMP-Cookie configuration item.
@@ -415,7 +445,8 @@ def check_transport_auth(auth):
         'ticket': check_transport_auth_ticket,
         'wampcra': check_transport_auth_wampcra,
         'tls': check_transport_auth_tls,
-        'cookie': check_transport_auth_cookie
+        'cookie': check_transport_auth_cookie,
+        'cryptosign': check_transport_auth_cryptosign
     }
     for k in auth:
         if k not in CHECKS:
