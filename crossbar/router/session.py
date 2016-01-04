@@ -552,7 +552,7 @@ class RouterSession(BaseSession):
     def onHello(self, realm, details):
 
         try:
-            # default authentication method is "WAMP-Anonymous"
+            # default authentication method is "WAMP-Anonymous" if client doesn't specify otherwise
             authmethods = details.authmethods or [u'anonymous']
 
             # perform authentication
@@ -578,6 +578,10 @@ class RouterSession(BaseSession):
 
                 if not auth_config:
                     # if authentication is _not_ configured, allow anyone to join as "anonymous"!
+
+                    # .. but don't if the client isn't ready/willing to go on "anonymous"
+                    if u'anonymous' not in authmethods:
+                        return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
                     if not realm:
                         return types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm requested')
@@ -675,7 +679,7 @@ class RouterSession(BaseSession):
                             raise Exception("logic error")
 
                     # no suitable authmethod found!
-                    return types.Deny(message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
+                    return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
             traceback.print_exc()
