@@ -96,7 +96,7 @@ class TestBrokerPublish(unittest.TestCase):
     def test_application_session_internal_error(self):
         """
         simulate an internal error triggering the 'onJoin' error-case from
-        _RouterApplicationSession's send() method (from the Hello msg)
+        RouterApplicationSession's send() method (from the Hello msg)
         """
         # setup
         the_exception = RuntimeError("sadness")
@@ -110,12 +110,12 @@ class TestBrokerPublish(unittest.TestCase):
                 errors.append((fail, msg))
 
         session = TestSession(types.ComponentConfig(u'realm1'))
-        from crossbar.router.session import _RouterApplicationSession
+        from crossbar.router.session import RouterApplicationSession
 
         # Note to self: original code was logging directly in
-        # _RouterApplicationSession -- which *may* actually be better?
+        # RouterApplicationSession -- which *may* actually be better?
         # or not...
-        with mock.patch.object(_RouterApplicationSession, 'log') as logger:
+        with mock.patch.object(RouterApplicationSession, 'log') as logger:
             # this should call onJoin, triggering our error
             self.session_factory.add(session)
 
