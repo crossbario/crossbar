@@ -77,7 +77,7 @@ class PendingAuthTLS(PendingAuth):
 
             client_cert = self._session_details[u'transport'].get(u'client_cert', None)
             if not client_cert:
-                return types.Deny(message=u'TLS client certificate required')
+                return types.Deny(message=u'client did not send a TLS client certificate')
             client_cert_sha1 = client_cert[u'sha1']
 
             if client_cert_sha1 in self._cert_sha1_to_principal:

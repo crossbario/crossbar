@@ -244,49 +244,51 @@ class _RouterSession(BaseSession):
         # this is a Twisted stream transport instance
         stream_transport = self._transport.transport
 
+        # a dict with x509 TLS client certificate information (if the client provided a cert)
+        self._client_cert = None
+
         # check if stream_transport is a TLSMemoryBIOProtocol
         if hasattr(stream_transport, 'getPeerCertificate') and ISSLTransport.providedBy(stream_transport):
+            cert = self._transport.transport.getPeerCertificate()
+            if cert:
+                def extract_x509(cert):
+                    """
+                    Extract x509 name components from an OpenSSL X509Name object.
+                    """
+                    # pkey = cert.get_pubkey()
 
-            def extract_x509(cert):
-                """
-                Extract x509 name components from an OpenSSL X509Name object.
-                """
-                # pkey = cert.get_pubkey()
-
-                result = {
-                    u'md5': u'{}'.format(cert.digest('md5')).upper(),
-                    u'sha1': u'{}'.format(cert.digest('sha1')).upper(),
-                    u'sha256': u'{}'.format(cert.digest('sha256')).upper(),
-                    u'expired': cert.has_expired(),
-                    u'hash': cert.subject_name_hash(),
-                    u'serial': cert.get_serial_number(),
-                    u'signature_algorithm': cert.get_signature_algorithm(),
-                    u'version': cert.get_version(),
-                    u'not_before': cert.get_notBefore(),
-                    u'not_after': cert.get_notAfter(),
-                    u'extensions': []
-                }
-                for i in range(cert.get_extension_count()):
-                    ext = cert.get_extension(i)
-                    ext_info = {
-                        u'name': u'{}'.format(ext.get_short_name()),
-                        u'value': u'{}'.format(ext),
-                        u'criticial': ext.get_critical() != 0
+                    result = {
+                        u'md5': u'{}'.format(cert.digest('md5')).upper(),
+                        u'sha1': u'{}'.format(cert.digest('sha1')).upper(),
+                        u'sha256': u'{}'.format(cert.digest('sha256')).upper(),
+                        u'expired': cert.has_expired(),
+                        u'hash': cert.subject_name_hash(),
+                        u'serial': cert.get_serial_number(),
+                        u'signature_algorithm': cert.get_signature_algorithm(),
+                        u'version': cert.get_version(),
+                        u'not_before': cert.get_notBefore(),
+                        u'not_after': cert.get_notAfter(),
+                        u'extensions': []
                     }
-                    result[u'extensions'].append(ext_info)
-                for entity, name in [(u'subject', cert.get_subject()), (u'issuer', cert.get_issuer())]:
-                    result[entity] = {}
-                    for key, value in name.get_components():
-                        result[entity][u'{}'.format(key).lower()] = u'{}'.format(value)
-                return result
+                    for i in range(cert.get_extension_count()):
+                        ext = cert.get_extension(i)
+                        ext_info = {
+                            u'name': u'{}'.format(ext.get_short_name()),
+                            u'value': u'{}'.format(ext),
+                            u'criticial': ext.get_critical() != 0
+                        }
+                        result[u'extensions'].append(ext_info)
+                    for entity, name in [(u'subject', cert.get_subject()), (u'issuer', cert.get_issuer())]:
+                        result[entity] = {}
+                        for key, value in name.get_components():
+                            result[entity][u'{}'.format(key).lower()] = u'{}'.format(value)
+                    return result
 
-            self._client_cert = extract_x509(self._transport.transport.getPeerCertificate())
-            self.log.debug("Client connecting with TLS certificate cn='{cert_cn}', sha1={cert_sha1}.., expired={cert_expired}",
-                           cert_cn=self._client_cert['subject']['cn'],
-                           cert_sha1=self._client_cert['sha1'][:12],
-                           cert_expired=self._client_cert['expired'])
-        else:
-            self._client_cert = None
+                self._client_cert = extract_x509(self._transport.transport.getPeerCertificate())
+                self.log.debug("Client connecting with TLS certificate cn='{cert_cn}', sha1={cert_sha1}.., expired={cert_expired}",
+                               cert_cn=self._client_cert['subject']['cn'],
+                               cert_sha1=self._client_cert['sha1'][:12],
+                               cert_expired=self._client_cert['expired'])
 
         if self._transport._transport_info:
             self._transport._transport_info[u'client_cert'] = self._client_cert
