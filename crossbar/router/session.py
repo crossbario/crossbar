@@ -368,6 +368,7 @@ class RouterSession(BaseSession):
                                              authmethods=msg.authmethods,
                                              authid=msg.authid,
                                              authrole=msg.authrole,
+                                             authextra=msg.authextra,
                                              session_roles=msg.roles,
                                              pending_session=self._pending_session_id)
 

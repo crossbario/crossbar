@@ -55,6 +55,10 @@ class PendingAuthCryptosign(PendingAuth):
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
         self._verify_key = None
+        if config['type'] == 'static':
+            self._pubkey_to_authid = {}
+            for authid, principal in self._config.get(u'principals', {}).items():
+                self._pubkey_to_authid[principal[u'pubkey']] = authid
 
     def _compute_challenge(self):
         challenge = binascii.b2a_hex(os.urandom(32))
@@ -76,9 +80,37 @@ class PendingAuthCryptosign(PendingAuth):
 
             self._authprovider = u'static'
 
+            # get client's pubkey, if it was provided in authextra
+            pubkey = None
+            if details.authextra and u'pubkey' in details.authextra:
+                pubkey = details.authextra[u'pubkey']
+
+            # if the client provides it's public key, that's enough to identify,
+            # and we can infer the authid from that. BUT: that requires that
+            # there is a 1:1 relation between authid's and pubkey's !! see below (*)
+            if self._authid is None:
+                if pubkey:
+                    # we do a naive search, but that is ok, since "static mode" is from
+                    # node configuration, and won't contain a lot principals anyway
+                    for _authid, _principal in self._config.get(u'principals', {}).items():
+                        if _principal[u'pubkey'] == pubkey:
+                            # (*): this is necessary to detect multiple authid's having the same pubkey
+                            # in which case we couldn't reliably map the authid from the pubkey
+                            if self._authid is None:
+                                self._authid = _authid
+                            else:
+                                return types.Deny(message=u'cannot infer client identity from pubkey: multiple authids in principal database have this pubkey')
+                    if self._authid is None:
+                        return types.Deny(message=u'cannot identify client: no authid requested and no principal found for provided extra.pubkey')
+                else:
+                    return types.Deny(message=u'cannot identify client: no authid requested and no extra.pubkey provided')
+
             if self._authid in self._config.get(u'principals', {}):
 
                 principal = self._config[u'principals'][self._authid]
+
+                if pubkey and (principal[u'pubkey'] != pubkey):
+                    return types.Deny(message=u'extra.pubkey provided does not match the one in principal database')
 
                 error = self._assign_principal(principal)
                 if error:
