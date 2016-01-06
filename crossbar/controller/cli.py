@@ -195,6 +195,7 @@ def run_command_version(options, reactor=None, **kwargs):
     Subcommand "crossbar version".
     """
     log = make_logger()
+    verbose = False
 
     # Python
     #
@@ -279,18 +280,17 @@ def run_command_version(options, reactor=None, **kwargs):
     log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
     log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
-    log.info("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
-    log.debug("{pad}{debuginfo}", pad=pad,
-              debuginfo=decorate(utf8_loc))
-    log.info("     XOR Masker     : {ver}", ver=decorate(xor_ver))
-    log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
-    log.info("     JSON Codec     : {ver}", ver=decorate(json_ver))
-    log.info("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
-    log.info("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
+    if verbose:
+        log.info("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
+        log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(utf8_loc))
+        log.info("     XOR Masker     : {ver}", ver=decorate(xor_ver))
+        log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
+        log.info("     JSON Codec     : {ver}", ver=decorate(json_ver))
+        log.info("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
+        log.info("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
-    log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver),
-             impl=decorate(py_ver_detail))
+    log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
     log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
