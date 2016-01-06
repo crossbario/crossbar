@@ -204,9 +204,9 @@ def get_config_value(config, item, default=None):
     variable isn't defined, a default value is returned.
     """
     if item in config:
-        # for str/unicode valued items, check if the value actually point to
+        # for string valued items, check if the value actually point to
         # an enviroment variable (e.g. "$PGPASSWORD")
-        if type(config[item]) in (str, unicode):
+        if type(config[item]) == six.text_type:
             match = _ENV_VAR_PAT.match(config[item])
             if match and match.groups():
                 envvar = match.groups()[0]

@@ -90,8 +90,8 @@ def maybe_generate_key(log, cbdir, privkey_path=u'node.key'):
                         got_blankline = True
                     elif got_blankline:
                         tag, value = line.split(':', 1)
-                        tag = tag.decode('utf8').strip().lower()
-                        value = value.decode('utf8').strip()
+                        tag = tag.strip().lower()
+                        value = value.strip()
                         if tag not in [u'private-key-ed25519', u'public-key-ed25519', u'machine-id', u'created-at', u'creator']:
                             raise Exception("Invalid tag '{}' in node private key file {}".format(tag, privkey_path))
                         if tag == u'private-key-ed25519':
@@ -103,7 +103,7 @@ def maybe_generate_key(log, cbdir, privkey_path=u'node.key'):
 
                 # recreate a signing key from the base64 encoding
                 privkey_obj = SigningKey(privkey, encoder=HexEncoder)
-                pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder)
+                pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder).decode('ascii')
 
             log.debug("Node key already exists (public key: {})".format(pubkey))
         else:
@@ -111,10 +111,10 @@ def maybe_generate_key(log, cbdir, privkey_path=u'node.key'):
     else:
         # node private key does NOT yet exist: generate one
         privkey_obj = SigningKey.generate()
-        privkey = privkey_obj.encode(encoder=HexEncoder)
+        privkey = privkey_obj.encode(encoder=HexEncoder).decode('ascii')
         privkey_created_at = utcnow()
 
-        pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder)
+        pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder).decode('ascii')
 
         # for informational purposes, try to get a machine unique id thing ..
         machine_id = None

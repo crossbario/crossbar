@@ -34,6 +34,8 @@ import re
 import os
 import pkg_resources
 
+import six
+
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from txpostgres import txpostgres
@@ -98,7 +100,7 @@ class PostgreSQLAdapter(ApplicationSession):
         pat = re.compile("^\$([A-Z0-9_]+)$")
         for k in ['host', 'port', 'database', 'user', 'password']:
             if k in db_config:
-                if type(db_config[k]) in (str, unicode):
+                if type(db_config[k]) == six.text_type:
                     match = pat.match(db_config[k])
                     if match and match.groups():
                         envvar = match.groups()[0]

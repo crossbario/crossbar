@@ -52,7 +52,7 @@ def patchFileContentTypes(root):
     if six.PY2:
         c = 0
         for k, v in root.contentTypes.items():
-            if isinstance(v, unicode):
+            if isinstance(v, six.text_type):
                 root.contentTypes[k] = root.contentTypes[k].encode('ascii')
                 c += 1
         if c:
