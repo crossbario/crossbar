@@ -54,60 +54,69 @@ if mo:
 else:
     raise RuntimeError("Unable to find version string in {}.".format(VERSIONFILE))
 
-#
-# extra requirements for install variants
-#
-extras_require_system = [
-    'psutil>=3.2.1',                # BSD license
-]
-if sys.platform.startswith('linux'):
-    extras_require_system.append('setproctitle>=1.1.9')     # BSD license
-    extras_require_system.append('pyinotify>=0.9.6')        # MIT license
-if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
-    extras_require_system.append('setproctitle>=1.1.9')     # BSD license
-
-extras_require_db = [
-    'lmdb>=0.87',                   # OpenLDAP BSD
-]
+# enforce use of CFFI for LMDB
 if PYPY:
     os.environ['LMDB_FORCE_CFFI'] = '1'
 
-extras_require_manhole = [
-    'pyasn1>=0.1.8',                # BSD license
-    'pycrypto>=2.6.1'               # Public Domain license
+install_requires = [
+    'click>=5.1',                 # BSD license
+    'setuptools>=18.3.1',         # Python Software Foundation license
+    'zope.interface>=4.1.2',      # Zope Public license
+    'twisted>=15.4.0',            # MIT license
+    'autobahn[twisted]>=0.11.0',  # MIT license
+    'netaddr>=0.7.18',            # BSD license
+    'pytrie>=0.2',                # BSD license
+    'jinja2>=2.8',                # BSD license
+    'mistune>=0.7.1',             # BSD license
+    'pygments>=2.0.2',            # BSD license
+    'pyyaml>=3.11',               # MIT license
+    'shutilwhich>=1.1.0',         # PSF license
+
+    'psutil>=3.2.1',              # BSD license
+    'setproctitle>=1.1.9',        # BSD license
+    'lmdb>=0.87',                 # OpenLDAP BSD
+
+    # Serializers
+    'msgpack-python>=0.4.6',      # Apache 2.0 license
+    'cbor>=0.1.24',               # Apache 2.0 license
+
+    # TLS
+    'cryptography>=0.9.3',        # Apache license
+    'pyOpenSSL>=0.15.1',          # Apache license
+    'pyasn1>=0.1.8',              # BSD license
+    'pyasn1-modules>=0.0.7',      # BSD license
+    'service_identity>=14.0.0',   # MIT license
+
+    # NaCl
+    'pynacl>=0.3.0',              # Apache license
+
+    # HTTP/REST bridge (also pulls in TLS packages!)
+    'treq>=15.0.0',               # MIT license
 ]
 
-extras_require_serializers = [
-    "msgpack-python>=0.4.6",        # Apache 2.0 license
-    "cbor>=0.1.24"                  # Apache 2.0 license
-]
+# FIXME: https://github.com/crossbario/crossbar/issues/581
+if sys.platform.startswith('linux'):
+    install_requires.append('pyinotify>=0.9.6')     # MIT license
 
-extras_require_tls = [
-    'cryptography>=0.9.3',          # Apache license
-    'pyOpenSSL>=0.15.1',            # Apache license
-    'pyasn1>=0.1.8',                # BSD license
-    'pyasn1-modules>=0.0.7',        # BSD license
-    'service_identity>=14.0.0',     # MIT license
-    'pynacl>=0.3.0',                # Apache license
-]
-
-# only for CPy (skip for PyPy)!
+# native WebSocket/JSON acceleration - only for CPy (skip for PyPy, since it'll be _slower_ on that!)
 if CPY:
-    extras_require_accelerate = [
-        "wsaccel>=0.6.2"            # Apache 2.0
-    ]
+    install_requires.append('wsaccel>=0.6.2')       # Apache 2.0
 
     # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
     if sys.platform != 'win32':
-        extras_require_accelerate.append("ujson>=1.33")     # BSD license
-else:
-    extras_require_accelerate = []
+        install_requires.append("ujson>=1.33")      # BSD license
 
+# For Crossbar.io development
 extras_require_dev = [
-    "colorama>=0.3.3",              # BSD license
-    "mock>=1.3.0",                  # BSD license
+    'flake8>=2.5.1',                # MIT license
+    'colorama>=0.3.3',              # BSD license
+    'mock>=1.3.0',                  # BSD license
+
+    # Twisted manhole support
+    'pycrypto>=2.6.1',              # Public Domain license
 ]
 
+# Crossbar.io/PostgreSQL integration
 extras_require_postgres = [
     'txpostgres>=1.4.0'             # MIT license
 ]
@@ -116,13 +125,10 @@ if CPY:
 else:
     extras_require_postgres.append('psycopg2cffi>=2.7.2')   # LGPL license
 
+# Crossbar.io/Oracle integration
 extras_require_oracle = [
     'cx_Oracle>=5.2',               # Python Software Foundation license
 ]
-
-extras_require_all = extras_require_system + extras_require_db + \
-    extras_require_manhole + extras_require_serializers + extras_require_tls + \
-    extras_require_accelerate + extras_require_dev
 
 
 setup(
@@ -135,30 +141,10 @@ setup(
     url='http://crossbar.io/',
     platforms=('Any'),
     license="AGPL3",
-    install_requires=[
-        'click>=5.1',                 # BSD license
-        'setuptools>=18.3.1',         # Python Software Foundation license
-        'zope.interface>=4.1.2',      # Zope Public license
-        'twisted>=15.4.0',            # MIT license
-        'autobahn[twisted]>=0.11.0',  # MIT license
-        'netaddr>=0.7.18',            # BSD license
-        'pytrie>=0.2',                # BSD license
-        'jinja2>=2.8',                # BSD license
-        'mistune>=0.7.1',             # BSD license
-        'pygments>=2.0.2',            # BSD license
-        'pyyaml>=3.11',               # MIT license
-        'shutilwhich>=1.1.0',         # PSF license
-        'treq>=15.0.0',               # MIT license
-    ],
+    install_requires=install_requires,
     extras_require={
-        'all': extras_require_all,
-        'db': extras_require_db,
+        'all': extras_require_dev,
         'dev': extras_require_dev,
-        'tls': extras_require_tls,
-        'manhole': extras_require_manhole,
-        'serializers': extras_require_serializers,
-        'system': extras_require_system,
-        'accelerate': extras_require_accelerate,
         'oracle': extras_require_oracle,
         'postgres': extras_require_postgres,
     },
