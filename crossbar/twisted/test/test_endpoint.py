@@ -31,6 +31,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import shutil
 
 from uuid import uuid4
 
@@ -38,7 +39,6 @@ from twisted.internet.endpoints import UNIXServerEndpoint
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.protocol import Factory
 from twisted.protocols.wire import Echo
-from twisted.python.filepath import FilePath
 from twisted.python.runtime import platform
 
 from crossbar.test import TestCase
@@ -52,7 +52,7 @@ class ListeningEndpointTests(TestCase):
 
     def setUp(self):
         self.cbdir = self.mktemp()
-        FilePath(self.cbdir).makedirs()
+        os.makedirs(self.cbdir)
         return super(ListeningEndpointTests, self).setUp()
 
     def test_unix(self):
@@ -60,7 +60,7 @@ class ListeningEndpointTests(TestCase):
         A config with type = "unix" will create an endpoint for a UNIX socket
         at the given path.
         """
-        path = FilePath("/tmp").child(uuid4().hex).path
+        path = os.path.join("/", "tmp", uuid4().hex)
         self.addCleanup(os.remove, path)
 
         reactor = SelectReactor()
@@ -84,11 +84,11 @@ class ListeningEndpointTests(TestCase):
         A config with type = "unix" will create an endpoint for a UNIX socket
         at the given path, and delete it if required.
         """
-        path = FilePath("/tmp").child(uuid4().hex).path
+        path = os.path.join("/", "tmp", uuid4().hex)
         self.addCleanup(os.remove, path)
 
         # Something is already there
-        FilePath(path).setContent(b"")
+        open(path, "w").close()
 
         reactor = SelectReactor()
         config = {
@@ -113,19 +113,19 @@ class ListeningEndpointTests(TestCase):
         at the given path, and delete it if required. If it can't delete it, it
         will raise an exception.
         """
-        parent_fp = FilePath("/tmp").child(uuid4().hex)
-        parent_fp.makedirs()
-        fp = parent_fp.child(uuid4().hex)
+        parent_fp = os.path.join("/", "tmp", uuid4().hex)
+        os.makedirs(parent_fp)
+        fp = os.path.join(parent_fp, uuid4().hex)
 
         # Something is already there
-        fp.setContent(b"")
-        fp.chmod(0o544)
-        parent_fp.chmod(0o544)
+        open(fp, "w").close()
+        os.chmod(fp, 0o544)
+        os.chmod(parent_fp, 0o544)
 
         reactor = SelectReactor()
         config = {
             "type": "unix",
-            "path": fp.path
+            "path": fp
         }
 
         with self.assertRaises(OSError) as e:
@@ -133,8 +133,8 @@ class ListeningEndpointTests(TestCase):
                                                   reactor, self.log)
         self.assertEqual(e.exception.errno, 13)  # Permission Denied
 
-        parent_fp.chmod(0o777)
-        parent_fp.remove()
+        os.chmod(parent_fp, 0o700)
+        shutil.rmtree(parent_fp)
 
     if platform.isWindows():
         _ = "Windows does not have UNIX sockets"

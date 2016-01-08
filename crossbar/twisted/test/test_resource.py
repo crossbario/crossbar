@@ -36,8 +36,6 @@ from crossbar.adapter.rest.test import renderResource
 from crossbar.twisted.resource import FileUploadResource
 from crossbar.test import TestCase
 
-from twisted.python.filepath import FilePath
-
 from mock import Mock
 
 from .multipart import Multipart
