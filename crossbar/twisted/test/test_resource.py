@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, division, print_function
 
+import os
+
 from crossbar.adapter.rest.test import renderResource
 from crossbar.twisted.resource import FileUploadResource
 from crossbar.test import TestCase
@@ -50,10 +52,10 @@ class FileUploadTests(TestCase):
         """
         Upload a basic file using the FileUploadResource, in just a single chunk.
         """
-        upload_dir = FilePath(self.mktemp())
-        upload_dir.makedirs()
-        temp_dir = FilePath(self.mktemp())
-        temp_dir.makedirs()
+        upload_dir = self.mktemp()
+        os.makedirs(upload_dir)
+        temp_dir = self.mktemp()
+        os.makedirs(temp_dir)
 
         fields = {
             "file_name": "resumableFilename",
@@ -69,7 +71,7 @@ class FileUploadTests(TestCase):
 
         mock_session = Mock()
 
-        resource = FileUploadResource(upload_dir.path, temp_dir.path, fields, mock_session)
+        resource = FileUploadResource(upload_dir, temp_dir, fields, mock_session)
 
         mp = Multipart()
         mp.add_part(b"resumableChunkNumber", b"1")
@@ -110,19 +112,19 @@ class FileUploadTests(TestCase):
         self.assertEqual(mock_session.method_calls[1][1][1]["id"], "examplefile.txt")
 
         # Nothing in the temp dir, one file in the upload
-        self.assertEqual(len(temp_dir.listdir()), 0)
-        self.assertEqual(len(upload_dir.listdir()), 1)
-        with upload_dir.child("examplefile.txt").open("rb") as f:
+        self.assertEqual(len(os.listdir(temp_dir)), 0)
+        self.assertEqual(len(os.listdir(upload_dir)), 1)
+        with open(os.path.join(upload_dir, "examplefile.txt"), "rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
 
     def test_multichunk(self):
         """
         Uploading files that are in multiple chunks works.
         """
-        upload_dir = FilePath(self.mktemp())
-        upload_dir.makedirs()
-        temp_dir = FilePath(self.mktemp())
-        temp_dir.makedirs()
+        upload_dir = self.mktemp()
+        os.makedirs(upload_dir)
+        temp_dir = self.mktemp()
+        os.makedirs(temp_dir)
 
         fields = {
             "file_name": "resumableFilename",
@@ -138,7 +140,7 @@ class FileUploadTests(TestCase):
 
         mock_session = Mock()
 
-        resource = FileUploadResource(upload_dir.path, temp_dir.path, fields, mock_session)
+        resource = FileUploadResource(upload_dir, temp_dir, fields, mock_session)
 
         #
         # Chunk 1
@@ -171,11 +173,11 @@ class FileUploadTests(TestCase):
 
         # One directory in the temp dir, nothing in the upload dir, temp dir
         # contains one chunk
-        self.assertEqual(len(temp_dir.listdir()), 1)
-        self.assertEqual(len(temp_dir.child("examplefile.txt").listdir()), 1)
-        with temp_dir.child("examplefile.txt").child("chunk_1").open("rb") as f:
+        self.assertEqual(len(os.listdir(temp_dir)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(temp_dir, "examplefile.txt"))), 1)
+        with open(os.path.join(temp_dir, "examplefile.txt", "chunk_1"), "rb") as f:
             self.assertEqual(f.read(), b"hello Cros")
-        self.assertEqual(len(upload_dir.listdir()), 0)
+        self.assertEqual(len(os.listdir(upload_dir)), 0)
 
         #
         # Chunk 2
@@ -233,9 +235,9 @@ class FileUploadTests(TestCase):
         self.assertEqual(mock_session.method_calls[3][1][1]["chunk"], 2)
 
         # Nothing in the temp dir, one file in the upload
-        self.assertEqual(len(temp_dir.listdir()), 0)
-        self.assertEqual(len(upload_dir.listdir()), 1)
-        with upload_dir.child("examplefile.txt").open("rb") as f:
+        self.assertEqual(len(os.listdir(temp_dir)), 0)
+        self.assertEqual(len(os.listdir(upload_dir)), 1)
+        with open(os.path.join(upload_dir, "examplefile.txt"), "rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
 
     def test_resumed_upload(self):
@@ -243,11 +245,10 @@ class FileUploadTests(TestCase):
         Uploading part of a file, simulating a Crossbar restart, and continuing
         to upload works.
         """
-
-        upload_dir = FilePath(self.mktemp())
-        upload_dir.makedirs()
-        temp_dir = FilePath(self.mktemp())
-        temp_dir.makedirs()
+        upload_dir = self.mktemp()
+        os.makedirs(upload_dir)
+        temp_dir = self.mktemp()
+        os.makedirs(temp_dir)
 
         fields = {
             "file_name": "resumableFilename",
@@ -263,11 +264,11 @@ class FileUploadTests(TestCase):
 
         mock_session = Mock()
 
-        resource = FileUploadResource(upload_dir.path, temp_dir.path, fields, mock_session)
+        resource = FileUploadResource(upload_dir, temp_dir, fields, mock_session)
 
         # Make some stuff in the temp dir that wasn't there when it started but
         # is put there before a file upload
-        temp_dir.child("otherjunk").makedirs()
+        os.makedirs(os.path.join(temp_dir, "otherjunk"))
 
         #
         # Chunk 1
@@ -300,20 +301,22 @@ class FileUploadTests(TestCase):
 
         # One directory in the temp dir, nothing in the upload dir, temp dir
         # contains one chunk
-        self.assertEqual(len(temp_dir.listdir()), 1)
-        self.assertEqual(len(temp_dir.child("examplefile.txt").listdir()), 1)
-        with temp_dir.child("examplefile.txt").child("chunk_1").open("rb") as f:
+        self.assertEqual(len(os.listdir(temp_dir)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(temp_dir, "examplefile.txt"))), 1)
+        with open(os.path.join(temp_dir, "examplefile.txt", "chunk_1"), "rb") as f:
             self.assertEqual(f.read(), b"hello Cros")
-        self.assertEqual(len(upload_dir.listdir()), 0)
+        self.assertEqual(len(os.listdir(upload_dir)), 0)
 
         del resource
 
         # Add some random junk in there that Crossbar isn't expecting
-        temp_dir.child("junk").setContent(b"just some junk")
-        temp_dir.child("examplefile.txt").child("hi").setContent(b"what")
+        with open(os.path.join(temp_dir, "junk"), 'wb') as f:
+            f.write(b"just some junk")
+        with open(os.path.join(temp_dir, "examplefile.txt", "hi"), 'wb') as f:
+            f.write(b"what")
 
         # Simulate restarting Crossbar by reinitialising the FileUploadResource
-        resource = FileUploadResource(upload_dir.path, temp_dir.path, fields, mock_session)
+        resource = FileUploadResource(upload_dir, temp_dir, fields, mock_session)
 
         #
         # Chunk 2
@@ -372,19 +375,19 @@ class FileUploadTests(TestCase):
 
         # No item in the temp dir which we made earlier, one item in the
         # upload dir. Otherjunk is removed because it belongs to no upload.
-        self.assertEqual(len(temp_dir.listdir()), 0)
-        self.assertEqual(len(upload_dir.listdir()), 1)
-        with upload_dir.child("examplefile.txt").open("rb") as f:
+        self.assertEqual(len(os.listdir(temp_dir)), 0)
+        self.assertEqual(len(os.listdir(upload_dir)), 1)
+        with open(os.path.join(upload_dir, "examplefile.txt"), "rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
 
     def test_multichunk_shuffle(self):
         """
         Uploading files that are in multiple chunks and are uploaded in different order works.
         """
-        upload_dir = FilePath(self.mktemp())
-        upload_dir.makedirs()
-        temp_dir = FilePath(self.mktemp())
-        temp_dir.makedirs()
+        upload_dir = self.mktemp()
+        os.makedirs(upload_dir)
+        temp_dir = self.mktemp()
+        os.makedirs(temp_dir)
 
         fields = {
             "file_name": "resumableFilename",
@@ -400,7 +403,7 @@ class FileUploadTests(TestCase):
 
         mock_session = Mock()
 
-        resource = FileUploadResource(upload_dir.path, temp_dir.path, fields, mock_session)
+        resource = FileUploadResource(upload_dir, temp_dir, fields, mock_session)
 
         #
         # Chunk 2
@@ -421,11 +424,11 @@ class FileUploadTests(TestCase):
 
         # One directory in the temp dir, nothing in the upload dir, temp dir
         # contains one chunk
-        self.assertEqual(len(temp_dir.listdir()), 1)
-        self.assertEqual(len(temp_dir.child("examplefile.txt").listdir()), 1)
-        with temp_dir.child("examplefile.txt").child("chunk_2").open("rb") as f:
+        self.assertEqual(len(os.listdir(temp_dir)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(temp_dir, "examplefile.txt"))), 1)
+        with open(os.path.join(temp_dir, "examplefile.txt", "chunk_2"), "rb") as f:
             self.assertEqual(f.read(), b"sbar!\n")
-        self.assertEqual(len(upload_dir.listdir()), 0)
+        self.assertEqual(len(os.listdir(upload_dir)), 0)
         #
         # Chunk 1
 
@@ -470,23 +473,22 @@ class FileUploadTests(TestCase):
         self.assertEqual(mock_session.method_calls[3][1][1]["chunk"], 1)
 
         # Nothing in the temp dir, one file in the upload
-        self.assertEqual(len(temp_dir.listdir()), 0)
-        self.assertEqual(len(upload_dir.listdir()), 1)
-        with upload_dir.child("examplefile.txt").open("rb") as f:
+        self.assertEqual(len(os.listdir(temp_dir)), 0)
+        self.assertEqual(len(os.listdir(upload_dir)), 1)
+        with open(os.path.join(upload_dir, "examplefile.txt"), "rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
 
     def test_remains_cleanup(self):
         """
         Upload a basic file using the FileUploadResource, in a single chunk on top of an old upload.
         """
+        upload_dir = self.mktemp()
+        os.makedirs(upload_dir)
+        temp_dir = self.mktemp()
+        os.makedirs(temp_dir)
 
-        upload_dir = FilePath(self.mktemp())
-        upload_dir.makedirs()
-        temp_dir = FilePath(self.mktemp())
-        temp_dir.makedirs()
         # create remaining file temp dir of a previous upload
-        x = temp_dir.child("examplefile.txt")
-        x.makedirs()
+        os.makedirs(os.path.join(temp_dir, "examplefile.txt"))
 
         fields = {
             "file_name": "resumableFilename",
@@ -502,7 +504,7 @@ class FileUploadTests(TestCase):
 
         mock_session = Mock()
 
-        resource = FileUploadResource(upload_dir.path, temp_dir.path, fields, mock_session)
+        resource = FileUploadResource(upload_dir, temp_dir, fields, mock_session)
 
         multipart_body = b"""-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableChunkNumber"\r\n\r\n1\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableChunkSize"\r\n\r\n1048576\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableCurrentChunkSize"\r\n\r\n16\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableTotalSize"\r\n\r\n16\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableType"\r\n\r\ntext/plain\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableIdentifier"\r\n\r\n16-examplefiletxt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableFilename"\r\n\r\nexamplefile.txt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableRelativePath"\r\n\r\nexamplefile.txt\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="resumableTotalChunks"\r\n\r\n1\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="on_progress"\r\n\r\ncom.example.upload.on_progress\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="session"\r\n\r\n6891276359801283\r\n-----------------------------478904261175205671481632460\r\nContent-Disposition: form-data; name="file"; filename="blob"\r\nContent-Type: application/octet-stream\r\n\r\nhello Crossbar!\n\r\n-----------------------------478904261175205671481632460--\r\n"""
 
@@ -518,5 +520,5 @@ class FileUploadTests(TestCase):
         res = self.successResultOf(d)
         self.assertEqual(res.code, 200)
 
-        with upload_dir.child("examplefile.txt").open("rb") as f:
+        with open(os.path.join(upload_dir, "examplefile.txt"), "rb") as f:
             self.assertEqual(f.read(), b"hello Crossbar!\n")
