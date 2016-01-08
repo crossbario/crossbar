@@ -32,7 +32,6 @@ from __future__ import absolute_import, division, print_function
 
 from six import StringIO as NativeStringIO
 
-from twisted.python.filepath import FilePath
 from twisted.internet.selectreactor import SelectReactor
 
 from crossbar.test import TestCase
@@ -222,14 +221,14 @@ class ConvertTests(CLITestBase):
         Running `crossbar convert` with an unknown config file produces an
         error.
         """
-        cbdir = FilePath(self.mktemp())
-        cbdir.makedirs()
-        config_file = cbdir.child("config.blah")
-        config_file.setContent(b'')
+        cbdir = self.mktemp()
+        os.makedirs(cbdir)
+        config_file = os.path.join(cbdir, "config.blah")
+        open(config_file, 'wb').close()
 
         with self.assertRaises(SystemExit) as e:
             cli.run("crossbar",
-                    ["convert", "--config={}".format(config_file.path)])
+                    ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
         self.assertIn(
@@ -241,10 +240,11 @@ class ConvertTests(CLITestBase):
         Running `crossbar convert` with a YAML config file will convert it to
         JSON.
         """
-        cbdir = FilePath(self.mktemp())
-        cbdir.makedirs()
-        config_file = cbdir.child("config.yaml")
-        config_file.setContent(b"""
+        cbdir = self.mktemp()
+        os.makedirs(cbdir)
+        config_file = os.path.join(cbdir, "config.yaml")
+        with open(config_file, 'w') as f:
+            f.write("""
 foo:
     bar: spam
     baz:
@@ -252,13 +252,13 @@ foo:
         """)
 
         cli.run("crossbar",
-                ["convert", "--config={}".format(config_file.path)])
+                ["convert", "--config={}".format(config_file)])
 
         self.assertIn(
             ("JSON formatted configuration written"),
             self.stdout.getvalue())
 
-        with open(cbdir.child("config.json").path) as f:
+        with open(os.path.join(cbdir, "config.json"), 'r') as f:
             self.assertEqual(f.read(), """{
    "foo": {
       "bar": "spam",
@@ -273,14 +273,15 @@ foo:
         Running `crossbar convert` with an invalid YAML config file will error
         saying it is invalid.
         """
-        cbdir = FilePath(self.mktemp())
-        cbdir.makedirs()
-        config_file = cbdir.child("config.yaml")
-        config_file.setContent(b"""{{{{{{{{""")
+        cbdir = self.mktemp()
+        os.makedirs(cbdir)
+        config_file = os.path.join(cbdir, "config.yaml")
+        with open(config_file, 'w') as f:
+            f.write("""{{{{{{{{""")
 
         with self.assertRaises(SystemExit) as e:
             cli.run("crossbar",
-                    ["convert", "--config={}".format(config_file.path)])
+                    ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
         self.assertIn(
@@ -292,10 +293,11 @@ foo:
         Running `crossbar convert` with a YAML config file will convert it to
         JSON.
         """
-        cbdir = FilePath(self.mktemp())
-        cbdir.makedirs()
-        config_file = cbdir.child("config.json")
-        config_file.setContent(b"""{
+        cbdir = self.mktemp()
+        os.makedirs(cbdir)
+        config_file = os.path.join(cbdir, "config.json")
+        with open(config_file, 'w') as f:
+            f.write("""{
    "foo": {
       "bar": "spam",
       "baz": {
@@ -305,13 +307,13 @@ foo:
 }""")
 
         cli.run("crossbar",
-                ["convert", "--config={}".format(config_file.path)])
+                ["convert", "--config={}".format(config_file)])
 
         self.assertIn(
             ("YAML formatted configuration written"),
             self.stdout.getvalue())
 
-        with open(cbdir.child("config.yaml").path) as f:
+        with open(os.path.join(cbdir, "config.yaml"), 'r') as f:
             self.assertEqual(f.read(), """foo:
   bar: spam
   baz:
@@ -323,14 +325,15 @@ foo:
         Running `crossbar convert` with an invalid JSON config file will error
         saying it is invalid.
         """
-        cbdir = FilePath(self.mktemp())
-        cbdir.makedirs()
-        config_file = cbdir.child("config.json")
-        config_file.setContent(b"""{{{{{{{{""")
+        cbdir = self.mktemp()
+        os.makedirs(cbdir)
+        config_file = os.path.join(cbdir, "config.json")
+        with open(config_file, 'w') as f:
+            f.write("""{{{{{{{{""")
 
         with self.assertRaises(SystemExit) as e:
             cli.run("crossbar",
-                    ["convert", "--config={}".format(config_file.path)])
+                    ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
         self.assertIn(
