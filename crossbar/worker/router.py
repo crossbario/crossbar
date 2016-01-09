@@ -1110,7 +1110,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if '/' in nested_paths:
                 nested_resource = self._create_resource(nested_paths['/'])
             else:
-                nested_resource = Resource()
+                nested_resource = Resource404(self._templates, b'')
 
             # nest subpaths under the current entry
             #

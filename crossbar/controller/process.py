@@ -398,7 +398,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # all native workers (routers and containers for now) start from the same script
         #
-        filename = os.path.join(crossbar.__file__, "..", "worker", "process.py")
+        filename = os.path.abspath(os.path.join(crossbar.__file__, "..", "worker", "process.py"))
 
         # assemble command line for forking the worker
         #

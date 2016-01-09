@@ -30,9 +30,12 @@
 
 from __future__ import absolute_import, division, print_function
 
+import os
+import treq
+import six
+
 from twisted.internet import reactor, defer
 from twisted.internet.selectreactor import SelectReactor
-from twisted.python.filepath import FilePath
 
 from crossbar.test import TestCase
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
@@ -49,7 +52,6 @@ from .examples.goodclass import _
 
 try:
     from twisted.web.wsgi import WSGIResource  # noqa
-    import treq
 except (ImportError, SyntaxError):
     WSGI_TESTS = "Twisted WSGI support is not available."
 else:
@@ -276,15 +278,14 @@ class RouterWorkerSessionTests(TestCase):
 
 class WebTests(TestCase):
 
-    # XXX: Treq isn't ported yet, so just tie it with the WSGI tests for now
-    skip = WSGI_TESTS
-
     def setUp(self):
-        self.cbdir = FilePath(self.mktemp())
-        self.cbdir.createDirectory()
-        config_extras = DottableDict({"node": "testnode",
-                                      "worker": "worker1",
-                                      "cbdir": self.cbdir.path})
+        self.cbdir = self.mktemp()
+        os.makedirs(self.cbdir)
+        config_extras = DottableDict({"node": u"testnode",
+                                      "worker": u"worker1",
+                                      "cbdir": self.cbdir.decode('utf8')
+                                               if not isinstance(self.cbdir, six.text_type)
+                                               else self.cbdir})
         self.config = ComponentConfig("realm1", extra=config_extras)
 
     def test_root_not_required(self):
@@ -306,11 +307,12 @@ class WebTests(TestCase):
         }
 
         # Make a file
-        self.cbdir.child('file.txt').setContent(b"hello!")
+        with open(os.path.join(self.cbdir, 'file.txt'), "wb") as f:
+            f.write(b"hello!")
 
-        r.start_router_realm("realm1", realm_config)
+        r.start_router_realm(u"realm1", realm_config)
         r.start_router_transport(
-            "component1",
+            u"component1",
             {
                 u"type": u"web",
                 u"endpoint": {
@@ -319,13 +321,12 @@ class WebTests(TestCase):
                 },
                 u"paths": {
                     u"static": {
-                        "directory": self.cbdir.asTextMode().path,
-                        "type": u"static"
+                        u"directory": u".",
+                        u"type": u"static"
                     }
                 }
             })
 
-        # Make a request to the WSGI app.
         d1 = treq.get("http://localhost:8080/", reactor=temp_reactor)
         d1.addCallback(lambda resp: self.assertEqual(resp.code, 404))
 
@@ -337,7 +338,7 @@ class WebTests(TestCase):
         def done(results):
             for item in results:
                 if not item[0]:
-                    raise item[1]
+                    return item[1]
 
         d = defer.DeferredList([d1, d2])
         d.addCallback(done)
