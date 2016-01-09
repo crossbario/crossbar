@@ -357,11 +357,11 @@ class WSGITests(TestCase):
     skip = WSGI_TESTS
 
     def setUp(self):
-        self.cbdir = FilePath(self.mktemp())
-        self.cbdir.createDirectory()
+        self.cbdir = self.mktemp()
+        os.makedirs(self.cbdir)
         config_extras = DottableDict({"node": "testnode",
                                       "worker": "worker1",
-                                      "cbdir": self.cbdir.path})
+                                      "cbdir": self.cbdir})
         self.config = ComponentConfig("realm1", extra=config_extras)
 
     def test_basic(self):
