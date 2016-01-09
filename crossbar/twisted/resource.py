@@ -33,6 +33,7 @@ import os
 import json
 import time
 import cgi  # for POST Request Header decoding
+import shutil
 
 from twisted.web import http, server
 from twisted.web.http import NOT_FOUND
@@ -144,8 +145,8 @@ class FileUploadResource(Resource):
         """
 
         Resource.__init__(self)
-        self._uploadRoot = FilePath(upload_directory)
-        self._tempDirRoot = FilePath(temp_directory)
+        self._uploadRoot = upload_directory
+        self._tempDirRoot = temp_directory
         self._form_fields = form_fields
         self._fileupload_session = upload_session
         self._options = options or {}
@@ -161,21 +162,22 @@ class FileUploadResource(Resource):
         # scan the temp dir for uploaded chunks and fill the _uploads dict with it
         # so existing uploads can be resumed
         # all other remains will be purged
-        for fileTempDir in self._tempDirRoot.children():
-            fileTempName = fileTempDir.basename()
-            if fileTempDir.isdir():
+        for _fileTempDir in os.listdir(self._tempDirRoot):
+            fileTempDir = os.path.join(self._tempDirRoot, _fileTempDir)
+            fileTempName = os.path.basename(fileTempDir)
+            if os.path.isdir(fileTempDir):
                 self._uploads[fileTempName] = {'chunk_list': [], 'origin': 'startup'}
-                for chunk in fileTempDir.listdir():
+                for chunk in os.listdir(fileTempDir):
                     if chunk[:6] == 'chunk_':
                         self._uploads[fileTempName]['chunk_list'].append(int(chunk[6:]))
                     else:
-                        fileTempDir.child(chunk).remove()
+                        os.remove(os.path.join(fileTempDir, chunk))
                 # if no chunks detected then remove remains completely
                 if len(self._uploads[fileTempName]['chunk_list']) == 0:
-                    fileTempDir.remove()
+                    shutil.rmtree(fileTempDir)
                     self._uploads.pop(fileTempName, None)
             else:  # fileTempDir is a file remaining from a single chunk upload
-                fileTempDir.remove()
+                os.remove(fileTempDir)
 
         self.log.debug("Scanned pending uploads: {uploads}", uploads=self._uploads)
 
@@ -315,9 +317,9 @@ class FileUploadResource(Resource):
 
         # TODO: check mime type
         #
-        fileTempDir = self._tempDirRoot.child(fileId)
-        chunkName = fileTempDir.child('chunk_' + str(chunkNumber))
-        _chunkName = fileTempDir.child('#kfhf3kz412uru578e38viokbjhfvz4w__' + 'chunk_' + str(chunkNumber))
+        fileTempDir = os.path.join(self._tempDirRoot, fileId)
+        chunkName = os.path.join(fileTempDir, 'chunk_' + str(chunkNumber))
+        _chunkName = os.path.join(fileTempDir, '#kfhf3kz412uru578e38viokbjhfvz4w__' + 'chunk_' + str(chunkNumber))
 
         def mergeFile():
             # every chunk has to check if it is the last chunk written, except in a single chunk scenario
@@ -327,19 +329,19 @@ class FileUploadResource(Resource):
 
                 # Merge all files into one file and remove the temp files
                 # TODO: How to avoid the extra file IO ?
-                finalFileName = self._uploadRoot.child(fileId)
-                _finalFileName = fileTempDir.child('#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
-                with open(_finalFileName.path, 'wb') as _finalFile:
+                finalFileName = os.path.join(self._uploadRoot, fileId)
+                _finalFileName = os.path.join(fileTempDir, '#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
+                with open(_finalFileName, 'wb') as _finalFile:
                     for cn in range(1, totalChunks + 1):
-                        with open(fileTempDir.child('chunk_' + str(cn)).path, 'rb') as ff:
+                        with open(os.path.join(fileTempDir, 'chunk_' + str(cn)), 'rb') as ff:
                             _finalFile.write(ff.read())
 
-                _finalFileName.moveTo(finalFileName)
+                os.rename(_finalFileName, finalFileName)
 
                 if self._file_permissions:
                     perm = int(self._file_permissions, 8)
                     try:
-                        finalFileName.chmod(perm)
+                        os.chmod(finalFileName, perm)
                     except Exception as e:
                         msg = "file upload resource - could not change file permissions of uploaded file"
                         self.log.debug(msg)
@@ -351,7 +353,7 @@ class FileUploadResource(Resource):
                         self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
 
                 # remove the file temp folder
-                fileTempDir.remove()
+                shutil.rmtree(fileTempDir)
 
                 self._uploads.pop(fileId, None)
 
@@ -386,16 +388,16 @@ class FileUploadResource(Resource):
 
             if totalChunks == 1:
                 # only one chunk overall -> write file directly
-                finalFileName = self._uploadRoot.child(fileId)
-                _finalFileName = self._tempDirRoot.child('#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
+                finalFileName = os.path.join(self._uploadRoot, fileId)
+                _finalFileName = os.path.join(self._tempDirRoot, '#kfhf3kz412uru578e38viokbjhfvz4w__' + fileId)
 
-                with open(_finalFileName.path, 'wb') as _finalFile:
+                with open(_finalFileName, 'wb') as _finalFile:
                     _finalFile.write(fileContent)
 
                 if self._file_permissions:
                     perm = int(self._file_permissions, 8)
                     try:
-                        _finalFileName.chmod(perm)
+                        os.chmod(_finalFileName, perm)
                     except Exception as e:
                         # finalFileName.remove()
                         msg = "Could not change file permissions of uploaded file"
@@ -406,7 +408,7 @@ class FileUploadResource(Resource):
                     else:
                         self.log.debug("Changed permissions on {file_name} to {permissions}", file_name=finalFileName, permissions=self._file_permissions)
 
-                _finalFileName.moveTo(finalFileName)
+                os.rename(_finalFileName, finalFileName)
                 if chunkNumber not in self._uploads[fileId]['chunk_list']:
                     self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
@@ -428,13 +430,13 @@ class FileUploadResource(Resource):
             else:
                 # first of more chunks
                 # fileTempDir.remove()  # any potential conflict should have been resolved above. This should not be necessary!
-                if not os.path.isdir(fileTempDir.path):
-                    fileTempDir.makedirs()
+                if not os.path.isdir(fileTempDir):
+                    os.makedirs(fileTempDir)
 
-                with open(_chunkName.path, 'wb') as chunk:
+                with open(_chunkName, 'wb') as chunk:
                     chunk.write(fileContent)
-                _chunkName.moveTo(chunkName)  # atomic file system operation
-                self.log.debug('chunk_' + str(chunkNumber) + ' written and moved to ' + chunkName.path)
+                os.rename(_chunkName, chunkName)  # atomic file system operation
+                self.log.debug('chunk_' + str(chunkNumber) + ' written and moved to ' + chunkName)
                 # publish file upload progress
                 #
                 fileupload_publish({
@@ -455,18 +457,18 @@ class FileUploadResource(Resource):
 
         else:
             # intermediate chunk
-            if not os.path.isdir(fileTempDir.path):
-                fileTempDir.makedirs()
+            if not os.path.isdir(fileTempDir):
+                os.makedirs(fileTempDir)
 
-            with open(_chunkName.path, 'wb') as chunk:
+            with open(_chunkName, 'wb') as chunk:
                 chunk.write(fileContent)
-            _chunkName.moveTo(chunkName)
-            self.log.debug('chunk_' + str(chunkNumber) + ' written and moved to ' + chunkName.path)
+            os.rename(_chunkName, chunkName)
+            self.log.debug('chunk_' + str(chunkNumber) + ' written and moved to ' + chunkName)
 
             if chunkNumber not in self._uploads[fileId]['chunk_list']:
                 self._uploads[fileId]['chunk_list'].append(chunkNumber)
 
-            received = sum(fileTempDir.child(f).getsize() for f in fileTempDir.listdir())
+            received = sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))
 
             fileupload_publish({
                                "id": fileId,
@@ -490,10 +492,11 @@ class FileUploadResource(Resource):
         uses that as the temp folder for uploads
         If you don't clean up regularly an attacker could fill up the OS file system
         """
-        for fileTempDir in self._tempDirRoot.children():
-            self.log.debug('REMOVE STALE UPLOADS ' + str(fileTempDir.basename()))
-            if fileTempDir.isdir() and (fileTempDir.basename()) not in self._uploads:
-                fileTempDir.remove()
+        for _fileTempDir in os.listdir(self._tempDirRoot):
+            fileTempDir = os.path.join(self._tempDirRoot, _fileTempDir)
+            self.log.debug('REMOVE STALE UPLOADS ' + str(os.path.basename(fileTempDir)))
+            if os.path.isdir(fileTempDir) and os.path.basename(fileTempDir) not in self._uploads:
+                shutil.rmtree(fileTempDir)
 
     def render_GET(self, request):
         """
