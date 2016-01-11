@@ -284,8 +284,8 @@ class WebTests(TestCase):
         config_extras = DottableDict({"node": u"testnode",
                                       "worker": u"worker1",
                                       "cbdir": self.cbdir.decode('utf8')
-                                               if not isinstance(self.cbdir, six.text_type)
-                                               else self.cbdir})
+                                      if not isinstance(self.cbdir, six.text_type)
+                                      else self.cbdir})
         self.config = ComponentConfig("realm1", extra=config_extras)
 
     def test_root_not_required(self):

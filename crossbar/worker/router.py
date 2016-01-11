@@ -82,8 +82,6 @@ from twisted.web.server import Site
 import twisted
 import crossbar
 
-from twisted.web.resource import Resource
-
 from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
