@@ -41,6 +41,7 @@ from datetime import datetime
 
 from twisted.internet.defer import Deferred, DeferredList
 from twisted.internet.defer import inlineCallbacks
+from twisted.python.failure import Failure
 from twisted.python.threadpool import ThreadPool
 
 from autobahn.util import utcstr
@@ -613,12 +614,17 @@ class RouterWorkerSession(NativeWorkerSession):
 
             # any exception spilling out from user code in onXXX handlers is fatal!
             def panic(fail, msg):
-                self.log.error("Fatal error in component: {} - {}".format(msg, fail.value))
+                self.log.error(
+                    "Fatal error in component: {msg} - {log_failure.value}",
+                    msg=msg, log_failure=fail
+                )
                 session.disconnect()
             session._swallow_error = panic
-        except Exception as e:
-            msg = "{}".format(e).strip()
-            self.log.error("Component instantiation failed:\n\n{err}", err=msg)
+        except Exception:
+            self.log.error(
+                "Component instantiation failed",
+                log_failure=Failure(),
+            )
             raise
 
         self.components[id] = RouterComponent(id, config, session)
