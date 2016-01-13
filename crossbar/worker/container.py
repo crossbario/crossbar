@@ -36,6 +36,7 @@ from datetime import datetime
 from twisted import internet
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 from twisted.internet.defer import returnValue
+from twisted.python.failure import Failure
 
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
@@ -190,9 +191,8 @@ class ContainerWorkerSession(NativeWorkerSession):
         try:
             create_component = _appsession_loader(config)
         except ApplicationError as e:
-            msg = e.args[0]
-            self.log.error("Component loading failed:\n\n{err}", err=msg)
-            if 'No module named' in msg:
+            self.log.error("Component loading failed", log_failure=Failure())
+            if 'No module named' in str(e):
                 self.log.error("  Python module search paths:")
                 for path in e.kwargs['pythonpath']:
                     self.log.error("    {path}", path=path)
