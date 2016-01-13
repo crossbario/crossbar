@@ -91,7 +91,7 @@ install_requires = [
     'pynacl>=0.3.0',              # Apache license
 
     # HTTP/REST bridge (also pulls in TLS packages!)
-    'treq>=15.0.0',               # MIT license
+    'treq>=15.1.0',               # MIT license
 ]
 
 # FIXME: https://github.com/crossbario/crossbar/issues/581

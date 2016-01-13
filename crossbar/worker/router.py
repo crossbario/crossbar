@@ -82,8 +82,6 @@ from twisted.web.server import Site
 import twisted
 import crossbar
 
-from twisted.web.resource import Resource
-
 from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
@@ -1110,7 +1108,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if '/' in nested_paths:
                 nested_resource = self._create_resource(nested_paths['/'])
             else:
-                nested_resource = Resource()
+                nested_resource = Resource404(self._templates, b'')
 
             # nest subpaths under the current entry
             #

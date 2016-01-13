@@ -42,7 +42,6 @@ from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
 from twisted.internet.error import ProcessExitedAlready
 from twisted.internet.threads import deferToThread
-from twisted.python.filepath import FilePath
 from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
@@ -399,7 +398,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # all native workers (routers and containers for now) start from the same script
         #
-        filename = FilePath(crossbar.__file__).parent().child("worker").child("process.py").path
+        filename = os.path.abspath(os.path.join(crossbar.__file__, "..", "worker", "process.py"))
 
         # assemble command line for forking the worker
         #

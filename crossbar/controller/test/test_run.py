@@ -36,7 +36,6 @@ import sys
 
 from six import PY3
 
-from twisted.python.filepath import FilePath
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall
 
@@ -1234,13 +1233,13 @@ class InitTests(CLITestBase):
                 except:
                     pass
 
-        appdir = FilePath(self.mktemp())
-        cbdir = appdir.child(".crossbar")
+        appdir = self.mktemp()
+        cbdir = os.path.join(appdir, ".crossbar")
 
         reactor = SelectReactor()
         cli.run("crossbar",
                 ["init",
-                 "--appdir={}".format(appdir.path),
+                 "--appdir={}".format(appdir),
                  "--template=hello:python"],
                 reactor=reactor)
 
