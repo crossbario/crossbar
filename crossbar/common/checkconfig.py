@@ -181,7 +181,7 @@ def maybe_from_env(config_item, value):
         if match and match.groups():
             var = match.groups()[0]
             if var in os.environ:
-                new_value = os.environ[var].decode('utf8')
+                new_value = six.u(os.environ[var])
                 # for security reasons, we log only a starred version of the value read!
                 log.info("Configuration '{config_item}' set from environment variable ${var}", config_item=config_item, var=var)
                 return new_value
