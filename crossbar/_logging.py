@@ -309,8 +309,9 @@ def make_logfile_observer(path, show_source=False):
     Make an observer that writes out to C{path}.
     """
     from twisted.logger import FileLogObserver
+    from twisted.python.logfile import DailyLogFile
 
-    f = open(path, "w")
+    f = DailyLogFile.fromFullPath(path)
 
     def _render(event):
 
