@@ -309,9 +309,10 @@ def make_logfile_observer(path, show_source=False):
     Make an observer that writes out to C{path}.
     """
     from twisted.logger import FileLogObserver
-
-    f = open(path, "w")
-
+    from twisted.python.logfile import DailyLogFile
+    
+    f = DailyLogFile.fromFullPath(path)
+    
     def _render(event):
 
         if event.get("log_system", u"-") == u"-":
