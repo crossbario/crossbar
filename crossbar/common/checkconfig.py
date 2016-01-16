@@ -396,10 +396,13 @@ def check_transport_auth_cryptosign(config):
             raise InvalidConfigException("invalid type for attribute 'principals' in static WAMP-Cryptosign configuration - expected dict, got {}".format(type(config['principals'])))
         for authid, principal in config['principals'].items():
             check_dict_args({
-                'pubkey': (True, [six.text_type]),
+                'authorized_keys': (True, [list]),
                 'role': (True, [six.text_type]),
                 'realm': (False, [six.text_type]),
             }, principal, "WAMP-Cryptosign - principal '{}' configuration".format(authid))
+            for pubkey in principal['authorized_keys']:
+                if type(pubkey) != six.text_type:
+                    raise InvalidConfigException("invalid type {} for pubkey in authorized_keys of principal".format(type(pubkey)))
 
     elif config['type'] == 'dynamic':
         if 'authenticator' not in config:

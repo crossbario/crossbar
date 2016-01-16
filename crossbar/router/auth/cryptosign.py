@@ -55,10 +55,14 @@ class PendingAuthCryptosign(PendingAuth):
     def __init__(self, session, config):
         PendingAuth.__init__(self, session, config)
         self._verify_key = None
+
+        # create a map: pubkey -> authid
+        # this is to allow clients to authenticate without specifying an authid
         if config['type'] == 'static':
             self._pubkey_to_authid = {}
             for authid, principal in self._config.get(u'principals', {}).items():
-                self._pubkey_to_authid[principal[u'pubkey']] = authid
+                for pubkey in principal[u'authorized_keys']:
+                    self._pubkey_to_authid[pubkey] = authid
 
     def _compute_challenge(self):
         challenge = binascii.b2a_hex(os.urandom(32))
@@ -109,14 +113,14 @@ class PendingAuthCryptosign(PendingAuth):
 
                 principal = self._config[u'principals'][self._authid]
 
-                if pubkey and (principal[u'pubkey'] != pubkey):
-                    return types.Deny(message=u'extra.pubkey provided does not match the one in principal database')
+                if pubkey and (pubkey not in principal[u'authorized_keys']):
+                    return types.Deny(message=u'extra.pubkey provided does not match any one of authorized_keys for the principal')
 
                 error = self._assign_principal(principal)
                 if error:
                     return error
 
-                self._verify_key = VerifyKey(principal[u'pubkey'], encoder=nacl.encoding.HexEncoder)
+                self._verify_key = VerifyKey(pubkey, encoder=nacl.encoding.HexEncoder)
 
                 extra, self._challenge = self._compute_challenge()
                 return types.Challenge(self._authmethod, extra)
