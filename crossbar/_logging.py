@@ -310,9 +310,9 @@ def make_logfile_observer(path, show_source=False):
     """
     from twisted.logger import FileLogObserver
     from twisted.python.logfile import DailyLogFile
-    
+
     f = DailyLogFile.fromFullPath(path)
-    
+
     def _render(event):
 
         if event.get("log_system", u"-") == u"-":
