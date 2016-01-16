@@ -9,6 +9,7 @@ Contributors with signed CAAs
 * pataelmo
 * rlamy
 * schoonc
+* SISCIA
 * si618
 * svpcom
 * taion
