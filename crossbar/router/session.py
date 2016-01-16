@@ -31,6 +31,7 @@
 from __future__ import absolute_import, division, print_function
 
 import traceback
+import binascii
 import six
 
 from twisted.internet.interfaces import ISSLTransport
@@ -295,7 +296,15 @@ class RouterSession(BaseSession):
                                cert_expired=self._client_cert['expired'])
 
         if self._transport._transport_info:
+            # forward the client TLS certificate (if any) on transport details
             self._transport._transport_info[u'client_cert'] = self._client_cert
+
+            # forward the transport channel ID (if any) on transport details
+            channel_id = self._transport.get_channel_id()
+            if channel_id:
+                self._transport._transport_info[u'channel_id'] = six.u(binascii.b2a_hex(channel_id))
+            else:
+                self._transport._transport_info[u'channel_id'] = None
 
         self._realm = None
         self._session_id = None
