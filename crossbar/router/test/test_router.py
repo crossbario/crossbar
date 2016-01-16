@@ -52,6 +52,8 @@ class TestEmbeddedSessions(unittest.TestCase):
     Test cases for application session running embedded in router.
     """
 
+    skip = True
+
     def setUp(self):
         """
         Setup router and router session factories.

@@ -52,6 +52,8 @@ class TestBrokerPublish(unittest.TestCase):
     Tests for crossbar.router.broker.Broker
     """
 
+    skip = True
+
     def setUp(self):
         """
         Setup router and router session factories.
@@ -270,6 +272,8 @@ class TestRouterSession(unittest.TestCase):
     """
     Tests for crossbar.router.session.RouterSession
     """
+
+    skip = True
 
     def test_wamp_session_on_leave(self):
         """
