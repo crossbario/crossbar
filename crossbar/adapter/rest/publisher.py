@@ -43,45 +43,7 @@ __all__ = ('PublisherResource',)
 
 class PublisherResource(_CommonResource):
     """
-    A HTTP/POST to WAMP PubSub bridge.
-
-    Config:
-
-       "transports": [
-          {
-             "type": "web",
-             "endpoint": {
-                "type": "tcp",
-                "port": 8080
-             },
-             "paths": {
-                "/": {
-                   "type": "static",
-                   "directory": ".."
-                },
-                "ws": {
-                   "type": "websocket"
-                },
-                "publish": {
-                   "type": "publisher",
-                   "realm": "realm1",
-                   "role": "anonymous",
-                   "options": {
-                      "key": "foobar",
-                      "secret": "secret",
-                      "post_body_limit": 8192,
-                      "timestamp_delta_limit": 10,
-                      "require_ip": ["192.168.1.1/255.255.255.0", "127.0.0.1"],
-                      "require_tls": false
-                   }
-                }
-             }
-          }
-       ]
-
-    Test publishing to a topic `com.myapp.topic1`:
-
-       curl -H "Content-Type: application/json" -d '{"topic": "com.myapp.topic1", "args": ["Hello, world"]}' http://127.0.0.1:8080/publish
+    A HTTP/POST to WAMP-Publisher bridge.
     """
 
     def _process(self, request, event):

@@ -44,37 +44,7 @@ __all__ = ('WebhookResource',)
 
 class WebhookResource(_CommonResource):
     """
-    A HTTP -> WAMP pubsub bridge.
-
-    Config:
-
-       "transports": [
-          {
-             "type": "web",
-             "endpoint": {
-                "type": "tcp",
-                "port": 8080
-             },
-             "paths": {
-                "/": {
-                   "type": "static",
-                   "directory": ".."
-                },
-                "ws": {
-                   "type": "websocket"
-                },
-                "webhook": {
-                   "type": "webhook",
-                   "realm": "realm1",
-                   "role": "anonymous",
-                   "options": {
-                      "topic": "com.example.webhook"
-                   }
-                }
-             }
-          }
-       ]
-
+    A HTTP WebHook to WAMP-Publisher bridge.
     """
     decode_as_json = False
 

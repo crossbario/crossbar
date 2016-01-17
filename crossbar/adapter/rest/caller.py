@@ -44,43 +44,7 @@ __all__ = ('CallerResource',)
 
 class CallerResource(_CommonResource):
     """
-    A HTTP/POST to WAMP procedure bridge.
-
-    Config:
-
-       "transports": [
-          {
-             "type": "web",
-             "endpoint": {
-                "type": "tcp",
-                "port": 8080
-             },
-             "paths": {
-                "/": {
-                   "type": "static",
-                   "directory": ".."
-                },
-                "ws": {
-                   "type": "websocket"
-                },
-                "call": {
-                   "type": "caller",
-                   "realm": "realm1",
-                   "role": "anonymous",
-                   "options": {
-                      "post_body_limit": 8192,
-                      "timestamp_delta_limit": 10,
-                      "require_ip": ["192.168.1.1/255.255.255.0", "127.0.0.1"],
-                      "require_tls": false
-                   }
-                }
-             }
-          }
-       ]
-
-    Test calling a procedure named `com.example.add2`:
-
-       curl -H "Content-Type: application/json" -d '{"procedure": "com.example.add2", "args": [1,2]}' http://127.0.0.1:8080/call
+    A HTTP/POST to WAMP-Caller bridge.
     """
 
     def _process(self, request, event):

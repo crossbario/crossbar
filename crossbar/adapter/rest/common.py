@@ -101,6 +101,21 @@ class _CommonResource(Resource):
         request.setResponseCode(code)
         return reason.format(**kwargs).encode('utf8') + b"\n"
 
+    def _set_common_headers(self, request):
+        """
+        Set common HTTP response headers.
+        """
+        origin = request.getHeader(b'origin')
+        if origin is None or origin == b'null':
+            origin = b'*'
+        request.setHeader(b'access-control-allow-origin', origin)
+        request.setHeader(b'access-control-allow-credentials', b'true')
+        request.setHeader(b'cache-control', b'no-store,no-cache,must-revalidate,max-age=0')
+
+        headers = request.getHeader('access-control-request-headers')
+        if headers is not None:
+            request.setHeader('access-control-allow-headers', headers)
+
     def render(self, request):
         self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
                        request=request)
@@ -108,12 +123,14 @@ class _CommonResource(Resource):
         if request.method not in (b"POST", b"PUT", b"OPTIONS"):
             return self._deny_request(request, 405, u"HTTP/{0} not allowed (only HTTP/POST or HTTP/PUT)".format(native_string(request.method)))
         else:
+            self._set_common_headers(request)
+
             if request.method == b"OPTIONS":
                 # http://greenbytes.de/tech/webdav/rfc2616.html#rfc.section.14.7
-                request.setHeader(b'Allow', b'POST,PUT,OPTIONS')
+                request.setHeader(b'allow', b'POST,PUT,OPTIONS')
 
                 # https://www.w3.org/TR/cors/#access-control-allow-methods-response-header
-                request.setHeader(b'Access-Control-Allow-Methods', b'POST,PUT,OPTIONS')
+                request.setHeader(b'access-control-allow-methods', b'POST,PUT,OPTIONS')
 
                 request.setResponseCode(200)
                 return b''
