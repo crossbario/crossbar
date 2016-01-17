@@ -33,11 +33,13 @@ from __future__ import absolute_import
 import os
 import binascii
 
+import six
+
 import nacl
 from nacl.signing import VerifyKey
-from nacl.signing import SignedMessage
 from nacl.exceptions import BadSignatureError
 
+from autobahn import util
 from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
@@ -56,6 +58,15 @@ class PendingAuthCryptosign(PendingAuth):
         PendingAuth.__init__(self, session, config)
         self._verify_key = None
 
+        channel_id_hex = session._transport._transport_info.get(u'channel_id', None)
+        if channel_id_hex:
+            self._channel_id = binascii.a2b_hex(channel_id_hex)
+        else:
+            self._channel_id = None
+
+        self._challenge = None
+        self._expected_signed_message = None
+
         # create a map: pubkey -> authid
         # this is to allow clients to authenticate without specifying an authid
         if config['type'] == 'static':
@@ -65,11 +76,17 @@ class PendingAuthCryptosign(PendingAuth):
                     self._pubkey_to_authid[pubkey] = authid
 
     def _compute_challenge(self):
-        challenge = binascii.b2a_hex(os.urandom(32))
+        self._challenge = os.urandom(32)
+
+        if self._channel_id:
+            self._expected_signed_message = util.xor(self._challenge, self._channel_id)
+        else:
+            self._expected_signed_message = self._challenge
+
         extra = {
-            u'challenge': challenge
+            u'challenge': binascii.b2a_hex(self._challenge)
         }
-        return extra, challenge
+        return extra
 
     def hello(self, realm, details):
 
@@ -122,7 +139,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 self._verify_key = VerifyKey(pubkey, encoder=nacl.encoding.HexEncoder)
 
-                extra, self._challenge = self._compute_challenge()
+                extra = self._compute_challenge()
                 return types.Challenge(self._authmethod, extra)
             else:
                 return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
@@ -144,7 +161,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 self._verify_key = VerifyKey(principal[u'pubkey'], encoder=nacl.encoding.HexEncoder)
 
-                extra, self._challenge = self._compute_challenge()
+                extra = self._compute_challenge()
                 return types.Challenge(self._authmethod, extra)
 
             def on_authenticate_error(err):
@@ -157,24 +174,39 @@ class PendingAuthCryptosign(PendingAuth):
             # should not arrive here, as config errors should be caught earlier
             return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
 
-    def authenticate(self, signature):
-        # signatures in WAMP are strings, hence we roundtrip Hex
-        signature = binascii.a2b_hex(signature)
-
-        signed = SignedMessage(signature)
+    def authenticate(self, signed_message):
+        """
+        Verify the signed message sent by the client. With WAMP-cryptosign, this must be 96 bytes (as a string
+        in HEX encoding): the concatenation of the Ed25519 signature (64 bytes) and the 32 bytes we sent
+        as a challenge previously, XORed with the 32 bytes transport channel ID (if available).
+        """
         try:
-            # now verify the signed message versus the client public key
-            self._verify_key.verify(signed)
+            if type(signed_message) != six.text_type:
+                return types.Deny(message=u'invalid type {} for signed message'.format(type(signed_message)))
 
-            # signature was valid: accept the client
+            try:
+                signed_message = binascii.a2b_hex(signed_message)
+            except TypeError:
+                return types.Deny(message=u'signed message is invalid (not a HEX encoded string)')
+
+            if len(signed_message) != 96:
+                return types.Deny(message=u'signed message has invalid length (was {}, but should have been 96)'.format(len(signed_message)))
+
+            # now verify the signed message versus the client public key ..
+            try:
+                message = self._verify_key.verify(signed_message)
+            except BadSignatureError:
+                return types.Deny(message=u'signed message has invalid signature')
+
+            # .. and check that the message signed by the client is really what we expect
+            if message != self._expected_signed_message:
+                return types.Deny(message=u'message signed is bogus')
+
+            # signature was valid _and_ the message that was signed is equal to
+            # what we expected => accept the client
             return self._accept()
-
-        except BadSignatureError:
-
-            # signature was invalid: deny the client
-            return types.Deny(message=u"invalid signature")
 
         except Exception as e:
 
             # should not arrive here .. but who knows
-            return types.Deny(message=u"internal error: {}".format(e))
+            return types.Deny(message=u'internal error: {}'.format(e))
