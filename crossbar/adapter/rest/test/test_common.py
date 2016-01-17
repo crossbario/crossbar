@@ -138,6 +138,9 @@ class RequestBodyTestCase(TestCase):
     """
     Unit tests for the body validation parts of L{_CommonResource}.
     """
+
+    skip = True
+
     def test_empty_content_type(self):
         """
         A request lacking a content-type header will be rejected.
