@@ -45,7 +45,7 @@ from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
 
 
-_ALLOWED_CONTENT_TYPES = set([b'application/json', b'application/x-www-form-urlencoded'])
+_ALLOWED_CONTENT_TYPES = set([b'application/json'])
 
 
 class _InvalidUnicode(BaseException):
@@ -105,17 +105,17 @@ class _CommonResource(Resource):
         self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
                        request=request)
 
-        if request.method != b"POST":
-            return self._deny_request(request, 405, u"HTTP/{0} not allowed".format(native_string(request.method)))
+        if request.method not in (b"POST", b"PUT"):
+            return self._deny_request(request, 405, u"HTTP/{0} not allowed (only HTTP/POST or HTTP/PUT)".format(native_string(request.method)))
         else:
-            return self.render_POST(request)
+            return self._render_request(request)
 
-    def render_POST(self, request):
+    def _render_request(self, request):
         """
-        Receives an HTTP/POST request, and then calls the Publisher/Caller
+        Receives an HTTP/POST|PUT request, and then calls the Publisher/Caller
         processor.
         """
-        # read HTTP/POST body
+        # read HTTP/POST|PUT body
         body = request.content.read()
 
         args = {native_string(x): y[0] for x, y in request.args.items()}
@@ -193,13 +193,13 @@ class _CommonResource(Resource):
             # Content-Length. This is so that clients can't lie and bypass
             # length restrictions by giving an incorrect header with a large
             # body.
-            return self._deny_request(request, 400, u"HTTP/POST body length ({0}) is different to Content-Length ({1})".format(body_length, content_length))
+            return self._deny_request(request, 400, u"HTTP/POST|PUT body length ({0}) is different to Content-Length ({1})".format(body_length, content_length))
 
         if self._post_body_limit and content_length > self._post_body_limit:
-            return self._deny_request(request, 400, u"HTTP/POST body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit))
+            return self._deny_request(request, 400, u"HTTP/POST|PUT body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit))
 
         #
-        # parse/check HTTP/POST query parameters
+        # parse/check HTTP/POST|PUT query parameters
         #
 
         # key
@@ -316,7 +316,7 @@ class _CommonResource(Resource):
         if not validation_result[0]:
             return self._deny_request(
                 request, 400,
-                u"invalid request event - HTTP/POST body was invalid UTF-8")
+                u"invalid request event - HTTP/POST|PUT body was invalid UTF-8")
 
         event = body.decode('utf8')
 
@@ -326,13 +326,13 @@ class _CommonResource(Resource):
             except Exception as e:
                 return self._deny_request(
                     request, 400,
-                    (u"invalid request event - HTTP/POST body must be "
+                    (u"invalid request event - HTTP/POST|PUT body must be "
                      u"valid JSON: {exc}"), exc=e)
 
             if not isinstance(event, dict):
                 return self._deny_request(
                     request, 400,
-                    (u"invalid request event - HTTP/POST body must be "
+                    (u"invalid request event - HTTP/POST|PUT body must be "
                      u"a JSON dict"))
 
         return self._process(request, event)
