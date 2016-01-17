@@ -105,10 +105,20 @@ class _CommonResource(Resource):
         self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
                        request=request)
 
-        if request.method not in (b"POST", b"PUT"):
+        if request.method not in (b"POST", b"PUT", b"OPTIONS"):
             return self._deny_request(request, 405, u"HTTP/{0} not allowed (only HTTP/POST or HTTP/PUT)".format(native_string(request.method)))
         else:
-            return self._render_request(request)
+            if request.method == b"OPTIONS":
+                # http://greenbytes.de/tech/webdav/rfc2616.html#rfc.section.14.7
+                request.setHeader(b'Allow', b'POST,PUT,OPTIONS')
+
+                # https://www.w3.org/TR/cors/#access-control-allow-methods-response-header
+                request.setHeader(b'Access-Control-Allow-Methods', b'POST,PUT,OPTIONS')
+
+                request.setResponseCode(200)
+                return b''
+            else:
+                return self._render_request(request)
 
     def _render_request(self, request):
         """
