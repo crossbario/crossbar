@@ -138,7 +138,7 @@ class _CommonResource(Resource):
                b'application/json' != content_type_elements[0]:
                 return self._deny_request(
                     request, 400,
-                    u"bad content type: if a content type is present, it MUST be 'application/json'")
+                    u"bad content type: if a content type is present, it MUST be 'application/json', not '{}'".format(content_type_elements[0]))
 
         encoding_parts = {}
 
