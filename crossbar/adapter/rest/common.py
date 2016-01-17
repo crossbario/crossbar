@@ -45,6 +45,9 @@ from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
 
 
+_ALLOWED_CONTENT_TYPES = set([b'application/json', b'application/x-www-form-urlencoded'])
+
+
 class _InvalidUnicode(BaseException):
     """
     Invalid Unicode was found.
@@ -131,14 +134,14 @@ class _CommonResource(Resource):
             content_type_elements = []
 
         if self.decode_as_json:
-            # iff the client sent a content type, it MUST be application/json
+            # iff the client sent a content type, it MUST be one of _ALLOWED_CONTENT_TYPES
             # (but we allow missing content type .. will catch later during JSON
             # parsing anyway)
             if len(content_type_elements) > 0 and \
-               b'application/json' != content_type_elements[0]:
+               content_type_elements[0] not in _ALLOWED_CONTENT_TYPES:
                 return self._deny_request(
                     request, 400,
-                    u"bad content type: if a content type is present, it MUST be 'application/json', not '{}'".format(content_type_elements[0]))
+                    u"bad content type: if a content type is present, it MUST be one of '{}', not '{}'".format(_ALLOWED_CONTENT_TYPES, content_type_elements[0]))
 
         encoding_parts = {}
 
