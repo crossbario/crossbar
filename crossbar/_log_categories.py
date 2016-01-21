@@ -39,8 +39,11 @@ log_categories = {
     # ARXXX - Adapter, REST Bridge
     "AR100": "REST bridge request recieved.",
     "AR400": "Malformed request to the REST bridge.",
-    "AR405": "REST bridge does not support that method.",
-
+    "AR405": "Method not accepted by the REST bridge.",
+    "AR413": "Request too long.",
+    "AR450": "Non-accepted request encoding.",
+    "AR451": "Non-decodable request body.",
+    "AR452": "Non-accepted content type.",
 }
 
 
