@@ -96,8 +96,12 @@ class _CommonResource(Resource):
         """
         Called when client request is denied.
         """
+        if "cb_log_id" not in kwargs.keys():
+            kwargs["cb_log_id"] = "AR" + str(code)
+
         self.log.debug("[request denied] - {code} / " + reason,
                        code=code, **kwargs)
+
         request.setResponseCode(code)
         return reason.format(**kwargs).encode('utf8') + b"\n"
 
@@ -112,30 +116,34 @@ class _CommonResource(Resource):
         request.setHeader(b'access-control-allow-credentials', b'true')
         request.setHeader(b'cache-control', b'no-store,no-cache,must-revalidate,max-age=0')
 
-        headers = request.getHeader('access-control-request-headers')
+        headers = request.getHeader(b'access-control-request-headers')
         if headers is not None:
-            request.setHeader('access-control-allow-headers', headers)
+            request.setHeader(b'access-control-allow-headers', headers)
 
     def render(self, request):
         self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
                        request=request)
 
-        if request.method not in (b"POST", b"PUT", b"OPTIONS"):
-            return self._deny_request(request, 405, u"HTTP/{0} not allowed (only HTTP/POST or HTTP/PUT)".format(native_string(request.method)))
-        else:
-            self._set_common_headers(request)
-
-            if request.method == b"OPTIONS":
-                # http://greenbytes.de/tech/webdav/rfc2616.html#rfc.section.14.7
-                request.setHeader(b'allow', b'POST,PUT,OPTIONS')
-
-                # https://www.w3.org/TR/cors/#access-control-allow-methods-response-header
-                request.setHeader(b'access-control-allow-methods', b'POST,PUT,OPTIONS')
-
-                request.setResponseCode(200)
-                return b''
+        try:
+            if request.method not in (b"POST", b"PUT", b"OPTIONS"):
+                return self._deny_request(request, 405, u"HTTP/{0} not allowed (only HTTP/POST or HTTP/PUT)".format(native_string(request.method)))
             else:
-                return self._render_request(request)
+                self._set_common_headers(request)
+
+                if request.method == b"OPTIONS":
+                    # http://greenbytes.de/tech/webdav/rfc2616.html#rfc.section.14.7
+                    request.setHeader(b'allow', b'POST,PUT,OPTIONS')
+
+                    # https://www.w3.org/TR/cors/#access-control-allow-methods-response-header
+                    request.setHeader(b'access-control-allow-methods', b'POST,PUT,OPTIONS')
+
+                    request.setResponseCode(200)
+                    return b''
+                else:
+                    return self._render_request(request)
+        except Exception as e:
+            self._deny_request(request, 500, "Unhandled server error.",
+                               exc=e)
 
     def _render_request(self, request):
         """
@@ -161,14 +169,16 @@ class _CommonResource(Resource):
             content_type_elements = []
 
         if self.decode_as_json:
-            # iff the client sent a content type, it MUST be one of _ALLOWED_CONTENT_TYPES
+            # if the client sent a content type, it MUST be one of _ALLOWED_CONTENT_TYPES
             # (but we allow missing content type .. will catch later during JSON
             # parsing anyway)
             if len(content_type_elements) > 0 and \
                content_type_elements[0] not in _ALLOWED_CONTENT_TYPES:
                 return self._deny_request(
                     request, 400,
-                    u"bad content type: if a content type is present, it MUST be one of '{}', not '{}'".format(_ALLOWED_CONTENT_TYPES, content_type_elements[0]))
+                    u"bad content type: if a content type is present, it MUST be one of '{}', not '{}'".format(_ALLOWED_CONTENT_TYPES, content_type_elements[0]),
+                    cb_log_id="AR452"
+                )
 
         encoding_parts = {}
 
@@ -190,7 +200,8 @@ class _CommonResource(Resource):
                     encoding_parts[key] = _[1].strip().lower()
             except:
                 return self._deny_request(request, 400,
-                                          u"mangled Content-Type header")
+                                          u"mangled Content-Type header",
+                                          cb_log_id="AR450")
 
         charset_encoding = encoding_parts.get("charset", "utf-8")
 
@@ -199,6 +210,7 @@ class _CommonResource(Resource):
                 request, 400,
                 (u"'{charset_encoding}' is not an accepted charset encoding, "
                  u"must be utf-8"),
+                cb_log_id="AR450",
                 charset_encoding=charset_encoding)
 
         # enforce "post_body_limit"
@@ -223,7 +235,10 @@ class _CommonResource(Resource):
             return self._deny_request(request, 400, u"HTTP/POST|PUT body length ({0}) is different to Content-Length ({1})".format(body_length, content_length))
 
         if self._post_body_limit and content_length > self._post_body_limit:
-            return self._deny_request(request, 400, u"HTTP/POST|PUT body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit))
+            return self._deny_request(
+                request, 413,
+                u"HTTP/POST|PUT body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit)
+            )
 
         #
         # parse/check HTTP/POST|PUT query parameters
@@ -343,7 +358,8 @@ class _CommonResource(Resource):
         if not validation_result[0]:
             return self._deny_request(
                 request, 400,
-                u"invalid request event - HTTP/POST|PUT body was invalid UTF-8")
+                u"invalid request event - HTTP/POST|PUT body was invalid UTF-8",
+                cb_log_id="AR451")
 
         event = body.decode('utf8')
 
