@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 from crossbar.test import TestCase
-from crossbar._compat import native_string
 from crossbar._logging import LogCapturer
 from crossbar.adapter.rest import PublisherResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource
@@ -183,6 +182,8 @@ class RequestBodyTestCase(TestCase):
                 resource, b"/", method=b"POST",
                 headers={b"Content-Type": [b"application/text"]},
                 body=publishBody))
+
+        self.assertEqual(request.code, 400)
 
         errors = l.get_id("AR452")
         self.assertEqual(len(errors), 1)
