@@ -142,8 +142,7 @@ class _CommonResource(Resource):
                 else:
                     return self._render_request(request)
         except Exception as e:
-            self._deny_request(request, 500, "Unhandled server error.",
-                               exc=e)
+            return self._deny_request(request, 500, "Unhandled server error.", exc=e)
 
     def _render_request(self, request):
         """
@@ -176,7 +175,7 @@ class _CommonResource(Resource):
                content_type_elements[0] not in _ALLOWED_CONTENT_TYPES:
                 return self._deny_request(
                     request, 400,
-                    u"bad content type: if a content type is present, it MUST be one of '{}', not '{}'".format(_ALLOWED_CONTENT_TYPES, content_type_elements[0]),
+                    u"bad content type: if a content type is present, it MUST be one of '{}', not '{}'".format(list(_ALLOWED_CONTENT_TYPES), content_type_elements[0]),
                     cb_log_id="AR452"
                 )
 
