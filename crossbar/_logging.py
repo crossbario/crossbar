@@ -493,8 +493,10 @@ class LogCapturer(object):
     A context manager that captures logs inside of it, and makes it available
     through the logs attribute, or the get_id method.
     """
-    def __init__(self):
+    def __init__(self, level="info"):
         self.logs = []
+        self._old_log_level = _loglevel
+        self.desired_level = level
 
     def get_id(self, identifier):
         """
@@ -503,8 +505,10 @@ class LogCapturer(object):
         return [x for x in self.logs if x.get("cb_log_id") == identifier]
 
     def __enter__(self):
+        set_global_log_level(self.desired_level)
         globalLogPublisher.addObserver(self.logs.append)
         return self
 
     def __exit__(self, type, value, traceback):
         globalLogPublisher.removeObserver(self.logs.append)
+        set_global_log_level(self._old_log_level)
