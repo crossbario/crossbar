@@ -41,7 +41,6 @@ from netaddr.ip import IPAddress, IPNetwork
 
 from twisted.web import server
 from twisted.web.resource import Resource
-from twisted.internet.defer import maybeDeferred
 
 from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
