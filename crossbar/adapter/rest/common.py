@@ -39,7 +39,9 @@ from crossbar._compat import native_string
 
 from netaddr.ip import IPAddress, IPNetwork
 
+from twisted.web import server
 from twisted.web.resource import Resource
+from twisted.internet.defer import maybeDeferred
 
 from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
@@ -105,6 +107,31 @@ class _CommonResource(Resource):
         request.setResponseCode(code)
         return reason.format(**kwargs).encode('utf8') + b"\n"
 
+    def _fail_request(self, request, code, reason, **kwargs):
+        """
+        Called when client request fails.
+        """
+        if "log_category" not in kwargs.keys():
+            kwargs["log_category"] = "AR" + str(code)
+
+        self.log.debug("[request failure] - {code} / " + reason,
+                       code=code, **kwargs)
+
+        request.setResponseCode(code)
+        request.write(reason.format(**kwargs).encode('utf8') + b"\n")
+
+    def _complete_request(self, request, code, body, reason="", **kwargs):
+        """
+        Called when client request is complete.
+        """
+        if "log_category" not in kwargs.keys():
+            kwargs["log_category"] = "AR" + str(code)
+
+        self.log.debug("[request succeeded] - {code} / " + reason,
+                       code=code, reason=reason, **kwargs)
+        request.setResponseCode(code)
+        request.write(body)
+
     def _set_common_headers(self, request):
         """
         Set common HTTP response headers.
@@ -142,6 +169,7 @@ class _CommonResource(Resource):
                 else:
                     return self._render_request(request)
         except Exception as e:
+            self.log.failure("Unhandled server error. {exc}", exc=e)
             return self._deny_request(request, 500, "Unhandled server error.", exc=e)
 
     def _render_request(self, request):
@@ -369,15 +397,24 @@ class _CommonResource(Resource):
                 return self._deny_request(
                     request, 400,
                     (u"invalid request event - HTTP/POST|PUT body must be "
-                     u"valid JSON: {exc}"), exc=e)
+                     u"valid JSON: {exc}"), exc=e, log_category="AR453")
 
             if not isinstance(event, dict):
                 return self._deny_request(
                     request, 400,
                     (u"invalid request event - HTTP/POST|PUT body must be "
-                     u"a JSON dict"))
+                     u"a JSON dict"), log_category="AR454")
 
-        return self._process(request, event)
+        d = self._process(request, event)
+
+        if isinstance(d, bytes):
+            # If it's bytes, return it directly
+            return d
+        else:
+            # If it's a Deferred, let it run.
+            d.addCallback(lambda _: request.finish())
+
+        return server.NOT_DONE_YET
 
     def _process(self, request, event):
         raise NotImplementedError()
