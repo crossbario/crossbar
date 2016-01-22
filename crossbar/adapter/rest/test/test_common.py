@@ -31,7 +31,7 @@
 from __future__ import absolute_import
 
 from crossbar.test import TestCase
-from crossbar._compat import native_string
+from crossbar._logging import LogCapturer
 from crossbar.adapter.rest import PublisherResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource
 
@@ -138,25 +138,6 @@ class RequestBodyTestCase(TestCase):
     """
     Unit tests for the body validation parts of L{_CommonResource}.
     """
-
-    skip = True
-
-    def test_empty_content_type(self):
-        """
-        A request lacking a content-type header will be rejected.
-        """
-        session = MockPublisherSession(self)
-        resource = PublisherResource({}, session)
-
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST", headers={},
-            body=publishBody))
-
-        self.assertEqual(request.code, 400)
-        self.assertEqual((b"bad or missing content type, "
-                          b"should be 'application/json'\n"),
-                         request.get_written_data())
-
     def test_allow_charset_in_content_type(self):
         """
         A charset in the content-type will be allowed.
@@ -196,14 +177,17 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/text"]},
-            body=publishBody))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/text"]},
+                body=publishBody))
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"bad or missing content type",
-                      request.get_written_data())
+
+        errors = l.get_category("AR452")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     def test_bad_method(self):
         """
@@ -212,14 +196,16 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"PUT",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"BLBLBLB",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody))
 
         self.assertEqual(request.code, 405)
-        self.assertIn(b"HTTP/PUT not allowed",
-                      request.get_written_data())
+        errors = l.get_category("AR405")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 405)
 
     def test_too_large_body(self):
         """
@@ -228,14 +214,17 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"post_body_limit": 1}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody))
 
-        self.assertEqual(request.code, 400)
-        self.assertIn("HTTP/POST body length ({}) exceeds maximum ({})".format(len(publishBody), 1),
-                      native_string(request.get_written_data()))
+        self.assertEqual(request.code, 413)
+
+        errors = l.get_category("AR413")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 413)
 
     def test_multiple_content_length(self):
         """
@@ -244,15 +233,18 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"],
-                     b"Content-Length": ["1", "10"]},
-            body=publishBody))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"],
+                         b"Content-Length": ["1", "10"]},
+                body=publishBody))
 
         self.assertEqual(request.code, 400)
-        self.assertIn("Multiple Content-Length headers are not allowed",
-                      native_string(request.get_written_data()))
+
+        errors = l.get_category("AR400")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     def test_not_matching_bodylength(self):
         """
@@ -262,15 +254,18 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({"post_body_limit": 1}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"],
-                     b"Content-Length": [1]},
-            body=publishBody))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"],
+                         b"Content-Length": [1]},
+                body=publishBody))
 
         self.assertEqual(request.code, 400)
-        self.assertIn("HTTP/POST body length ({}) is different to Content-Length ({})".format(len(publishBody), 1),
-                      native_string(request.get_written_data()))
+
+        errors = l.get_category("AR400")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     def test_invalid_JSON_body(self):
         """
@@ -279,14 +274,17 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=b"sometext"))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=b"sometext"))
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"invalid request event - HTTP/POST body must be valid JSON:",
-                      request.get_written_data())
+
+        errors = l.get_category("AR453")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     def test_JSON_list_body(self):
         """
@@ -295,15 +293,17 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=b"[{},{}]"))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=b"[{},{}]"))
 
         self.assertEqual(request.code, 400)
-        self.assertIn(
-            b"invalid request event - HTTP/POST body must be a JSON dict",
-            request.get_written_data())
+
+        errors = l.get_category("AR454")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     def test_UTF8_assumption(self):
         """
@@ -328,15 +328,17 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json; charset=ascii"]},
-            body=b''))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json; charset=ascii"]},
+                body=b''))
 
         self.assertEqual(request.code, 400)
-        self.assertIn((b"'ascii' is not an accepted charset encoding, must be "
-                       b"utf-8"),
-                      request.get_written_data())
+
+        errors = l.get_category("AR450")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     def test_decodes_UTF8(self):
         """
@@ -362,15 +364,17 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json;charset=utf-8"]},
-            body=b'{"topic": "com.test.messages", "args": ["\x61\x62\x63\xe9"]}'))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json;charset=utf-8"]},
+                body=b'{"topic": "com.test.messages", "args": ["\x61\x62\x63\xe9"]}'))
 
         self.assertEqual(request.code, 400)
-        self.assertEqual(
-            (b"invalid request event - HTTP/POST body was invalid UTF-8\n"),
-            request.get_written_data())
+
+        errors = l.get_category("AR451")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     def test_unknown_encoding(self):
         """
@@ -380,15 +384,17 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json;charset=blarg"]},
-            body=b'{"args": ["\x61\x62\x63\xe9"]}'))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json;charset=blarg"]},
+                body=b'{"args": ["\x61\x62\x63\xe9"]}'))
 
         self.assertEqual(request.code, 400)
-        self.assertEqual(
-            (b"'blarg' is not an accepted charset encoding, must be utf-8\n"),
-            request.get_written_data())
+
+        errors = l.get_category("AR450")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     def test_broken_contenttype(self):
         """
@@ -397,22 +403,26 @@ class RequestBodyTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json;charset=blarg;charset=boo"]},
-            body=b'{"foo": "\xe2\x98\x83"}'))
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json;charset=blarg;charset=boo"]},
+                body=b'{"foo": "\xe2\x98\x83"}'))
+
+        errors = l.get_category("AR450")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
+
+        del l
+
+        with LogCapturer("debug") as l:
+            request = self.successResultOf(renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"charset=blarg;application/json"]},
+                body=b'{"foo": "\xe2\x98\x83"}'))
 
         self.assertEqual(request.code, 400)
-        self.assertEqual(
-            b"mangled Content-Type header\n",
-            request.get_written_data())
 
-        request = self.successResultOf(renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"charset=blarg;application/json"]},
-            body=b'{"foo": "\xe2\x98\x83"}'))
-
-        self.assertEqual(request.code, 400)
-        self.assertEqual(
-            b"bad or missing content type, should be 'application/json'\n",
-            request.get_written_data())
+        errors = l.get_category("AR452")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)

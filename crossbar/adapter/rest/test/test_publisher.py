@@ -36,14 +36,15 @@ from twisted.internet.defer import inlineCallbacks
 
 from crossbar.test import TestCase
 from crossbar._compat import native_string
+from crossbar._logging import LogCapturer
 from crossbar.adapter.rest import PublisherResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource
 
 
 class PublisherTestCase(TestCase):
     """
-    Unit tests for L{PublisherResource}. These tests publish no real WAMP messages,
-    but test the interation of the HTTP request and the resource.
+    Unit tests for L{PublisherResource}. These tests publish no real WAMP
+    messages, but test the interation of the HTTP request and the resource.
     """
     @inlineCallbacks
     def test_basic_publish(self):
@@ -53,16 +54,22 @@ class PublisherTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=b'{"topic": "com.test.messages", "args": [1]}')
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=b'{"topic": "com.test.messages", "args": [1]}')
 
         self.assertEqual(len(session._published_messages), 1)
         self.assertEqual(session._published_messages[0]["args"], (1,))
 
         self.assertEqual(request.code, 202)
+
+        logs = l.get_category("AR200")
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["code"], 202)
+
         self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"id": session._published_messages[0]["id"]})
 
@@ -74,15 +81,16 @@ class PublisherTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource({}, session)
 
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=b'{}')
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=b'{}')
 
         self.assertEqual(len(session._published_messages), 0)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(
-            b"invalid request event - missing 'topic' in HTTP/POST body",
-            request.get_written_data())
+        errors = l.get_category("AR455")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)

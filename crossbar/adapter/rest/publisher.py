@@ -32,8 +32,6 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.web import server
-
 from autobahn.wamp.types import PublishOptions
 
 from crossbar.adapter.rest.common import _CommonResource
@@ -49,7 +47,9 @@ class PublisherResource(_CommonResource):
     def _process(self, request, event):
 
         if 'topic' not in event:
-            return self._deny_request(request, 400, "invalid request event - missing 'topic' in HTTP/POST body")
+            return self._deny_request(request, 400,
+                                      "invalid request event - missing 'topic' in HTTP/POST body",
+                                      log_category="AR455")
 
         topic = event.pop('topic')
 
@@ -69,21 +69,15 @@ class PublisherResource(_CommonResource):
 
         def on_publish_ok(pub):
             res = {'id': pub.id}
-            self.log.debug("request succeeded with result {res}", res=res)
             body = json.dumps(res, separators=(',', ':'), ensure_ascii=False).encode('utf8')
-            request.setHeader(b'content-type', b'application/json; charset=UTF-8')
-            request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
-            request.setResponseCode(202)
-            request.write(body)
-            request.finish()
+            request.setHeader(b'content-type',
+                              b'application/json; charset=UTF-8')
+            request.setHeader(b'cache-control',
+                              b'no-store, no-cache, must-revalidate, max-age=0')
+            self._complete_request(request, 202, body, log_category="AR200")
 
         def on_publish_error(err):
-            emsg = "PublisherResource - request failed with error {0}\n".format(err.value)
-            self.log.debug(emsg)
-            request.setResponseCode(400)
-            request.write(emsg)
-            request.finish()
+            return self._fail_request(request, 400, "PublisherResource failed with error {e}",
+                                      e=err.value, log_category="AR456")
 
-        d.addCallbacks(on_publish_ok, on_publish_error)
-
-        return server.NOT_DONE_YET
+        return d.addCallbacks(on_publish_ok, on_publish_error)

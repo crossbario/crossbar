@@ -401,3 +401,19 @@ class StdoutObserverTests(TestCase):
 
         result = stream.getvalue()
         self.assertEqual(result[:-1], "[foo] Hi there!")
+
+
+class LogCapturerTests(TestCase):
+
+    def test_capturer(self):
+        """
+        The log capturer is a context manager that captures the logs emitted
+        inside it.
+        """
+        log = _logging.make_logger("info")
+
+        with _logging.LogCapturer() as l:
+            log.info("Whee!", log_category="CB500", foo="bar")
+
+        self.assertEqual(len(l.get_category("CB500")), 1)
+        self.assertEqual(l.get_category("CB500")[0]["foo"], "bar")

@@ -36,6 +36,7 @@ import re
 import six
 import inspect
 import json
+import warnings
 
 from json import JSONEncoder
 
@@ -52,6 +53,8 @@ from twisted.python.reflect import qual
 from pygments import highlight, lexers, formatters
 
 from weakref import WeakKeyDictionary
+
+from ._log_categories import log_keys
 
 record_separator = u"\x1e"
 cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
@@ -370,6 +373,10 @@ class CrossbarLogger(object):
             if isinstance(level, NamedConstant):
                 level = level.name
 
+            if "log_category" in kwargs:
+                if kwargs["log_category"] not in log_keys:
+                    warnings.warn("Invalid log ID")
+
             if POSSIBLE_LEVELS.index(level) <= POSSIBLE_LEVELS.index(self._log_level):
                 getattr(self.logger, level)(*args, **kwargs)
 
@@ -479,3 +486,29 @@ class JSON(object):
             output_str = output_str.encode('utf8')
 
         return output_str
+
+
+class LogCapturer(object):
+    """
+    A context manager that captures logs inside of it, and makes it available
+    through the logs attribute, or the get_category method.
+    """
+    def __init__(self, level="debug"):
+        self.logs = []
+        self._old_log_level = _loglevel
+        self.desired_level = level
+
+    def get_category(self, identifier):
+        """
+        Get logs captured with the given log category.
+        """
+        return [x for x in self.logs if x.get("log_category") == identifier]
+
+    def __enter__(self):
+        set_global_log_level(self.desired_level)
+        globalLogPublisher.addObserver(self.logs.append)
+        return self
+
+    def __exit__(self, type, value, traceback):
+        globalLogPublisher.removeObserver(self.logs.append)
+        set_global_log_level(self._old_log_level)
