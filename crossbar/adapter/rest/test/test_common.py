@@ -185,7 +185,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR452")
+        errors = l.get_category("AR452")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -203,7 +203,7 @@ class RequestBodyTestCase(TestCase):
                 body=publishBody))
 
         self.assertEqual(request.code, 405)
-        errors = l.get_id("AR405")
+        errors = l.get_category("AR405")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 405)
 
@@ -222,7 +222,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 413)
 
-        errors = l.get_id("AR413")
+        errors = l.get_category("AR413")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 413)
 
@@ -242,7 +242,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR400")
+        errors = l.get_category("AR400")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -263,7 +263,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR400")
+        errors = l.get_category("AR400")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -282,7 +282,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR400")
+        errors = l.get_category("AR400")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -301,7 +301,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR400")
+        errors = l.get_category("AR400")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -336,7 +336,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR450")
+        errors = l.get_category("AR450")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -372,7 +372,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR451")
+        errors = l.get_category("AR451")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -392,7 +392,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR450")
+        errors = l.get_category("AR450")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -409,7 +409,7 @@ class RequestBodyTestCase(TestCase):
                 headers={b"Content-Type": [b"application/json;charset=blarg;charset=boo"]},
                 body=b'{"foo": "\xe2\x98\x83"}'))
 
-        errors = l.get_id("AR450")
+        errors = l.get_category("AR450")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -423,6 +423,6 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_id("AR452")
+        errors = l.get_category("AR452")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)

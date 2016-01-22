@@ -373,8 +373,8 @@ class CrossbarLogger(object):
             if isinstance(level, NamedConstant):
                 level = level.name
 
-            if "cb_log_id" in kwargs:
-                if kwargs["cb_log_id"] not in log_keys:
+            if "log_category" in kwargs:
+                if kwargs["log_category"] not in log_keys:
                     warnings.warn("Invalid log ID")
 
             if POSSIBLE_LEVELS.index(level) <= POSSIBLE_LEVELS.index(self._log_level):
@@ -491,18 +491,18 @@ class JSON(object):
 class LogCapturer(object):
     """
     A context manager that captures logs inside of it, and makes it available
-    through the logs attribute, or the get_id method.
+    through the logs attribute, or the get_category method.
     """
-    def __init__(self, level="info"):
+    def __init__(self, level="debug"):
         self.logs = []
         self._old_log_level = _loglevel
         self.desired_level = level
 
-    def get_id(self, identifier):
+    def get_category(self, identifier):
         """
-        Get logs captured with the given log ID.
+        Get logs captured with the given log category.
         """
-        return [x for x in self.logs if x.get("cb_log_id") == identifier]
+        return [x for x in self.logs if x.get("log_category") == identifier]
 
     def __enter__(self):
         set_global_log_level(self.desired_level)

@@ -96,8 +96,8 @@ class _CommonResource(Resource):
         """
         Called when client request is denied.
         """
-        if "cb_log_id" not in kwargs.keys():
-            kwargs["cb_log_id"] = "AR" + str(code)
+        if "log_category" not in kwargs.keys():
+            kwargs["log_category"] = "AR" + str(code)
 
         self.log.debug("[request denied] - {code} / " + reason,
                        code=code, **kwargs)
@@ -176,7 +176,7 @@ class _CommonResource(Resource):
                 return self._deny_request(
                     request, 400,
                     u"bad content type: if a content type is present, it MUST be one of '{}', not '{}'".format(list(_ALLOWED_CONTENT_TYPES), content_type_elements[0]),
-                    cb_log_id="AR452"
+                    log_category="AR452"
                 )
 
         encoding_parts = {}
@@ -200,7 +200,7 @@ class _CommonResource(Resource):
             except:
                 return self._deny_request(request, 400,
                                           u"mangled Content-Type header",
-                                          cb_log_id="AR450")
+                                          log_category="AR450")
 
         charset_encoding = encoding_parts.get("charset", "utf-8")
 
@@ -209,7 +209,7 @@ class _CommonResource(Resource):
                 request, 400,
                 (u"'{charset_encoding}' is not an accepted charset encoding, "
                  u"must be utf-8"),
-                cb_log_id="AR450",
+                log_category="AR450",
                 charset_encoding=charset_encoding)
 
         # enforce "post_body_limit"
@@ -358,7 +358,7 @@ class _CommonResource(Resource):
             return self._deny_request(
                 request, 400,
                 u"invalid request event - HTTP/POST|PUT body was invalid UTF-8",
-                cb_log_id="AR451")
+                log_category="AR451")
 
         event = body.decode('utf8')
 

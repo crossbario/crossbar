@@ -413,7 +413,7 @@ class LogCapturerTests(TestCase):
         log = _logging.make_logger("info")
 
         with _logging.LogCapturer() as l:
-            log.info("Whee!", cb_log_id="CB500", foo="bar")
+            log.info("Whee!", log_category="CB500", foo="bar")
 
-        self.assertEqual(len(l.get_id("CB500")), 1)
-        self.assertEqual(l.get_id("CB500")[0]["foo"], "bar")
+        self.assertEqual(len(l.get_category("CB500")), 1)
+        self.assertEqual(l.get_category("CB500")[0]["foo"], "bar")
