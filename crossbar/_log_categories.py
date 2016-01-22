@@ -38,12 +38,17 @@ log_categories = {
 
     # ARXXX - Adapter, REST Bridge
     "AR100": "REST bridge request recieved.",
+    "AR200": "REST bridge publish succeeded.",
     "AR400": "Malformed request to the REST bridge.",
     "AR405": "Method not accepted by the REST bridge.",
     "AR413": "Request too long.",
     "AR450": "Non-accepted request encoding.",
     "AR451": "Non-decodable request body.",
     "AR452": "Non-accepted content type.",
+    "AR453": "Request body was invalid JSON.",
+    "AR454": "Request body was valid JSON, but not well formed (incorrect type).",
+    "AR455": "Request body was valid JSON, but not well formed (missing key).",
+    "AR456": "REST bridge publish failed.",
 }
 
 

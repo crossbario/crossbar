@@ -282,7 +282,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_category("AR400")
+        errors = l.get_category("AR453")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
@@ -301,7 +301,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_category("AR400")
+        errors = l.get_category("AR454")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
