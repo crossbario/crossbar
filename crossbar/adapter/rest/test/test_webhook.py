@@ -34,6 +34,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from crossbar.test import TestCase
 from crossbar._compat import native_string
+from crossbar._logging import LogCapturer
 from crossbar.adapter.rest import WebhookResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource
 
@@ -51,11 +52,12 @@ class WebhookTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = WebhookResource({u"topic": u"com.test.webhook"}, session)
 
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": []},
-            body=b'{"foo": "has happened"}')
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/",
+                method=b"POST",
+                headers={b"Content-Type": []},
+                body=b'{"foo": "has happened"}')
 
         self.assertEqual(len(session._published_messages), 1)
         self.assertEqual(
@@ -70,5 +72,8 @@ class WebhookTestCase(TestCase):
             session._published_messages[0]["args"][0])
 
         self.assertEqual(request.code, 202)
-        self.assertEqual(native_string(request.get_written_data()),
-                         "OK")
+        self.assertEqual(request.get_written_data(), b"OK")
+
+        logs = l.get_category("AR201")
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["code"], 202)

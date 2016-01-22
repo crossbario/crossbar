@@ -39,6 +39,7 @@ log_categories = {
     # ARXXX - Adapter, REST Bridge
     "AR100": "REST bridge request recieved.",
     "AR200": "REST bridge publish succeeded.",
+    "AR201": "REST bridge webhook event succeeded.",
     "AR400": "Malformed request to the REST bridge.",
     "AR405": "Method not accepted by the REST bridge.",
     "AR413": "Request too long.",
@@ -49,6 +50,7 @@ log_categories = {
     "AR454": "Request body was valid JSON, but not well formed (incorrect type).",
     "AR455": "Request body was valid JSON, but not well formed (missing key).",
     "AR456": "REST bridge publish failed.",
+    "AR457": "REST bridge webhook request failed.",
 }
 
 

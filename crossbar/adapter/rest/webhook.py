@@ -62,23 +62,19 @@ class WebhookResource(_CommonResource):
         publish_options = PublishOptions(acknowledge=True)
 
         def _succ(result):
-            self.log.info("Successfully sent webhook from {ip} to {topic}",
-                          topic=topic, ip=request.getClientIP())
-            request.setResponseCode(202)
-            request.write(b"OK")
-            request.finish()
+            return self._complete_request(
+                request, 202, b"OK", reason="Successfully sent webhook from {ip} to {topic}",
+                topic=topic, ip=request.getClientIP(), log_category="AR201")
 
         def _err(result):
-            self.log.error("Unable to send webhook from {ip} to {topic}",
-                           topic=topic, ip=request.getClientIP(),
-                           log_failure=result)
-            request.setResponseCode(500)
-            request.write(b"NOT OK")
+            return self._fail_request(
+                request, 500, "Unable to send webhook from {ip} to {topic}",
+                topic=topic, ip=request.getClientIP(), body=b"NOT OK",
+                log_failure=result, log_category="AR457")
 
         d = self._session.publish(topic,
                                   json.loads(json.dumps(message)),
                                   options=publish_options)
         d.addCallback(_succ)
         d.addErrback(_err)
-
-        return NOT_DONE_YET
+        return d

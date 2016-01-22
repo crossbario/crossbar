@@ -106,18 +106,22 @@ class _CommonResource(Resource):
         request.setResponseCode(code)
         return reason.format(**kwargs).encode('utf8') + b"\n"
 
-    def _fail_request(self, request, code, reason, **kwargs):
+    def _fail_request(self, request, code, reason, body=None, **kwargs):
         """
         Called when client request fails.
         """
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
 
+        self.log.failure(None, log_failure=kwargs["log_failure"])
         self.log.debug("[request failure] - {code} / " + reason,
                        code=code, **kwargs)
 
         request.setResponseCode(code)
-        request.write(reason.format(**kwargs).encode('utf8') + b"\n")
+        if body:
+            request.write(body)
+        else:
+            request.write(reason.format(**kwargs).encode('utf8') + b"\n")
 
     def _complete_request(self, request, code, body, reason="", **kwargs):
         """
