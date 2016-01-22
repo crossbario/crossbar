@@ -90,6 +90,9 @@ class PendingAuthCryptosign(PendingAuth):
 
     def hello(self, realm, details):
 
+        channel_binding = details.authextra.get(u'channel_binding', None)
+        print("WAMP-cryptosign CHANNEL BINDING requested: {}".format(channel_binding))
+
         # remember the realm the client requested to join (if any)
         self._realm = realm
 
