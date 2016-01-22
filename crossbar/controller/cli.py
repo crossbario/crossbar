@@ -273,7 +273,7 @@ def run_command_version(options, reactor=None, **kwargs):
         return click.style(text, fg='yellow', bold=True)
 
     for line in BANNER.splitlines():
-        print(decorate("{:>40}".format(line)))
+        log.info(decorate("{:>40}".format(line)))
 
     pad = " " * 22
 

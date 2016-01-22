@@ -38,7 +38,7 @@ from crossbar.adapter.rest import WebhookResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource
 
 
-class WebhookTestCase(TestCase):    
+class WebhookTestCase(TestCase):
     """
     Unit tests for L{WebhookResource}.
     """
