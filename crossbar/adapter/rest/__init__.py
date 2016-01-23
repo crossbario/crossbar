@@ -28,18 +28,13 @@
 #
 #####################################################################################
 
-from six import PY3
+from __future__ import absolute_import, division
 
+from crossbar.adapter.rest.callee import RESTCallee
 from crossbar.adapter.rest.caller import CallerResource
 from crossbar.adapter.rest.publisher import PublisherResource
+from crossbar.adapter.rest.subscriber import MessageForwarder
 from crossbar.adapter.rest.webhook import WebhookResource
 
-if PY3:
-    __all__ = ("PublisherResource", "CallerResource", "WebhookResource")
-
-else:
-    from crossbar.adapter.rest.callee import RESTCallee
-    from crossbar.adapter.rest.subscriber import MessageForwarder
-
-    __all__ = ("PublisherResource", "CallerResource", "RESTCallee",
-               "MessageForwarder", "WebhookResource")
+__all__ = ("PublisherResource", "CallerResource", "RESTCallee",
+           "MessageForwarder", "WebhookResource")
