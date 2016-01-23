@@ -36,6 +36,7 @@ from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
 from crossbar.test import TestCase
 from crossbar._compat import native_string
+from crossbar._logging import LogCapturer
 from crossbar.adapter.rest import CallerResource
 from crossbar.adapter.rest.test import renderResource
 
@@ -78,9 +79,6 @@ class CallerTestCase(TestCase):
     Unit tests for L{CallerResource}. These tests make no WAMP calls, but test
     the interaction of the calling HTTP request and the resource.
     """
-
-    skip = True
-
     @inlineCallbacks
     def test_add2(self):
         """
@@ -95,15 +93,20 @@ class CallerTestCase(TestCase):
 
         resource = CallerResource({}, session)
 
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=b'{"procedure": "com.test.add2", "args": [1,2]}')
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=b'{"procedure": "com.test.add2", "args": [1,2]}')
 
         self.assertEqual(request.code, 200)
         self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"args": [3]})
+
+        logs = l.get_category("AR202")
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["code"], 200)
 
     @inlineCallbacks
     def test_no_procedure(self):
@@ -112,16 +115,18 @@ class CallerTestCase(TestCase):
         """
         resource = CallerResource({}, None)
 
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=b"{}")
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=b"{}")
 
         self.assertEqual(request.code, 400)
-        self.assertEqual(
-            b"invalid request event - missing 'procedure' in HTTP/POST body\n",
-            request.get_written_data())
+
+        errors = l.get_category("AR455")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_no_body(self):
@@ -130,12 +135,14 @@ class CallerTestCase(TestCase):
         """
         resource = CallerResource({}, None)
 
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": [b"application/json"]})
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]})
 
         self.assertEqual(request.code, 400)
-        self.assertIn(
-            b"invalid request event - HTTP/POST body must be valid JSON: ",
-            request.get_written_data())
+
+        errors = l.get_category("AR453")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)

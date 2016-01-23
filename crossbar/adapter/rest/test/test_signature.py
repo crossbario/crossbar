@@ -36,6 +36,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from crossbar.test import TestCase
 from crossbar._compat import native_string
+from crossbar._logging import LogCapturer
 from crossbar.adapter.rest import PublisherResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource, makeSignedArguments
 
@@ -59,15 +60,19 @@ class SignatureTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource(resourceOptions, session)
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody,
-            sign=True, signKey="bazapp", signSecret="foobar")
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+                sign=True, signKey="bazapp", signSecret="foobar")
 
         self.assertEqual(request.code, 202)
         self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"id": session._published_messages[0]["id"]})
+
+        logs = l.get_category("AR203")
+        self.assertEqual(len(logs), 1)
 
     @inlineCallbacks
     def test_incorrect_secret(self):
@@ -78,16 +83,19 @@ class SignatureTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource(resourceOptions, session)
 
-        request = yield renderResource(
-            resource, b"/",
-            method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody,
-            sign=True, signKey="bazapp", signSecret="foobar2")
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+                sign=True, signKey="bazapp", signSecret="foobar2")
 
         self.assertEqual(request.code, 401)
-        self.assertIn(b"invalid request signature",
-                      request.get_written_data())
+
+        errors = l.get_category("AR459")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 401)
 
     @inlineCallbacks
     def test_unknown_key(self):
@@ -97,15 +105,18 @@ class SignatureTestCase(TestCase):
         session = MockPublisherSession(self)
         resource = PublisherResource(resourceOptions, session)
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody,
-            sign=True, signKey="spamapp", signSecret="foobar")
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody,
+                sign=True, signKey="spamapp", signSecret="foobar")
 
-        self.assertEqual(request.code, 400)
-        self.assertIn(b"unknown key 'spamapp' in signed request",
-                      request.get_written_data())
+        self.assertEqual(request.code, 401)
+
+        errors = l.get_category("AR460")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 401)
 
     @inlineCallbacks
     def test_no_timestamp(self):
@@ -118,14 +129,17 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams[b'timestamp']
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"signed request required, but mandatory 'timestamp' field missing",
-                      request.get_written_data())
+
+        errors = l.get_category("AR461")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_wrong_timestamp(self):
@@ -138,15 +152,17 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         signedParams[b'timestamp'] = [b"notatimestamp"]
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"invalid timestamp 'notatimestamp' (must be UTC/ISO-8601,"
-                      b" e.g. '2011-10-14T16:59:51.123Z')",
-                      request.get_written_data())
+
+        errors = l.get_category("AR462")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_outdated_delta(self):
@@ -162,14 +178,17 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         signedParams[b'timestamp'] = [b"2011-10-14T16:59:51.123Z"]
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"request expired (delta",
-                      request.get_written_data())
+
+        errors = l.get_category("AR462")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_invalid_nonce(self):
@@ -182,14 +201,17 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         signedParams[b'nonce'] = [b"notanonce"]
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"invalid nonce 'notanonce' (must be an integer)",
-                      request.get_written_data())
+
+        errors = l.get_category("AR462")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_no_nonce(self):
@@ -202,14 +224,17 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams[b'nonce']
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"signed request required, but mandatory 'nonce' field missing",
-                      request.get_written_data())
+
+        errors = l.get_category("AR461")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_no_signature(self):
@@ -222,14 +247,17 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams[b'signature']
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"signed request required, but mandatory 'signature' field missing",
-                      request.get_written_data())
+
+        errors = l.get_category("AR461")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_no_key(self):
@@ -242,14 +270,17 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams[b'key']
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"signed request required, but mandatory 'key' field missing",
-                      request.get_written_data())
+
+        errors = l.get_category("AR461")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_no_seq(self):
@@ -262,14 +293,17 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         del signedParams[b'seq']
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"signed request required, but mandatory 'seq' field missing",
-                      request.get_written_data())
+
+        errors = l.get_category("AR461")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
 
     @inlineCallbacks
     def test_wrong_seq(self):
@@ -282,11 +316,14 @@ class SignatureTestCase(TestCase):
         signedParams = makeSignedArguments({}, "bazapp", "foobar", publishBody)
         signedParams[b'seq'] = [b"notaseq"]
 
-        request = yield renderResource(
-            resource, b"/", method=b"POST",
-            headers={b"Content-Type": [b"application/json"]},
-            body=publishBody, params=signedParams)
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/", method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=publishBody, params=signedParams)
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"invalid sequence number 'notaseq' (must be an integer)",
-                      request.get_written_data())
+
+        errors = l.get_category("AR462")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["code"], 400)
