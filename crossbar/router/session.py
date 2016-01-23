@@ -245,29 +245,25 @@ class RouterSession(BaseSession):
         # this is a WAMP transport instance
         self._transport = transport
 
-        # a dict with x509 TLS client certificate information (if the client provided a cert)
-        # constructed from information from the Twisted stream transport underlying the WAMP transport
-        self._client_cert = extract_peer_certificate(self._transport.transport)
-        if self._client_cert:
-            self.log.debug("Client connecting with TLS certificate {client_cert}", client_cert=self._client_cert)
-
-        # transport info, eg forwarded in WAMP metaevents
-        if self._transport._transport_info:
-            # forward the client TLS certificate (if any) on transport details
-            self._transport._transport_info[u'client_cert'] = self._client_cert
-
-            # forward the transport channel ID (if any) on transport details
-            channel_id = self._transport.get_channel_id()
-            if channel_id:
-                self._transport._transport_info[u'channel_id'] = six.u(binascii.b2a_hex(channel_id))
-            else:
-                self._transport._transport_info[u'channel_id'] = None
-
         # transport configuration
         if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
             self._transport_config = self._transport.factory._config
         else:
             self._transport_config = {}
+
+        # a dict with x509 TLS client certificate information (if the client provided a cert)
+        # constructed from information from the Twisted stream transport underlying the WAMP transport
+        client_cert = extract_peer_certificate(self._transport.transport)
+        if client_cert:
+            self._transport._transport_info[u'client_cert'] = client_cert
+            self.log.debug("Client connecting with TLS certificate {client_cert}", client_cert=client_cert)
+
+        # forward the transport channel ID (if any) on transport details
+        channel_id = self._transport.get_channel_id()
+        if channel_id:
+            self._transport._transport_info[u'channel_id'] = six.u(binascii.b2a_hex(channel_id))
+
+        self.log.debug("Client session connected - transport: {transport_info}", transport_info=self._transport._transport_info)
 
         # basic session information
         self._pending_session_id = None
