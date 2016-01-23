@@ -32,8 +32,6 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.web.server import NOT_DONE_YET
-
 from autobahn.wamp.types import PublishOptions
 
 from crossbar._compat import native_string

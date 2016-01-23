@@ -32,8 +32,6 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.web import server
-
 from autobahn.wamp.types import CallResult
 from autobahn.wamp.exception import ApplicationError
 

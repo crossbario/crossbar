@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-from six import PY3
-
 from twisted.web.http_headers import Headers
 from twisted.internet.defer import inlineCallbacks
 
@@ -43,7 +41,6 @@ from autobahn.wamp.types import ComponentConfig
 
 
 class CalleeTestCase(TestCase):
-
 
     @inlineCallbacks
     def test_basic_web(self):
