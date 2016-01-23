@@ -40,6 +40,8 @@ log_categories = {
     "AR100": "REST bridge request recieved.",
     "AR200": "REST bridge publish succeeded.",
     "AR201": "REST bridge webhook event succeeded.",
+    "AR202": "REST bridge call succeeded.",
+    "AR203": "REST bridge signature valid.",
     "AR400": "Malformed request to the REST bridge.",
     "AR405": "Method not accepted by the REST bridge.",
     "AR413": "Request too long.",
@@ -51,6 +53,11 @@ log_categories = {
     "AR455": "Request body was valid JSON, but not well formed (missing key).",
     "AR456": "REST bridge publish failed.",
     "AR457": "REST bridge webhook request failed.",
+    "AR458": "REST bridge call failed.",
+    "AR459": "REST bridge signature secret not valid.",
+    "AR460": "REST bridge signature key not valid.",
+    "AR461": "REST bridge signature was invalid (missing mandatory fields).",
+    "AR462": "REST bridge signature was invalid (invalid field content).",
 }
 
 

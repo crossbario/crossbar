@@ -37,17 +37,13 @@ from twisted.internet.defer import inlineCallbacks
 
 from crossbar.test import TestCase
 from crossbar.adapter.rest.test import MockTransport, MockWebTransport
+from crossbar.adapter.rest import RESTCallee
 
 from autobahn.wamp.types import ComponentConfig
-
-if not PY3:
-    from crossbar.adapter.rest import RESTCallee
 
 
 class CalleeTestCase(TestCase):
 
-    if PY3:
-        skip = "Not ported to Py3."
 
     @inlineCallbacks
     def test_basic_web(self):
@@ -66,9 +62,9 @@ class CalleeTestCase(TestCase):
 
         res = yield c.call(u"io.crossbar.testrest", method="GET", url="baz.html")
 
-        self.assertEqual(m.maderequest["args"], ("GET", "https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], (b"GET", b"https://foo.com/baz.html"))
         self.assertEqual(m.maderequest["kwargs"], {
-            "data": "",
+            "data": b"",
             "headers": Headers({}),
             "params": {}
         })
@@ -94,12 +90,12 @@ class CalleeTestCase(TestCase):
 
         res = yield c.call(u"io.crossbar.testrest", method="POST",
                            url="baz.html", params={"spam": "ham"},
-                           body="see params", headers={"X-Something": ["baz"]})
+                           body="see params", headers={b"X-Something": [b"baz"]})
 
-        self.assertEqual(m.maderequest["args"], ("POST", "https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], (b"POST", b"https://foo.com/baz.html"))
         self.assertEqual(m.maderequest["kwargs"], {
-            "data": "see params",
-            "headers": Headers({"X-Something": ["baz"]}),
+            "data": b"see params",
+            "headers": Headers({b"X-Something": [b"baz"]}),
             "params": {"spam": "ham"}
         })
         self.assertEqual(res,

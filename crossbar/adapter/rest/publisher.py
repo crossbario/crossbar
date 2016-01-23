@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import json
 
@@ -69,7 +69,8 @@ class PublisherResource(_CommonResource):
 
         def on_publish_ok(pub):
             res = {'id': pub.id}
-            body = json.dumps(res, separators=(',', ':'), ensure_ascii=False).encode('utf8')
+            body = json.dumps(res, separators=(',', ':'),
+                              ensure_ascii=False).encode('utf8')
             request.setHeader(b'content-type',
                               b'application/json; charset=UTF-8')
             request.setHeader(b'cache-control',

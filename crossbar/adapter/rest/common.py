@@ -280,7 +280,9 @@ class _CommonResource(Resource):
             key_str = args["key"]
         else:
             if self._secret:
-                return self._deny_request(request, 400, u"signed request required, but mandatory 'key' field missing")
+                return self._deny_request(
+                    request, 400, u"signed request required, but mandatory 'key' field missing",
+                    log_category="AR461")
 
         # timestamp
         #
@@ -290,12 +292,19 @@ class _CommonResource(Resource):
                 ts = datetime.datetime.strptime(native_string(timestamp_str), "%Y-%m-%dT%H:%M:%S.%fZ")
                 delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
                 if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
-                    return self._deny_request(request, 400, u"request expired (delta {0} seconds)".format(delta))
+                    return self._deny_request(
+                        request, 400, u"request expired (delta {0} seconds)".format(delta),
+                        log_category="AR462")
             except ValueError as e:
-                return self._deny_request(request, 400, u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)))
+                return self._deny_request(
+                    request, 400,
+                    u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)),
+                    log_category="AR462")
         else:
             if self._secret:
-                return self._deny_request(request, 400, u"signed request required, but mandatory 'timestamp' field missing")
+                return self._deny_request(
+                    request, 400, u"signed request required, but mandatory 'timestamp' field missing",
+                    log_category="AR461")
 
         # seq
         #
@@ -305,10 +314,14 @@ class _CommonResource(Resource):
                 # FIXME: check sequence
                 seq = int(seq_str)  # noqa
             except:
-                return self._deny_request(request, 400, u"invalid sequence number '{0}' (must be an integer)".format(native_string(seq_str)))
+                return self._deny_request(
+                    request, 400, u"invalid sequence number '{0}' (must be an integer)".format(native_string(seq_str)),
+                    log_category="AR462")
         else:
             if self._secret:
-                return self._deny_request(request, 400, u"signed request required, but mandatory 'seq' field missing")
+                return self._deny_request(
+                    request, 400, u"signed request required, but mandatory 'seq' field missing",
+                    log_category="AR461")
 
         # nonce
         #
@@ -318,10 +331,14 @@ class _CommonResource(Resource):
                 # FIXME: check nonce
                 nonce = int(nonce_str)  # noqa
             except:
-                return self._deny_request(request, 400, u"invalid nonce '{0}' (must be an integer)".format(native_string(nonce_str)))
+                return self._deny_request(
+                    request, 400, u"invalid nonce '{0}' (must be an integer)".format(native_string(nonce_str)),
+                    log_category="AR462")
         else:
             if self._secret:
-                return self._deny_request(request, 400, u"signed request required, but mandatory 'nonce' field missing")
+                return self._deny_request(
+                    request, 400, u"signed request required, but mandatory 'nonce' field missing",
+                    log_category="AR461")
 
         # signature
         #
@@ -329,14 +346,18 @@ class _CommonResource(Resource):
             signature_str = args["signature"]
         else:
             if self._secret:
-                return self._deny_request(request, 400, u"signed request required, but mandatory 'signature' field missing")
+                return self._deny_request(
+                    request, 400, u"signed request required, but mandatory 'signature' field missing",
+                    log_category="AR461")
 
         # do more checks if signed requests are required
         #
         if self._secret:
 
             if key_str != self._key:
-                return self._deny_request(request, 400, u"unknown key '{0}' in signed request".format(native_string(key_str)))
+                return self._deny_request(
+                    request, 401, u"unknown key '{0}' in signed request".format(native_string(key_str)),
+                    log_category="AR460")
 
             # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
             hm = hmac.new(self._secret, None, hashlib.sha256)
@@ -348,9 +369,11 @@ class _CommonResource(Resource):
             signature_recomputed = base64.urlsafe_b64encode(hm.digest())
 
             if signature_str != signature_recomputed:
-                return self._deny_request(request, 401, u"invalid request signature")
+                return self._deny_request(request, 401, u"invalid request signature",
+                                          log_category="AR459")
             else:
-                self.log.debug("ok, request signature valid.")
+                self.log.debug("REST request signature valid.",
+                               log_category="AR203")
 
         # user_agent = headers.get("user-agent", "unknown")
         client_ip = request.getClientIP()
