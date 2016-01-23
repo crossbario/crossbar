@@ -58,6 +58,7 @@ log_categories = {
     "AR460": "REST bridge signature key not valid.",
     "AR461": "REST bridge signature was invalid (missing mandatory fields).",
     "AR462": "REST bridge signature was invalid (invalid field content).",
+    "AR463": "Multiple headers not allowed.",
 }
 
 

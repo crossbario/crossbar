@@ -253,7 +253,8 @@ class _CommonResource(Resource):
         elif len(content_length_header) > 1:
             return self._deny_request(
                 request, 400,
-                u"Multiple Content-Length headers are not allowed")
+                u"Multiple Content-Length headers are not allowed",
+                log_category="AR463")
         else:
             content_length = body_length
 
