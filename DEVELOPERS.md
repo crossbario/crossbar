@@ -82,3 +82,29 @@ make: *** [flake8_stats] Fehler 1
 ```
 
 It also does not comply fully to rule 4. This will get addressed in the next major release (0.12).
+
+## Unicode
+
+The following shows idioms for treating strings/bytes in Crossbar.io
+
+### Environment variables and command line args
+
+Getting Unicode valued enviroment variables and command line arguments MUST be done like this:
+
+```python
+import os, six
+
+val = os.environ[u'MYTICKET']
+if six.PY2:
+    val = val.decode('utf8')
+print(u'{} {}'.format(type(val), val))
+
+val = sys.argv[1]
+if six.PY2:
+    val = val.decode('utf8')
+print(u'{} {}'.format(type(val), val))
+```
+
+Above will work on all *nix operating systems (both Python 2 and 3), as well as on Windows/Python3 (it doesn't work in Windows/Python2! Getting that work is really tricky - Python 3 has code for that, which wasn't backported to Python 2).
+
+> Note that environment variables identifiers MUST match the regular expression `^\$([a-zA-Z_][a-zA-Z0-9_]*)$` for portability. However, for uniform treatment across Py2/3, the identifier should nevertheless be processed as a Unicode type. Hence the use of `u'MYTICKET` in above.

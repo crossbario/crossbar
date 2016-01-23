@@ -35,6 +35,7 @@ import six
 from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
+from crossbar._logging import make_logger
 
 __all__ = ('PendingAuthTicket',)
 
@@ -44,6 +45,8 @@ class PendingAuthTicket(PendingAuth):
     """
     Pending authentication information for WAMP-Ticket authentication.
     """
+
+    log = make_logger()
 
     AUTHMETHOD = u'ticket'
 
@@ -75,7 +78,7 @@ class PendingAuthTicket(PendingAuth):
                     return error
 
                 # now set set signature as expected for WAMP-Ticket
-                self._signature = principal[u'ticket'].encode('utf8')
+                self._signature = principal[u'ticket']
 
                 return types.Challenge(self._authmethod)
             else:
@@ -105,9 +108,11 @@ class PendingAuthTicket(PendingAuth):
             # expect was previously stored in self._signature
             if signature == self._signature:
                 # ticket was valid: accept the client
+                self.log.debug("WAMP-Ticket: ticket was valid!")
                 return self._accept()
             else:
                 # ticket was invalid: deny client
+                self.log.debug('WAMP-Ticket (static): expected ticket "{}"" ({}), but got "{}" ({})'.format(self._signature, type(self._signature), signature, type(signature)))
                 return types.Deny(message=u"ticket in static WAMP-Ticket authentication is invalid")
 
         # WAMP-Ticket "dynamic"

@@ -155,7 +155,15 @@ Loader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
 
-_ENV_VAR_PAT_STR = "^\$([A-Z0-9_]+)$"
+# Environment variable names used by the utilities in the Shell and Utilities volume
+# of IEEE Std 1003.1-2001 consist solely of uppercase letters, digits, and the '_' (underscore)
+# from the characters defined in Portable Character Set and do not begin with a digit. Other
+# characters may be permitted by an implementation; applications shall tolerate the presence
+# of such names.
+
+# http://stackoverflow.com/a/2821183/884770
+
+_ENV_VAR_PAT_STR = "^\$([a-zA-Z_][a-zA-Z0-9_]*)$"
 _ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
 
 
@@ -164,7 +172,10 @@ def _readenv(var, msg):
     if match and match.groups():
         envvar = match.groups()[0]
         if envvar in os.environ:
-            return os.environ[envvar]
+            value = os.environ[envvar]
+            if six.PY2:
+                value = value.decode('utf8')
+            return value
         else:
             raise InvalidConfigException("{} - environment variable '{}' not set".format(msg, var))
     else:
@@ -181,7 +192,9 @@ def maybe_from_env(config_item, value):
         if match and match.groups():
             var = match.groups()[0]
             if var in os.environ:
-                new_value = six.u(os.environ[var])
+                new_value = os.environ[var]
+                if six.PY2:
+                    new_value = new_value.decode('utf8')
                 # for security reasons, we log only a starred version of the value read!
                 log.info("Configuration '{config_item}' set from environment variable ${var}", config_item=config_item, var=var)
                 return new_value
@@ -211,7 +224,10 @@ def get_config_value(config, item, default=None):
             if match and match.groups():
                 envvar = match.groups()[0]
                 if envvar in os.environ:
-                    return os.environ[envvar]
+                    value = os.environ[envvar]
+                    if six.PY2:
+                        value = value.decode('utf8')
+                    return value
                 else:
                     # item value seems to point to an enviroment variable,
                     # but the enviroment variable isn't set
