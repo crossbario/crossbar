@@ -73,7 +73,7 @@ install_requires = [
     'shutilwhich>=1.1.0',         # PSF license
 
     'psutil>=3.2.1',              # BSD license
-    'lmdb>=0.87',                 # OpenLDAP BSD
+    'lmdb>=0.88',                 # OpenLDAP BSD
 
     # Serializers
     'msgpack-python>=0.4.6',      # Apache 2.0 license
