@@ -73,7 +73,6 @@ install_requires = [
     'shutilwhich>=1.1.0',         # PSF license
 
     'psutil>=3.2.1',              # BSD license
-    'setproctitle>=1.1.9',        # BSD license
     'lmdb>=0.87',                 # OpenLDAP BSD
 
     # Serializers
@@ -93,6 +92,9 @@ install_requires = [
     # HTTP/REST bridge (also pulls in TLS packages!)
     'treq>=15.1.0',               # MIT license
 ]
+if sys.platform != 'win32':
+    # setproctitle does not provide wheels (https://github.com/dvarrazzo/py-setproctitle/issues/47) => disable on Windows
+    install_requires.append('setproctitle>=1.1.9')   # BSD license
 
 # FIXME: https://github.com/crossbario/crossbar/issues/581
 if sys.platform.startswith('linux'):
@@ -100,7 +102,9 @@ if sys.platform.startswith('linux'):
 
 # native WebSocket/JSON acceleration - only for CPy (skip for PyPy, since it'll be _slower_ on that!)
 if CPY:
-    install_requires.append('wsaccel>=0.6.2')       # Apache 2.0
+    # wsaccel does not provide wheels (https://github.com/methane/wsaccel/issues/12) => disable on Windows
+    if sys.platform != 'win32':
+        install_requires.append('wsaccel>=0.6.2')   # Apache 2.0
 
     # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
     if sys.platform != 'win32':
@@ -111,10 +115,11 @@ extras_require_dev = [
     'flake8>=2.5.1',                # MIT license
     'colorama>=0.3.3',              # BSD license
     'mock>=1.3.0',                  # BSD license
-
-    # Twisted manhole support
-    'pycrypto>=2.6.1',              # Public Domain license
 ]
+if sys.platform != 'win32':
+    # Twisted manhole support
+    # pycrypto does not provide wheels => disable on Windows
+    extras_require_dev.append('pycrypto>=2.6.1')   # Public Domain license
 
 # Crossbar.io/PostgreSQL integration
 extras_require_postgres = [
