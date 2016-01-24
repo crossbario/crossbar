@@ -245,6 +245,10 @@ class RouterSession(BaseSession):
         # this is a WAMP transport instance
         self._transport = transport
 
+        # WampLongPollResourceSession instance has no attribute '_transport_info'
+        if not hasattr(self._transport, '_transport_info'):
+            self._transport._transport_info = {}
+
         # transport configuration
         if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
             self._transport_config = self._transport.factory._config
@@ -253,13 +257,21 @@ class RouterSession(BaseSession):
 
         # a dict with x509 TLS client certificate information (if the client provided a cert)
         # constructed from information from the Twisted stream transport underlying the WAMP transport
-        client_cert = extract_peer_certificate(self._transport.transport)
+        client_cert = None
+        # eg LongPoll transports lack underlying Twisted stream transport, since LongPoll is
+        # implemented at the Twisted Web layer. But we should nevertheless be able to
+        # extract the HTTP client cert! <= FIXME
+        if hasattr(self._transport, 'transport'):
+            client_cert = extract_peer_certificate(self._transport.transport)
         if client_cert:
             self._transport._transport_info[u'client_cert'] = client_cert
             self.log.debug("Client connecting with TLS certificate {client_cert}", client_cert=client_cert)
 
         # forward the transport channel ID (if any) on transport details
-        channel_id = self._transport.get_channel_id()
+        channel_id = None
+        if hasattr(self._transport, 'get_channel_id'):
+            # channel ID isn't implemented for LongPolL!
+            channel_id = self._transport.get_channel_id()
         if channel_id:
             self._transport._transport_info[u'channel_id'] = six.u(binascii.b2a_hex(channel_id))
 

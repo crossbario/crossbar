@@ -154,6 +154,8 @@ class UriObservationMap(object):
 
         # map: URI => WildcardUriObservation
         if True:
+            # use a Trie-based implementation (supposed to be faster, but
+            # otherwise compatible to the naive implementation below)
             self._observations_wildcard = WildcardTrieMatcher()
         else:
             self._observations_wildcard = WildcardMatcher()
