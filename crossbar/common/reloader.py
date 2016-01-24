@@ -75,10 +75,7 @@ class TrackingModuleReloader:
 
     def __init__(self, use_mtimes=True, debug=False):
         """
-        Ctor.
 
-        :param silence: Disable any log messages.
-        :type silence: bool
         :param use_mtimes: If `True`, try to use file modification times to limit
                            module reloading to actually changed files.
         :type use_mtimes: bool

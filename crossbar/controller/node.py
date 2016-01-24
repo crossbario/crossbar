@@ -213,7 +213,7 @@ class Node(object):
             # the following will read the config, check the config and replace
             # environment variable references in configuration values ("${MYVAR}") and
             # finally return the parsed configuration object
-            self._config = checkconfig.check_config_file(configpath, silence=True)
+            self._config = checkconfig.check_config_file(configpath)
 
             self.log.info("Node configuration loaded from '{configfile}'",
                           configfile=configfile)
