@@ -764,7 +764,7 @@ def run(prog=None, args=None, reactor=None):
                               type=six.text_type,
                               default='colour',
                               choices=['syslogd', 'nocolour', 'colour'],
-                              help="The format of the logs -- suitable for syslogd, not coloured, or coloured.")
+                              help="The format of the logs -- suitable for syslogd, not coloured, or coloured. On Windows, this is always, automatically set to 'nocolour' (as colored logging does not work there).")
 
     # "stop" command
     #
@@ -845,6 +845,11 @@ def run(prog=None, args=None, reactor=None):
         options.argv = [prog] + args
     else:
         options.argv = sys.argv
+
+    # colored logging does not work on Windows, so overwrite it!
+    #
+    if sys.platform == 'win32':
+        options.logformat = 'nocolour'
 
     # Crossbar.io node directory
     #

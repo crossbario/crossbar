@@ -87,14 +87,17 @@ install_requires = [
     'service_identity>=14.0.0',   # MIT license
 
     # NaCl
-    'pynacl>=0.3.0',              # Apache license
+    'pynacl>=1.0.1',              # Apache license
 
     # HTTP/REST bridge (also pulls in TLS packages!)
     'treq>=15.1.0',               # MIT license
 ]
 if sys.platform != 'win32':
     # setproctitle does not provide wheels (https://github.com/dvarrazzo/py-setproctitle/issues/47) => disable on Windows
-    install_requires.append('setproctitle>=1.1.9')   # BSD license
+    install_requires.append('setproctitle>=1.1.9')  # BSD license
+
+if sys.platform == 'win32':
+    install_requires.append('pypiwin32>=219')       # PSF license
 
 # FIXME: https://github.com/crossbario/crossbar/issues/581
 if sys.platform.startswith('linux'):
