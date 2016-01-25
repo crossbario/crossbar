@@ -570,7 +570,8 @@ def run_command_start(options, reactor=None):
     # bannerFormat = "{:<18} {:<24}"
     bannerFormat = "    {} {}"
     log.info(bannerFormat.format("Crossbar.io Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
-    log.info(bannerFormat.format("Node Public Key:", click.style(pubkey, fg='yellow', bold=True)))
+    if pubkey:
+        log.info(bannerFormat.format("Node Public Key:", click.style(pubkey, fg='yellow', bold=True)))
     log.info()
 
     log.info("Running from node directory '{cbdir}'", cbdir=options.cbdir)
