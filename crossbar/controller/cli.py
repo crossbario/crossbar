@@ -806,8 +806,8 @@ def run(prog=None, args=None, reactor=None):
                               type=six.text_type,
                               default='standard',
                               choices=['syslogd', 'standard', 'none'],
-                              help="The format of the logs -- suitable for syslogd, not coloured, or coloured.")
-
+                              help=("The format of the logs -- suitable for "
+                                    "syslogd, not coloured, or coloured."))
 
     # "stop" command
     #

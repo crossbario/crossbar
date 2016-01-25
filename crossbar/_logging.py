@@ -331,14 +331,16 @@ def make_logfile_observer(path, show_source=False):
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
         else:
-            eventText = ""
+            eventText = u""
 
         if "log_failure" in event:
             # This is a traceback. Print it.
             eventText = eventText + event["log_failure"].getTraceback()
 
-        eventString = NOCOLOUR_FORMAT.format(
-            formatTime(event["log_time"]), logSystem, eventText) + os.linesep
+        eventString = strip_ansi(STANDARD_FORMAT.format(
+            startcolour=u'', time=formatTime(event["log_time"]),
+            system=logSystem, endcolour=u'',
+            text=eventText)) + os.linesep
 
         return eventString
 
