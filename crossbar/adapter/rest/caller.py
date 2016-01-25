@@ -32,8 +32,6 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.web import server
-
 from autobahn.wamp.types import CallResult
 from autobahn.wamp.exception import ApplicationError
 
@@ -50,7 +48,10 @@ class CallerResource(_CommonResource):
     def _process(self, request, event):
 
         if 'procedure' not in event:
-            return self._deny_request(request, 400, "invalid request event - missing 'procedure' in HTTP/POST body")
+            return self._deny_request(
+                request, 400,
+                "invalid request event - missing 'procedure' in HTTP/POST body",
+                log_category="AR455")
 
         procedure = event.pop('procedure')
 
@@ -58,14 +59,6 @@ class CallerResource(_CommonResource):
         kwargs = event['kwargs'] if 'kwargs' in event and event['kwargs'] else {}
 
         d = self._session.call(procedure, *args, **kwargs)
-
-        def return_call_result(res):
-            body = json.dumps(res, separators=(',', ':'), ensure_ascii=False).encode('utf8')
-            request.setHeader(b'content-type', b'application/json; charset=UTF-8')
-            request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
-            request.setResponseCode(200)
-            request.write(body)
-            request.finish()
 
         def on_call_ok(value):
             # a WAMP procedure call result may have a single return value, but also
@@ -80,10 +73,15 @@ class CallerResource(_CommonResource):
             else:
                 res = {'args': [value]}
 
-            self.log.debug("WAMP call succeeded with result {res}",
-                           res=res)
+            body = json.dumps(res, separators=(',', ':'), ensure_ascii=False).encode('utf8')
+            request.setHeader(b'content-type',
+                              b'application/json; charset=UTF-8')
+            request.setHeader(b'cache-control',
+                              b'no-store, no-cache, must-revalidate, max-age=0')
 
-            return_call_result(res)
+            return self._complete_request(
+                request, 200, body, reason="WAMP call succeeded.",
+                log_category="AR202")
 
         def on_call_error(err):
             # a WAMP procedure call returning with error should be forwarded
@@ -100,10 +98,10 @@ class CallerResource(_CommonResource):
                 res['error'] = u'wamp.error.runtime_error'
                 res['args'] = ["{}".format(err)]
 
-            self.log.debug("WAMP call failed with error {err}", err=res)
+            request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
 
-            return_call_result(res)
+            return self._fail_request(
+                request, 400, "WAMP call failed with error {err}", err=res,
+                log_category="AR458")
 
-        d.addCallbacks(on_call_ok, on_call_error)
-
-        return server.NOT_DONE_YET
+        return d.addCallbacks(on_call_ok, on_call_error)

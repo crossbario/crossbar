@@ -32,7 +32,7 @@ from __future__ import absolute_import
 import six
 
 from pytrie import StringTrie
-from crossbar.router.wildcard import WildcardTrieMatcher
+from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
 from autobahn import util
 
@@ -153,7 +153,12 @@ class UriObservationMap(object):
         self._observations_prefix = StringTrie()
 
         # map: URI => WildcardUriObservation
-        self._observations_wildcard = WildcardTrieMatcher()
+        if True:
+            # use a Trie-based implementation (supposed to be faster, but
+            # otherwise compatible to the naive implementation below)
+            self._observations_wildcard = WildcardTrieMatcher()
+        else:
+            self._observations_wildcard = WildcardMatcher()
 
         # map: observation ID => UriObservation
         self._observation_id_to_observation = {}

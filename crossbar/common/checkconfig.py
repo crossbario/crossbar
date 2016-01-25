@@ -1757,7 +1757,7 @@ def check_connecting_transport_rawsocket(transport):
             raise InvalidConfigException("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
 
-def check_router_transport(transport, silence=False):
+def check_router_transport(transport):
     """
     Check router transports.
 
@@ -1805,7 +1805,7 @@ def check_router_transport(transport, silence=False):
         raise InvalidConfigException("logic error")
 
 
-def check_router_component(component, silence=False):
+def check_router_component(component):
     """
     Check a component configuration for a component running side-by-side with
     a router.
@@ -1854,7 +1854,7 @@ def check_router_component(component, silence=False):
         raise InvalidConfigException("logic error")
 
 
-def check_connecting_transport(transport, silence=False):
+def check_connecting_transport(transport):
     """
     Check container transports.
 
@@ -1883,7 +1883,7 @@ def check_connecting_transport(transport, silence=False):
         raise InvalidConfigException("logic error")
 
 
-def check_container_component(component, silence=False):
+def check_container_component(component):
     """
     Check a container component configuration.
 
@@ -1931,7 +1931,7 @@ def check_container_component(component, silence=False):
     check_connecting_transport(component['transport'])
 
 
-def check_container_components(components, silence=False):
+def check_container_components(components):
     """
     Check components inside a container.
 
@@ -1942,20 +1942,20 @@ def check_container_components(components, silence=False):
 
     for i, component in enumerate(components):
         log.debug("Checking container component item {} ..".format(i))
-        check_container_component(component, silence)
+        check_container_component(component)
 
 
-def check_router_realm(realm, silence=False):
+def check_router_realm(realm):
     """
     Checks the configuration for a router realm entry, which can be *either* a dynamic authorizer or static permissions.
     """
     # router/router.py and router/role.py
 
     for role in realm.get('roles', []):
-        check_router_realm_role(role, silence=silence)
+        check_router_realm_role(role)
 
 
-def check_router_realm_role(role, silence=False):
+def check_router_realm_role(role):
     """
     Checks a single role from a router realm 'roles' list
     """
@@ -2011,7 +2011,7 @@ def check_router_realm_role(role, silence=False):
             }, role, "invalid grant in role permissions")
 
 
-def check_router_components(components, silence=False):
+def check_router_components(components):
     """
     Check the components that go inside a router.
 
@@ -2022,7 +2022,7 @@ def check_router_components(components, silence=False):
 
     for i, component in enumerate(components):
         log.debug("Checking router component item {} ..".format(i))
-        check_router_component(component, silence)
+        check_router_component(component)
 
 
 def check_connection(connection):
@@ -2064,7 +2064,7 @@ def check_connection(connection):
         raise InvalidConfigException("logic error")
 
 
-def check_connections(connections, silence=False):
+def check_connections(connections):
     """
     Connections can be present in controller, router and container processes.
     """
@@ -2076,13 +2076,13 @@ def check_connections(connections, silence=False):
         check_connection(connection)
 
 
-def check_transports(transports, silence=False):
+def check_transports(transports):
     """
     Transports can only be present in router workers.
     """
 
 
-def check_router(router, silence=False):
+def check_router(router):
     """
     Checks a router worker configuration.
 
@@ -2112,7 +2112,7 @@ def check_router(router, silence=False):
 
     for i, realm in enumerate(realms):
         log.debug("Checking realm item {} ..".format(i))
-        check_router_realm(realm, silence)
+        check_router_realm(realm)
 
     # transports
     #
@@ -2122,20 +2122,20 @@ def check_router(router, silence=False):
 
     for i, transport in enumerate(transports):
         log.debug("Checking transport item {} ..".format(i))
-        check_router_transport(transport, silence)
+        check_router_transport(transport)
 
     # connections
     #
     connections = router.get('connections', [])
-    check_connections(connections, silence=silence)
+    check_connections(connections)
 
     # components
     #
     components = router.get('components', [])
-    check_router_components(components, silence=silence)
+    check_router_components(components)
 
 
-def check_container(container, silence=False):
+def check_container(container):
     """
     Checks a container worker configuration.
 
@@ -2159,12 +2159,12 @@ def check_container(container, silence=False):
     # connections
     #
     connections = container.get('connections', [])
-    check_connections(connections, silence=silence)
+    check_connections(connections)
 
     # components
     #
     components = container.get('components', [])
-    check_container_components(components, silence=silence)
+    check_container_components(components)
 
 
 def check_router_options(options):
@@ -2179,7 +2179,7 @@ def check_websocket_testee_options(options):
     check_native_worker_options(options)
 
 
-def check_manhole(manhole, silence=False):
+def check_manhole(manhole):
     """
     Check a process manhole configuration.
 
@@ -2223,7 +2223,7 @@ def check_manhole(manhole, silence=False):
             raise InvalidConfigException("missing mandatory attribute 'password' in Manhole user item\n\n{}".format(pformat(user)))
 
 
-def check_process_env(env, silence=False):
+def check_process_env(env):
     """
     Check a worker process environment configuration.
 
@@ -2263,7 +2263,7 @@ def check_process_env(env, silence=False):
                 raise InvalidConfigException("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
 
 
-def check_native_worker_options(options, silence=False):
+def check_native_worker_options(options):
     """
     Check native worker options.
 
@@ -2316,7 +2316,7 @@ def check_native_worker_options(options, silence=False):
         check_process_env(options['env'])
 
 
-def check_guest(guest, silence=False):
+def check_guest(guest):
     """
     Check a guest worker configuration.
 
@@ -2382,7 +2382,7 @@ def check_guest(guest, silence=False):
             check_process_env(options['env'])
 
 
-def check_websocket_testee(worker, silence=False):
+def check_websocket_testee(worker):
     """
     Checks a WebSocket testee worker configuration.
 
@@ -2402,7 +2402,7 @@ def check_websocket_testee(worker, silence=False):
     check_listening_transport_websocket(worker['transport'])
 
 
-def check_worker(worker, silence=False):
+def check_worker(worker):
     """
     Check a node worker configuration item.
 
@@ -2424,22 +2424,22 @@ def check_worker(worker, silence=False):
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item\n\n{}".format(ptype, pformat(worker)))
 
     if ptype == 'router':
-        check_router(worker, silence)
+        check_router(worker)
 
     elif ptype == 'container':
-        check_container(worker, silence)
+        check_container(worker)
 
     elif ptype == 'guest':
-        check_guest(worker, silence)
+        check_guest(worker)
 
     elif ptype == 'websocket-testee':
-        check_websocket_testee(worker, silence)
+        check_websocket_testee(worker)
 
     else:
         raise InvalidConfigException("logic error")
 
 
-def check_controller_options(options, silence=False):
+def check_controller_options(options):
     """
     Check controller options.
 
@@ -2467,7 +2467,7 @@ def check_controller_options(options, silence=False):
                 raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
 
 
-def check_controller(controller, silence=False):
+def check_controller(controller):
     """
     Check a node controller configuration item.
 
@@ -2502,12 +2502,12 @@ def check_controller(controller, silence=False):
     # connections
     #
     connections = controller.get('connections', [])
-    check_connections(connections, silence=silence)
+    check_connections(connections)
 
     return mode
 
 
-def check_cdc(config, silence=False):
+def check_cdc(config):
     """
     Check a node CDC configuration item.
 
@@ -2528,7 +2528,7 @@ def check_cdc(config, silence=False):
         check_connecting_transport(config['transport'])
 
 
-def check_config(config, silence=False):
+def check_config(config):
     """
     Check a Crossbar.io top-level configuration.
 
@@ -2566,10 +2566,10 @@ def check_config(config, silence=False):
 
     for i, worker in enumerate(workers):
         log.debug("Checking worker item {} ..".format(i))
-        check_worker(worker, silence)
+        check_worker(worker)
 
 
-def check_config_file(configfile, silence=False):
+def check_config_file(configfile):
     """
     Check a Crossbar.io local configuration file.
 
@@ -2591,7 +2591,7 @@ def check_config_file(configfile, silence=False):
             except ValueError as e:
                 raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}')".format(e))
 
-    check_config(config, silence)
+    check_config(config)
 
     return config
 

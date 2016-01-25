@@ -246,6 +246,7 @@ def run_command_version(options, reactor=None, **kwargs):
 
     # JSON Serializer
     #
+    supported_serializers = ['JSON']
     from autobahn.wamp.serializer import JsonObjectSerializer
     s = str(JsonObjectSerializer.JSON_MODULE)
     if 'ujson' in s:
@@ -258,6 +259,7 @@ def run_command_version(options, reactor=None, **kwargs):
     try:
         import msgpack  # noqa
         msgpack_ver = 'msgpack-python-%s' % pkg_resources.require('msgpack-python')[0].version
+        supported_serializers.append('MessagePack')
     except ImportError:
         msgpack_ver = '-'
 
@@ -266,8 +268,18 @@ def run_command_version(options, reactor=None, **kwargs):
     try:
         import cbor  # noqa
         cbor_ver = 'cbor-%s' % pkg_resources.require('cbor')[0].version
+        supported_serializers.append('CBOR')
     except ImportError:
         cbor_ver = '-'
+
+    # LMDB
+    #
+    try:
+        import lmdb  # noqa
+        lmdb_lib_ver = '.'.join([str(x) for x in lmdb.version()])
+        lmdb_ver = 'lmdb-{}/{}'.format(pkg_resources.require('lmdb')[0].version, lmdb_lib_ver)
+    except ImportError:
+        lmdb_ver = '-'
 
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
@@ -278,7 +290,7 @@ def run_command_version(options, reactor=None, **kwargs):
     pad = " " * 22
 
     log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
-    log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
+    log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
     if verbose:
         log.info("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
@@ -290,6 +302,7 @@ def run_command_version(options, reactor=None, **kwargs):
         log.info("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
+    log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
     log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
@@ -876,6 +889,11 @@ def run(prog=None, args=None, reactor=None):
         options.argv = [prog] + args
     else:
         options.argv = sys.argv
+
+    # coloured logging does not work on Windows, so overwrite it!
+    #
+    if sys.platform == 'win32':
+        options.colour = False
 
     # Crossbar.io node directory
     #

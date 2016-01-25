@@ -33,6 +33,7 @@ __all__ = ('WildcardMatcher', 'WildcardTrieMatcher')
 
 
 class _Node(dict):
+
     __slots__ = 'value',
 
 
@@ -40,12 +41,14 @@ class WildcardTrieMatcher(object):
 
     def __init__(self):
         self._root = _Node()
+        self._values = set()
 
     def __setitem__(self, key, value):
         node = self._root
         for sym in key.split('.'):
             node = node.setdefault(sym, _Node())
         node.value = value
+        self._values.add(value)
 
     def __getitem__(self, key):
         node = self._root
@@ -63,6 +66,7 @@ class WildcardTrieMatcher(object):
             for k in key.split('.'):
                 lst.append((node, k))
                 node = node[k]
+            self._values.discard(node.value)
             del node.value
         except (KeyError, AttributeError):
             raise KeyError(key)
@@ -79,6 +83,9 @@ class WildcardTrieMatcher(object):
             return True
         except KeyError:
             return False
+
+    def values(self):
+        return list(self._values)
 
     def get(self, key, default=None):
         try:
@@ -150,6 +157,9 @@ class WildcardMatcher(object):
 
     def __contains__(self, key):
         return key in self._wildcard
+
+    def values(self):
+        return self._wildcard.values()
 
     def get(self, key, default=None):
         return self._wildcard.get(key, default)

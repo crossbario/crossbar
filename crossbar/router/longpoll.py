@@ -36,6 +36,8 @@ import binascii
 
 from collections import deque
 
+import six
+
 from twisted.python import log
 from twisted.web.resource import Resource, NoResource
 
@@ -49,6 +51,8 @@ from autobahn.wamp.websocket import parseSubprotocolIdentifier
 
 from autobahn.wamp.exception import SerializationError, \
     TransportLost
+
+from crossbar._logging import make_logger
 
 __all__ = (
     'WampLongPollResource',
@@ -93,13 +97,15 @@ class WampLongPollResourceSessionSend(Resource):
             request.setResponseCode(http.NO_CONTENT)
             self._parent._parent._setStandardHeaders(request)
             self._parent._isalive = True
-            return ""
+            return b""
 
 
 class WampLongPollResourceSessionReceive(Resource):
     """
     A Web resource for receiving via XHR that is part of :class:`autobahn.twisted.longpoll.WampLongPollResourceSession`.
     """
+
+    log = make_logger()
 
     def __init__(self, parent):
         """
@@ -156,7 +162,10 @@ class WampLongPollResourceSessionReceive(Resource):
             else:
                 # in unbatched mode, only write 1 pending message
                 msg = self._queue.popleft()
-                self._request.write(msg)
+                if type(msg) == six.binary_type:
+                    self._request.write(msg)
+                else:
+                    self.log.error("internal error: cannot write data of type {} - {}".format(type(msg), msg))
 
             self._request.finish()
             self._request = None
@@ -173,7 +182,10 @@ class WampLongPollResourceSessionReceive(Resource):
         self._request = request
 
         self._parent._parent._setStandardHeaders(request)
-        request.setHeader('content-type', self._parent._serializer.MIME_TYPE)
+        mime_type = self._parent._serializer.MIME_TYPE
+        if type(mime_type) == six.text_type:
+            mime_type = mime_type.encode('utf8')
+        request.setHeader(b'content-type', mime_type)
 
         def cancel(_):
             if self._debug:
@@ -258,9 +270,9 @@ class WampLongPollResourceSession(Resource):
         self._receive = WampLongPollResourceSessionReceive(self)
         self._close = WampLongPollResourceSessionClose(self)
 
-        self.putChild("send", self._send)
-        self.putChild("receive", self._receive)
-        self.putChild("close", self._close)
+        self.putChild(b"send", self._send)
+        self.putChild(b"receive", self._receive)
+        self.putChild(b"close", self._close)
 
         self._isalive = False
 
@@ -406,14 +418,14 @@ class WampLongPollResourceOpen(Resource):
         if type(options) != dict:
             return self._parent._failRequest(request, "invalid type for WAMP session open request [was {0}, expected dictionary]".format(type(options)))
 
-        if 'protocols' not in options:
+        if u'protocols' not in options:
             return self._parent._failRequest(request, "missing attribute 'protocols' in WAMP session open request")
 
         # determine the protocol to speak
         #
         protocol = None
         serializer = None
-        for p in options['protocols']:
+        for p in options[u'protocols']:
             version, serializerId = parseSubprotocolIdentifier(p)
             if version == 2 and serializerId in self._parent._serializers.keys():
                 serializer = self._parent._serializers[serializerId]
@@ -440,12 +452,12 @@ class WampLongPollResourceOpen(Resource):
             http_headers_received[key].extend(values)
 
         transport_details = {
-            'transport': transport,
-            'serializer': serializer,
-            'protocol': protocol,
-            'peer': request.getClientIP(),
-            'http_headers_received': http_headers_received,
-            'http_headers_sent': None
+            u'transport': transport,
+            u'serializer': serializer,
+            u'protocol': protocol,
+            u'peer': request.getClientIP(),
+            u'http_headers_received': http_headers_received,
+            u'http_headers_sent': None
         }
 
         # create instance of WampLongPollResourceSession or subclass thereof ..
@@ -455,11 +467,11 @@ class WampLongPollResourceOpen(Resource):
         # create response
         #
         self._parent._setStandardHeaders(request)
-        request.setHeader('content-type', 'application/json; charset=utf-8')
+        request.setHeader(b'content-type', b'application/json; charset=utf-8')
 
         result = {
-            'transport': transport,
-            'protocol': protocol
+            u'transport': transport,
+            u'protocol': protocol
         }
 
         payload = json.dumps(result)
@@ -572,14 +584,14 @@ class WampLongPollResource(Resource):
 
         # <Base URL>/open
         #
-        self.putChild("open", WampLongPollResourceOpen(self))
+        self.putChild(b"open", WampLongPollResourceOpen(self))
 
         if self._debug:
             log.msg("WampLongPollResource initialized")
 
     def render_GET(self, request):
-        request.setHeader('content-type', 'text/html; charset=UTF-8')
-        peer = "{0}:{1}".format(request.client.host, request.client.port)
+        request.setHeader(b'content-type', b'text/html; charset=UTF-8')
+        peer = b"{0}:{1}".format(request.client.host, request.client.port)
         return self.getNotice(peer=peer)
 
     def getChild(self, name, request):
@@ -592,9 +604,12 @@ class WampLongPollResource(Resource):
            * :class:`zipfile.ZipFile`
         """
         if name not in self._transports:
-            return NoResource("no WAMP transport '{0}'".format(name))
+            if name == b'':
+                return self
+            else:
+                return NoResource("no WAMP transport '{0}'".format(name))
 
-        if len(request.postpath) != 1 or request.postpath[0] not in ['send', 'receive', 'close']:
+        if len(request.postpath) != 1 or request.postpath[0] not in [b'send', b'receive', b'close']:
             return NoResource("invalid WAMP transport operation '{0}'".format(request.postpath))
 
         return self._transports[name]
@@ -603,23 +618,23 @@ class WampLongPollResource(Resource):
         """
         Set standard HTTP response headers.
         """
-        origin = request.getHeader("origin")
-        if origin is None or origin == "null":
-            origin = "*"
-        request.setHeader('access-control-allow-origin', origin)
-        request.setHeader('access-control-allow-credentials', 'true')
-        request.setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+        origin = request.getHeader(b"origin")
+        if origin is None or origin == b"null":
+            origin = b"*"
+        request.setHeader(b'access-control-allow-origin', origin)
+        request.setHeader(b'access-control-allow-credentials', b'true')
+        request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
 
-        headers = request.getHeader('access-control-request-headers')
+        headers = request.getHeader(b'access-control-request-headers')
         if headers is not None:
-            request.setHeader('access-control-allow-headers', headers)
+            request.setHeader(b'access-control-allow-headers', headers)
 
     def _failRequest(self, request, msg):
         """
         Fails a request to the long-poll service.
         """
         self._setStandardHeaders(request)
-        request.setHeader('content-type', 'text/plain; charset=UTF-8')
+        request.setHeader(b'content-type', b'text/plain; charset=UTF-8')
         request.setResponseCode(http.BAD_REQUEST)
         return msg
 
@@ -636,10 +651,10 @@ class WampLongPollResource(Resource):
         from autobahn import __version__
 
         if redirectUrl:
-            redirect = """<meta http-equiv="refresh" content="%d;URL='%s'">""" % (redirectAfter, redirectUrl)
+            redirect = b"""<meta http-equiv="refresh" content="%d;URL='%s'">""" % (redirectAfter, redirectUrl)
         else:
-            redirect = ""
-        html = """
+            redirect = b""
+        html = b"""
 <!DOCTYPE html>
 <html>
    <head>
