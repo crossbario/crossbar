@@ -19,8 +19,9 @@ env:
   - TOX_ENV=py34-twcurrent-abtrunk
   #- TOX_ENV=py34-twcurrent-abcurrent
 
-  - TOX_ENV=pypy-twtrunk-abtrunk
-  - TOX_ENV=pypy-twcurrent-abtrunk
+  # Travis needs to update it's PyPy
+  #- TOX_ENV=pypy-twtrunk-abtrunk
+  #- TOX_ENV=pypy-twcurrent-abtrunk
   #- TOX_ENV=pypy-twcurrent-abcurrent
 
 script:
