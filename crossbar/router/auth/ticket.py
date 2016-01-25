@@ -116,7 +116,8 @@ class PendingAuthTicket(PendingAuth):
                 return types.Deny(message=u"ticket in static WAMP-Ticket authentication is invalid")
 
         # WAMP-Ticket "dynamic"
-        else:
+        elif self._authprovider == u'dynamic':
+
             self._session_details[u'ticket'] = signature
             d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
@@ -138,3 +139,7 @@ class PendingAuthTicket(PendingAuth):
             d.addCallbacks(on_authenticate_ok, on_authenticate_error)
 
             return d
+
+        else:
+            # should not arrive here, as config errors should be caught earlier
+            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))

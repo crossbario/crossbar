@@ -59,7 +59,7 @@ class PendingAuthAnonymous(PendingAuth):
         # remember the authid the client wants to identify as (if any)
         self._authid = details.authid
 
-        # use static principal from configuration
+        # WAMP-Ticket "static"
         if self._config[u'type'] == u'static':
 
             self._authprovider = u'static'
@@ -76,16 +76,31 @@ class PendingAuthAnonymous(PendingAuth):
 
             return self._accept()
 
-        # use configured procedure to dynamically get a principal
+        # WAMP-Ticket "dynamic"
         elif self._config[u'type'] == u'dynamic':
 
             self._authprovider = u'dynamic'
+            self._authid = util.generate_serial_number()
 
             error = self._init_dynamic_authenticator()
             if error:
                 return error
 
-            return types.Challenge(self._authmethod)
+            d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
+
+            def on_authenticate_ok(principal):
+                error = self._assign_principal(principal)
+                if error:
+                    return error
+
+                return self._accept()
+
+            def on_authenticate_error(err):
+                return self._marshal_dynamic_authenticator_error(err)
+
+            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+            return d
 
         else:
             # should not arrive here, as config errors should be caught earlier

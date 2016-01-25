@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+import six
+
 from autobahn.wamp import types
 from autobahn.wamp.exception import ApplicationError
 
@@ -90,6 +92,24 @@ class PendingAuth:
         self._authenticator_session = None
 
     def _assign_principal(self, principal):
+        if type(principal) == six.text_type:
+            # FIXME: more strict authrole checking
+            pass
+        elif type(principal) == dict:
+            # FIXME: check principal
+            pass
+        else:
+            error = ApplicationError.AUTHENTICATION_FAILED
+            message = u'got invalid return type "{}" from dynamic authenticator'.format(type(principal))
+            return types.Deny(error, message)
+
+        # backwards compatibility: dynamic authenticator
+        # was expected to return a role directly
+        if type(principal) == six.text_type:
+            principal = {
+                u'role': principal
+            }
+
         # allow to override realm request, redirect realm or set default realm
         if u'realm' in principal:
             self._realm = principal['realm']
