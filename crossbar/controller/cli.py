@@ -41,6 +41,9 @@ import sys
 
 import six
 
+import txaio
+txaio.use_twisted()  # noqa
+
 from twisted.python.reflect import qual
 
 from autobahn.twisted.choosereactor import install_reactor
@@ -195,10 +198,9 @@ def run_command_version(options, reactor=None, **kwargs):
     Subcommand "crossbar version".
     """
     log = make_logger()
-    verbose = False
+    verbose = True
 
     # Python
-    #
     py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
     py_ver_string = "[%s]" % sys.version.replace('\n', ' ')
 
@@ -208,18 +210,18 @@ def run_command_version(options, reactor=None, **kwargs):
         py_ver_detail = platform.python_implementation()
 
     # Twisted / Reactor
-    #
     tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
     tx_loc = "[%s]" % qual(reactor.__class__)
 
+    # txaio
+    txaio_ver = 'txaio-%s' % pkg_resources.require("txaio")[0].version
+
     # Autobahn
-    #
     from autobahn.websocket.protocol import WebSocketProtocol
     ab_ver = pkg_resources.require("autobahn")[0].version
     ab_loc = "[%s]" % qual(WebSocketProtocol)
 
     # UTF8 Validator
-    #
     from autobahn.websocket.utf8validator import Utf8Validator
     s = qual(Utf8Validator)
     if 'wsaccel' in s:
@@ -232,7 +234,6 @@ def run_command_version(options, reactor=None, **kwargs):
     utf8_loc = "[%s]" % qual(Utf8Validator)
 
     # XOR Masker
-    #
     from autobahn.websocket.xormasker import XorMaskerNull
     s = qual(XorMaskerNull)
     if 'wsaccel' in s:
@@ -245,7 +246,6 @@ def run_command_version(options, reactor=None, **kwargs):
     xor_loc = "[%s]" % qual(XorMaskerNull)
 
     # JSON Serializer
-    #
     supported_serializers = ['JSON']
     from autobahn.wamp.serializer import JsonObjectSerializer
     s = str(JsonObjectSerializer.JSON_MODULE)
@@ -255,7 +255,6 @@ def run_command_version(options, reactor=None, **kwargs):
         json_ver = 'stdlib'
 
     # MsgPack Serializer
-    #
     try:
         import msgpack  # noqa
         msgpack_ver = 'msgpack-python-%s' % pkg_resources.require('msgpack-python')[0].version
@@ -264,7 +263,6 @@ def run_command_version(options, reactor=None, **kwargs):
         msgpack_ver = '-'
 
     # CBOR Serializer
-    #
     try:
         import cbor  # noqa
         cbor_ver = 'cbor-%s' % pkg_resources.require('cbor')[0].version
@@ -273,11 +271,10 @@ def run_command_version(options, reactor=None, **kwargs):
         cbor_ver = '-'
 
     # LMDB
-    #
     try:
         import lmdb  # noqa
         lmdb_lib_ver = '.'.join([str(x) for x in lmdb.version()])
-        lmdb_ver = 'lmdb-{}/{}'.format(pkg_resources.require('lmdb')[0].version, lmdb_lib_ver)
+        lmdb_ver = '{}/lmdb-{}'.format(pkg_resources.require('lmdb')[0].version, lmdb_lib_ver)
     except ImportError:
         lmdb_ver = '-'
 
@@ -291,20 +288,20 @@ def run_command_version(options, reactor=None, **kwargs):
 
     log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
     log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
-    log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
-    if verbose:
-        log.info("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
-        log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(utf8_loc))
-        log.info("     XOR Masker     : {ver}", ver=decorate(xor_ver))
-        log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
-        log.info("     JSON Codec     : {ver}", ver=decorate(json_ver))
-        log.info("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
-        log.info("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
+    log.debug("     txaio          : {ver}", ver=decorate(txaio_ver))
+    log.debug("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(utf8_loc))
+    log.debug("     XOR Masker     : {ver}", ver=decorate(xor_ver))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
+    log.debug("     JSON Codec     : {ver}", ver=decorate(json_ver))
+    log.debug("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
+    log.debug("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
-    log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
-    log.debug("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
     log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
     log.info("")
