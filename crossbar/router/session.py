@@ -411,7 +411,7 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-                raise ProtocolError("Received {0} message, and session is not yet established".format(msg.__class__))
+                raise ProtocolError(u"Received {0} message, and session is not yet established".format(msg.__class__))
 
         else:
 
@@ -578,7 +578,7 @@ class RouterSession(BaseSession):
                         authid = self._transport._cbtid
                     else:
                         # if no cookie tracking, generate a random value for authid
-                        authid = util.newid(24)
+                        authid = util.generate_serial_number()
 
                     return types.Accept(realm=realm,
                                         authid=authid,
@@ -605,47 +605,11 @@ class RouterSession(BaseSession):
                             self.log.debug("client requested valid, but unavailable authentication method {authmethod}", authmethod=authmethod)
                             continue
 
-                        # WAMP-Ticket, WAMP-CRA, WAMP-TLS, WAMP-Cryptosign
-                        if authmethod in [u'ticket', u'wampcra', u'tls', u'cryptosign']:
+                        # WAMP-Anonymous, WAMP-Ticket, WAMP-CRA, WAMP-TLS, WAMP-Cryptosign
+                        if authmethod in [u'anonymous', u'ticket', u'wampcra', u'tls', u'cryptosign']:
                             PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                             self._pending_auth = PendingAuthKlass(self, auth_config[authmethod])
                             return self._pending_auth.hello(realm, details)
-
-                        # WAMP-Anonymous authentication
-                        elif authmethod == u'anonymous':
-                            cfg = self._transport_config['auth']['anonymous']
-
-                            # authrole mapping
-                            authrole = cfg.get('role', 'anonymous')
-
-                            # check if role exists on realm anyway
-                            if not self._router_factory[realm].has_role(authrole):
-                                return types.Deny(ApplicationError.NO_SUCH_ROLE, message="authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
-
-                            # authid generation
-                            if self._transport._cbtid:
-                                # if cookie tracking is enabled, set authid to cookie value
-                                authid = self._transport._cbtid
-                            else:
-                                # if no cookie tracking, generate a random value for authid
-                                authid = util.newid(24)
-
-                            authprovider = u'static'
-                            authextra = None
-
-                            # FIXME: not sure about this .. "anonymous" is a transport-level auth mechanism .. so forward
-                            self._transport._authid = authid
-                            self._transport._authrole = authrole
-                            self._transport._authmethod = authmethod
-                            self._transport._authprovider = authmethod
-                            self._transport._authextra = authmethod
-
-                            return types.Accept(realm=realm,
-                                                authid=authid,
-                                                authrole=authrole,
-                                                authmethod=authmethod,
-                                                authprovider=authprovider,
-                                                authextra=authextra)
 
                         # WAMP-Cookie authentication
                         elif authmethod == u'cookie':
@@ -654,7 +618,7 @@ class RouterSession(BaseSession):
                             # a different auth method (if it had been, we would never have entered here, since then
                             # auth info would already have been extracted from the transport)
                             # consequently, we skip this auth method and move on to next auth method.
-                            pass
+                            continue
 
                         else:
                             # should not arrive here
@@ -665,7 +629,7 @@ class RouterSession(BaseSession):
 
         except Exception as e:
             traceback.print_exc()
-            return types.Deny(message="internal error: {}".format(e))
+            return types.Deny(message=u'internal error: {}'.format(e))
 
     def onAuthenticate(self, signature, extra):
         """

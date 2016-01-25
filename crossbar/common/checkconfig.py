@@ -445,9 +445,25 @@ def check_transport_auth_anonymous(config):
     http://crossbar.io/docs/Anonymous-Authentication
     https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/auth/Anonymous-Authentication.md
     """
-    check_dict_args({
-        'role': (False, [six.text_type]),
-    }, config, "WAMP-Anonymous configuration")
+    if 'type' not in config:
+        raise InvalidConfigException("missing mandatory attribute 'type' in WAMP-Anonymous configuration")
+
+    if config['type'] not in ['static', 'dynamic']:
+        raise InvalidConfigException("invalid type '{}' in WAMP-Anonymous configuration - must be one of 'static', 'dynamic'".format(config['type']))
+
+    if config['type'] == 'static':
+        check_dict_args({
+            'type': (True, [six.text_type]),
+            'role': (False, [six.text_type]),
+        }, config, "WAMP-Anonymous configuration")
+
+    elif config['type'] == 'dynamic':
+        if 'authenticator' not in config:
+            raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-Anonymous configuration")
+        check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-Anonymous configuration".format(config['authenticator']))
+
+    else:
+        raise InvalidConfigException("logic error")
 
 
 def check_transport_auth(auth):
