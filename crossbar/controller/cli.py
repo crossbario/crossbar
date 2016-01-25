@@ -419,6 +419,7 @@ def _startlog(options, reactor):
 
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
+    colour = getattr(options, "colour", "ifavailable")
 
     set_global_log_level(loglevel)
 
@@ -447,29 +448,45 @@ def _startlog(options, reactor):
         from crossbar._logging import make_stdout_observer
         from crossbar._logging import make_stderr_observer
 
+        if colour == "ifavailable":
+            if sys.__stdout__.isatty():
+                colour = True
+            else:
+                colour = False
+        elif colour == "True":
+            colour = True
+        else:
+            colour = False
+
         if loglevel == "none":
             # Do no logging!
             pass
         elif loglevel in ["error", "warn", "info"]:
             # Print info to stdout, warn+ to stderr
             observers.append(make_stdout_observer(show_source=False,
-                                                  format=logformat))
+                                                  format=logformat,
+                                                  colour=colour))
             observers.append(make_stderr_observer(show_source=False,
-                                                  format=logformat))
+                                                  format=logformat,
+                                                  colour=colour))
         elif loglevel == "debug":
             # Print debug+info to stdout, warn+ to stderr, with the class
             # source
             observers.append(make_stdout_observer(show_source=True,
-                                                  format=logformat))
+                                                  format=logformat,
+                                                  colour=colour))
             observers.append(make_stderr_observer(show_source=True,
-                                                  format=logformat))
+                                                  format=logformat,
+                                                  colour=colour))
         elif loglevel == "trace":
             # Print trace+, with the class source
             observers.append(make_stdout_observer(show_source=True,
                                                   format=logformat,
-                                                  trace=True))
+                                                  trace=True,
+                                                  colour=colour))
             observers.append(make_stderr_observer(show_source=True,
-                                                  format=logformat))
+                                                  format=logformat,
+                                                  colour=colour))
         else:
             assert False, "Shouldn't ever get here."
 
@@ -664,13 +681,19 @@ def run(prog=None, args=None, reactor=None):
     """
     Entry point of Crossbar.io CLI.
     """
-
     loglevel_args = {
         "type": str,
         "default": 'info',
         "choices": ['none', 'error', 'warn', 'info', 'debug', 'trace'],
         "help": ("How much Crossbar.io should log to the terminal, in order "
                  "of verbosity.")
+    }
+
+    colour_args = {
+        "type": str,
+        "default": "ifavailable",
+        "choices": ["True", "False", "ifavailable"],
+        "help": "If logging should be coloured."
     }
 
     # create the top-level parser
@@ -699,6 +722,8 @@ def run(prog=None, args=None, reactor=None):
 
     parser_version.add_argument('--loglevel',
                                 **loglevel_args)
+    parser_version.add_argument('--colour',
+                                **colour_args)
 
     parser_version.set_defaults(func=run_command_version)
 
@@ -760,11 +785,15 @@ def run(prog=None, args=None, reactor=None):
     parser_start.add_argument('--loglevel',
                               **loglevel_args)
 
+    parser_start.add_argument('--colour',
+                              **colour_args)
+
     parser_start.add_argument('--logformat',
                               type=six.text_type,
-                              default='colour',
-                              choices=['syslogd', 'nocolour', 'colour'],
+                              default='standard',
+                              choices=['syslogd', 'standard', 'none'],
                               help="The format of the logs -- suitable for syslogd, not coloured, or coloured.")
+
 
     # "stop" command
     #
@@ -809,6 +838,8 @@ def run(prog=None, args=None, reactor=None):
 
     parser_check.add_argument('--loglevel',
                               **loglevel_args)
+    parser_check.add_argument('--colour',
+                              **colour_args)
     parser_check.set_defaults(func=run_command_check)
 
     parser_check.add_argument('--cbdir',
