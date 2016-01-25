@@ -51,7 +51,12 @@ from autobahn.wamp.interfaces import ITransportHandler
 from crossbar._logging import make_logger
 from crossbar.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
-from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP, PendingAuthCryptosign
+from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
+
+try:
+    from crossbar.router.auth import PendingAuthCryptosign
+except ImportError:
+    PendingAuthCryptosign = None
 
 
 __all__ = ('RouterSessionFactory',)

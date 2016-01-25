@@ -365,14 +365,14 @@ class StdoutObserverTests(TestCase):
         result = stream.getvalue()
         self.assertIn(u"[foo]", result)
 
-    def test_output_nocolour(self):
+    def test_output_standard(self):
         """
         The output format is the time, the system in square brackets, and the
         message.
         """
         stream = NativeStringIO()
         observer = _logging.make_stdout_observer(_file=stream,
-                                                 format="nocolour")
+                                                 format="standard")
         event = {'log_level': LogLevel.info,
                  'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
                  'log_source': None, 'log_format': 'Hi there!',
