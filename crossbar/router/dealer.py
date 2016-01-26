@@ -398,6 +398,7 @@ class Dealer(object):
                             # pick the callee with the least number of pending calls
                             d = Counter(busylist)
                             s = sorted(d, key=d.get)
+                            # print ('{}'.format([v for k,v in d.items()]))
                             callee = s[0]
                     else:
                         # should not arrive here
