@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import random
+from collections import Counter
 
 from autobahn import util
 from autobahn.wamp import role
@@ -388,12 +389,16 @@ class Dealer(object):
                         callee = registration.observers[random.randint(0, len(registration.observers) - 1)]
 
                     elif registration.extra.invoke == message.Register.INVOKE_BALANCE:
-                        nonbusy = set(registration.observers) - set([v.callee for k, v in self._invocations.items()])
+                        busylist = [v.callee for k, v in self._invocations.items()]
+                        nonbusylist = set(registration.observers) - set(busylist)
                         # choose randomly from non busy observers to balance in a low traffic scenarios as well
-                        if len(nonbusy) > 0:
-                            callee = random.choice(list(nonbusy))
+                        if len(nonbusylist) > 0:
+                            callee = random.choice(list(nonbusylist))
                         else:
-                            callee = random.choice(registration.observers)
+                            # pick the callee with the least number of pending calls
+                            d = Counter(busylist)
+                            s = sorted(d, key=d.get)
+                            callee = s[0]
                     else:
                         # should not arrive here
                         raise Exception(u"logic error")
