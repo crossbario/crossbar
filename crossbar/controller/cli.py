@@ -198,7 +198,7 @@ def run_command_version(options, reactor=None, **kwargs):
     Subcommand "crossbar version".
     """
     log = make_logger()
-    verbose = True
+    # verbose = True
 
     # Python
     py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])

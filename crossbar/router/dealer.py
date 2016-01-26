@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import random
+from collections import Counter
 
 from autobahn import util
 from autobahn.wamp import role
@@ -51,10 +52,11 @@ __all__ = ('Dealer',)
 
 class InvocationRequest(object):
 
-    def __init__(self, id, caller, call):
+    def __init__(self, id, caller, call, callee):
         self.id = id
         self.caller = caller
         self.call = call
+        self.callee = callee
 
 
 class RegistrationExtra(object):
@@ -386,6 +388,18 @@ class Dealer(object):
                     elif registration.extra.invoke == message.Register.INVOKE_RANDOM:
                         callee = registration.observers[random.randint(0, len(registration.observers) - 1)]
 
+                    elif registration.extra.invoke == message.Register.INVOKE_BALANCE:
+                        busylist = [v.callee for k, v in self._invocations.items()]
+                        nonbusylist = set(registration.observers) - set(busylist)
+                        # choose randomly from non busy observers to balance in a low traffic scenarios as well
+                        if len(nonbusylist) > 0:
+                            callee = random.choice(list(nonbusylist))
+                        else:
+                            # pick the callee with the least number of pending calls
+                            d = Counter(busylist)
+                            s = sorted(d, key=d.get)
+                            # print ('{}'.format([v for k,v in d.items()]))
+                            callee = s[0]
                     else:
                         # should not arrive here
                         raise Exception(u"logic error")
@@ -430,7 +444,7 @@ class Dealer(object):
                                                         caller=caller,
                                                         procedure=procedure)
 
-                    self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)
+                    self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call, callee)
                     self._router.send(callee, invocation)
 
             def on_authorize_error(err):
