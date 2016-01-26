@@ -66,7 +66,6 @@ class RegistrationExtra(object):
 
 
 class Dealer(object):
-
     """
     Basic WAMP dealer.
     """
@@ -200,8 +199,7 @@ class Dealer(object):
 
         # authorize action
         #
-        d = txaio.as_future(self._router.authorize, session,
-                            register.procedure, RouterAction.ACTION_REGISTER)
+        d = txaio.as_future(self._router.authorize, session, register.procedure, RouterAction.ACTION_REGISTER)
 
         def on_authorize_success(authorized):
             if not authorized:
@@ -272,21 +270,18 @@ class Dealer(object):
 
             if session in registration.observers:
 
-                was_registered, was_last_callee = self._unregister(
-                    registration, session)
+                was_registered, was_last_callee = self._unregister(registration, session)
 
                 reply = message.Unregistered(unregister.request)
             else:
                 # registration exists on this dealer, but the session that wanted to unregister wasn't registered
                 #
-                reply = message.Error(
-                    message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
+                reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
 
         else:
             # registration doesn't even exist on this broker
             #
-            reply = message.Error(
-                message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
+            reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
 
         self._router.send(session, reply)
 
@@ -294,8 +289,7 @@ class Dealer(object):
 
         # drop session from registration observers
         #
-        was_registered, was_last_callee = self._registration_map.drop_observer(
-            session, registration)
+        was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
 
         # remove registration from session->registrations map
         #
@@ -324,8 +318,7 @@ class Dealer(object):
         # actively inform the callee that it has been unregistered
         #
         if 'callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].registration_revocation:
-            reply = message.Unregistered(
-                0, registration=registration.id, reason=reason)
+            reply = message.Unregistered(0, registration=registration.id, reason=reason)
             self._router.send(session, reply)
 
         return was_registered, was_last_callee
@@ -348,8 +341,7 @@ class Dealer(object):
 
         # get registrations active on the procedure called
         #
-        registration = self._registration_map.best_matching_observation(
-            call.procedure)
+        registration = self._registration_map.best_matching_observation(call.procedure)
 
         if registration:
 
@@ -357,8 +349,7 @@ class Dealer(object):
             #
             if call.payload is None:
                 try:
-                    self._router.validate(
-                        'call', call.procedure, call.args, call.kwargs)
+                    self._router.validate('call', call.procedure, call.args, call.kwargs)
                 except Exception as e:
                     reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
                     self._router.send(session, reply)
@@ -366,8 +357,7 @@ class Dealer(object):
 
             # authorize CALL action
             #
-            d = txaio.as_future(
-                self._router.authorize, session, call.procedure, RouterAction.ACTION_CALL)
+            d = txaio.as_future(self._router.authorize, session, call.procedure, RouterAction.ACTION_CALL)
 
             def on_authorize_success(authorized):
 
@@ -392,17 +382,14 @@ class Dealer(object):
                         callee = registration.observers[len(registration.observers) - 1]
 
                     elif registration.extra.invoke == message.Register.INVOKE_ROUNDROBIN:
-                        callee = registration.observers[
-                            registration.extra.roundrobin_current % len(registration.observers)]
+                        callee = registration.observers[registration.extra.roundrobin_current % len(registration.observers)]
                         registration.extra.roundrobin_current += 1
 
                     elif registration.extra.invoke == message.Register.INVOKE_RANDOM:
-                        callee = registration.observers[
-                            random.randint(0, len(registration.observers) - 1)]
+                        callee = registration.observers[random.randint(0, len(registration.observers) - 1)]
 
                     elif registration.extra.invoke == message.Register.INVOKE_BALANCE:
-                        nonbusy = set(
-                            registration.observers) - set([v.callee for k, v in self._invocations.items()])
+                        nonbusy = set(registration.observers) - set([v.callee for k, v in self._invocations.items()])
                         # choose randomly from non busy observers to balance in a low traffic scenarios as well
                         if len(nonbusy) > 0:
                             callee = random.choice(list(nonbusy))
@@ -501,15 +488,15 @@ class Dealer(object):
             if yield_.payload is None:
                 # validate normal args/kwargs payload
                 try:
-                    self._router.validate(
-                        'call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
+                    self._router.validate('call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
                 except Exception as e:
                     is_valid = False
                     reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
                 else:
                     reply = message.Result(invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
             else:
-                reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress, enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
+                reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress, 
+                                       enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
 
             # the calling session might have been lost in the meantime ..
             #
@@ -522,8 +509,7 @@ class Dealer(object):
                 del self._invocations[yield_.request]
 
         else:
-            raise ProtocolError(
-                u"Dealer.onYield(): YIELD received for non-pending request ID {0}".format(yield_.request))
+            raise ProtocolError(u"Dealer.onYield(): YIELD received for non-pending request ID {0}".format(yield_.request))
 
     def processInvocationError(self, session, error):
         """
@@ -540,8 +526,7 @@ class Dealer(object):
             if error.payload is None:
                 # validate normal args/kwargs payload
                 try:
-                    self._router.validate(
-                        'call_error', invocation_request.call.procedure, error.args, error.kwargs)
+                    self._router.validate('call_error', invocation_request.call.procedure, error.args, error.kwargs)
                 except Exception as e:
                     reply = message.Error(message.Call.MESSAGE_TYPE,
                                           invocation_request.call.request,
@@ -572,5 +557,4 @@ class Dealer(object):
             del self._invocations[error.request]
 
         else:
-            raise ProtocolError(
-                u"Dealer.onInvocationError(): ERROR received for non-pending request_type {0} and request ID {1}".format(error.request_type, error.request))
+            raise ProtocolError(u"Dealer.onInvocationError(): ERROR received for non-pending request_type {0} and request ID {1}".format(error.request_type, error.request))
