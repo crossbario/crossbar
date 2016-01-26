@@ -1,4 +1,4 @@
-##########################################################################
+#####################################################################################
 #
 #  Copyright (C) Tavendo GmbH
 #
@@ -26,7 +26,7 @@
 #  You should have received a copy of the GNU Affero General Public license along
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
-##########################################################################
+#####################################################################################
 
 from __future__ import absolute_import
 
@@ -117,8 +117,7 @@ class Dealer(object):
         if session not in self._session_to_registrations:
             self._session_to_registrations[session] = set()
         else:
-            raise Exception(
-                "session with ID {} already attached".format(session._session_id))
+            raise Exception("session with ID {} already attached".format(session._session_id))
 
     def detach(self, session):
         """
@@ -128,8 +127,7 @@ class Dealer(object):
 
             for registration in self._session_to_registrations[session]:
 
-                was_registered, was_last_callee = self._registration_map.drop_observer(
-                    session, registration)
+                was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
 
                 # publish WAMP meta events
                 #
@@ -137,17 +135,14 @@ class Dealer(object):
                     service_session = self._router._realm.session
                     if service_session and not registration.uri.startswith(u'wamp.'):
                         if was_registered:
-                            service_session.publish(
-                                u'wamp.registration.on_unregister', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
                         if was_last_callee:
-                            service_session.publish(
-                                u'wamp.registration.on_delete', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
 
             del self._session_to_registrations[session]
 
         else:
-            raise Exception(
-                u"session with ID {} not attached".format(session._session_id))
+            raise Exception(u"session with ID {} not attached".format(session._session_id))
 
     def processRegister(self, session, register):
         """
@@ -160,18 +155,15 @@ class Dealer(object):
             if register.match == u"wildcard":
                 uri_is_valid = _URI_PAT_STRICT_EMPTY.match(register.procedure)
             else:
-                uri_is_valid = _URI_PAT_STRICT_NON_EMPTY.match(
-                    register.procedure)
+                uri_is_valid = _URI_PAT_STRICT_NON_EMPTY.match(register.procedure)
         else:
             if register.match == u"wildcard":
                 uri_is_valid = _URI_PAT_LOOSE_EMPTY.match(register.procedure)
             else:
-                uri_is_valid = _URI_PAT_LOOSE_NON_EMPTY.match(
-                    register.procedure)
+                uri_is_valid = _URI_PAT_LOOSE_NON_EMPTY.match(register.procedure)
 
         if not uri_is_valid:
-            reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [
-                                  u"register for invalid procedure URI '{0}' (URI strict checking {1})".format(register.procedure, self._option_uri_strict)])
+            reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [u"register for invalid procedure URI '{0}' (URI strict checking {1})".format(register.procedure, self._option_uri_strict)])
             self._router.send(session, reply)
             return
 
@@ -179,26 +171,22 @@ class Dealer(object):
         # trusted sessions (that are sessions built into Crossbar.io)
         #
         if session._authrole is not None and session._authrole != u"trusted":
-            is_restricted = register.procedure.startswith(
-                u"wamp.") or register.procedure.startswith(u"crossbar.")
+            is_restricted = register.procedure.startswith(u"wamp.") or register.procedure.startswith(u"crossbar.")
             if is_restricted:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [
-                                      u"register for restricted procedure URI '{0}')".format(register.procedure)])
+                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [u"register for restricted procedure URI '{0}')".format(register.procedure)])
                 self._router.send(session, reply)
                 return
 
         # get existing registration for procedure / matching strategy - if any
         #
-        registration = self._registration_map.get_observation(
-            register.procedure, register.match)
+        registration = self._registration_map.get_observation(register.procedure, register.match)
         if registration:
 
             # there is an existing registration, and that has an invocation strategy that only allows a single callee
             # on a the given registration
             #
             if registration.extra.invoke == message.Register.INVOKE_SINGLE:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, [
-                                      u"register for already registered procedure '{0}'".format(register.procedure)])
+                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, [u"register for already registered procedure '{0}'".format(register.procedure)])
                 self._router.send(session, reply)
                 return
 
@@ -206,8 +194,7 @@ class Dealer(object):
             # requested by the new callee
             #
             if registration.extra.invoke != register.invoke:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, [
-                                      u"register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra.invoke, register.invoke)])
+                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, [u"register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra.invoke, register.invoke)])
                 self._router.send(session, reply)
                 return
 
@@ -220,15 +207,13 @@ class Dealer(object):
             if not authorized:
                 # error reply since session is not authorized to register
                 #
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, [
-                                      u"session is not authorized to register procedure '{0}'".format(register.procedure)])
+                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to register procedure '{0}'".format(register.procedure)])
 
             else:
                 # ok, session authorized to register. now get the registration
                 #
                 registration_extra = RegistrationExtra(register.invoke)
-                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(
-                    session, register.procedure, register.match, registration_extra)
+                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(session, register.procedure, register.match, registration_extra)
 
                 if not was_already_registered:
                     self._session_to_registrations[session].add(registration)
@@ -246,11 +231,9 @@ class Dealer(object):
                                 'match': registration.match,
                                 'invoke': registration.extra.invoke,
                             }
-                            service_session.publish(
-                                u'wamp.registration.on_create', session._session_id, registration_details)
+                            service_session.publish(u'wamp.registration.on_create', session._session_id, registration_details)
                         if not was_already_registered:
-                            service_session.publish(
-                                u'wamp.registration.on_register', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_register', session._session_id, registration.id)
 
                 # acknowledge register with registration ID
                 #
@@ -271,8 +254,7 @@ class Dealer(object):
                 message.Register.MESSAGE_TYPE,
                 register.request,
                 ApplicationError.AUTHORIZATION_FAILED,
-                [u"failed to authorize session for registering procedure '{0}': {1}".format(
-                    register.procedure, err.value)]
+                [u"failed to authorize session for registering procedure '{0}': {1}".format(register.procedure, err.value)]
             )
             self._router.send(session, reply)
 
@@ -284,8 +266,7 @@ class Dealer(object):
         """
         # get registration by registration ID or None (if it doesn't exist on this broker)
         #
-        registration = self._registration_map.get_observation_by_id(
-            unregister.registration)
+        registration = self._registration_map.get_observation_by_id(unregister.registration)
 
         if registration:
 
@@ -327,11 +308,9 @@ class Dealer(object):
             service_session = self._router._realm.session
             if service_session and not registration.uri.startswith(u'wamp.'):
                 if was_registered:
-                    service_session.publish(
-                        u'wamp.registration.on_unregister', session._session_id, registration.id)
+                    service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
                 if was_last_callee:
-                    service_session.publish(
-                        u'wamp.registration.on_delete', session._session_id, registration.id)
+                    service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
 
         return was_registered, was_last_callee
 
@@ -363,8 +342,7 @@ class Dealer(object):
             uri_is_valid = _URI_PAT_LOOSE_NON_EMPTY.match(call.procedure)
 
         if not uri_is_valid:
-            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_URI, [
-                                  u"call with invalid procedure URI '{0}' (URI strict checking {1})".format(call.procedure, self._option_uri_strict)])
+            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_URI, [u"call with invalid procedure URI '{0}' (URI strict checking {1})".format(call.procedure, self._option_uri_strict)])
             self._router.send(session, reply)
             return
 
@@ -382,8 +360,7 @@ class Dealer(object):
                     self._router.validate(
                         'call', call.procedure, call.args, call.kwargs)
                 except Exception as e:
-                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [
-                                          u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
+                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
                     self._router.send(session, reply)
                     return
 
@@ -398,8 +375,7 @@ class Dealer(object):
                 # the action was actually authorized or not ..
                 #
                 if not authorized:
-                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, [
-                                          u"session is not authorized to call procedure '{0}'".format(call.procedure)])
+                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to call procedure '{0}'".format(call.procedure)])
                     self._router.send(session, reply)
 
                 else:
@@ -413,8 +389,7 @@ class Dealer(object):
                         callee = registration.observers[0]
 
                     elif registration.extra.invoke == message.Register.INVOKE_LAST:
-                        callee = registration.observers[
-                            len(registration.observers) - 1]
+                        callee = registration.observers[len(registration.observers) - 1]
 
                     elif registration.extra.invoke == message.Register.INVOKE_ROUNDROBIN:
                         callee = registration.observers[
@@ -428,13 +403,11 @@ class Dealer(object):
                     elif registration.extra.invoke == message.Register.INVOKE_BALANCE:
                         nonbusy = set(
                             registration.observers) - set([v.callee for k, v in self._invocations.items()])
-                        # choose randomly from non busy observers to balance in
-                        # low traffic scenarios as well
+                        # choose randomly from non busy observers to balance in a low traffic scenarios as well
                         if len(nonbusy) > 0:
                             callee = random.choice(list(nonbusy))
                         else:
                             callee = random.choice(registration.observers)
-
                     else:
                         # should not arrive here
                         raise Exception(u"logic error")
@@ -479,8 +452,7 @@ class Dealer(object):
                                                         caller=caller,
                                                         procedure=procedure)
 
-                    self._invocations[invocation_request_id] = InvocationRequest(
-                        invocation_request_id, session, call, callee)
+                    self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call, callee)
                     self._router.send(callee, invocation)
 
             def on_authorize_error(err):
@@ -494,16 +466,14 @@ class Dealer(object):
                     message.Call.MESSAGE_TYPE,
                     call.request,
                     ApplicationError.AUTHORIZATION_FAILED,
-                    [u"failed to authorize session for calling procedure '{0}': {1}".format(
-                        call.procedure, err.value)]
+                    [u"failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)]
                 )
                 self._router.send(session, reply)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
         else:
-            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, [
-                                  u"no callee registered for procedure <{0}>".format(call.procedure)])
+            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, [u"no callee registered for procedure <{0}>".format(call.procedure)])
             self._router.send(session, reply)
 
     # noinspection PyUnusedLocal
@@ -535,14 +505,11 @@ class Dealer(object):
                         'call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
                 except Exception as e:
                     is_valid = False
-                    reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [
-                                          u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+                    reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
                 else:
-                    reply = message.Result(
-                        invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
+                    reply = message.Result(invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
             else:
-                reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress,
-                                       enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
+                reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress, enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
 
             # the calling session might have been lost in the meantime ..
             #
