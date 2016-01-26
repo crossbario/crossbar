@@ -312,8 +312,7 @@ class Dealer(object):
         """
         Actively unregister a callee session from a registration.
         """
-        was_registered, was_last_callee = self._unregister(
-            registration, session)
+        was_registered, was_last_callee = self._unregister(registration, session)
 
         # actively inform the callee that it has been unregistered
         #
@@ -495,7 +494,7 @@ class Dealer(object):
                 else:
                     reply = message.Result(invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
             else:
-                reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress, 
+                reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress,
                                        enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
 
             # the calling session might have been lost in the meantime ..
