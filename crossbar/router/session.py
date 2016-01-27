@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 
 import traceback
 import binascii
@@ -481,8 +481,7 @@ class RouterSession(BaseSession):
             try:
                 self.onLeave(types.CloseDetails())
             except Exception as e:
-                if self.debug:
-                    print("exception raised in onLeave callback: {0}".format(e))
+                self.log.failure("Exception raised in onLeave callback")
 
             self._router.detach(self)
 
@@ -628,7 +627,7 @@ class RouterSession(BaseSession):
                     return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
-            traceback.print_exc()
+            self.log.critical("Internal error")
             return types.Deny(message=u'internal error: {}'.format(e))
 
     def onAuthenticate(self, signature, extra):

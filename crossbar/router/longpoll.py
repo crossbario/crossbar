@@ -38,7 +38,6 @@ from collections import deque
 
 import six
 
-from twisted.python import log
 from twisted.web.resource import Resource, NoResource
 
 # Each of the following 2 trigger a reactor import at module level
@@ -83,8 +82,7 @@ class WampLongPollResourceSessionSend(Resource):
         messages in the batch.
         """
         payload = request.content.read()
-        if self._debug:
-            log.msg("WampLongPoll: receiving data for transport '{0}'\n{1}".format(self._parent._transport_id, binascii.hexlify(payload)))
+        self.log.debug("WampLongPoll: receiving data for transport '{0}'\n{1}".format(self._parent._transport_id, binascii.hexlify(payload)))
 
         try:
             # process (batch of) WAMP message(s)
@@ -115,17 +113,17 @@ class WampLongPollResourceSessionReceive(Resource):
         """
         Resource.__init__(self)
         self._parent = parent
-        self._debug = self._parent._parent._debug
         self.reactor = self._parent._parent.reactor
 
         self._queue = deque()
         self._request = None
         self._killed = False
 
-        if self._debug:
+        # FIXME: can we read the loglevel from self.log currently set?
+        if False:
             def logqueue():
                 if not self._killed:
-                    log.msg("WampLongPoll: transport '{0}' - currently polled {1}, pending messages {2}".format(self._parent._transport_id, self._request is not None, len(self._queue)))
+                    self.log.debug("WampLongPoll: transport '{0}' - currently polled {1}, pending messages {2}".format(self._parent._transport_id, self._request is not None, len(self._queue)))
                     self.reactor.callLater(1, logqueue)
             logqueue()
 
@@ -188,8 +186,7 @@ class WampLongPollResourceSessionReceive(Resource):
         request.setHeader(b'content-type', mime_type)
 
         def cancel(_):
-            if self._debug:
-                log.msg("WampLongPoll: poll request for transport '{0}' has gone away".format(self._parent._transport_id))
+            self.log.debug("WampLongPoll: poll request for transport '{0}' has gone away".format(self._parent._transport_id))
             self._request = None
 
         request.notifyFinish().addErrback(cancel)
@@ -220,14 +217,12 @@ class WampLongPollResourceSessionClose(Resource):
         A client may actively close a session (and the underlying long-poll transport)
         by issuing a HTTP/POST with empty body to this resource.
         """
-        if self._debug:
-            log.msg("WampLongPoll: closing transport '{0}'".format(self._parent._transport_id))
+        self.log.debug("WampLongPoll: closing transport '{0}'".format(self._parent._transport_id))
 
         # now actually close the session
         self._parent.close()
 
-        if self._debug:
-            log.msg("WampLongPoll: session ended and transport {0} closed".format(self._parent._transport_id))
+        self.log.debug("WampLongPoll: session ended and transport {0} closed".format(self._parent._transport_id))
 
         request.setResponseCode(http.NO_CONTENT)
         self._parent._parent._setStandardHeaders(request)
@@ -238,6 +233,8 @@ class WampLongPollResourceSession(Resource):
     """
     A Web resource representing an open WAMP session.
     """
+
+    log = make_logger()
 
     def __init__(self, parent, transport_details):
         """
@@ -281,27 +278,23 @@ class WampLongPollResourceSession(Resource):
         if killAfter > 0:
             def killIfDead():
                 if not self._isalive:
-                    if self._debug:
-                        log.msg("WampLongPoll: killing inactive WAMP session with transport '{0}'".format(self._transport_id))
+                    self.log.debug("WampLongPoll: killing inactive WAMP session with transport '{0}'".format(self._transport_id))
 
                     self.onClose(False, 5000, "session inactive")
                     self._receive._kill()
                     if self._transport_id in self._parent._transports:
                         del self._parent._transports[self._transport_id]
                 else:
-                    if self._debug:
-                        log.msg("WampLongPoll: transport '{0}' is still alive".format(self._transport_id))
+                    self.log.debug("WampLongPoll: transport '{0}' is still alive".format(self._transport_id))
 
                     self._isalive = False
                     self.reactor.callLater(killAfter, killIfDead)
 
             self.reactor.callLater(killAfter, killIfDead)
         else:
-            if self._debug:
-                log.msg("WampLongPoll: transport '{0}' automatic killing of inactive session disabled".format(self._transport_id))
+            self.log.debug("WampLongPoll: transport '{0}' automatic killing of inactive session disabled".format(self._transport_id))
 
-        if self._debug:
-            log.msg("WampLongPoll: session resource for transport '{0}' initialized)".format(self._transport_id))
+        self.log.debug("WampLongPoll: session resource for transport '{0}' initialized)".format(self._transport_id))
 
         self.onOpen()
 
@@ -336,9 +329,8 @@ class WampLongPollResourceSession(Resource):
             try:
                 self._session.onClose(wasClean)
             except Exception:
-                # silently ignore exceptions raised here ..
-                if self._debug:
-                    traceback.print_exc()
+                # ignore exceptions raised here, but log ..
+                self.log.failure()
             self._session = None
 
     def onOpen(self):
@@ -350,16 +342,15 @@ class WampLongPollResourceSession(Resource):
         try:
             self._session.onOpen(self)
         except Exception:
-            if self._debug:
-                traceback.print_exc()
+            # ignore exceptions raised here, but log ..
+            self.log.failure()
 
     def onMessage(self, payload, isBinary):
         """
         Callback from :func:`autobahn.websocket.interfaces.IWebSocketChannel.onMessage`
         """
         for msg in self._serializer.unserialize(payload, isBinary):
-            if self._debug:
-                print("WampLongPoll: RX {0}".format(msg))
+            self.log.debug("WampLongPoll: RX {0}".format(msg))
             self._session.onMessage(msg)
 
     def send(self, msg):
@@ -368,8 +359,7 @@ class WampLongPollResourceSession(Resource):
         """
         if self.isOpen():
             try:
-                if self._debug:
-                    print("WampLongPoll: TX {0}".format(msg))
+                self.log.debug("WampLongPoll: TX {0}".format(msg))
                 payload, isBinary = self._serializer.serialize(msg)
             except Exception as e:
                 # all exceptions raised from above should be serialization errors ..
@@ -405,8 +395,7 @@ class WampLongPollResourceOpen(Resource):
         """
         Request to create a new WAMP session.
         """
-        if self._debug:
-            log.msg("WampLongPoll: creating new session ..")
+        self.log.debug("WampLongPoll: creating new session ..")
 
         payload = request.content.read()
         try:
@@ -475,8 +464,7 @@ class WampLongPollResourceOpen(Resource):
 
         payload = json.dumps(result)
 
-        if self._debug:
-            log.msg("WampLongPoll: new session created on transport '{0}'".format(transport))
+        self.log.debug("WampLongPoll: new session created on transport '{0}'".format(transport))
 
         return payload
 
@@ -501,6 +489,8 @@ class WampLongPollResource(Resource):
        * ``<base-url>/<transport-id>/receive``
        * ``<base-url>/<transport-id>/close``
     """
+
+    log = make_logger()
 
     protocol = WampLongPollResourceSession
 
@@ -585,8 +575,7 @@ class WampLongPollResource(Resource):
         #
         self.putChild(b"open", WampLongPollResourceOpen(self))
 
-        if self._debug:
-            log.msg("WampLongPollResource initialized")
+        self.log.debug("WampLongPollResource initialized")
 
     def render_GET(self, request):
         request.setHeader(b'content-type', b'text/html; charset=UTF-8')

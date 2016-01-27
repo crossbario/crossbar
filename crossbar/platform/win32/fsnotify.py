@@ -39,6 +39,8 @@ import win32event
 
 import ntsecuritycon
 
+from crossbar._logging import make_logger
+
 
 class DirWatcher:
 
@@ -50,6 +52,8 @@ class DirWatcher:
       * http://www.themacaque.com/?p=859
       * http://timgolden.me.uk/python/win32_how_do_i/watch_directory_for_changes.html
     """
+
+    log = make_logger()
 
     _ACTIONS = {1: 'CREATE',
                 2: 'DELETE',
@@ -175,11 +179,3 @@ class DirWatcher:
             else:
                 # timeout
                 pass
-
-
-if __name__ == '__main__':
-    dw = DirWatcher(asynch=False)
-
-    def log(r):
-        print(r)
-    dw.loop(log)

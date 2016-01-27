@@ -39,6 +39,8 @@ except NameError:
     # Python 3
     from imp import reload
 
+from crossbar._logging import make_logger
+
 __all__ = ('TrackingModuleReloader',)
 
 
@@ -72,6 +74,8 @@ class TrackingModuleReloader:
     later allow to force reload of exactly those modules that have been (first)
     loaded after that point in time.
     """
+
+    log = make_logger()
 
     def __init__(self, use_mtimes=True, debug=False):
         """
@@ -124,31 +128,31 @@ class TrackingModuleReloader:
 
                     if new_mtime == old_mtime:
                         if self._debug:
-                            print("Module {} unchanged".format(mod_name))
+                            self.log.info("Module {} unchanged".format(mod_name))
                     else:
                         self._module_mtimes[mod_name] = (f, new_mtime)
                         reload_modules.append(mod_name)
                         if self._debug:
-                            print("Change of module {} detected (file {}).".format(mod_name, f))
+                            self.log.info("Change of module {} detected (file {}).".format(mod_name, f))
                 else:
                     self._module_mtimes[mod_name] = get_module_path_and_mtime(m)
                     reload_modules.append(mod_name)
                     if self._debug:
-                        print("Tracking new module {}".format(mod_name))
+                        self.log.info("Tracking new module {}".format(mod_name))
         else:
             reload_modules = maybe_dirty_modules
 
         if len(reload_modules):
             if self._debug:
-                print("Reloading {} possibly changed modules".format(len(reload_modules)))
+                self.log.info("Reloading {} possibly changed modules".format(len(reload_modules)))
             for module in reload_modules:
-                print("Reloading module {}".format(module))
+                self.log.info("Reloading module {}".format(module))
 
                 # this is doing the actual work
                 #
                 reload(current_modules[module])
         else:
             if self._debug:
-                print("No modules to reload")
+                self.log.info("No modules to reload")
 
         return reload_modules

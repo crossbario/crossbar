@@ -169,11 +169,11 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             from twisted.internet import reactor
 
             def print_traffic():
-                print("Traffic {}: {} / {} in / out bytes - {} / {} in / out msgs".format(self.peer,
-                                                                                          self.trafficStats.incomingOctetsWireLevel,
-                                                                                          self.trafficStats.outgoingOctetsWireLevel,
-                                                                                          self.trafficStats.incomingWebSocketMessages,
-                                                                                          self.trafficStats.outgoingWebSocketMessages))
+                self.log.info("Traffic {}: {} / {} in / out bytes - {} / {} in / out msgs".format(self.peer,
+                                                                                                  self.trafficStats.incomingOctetsWireLevel,
+                                                                                                  self.trafficStats.outgoingOctetsWireLevel,
+                                                                                                  self.trafficStats.incomingWebSocketMessages,
+                                                                                                  self.trafficStats.outgoingWebSocketMessages))
                 reactor.callLater(1, print_traffic)
 
             print_traffic()
