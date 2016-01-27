@@ -37,8 +37,13 @@ from autobahn.wamp import role
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError, ApplicationError
 
-from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
-    _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY
+from autobahn.wamp.message import \
+    _URI_PAT_STRICT_LAST_EMPTY, \
+    _URI_PAT_LOOSE_LAST_EMPTY, \
+    _URI_PAT_STRICT_NON_EMPTY, \
+    _URI_PAT_LOOSE_NON_EMPTY, \
+    _URI_PAT_STRICT_EMPTY, \
+    _URI_PAT_LOOSE_EMPTY
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions, RouterAction
@@ -152,13 +157,23 @@ class Dealer(object):
         if self._option_uri_strict:
             if register.match == u"wildcard":
                 uri_is_valid = _URI_PAT_STRICT_EMPTY.match(register.procedure)
-            else:
+            elif register.match == u"prefix":
+                uri_is_valid = _URI_PAT_STRICT_LAST_EMPTY.match(register.procedure)
+            elif register.match == u"exact":
                 uri_is_valid = _URI_PAT_STRICT_NON_EMPTY.match(register.procedure)
+            else:
+                # should not arrive here
+                raise Exception("logic error")
         else:
             if register.match == u"wildcard":
                 uri_is_valid = _URI_PAT_LOOSE_EMPTY.match(register.procedure)
-            else:
+            elif register.match == u"prefix":
+                uri_is_valid = _URI_PAT_LOOSE_LAST_EMPTY.match(register.procedure)
+            elif register.match == u"exact":
                 uri_is_valid = _URI_PAT_LOOSE_NON_EMPTY.match(register.procedure)
+            else:
+                # should not arrive here
+                raise Exception("logic error")
 
         if not uri_is_valid:
             reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [u"register for invalid procedure URI '{0}' (URI strict checking {1})".format(register.procedure, self._option_uri_strict)])
