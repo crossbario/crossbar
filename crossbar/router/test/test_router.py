@@ -104,10 +104,10 @@ class TestEmbeddedSessions(unittest.TestCase):
         class TestSession(ApplicationSession):
             def onJoin(self, *args, **kw):
                 raise the_exception
+
             def onUserError(self, *args, **kw):
                 errors.append((args, kw))
         session = TestSession(types.ComponentConfig(u'realm1'))
-        from crossbar.router.session import RouterApplicationSession
 
         # in this test, we are just looking for onUserError to get
         # called so we don't need to patch the logger. this should
