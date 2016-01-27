@@ -1695,7 +1695,7 @@ def check_connecting_transport_websocket(transport):
     :type transport: dict
     """
     for k in transport:
-        if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'debug', 'debug_wamp', 'options']:
+        if k not in ['id', 'type', 'endpoint', 'url', 'serializers', 'options']:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket transport configuration".format(k))
 
     if 'id' in transport:
@@ -1713,16 +1713,6 @@ def check_connecting_transport_websocket(transport):
         serializers = transport['serializers']
         if not isinstance(serializers, list):
             raise InvalidConfigException("'serializers' in WebSocket transport configuration must be list ({} encountered)".format(type(serializers)))
-
-    if 'debug' in transport:
-        debug = transport['debug']
-        if not isinstance(debug, bool):
-            raise InvalidConfigException("'debug' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
-
-    if 'debug_wamp' in transport:
-        debug_wamp = transport['debug_wamp']
-        if not isinstance(debug_wamp, bool):
-            raise InvalidConfigException("'debug_wamp' in WebSocket transport configuration must be boolean ({} encountered)".format(type(debug_wamp)))
 
     if 'url' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'url' in WebSocket transport item\n\n{}".format(pformat(transport)))

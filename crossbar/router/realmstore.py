@@ -103,7 +103,7 @@ class MemoryEventStore(object):
             'kwargs': kwargs
         }
         self._event_store[publication_id] = evt
-        self.log.debug("event {publication_id} persisted", publication_id=publication_id)
+        self.log.debug("Event {publication_id} persisted", publication_id=publication_id)
 
     def store_event_history(self, publication_id, subscription_id):
         """
@@ -129,7 +129,7 @@ class MemoryEventStore(object):
 
         self._event_subscriptions[publication_id].add(subscription_id)
 
-        self.log.debug("event {publication_id} history persisted for subscription {subscription_id}", publication_id=publication_id, subscription_id=subscription_id)
+        self.log.debug("Event {publication_id} history persisted for subscription {subscription_id}", publication_id=publication_id, subscription_id=subscription_id)
 
         # purge history if over limit
         if len(self._event_history[subscription_id]) > self._limit:
@@ -140,13 +140,13 @@ class MemoryEventStore(object):
             # remove the purged publication from event subscriptions
             self._event_subscriptions[purged_publication_id].remove(subscription_id)
 
-            self.log.debug("event {publication_id} purged fom history for subscription {subscription_id}", publication_id=purged_publication_id, subscription_id=subscription_id)
+            self.log.debug("Event {publication_id} purged fom history for subscription {subscription_id}", publication_id=purged_publication_id, subscription_id=subscription_id)
 
             # if no more event subscriptions exist for publication, remove that too
             if not self._event_subscriptions[purged_publication_id]:
                 del self._event_subscriptions[purged_publication_id]
                 del self._event_store[purged_publication_id]
-                self.log.debug("event {publication_id} purged completey", publication_id=purged_publication_id)
+                self.log.debug("Event {publication_id} purged completey", publication_id=purged_publication_id)
 
     def get_events(self, subscription_id, limit):
         """

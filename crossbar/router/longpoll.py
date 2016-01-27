@@ -252,7 +252,6 @@ class WampLongPollResourceSession(Resource):
 
         self._parent = parent
         self._debug = self._parent._debug
-        self._debug_wamp = True
         self.reactor = self._parent.reactor
 
         self._transport_id = transport_details['transport']

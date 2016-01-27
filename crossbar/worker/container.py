@@ -227,8 +227,6 @@ class ContainerWorkerSession(NativeWorkerSession):
         # 2) create WAMP transport factory
         #
         transport_config = config['transport']
-        transport_debug = transport_config.get('debug', False)
-        transport_debug_wamp = transport_config.get('debug_wamp', False)
 
         # WAMP-over-WebSocket transport
         #
@@ -236,10 +234,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
             # create a WAMP-over-WebSocket transport client factory
             #
-            transport_factory = WampWebSocketClientFactory(create_session,
-                                                           transport_config['url'],
-                                                           debug=transport_debug,
-                                                           debug_wamp=transport_debug_wamp)
+            transport_factory = WampWebSocketClientFactory(create_session, transport_config['url'])
             transport_factory.noisy = False
 
         # WAMP-over-RawSocket transport

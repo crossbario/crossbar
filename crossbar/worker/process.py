@@ -228,7 +228,7 @@ def run():
         # create a WAMP-over-WebSocket transport server factory
         #
         from autobahn.twisted.websocket import WampWebSocketServerFactory
-        transport_factory = WampWebSocketServerFactory(session_factory, "ws://localhost", debug=False, debug_wamp=False)
+        transport_factory = WampWebSocketServerFactory(session_factory, u'ws://localhost')
         transport_factory.protocol = WorkerServerProtocol
         transport_factory.setProtocolOptions(failByDrop=False)
 

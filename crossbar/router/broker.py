@@ -174,7 +174,7 @@ class Broker(object):
                     store_event = True
                     break
         if store_event:
-            self.log.debug("event on topic '{topic}'' is being persisted", topic=publish.topic)
+            self.log.debug('Persisting event on topic "{topic}"', topic=publish.topic)
 
         # go on if (otherwise there isn't anything to do anyway):
         #
