@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import, division
 
-import traceback
 import binascii
 import six
 
@@ -490,7 +489,7 @@ class RouterSession(BaseSession):
             # fire callback and close the transport
             try:
                 self.onLeave(types.CloseDetails())
-            except Exception as e:
+            except Exception:
                 self.log.failure("Exception raised in onLeave callback")
 
             self._router.detach(self)
