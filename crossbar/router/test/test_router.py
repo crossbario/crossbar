@@ -52,8 +52,6 @@ class TestEmbeddedSessions(unittest.TestCase):
     Test cases for application session running embedded in router.
     """
 
-    skip = True
-
     def setUp(self):
         """
         Setup router and router session factories.
@@ -94,34 +92,32 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         return d
 
-    def _test_application_session_internal_error(self):
+    def test_application_session_internal_error(self):
         """
         simulate an internal error triggering the 'onJoin' error-case from
         _RouterApplicationSession's send() method (from the Hello msg)
         """
         # setup
         the_exception = RuntimeError("sadness")
+        errors = []
 
         class TestSession(ApplicationSession):
             def onJoin(self, *args, **kw):
                 raise the_exception
+
+            def onUserError(self, *args, **kw):
+                errors.append((args, kw))
         session = TestSession(types.ComponentConfig(u'realm1'))
-        from crossbar.router.session import _RouterApplicationSession
 
-        # execute, first patching-out the logger so we can see that
-        # log.failure() was called when our exception triggers.
-        with mock.patch.object(_RouterApplicationSession, 'log') as logger:
-            # this should call onJoin, triggering our error
-            self.session_factory.add(session)
+        # in this test, we are just looking for onUserError to get
+        # called so we don't need to patch the logger. this should
+        # call onJoin, triggering our error
+        self.session_factory.add(session)
 
-            # check we got the right log.failure() call
-            self.assertTrue(len(logger.method_calls) > 0)
-            call = logger.method_calls[0]
-            # for a MagicMock call-object, 0th thing is the method-name, 1st
-            # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'failure')
-            self.assertTrue('log_failure' in call[2])
-            self.assertEqual(call[2]['log_failure'].value, the_exception)
+        # check we got the right log.failure() call
+        self.assertTrue(len(errors) > 0, "expected onUserError call")
+        fail = errors[0][0][0]
+        self.assertTrue(fail.value == the_exception)
 
     def test_router_session_internal_error_onHello(self):
         """
@@ -130,6 +126,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         """
         # setup
         transport = mock.MagicMock()
+        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -151,8 +148,8 @@ class TestEmbeddedSessions(unittest.TestCase):
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
             self.assertEqual(call[0], 'failure')
-            self.assertTrue('log_failure' in call[2])
-            self.assertEqual(call[2]['log_failure'].value, the_exception)
+            self.assertTrue('failure' in call[2])
+            self.assertEqual(call[2]['failure'].value, the_exception)
 
     def test_router_session_internal_error_onAuthenticate(self):
         """
@@ -161,6 +158,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         """
         # setup
         transport = mock.MagicMock()
+        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -182,8 +180,8 @@ class TestEmbeddedSessions(unittest.TestCase):
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
             self.assertEqual(call[0], 'failure')
-            self.assertTrue('log_failure' in call[2])
-            self.assertEqual(call[2]['log_failure'].value, the_exception)
+            self.assertTrue('failure' in call[2])
+            self.assertEqual(call[2]['failure'].value, the_exception)
 
     def test_add_and_subscribe(self):
         """

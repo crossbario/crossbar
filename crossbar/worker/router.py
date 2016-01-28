@@ -39,7 +39,7 @@ import six
 
 from datetime import datetime
 
-from twisted.internet.defer import Deferred, DeferredList
+from twisted.internet.defer import Deferred, DeferredList, maybeDeferred
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 from twisted.python.threadpool import ThreadPool
@@ -64,7 +64,7 @@ from crossbar.worker.testee import WebSocketTesteeServerFactory, \
 
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
-from autobahn.wamp.types import RegisterOptions
+from autobahn.wamp.types import RegisterOptions, PublishOptions
 
 try:
     from twisted.web.wsgi import WSGIResource
@@ -170,6 +170,20 @@ class RouterComponent(object):
         self.config = config
         self.session = session
         self.created = datetime.utcnow()
+
+    def marshal(self):
+        """
+        Marshal object information for use with WAMP calls/events.
+        """
+        now = datetime.utcnow()
+        return {
+            'id': self.id,
+            # 'started' is used by container-components; keeping it
+            # for consistency in the public API
+            'started': utcstr(self.created),
+            'uptime': (now - self.created).total_seconds(),
+            'config': self.config
+        }
 
 
 class RouterRealm(object):
@@ -549,6 +563,29 @@ class RouterWorkerSession(NativeWorkerSession):
             })
         return res
 
+    def onLeave(self, details):
+        # when this router is shutting down, we disconnect all our
+        # components so that they have a chance to shutdown properly
+        # -- e.g. on a ctrl-C of the router.
+        leaves = []
+        for component in self.components.values():
+            if component.session.is_connected():
+                d = maybeDeferred(component.session.leave)
+
+                def done(_):
+                    self.log.info(
+                        "component '{id}' disconnected",
+                        id=component.id,
+                    )
+                    component.session.disconnect()
+                d.addCallback(done)
+                leaves.append(d)
+        dl = DeferredList(leaves, consumeErrors=True)
+        # we want our default behavior, which disconnects this
+        # router-worker, effectively shutting it down .. but only
+        # *after* the components got a chance to shutdown.
+        dl.addBoth(lambda _: super(RouterWorkerSession, self).onLeave(details))
+
     def start_router_component(self, id, config, details=None):
         """
         Start an app component in this router worker.
@@ -624,6 +661,20 @@ class RouterWorkerSession(NativeWorkerSession):
                 log_failure=Failure(),
             )
             raise
+
+        def publish_stopped(session, details):
+            topic = self._uri_prefix + '.container.on_component_stop'
+            event = {'id': id}
+            session.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
+            return event
+
+        def publish_started(session, details):
+            topic = self._uri_prefix + '.container.on_component_start'
+            event = {'id': id}
+            session.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
+            return event
+        session.on('join', publish_started)
+        session.on('leave', publish_stopped)
 
         self.components[id] = RouterComponent(id, config, session)
         self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))

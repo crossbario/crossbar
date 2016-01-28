@@ -165,9 +165,19 @@ class RouterApplicationSession(object):
                                      self._session._authprovider,
                                      self._session._authextra)
 
+            # have to fire the 'join' notification ourselves too. the
+            # "return_arg" idiom is equivalent to defer.returnValue(arg)
+            def success(arg):
+                d = self._session.fire('join', self._session, details)
+
+                def return_arg(_):
+                    return arg
+                txaio.add_callbacks(d, return_arg, None)
+                return d
+
             # fire onOpen callback and handle any exception escaping from there
             d = txaio.as_future(self._session.onJoin, details)
-            txaio.add_callbacks(d, None, lambda fail: self._swallow_error(fail, "While firing onJoin"))
+            txaio.add_callbacks(d, success, lambda fail: self._swallow_error(fail, "While firing onJoin"))
 
         # app-to-router
         #
