@@ -39,7 +39,7 @@ import six
 
 from datetime import datetime
 
-from twisted.internet.defer import Deferred, DeferredList
+from twisted.internet.defer import Deferred, DeferredList, maybeDeferred
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 from twisted.python.threadpool import ThreadPool
@@ -570,7 +570,7 @@ class RouterWorkerSession(NativeWorkerSession):
         leaves = []
         for component in self.components.values():
             if component.session.is_connected():
-                d = component.session.leave()
+                d = maybeDeferred(component.session.leave)
 
                 def done(_):
                     self.log.info(
