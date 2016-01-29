@@ -1,6 +1,4 @@
 {
-   "controller": {
-   },
    "workers": [
       {
          "type": "router",
@@ -44,9 +42,8 @@
                "type": "rawsocket",
                "endpoint": {
                   "type": "tcp",
-                  "port": 8090
-               },
-               "serializer": "msgpack"
+                  "port": 8000
+               }
             }
          ]
       },
