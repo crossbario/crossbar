@@ -87,8 +87,9 @@ from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
     Resource404, \
-    FileUploadResource, \
     RedirectResource
+
+from crossbar.twisted.fileupload import FileUploadResource
 
 from crossbar.twisted.flashpolicy import FlashPolicyFactory
 
