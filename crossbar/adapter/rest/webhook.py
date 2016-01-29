@@ -52,10 +52,10 @@ class WebhookResource(_CommonResource):
         topic = self._options["topic"]
 
         message = {}
-        message["headers"] = {
+        message[u"headers"] = {
             native_string(x): [native_string(z) for z in y]
             for x, y in request.requestHeaders.getAllRawHeaders()}
-        message["body"] = event
+        message[u"body"] = event
 
         publish_options = PublishOptions(acknowledge=True)
 

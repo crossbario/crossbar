@@ -59,8 +59,8 @@ class PendingAuth:
         """
         # Details about the authenticating session
         self._session_details = {
-            'transport': session._transport._transport_info,
-            'session': session._pending_session_id,
+            u'transport': session._transport._transport_info,
+            u'session': session._pending_session_id,
         }
 
         # The router factory we are working for

@@ -123,10 +123,10 @@ if _HAS_POSTGRESQL:
 
         def marshal(self):
             return {
-                'id': self.id,
-                'started': utcstr(self.started),
-                'stopped': utcstr(self.stopped) if self.stopped else None,
-                'config': self.config,
+                u'id': self.id,
+                u'started': utcstr(self.started),
+                u'stopped': utcstr(self.stopped) if self.stopped else None,
+                u'config': self.config,
             }
 
 if _HAS_MANHOLE:
@@ -162,11 +162,11 @@ if _HAS_MANHOLE:
             """
             now = datetime.utcnow()
             return {
-                'created': utcstr(self.created),
-                'status': self.status,
-                'started': utcstr(self.started) if self.started else None,
-                'uptime': (now - self.started).total_seconds() if self.started else None,
-                'config': self.config
+                u'created': utcstr(self.created),
+                u'status': self.status,
+                u'started': utcstr(self.started) if self.started else None,
+                u'uptime': (now - self.started).total_seconds() if self.started else None,
+                u'config': self.config
             }
 
 

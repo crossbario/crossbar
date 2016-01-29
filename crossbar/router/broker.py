@@ -392,10 +392,10 @@ class Broker(object):
                     if service_session and not subscription.uri.startswith(u'wamp.'):
                         if is_first_subscriber:
                             subscription_details = {
-                                'id': subscription.id,
-                                'created': subscription.created,
-                                'uri': subscription.uri,
-                                'match': subscription.match,
+                                u'id': subscription.id,
+                                u'created': subscription.created,
+                                u'uri': subscription.uri,
+                                u'match': subscription.match,
                             }
                             service_session.publish(u'wamp.subscription.on_create', session._session_id, subscription_details)
                         if not was_already_subscribed:
