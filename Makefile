@@ -32,7 +32,7 @@ publish: clean
 	python setup.py register
 	python setup.py sdist upload
 
-test:
+test: flake8
 	trial crossbar
 
 full_test: clean flake8
