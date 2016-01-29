@@ -86,6 +86,13 @@ class RouterServiceSession(ApplicationSession):
         if self.config.extra and 'onready' in self.config.extra:
             self.config.extra['onready'].callback(self)
 
+    def onUserError(self, fail, msg):
+        if fail.trap(ApplicationError):
+            return
+        # if this *wasn't* an ApplicationError, do the default thing
+        # (which is to log it) because it's some other issue
+        super(RouterServiceSession, self).onUserError(fail, msg)
+
     @wamp.register(u'wamp.session.list')
     def session_list(self, filter_authroles=None):
         """
