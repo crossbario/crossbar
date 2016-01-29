@@ -541,7 +541,15 @@ class RouterServiceSession(ApplicationSession):
         :rtype: list
         """
         self.log.debug('subscription_get_events({subscription_id}, {limit})', subscription_id=subscription_id, limit=limit)
+
+        if not self._router._broker._event_store:
+            raise ApplicationError(
+                u'wamp.error.history_unavailable',
+                message=u'event history not available or enabled',
+            )
+
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
+
         if subscription and not is_protected_uri(subscription.uri):
             events = self._router._broker._event_store.get_events(subscription_id, limit)
             if events is None:
