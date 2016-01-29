@@ -36,7 +36,10 @@ from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
 
 from autobahn import util
 
-__all__ = ('UriObservationMap', 'is_protected_uri')
+__all__ = (
+    'UriObservationMap',
+    'is_protected_uri'
+)
 
 
 def is_protected_uri(uri):
@@ -44,6 +47,8 @@ def is_protected_uri(uri):
 
 
 class OrderedSet(set):
+
+    __slots__ = ('_list',)
 
     def __init__(self):
         super(set, self).__init__()
@@ -71,6 +76,16 @@ class UriObservation(object):
     """
     Represents an URI observation maintained by a broker/dealer.
     """
+
+    __slots__ = (
+        'uri',
+        'ordered',
+        'extra',
+        'id',
+        'created',
+        'observers'
+    )
+
     match = None
 
     def __init__(self, uri, ordered=False, extra=None):
@@ -102,8 +117,8 @@ class UriObservation(object):
             self.observers = set()
 
     def __repr__(self):
-        return "<{} id={} uri={} ordered={} extra={} created={} observers={}>".format(
-            self.__class__.__name__, self.id, self.uri, self.ordered, self.extra, self.created,
+        return "{}(id={}, uri={}, match={}, ordered={}, extra={}, created={}, observers={})".format(
+            self.__class__.__name__, self.id, self.uri, self.match, self.ordered, self.extra, self.created,
             self.observers)
 
 
@@ -141,6 +156,14 @@ class UriObservationMap(object):
     To test: trial crossbar.router.test.test_subscription
     """
 
+    __slots__ = (
+        '_ordered',
+        '_observations_exact',
+        '_observations_prefix',
+        '_observations_wildcard',
+        '_observation_id_to_observation'
+    )
+
     def __init__(self, ordered=False):
         # flag indicating whether observers should be maintained in a SortedSet
         # or a regular set (unordered)
@@ -162,6 +185,15 @@ class UriObservationMap(object):
 
         # map: observation ID => UriObservation
         self._observation_id_to_observation = {}
+
+    def __repr__(self):
+        return "{}(_ordered={}, _observations_exact={}, _observations_wildcard={})".format(
+            self.__class__.__name__,
+            self._ordered,
+            self._observations_exact,
+            self._observations_prefix,
+            self._observations_wildcard,
+            self._observation_id_to_observation)
 
     def add_observer(self, observer, uri, match=u"exact", extra=None):
         """

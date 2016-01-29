@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 
 import os
 import platform
@@ -39,7 +39,7 @@ from autobahn.util import utcnow
 from crossbar._logging import make_logger
 
 try:
-    if platform.python_implementation() == "PyPy":
+    if platform.python_implementation() == 'PyPy':
         os.environ['LMDB_FORCE_CFFI'] = '1'
     import lmdb
     HAS_LMDB = True
@@ -56,12 +56,31 @@ class MemoryEventStore(object):
 
     log = make_logger()
 
+    GLOBAL_HISTORY_LIMIT = 100
+    """
+    The global history limit, in case not overridden.
+    """
+
     def __init__(self, config=None):
+        """
+
+        config = {
+            'type': 'memory',
+            'limit': 1000,           <- global history limit (in case no topic specific limit has been set)
+            'event-history': [
+                {
+                    'uri': 'com.example.foobar',   <- topic specific limit
+                    'match': 'prefix',
+                    'limit': 10000
+                }
+            ]
+        }
+        """
         # whole store configuration
         self._config = config or {}
 
         # limit to event history per subscription
-        self._limit = self._config.get('limit', 1000)
+        self._limit = self._config.get('limit', self.GLOBAL_HISTORY_LIMIT)
 
         # map of publication ID -> event dict
         self._event_store = {}
@@ -69,14 +88,18 @@ class MemoryEventStore(object):
         # map of publication ID -> set of subscription IDs
         self._event_subscriptions = {}
 
-        # map of subscription ID -> deque of publication IDs
+        # map of subscription ID -> (limit, deque(of publication IDs))
         self._event_history = {}
 
     def attach_subscription_map(self, subscription_map):
-        # example topic being configured as persistent
         for sub in self._config.get('event-history', []):
-            # FIXME: limit = sub.get('limit', self._limit)
-            subscription_map.add_observer(self, uri=sub['uri'], match=sub.get('match', u'exact'))
+            uri = sub['uri']
+            match = sub.get('match', u'exact')
+            observation, was_already_observed, was_first_observer = subscription_map.add_observer(self, uri=uri, match=match)
+            subscription_id = observation.id
+
+            # for in-memory history, we just use a double-ended queue
+            self._event_history[subscription_id] = (sub.get('limit', self._limit), deque())
 
     def store_event(self, publisher_id, publication_id, topic, args=None, kwargs=None):
         """
@@ -116,13 +139,12 @@ class MemoryEventStore(object):
         :type subscription_id: int
         """
         assert(publication_id in self._event_store)
+        assert(subscription_id in self._event_history)
 
-        # for in-memory history, we just use a double-ended queue
-        if subscription_id not in self._event_history:
-            self._event_history[subscription_id] = deque()
+        limit, history = self._event_history[subscription_id]
 
         # append event to history
-        self._event_history[subscription_id].append(publication_id)
+        history.append(publication_id)
 
         if publication_id not in self._event_subscriptions:
             self._event_subscriptions[publication_id] = set()
@@ -132,10 +154,10 @@ class MemoryEventStore(object):
         self.log.debug("Event {publication_id} history persisted for subscription {subscription_id}", publication_id=publication_id, subscription_id=subscription_id)
 
         # purge history if over limit
-        if len(self._event_history[subscription_id]) > self._limit:
+        if len(history) > limit:
 
             # remove leftmost event from history
-            purged_publication_id = self._event_history[subscription_id].popleft()
+            purged_publication_id = history.popleft()
 
             # remove the purged publication from event subscriptions
             self._event_subscriptions[purged_publication_id].remove(subscription_id)
@@ -165,15 +187,16 @@ class MemoryEventStore(object):
         if subscription_id not in self._event_history:
             return None
         else:
-            s = self._event_history[subscription_id]
+            _, history = self._event_history[subscription_id]
 
             # at most "limit" events in reverse chronological order
             res = []
             i = -1
-            if limit > len(s):
-                limit = len(s)
+            if limit > len(history):
+                limit = len(history)
             for _ in range(limit):
-                res.append(self._event_store[s[i]])
+                publication_id = history[i]
+                res.append(self._event_store[publication_id])
                 i -= 1
             return res
 

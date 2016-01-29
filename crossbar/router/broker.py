@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 
 from autobahn import util
 from autobahn.wamp import role
@@ -164,13 +164,14 @@ class Broker(object):
         #
         subscriptions = self._subscription_map.match_observations(publish.topic)
 
-        # check if the event is being persisted by checking if we ourself are among the observers.
-        # we've been added to observer lists on subscriptions ultimately from node configuration
-        # and during the broker starts up.
+        # check if the event is being persisted by checking if we ourself are among the observers
+        # on _any_ matching subscription
+        # we've been previously added to observer lists on subscriptions ultimately from
+        # node configuration and during the broker starts up.
         store_event = False
         if self._event_store:
-            for s in subscriptions:
-                if self._event_store in s.observers:
+            for subscription in subscriptions:
+                if self._event_store in subscription.observers:
                     store_event = True
                     break
         if store_event:
@@ -180,7 +181,7 @@ class Broker(object):
         #
         #   - there are any active subscriptions OR
         #   - the publish is to be acknowledged OR
-        #   - the event is to be persistet
+        #   - the event is to be persisted
         #
         if subscriptions or publish.acknowledge or store_event:
 
@@ -216,7 +217,8 @@ class Broker(object):
                     #
                     publication = util.id()
 
-                    # persist event
+                    # persist event (this is done only once, regardless of the number of subscriptions
+                    # the event matches on)
                     #
                     if store_event:
                         self._event_store.store_event(session._session_id, publication, publish.topic, publish.args, publish.kwargs)
@@ -245,9 +247,9 @@ class Broker(object):
                     #
                     for subscription in subscriptions:
 
-                        # persist event history
+                        # persist event history, but check if it is persisted on the individual subscription!
                         #
-                        if store_event:
+                        if store_event and self._event_store in subscription.observers:
                             self._event_store.store_event_history(publication, subscription.id)
 
                         # initial list of receivers are all subscribers on a subscription ..
