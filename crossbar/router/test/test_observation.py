@@ -31,8 +31,6 @@
 from __future__ import absolute_import
 
 import unittest
-import pickle
-from io import BytesIO as StringIO
 
 import six
 
@@ -77,28 +75,6 @@ class TestObservation(unittest.TestCase):
         self.assertEqual(obs1.uri, u"com.example..create")
         self.assertEqual(obs1.match, u"wildcard")
         self.assertEqual(obs1.observers, set())
-
-    def test_pickle(self):
-        """
-        Test pickling of observations (__getstate__, __setstate__).
-        """
-        obsvs = [
-            ExactUriObservation(u"com.example.uri1"),
-            PrefixUriObservation(u"com.example.uri1"),
-            WildcardUriObservation(u"com.example..create"),
-        ]
-
-        for sub in obsvs:
-            data = StringIO()
-            pickle.dump(sub, data)
-
-            read_fd = StringIO(data.getvalue())
-            obs2 = pickle.load(read_fd)
-
-            self.assertEqual(sub.id, obs2.id)
-            self.assertEqual(sub.uri, obs2.uri)
-            self.assertEqual(sub.match, obs2.match)
-            self.assertEqual(obs2.observers, set())
 
 
 class TestUriObservationMap(unittest.TestCase):
