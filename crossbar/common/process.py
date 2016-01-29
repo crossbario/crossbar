@@ -417,7 +417,7 @@ class NativeProcessSession(ApplicationSession):
                 def publish_stats():
                     stats = self._pinfo.get_stats()
                     self._pinfo_monitor_seq += 1
-                    stats['seq'] = self._pinfo_monitor_seq
+                    stats[u'seq'] = self._pinfo_monitor_seq
                     self.publish(stats_topic, stats)
 
                 self._pinfo_monitor = LoopingCall(publish_stats)
