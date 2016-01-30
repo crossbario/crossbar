@@ -424,12 +424,12 @@ def _startlog(options, reactor):
     """
     Start the logging in a way that all the subcommands can use it.
     """
-    from crossbar._logging import start_logging, set_global_log_level
-    from crossbar._logging import globalLogPublisher
+    from crossbar._logging import start_logging, set_global_log_level, \
+        globalLogPublisher
 
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
-    colour = getattr(options, "colour", "ifavailable")
+    colour = getattr(options, "colour", "auto")
 
     set_global_log_level(loglevel)
 
@@ -458,12 +458,12 @@ def _startlog(options, reactor):
         from crossbar._logging import make_stdout_observer
         from crossbar._logging import make_stderr_observer
 
-        if colour == "ifavailable":
+        if colour == "auto":
             if sys.__stdout__.isatty():
                 colour = True
             else:
                 colour = False
-        elif colour == "True":
+        elif colour == "true":
             colour = True
         else:
             colour = False
@@ -702,8 +702,8 @@ def run(prog=None, args=None, reactor=None):
 
     colour_args = {
         "type": str,
-        "default": "ifavailable",
-        "choices": ["True", "False", "ifavailable"],
+        "default": "auto",
+        "choices": ["true", "false", "auto"],
         "help": "If logging should be coloured."
     }
 
