@@ -86,12 +86,14 @@ class RouterServiceSession(ApplicationSession):
         if self.config.extra and 'onready' in self.config.extra:
             self.config.extra['onready'].callback(self)
 
-    def onUserError(self, fail, msg):
-        if fail.trap(ApplicationError):
-            return
-        # if this *wasn't* an ApplicationError, do the default thing
-        # (which is to log it) because it's some other issue
-        super(RouterServiceSession, self).onUserError(fail, msg)
+    def onUserError(self, failure, msg):
+        # ApplicationError's are raised explicitly and by purpose to signal
+        # the peer. The error has already been handled "correctly" from our side.
+        # Anything else wasn't explicitly treated .. the error "escaped" explicit
+        # processing on our side. It needs to be logged to CB log, and CB code
+        # needs to be expanded!
+        if not isinstance(failure.value, ApplicationError):
+            super(RouterServiceSession, self).onUserError(failure, msg)
 
     @wamp.register(u'wamp.session.list')
     def session_list(self, filter_authroles=None):
