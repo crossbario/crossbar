@@ -178,12 +178,12 @@ class RouterComponent(object):
         """
         now = datetime.utcnow()
         return {
-            'id': self.id,
+            u'id': self.id,
             # 'started' is used by container-components; keeping it
             # for consistency in the public API
-            'started': utcstr(self.created),
-            'uptime': (now - self.created).total_seconds(),
-            'config': self.config
+            u'started': utcstr(self.created),
+            u'uptime': (now - self.created).total_seconds(),
+            u'config': self.config
         }
 
 
@@ -558,9 +558,9 @@ class RouterWorkerSession(NativeWorkerSession):
         res = []
         for component in sorted(self.components.values(), key=lambda c: c.created):
             res.append({
-                'id': component.id,
-                'created': utcstr(component.created),
-                'config': component.config,
+                u'id': component.id,
+                u'created': utcstr(component.created),
+                u'config': component.config,
             })
         return res
 
@@ -665,13 +665,13 @@ class RouterWorkerSession(NativeWorkerSession):
 
         def publish_stopped(session, details):
             topic = self._uri_prefix + '.container.on_component_stop'
-            event = {'id': id}
+            event = {u'id': id}
             session.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
             return event
 
         def publish_started(session, details):
             topic = self._uri_prefix + '.container.on_component_start'
-            event = {'id': id}
+            event = {u'id': id}
             session.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
             return event
         session.on('join', publish_started)
@@ -714,9 +714,9 @@ class RouterWorkerSession(NativeWorkerSession):
         res = []
         for transport in sorted(self.transports.values(), key=lambda c: c.created):
             res.append({
-                'id': transport.id,
-                'created': utcstr(transport.created),
-                'config': transport.config,
+                u'id': transport.id,
+                u'created': utcstr(transport.created),
+                u'config': transport.config,
             })
         return res
 

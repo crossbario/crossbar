@@ -282,33 +282,37 @@ class FileUploadResource(Resource):
                 self._uploads.pop(fileId, None)
 
                 # publish file upload progress to file_progress_URI
-                fileupload_publish({
-                                   "id": fileId,
-                                   "chunk": chunkNumber,
-                                   "name": filename,
-                                   "total": totalSize,
-                                   "remaining": 0,
-                                   "status": "finished",
-                                   "progress": 1.,
-                                   "finish_extra": finish_extra,
-                                   "chunk_extra": chunk_extra
-                                   })
+                fileupload_publish(
+                    {
+                        u"id": fileId,
+                        u"chunk": chunkNumber,
+                        u"name": filename,
+                        u"total": totalSize,
+                        u"remaining": 0,
+                        u"status": "finished",
+                        u"progress": 1.,
+                        u"finish_extra": finish_extra,
+                        u"chunk_extra": chunk_extra,
+                    }
+                )
 
         if chunk_is_first:
             # first chunk of file
 
             # publish file upload start
             #
-            fileupload_publish({
-                               "id": fileId,
-                               "chunk": chunkNumber,
-                               "name": filename,
-                               "total": totalSize,
-                               "remaining": totalSize,
-                               "status": "started",
-                               "progress": 0.,
-                               "chunk_extra": chunk_extra
-                               })
+            fileupload_publish(
+                {
+                    u"id": fileId,
+                    u"chunk": chunkNumber,
+                    u"name": filename,
+                    u"total": totalSize,
+                    u"remaining": totalSize,
+                    u"status": "started",
+                    u"progress": 0.,
+                    u"chunk_extra": chunk_extra,
+                }
+            )
 
             if totalChunks == 1:
                 # only one chunk overall -> write file directly
@@ -339,17 +343,19 @@ class FileUploadResource(Resource):
                 self._uploads.pop(fileId, None)
 
                 # publish file upload progress to file_progress_URI
-                fileupload_publish({
-                                   "id": fileId,
-                                   "chunk": chunkNumber,
-                                   "name": filename,
-                                   "total": totalSize,
-                                   "remaining": 0,
-                                   "status": "finished",
-                                   "progress": 1.,
-                                   "finish_extra": finish_extra,
-                                   "chunk_extra": chunk_extra
-                                   })
+                fileupload_publish(
+                    {
+                        u"id": fileId,
+                        u"chunk": chunkNumber,
+                        u"name": filename,
+                        u"total": totalSize,
+                        u"remaining": 0,
+                        u"status": "finished",
+                        u"progress": 1.,
+                        u"finish_extra": finish_extra,
+                        u"chunk_extra": chunk_extra,
+                    }
+                )
 
             else:
                 # first of more chunks
@@ -363,16 +369,18 @@ class FileUploadResource(Resource):
                 self.log.debug('chunk_' + str(chunkNumber) + ' written and moved to ' + chunkName)
                 # publish file upload progress
                 #
-                fileupload_publish({
-                                   "id": fileId,
-                                   "chunk": chunkNumber,
-                                   "name": filename,
-                                   "total": totalSize,
-                                   "remaining": totalSize - chunkSize,
-                                   "status": "progress",
-                                   "progress": round(float(chunkSize) / float(totalSize), 3),
-                                   "chunk_extra": chunk_extra
-                                   })
+                fileupload_publish(
+                    {
+                        u"id": fileId,
+                        u"chunk": chunkNumber,
+                        u"name": filename,
+                        u"total": totalSize,
+                        u"remaining": totalSize - chunkSize,
+                        u"status": "progress",
+                        u"progress": round(float(chunkSize) / float(totalSize), 3),
+                        u"chunk_extra": chunk_extra,
+                    }
+                )
                 if chunkNumber not in self._uploads[fileId]['chunk_list']:
                     self._uploads[fileId]['chunk_list'].append(chunkNumber)
                 mergeFile()
@@ -394,16 +402,18 @@ class FileUploadResource(Resource):
 
             received = sum(os.path.getsize(os.path.join(fileTempDir, f)) for f in os.listdir(fileTempDir))
 
-            fileupload_publish({
-                               "id": fileId,
-                               "chunk": chunkNumber,
-                               "name": filename,
-                               "total": totalSize,
-                               "remaining": totalSize - received,
-                               "status": "progress",
-                               "progress": round(float(received) / float(totalSize), 3),
-                               "chunk_extra": chunk_extra
-                               })
+            fileupload_publish(
+                {
+                    u"id": fileId,
+                    u"chunk": chunkNumber,
+                    u"name": filename,
+                    u"total": totalSize,
+                    u"remaining": totalSize - received,
+                    u"status": "progress",
+                    u"progress": round(float(received) / float(totalSize), 3),
+                    u"chunk_extra": chunk_extra,
+                }
+            )
             mergeFile()
         # no errors encountered -> respond success
         request.setResponseCode(200)

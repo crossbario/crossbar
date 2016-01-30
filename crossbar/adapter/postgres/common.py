@@ -123,11 +123,11 @@ class PostgreSQLAdapter(ApplicationSession):
         conn = txpostgres.Connection()
 
         db_conn_params = {
-            'user': db_config['user'],
-            'password': db_config['password'],
-            'host': db_config['host'],
-            'port': db_config['port'],
-            'database': db_config['database'],
+            u'user': db_config['user'],
+            u'password': db_config['password'],
+            u'host': db_config['host'],
+            u'port': db_config['port'],
+            u'database': db_config['database'],
         }
 
         try:

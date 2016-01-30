@@ -159,9 +159,15 @@ class NativeWorkerSession(NativeProcessSession):
         # signal that this worker is ready for setup. the actual setup procedure
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
-        yield self.publish('crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
-                           {'type': self.WORKER_TYPE, 'id': self.config.extra.worker, 'pid': os.getpid()},
-                           options=PublishOptions(acknowledge=True))
+        yield self.publish(
+            'crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
+            {
+                u'type': self.WORKER_TYPE,
+                u'id': self.config.extra.worker,
+                u'pid': os.getpid(),
+            },
+            options=PublishOptions(acknowledge=True)
+        )
 
         self.log.debug("Worker '{worker}' running as PID {pid}",
                        worker=self.config.extra.node, pid=os.getpid())
@@ -432,8 +438,8 @@ class NativeWorkerSession(NativeProcessSession):
             #
             cpu_affinity_set_topic = u'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.worker)
             cpu_affinity_set_info = {
-                'affinity': new_affinity,
-                'who': details.caller
+                u'affinity': new_affinity,
+                u'who': details.caller
             }
             self.publish(cpu_affinity_set_topic, cpu_affinity_set_info, options=PublishOptions(exclude=[details.caller]))
 
@@ -506,10 +512,10 @@ class NativeWorkerSession(NativeProcessSession):
             self.config.extra.node, self.config.extra.worker)
 
         res = {
-            'paths': sys.path,
-            'paths_added': paths_added,
-            'prepend': prepend,
-            'who': details.caller
+            u'paths': sys.path,
+            u'paths_added': paths_added,
+            u'prepend': prepend,
+            u'who': details.caller
         }
         self.publish(topic, res, options=PublishOptions(exclude=[details.caller]))
 

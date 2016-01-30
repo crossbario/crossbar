@@ -679,12 +679,12 @@ class RouterSession(BaseSession):
         # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
         self._session_details = {
-            'session': details.session,
-            'authid': details.authid,
-            'authrole': details.authrole,
-            'authmethod': details.authmethod,
-            'authprovider': details.authprovider,
-            'transport': self._transport._transport_info
+            u'session': details.session,
+            u'authid': details.authid,
+            u'authrole': details.authrole,
+            u'authmethod': details.authmethod,
+            u'authprovider': details.authprovider,
+            u'transport': self._transport._transport_info
         }
 
         # dispatch session metaevent from WAMP AP

@@ -118,12 +118,12 @@ class MemoryEventStore(object):
         """
         assert(publication_id not in self._event_store)
         evt = {
-            'timestamp': utcnow(),
-            'publisher': publisher_id,
-            'publication': publication_id,
-            'topic': topic,
-            'args': args,
-            'kwargs': kwargs
+            u'timestamp': utcnow(),
+            u'publisher': publisher_id,
+            u'publication': publication_id,
+            u'topic': topic,
+            u'args': args,
+            u'kwargs': kwargs
         }
         self._event_store[publication_id] = evt
         self.log.debug("Event {publication_id} persisted", publication_id=publication_id)
