@@ -331,7 +331,7 @@ class Node(object):
 
         # the node controller realm
         #
-        self._realm = controller_config.get('realm', six.u'crossbar')
+        self._realm = controller_config.get('realm', six.u('crossbar'))
 
         # the node's name (must be unique within the management realm when running
         # in "managed mode")
