@@ -47,9 +47,9 @@ class CalleeTestCase(TestCase):
         """
         Plain request, no params.
         """
-        config = ComponentConfig(realm="realm1",
-                                 extra={"baseurl": "https://foo.com/",
-                                        "procedure": "io.crossbar.testrest"})
+        config = ComponentConfig(realm=u"realm1",
+                                 extra={u"baseurl": u"https://foo.com/",
+                                        u"procedure": u"io.crossbar.testrest"})
 
         m = MockWebTransport(self)
         m._addResponse(200, "whee")
@@ -75,9 +75,9 @@ class CalleeTestCase(TestCase):
         """
         Giving headers, params, a body.
         """
-        config = ComponentConfig(realm="realm1",
-                                 extra={"baseurl": "https://foo.com/",
-                                        "procedure": "io.crossbar.testrest"})
+        config = ComponentConfig(realm=u"realm1",
+                                 extra={u"baseurl": u"https://foo.com/",
+                                        u"procedure": u"io.crossbar.testrest"})
 
         m = MockWebTransport(self)
         m._addResponse(220, "whee!")
