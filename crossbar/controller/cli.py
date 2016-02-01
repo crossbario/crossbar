@@ -614,8 +614,8 @@ def run_command_start(options, reactor=None):
         d = node.start(cdc_mode=options.cdc)
 
         def on_error(err):
-            log.error("{e!s}", e=err.value)
-            log.error("Could not start node")
+            log.error("Uncaught exception while starting node:\n{msg}", msg=err.getTraceback())
+            log.critical("Could not start node")
             if reactor.running:
                 reactor.stop()
         d.addErrback(on_error)
