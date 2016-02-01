@@ -666,13 +666,13 @@ class RouterWorkerSession(NativeWorkerSession):
         def publish_stopped(session, details):
             topic = self._uri_prefix + '.container.on_component_stop'
             event = {u'id': id}
-            session.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
+            session.publish(topic, event, options=PublishOptions(exclude=details.caller))
             return event
 
         def publish_started(session, details):
             topic = self._uri_prefix + '.container.on_component_start'
             event = {u'id': id}
-            session.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
+            session.publish(topic, event, options=PublishOptions(exclude=details.caller))
             return event
         session.on('join', publish_started)
         session.on('leave', publish_stopped)

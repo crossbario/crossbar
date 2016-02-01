@@ -317,7 +317,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             #
             topic = self._uri_prefix + '.container.on_component_start'
             event = {u'id': id}
-            self.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
+            self.publish(topic, event, options=PublishOptions(exclude=details.caller))
             return event
 
         def error(err):

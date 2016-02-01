@@ -20,7 +20,9 @@ clean:
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
-	find . -name "__pycache__" -type d -exec rm -rf {} \;
+	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
+	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
+
 
 install:
 	pip install --upgrade -e .[all]

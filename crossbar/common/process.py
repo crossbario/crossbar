@@ -408,7 +408,7 @@ class NativeProcessSession(ApplicationSession):
                 self._pinfo_monitor.stop()
                 self._pinfo_monitor = None
 
-                self.publish(stats_monitor_set_topic, 0, options=PublishOptions(exclude=[details.caller]))
+                self.publish(stats_monitor_set_topic, 0, options=PublishOptions(exclude=details.caller))
 
             # possibly start a new monitor
             if interval > 0:
@@ -423,7 +423,7 @@ class NativeProcessSession(ApplicationSession):
                 self._pinfo_monitor = LoopingCall(publish_stats)
                 self._pinfo_monitor.start(interval)
 
-                self.publish(stats_monitor_set_topic, interval, options=PublishOptions(exclude=[details.caller]))
+                self.publish(stats_monitor_set_topic, interval, options=PublishOptions(exclude=details.caller))
         else:
             emsg = "Cannot setup process statistics monitor: required packages not installed"
             raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
@@ -481,7 +481,7 @@ class NativeProcessSession(ApplicationSession):
                 },
                 u'duration': duration
             },
-            options=PublishOptions(exclude=[details.caller])
+            options=PublishOptions(exclude=details.caller)
         )
 
         return duration
@@ -596,7 +596,7 @@ class NativeProcessSession(ApplicationSession):
             details.progress(starting_info)
 
         # .. while all others get an event
-        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
+        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=details.caller))
 
         try:
             self._manhole_service.port = yield create_listening_port_from_config(config['endpoint'],
@@ -616,7 +616,7 @@ class NativeProcessSession(ApplicationSession):
 
         started_topic = '{}.on_manhole_started'.format(self._uri_prefix)
         started_info = self._manhole_service.marshal()
-        self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
+        self.publish(started_topic, started_info, options=PublishOptions(exclude=details.caller))
 
         returnValue(started_info)
 
@@ -660,7 +660,7 @@ class NativeProcessSession(ApplicationSession):
             details.progress(stopping_info)
 
         # .. while all others get an event
-        self.publish(stopping_topic, stopping_info, options=PublishOptions(exclude=[details.caller]))
+        self.publish(stopping_topic, stopping_info, options=PublishOptions(exclude=details.caller))
 
         try:
             yield self._manhole_service.port.stopListening()
@@ -671,7 +671,7 @@ class NativeProcessSession(ApplicationSession):
 
         stopped_topic = u'{}.on_manhole_stopped'.format(self._uri_prefix)
         stopped_info = None
-        self.publish(stopped_topic, stopped_info, options=PublishOptions(exclude=[details.caller]))
+        self.publish(stopped_topic, stopped_info, options=PublishOptions(exclude=details.caller))
 
         returnValue(stopped_info)
 

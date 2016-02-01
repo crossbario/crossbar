@@ -409,9 +409,10 @@ class Dealer(object):
                     #
                     invocation_request_id = self._request_id_gen.next()
 
-                    # caller disclosure
+                    # FIXME: caller disclosure => get this from realm configuration
                     #
-                    if call.disclose_me:
+                    disclose = False
+                    if disclose:
                         caller = session._session_id
                     else:
                         caller = None

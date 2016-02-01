@@ -219,7 +219,7 @@ class NodeControllerSession(NativeProcessSession):
         yield self.publish(
             'crossbar.node.{}.on_shutdown'.format(self._node_id),
             shutdown_info,
-            options=PublishOptions(exclude=[details.caller] if details else None, acknowledge=True)
+            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
         )
 
         def stop_reactor():
@@ -514,7 +514,7 @@ class NodeControllerSession(NativeProcessSession):
             # FIXME: make start of stats printer dependent on log level ..
             worker.log_stats(5.)
 
-            self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
+            self.publish(started_topic, started_info, options=PublishOptions(exclude=details.caller))
 
             return started_info
 
@@ -594,7 +594,7 @@ class NodeControllerSession(NativeProcessSession):
             details.progress(starting_info)
 
         # .. while all others get an event
-        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
+        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=details.caller))
 
         # now actually fork the worker ..
         #
@@ -757,7 +757,7 @@ class NodeControllerSession(NativeProcessSession):
         yield self.publish(
             'crossbar.node.{}.worker.{}.on_stop_requested'.format(self._node_id, worker.id),
             stop_info,
-            options=PublishOptions(exclude=[details.caller] if details else None, acknowledge=True)
+            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
         )
 
         # send SIGKILL or SIGTERM to worker
@@ -920,7 +920,7 @@ class NodeControllerSession(NativeProcessSession):
                 u'who': worker.who,
             }
 
-            self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
+            self.publish(started_topic, started_info, options=PublishOptions(exclude=details.caller))
 
             return started_info
 
@@ -964,7 +964,7 @@ class NodeControllerSession(NativeProcessSession):
             details.progress(starting_info)
 
         # .. while all others get an event
-        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
+        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=details.caller))
 
         # now actually fork the worker ..
         #

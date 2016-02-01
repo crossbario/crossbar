@@ -195,7 +195,7 @@ class NativeWorkerSession(NativeProcessSession):
                 u'who': details.caller if details else None,
                 u'when': utcnow()
             },
-            options=PublishOptions(exclude=[details.caller] if details else None, acknowledge=True)
+            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
         )
 
         # we now call self.leave() to initiate the clean, orderly shutdown of the native worker.
@@ -253,7 +253,7 @@ class NativeWorkerSession(NativeProcessSession):
         if async:
             publish_options = None
         else:
-            publish_options = PublishOptions(exclude=[details.caller])
+            publish_options = PublishOptions(exclude=details.caller)
 
         self.publish(
             on_profile_started,
@@ -441,7 +441,7 @@ class NativeWorkerSession(NativeProcessSession):
                 u'affinity': new_affinity,
                 u'who': details.caller
             }
-            self.publish(cpu_affinity_set_topic, cpu_affinity_set_info, options=PublishOptions(exclude=[details.caller]))
+            self.publish(cpu_affinity_set_topic, cpu_affinity_set_info, options=PublishOptions(exclude=details.caller))
 
             # .. and return info directly to caller
             #
@@ -517,6 +517,6 @@ class NativeWorkerSession(NativeProcessSession):
             u'prepend': prepend,
             u'who': details.caller
         }
-        self.publish(topic, res, options=PublishOptions(exclude=[details.caller]))
+        self.publish(topic, res, options=PublishOptions(exclude=details.caller))
 
         return res

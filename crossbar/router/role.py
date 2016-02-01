@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-from collections import namedtuple
-
 from pytrie import StringTrie
 
 from crossbar._logging import make_logger
@@ -44,9 +42,24 @@ __all__ = (
 )
 
 
-RouterPermissions = namedtuple(
-    'RouterPermissions',
-    ['uri', 'match_by_prefix', 'call', 'register', 'publish', 'subscribe'])
+class RouterPermissions(object):
+
+    __slots__ = (
+        'uri',
+        'match_by_prefix',
+        'call',
+        'register',
+        'publish',
+        'subscribe',
+    )
+
+    def __init__(self, uri, match_by_prefix, call=False, register=False, publish=False, subscribe=False):
+        self.uri = uri
+        self.match_by_prefix = match_by_prefix
+        self.call = call
+        self.register = register
+        self.publish = publish
+        self.subscribe = subscribe
 
 
 class RouterRole(object):
@@ -108,7 +121,7 @@ class RouterRoleStaticAuth(RouterRole):
         Ctor.
 
         :param uri: The URI of the role.
-        :type uri: str
+        :type uri: unicode
         :param permissions: A permissions configuration, e.g. a list
            of permission dicts like `{'uri': 'com.example.*', 'call': True}`
         :type permissions: list
@@ -128,7 +141,8 @@ class RouterRoleStaticAuth(RouterRole):
             else:
                 match_by_prefix = False
 
-            perms = RouterPermissions(uri, match_by_prefix,
+            perms = RouterPermissions(uri,
+                                      match_by_prefix,
                                       call=p.get('call', False),
                                       register=p.get('register', False),
                                       publish=p.get('publish', False),

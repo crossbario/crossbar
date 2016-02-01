@@ -526,7 +526,8 @@ class Node(object):
         #
         worker_no = 1
 
-        call_options = CallOptions(disclose_me=True)
+        # FIXME: setup things so we disclose our identity!
+        call_options = CallOptions()
 
         for worker in config.get('workers', []):
             # worker ID, type and logname

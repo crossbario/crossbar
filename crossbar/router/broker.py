@@ -229,9 +229,10 @@ class Broker(object):
                         reply = message.Published(publish.request, publication)
                         self._router.send(session, reply)
 
-                    # publisher disclosure
+                    # FIXME: publisher disclosure => get this from realm configuration
                     #
-                    if publish.disclose_me:
+                    disclose = False
+                    if disclose:
                         publisher = session._session_id
                     else:
                         publisher = None
