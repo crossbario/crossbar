@@ -39,6 +39,7 @@ import json
 import warnings
 
 from json import JSONEncoder
+from textwrap import TextWrapper
 
 from functools import partial
 
@@ -99,9 +100,9 @@ except ImportError:
         LIGHTWHITE_EX = u''
     Fore = _Fore()
 
-STANDARD_FORMAT = u"{startcolour}{time} [{system}]{endcolour} {text}"
-SYSLOGD_FORMAT = u"{startcolour}[{system}]{endcolour} {text}"
-NONE_FORMAT = u"{text}"
+STANDARD_FORMAT = u"{startcolour}{time} [{system}]{endcolour} "
+SYSLOGD_FORMAT = u"{startcolour}[{system}]{endcolour} "
+NONE_FORMAT = u""
 
 POSSIBLE_LEVELS = ["none", "critical", "error", "warn", "info", "debug",
                    "trace"]
@@ -158,9 +159,36 @@ def format_log_system(event, show_source=False):
     return logSystem
 
 
+def wrap_text(prefix, text, width=0):
+    if width == 0:
+        return prefix + text
+
+    indent = ' ' * len(strip_ansi(prefix))
+
+    wrapper = TextWrapper(
+        width=width,
+        subsequent_indent=indent,
+        break_on_hyphens=False,
+        expand_tabs=False,
+        drop_whitespace=False,
+        replace_whitespace=False)
+
+    lines = text.splitlines()
+    if len(lines) == 0:
+        return prefix
+
+    wrapper.initial_indent = prefix
+    lines[0] = wrapper.fill(lines[0])
+
+    wrapper.initial_indent = indent
+    lines[1:] = [wrapper.fill(line) for line in lines[1:]]
+
+    return os.linesep.join(lines)
+
+
 def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
                          show_source=False, format="standard", trace=False,
-                         colour=False, _file=None):
+                         colour=False, width=0, _file=None):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
@@ -172,7 +200,7 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 
         if event["log_level"] not in levels:
             return
-        
+
         logSystem = format_log_system(event, show_source)
 
         FORMAT_STRING = get_format_str(format)
@@ -189,12 +217,11 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
             else:
                 fore = Fore.WHITE
 
-        eventString = FORMAT_STRING.format(
+        prefix = FORMAT_STRING.format(
             startcolour=fore, time=formatTime(event["log_time"]),
-            system=logSystem, endcolour=Fore.RESET if colour else u'',
-            text=formatEvent(event))
+            system=logSystem, endcolour=Fore.RESET if colour else u'')
 
-        print(eventString, file=_file)
+        print(wrap_text(prefix, formatEvent(event), width), file=_file)
 
     return StandardOutObserver
 
@@ -202,7 +229,7 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                                  LogLevel.critical),
                          show_source=False, format="standard",
-                         colour=False, _file=None):
+                         colour=False, width=0, _file=None):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
@@ -224,12 +251,11 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
             # Errors are always red.
             fore = Fore.RED
 
-        eventString = FORMAT_STRING.format(
+        prefix = FORMAT_STRING.format(
             startcolour=fore, time=formatTime(event["log_time"]),
-            system=logSystem, endcolour=Fore.RESET if colour else u'',
-            text=formatEvent(event))
+            system=logSystem, endcolour=Fore.RESET if colour else u'')
 
-        print(eventString, file=_file)
+        print(wrap_text(prefix, formatEvent(event), width), file=_file)
 
     return StandardErrorObserver
 

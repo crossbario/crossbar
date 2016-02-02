@@ -429,6 +429,7 @@ def _startlog(options, reactor):
 
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
+    logwidth = getattr(options, "logwidth", 0)
     colour = getattr(options, "colour", "auto")
 
     set_global_log_level(loglevel)
@@ -475,10 +476,12 @@ def _startlog(options, reactor):
             # Print info to stdout, warn+ to stderr
             observers.append(make_stdout_observer(show_source=False,
                                                   format=logformat,
-                                                  colour=colour))
+                                                  colour=colour,
+                                                  width=logwidth))
             observers.append(make_stderr_observer(show_source=False,
                                                   format=logformat,
-                                                  colour=colour))
+                                                  colour=colour,
+                                                  width=logwidth))
         elif loglevel == "debug":
             # Print debug+info to stdout, warn+ to stderr, with the class
             # source
@@ -487,16 +490,19 @@ def _startlog(options, reactor):
                                                   colour=colour))
             observers.append(make_stderr_observer(show_source=True,
                                                   format=logformat,
-                                                  colour=colour))
+                                                  colour=colour,
+                                                  width=logwidth))
         elif loglevel == "trace":
             # Print trace+, with the class source
             observers.append(make_stdout_observer(show_source=True,
                                                   format=logformat,
                                                   trace=True,
-                                                  colour=colour))
+                                                  colour=colour,
+                                                  width=logwidth))
             observers.append(make_stderr_observer(show_source=True,
                                                   format=logformat,
-                                                  colour=colour))
+                                                  colour=colour,
+                                                  width=logwidth))
         else:
             assert False, "Shouldn't ever get here."
 
@@ -805,6 +811,12 @@ def run(prog=None, args=None, reactor=None):
                               choices=['syslogd', 'standard', 'none'],
                               help=("The format of the logs -- suitable for "
                                     "syslogd, not coloured, or coloured."))
+
+    parser_start.add_argument('--logwidth',
+                              type=int,
+                              default="0",
+                              help="The log width used for wrapping console output. "
+                                   "0 (default) deactivates wrapping and indentation on newlines")
 
     # "stop" command
     #
