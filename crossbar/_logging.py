@@ -80,23 +80,23 @@ try:
 except ImportError:
     # No colorama, so just mock it out.
     class _Fore(object):
-        BLACK = ""
-        RED = ""
-        GREEN = ""
-        YELLOW = ""
-        BLUE = ""
-        MAGENTA = ""
-        CYAN = ""
-        WHITE = ""
-        RESET = ""
-        LIGHTBLACK_EX = ""
-        LIGHTRED_EX = ""
-        LIGHTGREEN_EX = ""
-        LIGHTYELLOW_EX = ""
-        LIGHTBLUE_EX = ""
-        LIGHTMAGENTA_EX = ""
-        LIGHTCYAN_EX = ""
-        LIGHTWHITE_EX = ""
+        BLACK = u''
+        RED = u''
+        GREEN = u''
+        YELLOW = u''
+        BLUE = u''
+        MAGENTA = u''
+        CYAN = u''
+        WHITE = u''
+        RESET = u''
+        LIGHTBLACK_EX = u''
+        LIGHTRED_EX = u''
+        LIGHTGREEN_EX = u''
+        LIGHTYELLOW_EX = u''
+        LIGHTBLUE_EX = u''
+        LIGHTMAGENTA_EX = u''
+        LIGHTCYAN_EX = u''
+        LIGHTWHITE_EX = u''
     Fore = _Fore()
 
 STANDARD_FORMAT = u"{startcolour}{time} [{system}]{endcolour} {text}"
@@ -129,6 +129,35 @@ def escape_formatting(text):
     return text.replace(u"{", u"{{").replace(u"}", u"}}")
 
 
+def get_format_str(format):
+    """
+    Given the name of a format, returns the actual format string
+    """
+    if format == "standard":
+        return STANDARD_FORMAT
+    elif format == "syslogd":
+        return SYSLOGD_FORMAT
+    elif format == "none":
+        return NONE_FORMAT
+    else:
+        raise ValueError("{} is not a proper name of a log format".format(format))
+
+
+def format_log_system(event, show_source=False):
+    """
+    Extracts the logSystem from an event and returns a formatted string
+    """
+    if event.get("log_system", "-") == "-":
+        logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
+    else:
+        logSystem = event["log_system"]
+
+    if show_source and event.get("log_namespace") is not None:
+        logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+
+    return logSystem
+
+
 def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
                          show_source=False, format="standard", trace=False,
                          colour=False, _file=None):
@@ -143,26 +172,14 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 
         if event["log_level"] not in levels:
             return
+        
+        logSystem = format_log_system(event, show_source)
 
-        if event.get("log_system", "-") == "-":
-            logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
-        else:
-            logSystem = event["log_system"]
+        FORMAT_STRING = get_format_str(format)
 
-        if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
-
-        if format == "standard":
-            FORMAT_STRING = STANDARD_FORMAT
-        elif format == "syslogd":
-            FORMAT_STRING = SYSLOGD_FORMAT
-        elif format == "none":
-            FORMAT_STRING = NONE_FORMAT
-        else:
-            assert False
-
+        # Choose a colour depending on where the log came from.
+        fore = u''
         if colour:
-            # Choose a colour depending on where the log came from.
             if "Controller" in logSystem:
                 fore = Fore.BLUE
             elif "Router" in logSystem:
@@ -172,15 +189,10 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
             else:
                 fore = Fore.WHITE
 
-            eventString = FORMAT_STRING.format(
-                startcolour=fore, time=formatTime(event["log_time"]),
-                system=logSystem, endcolour=Fore.RESET,
-                text=formatEvent(event))
-        else:
-            eventString = strip_ansi(FORMAT_STRING.format(
-                startcolour=u'', time=formatTime(event["log_time"]),
-                system=logSystem, endcolour=u'',
-                text=formatEvent(event)))
+        eventString = FORMAT_STRING.format(
+            startcolour=fore, time=formatTime(event["log_time"]),
+            system=logSystem, endcolour=Fore.RESET if colour else u'',
+            text=formatEvent(event))
 
         print(eventString, file=_file)
 
@@ -203,45 +215,19 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         if event["log_level"] not in levels:
             return
 
-        if event.get("log_system", u"-") == u"-":
-            logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
-        else:
-            logSystem = event["log_system"]
+        logSystem = format_log_system(event, show_source)
 
-        if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+        FORMAT_STRING = get_format_str(format)
 
-        if event.get("log_format", None) is not None:
-            eventText = formatEvent(event)
-        else:
-            eventText = u""
-
-        if "log_failure" in event:
-            # This is a traceback. Print it.
-            eventText = eventText + event["log_failure"].getTraceback()
-
-        if format == "standard":
-            FORMAT_STRING = STANDARD_FORMAT
-        elif format == "syslogd":
-            FORMAT_STRING = SYSLOGD_FORMAT
-        elif format == "none":
-            FORMAT_STRING = NONE_FORMAT
-        else:
-            assert False
-
+        fore = u''
         if colour:
             # Errors are always red.
             fore = Fore.RED
 
-            eventString = FORMAT_STRING.format(
-                startcolour=fore, time=formatTime(event["log_time"]),
-                system=logSystem, endcolour=Fore.RESET,
-                text=formatEvent(event))
-        else:
-            eventString = strip_ansi(FORMAT_STRING.format(
-                startcolour=u'', time=formatTime(event["log_time"]),
-                system=logSystem, endcolour=u'',
-                text=formatEvent(event)))
+        eventString = FORMAT_STRING.format(
+            startcolour=fore, time=formatTime(event["log_time"]),
+            system=logSystem, endcolour=Fore.RESET if colour else u'',
+            text=formatEvent(event))
 
         print(eventString, file=_file)
 
@@ -320,13 +306,7 @@ def make_logfile_observer(path, show_source=False):
 
     def _render(event):
 
-        if event.get("log_system", u"-") == u"-":
-            logSystem = u"{:<10} {:>6}".format("Controller", os.getpid())
-        else:
-            logSystem = event["log_system"]
-
-        if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+        logSystem = format_log_system(event, show_source)
 
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
