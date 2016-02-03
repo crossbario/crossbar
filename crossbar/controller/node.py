@@ -33,12 +33,12 @@ from __future__ import absolute_import
 import os
 import re
 import json
-import traceback
 import socket
 import getpass
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.python.failure import Failure
 from twisted.internet.ssl import optionsForClientTLS
 
 from autobahn.util import utcnow
@@ -500,7 +500,7 @@ class Node(object):
             self.log.error("{msg}", msg=e.error_message())
         except Exception:
             panic = True
-            traceback.print_exc()
+            self.log.error("{msg}", msg=Failure().getTraceback())
 
         if panic:
             try:

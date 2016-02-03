@@ -31,7 +31,8 @@
 from __future__ import absolute_import
 
 import os
-import traceback
+
+from twisted.python.failure import Failure
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
@@ -260,7 +261,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             return (protocol, headers)
 
         except Exception:
-            traceback.print_exc()
+            self.log.error("{msg}", msg=Failure().getTraceback())
 
     def sendServerStatus(self, redirectUrl=None, redirectAfter=0):
         """
