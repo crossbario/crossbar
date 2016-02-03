@@ -500,7 +500,7 @@ class Node(object):
             self.log.error("{msg}", msg=e.error_message())
         except Exception:
             panic = True
-            self.log.error("{msg}", msg=Failure().getTraceback())             
+            self.log.error("{msg}", msg=Failure().getTraceback())
 
         if panic:
             try:
