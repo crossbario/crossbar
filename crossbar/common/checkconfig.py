@@ -2008,13 +2008,26 @@ def check_router_realm_role(role):
                 raise InvalidConfigException(
                     "invalid role URI '{}' in role permissions".format(role['uri']),
                 )
+
             check_dict_args({
                 'uri': (True, [six.text_type]),
+                'match': (False, [six.text_type]),
                 'call': (False, [bool]),
                 'register': (False, [bool]),
                 'publish': (False, [bool]),
                 'subscribe': (False, [bool]),
+                'options': (False, [dict])
             }, role, "invalid grant in role permissions")
+
+            if 'match' in role:
+                if role['match'] not in [u'exact', u'prefix', u'wildcard']:
+                    raise InvalidConfigException("invalid value '{}' for 'match' attribute in role permissions".format(role['match']))
+
+            if 'options' in role:
+                check_dict_args({
+                    'disclose_caller': (False, [bool]),
+                    'disclose_publisher': (False, [bool]),
+                }, role['options'], "invalid option in role options")
 
 
 def check_router_components(components):

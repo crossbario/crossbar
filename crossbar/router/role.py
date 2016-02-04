@@ -32,6 +32,8 @@ from __future__ import absolute_import
 
 from pytrie import StringTrie
 
+from autobahn.wamp.uri import convert_starred_uri
+
 from crossbar._logging import make_logger
 
 __all__ = (
@@ -46,16 +48,22 @@ class RouterPermissions(object):
 
     __slots__ = (
         'uri',
-        'match_by_prefix',
+        'match',
         'call',
         'register',
         'publish',
         'subscribe',
+        'disclose_caller',
+        'disclose_publisher'
     )
 
-    def __init__(self, uri, match_by_prefix, call=False, register=False, publish=False, subscribe=False):
+    def __init__(self, uri, match, call=False, register=False, publish=False, subscribe=False):
+        """
+
+        :param uri: The URI to match.
+        """
         self.uri = uri
-        self.match_by_prefix = match_by_prefix
+        self.match = match
         self.call = call
         self.register = register
         self.publish = publish
@@ -133,20 +141,26 @@ class RouterRoleStaticAuth(RouterRole):
         self._default = default_permissions or RouterPermissions('', True, False, False, False, False)
 
         for p in self.permissions:
-            uri = p['uri']
 
-            if len(uri) > 0 and uri[-1] == '*':
-                match_by_prefix = True
-                uri = uri[:-1]
+            uri = p[u'uri']
+
+            # support "starred" URIs:
+            if u'match' in p:
+                # when a match policy is explicitly configured, the starred URI
+                # conversion logic is skipped! we want to preserve the higher
+                # expressiveness of regular WAMP URIs plus explicit match policy
+                match = p[u'match']
             else:
-                match_by_prefix = False
+                # when no explicit match policy is selected, we assume the use
+                # of starred URIs and convert to regular URI + detected match policy
+                uri, match = convert_starred_uri(uri)
 
             perms = RouterPermissions(uri,
-                                      match_by_prefix,
-                                      call=p.get('call', False),
-                                      register=p.get('register', False),
-                                      publish=p.get('publish', False),
-                                      subscribe=p.get('subscribe', False))
+                                      match,
+                                      call=p.get(u'call', False),
+                                      register=p.get(u'register', False),
+                                      publish=p.get(u'publish', False),
+                                      subscribe=p.get(u'subscribe', False))
 
             if len(uri) > 0:
                 self._urimap[uri] = perms
@@ -170,11 +184,9 @@ class RouterRoleStaticAuth(RouterRole):
         self.log.debug(
             "CrossbarRouterRoleStaticAuth.authorize {myuri} {uri} {action}",
             myuri=self.uri, uri=uri, action=action)
-        # if action == 'publish':
-        #   f = 1/0
         try:
             permissions = self._urimap.longest_prefix_value(uri)
-            if not permissions.match_by_prefix and uri != permissions.uri:
+            if permissions.match != u'prefix' and uri != permissions.uri:
                 return False
             return getattr(permissions, action)
         except KeyError:
