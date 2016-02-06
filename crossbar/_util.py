@@ -30,6 +30,7 @@
 
 import inspect
 
+
 def class_name(obj):
     """
     This returns a name like "module.Class" given either an instance, or a class.
