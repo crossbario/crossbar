@@ -41,7 +41,7 @@ from autobahn.wamp.message import \
     _URI_PAT_STRICT_LAST_EMPTY, _URI_PAT_LOOSE_LAST_EMPTY
 
 from crossbar.router.observation import UriObservationMap
-from crossbar.router import RouterOptions, RouterAction
+from crossbar.router import RouterOptions
 from crossbar._logging import make_logger
 
 import txaio
@@ -198,14 +198,14 @@ class Broker(object):
 
             # authorize PUBLISH action
             #
-            d = txaio.as_future(self._router.authorize, session, publish.topic, RouterAction.ACTION_PUBLISH)
+            d = self._router.authorize(session, publish.topic, u'publish')
 
-            def on_authorize_success(authorized):
+            def on_authorize_success(authorization):
 
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
                 #
-                if not authorized:
+                if not authorization[u'allow']:
 
                     if publish.acknowledge:
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, [u"session not authorized to publish to topic '{0}'".format(publish.topic)])
@@ -229,10 +229,9 @@ class Broker(object):
                         reply = message.Published(publish.request, publication)
                         self._router.send(session, reply)
 
-                    # FIXME: publisher disclosure => get this from realm configuration
+                    # publisher disclosure
                     #
-                    disclose = False
-                    if disclose:
+                    if authorization[u'disclose']:
                         publisher = session._session_id
                     else:
                         publisher = None
@@ -368,12 +367,12 @@ class Broker(object):
             self._router.send(session, reply)
             return
 
-        # authorize action
+        # authorize SUBSCRIBE action
         #
-        d = txaio.as_future(self._router.authorize, session, subscribe.topic, RouterAction.ACTION_SUBSCRIBE)
+        d = self._router.authorize(session, subscribe.topic, u'subscribe')
 
-        def on_authorize_success(authorized):
-            if not authorized:
+        def on_authorize_success(authorization):
+            if not authorization[u'allow']:
                 # error reply since session is not authorized to subscribe
                 #
                 reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])

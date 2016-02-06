@@ -121,7 +121,7 @@ class TestPyTrie(unittest.TestCase):
         self.assertTrue(test_key.startswith(stored_key))
         self.assertEqual(t.longest_prefix_value(test_key), stored_key)
 
-    test_longest_prefix_4.skip = """
-        pytrie behavior is broken wrt to string keys of zero length!
-        See: https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-    """
+    # pytrie behavior is broken wrt to string keys of zero length!
+    # See: https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
+    # We have a workaround in place for this at the relevant places.
+    test_longest_prefix_4.skip = True

@@ -61,7 +61,7 @@ class RouterPermissions(object):
     )
 
     def __init__(self,
-                 uri, match=u'exact',
+                 uri, match,
                  call=False, register=False, publish=False, subscribe=False,
                  disclose_caller=False, disclose_publisher=False,
                  cache=True):
@@ -69,8 +69,8 @@ class RouterPermissions(object):
 
         :param uri: The URI to match.
         """
-        assert(type(uri) == six.text_type)
-        assert(match in [u'exact', u'prefix', u'wildcard'])
+        assert(uri is None or type(uri) == six.text_type)
+        assert(match is None or match in [u'exact', u'prefix', u'wildcard'])
         assert(type(call) == bool)
         assert(type(register) == bool)
         assert(type(publish) == bool)
@@ -92,7 +92,7 @@ class RouterPermissions(object):
     def __repr__(self):
         return u'RouterPermissions(uri="{}", match="{}", call={}, register={}, publish={}, subscribe={}, disclose_caller={}, disclose_publisher={}, cache={})'.format(self.uri, self.match, self.call, self.register, self.publish, self.subscribe, self.disclose_caller, self.disclose_publisher, self.cache)
 
-    def marshal(self):
+    def to_dict(self):
         return {
             u'uri': self.uri,
             u'match': self.match,
@@ -100,10 +100,49 @@ class RouterPermissions(object):
             u'register': self.register,
             u'publish': self.publish,
             u'subscribe': self.subscribe,
-            u'disclose_caller': self.disclose_caller,
-            u'disclose_publisher': self.disclose_publisher,
-            u'cache': self.cache,
+            u'options': {
+                u'disclose_caller': self.disclose_caller,
+                u'disclose_publisher': self.disclose_publisher,
+                u'cache': self.cache,
+            }
         }
+
+    @staticmethod
+    def from_dict(obj):
+        assert(type(obj) == dict)
+        if u'options' in obj:
+            options = obj[u'options']
+            assert(type(options) == dict)
+
+            disclose_caller = options.get(u'disclose_caller', False)
+            disclose_publisher = options.get(u'disclose_publisher', False)
+            cache = options.get(u'cache', False)
+        else:
+            disclose_caller = False
+            disclose_publisher = False
+            cache = False
+
+        uri = obj.get(u'uri', None)
+
+        # support "starred" URIs:
+        if u'match' in obj:
+            # when a match policy is explicitly configured, the starred URI
+            # conversion logic is skipped! we want to preserve the higher
+            # expressiveness of regular WAMP URIs plus explicit match policy
+            match = obj[u'match']
+        else:
+            # when no explicit match policy is selected, we assume the use
+            # of starred URIs and convert to regular URI + detected match policy
+            uri, match = convert_starred_uri(uri)
+
+        return RouterPermissions(uri, match,
+                                 call=obj.get(u'call', False),
+                                 register=obj.get(u'register', False),
+                                 publish=obj.get(u'publish', False),
+                                 subscribe=obj.get(u'subscribe', False),
+                                 disclose_caller=disclose_caller,
+                                 disclose_publisher=disclose_publisher,
+                                 cache=cache)
 
 
 class RouterRole(object):
@@ -162,46 +201,46 @@ class RouterRoleStaticAuth(RouterRole):
 
     def __init__(self, router, uri, permissions=None, default_permissions=None):
         """
-        Ctor.
 
+        :param router: The router this role is defined on.
+        :type router: obj
         :param uri: The URI of the role.
         :type uri: unicode
         :param permissions: A permissions configuration, e.g. a list
            of permission dicts like `{'uri': 'com.example.*', 'call': True}`
-        :type permissions: list
+        :type permissions: list of dict
+        :param default_permissions: The default permissions to apply when no other
+            configured permission matches. The default permissions when not explicitly
+            set is to deny all actions on all URIs!
+        :type default_permissions: dict
         """
         RouterRole.__init__(self, router, uri)
-        self.permissions = permissions or []
+        assert(permissions is None or type(permissions) == list)
+        if permissions:
+            for p in permissions:
+                assert(type(p) == dict)
+        assert(default_permissions is None or type(default_permissions) == dict)
 
-        self._urimap = StringTrie()
-        self._default = default_permissions or RouterPermissions(u'', u'prefix')
+        # default permissions (used when nothing else is matching)
+        # note: default permissions have their matching URI and match policy set to None!
+        if default_permissions:
+            self._default = RouterPermissions.from_dict(default_permissions)
+        else:
+            self._default = RouterPermissions(None, None,
+                                              call=False,
+                                              register=False,
+                                              publish=False,
+                                              subscribe=False,
+                                              disclose_caller=False,
+                                              disclose_publisher=False,
+                                              cache=True)
 
-        for p in self.permissions:
+        # Trie of explicitly configured permissions
+        self._permissions = StringTrie()
 
-            uri = p[u'uri']
-
-            # support "starred" URIs:
-            if u'match' in p:
-                # when a match policy is explicitly configured, the starred URI
-                # conversion logic is skipped! we want to preserve the higher
-                # expressiveness of regular WAMP URIs plus explicit match policy
-                match = p[u'match']
-            else:
-                # when no explicit match policy is selected, we assume the use
-                # of starred URIs and convert to regular URI + detected match policy
-                uri, match = convert_starred_uri(uri)
-
-            perms = RouterPermissions(uri,
-                                      match,
-                                      call=p.get(u'call', False),
-                                      register=p.get(u'register', False),
-                                      publish=p.get(u'publish', False),
-                                      subscribe=p.get(u'subscribe', False),
-                                      disclose_caller=p.get(u'disclose_caller', False),
-                                      disclose_publisher=p.get(u'disclose_publisher', False),
-                                      cache=p.get(u'cache', True))
-
-            self._urimap[uri] = perms
+        for obj in permissions or []:
+            perms = RouterPermissions.from_dict(obj)
+            self._permissions[perms.uri] = perms
 
     def authorize(self, session, uri, action):
         """
@@ -220,18 +259,53 @@ class RouterRoleStaticAuth(RouterRole):
         self.log.debug(
             "CrossbarRouterRoleStaticAuth.authorize {myuri} {uri} {action}",
             myuri=self.uri, uri=uri, action=action)
+
         try:
-            permissions = self._urimap.longest_prefix_value(uri)
+            # longest prefix match of the URI to be authorized against our Trie
+            # of configured URIs for permissions
+            permissions = self._permissions.longest_prefix_value(uri)
+
+            # if there is a _prefix_ matching URI, check that this is actually the
+            # match policy on the permission (otherwise, apply default permissions)!
             if permissions.match != u'prefix' and uri != permissions.uri:
-                return False, permissions.marshal()
-            return getattr(permissions, action), permissions.marshal()
+                permissions = self._default
+
         except KeyError:
             # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-            if u'' in self._urimap:
-                permissions = self._urimap[u'']
+            if u'' in self._permissions:
+                permissions = self._permissions[u'']
             else:
                 permissions = self._default
-            return getattr(permissions, action), permissions.marshal()
+
+        if action == u'publish':
+            return {
+                u'allow': permissions.publish,
+                u'disclose': permissions.disclose_publisher,
+                u'cache': permissions.cache
+            }
+
+        elif action == u'subscribe':
+            return {
+                u'allow': permissions.subscribe,
+                u'cache': permissions.cache
+            }
+
+        elif action == u'call':
+            return {
+                u'allow': permissions.call,
+                u'disclose': permissions.disclose_caller,
+                u'cache': permissions.cache
+            }
+
+        elif action == u'register':
+            return {
+                u'allow': permissions.register,
+                u'cache': permissions.cache
+            }
+
+        else:
+            # should not arrive here
+            raise Exception('logic error')
 
 
 class RouterRoleDynamicAuth(RouterRole):

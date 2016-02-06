@@ -43,7 +43,7 @@ from autobahn.twisted.wamp import ApplicationSession
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.worker.router import RouterRealm
-from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
+from crossbar.router.role import RouterRoleStaticAuth
 
 
 class TestEmbeddedSessions(unittest.TestCase):
@@ -64,9 +64,16 @@ class TestEmbeddedSessions(unittest.TestCase):
         self.router_factory.start_realm(RouterRealm(None, {u'name': u'realm1'}))
 
         # allow everything
-        permissions = RouterPermissions(u'', u'prefix', True, True, True, True)
+        default_permissions = {
+            u'uri': u'',
+            u'match': u'prefix',
+            u'call': True,
+            u'register': True,
+            u'publish': True,
+            u'subscribe': True
+        }
         router = self.router_factory.get(u'realm1')
-        router.add_role(RouterRoleStaticAuth(router, None, default_permissions=permissions))
+        router.add_role(RouterRoleStaticAuth(router, None, default_permissions=default_permissions))
 
         # create a router session factory
         self.session_factory = RouterSessionFactory(self.router_factory)

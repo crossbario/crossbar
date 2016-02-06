@@ -46,7 +46,7 @@ from autobahn.wamp.message import \
     _URI_PAT_LOOSE_EMPTY
 
 from crossbar.router.observation import UriObservationMap
-from crossbar.router import RouterOptions, RouterAction
+from crossbar.router import RouterOptions
 from crossbar._logging import make_logger
 
 import txaio
@@ -211,12 +211,12 @@ class Dealer(object):
                 self._router.send(session, reply)
                 return
 
-        # authorize action
+        # authorize REGISTER action
         #
-        d = txaio.as_future(self._router.authorize, session, register.procedure, RouterAction.ACTION_REGISTER)
+        d = self._router.authorize(session, register.procedure, u'register')
 
-        def on_authorize_success(authorized):
-            if not authorized:
+        def on_authorize_success(authorization):
+            if not authorization[u'allow']:
                 # error reply since session is not authorized to register
                 #
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to register procedure '{0}'".format(register.procedure)])
@@ -362,7 +362,7 @@ class Dealer(object):
             #
             if call.payload is None:
                 try:
-                    self._router.validate('call', call.procedure, call.args, call.kwargs)
+                    self._router.validate(u'call', call.procedure, call.args, call.kwargs)
                 except Exception as e:
                     reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
                     self._router.send(session, reply)
@@ -370,14 +370,14 @@ class Dealer(object):
 
             # authorize CALL action
             #
-            d = txaio.as_future(self._router.authorize, session, call.procedure, RouterAction.ACTION_CALL)
+            d = self._router.authorize(session, call.procedure, u'call')
 
-            def on_authorize_success(authorized):
+            def on_authorize_success(authorization):
 
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
                 #
-                if not authorized:
+                if not authorization[u'allow']:
                     reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to call procedure '{0}'".format(call.procedure)])
                     self._router.send(session, reply)
 
@@ -409,10 +409,9 @@ class Dealer(object):
                     #
                     invocation_request_id = self._request_id_gen.next()
 
-                    # FIXME: caller disclosure => get this from realm configuration
+                    # caller disclosure
                     #
-                    disclose = False
-                    if disclose:
+                    if authorization[u'disclose']:
                         caller = session._session_id
                     else:
                         caller = None

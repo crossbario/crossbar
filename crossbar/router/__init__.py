@@ -48,18 +48,3 @@ class RouterOptions:
 
     def __str__(self):
         return "RouterOptions(uri_check = {0})".format(self.uri_check)
-
-
-class RouterAction(object):
-
-    ACTION_CALL = 1
-    ACTION_REGISTER = 2
-    ACTION_PUBLISH = 3
-    ACTION_SUBSCRIBE = 4
-
-    ACTION_TO_STRING = {
-        ACTION_CALL: 'call',
-        ACTION_REGISTER: 'register',
-        ACTION_PUBLISH: 'publish',
-        ACTION_SUBSCRIBE: 'subscribe'
-    }
