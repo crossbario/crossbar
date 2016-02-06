@@ -46,7 +46,7 @@ from twisted.python.threadpool import ThreadPool
 
 from autobahn.util import utcstr
 from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.exception import ApplicationError, TransportLost
+from autobahn.wamp.exception import ApplicationError
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
