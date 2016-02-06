@@ -174,8 +174,8 @@ class RouterApplicationSession(object):
             d.addErrback(lambda fail: self._log_error(fail, "While notifying 'join'"))
             # now fire onJoin (since _log_error returns None, we'll be
             # back in the callback chain even on errors from 'join'
-            d.addCallback(lambda _: self._session.onJoin(details))
-            d.addErrback(lambda fail: self._log_error(fail, "While firing onJoin"))
+            d.addCallback(lambda _: txaio.as_future(self._session.onJoin, details))
+            d.addErrback(lambda fail: self._swallow_error(fail, "While firing onJoin"))
             d.addCallback(lambda _: self._session.fire('ready', self._session))
             d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
 
