@@ -10,6 +10,16 @@ All rights to the Crossbar.io source code remain exclusively with [Tavendo](http
 
 The Crossbar.io [application templates](https://github.com/crossbario/crossbar/tree/master/crossbar/crossbar/templates) and instances of code generated from these templates are licensed under the [BSD 2-clause](http://opensource.org/licenses/BSD-2-Clause) license. 
 
+
+## API
+
+In some jurisdictions, the APIs implemented by Crossbar.io may be protected by copyright. 
+
+In regards to WAMP and the WAMP meta-API, these are covered by the respective licenses provided by the WAMP project.
+
+In regard to other program APIs, we provide a [license](https://github.com/crossbario/crossbar/blob/master/crossbar/LICENSE-FOR-API).
+
+
 ## WAMP clients as separate works
 
 We see any code which connects to Crossbar.io via WAMP as a separate work. The Crossbar.io license (the AGPL v3) does not apply to WAMP clients. This applies irrespective of where these run, i.e. also to components which are run side-by-side within an native worker of type router, which are run in a native worker of type container or in a guest worker. We promise to stand by this view of the license.
