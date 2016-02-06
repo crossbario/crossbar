@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+import six
+
 from pytrie import StringTrie
 
 from autobahn.wamp.uri import convert_starred_uri
@@ -54,20 +56,54 @@ class RouterPermissions(object):
         'publish',
         'subscribe',
         'disclose_caller',
-        'disclose_publisher'
+        'disclose_publisher',
+        'cache'
     )
 
-    def __init__(self, uri, match, call=False, register=False, publish=False, subscribe=False):
+    def __init__(self,
+                 uri, match=u'exact',
+                 call=False, register=False, publish=False, subscribe=False,
+                 disclose_caller=False, disclose_publisher=False,
+                 cache=True):
         """
 
         :param uri: The URI to match.
         """
+        assert(type(uri) == six.text_type)
+        assert(match in [u'exact', u'prefix', u'wildcard'])
+        assert(type(call) == bool)
+        assert(type(register) == bool)
+        assert(type(publish) == bool)
+        assert(type(subscribe) == bool)
+        assert(type(disclose_caller) == bool)
+        assert(type(disclose_publisher) == bool)
+        assert(type(cache) == bool)
+
         self.uri = uri
         self.match = match
         self.call = call
         self.register = register
         self.publish = publish
         self.subscribe = subscribe
+        self.disclose_caller = disclose_caller
+        self.disclose_publisher = disclose_publisher
+        self.cache = cache
+
+    def __repr__(self):
+        return u'RouterPermissions(uri="{}", match="{}", call={}, register={}, publish={}, subscribe={}, disclose_caller={}, disclose_publisher={}, cache={})'.format(self.uri, self.match, self.call, self.register, self.publish, self.subscribe, self.disclose_caller, self.disclose_publisher, self.cache)
+
+    def marshal(self):
+        return {
+            u'uri': self.uri,
+            u'match': self.match,
+            u'call': self.call,
+            u'register': self.register,
+            u'publish': self.publish,
+            u'subscribe': self.subscribe,
+            u'disclose_caller': self.disclose_caller,
+            u'disclose_publisher': self.disclose_publisher,
+            u'cache': self.cache,
+        }
 
 
 class RouterRole(object):
@@ -138,7 +174,7 @@ class RouterRoleStaticAuth(RouterRole):
         self.permissions = permissions or []
 
         self._urimap = StringTrie()
-        self._default = default_permissions or RouterPermissions('', True, False, False, False, False)
+        self._default = default_permissions or RouterPermissions(u'', u'prefix')
 
         for p in self.permissions:
 
@@ -160,12 +196,12 @@ class RouterRoleStaticAuth(RouterRole):
                                       call=p.get(u'call', False),
                                       register=p.get(u'register', False),
                                       publish=p.get(u'publish', False),
-                                      subscribe=p.get(u'subscribe', False))
+                                      subscribe=p.get(u'subscribe', False),
+                                      disclose_caller=p.get(u'disclose_caller', False),
+                                      disclose_publisher=p.get(u'disclose_publisher', False),
+                                      cache=p.get(u'cache', True))
 
-            if len(uri) > 0:
-                self._urimap[uri] = perms
-            else:
-                self._default = perms
+            self._urimap[uri] = perms
 
     def authorize(self, session, uri, action):
         """
@@ -187,10 +223,15 @@ class RouterRoleStaticAuth(RouterRole):
         try:
             permissions = self._urimap.longest_prefix_value(uri)
             if permissions.match != u'prefix' and uri != permissions.uri:
-                return False
-            return getattr(permissions, action)
+                return False, permissions.marshal()
+            return getattr(permissions, action), permissions.marshal()
         except KeyError:
-            return getattr(self._default, action)
+            # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
+            if u'' in self._urimap:
+                permissions = self._urimap[u'']
+            else:
+                permissions = self._default
+            return getattr(permissions, action), permissions.marshal()
 
 
 class RouterRoleDynamicAuth(RouterRole):

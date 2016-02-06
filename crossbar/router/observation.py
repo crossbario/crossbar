@@ -346,23 +346,22 @@ class UriObservationMap(object):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
         # a exact matching observation is always "best", if any
-        #
         if uri in self._observations_exact:
             return self._observations_exact[uri]
 
         # "second best" is the longest prefix-matching observation, if any
         # FIXME: do we want this to take precedence over _any_ wildcard (see below)?
-        #
         try:
             return self._observations_prefix.longest_prefix_value(uri)
         except KeyError:
-            pass
+            # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
+            if u'' in self._observations_prefix:
+                return self._observations_prefix[u'']
 
         # FIXME: for wildcard observations, when there are multiple matching, we'd
         # like to deterministically select the "most selective one"
         # We first need a definition of "most selective", and then we need to implement
         # this here.
-        #
         for observation in self._observations_wildcard.iter_matches(uri):
             return observation
 

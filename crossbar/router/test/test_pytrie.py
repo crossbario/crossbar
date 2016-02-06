@@ -38,20 +38,31 @@ from pytrie import StringTrie
 class TestPyTrie(unittest.TestCase):
 
     def test_empty_tree(self):
+        """
+        Test trie ctor, and that is doesn't match on "any" prefix.
+        """
         t = StringTrie()
         for key in [u'', u'f', u'foo', u'foobar']:
-            with self.assertRaises(KeyError) as e:
+            with self.assertRaises(KeyError):
                 t.longest_prefix_value(key)
 
     def test_contains(self):
+        """
+        Test the contains operator.
+        """
         t = StringTrie()
         test_keys = [u'', u'f', u'foo', u'foobar', u'baz']
         for key in test_keys:
             t[key] = key
         for key in test_keys:
             self.assertTrue(key in t)
+        for key in [u'x', u'fb', u'foob', u'fooba', u'bazz']:
+            self.assertFalse(key in t)
 
     def test_longest_prefix_1(self):
+        """
+        Test that keys are detected as prefix of themselfes.
+        """
         t = StringTrie()
         test_keys = [u'f', u'foo', u'foobar', u'baz']
         for key in test_keys:
@@ -60,6 +71,9 @@ class TestPyTrie(unittest.TestCase):
             self.assertEqual(t.longest_prefix_value(key), key)
 
     def test_longest_prefix_2(self):
+        """
+        Test matching prefix lookups.
+        """
         t = StringTrie()
         test_keys = [u'f', u'foo', u'foobar']
         for key in test_keys:
@@ -79,26 +93,26 @@ class TestPyTrie(unittest.TestCase):
             self.assertEqual(t.longest_prefix_value(key), test_keys[key])
 
     def test_longest_prefix_3(self):
+        """
+        Test non-matching prefix lookups.
+        """
         t = StringTrie()
-        test_keys = [u'x', u'foo', u'foobar']
+
+        for key in [u'x', u'fop', u'foobar']:
+            t[key] = key
 
         for key in [u'y', u'yfoo', u'fox', u'fooba']:
-            with self.assertRaises(KeyError) as e:
+            with self.assertRaises(KeyError):
                 t.longest_prefix_value(key)
 
     def test_longest_prefix_4(self):
-        stored_key = u'x'
-        test_key = u'xyz'
-
-        t = StringTrie()
-        t[stored_key] = stored_key
-        self.assertTrue(stored_key in t)
-        self.assertTrue(test_key.startswith(stored_key))
-        self.assertEqual(t.longest_prefix_value(test_key), stored_key)
-
-    def test_longest_prefix_5(self):
+        """
+        Test that a trie with an empty string as a key contained
+        matches a non-empty prefix matching lookup.
+        """
         self.skip = True
-        stored_key = u''
+        # stored_key = u'x'  # this works (and of course it should!)
+        stored_key = u''  # this blows up! (and it _should_ work)
         test_key = u'xyz'
 
         t = StringTrie()
@@ -107,4 +121,7 @@ class TestPyTrie(unittest.TestCase):
         self.assertTrue(test_key.startswith(stored_key))
         self.assertEqual(t.longest_prefix_value(test_key), stored_key)
 
-    test_longest_prefix_5.skip = "pytrie behavior is broken wrt to string keys of zero length!"
+    test_longest_prefix_4.skip = """
+        pytrie behavior is broken wrt to string keys of zero length!
+        See: https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
+    """

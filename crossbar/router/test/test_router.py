@@ -64,7 +64,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         self.router_factory.start_realm(RouterRealm(None, {u'name': u'realm1'}))
 
         # allow everything
-        permissions = RouterPermissions(u'', True, True, True, True, True)
+        permissions = RouterPermissions(u'', u'prefix', True, True, True, True)
         router = self.router_factory.get(u'realm1')
         router.add_role(RouterRoleStaticAuth(router, None, default_permissions=permissions))
 
