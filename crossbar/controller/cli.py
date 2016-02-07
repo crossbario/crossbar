@@ -578,10 +578,6 @@ def run_command_start(options, reactor=None):
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
-    # relative path validation won't work if we aren't in our
-    # working-dir when doing the validation
-    os.chdir(options.cbdir)
-
     from crossbar.controller.node import Node
     from crossbar.common.checkconfig import InvalidConfigException
 
@@ -652,22 +648,22 @@ def run_command_check(options, **kwargs):
 
     print("\nChecking node configuration file '{}':\n".format(configfile))
 
-    color = color_json
-    with open(configfile, 'r') as f:
-        print(color(f.read().decode('utf8')))
+    if False:
+        with open(configfile, 'rb') as f:
+            print(color_json(f.read().decode('utf8')))
 
-    old_dir = os.path.abspath(os.path.curdir)
-    os.chdir(options.cbdir)
     try:
-        check_config_file(configfile)
+        config = check_config_file(configfile)
     except Exception as e:
         print("\nError: {}\n".format(e))
         sys.exit(1)
     else:
         print("Ok, node configuration looks good!\n")
+
+        import json
+        config_content = json.dumps(config, skipkeys=False, sort_keys=False, ensure_ascii=False, separators=(',', ': '), indent=3)
+        print(color_json(config_content))
         sys.exit(0)
-    finally:
-        os.chdir(old_dir)
 
 
 def run_command_convert(options, **kwargs):
@@ -681,6 +677,24 @@ def run_command_convert(options, **kwargs):
 
     try:
         convert_config_file(configfile)
+    except Exception as e:
+        print("\nError: {}\n".format(e))
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
+
+def run_command_upgrade(options, **kwargs):
+    """
+    Subcommand "crossbar upgrade".
+    """
+    from crossbar.common.checkconfig import upgrade_config_file
+    configfile = os.path.join(options.cbdir, options.config)
+
+    print("Upgrading local configuration file {}".format(configfile))
+
+    try:
+        upgrade_config_file(configfile)
     except Exception as e:
         print("\nError: {}\n".format(e))
         sys.exit(1)
@@ -869,6 +883,23 @@ def run(prog=None, args=None, reactor=None):
                                          help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
     parser_check.set_defaults(func=run_command_convert)
+
+    parser_check.add_argument('--cbdir',
+                              type=six.text_type,
+                              default=None,
+                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser_check.add_argument('--config',
+                              type=six.text_type,
+                              default=None,
+                              help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+    # "upgrade" command
+    #
+    parser_check = subparsers.add_parser('upgrade',
+                                         help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
+
+    parser_check.set_defaults(func=run_command_upgrade)
 
     parser_check.add_argument('--cbdir',
                               type=six.text_type,

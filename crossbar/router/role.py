@@ -96,31 +96,22 @@ class RouterPermissions(object):
         return {
             u'uri': self.uri,
             u'match': self.match,
-            u'call': self.call,
-            u'register': self.register,
-            u'publish': self.publish,
-            u'subscribe': self.subscribe,
-            u'options': {
-                u'disclose_caller': self.disclose_caller,
-                u'disclose_publisher': self.disclose_publisher,
-                u'cache': self.cache,
+            u'allow': {
+                u'call': self.call,
+                u'register': self.register,
+                u'publish': self.publish,
+                u'subscribe': self.subscribe
+            },
+            u'disclose': {
+                u'caller': self.disclose_caller,
+                u'publisher': self.disclose_publisher
             }
+            u'cache': self.cache
         }
 
     @staticmethod
     def from_dict(obj):
         assert(type(obj) == dict)
-        if u'options' in obj:
-            options = obj[u'options']
-            assert(type(options) == dict)
-
-            disclose_caller = options.get(u'disclose_caller', False)
-            disclose_publisher = options.get(u'disclose_publisher', False)
-            cache = options.get(u'cache', False)
-        else:
-            disclose_caller = False
-            disclose_publisher = False
-            cache = False
 
         uri = obj.get(u'uri', None)
 
@@ -135,11 +126,25 @@ class RouterPermissions(object):
             # of starred URIs and convert to regular URI + detected match policy
             uri, match = convert_starred_uri(uri)
 
+        allow = obj.get(u'allow', {})
+        assert(type(allow) == dict)
+        allow_call = allow.get(u'call', False)
+        allow_register = allow.get(u'register', False)
+        allow_publish = allow.get(u'publish', False)
+        allow_subscribe = allow.get(u'subscribe', False)
+
+        disclose = obj.get(u'disclose', {})
+        assert(type(disclose) == dict)
+        disclose_caller = disclose.get(u'caller', False)
+        disclose_publisher = disclose.get(u'publisher', False)
+
+        cache = options.get(u'cache', False)
+
         return RouterPermissions(uri, match,
-                                 call=obj.get(u'call', False),
-                                 register=obj.get(u'register', False),
-                                 publish=obj.get(u'publish', False),
-                                 subscribe=obj.get(u'subscribe', False),
+                                 call=allow_call,
+                                 register=allow_register,
+                                 publish=allow_publish,
+                                 subscribe=allow_subscribe,
                                  disclose_caller=disclose_caller,
                                  disclose_publisher=disclose_publisher,
                                  cache=cache)
