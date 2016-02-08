@@ -36,7 +36,6 @@ import re
 import six
 
 from collections import OrderedDict
-from collections.abc import Mapping, Sequence
 
 from pprint import pformat
 
@@ -52,6 +51,11 @@ from crossbar._logging import make_logger
 
 import yaml
 from yaml import Loader, SafeLoader
+
+if six.PY3:
+    from collections.abc import Mapping, Sequence
+else:
+    from collections import Mapping, Sequence
 
 __all__ = ('check_config',
            'check_config_file',
