@@ -43,6 +43,7 @@ __all__ = (
     'RouterTrustedRole',
     'RouterRoleStaticAuth',
     'RouterRoleDynamicAuth',
+    'RouterRoleLMDBAuth'
 )
 
 
@@ -105,7 +106,7 @@ class RouterPermissions(object):
             u'disclose': {
                 u'caller': self.disclose_caller,
                 u'publisher': self.disclose_publisher
-            }
+            },
             u'cache': self.cache
         }
 
@@ -138,7 +139,7 @@ class RouterPermissions(object):
         disclose_caller = disclose.get(u'caller', False)
         disclose_publisher = disclose.get(u'publisher', False)
 
-        cache = options.get(u'cache', False)
+        cache = obj.get(u'cache', False)
 
         return RouterPermissions(uri, match,
                                  call=allow_call,
@@ -349,3 +350,41 @@ class RouterRoleDynamicAuth(RouterRole):
             myuri=self.uri, uri=uri, action=action)
         return self._session.call(self._authorizer, session._session_details,
                                   uri, action)
+
+
+class RouterRoleLMDBAuth(RouterRole):
+    """
+    A role on a router realm that is authorized from a node LMDB embedded database.
+    """
+
+    def __init__(self, router, uri, store):
+        """
+
+        :param uri: The URI of the role.
+        :type uri: unicode
+        """
+        RouterRole.__init__(self, router, uri)
+        self._store = store
+
+    def authorize(self, session, uri, action):
+        """
+        Authorize a session connected under this role to perform the given
+        action on the given URI.
+
+        :param session: The WAMP session that requests the action.
+        :type session: Instance of :class:`autobahn.wamp.protocol.ApplicationSession`
+        :param uri: The URI on which to perform the action.
+        :type uri: unicode
+        :param action: The action to be performed.
+        :type action: unicode
+
+        :returns: The authorization
+        :rtype: dict
+        """
+        # FIXME: for the realm the router (self._router) is working for,
+        # and for the role URI on that realm, lookup the authorization
+        # in the respective node LMDB embedded database. returning a
+        # Deferred that fires when the data was loaded from the database.
+        # we expect being able to do millions of lookups per second, so this
+        # should not be a bottleneck.
+        raise Exception('not implemented yet')

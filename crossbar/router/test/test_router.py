@@ -67,10 +67,12 @@ class TestEmbeddedSessions(unittest.TestCase):
         default_permissions = {
             u'uri': u'',
             u'match': u'prefix',
-            u'call': True,
-            u'register': True,
-            u'publish': True,
-            u'subscribe': True
+            u'allow': {
+                u'call': True,
+                u'register': True,
+                u'publish': True,
+                u'subscribe': True
+            }
         }
         router = self.router_factory.get(u'realm1')
         router.add_role(RouterRoleStaticAuth(router, None, default_permissions=default_permissions))

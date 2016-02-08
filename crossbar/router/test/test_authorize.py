@@ -51,10 +51,12 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
         permissions = [
             {
                 u'uri': u'com.example.*',
-                u'call': True,
-                u'register': True,
-                u'publish': True,
-                u'subscribe': True
+                u'allow': {
+                    u'call': True,
+                    u'register': True,
+                    u'publish': True,
+                    u'subscribe': True
+                }
             }
         ]
         role = RouterRoleStaticAuth(None, u'testrole', permissions)
@@ -69,10 +71,12 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
         permissions = [
             {
                 u'uri': u'*',
-                u'call': True,
-                u'register': True,
-                u'publish': True,
-                u'subscribe': True
+                u'allow': {
+                    u'call': True,
+                    u'register': True,
+                    u'publish': True,
+                    u'subscribe': True
+                }
             }
         ]
         role = RouterRoleStaticAuth(None, u'testrole', permissions)

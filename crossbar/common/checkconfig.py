@@ -46,6 +46,7 @@ from autobahn.websocket.protocol import parseWsUrl
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
 from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
+from autobahn.wamp.uri import convert_starred_uri
 
 from crossbar._logging import make_logger
 
@@ -2707,9 +2708,6 @@ def fill_config_from_env(config, keys=None, debug=False):
                         log.debug("configuration parameter '{key}' set to '{val}' from environment variable {envvar}", key=k, val=val, envvar=envvar)
                     else:
                         log.debug("warning: configuration parameter '{key}' should have been read from enviroment variable {envvar}, but the latter is not set", key=k, envvar=envvar)
-
-
-from autobahn.wamp.uri import convert_starred_uri
 
 
 def upgrade_config_file(configfile):
