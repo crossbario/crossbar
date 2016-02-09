@@ -200,7 +200,7 @@ class Templates:
                 return t
         raise KeyError
 
-    def init(self, appdir, template, params=None, dryrun=False):
+    def init(self, appdir, template, params=None, dryrun=False, skip_existing=True):
         """
         Ctor.
 
@@ -243,10 +243,18 @@ class Templates:
                         reldir = reldir.replace('appname', _params['appname'])
                     create_dir_path = os.path.join(appdir, reldir)
 
-                    self.log.info("Creating directory {}".format(create_dir_path))
-                    if not dryrun:
-                        os.mkdir(create_dir_path)
-                    created.append(('dir', create_dir_path))
+                    if os.path.isdir(create_dir_path):
+                        msg = "Directory {} already exists".format(create_dir_path)
+                        if not skip_existing:
+                            self.log.info(msg)
+                            raise Exception(msg)
+                        else:
+                            self.log.warn("{} - SKIPPING".format(msg))
+                    else:
+                        self.log.info("Creating directory {}".format(create_dir_path))
+                        if not dryrun:
+                            os.mkdir(create_dir_path)
+                        created.append(('dir', create_dir_path))
 
                 for f in files:
 
@@ -261,20 +269,28 @@ class Templates:
                         dst_dir_path = os.path.join(appdir, reldir)
                         dst_file = os.path.abspath(os.path.join(dst_dir_path, f))
 
-                        self.log.info("Creating file      {}".format(dst_file))
-                        if not dryrun:
-                            if f in template.get('skip_jinja', []):
-                                shutil.copy(src_file, dst_file)
+                        if os.path.isfile(dst_file):
+                            msg = "File {} already exists".format(dst_file)
+                            if not skip_existing:
+                                self.log.info(msg)
+                                raise Exception(msg)
                             else:
-                                with open(dst_file, 'wb') as dst_file_fd:
-                                    if IS_WIN:
-                                        # Jinja need forward slashes even on Windows
-                                        src_file_rel_path = src_file_rel_path.replace('\\', '/')
-                                    page = jinja_env.get_template(src_file_rel_path)
-                                    contents = page.render(**_params).encode('utf8')
-                                    dst_file_fd.write(contents)
+                                self.log.warn("{} - SKIPPING".format(msg))
+                        else:
+                            self.log.info("Creating file {}".format(dst_file))
+                            if not dryrun:
+                                if f in template.get('skip_jinja', []):
+                                    shutil.copy(src_file, dst_file)
+                                else:
+                                    with open(dst_file, 'wb') as dst_file_fd:
+                                        if IS_WIN:
+                                            # Jinja need forward slashes even on Windows
+                                            src_file_rel_path = src_file_rel_path.replace('\\', '/')
+                                        page = jinja_env.get_template(src_file_rel_path)
+                                        contents = page.render(**_params).encode('utf8')
+                                        dst_file_fd.write(contents)
 
-                        created.append(('file', dst_file))
+                            created.append(('file', dst_file))
 
             # force exception to test rollback
             # a = 1/0
