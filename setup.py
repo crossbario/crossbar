@@ -71,6 +71,7 @@ install_requires = [
     'pygments>=2.0.2',            # BSD license
     'pyyaml>=3.11',               # MIT license
     'shutilwhich>=1.1.0',         # PSF license
+    'sdnotify>=0.3.0',            # MIT license
 
     'psutil>=3.2.1',              # BSD license
     'lmdb>=0.88',                 # OpenLDAP BSD

@@ -494,6 +494,15 @@ class Node(object):
 
         try:
             yield self._startup(self._config)
+
+            # Notify systemd that crossbar is fully up and running
+            # This has no effect on non-systemd platforms
+            try:
+                import sdnotify
+                sdnotify.SystemdNotifier().notify("READY=1")
+            except:
+                pass
+
         except ApplicationError as e:
             panic = True
             self.log.error("{msg}", msg=e.error_message())
