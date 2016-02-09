@@ -653,7 +653,7 @@ def run_command_check(options, **kwargs):
     print("\nChecking node configuration file '{}':\n".format(configfile))
 
     color = color_json
-    with open(configfile, 'r') as f:
+    with open(configfile, 'rb') as f:
         print(color(f.read().decode('utf8')))
 
     old_dir = os.path.abspath(os.path.curdir)
