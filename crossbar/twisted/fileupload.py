@@ -149,8 +149,6 @@ class FileUploadResource(Resource):
         #     #
         #     if auth_id != auth_id.encode('ascii', 'ignore'):
         #         msg = "The requestor auth_id must be an ascii string."
-        #         if self._debug:
-        #             log.msg(msg)
         #         # 415 Unsupported Media Type
         #         request.setResponseCode(415, msg)
         #         return msg

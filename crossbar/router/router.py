@@ -419,3 +419,9 @@ class RouterFactory(object):
     def drop_role(self, realm, role):
         self.log.debug("CrossbarRouterFactory.drop_role(realm = {realm}, role = {role})",
                        realm=realm, role=role)
+
+    def auto_start_realm(self, realm):
+        raise Exception("realm auto-activation not yet implemented")
+
+    def auto_add_role(self, realm, role):
+        raise Exception("role auto-activation not yet implemented")

@@ -45,9 +45,8 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
     log = make_logger()
 
-    def __init__(self, config, debug=False):
+    def __init__(self, config):
         self.config = config
-        self.debug = debug
 
     def connectionMade(self):
         # `self.transport` is now a provider of `twisted.internet.interfaces.IProcessTransport`
@@ -119,15 +118,14 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
 class GuestWorkerClientFactory(protocol.Factory):
 
-    def __init__(self, config, on_ready, on_exit, debug=False):
-        self.debug = debug
+    def __init__(self, config, on_ready, on_exit):
         self.proto = None
         self._config = config
         self._on_ready = on_ready
         self._on_exit = on_exit
 
     def buildProtocol(self, addr):
-        self.proto = GuestWorkerClientProtocol(self._config, debug=self.debug)
+        self.proto = GuestWorkerClientProtocol(self._config)
         self.proto.factory = self
         return self.proto
 

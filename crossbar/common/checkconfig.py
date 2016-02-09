@@ -2686,7 +2686,7 @@ def convert_config_file(configfile):
             raise InvalidConfigException("configuration file needs to be '.json' or '.yaml'.")
 
 
-def fill_config_from_env(config, keys=None, debug=False):
+def fill_config_from_env(config, keys=None):
     """
     Fill in configuration values in a configuration dictionary from
     environment variables.

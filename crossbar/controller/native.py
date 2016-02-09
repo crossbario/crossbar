@@ -125,7 +125,7 @@ def create_native_worker_client_factory(router_session_factory, on_ready, on_exi
     :param router_session_factory: Router session factory to attach to.
     :type router_session_factory: obj
     """
-    factory = NativeWorkerClientFactory(router_session_factory, "ws://localhost", debug=False)
+    factory = NativeWorkerClientFactory(router_session_factory, u'ws://localhost')
 
     # we need to increase the opening handshake timeout in particular, since starting up a worker
     # on PyPy will take a little (due to JITting)

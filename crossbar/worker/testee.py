@@ -125,8 +125,7 @@ class WebSocketTesteeServerFactory(WebSocketServerFactory):
         WebSocketServerFactory.__init__(self,
                                         url=config.get('url', None),
                                         server=server,
-                                        externalPort=externalPort,
-                                        debug=config.get('debug', False))
+                                        externalPort=externalPort)
 
         # transport configuration
         self._config = config

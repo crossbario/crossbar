@@ -70,7 +70,6 @@ class WampLongPollResourceSessionSend(Resource):
         """
         Resource.__init__(self)
         self._parent = parent
-        self._debug = self._parent._parent._debug
 
     def render_POST(self, request):
         """
@@ -209,7 +208,6 @@ class WampLongPollResourceSessionClose(Resource):
         """
         Resource.__init__(self)
         self._parent = parent
-        self._debug = self._parent._parent._debug
 
     def render_POST(self, request):
         """
@@ -247,7 +245,6 @@ class WampLongPollResourceSession(Resource):
         Resource.__init__(self)
 
         self._parent = parent
-        self._debug = self._parent._debug
         self.reactor = self._parent.reactor
 
         self._transport_id = transport_details['transport']
@@ -388,7 +385,6 @@ class WampLongPollResourceOpen(Resource):
         """
         Resource.__init__(self)
         self._parent = parent
-        self._debug = self._parent._debug
 
     def render_POST(self, request):
         """
@@ -500,7 +496,6 @@ class WampLongPollResource(Resource):
                  killAfter=30,
                  queueLimitBytes=128 * 1024,
                  queueLimitMessages=100,
-                 debug=False,
                  debug_transport_id=None,
                  reactor=None):
         """
@@ -535,7 +530,6 @@ class WampLongPollResource(Resource):
             from twisted.internet import reactor
         self.reactor = reactor
 
-        self._debug = debug
         self._debug_transport_id = debug_transport_id
         self._timeout = timeout
         self._killAfter = killAfter

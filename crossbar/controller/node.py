@@ -414,7 +414,6 @@ class Node(object):
             runner = ApplicationRunner(
                 url=transport['url'], realm=realm, extra=extra,
                 ssl=optionsForClientTLS(hostname),
-                debug=False
             )
 
             try:
