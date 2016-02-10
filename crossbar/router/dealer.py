@@ -413,8 +413,12 @@ class Dealer(object):
                     #
                     if authorization[u'disclose']:
                         caller = session._session_id
+                        caller_authid = session._authid
+                        caller_authrole = session._authrole
                     else:
                         caller = None
+                        caller_authid = None
+                        caller_authrole = None
 
                     # for pattern-based registrations, the INVOCATION must contain
                     # the actual procedure being called
@@ -431,6 +435,8 @@ class Dealer(object):
                                                         timeout=call.timeout,
                                                         receive_progress=call.receive_progress,
                                                         caller=caller,
+                                                        caller_authid=caller_authid,
+                                                        caller_authrole=caller_authrole,
                                                         procedure=procedure,
                                                         enc_algo=call.enc_algo,
                                                         enc_key=call.enc_key,
@@ -443,6 +449,8 @@ class Dealer(object):
                                                         timeout=call.timeout,
                                                         receive_progress=call.receive_progress,
                                                         caller=caller,
+                                                        caller_authid=caller_authid,
+                                                        caller_authrole=caller_authrole,
                                                         procedure=procedure)
 
                     self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)

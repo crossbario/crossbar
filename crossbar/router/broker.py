@@ -233,8 +233,12 @@ class Broker(object):
                     #
                     if authorization[u'disclose']:
                         publisher = session._session_id
+                        publisher_authid = session._authid
+                        publisher_authrole = session._authrole
                     else:
                         publisher = None
+                        publisher_authid = None
+                        publisher_authrole = None
 
                     # skip publisher
                     #
@@ -301,6 +305,8 @@ class Broker(object):
                                                     publication,
                                                     payload=publish.payload,
                                                     publisher=publisher,
+                                                    publisher_authid=publisher_authid,
+                                                    publisher_authrole=publisher_authrole,
                                                     topic=topic,
                                                     enc_algo=publish.enc_algo,
                                                     enc_key=publish.enc_key,
@@ -311,6 +317,8 @@ class Broker(object):
                                                     args=publish.args,
                                                     kwargs=publish.kwargs,
                                                     publisher=publisher,
+                                                    publisher_authid=publisher_authid,
+                                                    publisher_authrole=publisher_authrole,
                                                     topic=topic)
                             for receiver in receivers:
                                 if (me_also or receiver != session) and receiver != self._event_store:
