@@ -37,6 +37,7 @@ from twisted.web import http, server
 from twisted.web.http import NOT_FOUND
 from twisted.web.resource import Resource, NoResource
 from twisted.web.static import File
+from twisted.web.proxy import ReverseProxyResource  # noqa (Republish resource)
 from twisted.python.filepath import FilePath
 
 import crossbar

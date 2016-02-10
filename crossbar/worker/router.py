@@ -87,7 +87,8 @@ from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
     Resource404, \
-    RedirectResource
+    RedirectResource, \
+    ReverseProxyResource
 
 from crossbar.twisted.fileupload import FileUploadResource
 
@@ -997,6 +998,14 @@ class RouterWorkerSession(NativeWorkerSession):
         elif path_config['type'] == 'redirect':
             redirect_url = path_config['url'].encode('ascii', 'ignore')
             return RedirectResource(redirect_url)
+
+        # Reverse proxy resource
+        #
+        elif path_config['type'] == 'reverseproxy':
+            host = path_config['host']
+            port = int(path_config.get('port', 80))
+            path = path_config.get('path', '').encode('ascii', 'ignore')
+            return ReverseProxyResource(host, port, path)
 
         # JSON value resource
         #
