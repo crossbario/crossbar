@@ -1040,6 +1040,12 @@ def create_process_env(options):
     """
     penv = {}
 
+    # Usually, we want PYTHONUNBUFFERED set in child processes, *but*
+    # if the user explicitly configures their environment we don't
+    # stomp over it. So, a user wanting *buffered* output can set
+    # PYTHONUNBUFFERED to the empty string in their config.
+    saw_unbuff = False
+
     # by default, a worker/guest process inherits
     # complete environment
     inherit_all = True
@@ -1054,15 +1060,25 @@ def create_process_env(options):
             for v in inherit:
                 if v in os.environ:
                     penv[v] = os.environ[v]
+                    if v == 'PYTHONUNBUFFERED':
+                        saw_unbuff = True
 
     if inherit_all:
         # must do deepcopy like this (os.environ is a "special" thing ..)
         for k, v in os.environ.items():
             penv[k] = v
+            if k == 'PYTHONUNBUFFERED':
+                saw_unbuff = True
 
     # explicit environment vars from config
     if 'env' in options and 'vars' in options['env']:
         for k, v in options['env']['vars'].items():
             penv[k] = v
+            if k == 'PYTHONUNBUFFERED':
+                saw_unbuff = True
 
+    # if nothing so far has set PYTHONUNBUFFERED explicitly, we set it
+    # ourselves.
+    if not saw_unbuff:
+        penv['PYTHONUNBUFFERED'] = '1'
     return penv
