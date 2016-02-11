@@ -2775,8 +2775,7 @@ def upgrade_config_file(configfile):
 
         version += 1
 
-    config[u'version'] = version
-    config.move_to_end(u'version', last=False)
+    config = OrderedDict([(u'version', version)] + list(config.items()))
 
     with open(configfile, 'wb') as outfile:
         data = json.dumps(config,
