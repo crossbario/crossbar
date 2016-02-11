@@ -113,6 +113,10 @@ class RouterApplicationSession(object):
             pass
         return None
 
+    def _log_error(self, fail, msg):
+        self.log.failure(msg, failure=fail)
+        return None
+
     def isOpen(self):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransport.isOpen`
@@ -164,19 +168,16 @@ class RouterApplicationSession(object):
                                      self._session._authprovider,
                                      self._session._authextra)
 
-            # have to fire the 'join' notification ourselves too. the
-            # "return_arg" idiom is equivalent to defer.returnValue(arg)
-            def success(arg):
-                d = self._session.fire('join', self._session, details)
-
-                def return_arg(_):
-                    return arg
-                txaio.add_callbacks(d, return_arg, None)
-                return d
-
-            # fire onOpen callback and handle any exception escaping from there
-            d = txaio.as_future(self._session.onJoin, details)
-            txaio.add_callbacks(d, success, lambda fail: self._swallow_error(fail, "While firing onJoin"))
+            # have to fire the 'join' notification ourselves, as we're
+            # faking out what the protocol usually does.
+            d = self._session.fire('join', self._session, details)
+            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'join'"))
+            # now fire onJoin (since _log_error returns None, we'll be
+            # back in the callback chain even on errors from 'join'
+            d.addCallback(lambda _: txaio.as_future(self._session.onJoin, details))
+            d.addErrback(lambda fail: self._swallow_error(fail, "While firing onJoin"))
+            d.addCallback(lambda _: self._session.fire('ready', self._session))
+            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
 
         # app-to-router
         #
@@ -222,8 +223,14 @@ class RouterApplicationSession(object):
         #
         elif isinstance(msg, message.Goodbye):
             # fire onClose callback and handle any exception escaping from there
+            # FIXME onClose should receive True/False (clean or unclean exit)
             d = txaio.as_future(self._session.onClose, None)
-            txaio.add_callbacks(d, None, lambda fail: self._swallow_error(fail, "While firing onClose"))
+            # note that onClose will fire 'leave' to listeners when
+            # the session is still connected, so we don't have to do
+            # that.
+            d.addErrback(lambda fail: self._log_error(fail, "While firing onClose"))
+            d.addCallback(lambda _: self._session.fire('disconnect', self._session))
+            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'disconnect'"))
 
         else:
             # should not arrive here

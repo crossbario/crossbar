@@ -50,6 +50,7 @@ from autobahn.wamp.exception import ApplicationError
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
+from crossbar._util import class_name
 from crossbar.router import uplink
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
@@ -664,23 +665,43 @@ class RouterWorkerSession(NativeWorkerSession):
             )
             raise
 
-        def publish_stopped(session, details):
+        # Note that 'join' is fired to listeners *before* onJoin runs,
+        # so if you do 'yield self.leave()' in onJoin we'll still
+        # publish "started" before "stopped".
+
+        def publish_stopped(session, stop_details):
+            self.log.info(
+                "stopped component: {session} id={session_id}",
+                session=class_name(session),
+                session_id=session._session_id,
+            )
             topic = self._uri_prefix + '.container.on_component_stop'
             event = {u'id': id}
-            session.publish(topic, event, options=PublishOptions(exclude=details.caller))
+            caller = details.caller if details else None
+            self.publish(topic, event, options=PublishOptions(exclude=caller))
             return event
 
-        def publish_started(session, details):
+        def publish_started(session, start_details):
+            self.log.info(
+                "started component: {session} id={session_id}",
+                session=class_name(session),
+                session_id=session._session_id,
+            )
             topic = self._uri_prefix + '.container.on_component_start'
             event = {u'id': id}
-            session.publish(topic, event, options=PublishOptions(exclude=details.caller))
+            caller = details.caller if details else None
+            self.publish(topic, event, options=PublishOptions(exclude=caller))
             return event
-        session.on('join', publish_started)
         session.on('leave', publish_stopped)
+        session.on('join', publish_started)
 
         self.components[id] = RouterComponent(id, config, session)
         self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))
-        self.log.debug("Added component {id}", id=id)
+        self.log.debug(
+            "Added component {id} (type '{name}')",
+            id=id,
+            name=class_name(session),
+        )
 
     def stop_router_component(self, id, details=None):
         """
