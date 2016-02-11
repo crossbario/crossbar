@@ -1087,9 +1087,9 @@ def check_web_path_service_reverseproxy(config):
     check_dict_args({
         'type': (True, [six.text_type]),
         'host': (True, [six.text_type]),
-        'port': (False, [int]),
+        'port': (False, [six.integer_types]),
         'path': (False, [six.text_type])
-    }, config, "Web transport 'redirect' path service")
+    }, config, "Web transport 'reverseproxy' path service")
 
 
 def check_web_path_service_json(config):
