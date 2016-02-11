@@ -58,6 +58,9 @@ else:
 if PYPY:
     os.environ['LMDB_FORCE_CFFI'] = '1'
 
+# enforce use of bundled libsodium
+os.environ['SODIUM_INSTALL'] = 'bundled'
+
 install_requires = [
     'click>=5.1',                 # BSD license
     'setuptools>=18.3.1',         # Python Software Foundation license
