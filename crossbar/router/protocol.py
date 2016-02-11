@@ -451,11 +451,11 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
 
         # explicit list of WAMP serializers
         #
-        if 'serializers' in config:
+        if u'serializers' in config:
             serializers = []
             sers = set(config['serializers'])
 
-            if 'cbor' in sers:
+            if u'cbor' in sers:
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
@@ -465,7 +465,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 else:
                     sers.discard('cbor')
 
-            if 'msgpack' in sers:
+            if u'msgpack' in sers:
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
@@ -477,7 +477,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 else:
                     sers.discard('msgpack')
 
-            if 'json' in sers:
+            if u'json' in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
@@ -554,9 +554,9 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
 
         # WAMP serializer
         #
-        serid = config.get('serializer', 'msgpack')
+        serid = config.get(u'serializer', u'json')
 
-        if serid == 'json':
+        if serid == u'json':
             # try JSON WAMP serializer
             try:
                 from autobahn.wamp.serializer import JsonSerializer
@@ -564,14 +564,22 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
             except ImportError:
                 raise Exception("could not load WAMP-JSON serializer")
 
-        elif serid == 'msgpack':
-            # try MsgPack WAMP serializer
+        elif serid == u'msgpack':
+            # try MessagePack WAMP serializer
             try:
                 from autobahn.wamp.serializer import MsgPackSerializer
                 serializer = MsgPackSerializer()
                 serializer._serializer.ENABLE_V5 = False  # FIXME
             except ImportError:
-                raise Exception("could not load WAMP-MsgPack serializer")
+                raise Exception("could not load WAMP-MessagePack serializer")
+
+        elif serid == u'cbor':
+            # try CBOR WAMP serializer
+            try:
+                from autobahn.wamp.serializer import CBORSerializer
+                serializer = CBORSerializer()
+            except ImportError:
+                raise Exception("could not load WAMP-CBOR serializer")
 
         else:
             raise Exception("invalid WAMP serializer '{}'".format(serid))
