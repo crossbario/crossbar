@@ -259,11 +259,18 @@ def make_JSON_observer(outFile):
 
     @provider(ILogObserver)
     def _make_json(_event):
-
         event = dict(_event)
+        level = event.pop("log_level", LogLevel.info).name
+
+        # as soon as possible, we wish to give up if this event is
+        # outside our target log-level; this is to prevent
+        # (de-)serializing all the debug() messages (for example) from
+        # workers to the controller.
+        if POSSIBLE_LEVELS.index(level) > POSSIBLE_LEVELS.index(_loglevel):
+            return
 
         done_json = {
-            "level": event.pop("log_level", LogLevel.info).name,
+            "level": level,
             "namespace": event.pop("log_namespace", '')
         }
 
