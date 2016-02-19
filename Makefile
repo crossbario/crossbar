@@ -32,7 +32,7 @@ install3:
 
 publish: clean
 	python setup.py register
-	python setup.py sdist upload
+	python setup.py sdist bdist_wheel upload
 
 test: flake8
 	trial crossbar
