@@ -78,7 +78,7 @@ class PendingAuthCryptosign(PendingAuth):
                 for pubkey in principal[u'authorized_keys']:
                     self._pubkey_to_authid[pubkey] = authid
 
-    def _compute_challenge(self):
+    def _compute_challenge(self, channel_binding):
         self._challenge = os.urandom(32)
 
         if self._channel_id:
@@ -92,9 +92,12 @@ class PendingAuthCryptosign(PendingAuth):
         return extra
 
     def hello(self, realm, details):
-
+        # the channel binding requested by the client authenticating
         channel_binding = details.authextra.get(u'channel_binding', None)
-        self.log.info("WAMP-cryptosign CHANNEL BINDING requested: {}".format(channel_binding))
+        if channel_binding is not None and channel_binding not in [u'tls-unique']:
+            return types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding))
+        else:
+            self.log.info("WAMP-cryptosign CHANNEL BINDING requested: {}".format(channel_binding))
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
@@ -145,7 +148,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 self._verify_key = VerifyKey(pubkey, encoder=nacl.encoding.HexEncoder)
 
-                extra = self._compute_challenge()
+                extra = self._compute_challenge(channel_binding)
                 return types.Challenge(self._authmethod, extra)
             else:
                 return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))

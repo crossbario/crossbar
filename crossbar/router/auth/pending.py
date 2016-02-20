@@ -57,6 +57,9 @@ class PendingAuth:
         :param config: Authentication configuration to apply for the pending auth.
         :type config: dict
         """
+        # The session that is authenticating
+        self._session = session
+
         # Details about the authenticating session
         self._session_details = {
             u'transport': session._transport._transport_info,
