@@ -163,6 +163,10 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
     """
     log = make_logger()
 
+    def __init__(self):
+        super(WampWebSocketServerProtocol, self).__init__()
+        self._cbtid = None
+
     def onConnect(self, request):
 
         if self.factory.debug_traffic:
@@ -278,7 +282,9 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
         except Exception:
             self.log.failure("Error rendering WebSocket status page template: {log_failure.value}")
 
-    def onDisconnect(self):
+    def onClose(self, wasClean, code, reason):
+        super(WampWebSocketServerProtocol, self).onClose(wasClean, code, reason)
+
         # remove this WebSocket connection from the set of connections
         # associated with the same cookie
         if self._cbtid:
