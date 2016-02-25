@@ -41,13 +41,13 @@ from autobahn.wamp import role
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import RouterFactory
+from crossbar.router.dealer import Dealer
 from crossbar.router.session import RouterSessionFactory
 from crossbar.worker.router import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth
 
 
 class TestEmbeddedSessions(unittest.TestCase):
-
     """
     Test cases for application session running embedded in router.
     """
@@ -74,14 +74,95 @@ class TestEmbeddedSessions(unittest.TestCase):
                 u'subscribe': True
             }
         }
-        router = self.router_factory.get(u'realm1')
-        router.add_role(RouterRoleStaticAuth(router, None, default_permissions=default_permissions))
+        self.router = self.router_factory.get(u'realm1')
+        self.router.add_role(RouterRoleStaticAuth(self.router, u'test_role', default_permissions=default_permissions))
+        self.router.add_role(RouterRoleStaticAuth(self.router, None, default_permissions=default_permissions))
 
         # create a router session factory
         self.session_factory = RouterSessionFactory(self.router_factory)
 
     def tearDown(self):
         pass
+
+    def test_authorize_exception_call(self):
+        """
+        When a dynamic authorizor throws an exception (during processCall)
+        we log it.
+        """
+        the_exception = RuntimeError("authorizer bug")
+
+        def boom(*args, **kw):
+            raise the_exception
+        self.router._roles[u'test_role'].authorize = boom
+
+        class TestSession(ApplicationSession):
+            def __init__(self, *args, **kw):
+                super(TestSession, self).__init__(*args, **kw)
+                self._authrole = u'test_role'
+                self._transport = mock.MagicMock()
+        session0 = TestSession()
+        self.router._dealer._registration_map.add_observer(session0, u'test.proc')
+
+        # okay, we have an authorizer that will always explode and a
+        # single procedure registered; when we call it, then
+        # on_authorize_error (in dealer.py) should get called and our
+        # error logged.
+
+        call = message.Call(
+            request=1234,
+            procedure=u'test.proc',
+            args=tuple(),
+            kwargs=dict(),
+        )
+        # this should produce an error -- however processCall doesn't
+        # itself return the Deferred, so we look for the side-effect
+        # -- the router should have tried to send a message.Error (and
+        # we should also have logged the error).
+        self.router._dealer.processCall(session0, call)
+
+        self.assertEqual(1, len(session0._transport.mock_calls))
+        call = session0._transport.mock_calls[0]
+        self.assertEqual('send', call[0])
+        # ensure we logged our error (flushLoggedErrors also causes
+        # trial to *not* fail the unit-test despite an error logged)
+        errors = self.flushLoggedErrors()
+        self.assertTrue(the_exception in [fail.value for fail in errors])
+
+    def test_authorize_exception_register(self):
+        """
+        When a dynamic authorizor throws an exception (during processRegister)
+        we log it.
+        """
+        the_exception = RuntimeError("authorizer bug")
+
+        def boom(*args, **kw):
+            raise the_exception
+        self.router._roles[u'test_role'].authorize = boom
+
+        class TestSession(ApplicationSession):
+            def __init__(self, *args, **kw):
+                super(TestSession, self).__init__(*args, **kw)
+                self._authrole = u'test_role'
+                self._transport = mock.MagicMock()
+        session0 = TestSession()
+
+        call = message.Register(
+            request=1234,
+            procedure=u'test.proc_reg',
+        )
+        # this should produce an error -- however processCall doesn't
+        # itself return the Deferred, so we look for the side-effect
+        # -- the router should have tried to send a message.Error (and
+        # we should also have logged the error).
+        self.router._dealer.processRegister(session0, call)
+
+        self.assertEqual(1, len(session0._transport.mock_calls))
+        call = session0._transport.mock_calls[0]
+        self.assertEqual('send', call[0])
+        # ensure we logged our error (flushLoggedErrors also causes
+        # trial to *not* fail the unit-test despite an error logged)
+        errors = self.flushLoggedErrors()
+        self.assertTrue(the_exception in [fail.value for fail in errors])
 
     def test_add(self):
         """
@@ -200,7 +281,6 @@ class TestEmbeddedSessions(unittest.TestCase):
         d = txaio.create_future()
 
         class TestSession(ApplicationSession):
-
             def onJoin(self, details):
                 # noinspection PyUnusedLocal
                 def on_event(*arg, **kwargs):
