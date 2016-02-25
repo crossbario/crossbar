@@ -263,7 +263,7 @@ class TestBrokerPublish(unittest.TestCase):
 
         # here's the main "cheat"; we're faking out the
         # router.authorize because we need it to callback immediately
-        router.authorize = mock.MagicMock(return_value=txaio.create_future_success(True))
+        router.authorize = mock.MagicMock(return_value=txaio.create_future_success(dict(allow=True, cache=False, disclose=True)))
 
         # now we scan call "processPublish" such that we get to the
         # condition we're interested in (this "comes from" session1
