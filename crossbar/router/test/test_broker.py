@@ -153,7 +153,7 @@ class TestBrokerPublish(unittest.TestCase):
         """
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=u'deadbeef')
+        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -185,7 +185,7 @@ class TestBrokerPublish(unittest.TestCase):
         """
         # setup
         transport = mock.MagicMock()
-        transport.get_channel_id = mock.MagicMock(return_value=u'deadbeef')
+        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -264,7 +264,7 @@ class TestBrokerPublish(unittest.TestCase):
         # _session_id *is* None (not joined yet, or left already)
         self.assertIs(None, session0._session_id)
         session0._transport = mock.MagicMock()
-        session0._transport.get_channel_id = mock.MagicMock(return_value=u'deadbeef')
+        session0._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         session1._session_id = 1234  # "from" session should look connected + joined
         session1._transport = mock.MagicMock()
         session1._transport.channel_id = b'aaaabeef'
@@ -302,7 +302,7 @@ class TestRouterSession(unittest.TestCase):
                 # for this test, pretend we're connected (without
                 # going through sending a Hello etc.)
                 self._transport = mock.MagicMock()
-                self._transport.get_channel_id = mock.MagicMock(return_value=u'deadbeef')
+                self._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
                 self._session_id = 1234
                 self._router = router  # normally done in Hello processing
                 self._service_session = mock.MagicMock()
