@@ -261,7 +261,7 @@ class Dealer(object):
             different from the call to authorize succeed, but the
             authorization being denied)
             """
-            self.log.failure(err)
+            self.log.failure("Authorization failed", failure=err)
             reply = message.Error(
                 message.Register.MESSAGE_TYPE,
                 register.request,
@@ -462,7 +462,7 @@ class Dealer(object):
                 different from the call to authorize succeed, but the
                 authorization being denied)
                 """
-                self.log.failure(err)
+                self.log.failure("Authorization failed", failure=err)
                 reply = message.Error(
                     message.Call.MESSAGE_TYPE,
                     call.request,
