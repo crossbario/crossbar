@@ -44,7 +44,7 @@ from crossbar.worker.router import RouterRealm
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory, RouterSession
 from crossbar.router.broker import Broker
-from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
+from crossbar.router.role import RouterRoleStaticAuth
 
 
 class TestBrokerPublish(unittest.TestCase):

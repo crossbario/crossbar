@@ -41,7 +41,6 @@ from autobahn.wamp import role
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import RouterFactory
-from crossbar.router.dealer import Dealer
 from crossbar.router.session import RouterSessionFactory
 from crossbar.worker.router import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth
