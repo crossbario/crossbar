@@ -195,20 +195,12 @@ class TestBrokerPublish(unittest.TestCase):
         session.onOpen(transport)
         msg = message.Authenticate(u'bogus signature')
 
-        # XXX think: why isn't this using _RouterSession.log?
-        from crossbar.router.session import RouterSession
-        with mock.patch.object(RouterSession, 'log') as logger:
-            # do the test; should call onHello which is now "boom", above
-            session.onMessage(msg)
+        # do the test; should call onHello which is now "boom", above
+        session.onMessage(msg)
 
-            # check we got the right log.failure() call
-            self.assertTrue(len(logger.method_calls) > 0)
-            call = logger.method_calls[0]
-            # for a MagicMock call-object, 0th thing is the method-name, 1st
-            # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'failure')
-            self.assertTrue('failure' in call[2])
-            self.assertEqual(call[2]['failure'].value, the_exception)
+        errors = self.flushLoggedErrors()
+        self.assertEqual(1, len(errors), "Expected just one error: {}".format(errors))
+        self.assertTrue(the_exception in [fail.value for fail in errors])
 
     def test_add_and_subscribe(self):
         """
