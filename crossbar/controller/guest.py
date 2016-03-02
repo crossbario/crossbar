@@ -101,7 +101,10 @@ class GuestWorkerClientProtocol(protocol.Protocol):
             else:
                 # get this when subprocess has exited early; should we just log error?
                 # should not arrive here
-                self.log.error("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {}".format(reason))
+                self.log.error(
+                    "GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {reason}",
+                    reason=reason,
+                )
 
         except Exception:
             self.log.failure("GuestWorkerClientProtocol: INTERNAL ERROR - {log_failure}")

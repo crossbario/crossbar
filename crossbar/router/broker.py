@@ -334,7 +334,7 @@ class Broker(object):
                 different from the call to authorize succeed, but the
                 authorization being denied)
                 """
-                self.log.failure(err)
+                self.log.failure("Authorization failed", failure=err)
                 if publish.acknowledge:
                     reply = message.Error(
                         message.Publish.MESSAGE_TYPE,
@@ -424,7 +424,7 @@ class Broker(object):
             authorization being denied)
             """
             # XXX same as another code-block, can we collapse?
-            self.log.failure(err)
+            self.log.failure("Authorization failed", failure=err)
             reply = message.Error(
                 message.Subscribe.MESSAGE_TYPE,
                 subscribe.request,

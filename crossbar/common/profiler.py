@@ -132,9 +132,12 @@ if _HAS_VMPROF:
 
                 try:
                     stats = vmprof.read_profile(profile_filename, virtual_only=True, include_extra_info=True)
-                except Exception as e:
-                    self.log.error("Fatal: could not read vmprof profile file '{}': {}".format(profile_filename, e))
-                    raise e
+                except Exception:
+                    self.log.error(
+                        "Fatal: could not read vmprof profile file '{fname}': {log_failure.value}",
+                        fname=profile_filename,
+                    )
+                    raise
 
                 tree = stats.get_tree()
                 total = float(tree.count)
@@ -201,7 +204,7 @@ if _HAS_VMPROF:
                     self._finished.callback(res)
 
                 def on_profile_conversaion_failed(err):
-                    self.log.error(err.value)
+                    self.log.failure("profile conversion failed", failure=err)
                     self._finished.errback(err)
 
                 d.addCallbacks(on_profile_converted, on_profile_conversaion_failed)

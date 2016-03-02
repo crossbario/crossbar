@@ -269,7 +269,7 @@ class WampLongPollResource(longpoll.WampLongPollResource):
             content = content.encode('utf8')
             return content
         except Exception:
-            self.log.failure("Error rendering LongPoll notice page template: {failure}")
+            self.log.failure("Error rendering LongPoll notice page template: {log_failure.value}")
 
 
 class SchemaDocResource(Resource):
