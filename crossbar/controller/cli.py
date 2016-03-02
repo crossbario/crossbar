@@ -539,7 +539,7 @@ def run_command_start(options, reactor=None):
                 json.dumps(
                     pid_data,
                     sort_keys=False,
-                    indent=3,
+                    indent=4,
                     separators=(', ', ': '),
                     ensure_ascii=False
                 )
@@ -661,7 +661,14 @@ def run_command_check(options, **kwargs):
         print("Ok, node configuration looks good!\n")
 
         import json
-        config_content = json.dumps(config, skipkeys=False, sort_keys=False, ensure_ascii=False, separators=(',', ': '), indent=3)
+        config_content = json.dumps(
+            config,
+            skipkeys=False,
+            sort_keys=False,
+            ensure_ascii=False,
+            separators=(',', ': '),
+            indent=4,
+        )
         print(color_json(config_content))
         sys.exit(0)
 
