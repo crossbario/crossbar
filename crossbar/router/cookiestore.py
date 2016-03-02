@@ -264,7 +264,9 @@ class CookieStoreFileBacked(CookieStore):
         n = 0
         for cookie in self._iter_persisted():
             id = cookie.pop('id')
-            self._cookies[id] = cookie
+            if id not in self._cookies:
+                self._cookies[id] = {}
+            self._cookies[id].update(cookie)
             n += 1
 
         self.log.info("Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.", cnt_cookie_records=n, cnt_cookies=len(self._cookies))
