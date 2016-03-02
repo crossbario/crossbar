@@ -257,8 +257,12 @@ class Broker(object):
                             self._event_store.store_event_history(publication, subscription.id)
 
                         # initial list of receivers are all subscribers on a subscription ..
+                        # note: it's wrapped in set() because we really do want
+                        # to copy it in case the size of the set changes while
+                        # we're sending out publishes (e.g. upon disconnect or
+                        # errors)
                         #
-                        receivers = subscription.observers
+                        receivers = set(subscription.observers)
 
                         # filter by "eligible" receivers
                         #
