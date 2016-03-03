@@ -130,7 +130,14 @@ class RouterApplicationSession(object):
         Implements :func:`autobahn.wamp.interfaces.ITransport.close`
         """
         if self._router:
-            self._router.detach(self._session)
+            # See also #578; this is to prevent the set() of observers
+            # shrinking while itering in broker.py:329 since the
+            # send() call happens synchronously because this class is
+            # acting as ITransport and the send() can result in an
+            # immediate disconnect which winds up right here...so we
+            # take at trip through the reactor loop.
+            from twisted.internet import reactor
+            reactor.callLater(0, self._router.detach, self._session)
 
     def abort(self):
         """
