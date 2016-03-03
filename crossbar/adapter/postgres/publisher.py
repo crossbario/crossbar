@@ -180,8 +180,8 @@ class PostgreSQLPublisher(PostgreSQLAdapter):
                 else:
                     raise Exception("logic error")
 
-            except Exception as e:
-                self.log.error(e)
+            except Exception:
+                self.log.failure(None)
 
         else:
             self.log.error("Received NOTIFY on unknown channel {channel}", channel=notify.channel)

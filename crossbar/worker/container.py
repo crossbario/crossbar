@@ -220,8 +220,7 @@ class ContainerWorkerSession(NativeWorkerSession):
                 session._swallow_error = panic
                 return session
             except Exception as e:
-                msg = "{}".format(e).strip()
-                self.log.failure("Component instantiation failed: {msg}", msg=msg)
+                self.log.failure("Component instantiation failed: {log_failure.value}")
                 raise
 
         # 2) create WAMP transport factory

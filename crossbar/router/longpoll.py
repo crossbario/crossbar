@@ -161,7 +161,11 @@ class WampLongPollResourceSessionReceive(Resource):
                 if type(msg) == six.binary_type:
                     self._request.write(msg)
                 else:
-                    self.log.error("internal error: cannot write data of type {} - {}".format(type(msg), msg))
+                    self.log.error(
+                        "internal error: cannot write data of type {type_} - {msg}",
+                        type_=type(msg),
+                        msg=msg,
+                    )
 
             self._request.finish()
             self._request = None
@@ -326,7 +330,7 @@ class WampLongPollResourceSession(Resource):
                 self._session.onClose(wasClean)
             except Exception:
                 # ignore exceptions raised here, but log ..
-                self.log.failure()
+                self.log.failure("invoking session's onClose failed")
             self._session = None
 
     def onOpen(self):
@@ -339,7 +343,7 @@ class WampLongPollResourceSession(Resource):
             self._session.onOpen(self)
         except Exception:
             # ignore exceptions raised here, but log ..
-            self.log.failure()
+            self.log.failure("Invoking session's onOpen failed")
 
     def onMessage(self, payload, isBinary):
         """

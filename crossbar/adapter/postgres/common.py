@@ -79,8 +79,8 @@ class PostgreSQLAdapter(ApplicationSession):
 
         try:
             yield self.connect_and_observe(self._db_config, self.PG_CHANNEL, self.on_notify)
-        except Exception as e:
-            self.log.error("Could not connect to database: {error}", error=e)
+        except Exception:
+            self.log.failure("Could not connect to database: {log_failure.value}")
             self.leave()
 
         self.log.info("PostgreSQL database adapter (Publisher) ready")
@@ -165,8 +165,11 @@ class PostgreSQLAdapter(ApplicationSession):
         conn.addNotifyObserver(fun)
         try:
             yield conn.runOperation("LISTEN {0}".format(self._db_config['adapter_channel']))
-        except Exception as e:
-            self.log.error("Failed to listen on channel '{0}': {1}".format(self._db_config['adapter_channel'], e))
+        except Exception:
+            self.log.failure(
+                "Failed to listen on channel '{channel}': {log_failure.value}",
+                channel=self._db_config['adapter_channel'],
+            )
             self.leave()
         else:
             self.log.debug("Listening on PostgreSQL NOTIFY channel '{0}'' ...".format(self._db_config['adapter_channel']))
@@ -259,8 +262,11 @@ class PostgreSQLAdapter(ApplicationSession):
                     sql = str(sql)
                     try:
                         yield txn.execute(sql)
-                    except Exception as e:
-                        self.log.error("Error while running DDL script '{script}': {error}", script=script, error=e)
+                    except Exception:
+                        self.log.failure(
+                            "Error while running DDL script '{script}': {log_failure.value}",
+                            script=script,
+                        )
 
         return conn.runInteraction(upgrade)
 

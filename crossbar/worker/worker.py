@@ -68,7 +68,7 @@ class NativeWorkerSession(NativeProcessSession):
     log = make_logger()
 
     def onUserError(self, err, errmsg):
-        self.log.error("NativeWorkerSession.onUserError", log_failure=err)
+        self.log.error("NativeWorkerSession.onUserError", failure=err)
 
     def onConnect(self):
         """
@@ -485,7 +485,7 @@ class NativeWorkerSession(NativeProcessSession):
                 paths_added.append({'requested': p, 'resolved': path_to_add})
             else:
                 emsg = "Cannot add Python search path '{}': resolved path '{}' is not a directory".format(p, path_to_add)
-                self.log.failure(emsg)
+                self.log.error(emsg)
                 raise ApplicationError(u'crossbar.error.invalid_argument', emsg, requested=p, resolved=path_to_add)
 
         # now extend python module search path
