@@ -528,7 +528,7 @@ class RouterWorkerSession(NativeWorkerSession):
             uplink_session = yield extra['onready']
         except Exception:
             self.log.failure(None)
-            raise e
+            raise
 
         self.realms[realm_id].uplinks[uplink_id].session = uplink_session
 

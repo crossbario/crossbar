@@ -219,7 +219,7 @@ class ContainerWorkerSession(NativeWorkerSession):
                     session.disconnect()
                 session._swallow_error = panic
                 return session
-            except Exception as e:
+            except Exception:
                 self.log.failure("Component instantiation failed: {log_failure.value}")
                 raise
 
