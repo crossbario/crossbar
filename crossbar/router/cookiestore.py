@@ -237,6 +237,9 @@ class CookieStoreFileBacked(CookieStore):
         # initialize cookie database
         self._init_store()
 
+        if config['store'].get('purge_on_startup', False):
+            self._clean_cookie_file()
+
     def _iter_persisted(self):
         with open(self._cookie_file_name, 'r') as f:
             for c in f.readlines():
@@ -292,3 +295,19 @@ class CookieStoreFileBacked(CookieStore):
             if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']:
                 CookieStore.setAuth(self, cbtid, authid, authrole, authmethod)
                 self._persist(cbtid, cookie, status='modified')
+
+    def _clean_cookie_file(self):
+        with open(self._cookie_file_name, 'w') as cookie_file:
+            for cbtid, cookie in self._cookies.items():
+                cookie_record = json.dumps({
+                    'id': cbtid,
+                    'created': cookie['created'],
+                    'max_age': cookie['max_age'],
+                    'authid': cookie['authid'],
+                    'authrole': cookie['authrole'],
+                    'authmethod': cookie['authmethod']
+                }) + '\n'
+                cookie_file.write(cookie_record)
+
+            cookie_file.flush()
+            os.fsync(cookie_file.fileno())
