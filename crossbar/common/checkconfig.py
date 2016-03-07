@@ -523,7 +523,8 @@ def check_cookie_store_file(store):
     """
     check_dict_args({
         'type': (True, [six.text_type]),
-        'filename': (False, [six.text_type])
+        'filename': (False, [six.text_type]),
+        'purge_on_startup': (False, [bool])
     }, store, "WebSocket memory-backed cookie store configuration")
 
 
