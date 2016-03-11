@@ -132,7 +132,7 @@ MockResponse = namedtuple("MockResponse", ["code", "headers"])
 class MockHeaders(object):
 
     def getAllRawHeaders(self):
-        return {"foo": ["bar"]}
+        return {b"foo": [b"bar"]}
 
 
 class MockWebTransport(object):

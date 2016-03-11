@@ -59,11 +59,11 @@ class CalleeTestCase(TestCase):
 
         res = yield c.call(u"io.crossbar.testrest", method=u"GET", url=u"baz.html")
 
-        self.assertEqual(m.maderequest["args"], ("GET", "https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], (u"GET", u"https://foo.com/baz.html"))
         self.assertEqual(m.maderequest["kwargs"], {
-            "data": b"",
-            "headers": Headers({}),
-            "params": {}
+            u"data": b"",
+            u"headers": Headers({}),
+            u"params": {}
         })
         self.assertEqual(res,
                          {"content": b"whee",
@@ -87,15 +87,15 @@ class CalleeTestCase(TestCase):
 
         res = yield c.call(u"io.crossbar.testrest", method=u"POST",
                            url=u"baz.html", params={u"spam": u"ham"},
-                           body=u"see params", headers={b"X-Something": [b"baz"]})
+                           body=u"see params", headers={u"X-Something": [u"baz"]})
 
-        self.assertEqual(m.maderequest["args"], ("POST", "https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], (u"POST", u"https://foo.com/baz.html"))
         self.assertEqual(m.maderequest["kwargs"], {
             "data": b"see params",
             "headers": Headers({b"X-Something": [b"baz"]}),
-            "params": {"spam": "ham"}
+            "params": {b"spam": b"ham"}
         })
         self.assertEqual(res,
                          {"content": b"whee!",
                           "code": 220,
-                          "headers": {"foo": ["bar"]}})
+                          "headers": {b"foo": [b"bar"]}})
