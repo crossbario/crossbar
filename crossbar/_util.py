@@ -27,3 +27,17 @@
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
 #####################################################################################
+
+import inspect
+
+
+def class_name(obj):
+    """
+    This returns a name like "module.Class" given either an instance, or a class.
+    """
+
+    if inspect.isclass(obj):
+        cls = obj
+    else:
+        cls = obj.__class__
+    return '{}.{}'.format(cls.__module__, cls.__name__)

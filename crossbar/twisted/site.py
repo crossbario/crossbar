@@ -55,8 +55,6 @@ def patchFileContentTypes(root):
             if isinstance(v, six.text_type):
                 root.contentTypes[k] = root.contentTypes[k].encode('ascii')
                 c += 1
-        if c:
-            print("Monkey-patched MIME table ({} of {} entries)".format(c, len(root.contentTypes)))
 
 
 def createHSTSRequestFactory(requestFactory, hstsMaxAge=31536000):

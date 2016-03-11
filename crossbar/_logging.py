@@ -99,9 +99,9 @@ except ImportError:
         LIGHTWHITE_EX = ""
     Fore = _Fore()
 
-COLOUR_FORMAT = u"{}{} [{}]{} {}"
-NOCOLOUR_FORMAT = u"{} [{}] {}"
-SYSLOGD_FORMAT = u"[{}] {}"
+STANDARD_FORMAT = u"{startcolour}{time} [{system}]{endcolour} {text}"
+SYSLOGD_FORMAT = u"{startcolour}[{system}]{endcolour} {text}"
+NONE_FORMAT = u"{text}"
 
 POSSIBLE_LEVELS = ["none", "critical", "error", "warn", "info", "debug",
                    "trace"]
@@ -109,12 +109,6 @@ REAL_LEVELS = ["critical", "error", "warn", "info", "debug"]
 
 # Sanity check
 assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
-
-# Make our own copies of stdout and stderr, for printing to later
-# When we start logging, the logger will capture all outputs to the *new*
-# sys.stderr and sys.stdout. As we're printing to it, it'll get caught in an
-# infinite loop -- which we don't want.
-_stderr, _stdout = sys.stderr, sys.stdout
 
 # A regex that matches ANSI escape sequences
 # http://stackoverflow.com/a/33925425
@@ -136,13 +130,13 @@ def escape_formatting(text):
 
 
 def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
-                         show_source=False, format="colour", trace=False,
-                         _file=None):
+                         show_source=False, format="standard", trace=False,
+                         colour=False, _file=None):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
     if _file is None:
-        _file = _stdout
+        _file = sys.__stdout__
 
     @provider(ILogObserver)
     def StandardOutObserver(event):
@@ -158,7 +152,16 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
         if show_source and event.get("log_namespace") is not None:
             logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
 
-        if format == "colour":
+        if format == "standard":
+            FORMAT_STRING = STANDARD_FORMAT
+        elif format == "syslogd":
+            FORMAT_STRING = SYSLOGD_FORMAT
+        elif format == "none":
+            FORMAT_STRING = NONE_FORMAT
+        else:
+            assert False
+
+        if colour:
             # Choose a colour depending on where the log came from.
             if "Controller" in logSystem:
                 fore = Fore.BLUE
@@ -169,21 +172,15 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
             else:
                 fore = Fore.WHITE
 
-            eventString = COLOUR_FORMAT.format(
-                fore, formatTime(event["log_time"]), logSystem, Fore.RESET,
-                formatEvent(event))
-        elif format == "nocolour":
-            eventString = NOCOLOUR_FORMAT.format(
-                formatTime(event["log_time"]), logSystem, formatEvent(event))
-        elif format == "syslogd":
-            eventString = SYSLOGD_FORMAT.format(logSystem, formatEvent(event))
-        elif format == "none":
-            eventString = formatEvent(event)
+            eventString = FORMAT_STRING.format(
+                startcolour=fore, time=formatTime(event["log_time"]),
+                system=logSystem, endcolour=Fore.RESET,
+                text=formatEvent(event))
         else:
-            assert False
-
-        if not format == "colour":
-            eventString = strip_ansi(eventString)
+            eventString = strip_ansi(FORMAT_STRING.format(
+                startcolour=u'', time=formatTime(event["log_time"]),
+                system=logSystem, endcolour=u'',
+                text=formatEvent(event)))
 
         print(eventString, file=_file)
 
@@ -192,13 +189,13 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 
 def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                                  LogLevel.critical),
-                         show_source=False, format="colour",
-                         _file=None):
+                         show_source=False, format="standard",
+                         colour=False, _file=None):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
     if _file is None:
-        _file = _stderr
+        _file = sys.__stderr__
 
     @provider(ILogObserver)
     def StandardErrorObserver(event):
@@ -217,29 +214,34 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
         else:
-            eventText = ""
+            eventText = u""
 
         if "log_failure" in event:
             # This is a traceback. Print it.
             eventText = eventText + event["log_failure"].getTraceback()
 
-        if format == "colour":
-            # Errors are always red, no matter the system they came from.
-            eventString = COLOUR_FORMAT.format(
-                Fore.RED, formatTime(event["log_time"]), logSystem, Fore.RESET,
-                eventText)
-        elif format == "nocolour":
-            eventString = NOCOLOUR_FORMAT.format(
-                formatTime(event["log_time"]), logSystem, eventText)
+        if format == "standard":
+            FORMAT_STRING = STANDARD_FORMAT
         elif format == "syslogd":
-            eventString = SYSLOGD_FORMAT.format(logSystem, eventText)
+            FORMAT_STRING = SYSLOGD_FORMAT
         elif format == "none":
-            eventString = formatEvent(event)
+            FORMAT_STRING = NONE_FORMAT
         else:
             assert False
 
-        if not format == "colour":
-            eventString = strip_ansi(eventString)
+        if colour:
+            # Errors are always red.
+            fore = Fore.RED
+
+            eventString = FORMAT_STRING.format(
+                startcolour=fore, time=formatTime(event["log_time"]),
+                system=logSystem, endcolour=Fore.RESET,
+                text=formatEvent(event))
+        else:
+            eventString = strip_ansi(FORMAT_STRING.format(
+                startcolour=u'', time=formatTime(event["log_time"]),
+                system=logSystem, endcolour=u'',
+                text=formatEvent(event)))
 
         print(eventString, file=_file)
 
@@ -257,11 +259,18 @@ def make_JSON_observer(outFile):
 
     @provider(ILogObserver)
     def _make_json(_event):
-
         event = dict(_event)
+        level = event.pop("log_level", LogLevel.info).name
+
+        # as soon as possible, we wish to give up if this event is
+        # outside our target log-level; this is to prevent
+        # (de-)serializing all the debug() messages (for example) from
+        # workers to the controller.
+        if POSSIBLE_LEVELS.index(level) > POSSIBLE_LEVELS.index(_loglevel):
+            return
 
         done_json = {
-            "level": event.pop("log_level", LogLevel.info).name,
+            "level": level,
             "namespace": event.pop("log_namespace", '')
         }
 
@@ -329,14 +338,16 @@ def make_logfile_observer(path, show_source=False):
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
         else:
-            eventText = ""
+            eventText = u""
 
         if "log_failure" in event:
             # This is a traceback. Print it.
             eventText = eventText + event["log_failure"].getTraceback()
 
-        eventString = NOCOLOUR_FORMAT.format(
-            formatTime(event["log_time"]), logSystem, eventText) + os.linesep
+        eventString = strip_ansi(STANDARD_FORMAT.format(
+            startcolour=u'', time=formatTime(event["log_time"]),
+            system=logSystem, endcolour=u'',
+            text=eventText)) + os.linesep
 
         return eventString
 

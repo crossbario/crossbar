@@ -330,7 +330,7 @@ class Node(object):
 
         # the node controller realm
         #
-        self._realm = controller_config.get('realm', 'crossbar')
+        self._realm = controller_config.get(u'realm', u'crossbar')
 
         # the node's name (must be unique within the management realm when running
         # in "managed mode")
@@ -414,7 +414,6 @@ class Node(object):
             runner = ApplicationRunner(
                 url=transport['url'], realm=realm, extra=extra,
                 ssl=optionsForClientTLS(hostname),
-                debug=False, debug_wamp=False,
             )
 
             try:
@@ -495,6 +494,15 @@ class Node(object):
 
         try:
             yield self._startup(self._config)
+
+            # Notify systemd that crossbar is fully up and running
+            # This has no effect on non-systemd platforms
+            try:
+                import sdnotify
+                sdnotify.SystemdNotifier().notify("READY=1")
+            except:
+                pass
+
         except ApplicationError as e:
             panic = True
             self.log.error("{msg}", msg=e.error_message())
@@ -526,7 +534,8 @@ class Node(object):
         #
         worker_no = 1
 
-        call_options = CallOptions(disclose_me=True)
+        # FIXME: setup things so we disclose our identity!
+        call_options = CallOptions()
 
         for worker in config.get('workers', []):
             # worker ID, type and logname

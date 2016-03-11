@@ -39,43 +39,50 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
 
     def test_ruleset_empty(self):
         permissions = []
-        role = RouterRoleStaticAuth(None, "testrole", permissions)
-        actions = ['call', 'register', 'publish', 'subscribe']
-        uris = ['com.example.1', 'myuri', '']
+        role = RouterRoleStaticAuth(None, u'testrole', permissions)
+        actions = [u'call', u'register', u'publish', u'subscribe']
+        uris = [u'com.example.1', u'myuri', u'']
         for uri in uris:
             for action in actions:
-                self.assertFalse(role.authorize(None, uri, action))
+                authorization = role.authorize(None, uri, action)
+                self.assertFalse(authorization[u'allow'])
 
     def test_ruleset_1(self):
         permissions = [
             {
-                'uri': 'com.example.*',
-                'call': True,
-                'register': True,
-                'publish': True,
-                'subscribe': True
+                u'uri': u'com.example.*',
+                u'allow': {
+                    u'call': True,
+                    u'register': True,
+                    u'publish': True,
+                    u'subscribe': True
+                }
             }
         ]
-        role = RouterRoleStaticAuth(None, "testrole", permissions)
-        actions = ['call', 'register', 'publish', 'subscribe']
-        uris = [('com.example.1', True), ('myuri', False), ('', False)]
+        role = RouterRoleStaticAuth(None, u'testrole', permissions)
+        actions = [u'call', u'register', u'publish', u'subscribe']
+        uris = [(u'com.example.1', True), (u'myuri', False), (u'', False)]
         for uri, allow in uris:
             for action in actions:
-                self.assertEqual(role.authorize(None, uri, action), allow)
+                authorization = role.authorize(None, uri, action)
+                self.assertEqual(authorization[u'allow'], allow)
 
     def test_ruleset_2(self):
         permissions = [
             {
-                'uri': '*',
-                'call': True,
-                'register': True,
-                'publish': True,
-                'subscribe': True
+                u'uri': u'*',
+                u'allow': {
+                    u'call': True,
+                    u'register': True,
+                    u'publish': True,
+                    u'subscribe': True
+                }
             }
         ]
-        role = RouterRoleStaticAuth(None, "testrole", permissions)
-        actions = ['call', 'register', 'publish', 'subscribe']
-        uris = [('com.example.1', True), ('myuri', True), ('', True)]
+        role = RouterRoleStaticAuth(None, u'testrole', permissions)
+        actions = [u'call', u'register', u'publish', u'subscribe']
+        uris = [(u'com.example.1', True), (u'myuri', True), (u'', True)]
         for uri, allow in uris:
             for action in actions:
-                self.assertEqual(role.authorize(None, uri, action), allow)
+                authorization = role.authorize(None, uri, action)
+                self.assertEqual(authorization[u'allow'], allow)

@@ -189,11 +189,11 @@ class NodeControllerSession(NativeProcessSession):
         :rtype: dict
         """
         return {
-            'started': self._started,
-            'pid': self._pid,
-            'workers': len(self._workers),
-            'directory': self.cbdir,
-            'wamplets': self._get_wamplets()
+            u'started': self._started,
+            u'pid': self._pid,
+            u'workers': len(self._workers),
+            u'directory': self.cbdir,
+            u'wamplets': self._get_wamplets()
         }
 
     @inlineCallbacks
@@ -211,15 +211,15 @@ class NodeControllerSession(NativeProcessSession):
 
         # publish management API event
         shutdown_info = {
-            'restart': restart,
-            'mode': mode,
-            'who': details.caller if details else None,
-            'when': utcnow()
+            u'restart': restart,
+            u'mode': mode,
+            u'who': details.caller if details else None,
+            u'when': utcnow()
         }
         yield self.publish(
             'crossbar.node.{}.on_shutdown'.format(self._node_id),
             shutdown_info,
-            options=PublishOptions(exclude=[details.caller] if details else None, acknowledge=True)
+            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
         )
 
         def stop_reactor():
@@ -244,20 +244,21 @@ class NodeControllerSession(NativeProcessSession):
             except Exception as e:
                 pass
             else:
-                ep = {}
-                ep['dist'] = entrypoint.dist.key
-                ep['version'] = entrypoint.dist.version
-                ep['location'] = entrypoint.dist.location
-                ep['name'] = entrypoint.name
-                ep['module_name'] = entrypoint.module_name
-                ep['entry_point'] = str(entrypoint)
+                ep = {
+                    u'dist': entrypoint.dist.key,
+                    u'version': entrypoint.dist.version,
+                    u'location': entrypoint.dist.location,
+                    u'name': entrypoint.name,
+                    u'module_name': entrypoint.module_name,
+                    u'entry_point': str(entrypoint),
+                }
 
                 if hasattr(e, '__doc__') and e.__doc__:
-                    ep['doc'] = e.__doc__.strip()
+                    ep[u'doc'] = e.__doc__.strip()
                 else:
-                    ep['doc'] = None
+                    ep[u'doc'] = None
 
-                ep['meta'] = e(None)
+                ep[u'meta'] = e(None)
 
                 res.append(ep)
 
@@ -273,16 +274,18 @@ class NodeControllerSession(NativeProcessSession):
         now = datetime.utcnow()
         res = []
         for worker in sorted(self._workers.values(), key=lambda w: w.created):
-            res.append({
-                'id': worker.id,
-                'pid': worker.pid,
-                'type': worker.TYPE,
-                'status': worker.status,
-                'created': utcstr(worker.created),
-                'started': utcstr(worker.started),
-                'startup_time': (worker.started - worker.created).total_seconds() if worker.started else None,
-                'uptime': (now - worker.started).total_seconds() if worker.started else None,
-            })
+            res.append(
+                {
+                    u'id': worker.id,
+                    u'pid': worker.pid,
+                    u'type': worker.TYPE,
+                    u'status': worker.status,
+                    u'created': utcstr(worker.created),
+                    u'started': utcstr(worker.started),
+                    u'startup_time': (worker.started - worker.created).total_seconds() if worker.started else None,
+                    u'uptime': (now - worker.started).total_seconds() if worker.started else None,
+                }
+            )
         return res
 
     def get_worker_log(self, id, limit=None, details=None):
@@ -502,16 +505,16 @@ class NodeControllerSession(NativeProcessSession):
             worker.started = datetime.utcnow()
 
             started_info = {
-                'id': worker.id,
-                'status': worker.status,
-                'started': utcstr(worker.started),
-                'who': worker.who
+                u'id': worker.id,
+                u'status': worker.status,
+                u'started': utcstr(worker.started),
+                u'who': worker.who,
             }
 
             # FIXME: make start of stats printer dependent on log level ..
             worker.log_stats(5.)
 
-            self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
+            self.publish(started_topic, started_info, options=PublishOptions(exclude=details.caller))
 
             return started_info
 
@@ -580,10 +583,10 @@ class NodeControllerSession(NativeProcessSession):
         # now (immediately before actually forking) signal the starting of the worker
         #
         starting_info = {
-            'id': id,
-            'status': worker.status,
-            'created': utcstr(worker.created),
-            'who': worker.who
+            u'id': id,
+            u'status': worker.status,
+            u'created': utcstr(worker.created),
+            u'who': worker.who,
         }
 
         # the caller gets a progressive result ..
@@ -591,7 +594,7 @@ class NodeControllerSession(NativeProcessSession):
             details.progress(starting_info)
 
         # .. while all others get an event
-        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
+        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=details.caller))
 
         # now actually fork the worker ..
         #
@@ -742,11 +745,11 @@ class NodeControllerSession(NativeProcessSession):
             raise ApplicationError(u'crossbar.error.worker_not_running', emsg)
 
         stop_info = {
-            'id': worker.id,
-            'type': wtype,
-            'kill': kill,
-            'who': details.caller if details else None,
-            'when': utcnow()
+            u'id': worker.id,
+            u'type': wtype,
+            u'kill': kill,
+            u'who': details.caller if details else None,
+            u'when': utcnow(),
         }
 
         # publish management API event
@@ -754,7 +757,7 @@ class NodeControllerSession(NativeProcessSession):
         yield self.publish(
             'crossbar.node.{}.worker.{}.on_stop_requested'.format(self._node_id, worker.id),
             stop_info,
-            options=PublishOptions(exclude=[details.caller] if details else None, acknowledge=True)
+            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
         )
 
         # send SIGKILL or SIGTERM to worker
@@ -911,13 +914,13 @@ class NodeControllerSession(NativeProcessSession):
             # assemble guest worker startup information
             #
             started_info = {
-                'id': worker.id,
-                'status': worker.status,
-                'started': utcstr(worker.started),
-                'who': worker.who
+                u'id': worker.id,
+                u'status': worker.status,
+                u'started': utcstr(worker.started),
+                u'who': worker.who,
             }
 
-            self.publish(started_topic, started_info, options=PublishOptions(exclude=[details.caller]))
+            self.publish(started_topic, started_info, options=PublishOptions(exclude=details.caller))
 
             return started_info
 
@@ -950,10 +953,10 @@ class NodeControllerSession(NativeProcessSession):
         # now (immediately before actually forking) signal the starting of the worker
         #
         starting_info = {
-            'id': id,
-            'status': worker.status,
-            'created': utcstr(worker.created),
-            'who': worker.who
+            u'id': id,
+            u'status': worker.status,
+            u'created': utcstr(worker.created),
+            u'who': worker.who,
         }
 
         # the caller gets a progressive result ..
@@ -961,7 +964,7 @@ class NodeControllerSession(NativeProcessSession):
             details.progress(starting_info)
 
         # .. while all others get an event
-        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=[details.caller]))
+        self.publish(starting_topic, starting_info, options=PublishOptions(exclude=details.caller))
 
         # now actually fork the worker ..
         #
@@ -996,7 +999,9 @@ class NodeControllerSession(NativeProcessSession):
         def on_connect_error(err):
 
             # not sure when this errback is triggered at all .. see above.
-            self.log.error("Internal error: connection to forked guest worker failed ({})".format(err))
+            self.log.failure(
+                "Internal error: connection to forked guest worker failed ({log_failure.value})",
+            )
 
             # in any case, forward the error ..
             worker.ready.errback(err)
@@ -1037,6 +1042,12 @@ def create_process_env(options):
     """
     penv = {}
 
+    # Usually, we want PYTHONUNBUFFERED set in child processes, *but*
+    # if the user explicitly configures their environment we don't
+    # stomp over it. So, a user wanting *buffered* output can set
+    # PYTHONUNBUFFERED to the empty string in their config.
+    saw_unbuff = False
+
     # by default, a worker/guest process inherits
     # complete environment
     inherit_all = True
@@ -1051,15 +1062,25 @@ def create_process_env(options):
             for v in inherit:
                 if v in os.environ:
                     penv[v] = os.environ[v]
+                    if v == 'PYTHONUNBUFFERED':
+                        saw_unbuff = True
 
     if inherit_all:
         # must do deepcopy like this (os.environ is a "special" thing ..)
         for k, v in os.environ.items():
             penv[k] = v
+            if k == 'PYTHONUNBUFFERED':
+                saw_unbuff = True
 
     # explicit environment vars from config
     if 'env' in options and 'vars' in options['env']:
         for k, v in options['env']['vars'].items():
             penv[k] = v
+            if k == 'PYTHONUNBUFFERED':
+                saw_unbuff = True
 
+    # if nothing so far has set PYTHONUNBUFFERED explicitly, we set it
+    # ourselves.
+    if not saw_unbuff:
+        penv['PYTHONUNBUFFERED'] = '1'
     return penv

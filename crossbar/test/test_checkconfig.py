@@ -182,10 +182,12 @@ class CheckRealmTests(TestCase):
                     "permissions": [
                         {
                             "uri": u"*",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }
                     ]
                 }
@@ -203,10 +205,12 @@ class CheckRealmTests(TestCase):
                     "permissions": [
                         {
                             "uri": u"*foo",
-                            "publish": True,
-                            "subscribe": True,
-                            "call": True,
-                            "register": True
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }
                     ]
                 }
@@ -277,7 +281,12 @@ class CheckRealmTests(TestCase):
                     "name": "backend",
                     "permissions": [
                         {
-                            "call": True,
+                            "allow": {
+                                "publish": True,
+                                "subscribe": True,
+                                "call": True,
+                                "register": True
+                            }
                         }
                     ]
                 }

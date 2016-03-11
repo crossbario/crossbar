@@ -43,16 +43,13 @@ from autobahn.twisted.wamp import ApplicationSession
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.worker.router import RouterRealm
-from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
+from crossbar.router.role import RouterRoleStaticAuth
 
 
 class TestEmbeddedSessions(unittest.TestCase):
-
     """
     Test cases for application session running embedded in router.
     """
-
-    skip = True
 
     def setUp(self):
         """
@@ -66,15 +63,105 @@ class TestEmbeddedSessions(unittest.TestCase):
         self.router_factory.start_realm(RouterRealm(None, {u'name': u'realm1'}))
 
         # allow everything
-        permissions = RouterPermissions('', True, True, True, True, True)
-        router = self.router_factory.get(u'realm1')
-        router.add_role(RouterRoleStaticAuth(router, None, default_permissions=permissions))
+        default_permissions = {
+            u'uri': u'',
+            u'match': u'prefix',
+            u'allow': {
+                u'call': True,
+                u'register': True,
+                u'publish': True,
+                u'subscribe': True
+            }
+        }
+        self.router = self.router_factory.get(u'realm1')
+        self.router.add_role(RouterRoleStaticAuth(self.router, u'test_role', default_permissions=default_permissions))
+        self.router.add_role(RouterRoleStaticAuth(self.router, None, default_permissions=default_permissions))
 
         # create a router session factory
         self.session_factory = RouterSessionFactory(self.router_factory)
 
     def tearDown(self):
         pass
+
+    def test_authorize_exception_call(self):
+        """
+        When a dynamic authorizor throws an exception (during processCall)
+        we log it.
+        """
+        the_exception = RuntimeError("authorizer bug")
+
+        def boom(*args, **kw):
+            raise the_exception
+        self.router._roles[u'test_role'].authorize = boom
+
+        class TestSession(ApplicationSession):
+            def __init__(self, *args, **kw):
+                super(TestSession, self).__init__(*args, **kw)
+                self._authrole = u'test_role'
+                self._transport = mock.MagicMock()
+        session0 = TestSession()
+        self.router._dealer._registration_map.add_observer(session0, u'test.proc')
+
+        # okay, we have an authorizer that will always explode and a
+        # single procedure registered; when we call it, then
+        # on_authorize_error (in dealer.py) should get called and our
+        # error logged.
+
+        call = message.Call(
+            request=1234,
+            procedure=u'test.proc',
+            args=tuple(),
+            kwargs=dict(),
+        )
+        # this should produce an error -- however processCall doesn't
+        # itself return the Deferred, so we look for the side-effect
+        # -- the router should have tried to send a message.Error (and
+        # we should also have logged the error).
+        self.router._dealer.processCall(session0, call)
+
+        self.assertEqual(1, len(session0._transport.mock_calls))
+        call = session0._transport.mock_calls[0]
+        self.assertEqual('send', call[0])
+        # ensure we logged our error (flushLoggedErrors also causes
+        # trial to *not* fail the unit-test despite an error logged)
+        errors = self.flushLoggedErrors()
+        self.assertTrue(the_exception in [fail.value for fail in errors])
+
+    def test_authorize_exception_register(self):
+        """
+        When a dynamic authorizor throws an exception (during processRegister)
+        we log it.
+        """
+        the_exception = RuntimeError("authorizer bug")
+
+        def boom(*args, **kw):
+            raise the_exception
+        self.router._roles[u'test_role'].authorize = boom
+
+        class TestSession(ApplicationSession):
+            def __init__(self, *args, **kw):
+                super(TestSession, self).__init__(*args, **kw)
+                self._authrole = u'test_role'
+                self._transport = mock.MagicMock()
+        session0 = TestSession()
+
+        call = message.Register(
+            request=1234,
+            procedure=u'test.proc_reg',
+        )
+        # this should produce an error -- however processCall doesn't
+        # itself return the Deferred, so we look for the side-effect
+        # -- the router should have tried to send a message.Error (and
+        # we should also have logged the error).
+        self.router._dealer.processRegister(session0, call)
+
+        self.assertEqual(1, len(session0._transport.mock_calls))
+        call = session0._transport.mock_calls[0]
+        self.assertEqual('send', call[0])
+        # ensure we logged our error (flushLoggedErrors also causes
+        # trial to *not* fail the unit-test despite an error logged)
+        errors = self.flushLoggedErrors()
+        self.assertTrue(the_exception in [fail.value for fail in errors])
 
     def test_add(self):
         """
@@ -94,34 +181,32 @@ class TestEmbeddedSessions(unittest.TestCase):
 
         return d
 
-    def _test_application_session_internal_error(self):
+    def test_application_session_internal_error(self):
         """
         simulate an internal error triggering the 'onJoin' error-case from
         _RouterApplicationSession's send() method (from the Hello msg)
         """
         # setup
         the_exception = RuntimeError("sadness")
+        errors = []
 
         class TestSession(ApplicationSession):
             def onJoin(self, *args, **kw):
                 raise the_exception
+
+            def onUserError(self, *args, **kw):
+                errors.append((args, kw))
         session = TestSession(types.ComponentConfig(u'realm1'))
-        from crossbar.router.session import _RouterApplicationSession
 
-        # execute, first patching-out the logger so we can see that
-        # log.failure() was called when our exception triggers.
-        with mock.patch.object(_RouterApplicationSession, 'log') as logger:
-            # this should call onJoin, triggering our error
-            self.session_factory.add(session)
+        # in this test, we are just looking for onUserError to get
+        # called so we don't need to patch the logger. this should
+        # call onJoin, triggering our error
+        self.session_factory.add(session)
 
-            # check we got the right log.failure() call
-            self.assertTrue(len(logger.method_calls) > 0)
-            call = logger.method_calls[0]
-            # for a MagicMock call-object, 0th thing is the method-name, 1st
-            # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'failure')
-            self.assertTrue('log_failure' in call[2])
-            self.assertEqual(call[2]['log_failure'].value, the_exception)
+        # check we got the right log.failure() call
+        self.assertTrue(len(errors) > 0, "expected onUserError call")
+        fail = errors[0][0][0]
+        self.assertTrue(fail.value == the_exception)
 
     def test_router_session_internal_error_onHello(self):
         """
@@ -130,6 +215,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         """
         # setup
         transport = mock.MagicMock()
+        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -151,8 +237,8 @@ class TestEmbeddedSessions(unittest.TestCase):
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
             self.assertEqual(call[0], 'failure')
-            self.assertTrue('log_failure' in call[2])
-            self.assertEqual(call[2]['log_failure'].value, the_exception)
+            self.assertTrue('failure' in call[2])
+            self.assertEqual(call[2]['failure'].value, the_exception)
 
     def test_router_session_internal_error_onAuthenticate(self):
         """
@@ -161,6 +247,7 @@ class TestEmbeddedSessions(unittest.TestCase):
         """
         # setup
         transport = mock.MagicMock()
+        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -182,8 +269,8 @@ class TestEmbeddedSessions(unittest.TestCase):
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
             self.assertEqual(call[0], 'failure')
-            self.assertTrue('log_failure' in call[2])
-            self.assertEqual(call[2]['log_failure'].value, the_exception)
+            self.assertTrue('failure' in call[2])
+            self.assertEqual(call[2]['failure'].value, the_exception)
 
     def test_add_and_subscribe(self):
         """
@@ -193,7 +280,6 @@ class TestEmbeddedSessions(unittest.TestCase):
         d = txaio.create_future()
 
         class TestSession(ApplicationSession):
-
             def onJoin(self, details):
                 # noinspection PyUnusedLocal
                 def on_event(*arg, **kwargs):

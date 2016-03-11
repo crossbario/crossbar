@@ -28,9 +28,8 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 
-import traceback
 import binascii
 import six
 
@@ -51,7 +50,12 @@ from autobahn.wamp.interfaces import ITransportHandler
 from crossbar._logging import make_logger
 from crossbar.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
-from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP, PendingAuthCryptosign
+from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
+
+try:
+    from crossbar.router.auth import PendingAuthCryptosign
+except ImportError:
+    PendingAuthCryptosign = None
 
 
 __all__ = ('RouterSessionFactory',)
@@ -109,6 +113,10 @@ class RouterApplicationSession(object):
             pass
         return None
 
+    def _log_error(self, fail, msg):
+        self.log.failure(msg, failure=fail)
+        return None
+
     def isOpen(self):
         """
         Implements :func:`autobahn.wamp.interfaces.ITransport.isOpen`
@@ -122,7 +130,14 @@ class RouterApplicationSession(object):
         Implements :func:`autobahn.wamp.interfaces.ITransport.close`
         """
         if self._router:
-            self._router.detach(self._session)
+            # See also #578; this is to prevent the set() of observers
+            # shrinking while itering in broker.py:329 since the
+            # send() call happens synchronously because this class is
+            # acting as ITransport and the send() can result in an
+            # immediate disconnect which winds up right here...so we
+            # take at trip through the reactor loop.
+            from twisted.internet import reactor
+            reactor.callLater(0, self._router.detach, self._session)
 
     def abort(self):
         """
@@ -160,9 +175,16 @@ class RouterApplicationSession(object):
                                      self._session._authprovider,
                                      self._session._authextra)
 
-            # fire onOpen callback and handle any exception escaping from there
-            d = txaio.as_future(self._session.onJoin, details)
-            txaio.add_callbacks(d, None, lambda fail: self._swallow_error(fail, "While firing onJoin"))
+            # have to fire the 'join' notification ourselves, as we're
+            # faking out what the protocol usually does.
+            d = self._session.fire('join', self._session, details)
+            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'join'"))
+            # now fire onJoin (since _log_error returns None, we'll be
+            # back in the callback chain even on errors from 'join'
+            d.addCallback(lambda _: txaio.as_future(self._session.onJoin, details))
+            d.addErrback(lambda fail: self._swallow_error(fail, "While firing onJoin"))
+            d.addCallback(lambda _: self._session.fire('ready', self._session))
+            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'ready'"))
 
         # app-to-router
         #
@@ -208,8 +230,14 @@ class RouterApplicationSession(object):
         #
         elif isinstance(msg, message.Goodbye):
             # fire onClose callback and handle any exception escaping from there
+            # FIXME onClose should receive True/False (clean or unclean exit)
             d = txaio.as_future(self._session.onClose, None)
-            txaio.add_callbacks(d, None, lambda fail: self._swallow_error(fail, "While firing onClose"))
+            # note that onClose will fire 'leave' to listeners when
+            # the session is still connected, so we don't have to do
+            # that.
+            d.addErrback(lambda fail: self._log_error(fail, "While firing onClose"))
+            d.addCallback(lambda _: self._session.fire('disconnect', self._session))
+            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'disconnect'"))
 
         else:
             # should not arrive here
@@ -406,7 +434,7 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-                raise ProtocolError("Received {0} message, and session is not yet established".format(msg.__class__))
+                raise ProtocolError(u"Received {0} message, and session is not yet established".format(msg.__class__))
 
         else:
 
@@ -475,9 +503,8 @@ class RouterSession(BaseSession):
             # fire callback and close the transport
             try:
                 self.onLeave(types.CloseDetails())
-            except Exception as e:
-                if self.debug:
-                    print("exception raised in onLeave callback: {0}".format(e))
+            except Exception:
+                self.log.failure("Exception raised in onLeave callback")
 
             self._router.detach(self)
 
@@ -573,7 +600,7 @@ class RouterSession(BaseSession):
                         authid = self._transport._cbtid
                     else:
                         # if no cookie tracking, generate a random value for authid
-                        authid = util.newid(24)
+                        authid = util.generate_serial_number()
 
                     return types.Accept(realm=realm,
                                         authid=authid,
@@ -600,47 +627,11 @@ class RouterSession(BaseSession):
                             self.log.debug("client requested valid, but unavailable authentication method {authmethod}", authmethod=authmethod)
                             continue
 
-                        # WAMP-Ticket, WAMP-CRA, WAMP-TLS, WAMP-Cryptosign
-                        if authmethod in [u'ticket', u'wampcra', u'tls', u'cryptosign']:
+                        # WAMP-Anonymous, WAMP-Ticket, WAMP-CRA, WAMP-TLS, WAMP-Cryptosign
+                        if authmethod in [u'anonymous', u'ticket', u'wampcra', u'tls', u'cryptosign']:
                             PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                             self._pending_auth = PendingAuthKlass(self, auth_config[authmethod])
                             return self._pending_auth.hello(realm, details)
-
-                        # WAMP-Anonymous authentication
-                        elif authmethod == u'anonymous':
-                            cfg = self._transport_config['auth']['anonymous']
-
-                            # authrole mapping
-                            authrole = cfg.get('role', 'anonymous')
-
-                            # check if role exists on realm anyway
-                            if not self._router_factory[realm].has_role(authrole):
-                                return types.Deny(ApplicationError.NO_SUCH_ROLE, message="authentication failed - realm '{}' has no role '{}'".format(realm, authrole))
-
-                            # authid generation
-                            if self._transport._cbtid:
-                                # if cookie tracking is enabled, set authid to cookie value
-                                authid = self._transport._cbtid
-                            else:
-                                # if no cookie tracking, generate a random value for authid
-                                authid = util.newid(24)
-
-                            authprovider = u'static'
-                            authextra = None
-
-                            # FIXME: not sure about this .. "anonymous" is a transport-level auth mechanism .. so forward
-                            self._transport._authid = authid
-                            self._transport._authrole = authrole
-                            self._transport._authmethod = authmethod
-                            self._transport._authprovider = authmethod
-                            self._transport._authextra = authmethod
-
-                            return types.Accept(realm=realm,
-                                                authid=authid,
-                                                authrole=authrole,
-                                                authmethod=authmethod,
-                                                authprovider=authprovider,
-                                                authextra=authextra)
 
                         # WAMP-Cookie authentication
                         elif authmethod == u'cookie':
@@ -649,7 +640,7 @@ class RouterSession(BaseSession):
                             # a different auth method (if it had been, we would never have entered here, since then
                             # auth info would already have been extracted from the transport)
                             # consequently, we skip this auth method and move on to next auth method.
-                            pass
+                            continue
 
                         else:
                             # should not arrive here
@@ -659,8 +650,8 @@ class RouterSession(BaseSession):
                     return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
-            traceback.print_exc()
-            return types.Deny(message="internal error: {}".format(e))
+            self.log.critical("Internal error")
+            return types.Deny(message=u'internal error: {}'.format(e))
 
     def onAuthenticate(self, signature, extra):
         """
@@ -702,12 +693,12 @@ class RouterSession(BaseSession):
         # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
         self._session_details = {
-            'session': details.session,
-            'authid': details.authid,
-            'authrole': details.authrole,
-            'authmethod': details.authmethod,
-            'authprovider': details.authprovider,
-            'transport': self._transport._transport_info
+            u'session': details.session,
+            u'authid': details.authid,
+            u'authrole': details.authrole,
+            u'authmethod': details.authmethod,
+            u'authprovider': details.authprovider,
+            u'transport': self._transport._transport_info
         }
 
         # dispatch session metaevent from WAMP AP

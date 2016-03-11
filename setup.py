@@ -58,12 +58,15 @@ else:
 if PYPY:
     os.environ['LMDB_FORCE_CFFI'] = '1'
 
+# enforce use of bundled libsodium
+os.environ['SODIUM_INSTALL'] = 'bundled'
+
 install_requires = [
     'click>=5.1',                 # BSD license
     'setuptools>=18.3.1',         # Python Software Foundation license
     'zope.interface>=4.1.2',      # Zope Public license
     'twisted>=15.5.0',            # MIT license
-    'autobahn[twisted]>=0.11.0',  # MIT license
+    'autobahn[twisted]>=0.12.1',  # MIT license
     'netaddr>=0.7.18',            # BSD license
     'pytrie>=0.2',                # BSD license
     'jinja2>=2.8',                # BSD license
@@ -71,6 +74,7 @@ install_requires = [
     'pygments>=2.0.2',            # BSD license
     'pyyaml>=3.11',               # MIT license
     'shutilwhich>=1.1.0',         # PSF license
+    'sdnotify>=0.3.0',            # MIT license
 
     'psutil>=3.2.1',              # BSD license
     'lmdb>=0.88',                 # OpenLDAP BSD

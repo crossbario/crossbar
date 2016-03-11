@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import
 
+from crossbar.router.auth.anonymous import PendingAuthAnonymous  # noqa
 from crossbar.router.auth.wampcra import PendingAuthWampCra  # noqa
 from crossbar.router.auth.ticket import PendingAuthTicket  # noqa
 from crossbar.router.auth.tls import PendingAuthTLS  # noqa
@@ -47,9 +48,11 @@ AUTHMETHODS = set([
 # note that not all of AUTHMETHODS need to have an
 # entry here .. eg when dependencies are missing
 AUTHMETHOD_MAP = {
+    u'anonymous': PendingAuthAnonymous,
     u'ticket': PendingAuthTicket,
     u'wampcra': PendingAuthWampCra,
-    u'tls': PendingAuthTLS
+    u'tls': PendingAuthTLS,
+    u'cookie': None,
 }
 
 try:

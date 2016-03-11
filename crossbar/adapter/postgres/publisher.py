@@ -180,8 +180,8 @@ class PostgreSQLPublisher(PostgreSQLAdapter):
                 else:
                     raise Exception("logic error")
 
-            except Exception as e:
-                self.log.error(e)
+            except Exception:
+                self.log.failure(None)
 
         else:
             self.log.error("Received NOTIFY on unknown channel {channel}", channel=notify.channel)
@@ -199,15 +199,15 @@ if __name__ == '__main__':
         install_reactor()
 
     config = {
-        'database': {
-            'host': u'127.0.0.1',
-            'port': 5432,
-            'port': u'$DBPORT',
-            'database': u'test',
-            #         'user': u'$DBUSER',
-            'user': u'testuser',
-            'password': u'$DBPASSWORD'
-            #         'password': u'testuser'
+        u'database': {
+            u'host': u'127.0.0.1',
+            u'port': 5432,
+            u'port': u'$DBPORT',
+            u'database': u'test',
+            #         u'user': u'$DBUSER',
+            u'user': u'testuser',
+            u'password': u'$DBPASSWORD'
+            #         u'password': u'testuser'
         }
     }
 

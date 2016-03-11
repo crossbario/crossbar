@@ -109,7 +109,7 @@ def run():
 
     # make sure logging to something else than stdio is setup _first_
     #
-    from crossbar._logging import make_JSON_observer, cb_logging_aware, _stderr
+    from crossbar._logging import make_JSON_observer, cb_logging_aware
     from crossbar._logging import make_logger, start_logging, set_global_log_level
     from twisted.logger import globalLogPublisher
 
@@ -120,10 +120,10 @@ def run():
 
     # Print a magic phrase that tells the capturing logger that it supports
     # Crossbar's rich logging
-    print(cb_logging_aware, file=_stderr)
-    _stderr.flush()
+    print(cb_logging_aware, file=sys.__stderr__)
+    sys.__stderr__.flush()
 
-    flo = make_JSON_observer(_stderr)
+    flo = make_JSON_observer(sys.__stderr__)
     globalLogPublisher.addObserver(flo)
     start_logging()
 
@@ -228,7 +228,7 @@ def run():
         # create a WAMP-over-WebSocket transport server factory
         #
         from autobahn.twisted.websocket import WampWebSocketServerFactory
-        transport_factory = WampWebSocketServerFactory(session_factory, "ws://localhost", debug=False, debug_wamp=False)
+        transport_factory = WampWebSocketServerFactory(session_factory, u'ws://localhost')
         transport_factory.protocol = WorkerServerProtocol
         transport_factory.setProtocolOptions(failByDrop=False)
 

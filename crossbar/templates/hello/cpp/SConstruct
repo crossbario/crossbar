@@ -1,6 +1,6 @@
 ###############################################################################
 ##
-##  Copyright (C) 2014, Tavendo GmbH and/or collaborators. All rights reserved.
+##  Copyright (c) Tavendo GmbH and/or collaborators. All rights reserved.
 ##
 ##  Redistribution and use in source and binary forms, with or without
 ##  modification, are permitted provided that the following conditions are met:
@@ -29,84 +29,89 @@
 import os, sys, commands
 
 
-## This is our default build enviroment
-##
+# This is our default build enviroment
+#
 env = Environment()
 
 
-## Toolchain configuration
-##
+# Toolchain configuration
+#
 if 'CXX' in os.environ:
-   env["CXX"] = os.environ['CXX']
+    env["CXX"] = os.environ['CXX']
 
 if env['CXX'].startswith('g++'):
 
-   GCC_VERSION = commands.getoutput(env['CXX'] + ' -dumpversion')
-   if GCC_VERSION < "4.3.0":
-      raise SCons.Errors.UserError, "GCC version {} detected with no or insufficient C++ 11 support detected".format(GCC_VERSION)
+    GCC_VERSION = commands.getoutput(env['CXX'] + ' -dumpversion')
+    if GCC_VERSION < "4.3.0":
+        raise SCons.Errors.UserError, "GCC version {} detected with no or insufficient C++ 11 support detected".format(GCC_VERSION)
 
-   env.Append(CXXFLAGS = ['-std=c++11',
-                          '-O2',
-                          '-Wall',
-                          '-pedantic',
-                          '-Wno-deprecated-declarations',
-                          '-Wno-unused-local-typedefs',
-                          '-Wl,--no-as-needed',
-                          '-pthread'])
+    env.Append(CXXFLAGS = ['-std=c++11',
+                           '-O2',
+                           '-Wall',
+                           '-pedantic',
+                           '-Wno-deprecated-declarations',
+                           '-Wno-unused-local-typedefs',
+                           '-Wl,--no-as-needed',
+                           '-pthread'])
 
-   env.Append(LINKFLAGS = ['-pthread'])
+    env.Append(LINKFLAGS = ['-pthread'])
 
-   print("Using GNU toolchain")
+    print("Using GNU toolchain")
 
 elif env['CXX'].startswith('clang++'):
 
-   env.Append(CXXFLAGS = ['-std=c++11',
-                          '-stdlib=libc++',
-                          '-O2',
-                          '-Wall',
-                          '-pedantic',
-                          '-Wno-unused-value',
-                          '-Wno-deprecated',
-                          '-pthread'])
+    env.Append(CXXFLAGS = ['-std=c++11',
+                           '-stdlib=libc++',
+                           '-O2',
+                           '-Wall',
+                           '-pedantic',
+                           '-Wno-unused-value',
+                           '-Wno-deprecated',
+                           '-pthread'])
 
-   env.Append(LINKFLAGS = ['-stdlib=libc++', '-pthread'])
+    env.Append(LINKFLAGS = ['-stdlib=libc++', '-pthread'])
 
-   print("Using clang toolchain")
+    print("Using clang toolchain")
 
 else:
-   raise SCons.Errors.UserError, "Don't know how to configure build environment for toolchain {}".format(env['CXX'])
+    raise SCons.Errors.UserError, "Don't know how to configure build environment for toolchain {}".format(env['CXX'])
 
 
-## Boost
-##
+# Boost
+#
 if os.environ.has_key('BOOST_ROOT'):
-   env.Append(CPPPATH = [os.environ['BOOST_ROOT']])
-   env.Append(LIBPATH = [os.path.join(os.environ['BOOST_ROOT'], 'stage', 'lib')])
+    env.Append(CPPPATH = [os.environ['BOOST_ROOT']])
+    env.Append(LIBPATH = [os.path.join(os.environ['BOOST_ROOT'], 'stage', 'lib')])
 elif os.environ.has_key('BOOST_INCLUDES') and os.environ.has_key('BOOST_LIBS'):
-   env.Append(CPPPATH = [os.environ['BOOST_INCLUDES']])
-   env.Append(LIBPATH = [os.environ['BOOST_LIBS']])
+    env.Append(CPPPATH = [os.environ['BOOST_INCLUDES']])
+    env.Append(LIBPATH = [os.environ['BOOST_LIBS']])
 else:
-   raise SCons.Errors.UserError, "Neither BOOST_ROOT, nor BOOST_INCLUDES + BOOST_LIBS was set!"
+    raise SCons.Errors.UserError, "Neither BOOST_ROOT, nor BOOST_INCLUDES + BOOST_LIBS was set!"
 
 
-## MsgPack
-##
+# MsgPack
+#
 if os.environ.has_key('MSGPACK_ROOT'):
-   env.Append(CPPPATH = [os.path.join(os.environ['MSGPACK_ROOT'], 'include')])
-   env.Append(LIBPATH = [os.path.join(os.environ['MSGPACK_ROOT'], 'lib')])
+    env.Append(CPPPATH = [os.path.join(os.environ['MSGPACK_ROOT'], 'include')])
+    env.Append(LIBPATH = [os.path.join(os.environ['MSGPACK_ROOT'], 'lib')])
 elif os.environ.has_key('MSGPACK_INCLUDES') and os.environ.has_key('MSGPACK_LIBS'):
-   env.Append(CPPPATH = [os.environ['MSGPACK_INCLUDES']])
-   env.Append(LIBPATH = [os.environ['MSGPACK_LIBS']])
+    env.Append(CPPPATH = [os.environ['MSGPACK_INCLUDES']])
+    env.Append(LIBPATH = [os.environ['MSGPACK_LIBS']])
 else:
-   raise SCons.Errors.UserError, "Neither MSGPACK_ROOT, nor MSGPACK_INCLUDES + MSGPACK_LIBS was set!"
+    raise SCons.Errors.UserError, "Neither MSGPACK_ROOT, nor MSGPACK_INCLUDES + MSGPACK_LIBS was set!"
 
 
-## Autobahn
-##
-env.Append(CPPPATH = ['#/autobahn'])
+# Autobahn
+#
+if os.environ.has_key('AUTOBAHN_ROOT'):
+    env.Append(CPPPATH = [os.environ['AUTOBAHN_ROOT']])
+else:
+    raise SCons.Errors.UserError, "AUTOBAHN_ROOT was not set!"
 
 
-## Example
-##
-hello = env.Program("hello.cpp", LIBS = ['boost_thread', 'boost_system', 'msgpack'],
-   variant_dir = 'build/examples', duplicate = 0)
+# Example
+#
+hello = env.Program("hello.cpp", LIBS=[
+  'boost_thread',
+  'boost_system',
+  'msgpackc'])

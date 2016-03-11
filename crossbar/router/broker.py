@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division
 
 from autobahn import util
 from autobahn.wamp import role
@@ -41,7 +41,7 @@ from autobahn.wamp.message import \
     _URI_PAT_STRICT_LAST_EMPTY, _URI_PAT_LOOSE_LAST_EMPTY
 
 from crossbar.router.observation import UriObservationMap
-from crossbar.router import RouterOptions, RouterAction
+from crossbar.router import RouterOptions
 from crossbar._logging import make_logger
 
 import txaio
@@ -164,23 +164,24 @@ class Broker(object):
         #
         subscriptions = self._subscription_map.match_observations(publish.topic)
 
-        # check if the event is being persisted by checking if we ourself are among the observers.
-        # we've been added to observer lists on subscriptions ultimately from node configuration
-        # and during the broker starts up.
+        # check if the event is being persisted by checking if we ourself are among the observers
+        # on _any_ matching subscription
+        # we've been previously added to observer lists on subscriptions ultimately from
+        # node configuration and during the broker starts up.
         store_event = False
         if self._event_store:
-            for s in subscriptions:
-                if self._event_store in s.observers:
+            for subscription in subscriptions:
+                if self._event_store in subscription.observers:
                     store_event = True
                     break
         if store_event:
-            self.log.debug("event on topic '{topic}'' is being persisted", topic=publish.topic)
+            self.log.debug('Persisting event on topic "{topic}"', topic=publish.topic)
 
         # go on if (otherwise there isn't anything to do anyway):
         #
         #   - there are any active subscriptions OR
         #   - the publish is to be acknowledged OR
-        #   - the event is to be persistet
+        #   - the event is to be persisted
         #
         if subscriptions or publish.acknowledge or store_event:
 
@@ -197,14 +198,14 @@ class Broker(object):
 
             # authorize PUBLISH action
             #
-            d = txaio.as_future(self._router.authorize, session, publish.topic, RouterAction.ACTION_PUBLISH)
+            d = self._router.authorize(session, publish.topic, u'publish')
 
-            def on_authorize_success(authorized):
+            def on_authorize_success(authorization):
 
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
                 #
-                if not authorized:
+                if not authorization[u'allow']:
 
                     if publish.acknowledge:
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, [u"session not authorized to publish to topic '{0}'".format(publish.topic)])
@@ -216,7 +217,8 @@ class Broker(object):
                     #
                     publication = util.id()
 
-                    # persist event
+                    # persist event (this is done only once, regardless of the number of subscriptions
+                    # the event matches on)
                     #
                     if store_event:
                         self._event_store.store_event(session._session_id, publication, publish.topic, publish.args, publish.kwargs)
@@ -229,10 +231,14 @@ class Broker(object):
 
                     # publisher disclosure
                     #
-                    if publish.disclose_me:
+                    if authorization[u'disclose']:
                         publisher = session._session_id
+                        publisher_authid = session._authid
+                        publisher_authrole = session._authrole
                     else:
                         publisher = None
+                        publisher_authid = None
+                        publisher_authrole = None
 
                     # skip publisher
                     #
@@ -245,9 +251,9 @@ class Broker(object):
                     #
                     for subscription in subscriptions:
 
-                        # persist event history
+                        # persist event history, but check if it is persisted on the individual subscription!
                         #
-                        if store_event:
+                        if store_event and self._event_store in subscription.observers:
                             self._event_store.store_event_history(publication, subscription.id)
 
                         # initial list of receivers are all subscribers on a subscription ..
@@ -299,6 +305,8 @@ class Broker(object):
                                                     publication,
                                                     payload=publish.payload,
                                                     publisher=publisher,
+                                                    publisher_authid=publisher_authid,
+                                                    publisher_authrole=publisher_authrole,
                                                     topic=topic,
                                                     enc_algo=publish.enc_algo,
                                                     enc_key=publish.enc_key,
@@ -309,6 +317,8 @@ class Broker(object):
                                                     args=publish.args,
                                                     kwargs=publish.kwargs,
                                                     publisher=publisher,
+                                                    publisher_authid=publisher_authid,
+                                                    publisher_authrole=publisher_authrole,
                                                     topic=topic)
                             for receiver in receivers:
                                 if (me_also or receiver != session) and receiver != self._event_store:
@@ -324,7 +334,7 @@ class Broker(object):
                 different from the call to authorize succeed, but the
                 authorization being denied)
                 """
-                self.log.failure(err)
+                self.log.failure("Authorization failed", failure=err)
                 if publish.acknowledge:
                     reply = message.Error(
                         message.Publish.MESSAGE_TYPE,
@@ -365,12 +375,12 @@ class Broker(object):
             self._router.send(session, reply)
             return
 
-        # authorize action
+        # authorize SUBSCRIBE action
         #
-        d = txaio.as_future(self._router.authorize, session, subscribe.topic, RouterAction.ACTION_SUBSCRIBE)
+        d = self._router.authorize(session, subscribe.topic, u'subscribe')
 
-        def on_authorize_success(authorized):
-            if not authorized:
+        def on_authorize_success(authorization):
+            if not authorization[u'allow']:
                 # error reply since session is not authorized to subscribe
                 #
                 reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])
@@ -390,10 +400,10 @@ class Broker(object):
                     if service_session and not subscription.uri.startswith(u'wamp.'):
                         if is_first_subscriber:
                             subscription_details = {
-                                'id': subscription.id,
-                                'created': subscription.created,
-                                'uri': subscription.uri,
-                                'match': subscription.match,
+                                u'id': subscription.id,
+                                u'created': subscription.created,
+                                u'uri': subscription.uri,
+                                u'match': subscription.match,
                             }
                             service_session.publish(u'wamp.subscription.on_create', session._session_id, subscription_details)
                         if not was_already_subscribed:
@@ -414,7 +424,7 @@ class Broker(object):
             authorization being denied)
             """
             # XXX same as another code-block, can we collapse?
-            self.log.failure(err)
+            self.log.failure("Authorization failed", failure=err)
             reply = message.Error(
                 message.Subscribe.MESSAGE_TYPE,
                 subscribe.request,

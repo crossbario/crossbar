@@ -45,7 +45,7 @@ __all__ = ('RouterServiceSession',)
 
 
 def _is_restricted_session(session):
-    return session._authrole is None or session._authrole == u"trusted"
+    return session._authrole is None or session._authrole == u'trusted'
 
 
 class RouterServiceSession(ApplicationSession):
@@ -74,17 +74,26 @@ class RouterServiceSession(ApplicationSession):
         self._schemas = {}
         if schemas:
             self._schemas.update(schemas)
-            self.log.info("initialized schemas cache with {} entries".format(len(self._schemas)))
+            self.log.info('initialized schemas cache with {} entries'.format(len(self._schemas)))
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.log.debug("Router service session attached: {}".format(details))
+        self.log.debug('Router service session attached: {}'.format(details))
 
         regs = yield self.register(self)
-        self.log.debug("Registered {} procedures".format(len(regs)))
+        self.log.debug('Registered {} procedures'.format(len(regs)))
 
         if self.config.extra and 'onready' in self.config.extra:
             self.config.extra['onready'].callback(self)
+
+    def onUserError(self, failure, msg):
+        # ApplicationError's are raised explicitly and by purpose to signal
+        # the peer. The error has already been handled "correctly" from our side.
+        # Anything else wasn't explicitly treated .. the error "escaped" explicit
+        # processing on our side. It needs to be logged to CB log, and CB code
+        # needs to be expanded!
+        if not isinstance(failure.value, ApplicationError):
+            super(RouterServiceSession, self).onUserError(failure, msg)
 
     @wamp.register(u'wamp.session.list')
     def session_list(self, filter_authroles=None):
@@ -101,7 +110,7 @@ class RouterServiceSession(ApplicationSession):
         session_ids = []
         for session in self._router._session_id_to_session.values():
             if not _is_restricted_session(session):
-                if filter_authroles is None or session._session_details['authrole'] in filter_authroles:
+                if filter_authroles is None or session._session_details[u'authrole'] in filter_authroles:
                     session_ids.append(session._session_id)
         return session_ids
 
@@ -120,7 +129,7 @@ class RouterServiceSession(ApplicationSession):
         session_count = 0
         for session in self._router._session_id_to_session.values():
             if not _is_restricted_session(session):
-                if filter_authroles is None or session._session_details['authrole'] in filter_authroles:
+                if filter_authroles is None or session._session_details[u'authrole'] in filter_authroles:
                     session_count += 1
         return session_count
 
@@ -141,7 +150,7 @@ class RouterServiceSession(ApplicationSession):
                 return session._session_details
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
-            "no session with ID {} exists on this router".format(session_id),
+            u'no session with ID {} exists on this router'.format(session_id),
         )
 
     @wamp.register(u'wamp.session.kill')
@@ -161,7 +170,7 @@ class RouterServiceSession(ApplicationSession):
                 return
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
-            "no session with ID {} exists on this router".format(session_id),
+            u'no session with ID {} exists on this router'.format(session_id),
         )
 
     @wamp.register(u'wamp.registration.remove_callee')
@@ -179,7 +188,7 @@ class RouterServiceSession(ApplicationSession):
         if not callee:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SESSION,
-                "no session with ID {} exists on this router".format(callee_id),
+                u'no session with ID {} exists on this router'.format(callee_id),
             )
 
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
@@ -188,14 +197,14 @@ class RouterServiceSession(ApplicationSession):
             if callee not in registration.observers:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_REGISTRATION,
-                    "session {} is not registered on registration {} on this dealer".format(callee_id, registration_id),
+                    u'session {} is not registered on registration {} on this dealer'.format(callee_id, registration_id),
                 )
 
             self._router._dealer.removeCallee(registration, callee, reason=reason)
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_REGISTRATION,
-                "no registration with ID {} exists on this dealer".format(registration_id),
+                u'no registration with ID {} exists on this dealer'.format(registration_id),
             )
 
     @wamp.register(u'wamp.subscription.remove_subscriber')
@@ -213,7 +222,7 @@ class RouterServiceSession(ApplicationSession):
         if not subscriber:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SESSION,
-                message="no session with ID {} exists on this router".format(subscriber_id),
+                message=u'no session with ID {} exists on this router'.format(subscriber_id),
             )
 
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
@@ -222,14 +231,14 @@ class RouterServiceSession(ApplicationSession):
             if subscriber not in subscription.observers:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_SUBSCRIPTION,
-                    "session {} is not subscribed on subscription {} on this broker".format(subscriber_id, subscription_id),
+                    u'session {} is not subscribed on subscription {} on this broker'.format(subscriber_id, subscription_id),
                 )
 
             self._router._broker.removeSubscriber(subscription, subscriber, reason=reason)
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                "no subscription with ID {} exists on this broker".format(subscription_id),
+                u'no subscription with ID {} exists on this broker'.format(subscription_id),
             )
 
     @wamp.register(u'wamp.registration.get')
@@ -246,17 +255,17 @@ class RouterServiceSession(ApplicationSession):
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
         if registration and not is_protected_uri(registration.uri):
             registration_details = {
-                'id': registration.id,
-                'created': registration.created,
-                'uri': registration.uri,
-                'match': registration.match,
-                'invoke': registration.extra.invoke,
+                u'id': registration.id,
+                u'created': registration.created,
+                u'uri': registration.uri,
+                u'match': registration.match,
+                u'invoke': registration.extra.invoke,
             }
             return registration_details
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_REGISTRATION,
-                "no registration with ID {} exists on this dealer".format(registration_id),
+                u'no registration with ID {} exists on this dealer'.format(registration_id),
             )
 
     @wamp.register(u'wamp.subscription.get')
@@ -273,16 +282,16 @@ class RouterServiceSession(ApplicationSession):
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
         if subscription and not is_protected_uri(subscription.uri):
             subscription_details = {
-                'id': subscription.id,
-                'created': subscription.created,
-                'uri': subscription.uri,
-                'match': subscription.match,
+                u'id': subscription.id,
+                u'created': subscription.created,
+                u'uri': subscription.uri,
+                u'match': subscription.match,
             }
             return subscription_details
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                "no subscription with ID {} exists on this broker".format(subscription_id),
+                u'no subscription with ID {} exists on this broker'.format(subscription_id),
             )
 
     @wamp.register(u'wamp.registration.list')
@@ -312,9 +321,9 @@ class RouterServiceSession(ApplicationSession):
                 registrations_wildcard.append(registration.id)
 
         return {
-            'exact': registrations_exact,
-            'prefix': registrations_prefix,
-            'wildcard': registrations_wildcard,
+            u'exact': registrations_exact,
+            u'prefix': registrations_prefix,
+            u'wildcard': registrations_wildcard,
         }
 
     @wamp.register(u'wamp.subscription.list')
@@ -345,9 +354,9 @@ class RouterServiceSession(ApplicationSession):
         #         subscriptions_wildcard.append(subscription.id)
 
         return {
-            'exact': subscriptions_exact,
-            'prefix': subscriptions_prefix,
-            'wildcard': subscriptions_wildcard,
+            u'exact': subscriptions_exact,
+            u'prefix': subscriptions_prefix,
+            u'wildcard': subscriptions_wildcard,
         }
 
     @wamp.register(u'wamp.registration.match')
@@ -411,7 +420,7 @@ class RouterServiceSession(ApplicationSession):
         :rtype: int or None
         """
         options = options or {}
-        match = options.get('match', u'exact')
+        match = options.get(u'match', u'exact')
         registration = self._router._dealer._registration_map.get_observation(procedure, match)
         if registration and not is_protected_uri(registration.uri):
             return registration.id
@@ -434,7 +443,7 @@ class RouterServiceSession(ApplicationSession):
         :rtype: int or None
         """
         options = options or {}
-        match = options.get('match', u'exact')
+        match = options.get(u'match', u'exact')
         subscription = self._router._broker._subscription_map.get_observation(topic, match)
         if subscription and not is_protected_uri(subscription.uri):
             return subscription.id
@@ -461,7 +470,7 @@ class RouterServiceSession(ApplicationSession):
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_REGISTRATION,
-                "no registration with ID {} exists on this dealer".format(registration_id),
+                u'no registration with ID {} exists on this dealer'.format(registration_id),
             )
 
     @wamp.register(u'wamp.subscription.list_subscribers')
@@ -484,7 +493,7 @@ class RouterServiceSession(ApplicationSession):
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                "no subscription with ID {} exists on this broker".format(subscription_id),
+                u'no subscription with ID {} exists on this broker'.format(subscription_id),
             )
 
     @wamp.register(u'wamp.registration.count_callees')
@@ -504,7 +513,7 @@ class RouterServiceSession(ApplicationSession):
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_REGISTRATION,
-                "no registration with ID {} exists on this dealer".format(registration_id),
+                u'no registration with ID {} exists on this dealer'.format(registration_id),
             )
 
     @wamp.register(u'wamp.subscription.count_subscribers')
@@ -524,7 +533,7 @@ class RouterServiceSession(ApplicationSession):
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                "no subscription with ID {} exists on this broker".format(subscription_id),
+                u'no subscription with ID {} exists on this broker'.format(subscription_id),
             )
 
     @wamp.register(u'wamp.subscription.get_events')
@@ -540,22 +549,31 @@ class RouterServiceSession(ApplicationSession):
         :returns: List of events.
         :rtype: list
         """
-        self.log.info("subscription_get_events({subscription_id}, {limit})", subscription_id=subscription_id, limit=limit)
+        self.log.debug('subscription_get_events({subscription_id}, {limit})', subscription_id=subscription_id, limit=limit)
+
+        if not self._router._broker._event_store:
+            raise ApplicationError(
+                u'wamp.error.history_unavailable',
+                message=u'event history not available or enabled',
+            )
+
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
+
         if subscription and not is_protected_uri(subscription.uri):
             events = self._router._broker._event_store.get_events(subscription_id, limit)
             if events is None:
-                raise Exception("event history for the given subscription is unavailable")
+                # a return value of None in above signals that event history really
+                # is not available/enabled (which is different from an empty history!)
                 raise ApplicationError(
                     u'wamp.error.history_unavailable',
-                    message="event history for the given subscription is unavailable",
+                    message=u'event history for the given subscription is not available or enabled',
                 )
             else:
                 return events
         else:
             raise ApplicationError(
                 ApplicationError.NO_SUCH_SUBSCRIPTION,
-                "no subscription with ID {} exists on this broker".format(subscription_id),
+                u'no subscription with ID {} exists on this broker'.format(subscription_id),
             )
 
     @wamp.register(u'wamp.test.exception')

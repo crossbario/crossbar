@@ -45,9 +45,8 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
     log = make_logger()
 
-    def __init__(self, config, debug=False):
+    def __init__(self, config):
         self.config = config
-        self.debug = debug
 
     def connectionMade(self):
         # `self.transport` is now a provider of `twisted.internet.interfaces.IProcessTransport`
@@ -102,7 +101,10 @@ class GuestWorkerClientProtocol(protocol.Protocol):
             else:
                 # get this when subprocess has exited early; should we just log error?
                 # should not arrive here
-                self.log.error("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {}".format(reason))
+                self.log.error(
+                    "GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {reason}",
+                    reason=reason,
+                )
 
         except Exception:
             self.log.failure("GuestWorkerClientProtocol: INTERNAL ERROR - {log_failure}")
@@ -119,15 +121,14 @@ class GuestWorkerClientProtocol(protocol.Protocol):
 
 class GuestWorkerClientFactory(protocol.Factory):
 
-    def __init__(self, config, on_ready, on_exit, debug=False):
-        self.debug = debug
+    def __init__(self, config, on_ready, on_exit):
         self.proto = None
         self._config = config
         self._on_ready = on_ready
         self._on_exit = on_exit
 
     def buildProtocol(self, addr):
-        self.proto = GuestWorkerClientProtocol(self._config, debug=self.debug)
+        self.proto = GuestWorkerClientProtocol(self._config)
         self.proto.factory = self
         return self.proto
 

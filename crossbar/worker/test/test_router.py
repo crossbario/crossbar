@@ -110,7 +110,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         Set up the common component config.
         """
-        self.realm = "realm1"
+        self.realm = u"realm1"
         config_extras = DottableDict({"node": "testnode",
                                       "worker": "worker1",
                                       "cbdir": self.mktemp()})
@@ -150,16 +150,16 @@ class RouterWorkerSessionTests(TestCase):
                                           u'uri': u'*', u'publish': True}]}]
         }
 
-        r.start_router_realm("realm1", realm_config)
+        r.start_router_realm(u"realm1", realm_config)
 
-        permissions = RouterPermissions('', True, True, True, True, True)
+        permissions = RouterPermissions(u'', True, True, True, True, True)
         routera = r._router_factory.get(u'realm1')
         routera.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=permissions))
 
         component_config = {
-            "type": u"class",
-            "classname": u"crossbar.worker.test.examples.goodclass.AppSession",
-            "realm": u"realm1"
+            u"type": u"class",
+            u"classname": u"crossbar.worker.test.examples.goodclass.AppSession",
+            u"realm": u"realm1"
         }
 
         r.start_router_component("newcomponent", component_config)
@@ -193,12 +193,12 @@ class RouterWorkerSessionTests(TestCase):
                                           u'uri': u'*', u'publish': True}]}]
         }
 
-        r.start_router_realm("realm1", realm_config)
+        r.start_router_realm(u"realm1", realm_config)
 
         component_config = {
-            "type": u"class",
-            "classname": u"thisisathing.thatdoesnot.exist",
-            "realm": u"realm1"
+            u"type": u"class",
+            u"classname": u"thisisathing.thatdoesnot.exist",
+            u"realm": u"realm1"
         }
 
         with self.assertRaises(ApplicationError) as e:
@@ -228,11 +228,11 @@ class RouterWorkerSessionTests(TestCase):
             u'roles': []
         }
 
-        r.start_router_realm("realm1", realm_config)
+        r.start_router_realm(u"realm1", realm_config)
 
         component_config = {
-            "type": u"notathingcrossbarsupports",
-            "realm": u"realm1"
+            u"type": u"notathingcrossbarsupports",
+            u"realm": u"realm1"
         }
 
         with self.assertRaises(ApplicationError) as e:
@@ -258,12 +258,12 @@ class RouterWorkerSessionTests(TestCase):
             u'roles': []
         }
 
-        r.start_router_realm("realm1", realm_config)
+        r.start_router_realm(u"realm1", realm_config)
 
         component_config = {
-            "type": u"class",
-            "classname": u"crossbar.worker.test.examples.badclass.AppSession",
-            "realm": u"realm1"
+            u"type": u"class",
+            u"classname": u"crossbar.worker.test.examples.badclass.AppSession",
+            u"realm": u"realm1"
         }
 
         with self.assertRaises(ApplicationError) as e:
@@ -286,7 +286,7 @@ class WebTests(TestCase):
                                       "cbdir": self.cbdir.decode('utf8')
                                       if not isinstance(self.cbdir, six.text_type)
                                       else self.cbdir})
-        self.config = ComponentConfig("realm1", extra=config_extras)
+        self.config = ComponentConfig(u"realm1", extra=config_extras)
 
     def test_root_not_required(self):
         """
@@ -362,7 +362,7 @@ class WSGITests(TestCase):
         config_extras = DottableDict({"node": "testnode",
                                       "worker": "worker1",
                                       "cbdir": self.cbdir})
-        self.config = ComponentConfig("realm1", extra=config_extras)
+        self.config = ComponentConfig(u"realm1", extra=config_extras)
 
     def test_basic(self):
         """
@@ -381,9 +381,9 @@ class WSGITests(TestCase):
             u'roles': []
         }
 
-        r.start_router_realm("realm1", realm_config)
+        r.start_router_realm(u"realm1", realm_config)
         r.start_router_transport(
-            "component1",
+            u"component1",
             {
                 u"type": u"web",
                 u"endpoint": {
@@ -431,7 +431,7 @@ class WSGITests(TestCase):
             u'roles': []
         }
 
-        r.start_router_realm("realm1", realm_config)
+        r.start_router_realm(u"realm1", realm_config)
         r.start_router_transport(
             "component1",
             {

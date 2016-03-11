@@ -90,10 +90,10 @@ class ContainerComponent(object):
         """
         now = datetime.utcnow()
         return {
-            'id': self.id,
-            'started': utcstr(self.started),
-            'uptime': (now - self.started).total_seconds(),
-            'config': self.config
+            u'id': self.id,
+            u'started': utcstr(self.started),
+            u'uptime': (now - self.started).total_seconds(),
+            u'config': self.config
         }
 
 
@@ -219,16 +219,13 @@ class ContainerWorkerSession(NativeWorkerSession):
                     session.disconnect()
                 session._swallow_error = panic
                 return session
-            except Exception as e:
-                msg = "{}".format(e).strip()
-                self.log.failure("Component instantiation failed: {msg}", msg=msg)
+            except Exception:
+                self.log.failure("Component instantiation failed: {log_failure.value}")
                 raise
 
         # 2) create WAMP transport factory
         #
         transport_config = config['transport']
-        transport_debug = transport_config.get('debug', False)
-        transport_debug_wamp = transport_config.get('debug_wamp', False)
 
         # WAMP-over-WebSocket transport
         #
@@ -236,10 +233,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
             # create a WAMP-over-WebSocket transport client factory
             #
-            transport_factory = WampWebSocketClientFactory(create_session,
-                                                           transport_config['url'],
-                                                           debug=transport_debug,
-                                                           debug_wamp=transport_debug_wamp)
+            transport_factory = WampWebSocketClientFactory(create_session, transport_config['url'])
             transport_factory.noisy = False
 
         # WAMP-over-RawSocket transport
@@ -321,8 +315,8 @@ class ContainerWorkerSession(NativeWorkerSession):
             # publish event "on_component_start" to all but the caller
             #
             topic = self._uri_prefix + '.container.on_component_start'
-            event = {'id': id}
-            self.publish(topic, event, options=PublishOptions(exclude=[details.caller]))
+            event = {u'id': id}
+            self.publish(topic, event, options=PublishOptions(exclude=details.caller))
             return event
 
         def error(err):
@@ -375,7 +369,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         started = yield self.start_container_component(
             id, component.config, reload_modules=reload_modules, details=details)
 
-        returnValue({'stopped': stopped, 'started': started})
+        returnValue({u'stopped': stopped, u'started': started})
 
     @inlineCallbacks
     def stop_container_component(self, id, details=None):

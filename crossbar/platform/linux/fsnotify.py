@@ -33,6 +33,8 @@ from __future__ import absolute_import
 import os
 import pyinotify
 
+from crossbar._logging import make_logger
+
 __all__ = ('DirWatcher',)
 
 
@@ -65,6 +67,8 @@ class DirWatcher:
     """
     Watches a directory for file system changes.
     """
+
+    log = make_logger()
 
     def __init__(self, dirs=['.'], recurse=True, asynch=True, timeout=200, notify_once=False):
         """
@@ -144,12 +148,3 @@ class DirWatcher:
             while notifier.check_events():
                 notifier.read_events()
                 notifier.process_events()
-
-
-if __name__ == '__main__':
-    dw = DirWatcher(asynch=True, timeout=1000)
-#   dw = DirWatcher(asynch = False)
-
-    def log(r):
-        print(r)
-    dw.loop(log)

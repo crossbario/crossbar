@@ -37,11 +37,16 @@ from autobahn.wamp import role
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError, ApplicationError
 
-from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY, \
-    _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_STRICT_EMPTY, _URI_PAT_LOOSE_EMPTY
+from autobahn.wamp.message import \
+    _URI_PAT_STRICT_LAST_EMPTY, \
+    _URI_PAT_LOOSE_LAST_EMPTY, \
+    _URI_PAT_STRICT_NON_EMPTY, \
+    _URI_PAT_LOOSE_NON_EMPTY, \
+    _URI_PAT_STRICT_EMPTY, \
+    _URI_PAT_LOOSE_EMPTY
 
 from crossbar.router.observation import UriObservationMap
-from crossbar.router import RouterOptions, RouterAction
+from crossbar.router import RouterOptions
 from crossbar._logging import make_logger
 
 import txaio
@@ -152,13 +157,23 @@ class Dealer(object):
         if self._option_uri_strict:
             if register.match == u"wildcard":
                 uri_is_valid = _URI_PAT_STRICT_EMPTY.match(register.procedure)
-            else:
+            elif register.match == u"prefix":
+                uri_is_valid = _URI_PAT_STRICT_LAST_EMPTY.match(register.procedure)
+            elif register.match == u"exact":
                 uri_is_valid = _URI_PAT_STRICT_NON_EMPTY.match(register.procedure)
+            else:
+                # should not arrive here
+                raise Exception("logic error")
         else:
             if register.match == u"wildcard":
                 uri_is_valid = _URI_PAT_LOOSE_EMPTY.match(register.procedure)
-            else:
+            elif register.match == u"prefix":
+                uri_is_valid = _URI_PAT_LOOSE_LAST_EMPTY.match(register.procedure)
+            elif register.match == u"exact":
                 uri_is_valid = _URI_PAT_LOOSE_NON_EMPTY.match(register.procedure)
+            else:
+                # should not arrive here
+                raise Exception("logic error")
 
         if not uri_is_valid:
             reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [u"register for invalid procedure URI '{0}' (URI strict checking {1})".format(register.procedure, self._option_uri_strict)])
@@ -196,12 +211,12 @@ class Dealer(object):
                 self._router.send(session, reply)
                 return
 
-        # authorize action
+        # authorize REGISTER action
         #
-        d = txaio.as_future(self._router.authorize, session, register.procedure, RouterAction.ACTION_REGISTER)
+        d = self._router.authorize(session, register.procedure, u'register')
 
-        def on_authorize_success(authorized):
-            if not authorized:
+        def on_authorize_success(authorization):
+            if not authorization[u'allow']:
                 # error reply since session is not authorized to register
                 #
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to register procedure '{0}'".format(register.procedure)])
@@ -222,11 +237,11 @@ class Dealer(object):
                     if service_session and not registration.uri.startswith(u'wamp.'):
                         if is_first_callee:
                             registration_details = {
-                                'id': registration.id,
-                                'created': registration.created,
-                                'uri': registration.uri,
-                                'match': registration.match,
-                                'invoke': registration.extra.invoke,
+                                u'id': registration.id,
+                                u'created': registration.created,
+                                u'uri': registration.uri,
+                                u'match': registration.match,
+                                u'invoke': registration.extra.invoke,
                             }
                             service_session.publish(u'wamp.registration.on_create', session._session_id, registration_details)
                         if not was_already_registered:
@@ -246,7 +261,7 @@ class Dealer(object):
             different from the call to authorize succeed, but the
             authorization being denied)
             """
-            self.log.failure(err)
+            self.log.failure("Authorization failed", failure=err)
             reply = message.Error(
                 message.Register.MESSAGE_TYPE,
                 register.request,
@@ -347,7 +362,7 @@ class Dealer(object):
             #
             if call.payload is None:
                 try:
-                    self._router.validate('call', call.procedure, call.args, call.kwargs)
+                    self._router.validate(u'call', call.procedure, call.args, call.kwargs)
                 except Exception as e:
                     reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
                     self._router.send(session, reply)
@@ -355,14 +370,14 @@ class Dealer(object):
 
             # authorize CALL action
             #
-            d = txaio.as_future(self._router.authorize, session, call.procedure, RouterAction.ACTION_CALL)
+            d = self._router.authorize(session, call.procedure, u'call')
 
-            def on_authorize_success(authorized):
+            def on_authorize_success(authorization):
 
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
                 #
-                if not authorized:
+                if not authorization[u'allow']:
                     reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to call procedure '{0}'".format(call.procedure)])
                     self._router.send(session, reply)
 
@@ -396,10 +411,14 @@ class Dealer(object):
 
                     # caller disclosure
                     #
-                    if call.disclose_me:
+                    if authorization[u'disclose']:
                         caller = session._session_id
+                        caller_authid = session._authid
+                        caller_authrole = session._authrole
                     else:
                         caller = None
+                        caller_authid = None
+                        caller_authrole = None
 
                     # for pattern-based registrations, the INVOCATION must contain
                     # the actual procedure being called
@@ -416,6 +435,8 @@ class Dealer(object):
                                                         timeout=call.timeout,
                                                         receive_progress=call.receive_progress,
                                                         caller=caller,
+                                                        caller_authid=caller_authid,
+                                                        caller_authrole=caller_authrole,
                                                         procedure=procedure,
                                                         enc_algo=call.enc_algo,
                                                         enc_key=call.enc_key,
@@ -428,6 +449,8 @@ class Dealer(object):
                                                         timeout=call.timeout,
                                                         receive_progress=call.receive_progress,
                                                         caller=caller,
+                                                        caller_authid=caller_authid,
+                                                        caller_authrole=caller_authrole,
                                                         procedure=procedure)
 
                     self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)
@@ -439,7 +462,7 @@ class Dealer(object):
                 different from the call to authorize succeed, but the
                 authorization being denied)
                 """
-                self.log.failure(err)
+                self.log.failure("Authorization failed", failure=err)
                 reply = message.Error(
                     message.Call.MESSAGE_TYPE,
                     call.request,

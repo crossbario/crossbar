@@ -30,31 +30,24 @@
 
 from __future__ import absolute_import
 
-import six
-
+from autobahn import util
 from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
 from crossbar._logging import make_logger
 
-__all__ = ('PendingAuthTicket',)
+__all__ = ('PendingAuthAnonymous',)
 
 
-class PendingAuthTicket(PendingAuth):
+class PendingAuthAnonymous(PendingAuth):
 
     """
-    Pending authentication information for WAMP-Ticket authentication.
+    Pending authentication information for WAMP-Anonymous authentication.
     """
 
     log = make_logger()
 
-    AUTHMETHOD = u'ticket'
-
-    def __init__(self, session, config):
-        PendingAuth.__init__(self, session, config)
-
-        # The secret/ticket the authenticating principal will need to provide (filled only in static mode).
-        self._signature = None
+    AUTHMETHOD = u'anonymous'
 
     def hello(self, realm, details):
 
@@ -64,69 +57,36 @@ class PendingAuthTicket(PendingAuth):
         # remember the authid the client wants to identify as (if any)
         self._authid = details.authid
 
-        # use static principal database from configuration
+        # WAMP-Ticket "static"
         if self._config[u'type'] == u'static':
 
             self._authprovider = u'static'
+            self._authid = util.generate_serial_number()
 
-            if self._authid in self._config.get(u'principals', {}):
+            # FIXME: if cookie tracking is enabled, set authid to cookie value
+            # self._authid = self._transport._cbtid
 
-                principal = self._config[u'principals'][self._authid]
+            principal = self._config
 
-                error = self._assign_principal(principal)
-                if error:
-                    return error
+            error = self._assign_principal(principal)
+            if error:
+                return error
 
-                # now set set signature as expected for WAMP-Ticket
-                self._signature = principal[u'ticket']
+            return self._accept()
 
-                return types.Challenge(self._authmethod)
-            else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(self._authid))
-
-        # use configured procedure to dynamically get a ticket for the principal
+        # WAMP-Ticket "dynamic"
         elif self._config[u'type'] == u'dynamic':
 
             self._authprovider = u'dynamic'
+            self._authid = util.generate_serial_number()
 
             error = self._init_dynamic_authenticator()
             if error:
                 return error
 
-            return types.Challenge(self._authmethod)
-
-        else:
-            # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
-
-    def authenticate(self, signature):
-
-        # WAMP-Ticket "static"
-        if self._authprovider == u'static':
-
-            # when doing WAMP-Ticket from static configuration, the ticket we
-            # expect was previously stored in self._signature
-            if signature == self._signature:
-                # ticket was valid: accept the client
-                self.log.debug("WAMP-Ticket: ticket was valid!")
-                return self._accept()
-            else:
-                # ticket was invalid: deny client
-                self.log.debug('WAMP-Ticket (static): expected ticket "{}"" ({}), but got "{}" ({})'.format(self._signature, type(self._signature), signature, type(signature)))
-                return types.Deny(message=u"ticket in static WAMP-Ticket authentication is invalid")
-
-        # WAMP-Ticket "dynamic"
-        elif self._authprovider == u'dynamic':
-
-            self._session_details[u'ticket'] = signature
             d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
             def on_authenticate_ok(principal):
-                # backwards compatibility: dynamic ticket authenticator
-                # was expected to return a role directly
-                if type(principal) == six.text_type:
-                    principal = {u'role': principal}
-
                 error = self._assign_principal(principal)
                 if error:
                     return error

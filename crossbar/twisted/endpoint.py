@@ -338,14 +338,13 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
         version = int(config.get('version', 4))
 
         # the listening port
-        #
         if type(config['port']) is six.text_type:
             # read port from environment variable ..
             try:
                 port = int(environ[config['port'][1:]])
             except Exception as e:
-                print("Could not read listening port from env var: {}".format(e))
-                raise e
+                log.warn("Could not read listening port from env var: {}".format(e))
+                raise
         else:
             port = config['port']
 

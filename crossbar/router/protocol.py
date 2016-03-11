@@ -169,11 +169,11 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             from twisted.internet import reactor
 
             def print_traffic():
-                print("Traffic {}: {} / {} in / out bytes - {} / {} in / out msgs".format(self.peer,
-                                                                                          self.trafficStats.incomingOctetsWireLevel,
-                                                                                          self.trafficStats.outgoingOctetsWireLevel,
-                                                                                          self.trafficStats.incomingWebSocketMessages,
-                                                                                          self.trafficStats.outgoingWebSocketMessages))
+                self.log.info("Traffic {}: {} / {} in / out bytes - {} / {} in / out msgs".format(self.peer,
+                                                                                                  self.trafficStats.incomingOctetsWireLevel,
+                                                                                                  self.trafficStats.outgoingOctetsWireLevel,
+                                                                                                  self.trafficStats.incomingWebSocketMessages,
+                                                                                                  self.trafficStats.outgoingWebSocketMessages))
                 reactor.callLater(1, print_traffic)
 
             print_traffic()
@@ -246,12 +246,12 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             # WAMP meta event "wamp.session.on_join"
             #
             self._transport_info = {
-                'type': 'websocket',
-                'protocol': protocol,
-                'peer': self.peer,
-                'http_headers_received': request.headers,
-                'http_headers_sent': headers,
-                'cbtid': self._cbtid
+                u'type': 'websocket',
+                u'protocol': protocol,
+                u'peer': self.peer,
+                u'http_headers_received': request.headers,
+                u'http_headers_sent': headers,
+                u'cbtid': self._cbtid
             }
 
             # accept the WebSocket connection, speaking subprotocol `protocol`
@@ -423,9 +423,9 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         # WAMP meta event "wamp.session.on_join"
         #
         self._transport_info = {
-            'type': 'rawsocket',
-            'protocol': None,  # FIXME
-            'peer': self.peer
+            u'type': 'rawsocket',
+            u'protocol': None,  # FIXME
+            u'peer': self.peer
         }
 
     def lengthLimitExceeded(self, length):
@@ -451,11 +451,11 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
 
         # explicit list of WAMP serializers
         #
-        if 'serializers' in config:
+        if u'serializers' in config:
             serializers = []
             sers = set(config['serializers'])
 
-            if 'cbor' in sers:
+            if u'cbor' in sers:
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
@@ -465,7 +465,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 else:
                     sers.discard('cbor')
 
-            if 'msgpack' in sers:
+            if u'msgpack' in sers:
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
@@ -477,7 +477,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 else:
                     sers.discard('msgpack')
 
-            if 'json' in sers:
+            if u'json' in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
@@ -554,9 +554,9 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
 
         # WAMP serializer
         #
-        serid = config.get('serializer', 'msgpack')
+        serid = config.get(u'serializer', u'json')
 
-        if serid == 'json':
+        if serid == u'json':
             # try JSON WAMP serializer
             try:
                 from autobahn.wamp.serializer import JsonSerializer
@@ -564,14 +564,22 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
             except ImportError:
                 raise Exception("could not load WAMP-JSON serializer")
 
-        elif serid == 'msgpack':
-            # try MsgPack WAMP serializer
+        elif serid == u'msgpack':
+            # try MessagePack WAMP serializer
             try:
                 from autobahn.wamp.serializer import MsgPackSerializer
                 serializer = MsgPackSerializer()
                 serializer._serializer.ENABLE_V5 = False  # FIXME
             except ImportError:
-                raise Exception("could not load WAMP-MsgPack serializer")
+                raise Exception("could not load WAMP-MessagePack serializer")
+
+        elif serid == u'cbor':
+            # try CBOR WAMP serializer
+            try:
+                from autobahn.wamp.serializer import CBORSerializer
+                serializer = CBORSerializer()
+            except ImportError:
+                raise Exception("could not load WAMP-CBOR serializer")
 
         else:
             raise Exception("invalid WAMP serializer '{}'".format(serid))

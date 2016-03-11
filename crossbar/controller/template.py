@@ -34,6 +34,8 @@ import shutil
 import pkg_resources
 import jinja2
 
+from crossbar._logging import make_logger
+
 __all__ = ('Templates',)
 
 
@@ -43,10 +45,12 @@ class Templates:
     Crossbar.io application templates.
     """
 
+    log = make_logger()
+
     SKIP_FILES = ('.pyc', '.pyo', '.exe')
     """
-   File extensions of files to skip when instantiating an application template.
-   """
+    File extensions of files to skip when instantiating an application template.
+    """
 
     TEMPLATES = [
         {
@@ -160,8 +164,8 @@ class Templates:
 
     ]
     """
-   Application template definitions.
-   """
+    Application template definitions.
+    """
 
     def help(self):
         """
@@ -196,7 +200,7 @@ class Templates:
                 return t
         raise KeyError
 
-    def init(self, appdir, template, params=None, dryrun=False):
+    def init(self, appdir, template, params=None, dryrun=False, skip_existing=True):
         """
         Ctor.
 
@@ -214,7 +218,7 @@ class Templates:
         basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
         if IS_WIN:
             basedir = basedir.replace('\\', '/')  # Jinja need forward slashes even on Windows
-        print("Using template from '{}'".format(basedir))
+        self.log.info("Using template from '{}'".format(basedir))
 
         appdir = os.path.abspath(appdir)
 
@@ -239,10 +243,18 @@ class Templates:
                         reldir = reldir.replace('appname', _params['appname'])
                     create_dir_path = os.path.join(appdir, reldir)
 
-                    print("Creating directory {}".format(create_dir_path))
-                    if not dryrun:
-                        os.mkdir(create_dir_path)
-                    created.append(('dir', create_dir_path))
+                    if os.path.isdir(create_dir_path):
+                        msg = "Directory {} already exists".format(create_dir_path)
+                        if not skip_existing:
+                            self.log.info(msg)
+                            raise Exception(msg)
+                        else:
+                            self.log.warn("{} - SKIPPING".format(msg))
+                    else:
+                        self.log.info("Creating directory {}".format(create_dir_path))
+                        if not dryrun:
+                            os.mkdir(create_dir_path)
+                        created.append(('dir', create_dir_path))
 
                 for f in files:
 
@@ -257,43 +269,51 @@ class Templates:
                         dst_dir_path = os.path.join(appdir, reldir)
                         dst_file = os.path.abspath(os.path.join(dst_dir_path, f))
 
-                        print("Creating file      {}".format(dst_file))
-                        if not dryrun:
-                            if f in template.get('skip_jinja', []):
-                                shutil.copy(src_file, dst_file)
+                        if os.path.isfile(dst_file):
+                            msg = "File {} already exists".format(dst_file)
+                            if not skip_existing:
+                                self.log.info(msg)
+                                raise Exception(msg)
                             else:
-                                with open(dst_file, 'wb') as dst_file_fd:
-                                    if IS_WIN:
-                                        # Jinja need forward slashes even on Windows
-                                        src_file_rel_path = src_file_rel_path.replace('\\', '/')
-                                    page = jinja_env.get_template(src_file_rel_path)
-                                    contents = page.render(**_params).encode('utf8')
-                                    dst_file_fd.write(contents)
+                                self.log.warn("{} - SKIPPING".format(msg))
+                        else:
+                            self.log.info("Creating file {}".format(dst_file))
+                            if not dryrun:
+                                if f in template.get('skip_jinja', []):
+                                    shutil.copy(src_file, dst_file)
+                                else:
+                                    with open(dst_file, 'wb') as dst_file_fd:
+                                        if IS_WIN:
+                                            # Jinja need forward slashes even on Windows
+                                            src_file_rel_path = src_file_rel_path.replace('\\', '/')
+                                        page = jinja_env.get_template(src_file_rel_path)
+                                        contents = page.render(**_params).encode('utf8')
+                                        dst_file_fd.write(contents)
 
-                        created.append(('file', dst_file))
+                            created.append(('file', dst_file))
 
             # force exception to test rollback
             # a = 1/0
 
             return template.get('get_started_hint', None)
 
-        except Exception as e:
-            print("Error encountered ({}) - rolling back".format(e))
+        except Exception:
+            self.log.failure("Something went wrong while instantiating app template - rolling back changes ..")
             for ptype, path in reversed(created):
                 if ptype == 'file':
                     try:
-                        print("Removing file {}".format(path))
+                        self.log.info("Removing file {}".format(path))
                         if not dryrun:
                             os.remove(path)
                     except:
-                        print("Warning: could not remove file {}".format(path))
+                        self.log.warn("Warning: could not remove file {}".format(path))
                 elif ptype == 'dir':
                     try:
-                        print("Removing directory {}".format(path))
+                        self.log.info("Removing directory {}".format(path))
                         if not dryrun:
                             os.rmdir(path)
                     except:
-                        print("Warning: could not remove directory {}".format(path))
+                        self.log.warn("Warning: could not remove directory {}".format(path))
                 else:
                     raise Exception("logic error")
-            raise e
+            raise

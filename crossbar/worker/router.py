@@ -39,7 +39,7 @@ import six
 
 from datetime import datetime
 
-from twisted.internet.defer import Deferred, DeferredList
+from twisted.internet.defer import Deferred, DeferredList, maybeDeferred
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 from twisted.python.threadpool import ThreadPool
@@ -50,6 +50,7 @@ from autobahn.wamp.exception import ApplicationError
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
+from crossbar._util import class_name
 from crossbar.router import uplink
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
@@ -64,7 +65,7 @@ from crossbar.worker.testee import WebSocketTesteeServerFactory, \
 
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
-from autobahn.wamp.types import RegisterOptions
+from autobahn.wamp.types import RegisterOptions, PublishOptions
 
 try:
     from twisted.web.wsgi import WSGIResource
@@ -87,8 +88,10 @@ from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
     Resource404, \
-    FileUploadResource, \
-    RedirectResource
+    RedirectResource, \
+    ReverseProxyResource
+
+from crossbar.twisted.fileupload import FileUploadResource
 
 from crossbar.twisted.flashpolicy import FlashPolicyFactory
 
@@ -170,6 +173,20 @@ class RouterComponent(object):
         self.config = config
         self.session = session
         self.created = datetime.utcnow()
+
+    def marshal(self):
+        """
+        Marshal object information for use with WAMP calls/events.
+        """
+        now = datetime.utcnow()
+        return {
+            u'id': self.id,
+            # 'started' is used by container-components; keeping it
+            # for consistency in the public API
+            u'started': utcstr(self.created),
+            u'uptime': (now - self.created).total_seconds(),
+            u'config': self.config
+        }
 
 
 class RouterRealm(object):
@@ -509,9 +526,9 @@ class RouterWorkerSession(NativeWorkerSession):
         # wait until the uplink is ready
         try:
             uplink_session = yield extra['onready']
-        except Exception as e:
-            self.log.error(e)
-            raise e
+        except Exception:
+            self.log.failure(None)
+            raise
 
         self.realms[realm_id].uplinks[uplink_id].session = uplink_session
 
@@ -543,11 +560,34 @@ class RouterWorkerSession(NativeWorkerSession):
         res = []
         for component in sorted(self.components.values(), key=lambda c: c.created):
             res.append({
-                'id': component.id,
-                'created': utcstr(component.created),
-                'config': component.config,
+                u'id': component.id,
+                u'created': utcstr(component.created),
+                u'config': component.config,
             })
         return res
+
+    def onLeave(self, details):
+        # when this router is shutting down, we disconnect all our
+        # components so that they have a chance to shutdown properly
+        # -- e.g. on a ctrl-C of the router.
+        leaves = []
+        for component in self.components.values():
+            if component.session.is_connected():
+                d = maybeDeferred(component.session.leave)
+
+                def done(_):
+                    self.log.info(
+                        "component '{id}' disconnected",
+                        id=component.id,
+                    )
+                    component.session.disconnect()
+                d.addCallback(done)
+                leaves.append(d)
+        dl = DeferredList(leaves, consumeErrors=True)
+        # we want our default behavior, which disconnects this
+        # router-worker, effectively shutting it down .. but only
+        # *after* the components got a chance to shutdown.
+        dl.addBoth(lambda _: super(RouterWorkerSession, self).onLeave(details))
 
     def start_router_component(self, id, config, details=None):
         """
@@ -625,9 +665,43 @@ class RouterWorkerSession(NativeWorkerSession):
             )
             raise
 
+        # Note that 'join' is fired to listeners *before* onJoin runs,
+        # so if you do 'yield self.leave()' in onJoin we'll still
+        # publish "started" before "stopped".
+
+        def publish_stopped(session, stop_details):
+            self.log.info(
+                "stopped component: {session} id={session_id}",
+                session=class_name(session),
+                session_id=session._session_id,
+            )
+            topic = self._uri_prefix + '.container.on_component_stop'
+            event = {u'id': id}
+            caller = details.caller if details else None
+            self.publish(topic, event, options=PublishOptions(exclude=caller))
+            return event
+
+        def publish_started(session, start_details):
+            self.log.info(
+                "started component: {session} id={session_id}",
+                session=class_name(session),
+                session_id=session._session_id,
+            )
+            topic = self._uri_prefix + '.container.on_component_start'
+            event = {u'id': id}
+            caller = details.caller if details else None
+            self.publish(topic, event, options=PublishOptions(exclude=caller))
+            return event
+        session.on('leave', publish_stopped)
+        session.on('join', publish_started)
+
         self.components[id] = RouterComponent(id, config, session)
         self._router_session_factory.add(session, authrole=config.get('role', u'anonymous'))
-        self.log.debug("Added component {id}", id=id)
+        self.log.debug(
+            "Added component {id} (type '{name}')",
+            id=id,
+            name=class_name(session),
+        )
 
     def stop_router_component(self, id, details=None):
         """
@@ -662,9 +736,9 @@ class RouterWorkerSession(NativeWorkerSession):
         res = []
         for transport in sorted(self.transports.values(), key=lambda c: c.created):
             res.append({
-                'id': transport.id,
-                'created': utcstr(transport.created),
-                'config': transport.config,
+                u'id': transport.id,
+                u'created': utcstr(transport.created),
+                u'config': transport.config,
             })
         return res
 
@@ -946,6 +1020,14 @@ class RouterWorkerSession(NativeWorkerSession):
             redirect_url = path_config['url'].encode('ascii', 'ignore')
             return RedirectResource(redirect_url)
 
+        # Reverse proxy resource
+        #
+        elif path_config['type'] == 'reverseproxy':
+            host = path_config['host']
+            port = int(path_config.get('port', 80))
+            path = path_config.get('path', '').encode('ascii', 'ignore')
+            return ReverseProxyResource(host, port, path)
+
         # JSON value resource
         #
         elif path_config['type'] == 'json':
@@ -974,7 +1056,6 @@ class RouterWorkerSession(NativeWorkerSession):
                                                killAfter=path_options.get('session_timeout', 30),
                                                queueLimitBytes=path_options.get('queue_limit_bytes', 128 * 1024),
                                                queueLimitMessages=path_options.get('queue_limit_messages', 100),
-                                               debug=path_options.get('debug', False),
                                                debug_transport_id=path_options.get('debug_transport_id', None)
                                                )
             lp_resource._templates = self._templates

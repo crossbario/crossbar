@@ -68,19 +68,19 @@ if _HAS_PSUTIL:
 
         def cpu(self):
             return {
-                'physical_count': psutil.cpu_count(logical=False),
-                'logical_count': psutil.cpu_count(logical=True)
+                u'physical_count': psutil.cpu_count(logical=False),
+                u'logical_count': psutil.cpu_count(logical=True)
             }
 
         def stats(self):
             """
             """
             res = {}
-            res['ts'] = utcnow()
-            res['cpu'] = self.cpu_stats()
-            res['mem'] = self.mem_stats()
-            res['net'] = self.net_stats()
-            res['disk'] = self.disk_stats()
+            res[u'ts'] = utcnow()
+            res[u'cpu'] = self.cpu_stats()
+            res[u'mem'] = self.mem_stats()
+            res[u'net'] = self.net_stats()
+            res[u'disk'] = self.disk_stats()
             return res
 
         def cpu_stats(self):
@@ -91,9 +91,9 @@ if _HAS_PSUTIL:
             i = 0
             for c in psutil.cpu_times(percpu=True):
                 res[i] = {
-                    'user': c.user,
-                    'system': c.system,
-                    'idle': c.idle
+                    u'user': c.user,
+                    u'system': c.system,
+                    u'idle': c.idle
                 }
                 i += 1
             return res
@@ -101,8 +101,8 @@ if _HAS_PSUTIL:
         def mem_stats(self):
             res = {}
             m = psutil.virtual_memory()
-            res['total'] = m.total
-            res['available'] = m.available
+            res[u'total'] = m.total
+            res[u'available'] = m.available
             return res
 
         def net_stats(self):
@@ -114,17 +114,17 @@ if _HAS_PSUTIL:
             for nic in ns.keys():
                 stats = ns[nic]
                 res[nic] = {
-                    'out': {
-                        'bytes': stats.bytes_sent,
-                        'packets': stats.packets_sent,
-                        'errors': stats.errout,
-                        'dropped': stats.dropout
+                    u'out': {
+                        u'bytes': stats.bytes_sent,
+                        u'packets': stats.packets_sent,
+                        u'errors': stats.errout,
+                        u'dropped': stats.dropout
                     },
-                    'in': {
-                        'bytes': stats.bytes_recv,
-                        'packets': stats.packets_recv,
-                        'errors': stats.errin,
-                        'dropped': stats.dropin
+                    u'in': {
+                        u'bytes': stats.bytes_recv,
+                        u'packets': stats.packets_recv,
+                        u'errors': stats.errin,
+                        u'dropped': stats.dropin
                     }
                 }
             return res
@@ -138,15 +138,15 @@ if _HAS_PSUTIL:
             for disk in ds.keys():
                 stats = ds[disk]
                 res[disk] = {
-                    'read': {
-                        'ops': stats.read_count,
-                        'bytes': stats.read_bytes,
-                        'time': stats.read_time
+                    u'read': {
+                        u'ops': stats.read_count,
+                        u'bytes': stats.read_bytes,
+                        u'time': stats.read_time
                     },
-                    'write': {
-                        'ops': stats.write_count,
-                        'bytes': stats.write_bytes,
-                        'time': stats.write_time
+                    u'write': {
+                        u'ops': stats.write_count,
+                        u'bytes': stats.write_bytes,
+                        u'time': stats.write_time
                     }
                 }
             return res
@@ -180,7 +180,7 @@ if _HAS_PSUTIL:
             Get process statistics.
             """
             res = {}
-            res['ts'] = utcnow()
+            res[u'ts'] = utcnow()
 
             s = self._p.num_ctx_switches()
 
@@ -193,25 +193,25 @@ if _HAS_PSUTIL:
             f = self._p.io_counters()
 
             # process status
-            res['status'] = self._p.status()
+            res[u'status'] = self._p.status()
 
             # context switches
-            res['voluntary'] = s[0]
-            res['nonvoluntary'] = s[1]
+            res[u'voluntary'] = s[0]
+            res[u'nonvoluntary'] = s[1]
 
             # cpu
-            res['user'] = c.user
-            res['system'] = c.system
-            res['cpu_percent'] = c_perc
+            res[u'user'] = c.user
+            res[u'system'] = c.system
+            res[u'cpu_percent'] = c_perc
 
             # memory
-            res['resident'] = m.rss
-            res['virtual'] = m.vms
-            res['mem_percent'] = m_perc
+            res[u'resident'] = m.rss
+            res[u'virtual'] = m.vms
+            res[u'mem_percent'] = m_perc
 
             # disk
-            res['reads'] = f.read_count
-            res['writes'] = f.write_count
+            res[u'reads'] = f.read_count
+            res[u'writes'] = f.write_count
             return res
 
         def get_info(self):
@@ -228,10 +228,10 @@ if _HAS_PSUTIL:
                 pass
             cnt_threads = self._p.num_threads()
             res = {
-                'descriptors': descriptors,
-                'threads': cnt_threads,
-                'files': self.open_files(),
-                'sockets': self.open_sockets()
+                u'descriptors': descriptors,
+                u'threads': cnt_threads,
+                u'files': self.open_files(),
+                u'sockets': self.open_sockets()
             }
             return res
 
@@ -265,9 +265,9 @@ if _HAS_PSUTIL:
                         raddr = ""
                 status = str(c.status)
                 res.append({
-                    'type': socket_type,
-                    'local': laddr,
-                    'remote': raddr,
-                    'status': status
+                    u'type': socket_type,
+                    u'local': laddr,
+                    u'remote': raddr,
+                    u'status': status
                 })
             return res

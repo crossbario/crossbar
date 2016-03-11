@@ -69,9 +69,9 @@ class RESTCallee(ApplicationSession):
             content = yield self._webtransport.text_content(res)
 
             resp = {
-                "code": res.code,
-                "content": content,
-                "headers": dict(res.headers.getAllRawHeaders())
+                u"code": res.code,
+                u"content": content,
+                u"headers": dict(res.headers.getAllRawHeaders())
             }
 
             returnValue(resp)

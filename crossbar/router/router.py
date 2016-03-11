@@ -32,10 +32,12 @@ from __future__ import absolute_import, division, print_function
 
 import six
 
+import txaio
+
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
-from crossbar.router import RouterOptions, RouterAction
+from crossbar.router import RouterOptions
 from crossbar.router.realmstore import HAS_LMDB, LmdbRealmStore, MemoryRealmStore
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
@@ -60,7 +62,7 @@ class Router(object):
     """
     log = make_logger()
 
-    RESERVED_ROLES = ["trusted"]
+    RESERVED_ROLES = [u'trusted']
     """
     Roles with these URIs are built-in and cannot be added/dropped.
     """
@@ -89,7 +91,7 @@ class Router(object):
         self._options = options or RouterOptions()
         self._store = store
         self._realm = realm
-        self.realm = realm.config['name']
+        self.realm = realm.config[u'name']
 
         self._trace_traffic = False
         self._trace_traffic_roles_include = None
@@ -103,7 +105,7 @@ class Router(object):
         self._attached = 0
 
         self._roles = {
-            "trusted": RouterTrustedRole(self, "trusted")
+            u'trusted': RouterTrustedRole(self, u'trusted')
         }
 
     def attach(self, session):
@@ -252,19 +254,44 @@ class Router(object):
 
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
+        assert(type(uri) == six.text_type)
+        assert(action in [u'call', u'register', u'publish', u'subscribe'])
+
+        # the role under which the session that wishes to perform the given action on
+        # the given URI was authenticated under
         role = session._authrole
-        action = RouterAction.ACTION_TO_STRING[action]
 
-        authorized = False
         if role in self._roles:
-            authorized = self._roles[role].authorize(session, uri, action)
+            # the authorizer procedure of the role which we will call ..
+            authorize = self._roles[role].authorize
+            d = txaio.as_future(authorize, session, uri, action)
+        else:
+            # normally, the role should exist on the router (and hence we should not arrive
+            # here), but the role might have been dynamically removed - and anyway, safety first!
+            d = txaio.create_future_success(False)
 
-        self.log.debug("Authorize '{action}' for '{uri}' by {session_id}/{authid}/{authrole} -> {authorized}",
-                       session_id=session._session_id, uri=uri, action=action,
-                       authid=session._authid, authrole=session._authrole,
-                       authorized=authorized, cb_level="trace")
+        def got_authorization(authorization):
+            # backward compatibility
+            if type(authorization) == bool:
+                authorization = {
+                    u'allow': authorization,
+                    u'cache': False
+                }
+                if action in [u'call', u'publish']:
+                    authorization[u'disclose'] = False
 
-        return authorized
+            self.log.debug("Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and authrole '{authrole}' -> authorization: {authorization}",
+                           session_id=session._session_id,
+                           uri=uri,
+                           action=action,
+                           authid=session._authid,
+                           authrole=session._authrole,
+                           authorization=authorization)
+
+            return authorization
+
+        d.addCallback(got_authorization)
+        return d
 
     def validate(self, payload_type, uri, args, kwargs):
         """
@@ -373,17 +400,18 @@ class RouterFactory(object):
         self.log.debug("CrossbarRouterFactory.add_role(realm = {realm}, config = {config})",
                        realm=realm, config=config)
 
+        assert(type(realm) == six.text_type)
         assert(realm in self._routers)
 
         router = self._routers[realm]
-        uri = config['name']
+        uri = config[u'name']
 
-        if 'permissions' in config:
-            role = RouterRoleStaticAuth(router, uri, config['permissions'])
-        elif 'authorizer' in config:
-            role = RouterRoleDynamicAuth(router, uri, config['authorizer'])
+        if u'permissions' in config:
+            role = RouterRoleStaticAuth(router, uri, config[u'permissions'])
+        elif u'authorizer' in config:
+            role = RouterRoleDynamicAuth(router, uri, config[u'authorizer'])
         else:
-            allow_by_default = config.get('allow-by-default', False)
+            allow_by_default = config.get(u'allow-by-default', False)
             role = RouterRole(router, uri, allow_by_default=allow_by_default)
 
         router.add_role(role)
@@ -391,3 +419,9 @@ class RouterFactory(object):
     def drop_role(self, realm, role):
         self.log.debug("CrossbarRouterFactory.drop_role(realm = {realm}, role = {role})",
                        realm=realm, role=role)
+
+    def auto_start_realm(self, realm):
+        raise Exception("realm auto-activation not yet implemented")
+
+    def auto_add_role(self, realm, role):
+        raise Exception("role auto-activation not yet implemented")
