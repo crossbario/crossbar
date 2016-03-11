@@ -70,10 +70,13 @@ class RESTCallee(ApplicationSession):
             )
             content = yield self._webtransport.text_content(res)
 
+            headers = {x.decode('utf8'):[z.decode('utf8') for z in y]
+                       for x, y in dict(res.headers.getAllRawHeaders()).items()}
+
             resp = {
                 u"code": res.code,
                 u"content": content,
-                u"headers": dict(res.headers.getAllRawHeaders())
+                u"headers": headers
             }
 
             returnValue(resp)

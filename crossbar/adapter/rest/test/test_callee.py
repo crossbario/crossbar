@@ -52,7 +52,7 @@ class CalleeTestCase(TestCase):
                                         u"procedure": u"io.crossbar.testrest"})
 
         m = MockWebTransport(self)
-        m._addResponse(200, b"whee")
+        m._addResponse(200, u"whee")
 
         c = RESTCallee(config=config, webTransport=m)
         MockTransport(c)
@@ -66,9 +66,9 @@ class CalleeTestCase(TestCase):
             u"params": {}
         })
         self.assertEqual(res,
-                         {"content": b"whee",
+                         {"content": u"whee",
                           "code": 200,
-                          "headers": {b"foo": [b"bar"]}})
+                          "headers": {u"foo": [u"bar"]}})
 
     @inlineCallbacks
     def test_slightlymorecomplex_web(self):
@@ -80,7 +80,7 @@ class CalleeTestCase(TestCase):
                                         u"procedure": u"io.crossbar.testrest"})
 
         m = MockWebTransport(self)
-        m._addResponse(220, b"whee!")
+        m._addResponse(220, u"whee!")
 
         c = RESTCallee(config=config, webTransport=m)
         MockTransport(c)
@@ -96,6 +96,6 @@ class CalleeTestCase(TestCase):
             "params": {b"spam": b"ham"}
         })
         self.assertEqual(res,
-                         {"content": b"whee!",
+                         {"content": u"whee!",
                           "code": 220,
-                          "headers": {b"foo": [b"bar"]}})
+                          "headers": {u"foo": [u"bar"]}})
