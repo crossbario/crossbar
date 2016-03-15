@@ -122,6 +122,7 @@ extras_require_dev = [
     'flake8>=2.5.1',                # MIT license
     'colorama>=0.3.3',              # BSD license
     'mock>=1.3.0',                  # BSD license
+    'wheel>=0.26.0',                # MIT license
 ]
 if sys.platform != 'win32':
     # Twisted manhole support
