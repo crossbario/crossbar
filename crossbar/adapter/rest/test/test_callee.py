@@ -52,23 +52,23 @@ class CalleeTestCase(TestCase):
                                         u"procedure": u"io.crossbar.testrest"})
 
         m = MockWebTransport(self)
-        m._addResponse(200, "whee")
+        m._addResponse(200, u"whee")
 
         c = RESTCallee(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.call(u"io.crossbar.testrest", method="GET", url="baz.html")
+        res = yield c.call(u"io.crossbar.testrest", method=u"GET", url=u"baz.html")
 
-        self.assertEqual(m.maderequest["args"], (b"GET", b"https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], (u"GET", u"https://foo.com/baz.html"))
         self.assertEqual(m.maderequest["kwargs"], {
-            "data": b"",
-            "headers": Headers({}),
-            "params": {}
+            u"data": b"",
+            u"headers": Headers({}),
+            u"params": {}
         })
         self.assertEqual(res,
-                         {"content": "whee",
+                         {"content": u"whee",
                           "code": 200,
-                          "headers": {"foo": ["bar"]}})
+                          "headers": {u"foo": [u"bar"]}})
 
     @inlineCallbacks
     def test_slightlymorecomplex_web(self):
@@ -80,22 +80,22 @@ class CalleeTestCase(TestCase):
                                         u"procedure": u"io.crossbar.testrest"})
 
         m = MockWebTransport(self)
-        m._addResponse(220, "whee!")
+        m._addResponse(220, u"whee!")
 
         c = RESTCallee(config=config, webTransport=m)
         MockTransport(c)
 
-        res = yield c.call(u"io.crossbar.testrest", method="POST",
-                           url="baz.html", params={"spam": "ham"},
-                           body="see params", headers={b"X-Something": [b"baz"]})
+        res = yield c.call(u"io.crossbar.testrest", method=u"POST",
+                           url=u"baz.html", params={u"spam": u"ham"},
+                           body=u"see params", headers={u"X-Something": [u"baz"]})
 
-        self.assertEqual(m.maderequest["args"], (b"POST", b"https://foo.com/baz.html"))
+        self.assertEqual(m.maderequest["args"], (u"POST", u"https://foo.com/baz.html"))
         self.assertEqual(m.maderequest["kwargs"], {
             "data": b"see params",
             "headers": Headers({b"X-Something": [b"baz"]}),
-            "params": {"spam": "ham"}
+            "params": {b"spam": b"ham"}
         })
         self.assertEqual(res,
-                         {"content": "whee!",
+                         {"content": u"whee!",
                           "code": 220,
-                          "headers": {"foo": ["bar"]}})
+                          "headers": {u"foo": [u"bar"]}})
