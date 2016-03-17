@@ -1,5 +1,6 @@
 include COPYRIGHT
 include LICENSE
+include ez_setup.py
 recursive-include crossbar/web *
 recursive-include crossbar/templates *
 recursive-include crossbar/adapter/postgres/ddl *
