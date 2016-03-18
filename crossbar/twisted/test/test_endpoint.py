@@ -142,3 +142,7 @@ class ListeningEndpointTests(TestCase):
         test_unix_already_listening.skip = _
         test_unix_already_listening_cant_delete.skip = _
         del _
+    elif os.getuid() == 0:
+        _ = "Cannot run as root"
+        test_unix_already_listening_cant_delete.skip = _
+        del _
