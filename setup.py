@@ -124,9 +124,10 @@ extras_require_dev = [
     'mock>=1.3.0',                  # BSD license
     'wheel>=0.26.0',                # MIT license
 ]
-if sys.platform != 'win32':
+if sys.platform != 'win32' and not PYPY:
     # Twisted manhole support
     # pycrypto does not provide wheels => disable on Windows
+    # can't compile under PyPy
     extras_require_dev.append('pycrypto>=2.6.1')   # Public Domain license
 
 # Crossbar.io/PostgreSQL integration
