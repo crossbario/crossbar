@@ -64,6 +64,8 @@ class PendingAuth:
         self._session_details = {
             u'transport': session._transport._transport_info,
             u'session': session._pending_session_id,
+            u'authmethod': None,
+            u'authextra': None
         }
 
         # The router factory we are working for

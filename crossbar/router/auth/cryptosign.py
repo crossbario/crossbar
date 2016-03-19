@@ -161,6 +161,9 @@ class PendingAuthCryptosign(PendingAuth):
             if error:
                 return error
 
+            self._session_details[u'authmethod'] = u'cryptosign'
+            self._session_details[u'authextra'] = details.authextra
+
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
             def on_authenticate_ok(principal):
@@ -170,7 +173,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 self._verify_key = VerifyKey(principal[u'pubkey'], encoder=nacl.encoding.HexEncoder)
 
-                extra = self._compute_challenge()
+                extra = self._compute_challenge(channel_binding)
                 return types.Challenge(self._authmethod, extra)
 
             def on_authenticate_error(err):
