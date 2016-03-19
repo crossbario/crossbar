@@ -358,9 +358,12 @@ class Node(object):
             if 'transport' in cdc_config:
                 transport = cdc_config['transport']
                 if 'tls' in transport['endpoint']:
-                    hostname = transport['endpoint']['tls']['hostname']
+                    if 'hostname' in transport['endpoint']:
+                        hostname = transport['endpoint']['tls']['hostname']
+                    else:
+                        raise Exception("TLS activated on CDC connection, but 'hostname' not provided")
                 else:
-                    raise Exception("TLS activated on CDC connection, but 'hostname' not provided")
+                    hostname = None
                 self.log.warn("CDC transport configuration overridden from node config!")
             else:
                 transport = {
@@ -413,7 +416,7 @@ class Node(object):
 
             runner = ApplicationRunner(
                 url=transport['url'], realm=realm, extra=extra,
-                ssl=optionsForClientTLS(hostname),
+                ssl=optionsForClientTLS(hostname) if hostname else None,
             )
 
             try:
