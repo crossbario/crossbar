@@ -424,11 +424,13 @@ def _startlog(options, reactor):
     """
     Start the logging in a way that all the subcommands can use it.
     """
-    from crossbar._logging import start_logging, globalLogPublisher
+    from crossbar._logging import start_logging, globalLogPublisher, set_global_log_level
 
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
     colour = getattr(options, "colour", "auto")
+
+    set_global_log_level(loglevel)
 
     # The log observers (things that print to stderr, file, etc)
     observers = []
@@ -454,6 +456,7 @@ def _startlog(options, reactor):
         # We want to log to stdout/stderr.
         from crossbar._logging import make_stdout_observer
         from crossbar._logging import make_stderr_observer
+        from crossbar._logging import LogLevel
 
         if colour == "auto":
             if sys.__stdout__.isatty():
@@ -480,6 +483,8 @@ def _startlog(options, reactor):
             # Print debug+info to stdout, warn+ to stderr, with the class
             # source
             observers.append(make_stdout_observer(show_source=True,
+                                                  levels=(LogLevel.info,
+                                                          LogLevel.debug),
                                                   format=logformat,
                                                   colour=colour))
             observers.append(make_stderr_observer(show_source=True,
@@ -488,6 +493,8 @@ def _startlog(options, reactor):
         elif loglevel == "trace":
             # Print trace+, with the class source
             observers.append(make_stdout_observer(show_source=True,
+                                                  levels=(LogLevel.info,
+                                                          LogLevel.debug),
                                                   format=logformat,
                                                   trace=True,
                                                   colour=colour))

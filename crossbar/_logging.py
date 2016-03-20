@@ -108,7 +108,7 @@ def escape_formatting(text):
     return text.replace(u"{", u"{{").replace(u"}", u"}}")
 
 
-def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
+def make_stdout_observer(levels=(LogLevel.info,),
                          show_source=False, format="standard", trace=False,
                          colour=False, _file=None):
     """
@@ -122,6 +122,10 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 
         if event["log_level"] not in levels:
             return
+
+        if event["log_level"] == LogLevel.debug:
+            if event.get("txaio_trace", False) and not trace:
+                return
 
         if event.get("log_system", "-") == "-":
             logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
