@@ -54,3 +54,8 @@ Created by Tavendo GmbH. Get in contact at http://tavendo.com
 """
 
 __version__ = "0.13.0"
+
+import txaio
+txaio.use_twisted()
+
+__all__ = ["__version__"]

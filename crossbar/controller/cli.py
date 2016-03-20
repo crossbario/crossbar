@@ -424,14 +424,11 @@ def _startlog(options, reactor):
     """
     Start the logging in a way that all the subcommands can use it.
     """
-    from crossbar._logging import start_logging, set_global_log_level, \
-        globalLogPublisher
+    from crossbar._logging import start_logging, globalLogPublisher
 
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
     colour = getattr(options, "colour", "auto")
-
-    set_global_log_level(loglevel)
 
     # The log observers (things that print to stderr, file, etc)
     observers = []
@@ -508,7 +505,7 @@ def _startlog(options, reactor):
                                       globalLogPublisher.removeObserver, observer)
 
     # Actually start the logger.
-    start_logging()
+    start_logging(None, loglevel)
 
 
 def run_command_start(options, reactor=None):
