@@ -555,7 +555,7 @@ class Node(object):
             if 'id' in worker:
                 worker_id = worker.pop('id')
             else:
-                worker_id = 'worker{}'.format(self._worker_no)
+                worker_id = 'worker-{:03d}'.format(self._worker_no)
                 self._worker_no += 1
 
             # worker type - a type of working process from the following fixed list
@@ -619,7 +619,7 @@ class Node(object):
                         if 'id' in realm:
                             realm_id = realm.pop('id')
                         else:
-                            realm_id = 'realm{}'.format(self._realm_no)
+                            realm_id = 'realm-{:03d}'.format(self._realm_no)
                             self._realm_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, options=call_options)
@@ -631,7 +631,7 @@ class Node(object):
                             if 'id' in role:
                                 role_id = role.pop('id')
                             else:
-                                role_id = 'role{}'.format(self._role_no)
+                                role_id = 'role-{:03d}'.format(self._role_no)
                                 self._role_no += 1
 
                             yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
@@ -642,7 +642,7 @@ class Node(object):
                             if 'id' in uplink:
                                 uplink_id = uplink.pop('id')
                             else:
-                                uplink_id = 'uplink{}'.format(self._uplink_no)
+                                uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
                                 self._uplink_no += 1
 
                             yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_uplink'.format(self._node_id, worker_id), realm_id, uplink_id, uplink, options=call_options)
@@ -655,7 +655,7 @@ class Node(object):
                         if 'id' in connection:
                             connection_id = connection.pop('id')
                         else:
-                            connection_id = 'connection{}'.format(self._connection_no)
+                            connection_id = 'connection-{:03d}'.format(self._connection_no)
                             self._connection_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
@@ -667,7 +667,7 @@ class Node(object):
                         if 'id' in component:
                             component_id = component.pop('id')
                         else:
-                            component_id = 'component{}'.format(self._component_no)
+                            component_id = 'component-{:03d}'.format(self._component_no)
                             self._component_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
@@ -679,7 +679,7 @@ class Node(object):
                         if 'id' in transport:
                             transport_id = transport.pop('id')
                         else:
-                            transport_id = 'transport{}'.format(self._transport_no)
+                            transport_id = 'transport-{:03d}'.format(self._transport_no)
                             self._transport_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
@@ -713,7 +713,7 @@ class Node(object):
                         if 'id' in connection:
                             connection_id = connection.pop('id')
                         else:
-                            connection_id = 'connection{}'.format(self._connection_no)
+                            connection_id = 'connection-{:03d}'.format(self._connection_no)
                             self._connection_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
@@ -726,7 +726,7 @@ class Node(object):
                         if 'id' in component:
                             component_id = component.pop('id')
                         else:
-                            component_id = 'component{}'.format(self._component_no)
+                            component_id = 'component-{:03d}'.format(self._component_no)
                             self._component_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
@@ -741,7 +741,7 @@ class Node(object):
 
                     # start transport on websocket-testee
                     transport = worker['transport']
-                    transport_id = 'transport{}'.format(self._transport_no)
+                    transport_id = 'transport-{:03d}'.format(self._transport_no)
                     self._transport_no = 1
 
                     yield self._controller.call('crossbar.node.{}.worker.{}.start_websocket_testee_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
