@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import six
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from autobahn.wamp import types
 
@@ -56,6 +57,7 @@ class PendingAuthTicket(PendingAuth):
         # The secret/ticket the authenticating principal will need to provide (filled only in static mode).
         self._signature = None
 
+    @inlineCallbacks
     def hello(self, realm, details):
 
         # remember the realm the client requested to join (if any)
@@ -73,31 +75,31 @@ class PendingAuthTicket(PendingAuth):
 
                 principal = self._config[u'principals'][self._authid]
 
-                error = self._assign_principal(principal)
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
+                    returnValue(error)
 
                 # now set set signature as expected for WAMP-Ticket
                 self._signature = principal[u'ticket']
 
-                return types.Challenge(self._authmethod)
+                returnValue(types.Challenge(self._authmethod))
             else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(self._authid))
+                returnValue(types.Deny(message=u'no principal with authid "{}" exists'.format(self._authid)))
 
         # use configured procedure to dynamically get a ticket for the principal
         elif self._config[u'type'] == u'dynamic':
 
             self._authprovider = u'dynamic'
 
-            error = self._init_dynamic_authenticator()
+            error = yield self._init_dynamic_authenticator()
             if error:
-                return error
+                returnValue(error)
 
-            return types.Challenge(self._authmethod)
+            returnValue(types.Challenge(self._authmethod))
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            returnValue(types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type'])))
 
     def authenticate(self, signature):
 

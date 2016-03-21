@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from autobahn import util
 from autobahn.wamp import types
 
@@ -49,6 +51,7 @@ class PendingAuthAnonymous(PendingAuth):
 
     AUTHMETHOD = u'anonymous'
 
+    @inlineCallbacks
     def hello(self, realm, details):
 
         # remember the realm the client requested to join (if any)
@@ -68,11 +71,11 @@ class PendingAuthAnonymous(PendingAuth):
 
             principal = self._config
 
-            error = self._assign_principal(principal)
+            error = yield self._assign_principal(principal)
             if error:
-                return error
+                returnValue(error)
 
-            return self._accept()
+            returnValue(self._accept())
 
         # WAMP-Ticket "dynamic"
         elif self._config[u'type'] == u'dynamic':
@@ -82,24 +85,25 @@ class PendingAuthAnonymous(PendingAuth):
 
             error = self._init_dynamic_authenticator()
             if error:
-                return error
+                returnValue(error)
 
             d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
+            @inlineCallbacks
             def on_authenticate_ok(principal):
-                error = self._assign_principal(principal)
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
+                    returnValue(error)
 
-                return self._accept()
+                returnValue(self._accept())
 
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)
 
             d.addCallbacks(on_authenticate_ok, on_authenticate_error)
 
-            return d
+            returnValue(d)
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            returnValue(types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type'])))

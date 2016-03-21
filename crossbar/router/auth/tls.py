@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from autobahn.wamp import types
 
 from crossbar.router.auth.pending import PendingAuth
@@ -61,6 +63,7 @@ class PendingAuthTLS(PendingAuth):
                         u'role': principal[u'role']
                     }
 
+    @inlineCallbacks
     def hello(self, realm, details):
 
         # remember the realm the client requested to join (if any)
@@ -76,20 +79,20 @@ class PendingAuthTLS(PendingAuth):
 
             client_cert = self._session_details[u'transport'].get(u'client_cert', None)
             if not client_cert:
-                return types.Deny(message=u'client did not send a TLS client certificate')
+                returnValue(types.Deny(message=u'client did not send a TLS client certificate'))
             client_cert_sha1 = client_cert[u'sha1']
 
             if client_cert_sha1 in self._cert_sha1_to_principal:
 
                 principal = self._cert_sha1_to_principal[client_cert_sha1]
 
-                error = self._assign_principal(principal)
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
+                    returnValue(error)
 
-                return self._accept()
+                returnValue(self._accept())
             else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(client_cert_sha1))
+                returnValue(types.Deny(message=u'no principal with authid "{}" exists'.format(client_cert_sha1)))
 
             raise Exception("not implemented")
 
@@ -100,14 +103,15 @@ class PendingAuthTLS(PendingAuth):
 
             error = self._init_dynamic_authenticator()
             if error:
-                return error
+                returnValue(error)
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
+            @inlineCallbacks
             def on_authenticate_ok(principal):
-                error = self._assign_principal(principal)
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
+                    returnValue(error)
 
                 # FIXME: not sure about this .. TLS is a transport-level auth mechanism .. so forward
                 self._transport._authid = self._authid
@@ -116,17 +120,17 @@ class PendingAuthTLS(PendingAuth):
                 self._transport._authprovider = self._authprovider
                 self._transport._authextra = self._authextra
 
-                return self._accept()
+                returnValue(self._accept())
 
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)
 
             d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-            return d
+            returnValue(d)
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            returnValue(types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type'])))
 
     def authenticate(self, signature):
         # should not arrive here!

@@ -343,7 +343,7 @@ class RouterFactory(object):
 
     def __contains__(self, realm):
         result = realm in self._routers
-        self.log.info("RouterFactory.__contains__({realm}) -> {result}", realm=realm, result=result)
+        self.log.debug("RouterFactory.__contains__({realm}) -> {result}", realm=realm, result=result)
         return result
 
     def onLastDetach(self, router):

@@ -171,7 +171,7 @@ class NodeControllerSession(NativeProcessSession):
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.info("Registering management API procedure {proc}", proc=uri)
+            self.log.debug("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
@@ -196,7 +196,7 @@ class NodeControllerSession(NativeProcessSession):
                     self.log.info("Match: realm {realm} from template {pattern}", realm=realm, pattern=pat_str)
                     tmpl[u'name'] = realm
                     try:
-                        yield self._node._run_realm_config(worker_id, 'Worker [TMPL] '.format(worker_id), tmpl)
+                        yield self._node._run_realm_config(worker_id, "Router '{}'".format(worker_id), tmpl)
                     except Exception as e:
                         self.log.error(e)
                     finally:
