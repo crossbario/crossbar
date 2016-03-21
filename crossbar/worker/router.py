@@ -334,7 +334,7 @@ class RouterWorkerSession(NativeWorkerSession):
         raise Exception("not implemented")
 
     @inlineCallbacks
-    def start_router_realm(self, id, config, schemas=None, enable_trace=False, details=None):
+    def start_router_realm(self, id, config, enable_trace=False, details=None):
         """
         Starts a realm on this router worker.
 
@@ -342,11 +342,9 @@ class RouterWorkerSession(NativeWorkerSession):
         :type id: str
         :param config: The realm configuration.
         :type config: dict
-        :param schemas: An (optional) initial schema dictionary to load.
-        :type schemas: dict
         """
         self.log.debug("{}.start_router_realm".format(self.__class__.__name__),
-                       id=id, config=config, schemas=schemas)
+                       id=id, config=config)
 
         # prohibit starting a realm twice
         #
@@ -385,7 +383,7 @@ class RouterWorkerSession(NativeWorkerSession):
             'onready': Deferred()
         }
         cfg = ComponentConfig(realm, extra)
-        rlm.session = RouterServiceSession(cfg, router, schemas=schemas)
+        rlm.session = RouterServiceSession(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
         yield extra['onready']
