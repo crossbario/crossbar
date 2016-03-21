@@ -461,7 +461,7 @@ class Node(object):
 
         # router and factory that creates router sessions
         #
-        self._router_factory = RouterFactory(self._node_id)
+        self._router_factory = RouterFactory(self)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         rlm_config = {
@@ -507,7 +507,7 @@ class Node(object):
         panic = False
 
         try:
-            yield self._startup(self._config)
+            yield self._run_config(self._config)
 
             # Notify systemd that crossbar is fully up and running
             # This has no effect on non-systemd platforms
@@ -531,7 +531,42 @@ class Node(object):
                 pass
 
     @inlineCallbacks
-    def _startup(self, config):
+    def _run_realm_config(self, worker_id, worker_logname, realm):
+        # start realm
+        if 'id' in realm:
+            realm_id = realm.pop('id')
+        else:
+            realm_id = 'realm-{:03d}'.format(self._realm_no)
+            self._realm_no += 1
+
+        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm)
+        self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
+                      worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
+
+        # add roles to realm
+        for role in realm.get('roles', []):
+            if 'id' in role:
+                role_id = role.pop('id')
+            else:
+                role_id = 'role-{:03d}'.format(self._role_no)
+                self._role_no += 1
+
+            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role)
+            self.log.info("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
+
+        # start uplinks for realm
+        for uplink in realm.get('uplinks', []):
+            if 'id' in uplink:
+                uplink_id = uplink.pop('id')
+            else:
+                uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
+                self._uplink_no += 1
+
+            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_uplink'.format(self._node_id, worker_id), realm_id, uplink_id, uplink)
+            self.log.info("{}: uplink '{}' started on realm '{}'".format(worker_logname, uplink_id, realm_id))
+
+    @inlineCallbacks
+    def _run_config(self, config):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
@@ -614,39 +649,14 @@ class Node(object):
 
                     # start realms on router
                     for realm in worker.get('realms', []):
-
-                        # start realm
-                        if 'id' in realm:
-                            realm_id = realm.pop('id')
+                        if realm.get('template', False):
+                            # templated realm elements are stored for later instantiation
+                            if worker_id not in self._realm_templates:
+                                self._realm_templates[worker_id] = []
+                            self._realm_templates[worker_id].append(realm)
                         else:
-                            realm_id = 'realm-{:03d}'.format(self._realm_no)
-                            self._realm_no += 1
-
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, options=call_options)
-                        self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
-                                      worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
-
-                        # add roles to realm
-                        for role in realm.get('roles', []):
-                            if 'id' in role:
-                                role_id = role.pop('id')
-                            else:
-                                role_id = 'role-{:03d}'.format(self._role_no)
-                                self._role_no += 1
-
-                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
-                            self.log.info("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
-
-                        # start uplinks for realm
-                        for uplink in realm.get('uplinks', []):
-                            if 'id' in uplink:
-                                uplink_id = uplink.pop('id')
-                            else:
-                                uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
-                                self._uplink_no += 1
-
-                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_uplink'.format(self._node_id, worker_id), realm_id, uplink_id, uplink, options=call_options)
-                            self.log.info("{}: uplink '{}' started on realm '{}'".format(worker_logname, uplink_id, realm_id))
+                            # regular realm elements are started directly
+                            yield self._run_realm_config(worker_id, worker_logname, realm)
 
                     # start connections (such as PostgreSQL database connection pools)
                     # to run embedded in the router

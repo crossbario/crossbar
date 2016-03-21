@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import os
+import re
 import sys
 import pkg_resources
 from datetime import datetime
@@ -163,12 +164,14 @@ class NodeControllerSession(NativeProcessSession):
 
             'start_websocket_testee',
             'stop_websocket_testee',
+
+            'activate_realm'
         ]
 
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
+            self.log.info("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
@@ -180,6 +183,26 @@ class NodeControllerSession(NativeProcessSession):
         self.publish(u"crossbar.node.on_ready", self._node_id)
 
         self.log.debug("Node controller ready")
+
+    @inlineCallbacks
+    def activate_realm(self, realm, details=None):
+        self.log.info("Node controller is asked to activate realm {realm}", realm=realm)
+        for worker_id, templates in self._node._realm_templates.items():
+            for tmpl in templates:
+                pat_str = tmpl[u'name']
+                pat = re.compile(pat_str)
+                match = pat.match(realm)
+                if match:
+                    self.log.info("Match: realm {realm} from template {pattern}", realm=realm, pattern=pat_str)
+                    tmpl[u'name'] = realm
+                    try:
+                        yield self._node._run_realm_config(worker_id, 'Worker [TMPL] '.format(worker_id), tmpl)
+                    except Exception as e:
+                        self.log.error(e)
+                    finally:
+                        tmpl[u'name'] = pat_str
+                else:
+                    self.log.info("no match of realm {} to pattern {}".format(realm, pat_str))
 
     def get_info(self, details=None):
         """

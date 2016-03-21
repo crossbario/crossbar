@@ -34,6 +34,8 @@ import six
 
 import txaio
 
+from twisted.internet.defer import inlineCallbacks
+
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
@@ -311,14 +313,14 @@ class RouterFactory(object):
     The router class this factory will create router instances from.
     """
 
-    def __init__(self, node_id, options=None):
+    def __init__(self, node, options=None):
         """
 
         :param options: Default router options.
         :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
         """
-        assert(type(node_id) == six.text_type)
-        self._node_id = node_id
+        self._node = node
+        self._node_id = node._node_id
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False
@@ -340,7 +342,9 @@ class RouterFactory(object):
         return self._routers[realm]
 
     def __contains__(self, realm):
-        return realm in self._routers
+        result = realm in self._routers
+        self.log.info("RouterFactory.__contains__({realm}) -> {result}", realm=realm, result=result)
+        return result
 
     def onLastDetach(self, router):
         assert(router.realm in self._routers)
@@ -420,8 +424,14 @@ class RouterFactory(object):
         self.log.debug("CrossbarRouterFactory.drop_role(realm = {realm}, role = {role})",
                        realm=realm, role=role)
 
+    @inlineCallbacks
     def auto_start_realm(self, realm):
-        raise Exception("realm auto-activation not yet implemented")
+        self.log.info("Auto-starting realm {realm} ..", realm=realm)
+        prefix = '.'.join(self._node._uri_prefix.split('.')[:-2])
+        proc = u'{}.activate_realm'.format(prefix)
+
+        self.log.info("Calling into node controller procedure {proc}", proc=proc)
+        yield self._node.call(proc, realm)
 
     def auto_add_role(self, realm, role):
         raise Exception("role auto-activation not yet implemented")
