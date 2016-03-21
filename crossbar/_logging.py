@@ -57,6 +57,7 @@ from weakref import WeakKeyDictionary
 from ._log_categories import log_keys
 
 from txaio import get_global_log_level, set_global_log_level, make_logger, start_logging
+from txaio.tx import log_levels
 
 record_separator = u"\x1e"
 cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
@@ -249,7 +250,7 @@ def make_JSON_observer(outFile):
         # outside our target log-level; this is to prevent
         # (de-)serializing all the debug() messages (for example) from
         # workers to the controller.
-        if POSSIBLE_LEVELS.index(level) > POSSIBLE_LEVELS.index(get_global_log_level()):
+        if log_levels.index(level) > log_levels.index(get_global_log_level()):
             return
 
         done_json = {

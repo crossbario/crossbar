@@ -41,9 +41,9 @@ from mock import Mock
 from twisted.logger import formatTime
 
 from crossbar.test import TestCase
-from crossbar._logging import make_logger, CrossbarLogger, LogLevel
+from crossbar._logging import make_logger,  LogLevel
 from crossbar import _logging
-
+from txaio.tx import Logger
 
 _log = make_logger("info", logger=Mock)
 
@@ -65,7 +65,7 @@ class _ClassDefLoggerMaker(object):
 class LoggerModuleTests(TestCase):
 
     def setUp(self):
-        self.existing_level = _logging._loglevel
+        self.existing_level = _logging.get_global_log_level()
         return super(LoggerModuleTests, self).setUp()
 
     def tearDown(self):
@@ -76,7 +76,7 @@ class LoggerModuleTests(TestCase):
         Setting the global log level via the function changes it.
         """
         _logging.set_global_log_level("warn")
-        self.assertEqual(_logging._loglevel, "warn")
+        self.assertEqual(_logging.get_global_log_level(), "warn")
 
     def test_set_global_changes_loggers(self):
         """
@@ -103,11 +103,11 @@ class CrossbarLoggerTests(TestCase):
 
     def test_disallow_direct_instantiation(self):
         """
-        The developer shouldn't call CrossbarLogger directly, but use
+        The developer shouldn't call Logger directly, but use
         make_logger.
         """
         with self.assertRaises(AssertionError):
-            CrossbarLogger("warn")
+            Logger("warn")
 
     def test_set_level(self):
         """
@@ -123,14 +123,14 @@ class CrossbarLoggerTests(TestCase):
         log = make_logger("trace", logger=Mock)
 
         log.error("Foo happened!!!")
-        log.logger.error.assert_called_with("Foo happened!!!")
+        log._logger.emit.assert_called_with(LogLevel.error, "Foo happened!!!")
 
         log.warn("Stuff", foo="bar")
-        log.logger.warn.assert_called_with("Stuff", foo="bar")
+        log._logger.emit.assert_called_with(LogLevel.warn, "Stuff", foo="bar")
 
         log.trace("Stuff that's trace", foo="bar")
-        log.logger.debug.assert_called_with("Stuff that's trace",
-                                            foo="bar", cb_trace=1)
+        log._logger.emit.assert_called_with(LogLevel.debug, "Stuff that's trace",
+                                            foo="bar", txaio_trace=1)
 
     def test_logger_emits_if_higher(self):
         """
@@ -143,15 +143,18 @@ class CrossbarLoggerTests(TestCase):
         log.debug("Debug!")
         log.info("Info!")
         log.trace("Trace!")
-        log.emit(LogLevel.info, "Infoooo!")
 
-        self.assertEqual(log.logger.failure.call_count, 0)
-        self.assertEqual(log.logger.critical.call_count, 0)
-        self.assertEqual(log.logger.error.call_count, 1)
-        self.assertEqual(log.logger.warn.call_count, 0)
-        self.assertEqual(log.logger.info.call_count, 2)
-        self.assertEqual(log.logger.debug.call_count, 0)
-        self.assertEqual(log.logger.trace.call_count, 0)
+        calls = {}
+
+        for x in log._logger.emit.call_args_list:
+            calls[x[0][0]] = calls.get(x[0][0], 0) + 1
+
+        self.assertEqual(calls.get(LogLevel.critical, 0), 0)
+        self.assertEqual(calls.get(LogLevel.error, 0), 1)
+        self.assertEqual(calls.get(LogLevel.warn, 0), 0)
+        self.assertEqual(calls.get(LogLevel.info, 0), 1)
+        self.assertEqual(calls.get(LogLevel.debug, 0), 0)
+
 
     def test_logger_namespace_init(self):
         """
@@ -159,7 +162,7 @@ class CrossbarLoggerTests(TestCase):
         """
         lm = _InitLoggerMaker()
 
-        self.assertEqual(lm.log.logger.namespace,
+        self.assertEqual(lm.log._logger.namespace,
                          "crossbar.test.test_logger._InitLoggerMaker")
 
     def test_logger_namespace_classdef(self):
@@ -169,7 +172,7 @@ class CrossbarLoggerTests(TestCase):
         """
         lm = _ClassDefLoggerMaker()
 
-        self.assertEqual(lm.log.logger.namespace,
+        self.assertEqual(lm.log._logger.namespace,
                          "crossbar.test.test_logger._ClassDefLoggerMaker")
 
     def test_logger_namespace_moduledef(self):
@@ -177,7 +180,7 @@ class CrossbarLoggerTests(TestCase):
         The namespace of the Logger is the creator module when it is made in a
         module.
         """
-        self.assertEqual(_log.logger.namespace,
+        self.assertEqual(_log._logger.namespace,
                          "crossbar.test.test_logger")
 
     def test_logger_namespace_function(self):
@@ -186,7 +189,7 @@ class CrossbarLoggerTests(TestCase):
         a function outside of a class.
         """
         log = _makelog()
-        self.assertEqual(log.logger.namespace,
+        self.assertEqual(log._logger.namespace,
                          "crossbar.test.test_logger._makelog")
 
     def test_logger_failure(self):
@@ -200,7 +203,7 @@ class CrossbarLoggerTests(TestCase):
         except:
             log.failure("Failure happened!")
 
-        self.assertEqual(log.logger.failure.call_count, 1)
+        self.assertEqual(log._logger.failure.call_count, 1)
 
     def test_logger_failure_not_called(self):
         """
@@ -213,7 +216,7 @@ class CrossbarLoggerTests(TestCase):
         except:
             log.failure("Failure happened!")
 
-        self.assertEqual(log.logger.failure.call_count, 0)
+        self.assertEqual(log._logger.failure.call_count, 0)
 
 
 class JSONObserverTests(TestCase):
