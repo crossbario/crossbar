@@ -186,23 +186,28 @@ class NodeControllerSession(NativeProcessSession):
 
     @inlineCallbacks
     def activate_realm(self, realm, details=None):
-        self.log.info("Node controller is asked to activate realm {realm}", realm=realm)
+        self.log.info("Processing activation request for realm '{realm}'", realm=realm)
+
+        # find first matching template (if any)
+        match = None
         for worker_id, templates in self._node._realm_templates.items():
             for tmpl in templates:
                 pat_str = tmpl[u'name']
                 pat = re.compile(pat_str)
                 match = pat.match(realm)
                 if match:
-                    self.log.info("Match: realm {realm} from template {pattern}", realm=realm, pattern=pat_str)
-                    tmpl[u'name'] = realm
-                    try:
-                        yield self._node._run_realm_config(worker_id, "Router '{}'".format(worker_id), tmpl)
-                    except Exception as e:
-                        self.log.error(e)
-                    finally:
-                        tmpl[u'name'] = pat_str
-                else:
-                    self.log.info("no match of realm {} to pattern {}".format(realm, pat_str))
+                    break
+        if match:
+            self.log.info("Realm '{realm}' matched from template '{pattern}'", realm=realm, pattern=pat_str)
+            tmpl[u'name'] = realm
+            try:
+                yield self._node._run_realm_config(worker_id, "Router '{}'".format(worker_id), tmpl)
+            except Exception as e:
+                self.log.error(e)
+            finally:
+                tmpl[u'name'] = pat_str
+        else:
+            self.log.info("No matching template for realm '{realm}'", realm=realm)
 
     def get_info(self, details=None):
         """

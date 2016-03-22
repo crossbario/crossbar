@@ -150,13 +150,20 @@ class PendingAuth:
 
         # realm auto-activation: if realm is not started on router, maybe start it ..
         if self._realm not in self._router_factory:
+            self.log.info("Auto starting realm '{realm}' ..", realm=self._realm)
+
             # this actually might start the realm asyncronously .. wait until the creation is finished
             # or fails finally
             yield self._router_factory.auto_start_realm(self._realm)
 
-        # if realm is not started on router, bail out now!
-        if self._realm not in self._router_factory:
-            returnValue(types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm "{}" exists on this router'.format(self._realm)))
+            # if realm is not started on router, bail out now!
+            if self._realm not in self._router_factory:
+                self.log.debug("Realm '{realm}' could not be auto started, and thus simply does not exist", realm=self._realm)
+                returnValue(types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm "{}" exists on this router'.format(self._realm)))
+            else:
+                self.log.info("Realm '{realm}' auto started succeesfully", realm=self._realm)
+        else:
+            self.log.debug("Realm '{realm}' already started", realm=self._realm)
 
         # role auto-activation: if role is not running on realm, maybe start it ..
         if not self._router_factory[self._realm].has_role(self._authrole):

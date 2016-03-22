@@ -426,11 +426,13 @@ class RouterFactory(object):
 
     @inlineCallbacks
     def auto_start_realm(self, realm):
-        self.log.info("Auto-starting realm {realm} ..", realm=realm)
-        prefix = '.'.join(self._node._uri_prefix.split('.')[:-2])
-        proc = u'{}.activate_realm'.format(prefix)
-
-        self.log.info("Calling into node controller procedure {proc}", proc=proc)
+        """
+        This is called from a finished, pending authentication when
+        the realm assigned by the authenticator is currently not running.
+        """
+        uri_prefix = '.'.join(self._node._uri_prefix.split('.')[:-2])
+        proc = u'{}.activate_realm'.format(uri_prefix)
+        self.log.debug("Calling into node controller procedure '{proc}' with realm='{realm}'", proc=proc, realm=realm)
         yield self._node.call(proc, realm)
 
     def auto_add_role(self, realm, role):
