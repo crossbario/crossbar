@@ -2209,7 +2209,7 @@ def check_container(container):
     :type router: dict
     """
     for k in container:
-        if k not in ['id', 'type', 'options', 'manhole', 'components', 'connections']:
+        if k not in ['id', 'type', 'options', 'manhole', 'components', 'connections', 'template-realm']:
             raise InvalidConfigException("encountered unknown attribute '{}' in container configuration".format(k))
 
     # check stuff common to all native workers
@@ -2219,6 +2219,12 @@ def check_container(container):
 
     if 'options' in container:
         check_native_worker_options(container['options'])
+
+    # template-realm
+    #
+    if 'template-realm' in container:
+        # FIXME
+        pass
 
     # connections
     #
