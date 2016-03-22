@@ -31,9 +31,13 @@
 from __future__ import absolute_import
 
 import os
+import re
+import copy
 import traceback
 import socket
 import getpass
+
+import six
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
@@ -150,6 +154,16 @@ def maybe_generate_key(log, cbdir, privkey_path=u'node.key'):
     return pubkey
 
 
+class WorkerTemplate(object):
+
+    def __init__(self, config):
+        self.config = config
+        self.realm_pattern = None
+        pat = config.get('template-realm', None)
+        if pat:
+            self.realm_pattern = re.compile(pat)
+
+
 class Node(object):
     """
     A Crossbar.io node is the running a controller process and one or multiple
@@ -199,6 +213,8 @@ class Node(object):
 
         # map fro router worker IDs to
         self._realm_templates = {}
+
+        self._worker_templates = []
 
         # fake call details we use to call into the local node management API
         self._call_details = CallDetails(caller=0)
@@ -573,6 +589,40 @@ class Node(object):
             self.log.info("{worker}: uplink '{uplink_id}' started on realm '{realm_id}'",
                           worker=worker_logname, uplink_id=uplink_id, realm_id=realm_id)
 
+        for worker_template in self._worker_templates:
+            # WorkerTemplate
+            if worker_template.realm_pattern:
+                match = worker_template.realm_pattern.match(realm['name'])
+                if match:
+                    info = match.groupdict()
+                    self.log.info("Starting worker ({info}) ..", info=info)
+
+                    config = copy.deepcopy(worker_template.config)
+                    config.pop('template', None)
+                    config.pop('template-realm', None)
+
+                    from collections import OrderedDict
+
+                    def clean(obj, attr):
+                        if type(obj) in [dict, OrderedDict]:
+                            s = {}
+                            for k in obj:
+                                s[clean(k, attr)] = clean(obj[k], attr)
+                            return s
+                        elif type(obj) == list:
+                            s = []
+                            for e in obj:
+                                s.append(clean(e, attr))
+                            return s
+                        elif type(obj) == six.text_type:
+                            return obj.format(**attr)
+                        else:
+                            return obj
+
+                    config = clean(config, info)
+
+                    yield self._run_worker_config(config)
+
     @inlineCallbacks
     def _run_worker_config(self, worker):
         # worker ID
@@ -760,4 +810,7 @@ class Node(object):
 
         # startup all workers ..
         for worker in config.get('workers', []):
-            yield self._run_worker_config(worker)
+            if worker.get('template', False):
+                self._worker_templates.append(WorkerTemplate(worker))
+            else:
+                yield self._run_worker_config(worker)
