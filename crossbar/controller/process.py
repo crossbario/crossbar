@@ -59,7 +59,8 @@ from crossbar.controller.processtypes import RouterWorkerProcess, \
     WebSocketTesteeWorkerProcess
 from crossbar.common.process import NativeProcessSession
 from crossbar.platform import HAS_FSNOTIFY, DirWatcher
-from crossbar._logging import make_logger, _loglevel
+
+from txaio import make_logger, get_global_log_level
 
 
 __all__ = ('NodeControllerSession', 'create_process_env')
@@ -411,7 +412,7 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--worker", str(id)])
         args.extend(["--realm", self._realm])
         args.extend(["--type", wtype])
-        args.extend(["--loglevel", _loglevel])
+        args.extend(["--loglevel", get_global_log_level()])
 
         # allow override worker process title from options
         #

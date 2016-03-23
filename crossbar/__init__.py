@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-__doc__ = """
+"""
 Crossbar.io - Unified application router.
 
 Crossbar.io is an open-source server software that allows developers to create
@@ -53,4 +53,11 @@ Open-source licensed under the GNU Affero General Public License version 3.
 Created by Tavendo GmbH. Get in contact at http://tavendo.com
 """
 
+from __future__ import absolute_import, division
+
+import txaio
+txaio.use_twisted()
+
 __version__ = "0.13.0"
+
+__all__ = ["__version__"]

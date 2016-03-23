@@ -42,7 +42,7 @@ from txpostgres import txpostgres
 
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 
 class PostgreSQLAdapter(ApplicationSession):

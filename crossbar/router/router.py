@@ -31,8 +31,9 @@
 from __future__ import absolute_import, division, print_function
 
 import six
-
 import txaio
+
+from txaio import make_logger
 
 from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
@@ -44,8 +45,6 @@ from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
-
-from crossbar._logging import make_logger
 
 __all__ = (
     'RouterFactory',

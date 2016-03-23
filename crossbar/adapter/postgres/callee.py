@@ -32,7 +32,7 @@ from __future__ import absolute_import
 
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = ('PostgreSQLCallee',)
 

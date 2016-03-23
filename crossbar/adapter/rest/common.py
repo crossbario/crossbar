@@ -34,7 +34,8 @@ import hmac
 import hashlib
 import base64
 
-from crossbar._logging import make_logger
+from txaio import make_logger
+
 from crossbar._compat import native_string
 
 from netaddr.ip import IPAddress, IPNetwork

@@ -37,7 +37,7 @@ from twisted.web.resource import Resource
 
 from autobahn.wamp.types import PublishOptions
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 
 class FileUploadResource(Resource):

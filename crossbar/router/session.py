@@ -35,6 +35,8 @@ import six
 
 import txaio
 
+from txaio import make_logger
+
 from autobahn import util
 from autobahn.websocket.compress import *  # noqa
 
@@ -47,7 +49,6 @@ from autobahn.wamp.exception import ProtocolError, SessionNotReady
 from autobahn.wamp.types import SessionDetails
 from autobahn.wamp.interfaces import ITransportHandler
 
-from crossbar._logging import make_logger
 from crossbar.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP

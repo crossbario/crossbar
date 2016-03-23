@@ -43,7 +43,8 @@ from twisted.python.runtime import platform
 
 from crossbar.test import TestCase
 from crossbar.twisted.endpoint import create_listening_endpoint_from_config
-from crossbar._logging import make_logger
+
+from txaio import make_logger
 
 
 class ListeningEndpointTests(TestCase):

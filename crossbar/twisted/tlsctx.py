@@ -33,7 +33,7 @@ import tempfile
 from OpenSSL import crypto, SSL
 from twisted.internet.ssl import DefaultOpenSSLContextFactory, ClientContextFactory
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 # Monkey patch missing constants
 #

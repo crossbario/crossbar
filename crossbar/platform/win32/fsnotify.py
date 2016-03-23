@@ -39,7 +39,7 @@ import win32event
 
 import ntsecuritycon
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 
 class DirWatcher:
