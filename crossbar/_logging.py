@@ -34,29 +34,18 @@ import os
 import sys
 import re
 import six
-import inspect
 import json
-import warnings
 
 from json import JSONEncoder
 
-from functools import partial
-
 from zope.interface import provider
 
-from twisted.logger import ILogObserver, formatEvent, Logger, globalLogPublisher
-from twisted.logger import LogLevel, globalLogBeginner, formatTime
-
-from twisted.python.constants import NamedConstant
-from twisted.python.reflect import qual
+from twisted.logger import ILogObserver, formatEvent, globalLogPublisher
+from twisted.logger import LogLevel, formatTime
 
 from pygments import highlight, lexers, formatters
 
-from weakref import WeakKeyDictionary
-
-from ._log_categories import log_keys
-
-from txaio import get_global_log_level, set_global_log_level, make_logger, start_logging
+from txaio import get_global_log_level, set_global_log_level
 from txaio.tx import log_levels
 
 record_separator = u"\x1e"

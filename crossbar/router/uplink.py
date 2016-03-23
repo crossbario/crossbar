@@ -36,7 +36,7 @@ from autobahn.wamp import auth
 from autobahn.wamp.types import SubscribeOptions, PublishOptions
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = ('LocalSession',)
 

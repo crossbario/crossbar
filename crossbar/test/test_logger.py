@@ -41,9 +41,12 @@ from mock import Mock
 from twisted.logger import formatTime
 
 from crossbar.test import TestCase
-from crossbar._logging import make_logger,  LogLevel
-from crossbar import _logging
-from txaio.tx import Logger
+from crossbar._logging import (LogCapturer, make_stdout_observer,
+                               make_stderr_observer, make_JSON_observer,
+                               record_separator)
+
+from txaio import make_logger, get_global_log_level, set_global_log_level
+from txaio.tx import Logger, LogLevel
 
 _log = make_logger("info", logger=Mock)
 
@@ -65,18 +68,18 @@ class _ClassDefLoggerMaker(object):
 class LoggerModuleTests(TestCase):
 
     def setUp(self):
-        self.existing_level = _logging.get_global_log_level()
+        self.existing_level = get_global_log_level()
         return super(LoggerModuleTests, self).setUp()
 
     def tearDown(self):
-        _logging.set_global_log_level(self.existing_level)
+        set_global_log_level(self.existing_level)
 
     def test_set_global(self):
         """
         Setting the global log level via the function changes it.
         """
-        _logging.set_global_log_level("warn")
-        self.assertEqual(_logging.get_global_log_level(), "warn")
+        set_global_log_level("warn")
+        self.assertEqual(get_global_log_level(), "warn")
 
     def test_set_global_changes_loggers(self):
         """
@@ -85,7 +88,7 @@ class LoggerModuleTests(TestCase):
         """
         log = make_logger()
         self.assertEqual(log._log_level, "info")
-        _logging.set_global_log_level("warn")
+        set_global_log_level("warn")
         self.assertEqual(log._log_level, "warn")
 
     def test_set_global_does_not_change_explicit_loggers(self):
@@ -95,7 +98,7 @@ class LoggerModuleTests(TestCase):
         """
         log = make_logger("info")
         self.assertEqual(log._log_level, "info")
-        _logging.set_global_log_level("warn")
+        set_global_log_level("warn")
         self.assertEqual(log._log_level, "info")
 
 
@@ -226,7 +229,7 @@ class JSONObserverTests(TestCase):
         The JSON observer outputs a stream of log events.
         """
         stream = StringIO()
-        observer = _logging.make_JSON_observer(stream)
+        observer = make_JSON_observer(stream)
         log = make_logger(observer=observer)
 
         log.info("Hello")
@@ -234,7 +237,7 @@ class JSONObserverTests(TestCase):
         result = stream.getvalue()
         log_entry = json.loads(result[:-1])
 
-        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(result[-1], record_separator)
         self.assertEqual(len(log_entry.keys()), 4)
         self.assertEqual(log_entry["level"], u"info")
         self.assertEqual(log_entry["text"], u"Hello")
@@ -244,7 +247,7 @@ class JSONObserverTests(TestCase):
         Failures include the stacktrace.
         """
         stream = StringIO()
-        observer = _logging.make_JSON_observer(stream)
+        observer = make_JSON_observer(stream)
         log = make_logger(observer=observer)
 
         try:
@@ -255,7 +258,7 @@ class JSONObserverTests(TestCase):
         result = stream.getvalue()
         log_entry = json.loads(result[:-1])
 
-        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(result[-1], record_separator)
         self.assertEqual(len(log_entry.keys()), 4)
         self.assertIn(u"ZeroDivisionError", log_entry["text"])
         self.assertIn(u"Oh no", log_entry["text"])
@@ -266,7 +269,7 @@ class JSONObserverTests(TestCase):
         Non-JSON-serialisable parameters are repr()'d.
         """
         stream = StringIO()
-        observer = _logging.make_JSON_observer(stream)
+        observer = make_JSON_observer(stream)
         log = make_logger(observer=observer)
 
         try:
@@ -277,7 +280,7 @@ class JSONObserverTests(TestCase):
         result = stream.getvalue()
         log_entry = json.loads(result[:-1])
 
-        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(result[-1], record_separator)
         self.assertEqual(len(log_entry.keys()), 5)
         self.assertIn(u"ZeroDivisionError", log_entry["text"])
         self.assertIn(u"Oh no", log_entry["text"])
@@ -290,7 +293,7 @@ class JSONObserverTests(TestCase):
         in the result are escaped.
         """
         stream = StringIO()
-        observer = _logging.make_JSON_observer(stream)
+        observer = make_JSON_observer(stream)
         log = make_logger(observer=observer)
 
         class BracketThing(object):
@@ -302,7 +305,7 @@ class JSONObserverTests(TestCase):
         result = stream.getvalue()
         log_entry = json.loads(result[:-1])
 
-        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(result[-1], record_separator)
         self.assertEqual(len(log_entry.keys()), 5)
         self.assertEqual(u"hi <BracketThing kwargs={{}}>", log_entry["text"])
         self.assertEqual(log_entry["level"], u"info")
@@ -313,7 +316,7 @@ class JSONObserverTests(TestCase):
         then the message is lost.
         """
         stream = StringIO()
-        observer = _logging.make_JSON_observer(stream)
+        observer = make_JSON_observer(stream)
         log = make_logger(observer=observer)
 
         class BadThing(object):
@@ -325,7 +328,7 @@ class JSONObserverTests(TestCase):
         result = stream.getvalue()
         log_entry = json.loads(result[:-1])
 
-        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(result[-1], record_separator)
         self.assertEqual(len(log_entry.keys()), 3)
         self.assertIn(u"MESSAGE LOST", log_entry["text"])
         self.assertEqual(log_entry["level"], u"error")
@@ -335,7 +338,7 @@ class JSONObserverTests(TestCase):
         Unicode is JSON serialised correctly.
         """
         stream = StringIO()
-        observer = _logging.make_JSON_observer(stream)
+        observer = make_JSON_observer(stream)
         log = make_logger(observer=observer)
 
         try:
@@ -349,7 +352,7 @@ class JSONObserverTests(TestCase):
         result = stream.getvalue()
         log_entry = json.loads(result[:-1])
 
-        self.assertEqual(result[-1], _logging.record_separator)
+        self.assertEqual(result[-1], record_separator)
         self.assertEqual(len(log_entry.keys()), 4)
         self.assertIn(u"\u2603", log_entry["text"])
         self.assertEqual(log_entry["level"], u"critical")
@@ -360,7 +363,7 @@ class StdoutObserverTests(TestCase):
     def test_basic(self):
 
         stream = NativeStringIO()
-        observer = _logging.make_stdout_observer(_file=stream)
+        observer = make_stdout_observer(_file=stream)
         log = make_logger(observer=observer)
 
         log.info("Hi!", log_system="foo")
@@ -374,7 +377,7 @@ class StdoutObserverTests(TestCase):
         message.
         """
         stream = NativeStringIO()
-        observer = _logging.make_stdout_observer(_file=stream,
+        observer = make_stdout_observer(_file=stream,
                                                  format="standard")
         event = {'log_level': LogLevel.info,
                  'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
@@ -393,7 +396,7 @@ class StdoutObserverTests(TestCase):
         message.
         """
         stream = NativeStringIO()
-        observer = _logging.make_stdout_observer(_file=stream,
+        observer = make_stdout_observer(_file=stream,
                                                  format="syslogd")
         event = {'log_level': LogLevel.info,
                  'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
@@ -413,9 +416,9 @@ class LogCapturerTests(TestCase):
         The log capturer is a context manager that captures the logs emitted
         inside it.
         """
-        log = _logging.make_logger("info")
+        log = make_logger("info")
 
-        with _logging.LogCapturer() as l:
+        with LogCapturer() as l:
             log.info("Whee!", log_category="CB500", foo="bar")
 
         self.assertEqual(len(l.get_category("CB500")), 1)

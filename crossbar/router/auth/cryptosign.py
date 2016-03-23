@@ -42,7 +42,8 @@ from nacl.exceptions import BadSignatureError
 from autobahn import util
 from autobahn.wamp import types
 
-from crossbar._logging import make_logger
+from txaio import make_logger
+
 from crossbar.router.auth.pending import PendingAuth
 
 __all__ = ('PendingAuthCryptosign',)

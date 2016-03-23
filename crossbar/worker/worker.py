@@ -43,7 +43,8 @@ from autobahn.util import utcnow
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
-from crossbar._logging import make_logger
+from txaio import make_logger
+
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcessSession
 from crossbar.common.profiler import PROFILERS

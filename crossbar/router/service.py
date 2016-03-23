@@ -39,7 +39,8 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.observation import is_protected_uri
-from crossbar._logging import make_logger
+
+from txaio import make_logger
 
 __all__ = ('RouterServiceSession',)
 

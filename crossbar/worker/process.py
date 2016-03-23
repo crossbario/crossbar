@@ -110,7 +110,7 @@ def run():
     # make sure logging to something else than stdio is setup _first_
     #
     from crossbar._logging import make_JSON_observer, cb_logging_aware
-    from crossbar._logging import make_logger, start_logging
+    from txaio import make_logger, start_logging
     from twisted.logger import globalLogPublisher
 
     log = make_logger()

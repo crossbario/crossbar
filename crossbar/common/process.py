@@ -43,7 +43,6 @@ try:
     # So we catch import errors and note those.
     #
     # twisted.conch.manhole_ssh will import even without, but we _need_ SSH
-    import Crypto  # noqa
     import pyasn1  # noqa
     from twisted.cred import checkers, portal
     from twisted.conch.manhole import ColoredManhole
@@ -63,7 +62,8 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
-from crossbar._logging import make_logger
+from txaio import make_logger
+
 from crossbar.common import checkconfig
 from crossbar.common.checkconfig import get_config_value
 from crossbar.twisted.endpoint import create_listening_port_from_config

@@ -42,7 +42,7 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import SubscribeOptions
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 
 class MessageForwarder(ApplicationSession):

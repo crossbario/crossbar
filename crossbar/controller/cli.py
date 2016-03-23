@@ -38,18 +38,15 @@ import pkg_resources
 import platform
 import signal
 import sys
-
 import six
 
-import txaio
-txaio.use_twisted()  # noqa
+import crossbar
+
+from txaio import make_logger
 
 from twisted.python.reflect import qual
 
 from autobahn.twisted.choosereactor import install_reactor
-
-import crossbar
-from crossbar._logging import make_logger
 
 
 try:
@@ -424,7 +421,8 @@ def _startlog(options, reactor):
     """
     Start the logging in a way that all the subcommands can use it.
     """
-    from crossbar._logging import start_logging, globalLogPublisher, set_global_log_level
+    from twisted.logger import globalLogPublisher
+    from txaio import start_logging, set_global_log_level
 
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")

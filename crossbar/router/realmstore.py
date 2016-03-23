@@ -36,7 +36,8 @@ import platform
 from collections import deque
 
 from autobahn.util import utcnow
-from crossbar._logging import make_logger
+
+from txaio import make_logger
 
 try:
     if platform.python_implementation() == 'PyPy':

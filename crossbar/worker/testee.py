@@ -38,8 +38,9 @@ from autobahn.twisted.websocket import WebSocketServerFactory, \
 from autobahn.wamp.types import RegisterOptions
 from autobahn.wamp.exception import ApplicationError
 
+from txaio import make_logger
+
 import crossbar
-from crossbar._logging import make_logger
 from crossbar.router.protocol import set_websocket_options
 from crossbar.worker.worker import NativeWorkerSession
 from crossbar.common import checkconfig

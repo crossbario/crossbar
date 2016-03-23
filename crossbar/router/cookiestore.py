@@ -36,7 +36,7 @@ from six.moves import http_cookies
 
 from autobahn import util
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = (
     'CookieStoreMemoryBacked',
