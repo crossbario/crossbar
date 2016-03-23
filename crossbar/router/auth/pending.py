@@ -192,7 +192,10 @@ class PendingAuth:
                 return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
             authenticator_realm = self._realm
 
-        self._authenticator_session = self._router_factory.get(authenticator_realm)._realm.session
+        if authenticator_realm not in self._router_factory:
+            return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"realm <{}> to run dynamic authenticator on does not exist".format(authenticator_realm))
+
+        self._authenticator_session = self._router_factory[authenticator_realm]._realm.session
 
     def _marshal_dynamic_authenticator_error(self, err):
         error = ApplicationError.AUTHENTICATION_FAILED
