@@ -57,7 +57,7 @@ from crossbar.controller.process import NodeControllerSession
 from crossbar.controller.management import NodeManagementBridgeSession
 from crossbar.controller.management import NodeManagementSession
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 try:
     import nacl  # noqa

@@ -110,11 +110,8 @@ def run():
     # make sure logging to something else than stdio is setup _first_
     #
     from crossbar._logging import make_JSON_observer, cb_logging_aware
-    from crossbar._logging import make_logger, start_logging, set_global_log_level
+    from txaio import make_logger, start_logging
     from twisted.logger import globalLogPublisher
-
-    # Set the global log level
-    set_global_log_level(options.loglevel)
 
     log = make_logger()
 
@@ -125,7 +122,7 @@ def run():
 
     flo = make_JSON_observer(sys.__stderr__)
     globalLogPublisher.addObserver(flo)
-    start_logging()
+    start_logging(None, options.loglevel)
 
     # we use an Autobahn utility to import the "best" available Twisted reactor
     #

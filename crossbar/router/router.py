@@ -31,8 +31,9 @@
 from __future__ import absolute_import, division, print_function
 
 import six
-
 import txaio
+
+from txaio import make_logger
 
 from twisted.internet.defer import inlineCallbacks
 
@@ -46,8 +47,6 @@ from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
-
-from crossbar._logging import make_logger
 
 __all__ = (
     'RouterFactory',

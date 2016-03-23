@@ -35,9 +35,8 @@ from autobahn.twisted.websocket import WampWebSocketClientFactory, \
 
 from twisted.internet.error import ProcessDone, ProcessTerminated
 from twisted.internet.error import ConnectionDone
-# from twisted.internet.error import ConnectionClosed, ConnectionLost, ConnectionAborted
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 
 __all__ = ('create_native_worker_client_factory',)

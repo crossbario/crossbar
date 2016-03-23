@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, division
 
+import txaio
+
 from autobahn import util
 from autobahn.wamp import role
 from autobahn.wamp import message
@@ -42,9 +44,8 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions
-from crossbar._logging import make_logger
 
-import txaio
+from txaio import make_logger
 
 __all__ = ('Broker',)
 

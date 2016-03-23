@@ -33,13 +33,13 @@ from __future__ import absolute_import
 import os
 import sys
 
+from txaio import make_logger
+
 try:
     reload
 except NameError:
     # Python 3
     from imp import reload
-
-from crossbar._logging import make_logger
 
 __all__ = ('TrackingModuleReloader',)
 
