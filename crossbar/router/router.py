@@ -324,6 +324,8 @@ class RouterFactory(object):
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False
+        # realm id -> Deferred (if we're actively starting it)
+        self._auto_starting = dict()
 
     def get(self, realm):
         """
@@ -424,16 +426,49 @@ class RouterFactory(object):
         self.log.debug("CrossbarRouterFactory.drop_role(realm = {realm}, role = {role})",
                        realm=realm, role=role)
 
-    @inlineCallbacks
     def auto_start_realm(self, realm):
         """
         This is called from a finished, pending authentication when
         the realm assigned by the authenticator is currently not running.
         """
-        uri_prefix = '.'.join(self._node._uri_prefix.split('.')[:-2])
-        proc = u'{}.activate_realm'.format(uri_prefix)
-        self.log.debug("Calling into node controller procedure '{proc}' with realm='{realm}'", proc=proc, realm=realm)
-        yield self._node.call(proc, realm)
+        try:
+            d = self._auto_starting[realm]
+            self.log.debug("Already auto-activating '{realm}'; waiting.", realm=realm)
+        except KeyError:
+            uri_prefix = '.'.join(self._node._uri_prefix.split('.')[:-2])
+            proc = u'{}.activate_realm'.format(uri_prefix)
+            self.log.info("Calling into node controller procedure '{proc}' with realm='{realm}'", proc=proc, realm=realm)
+            d = self._auto_starting[realm] = self._node.call(proc, realm)
+            def done(arg):
+                self.log.debug("Auto-activated realm '{realm}'", realm=realm)
+                del self._auto_starting[realm]
+                return arg
+            d.addBoth(done)
+        return d
 
+    @inlineCallbacks
     def auto_add_role(self, realm, role):
-        raise Exception("role auto-activation not yet implemented")
+        """
+        If there is not already a role with this name in the realm, we
+        add a default allow-everything role with the given name.
+
+        :returns: Deferred that fires (with None) when the role exists
+        """
+        self.log.debug("auto_add_role {realm} {role}", realm=realm, role=role)
+        if realm in self._auto_starting:
+            yield self._auto_starting[realm]
+
+        if self._routers[realm].has_role(role):
+            self.log.info("auto_add_role: already have '{role}'", role=role)
+        else:
+            raise RuntimeError(
+                "Can't actually auto-activate a role yet"
+            )
+            role_id = role  # XXX need to ensure this is unique?
+            # XXX get the role config from the template?
+            yield self._node.start_router_realm_role(
+                realm,
+                role_id,
+                self._get_auto_role_config(role),
+            )
+
