@@ -41,8 +41,7 @@ from mock import Mock
 from twisted.logger import formatTime
 
 from crossbar.test import TestCase
-from crossbar._logging import (LogCapturer, make_stdout_observer,
-                               make_stderr_observer, make_JSON_observer,
+from crossbar._logging import (LogCapturer, make_stdout_observer, make_JSON_observer,
                                record_separator)
 
 from txaio import make_logger, get_global_log_level, set_global_log_level
@@ -157,7 +156,6 @@ class CrossbarLoggerTests(TestCase):
         self.assertEqual(calls.get(LogLevel.warn, 0), 0)
         self.assertEqual(calls.get(LogLevel.info, 0), 1)
         self.assertEqual(calls.get(LogLevel.debug, 0), 0)
-
 
     def test_logger_namespace_init(self):
         """
@@ -377,8 +375,7 @@ class StdoutObserverTests(TestCase):
         message.
         """
         stream = NativeStringIO()
-        observer = make_stdout_observer(_file=stream,
-                                                 format="standard")
+        observer = make_stdout_observer(_file=stream, format="standard")
         event = {'log_level': LogLevel.info,
                  'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
                  'log_source': None, 'log_format': 'Hi there!',
@@ -396,8 +393,7 @@ class StdoutObserverTests(TestCase):
         message.
         """
         stream = NativeStringIO()
-        observer = make_stdout_observer(_file=stream,
-                                                 format="syslogd")
+        observer = make_stdout_observer(_file=stream, format="syslogd")
         event = {'log_level': LogLevel.info,
                  'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
                  'log_source': None, 'log_format': 'Hi there!',
