@@ -67,7 +67,11 @@ class PendingAuth:
             u'transport': session._transport._transport_info,
             u'session': session._pending_session_id,
             u'authmethod': None,
-            u'authextra': None
+            u'authextra': None,
+
+            # The URI prefix under which the locally running router worker registers,
+            # eg "crossbar.node.corei7ub1310.worker.worker-001"
+            u'worker': session._router_factory._node._uri_prefix
         }
 
         # The router factory we are working for

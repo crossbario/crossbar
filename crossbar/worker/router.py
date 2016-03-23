@@ -213,6 +213,20 @@ class RouterRealm(object):
         self.roles = {}
         self.uplinks = {}
 
+    def marshal(self):
+        """
+        Marshal object information for use with WAMP calls/events.
+        """
+        now = datetime.utcnow()
+        return {
+            u'id': self.id,
+            # 'started' is used by container-components; keeping it
+            # for consistency in the public API
+            u'started': utcstr(self.created),
+            u'uptime': (now - self.created).total_seconds(),
+            u'config': self.config
+        }
+
 
 class RouterRealmRole(object):
 
@@ -288,6 +302,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # the procedures registered
         procs = [
+            'is_router_realm_running',
             'get_router_realms',
             'start_router_realm',
             'stop_router_realm',
@@ -322,7 +337,10 @@ class RouterWorkerSession(NativeWorkerSession):
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
 
-    def get_router_realms(self, details=None):
+    def is_router_realm_running(self, id, details=None):
+        return id in self.realms
+
+    def get_router_realms(self, id=None, details=None):
         """
         Get realms currently running on this router worker.
 
@@ -331,7 +349,13 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         self.log.debug("{}.get_router_realms".format(self.__class__.__name__))
 
-        raise Exception("not implemented")
+        if id is not None:
+            if id not in self.realms:
+                raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+            else:
+                return self.realms[id].marshal()
+        else:
+            return [realm.marshal() for realm in self.realms.values()]
 
     @inlineCallbacks
     def start_router_realm(self, id, config, enable_trace=False, details=None):
@@ -639,7 +663,7 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         realm = config['realm']
         extra = config.get('extra', None)
-        component_config = ComponentConfig(realm=realm, extra=extra)
+        component_config = ComponentConfig(realm=realm, extra=extra, controller=self)
         create_component = _appsession_loader(config)
 
         # .. and create and add an WAMP application session to

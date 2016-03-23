@@ -186,7 +186,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         #
         realm = config['realm']
         extra = config.get('extra', None)
-        component_config = ComponentConfig(realm=realm, extra=extra)
+        component_config = ComponentConfig(realm=realm, extra=extra, controller=self)
 
         try:
             create_component = _appsession_loader(config)

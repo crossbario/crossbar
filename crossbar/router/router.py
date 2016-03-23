@@ -433,7 +433,10 @@ class RouterFactory(object):
         uri_prefix = '.'.join(self._node._uri_prefix.split('.')[:-2])
         proc = u'{}.activate_realm'.format(uri_prefix)
         self.log.debug("Calling into node controller procedure '{proc}' with realm='{realm}'", proc=proc, realm=realm)
+
+        self.log.info("Auto-starting realm {realm} ...", realm=realm)
         yield self._node.call(proc, realm)
+        self.log.info("Auto-started realm {realm}.", realm=realm)
 
     def auto_add_role(self, realm, role):
         raise Exception("role auto-activation not yet implemented")
