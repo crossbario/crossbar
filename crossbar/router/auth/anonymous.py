@@ -75,7 +75,8 @@ class PendingAuthAnonymous(PendingAuth):
             if error:
                 returnValue(error)
 
-            returnValue(self._accept())
+            x = yield self._accept()
+            returnValue(x)
 
         # WAMP-Ticket "dynamic"
         elif self._config[u'type'] == u'dynamic':
@@ -101,8 +102,8 @@ class PendingAuthAnonymous(PendingAuth):
                 return self._marshal_dynamic_authenticator_error(err)
 
             d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-
-            returnValue(d)
+            x = yield d
+            returnValue(x)
 
         else:
             # should not arrive here, as config errors should be caught earlier
