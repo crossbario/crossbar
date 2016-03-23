@@ -153,7 +153,7 @@ else:
         'pyinotify>=' + pyinotify_version
     ]
 
-    extras_require['sys_platform != "win32" and platform_python_implementation == "CPython"'] = [
+    extras_require[':sys_platform != "win32" and platform_python_implementation == "CPython"'] = [
         'wsaccel>=' + wsaccel_version, 'ujson>=' + ujson_version
     ]
 
