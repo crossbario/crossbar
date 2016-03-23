@@ -35,8 +35,9 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from autobahn import util
 from autobahn.wamp import types
 
+from txaio import make_logger
+
 from crossbar.router.auth.pending import PendingAuth
-from crossbar._logging import make_logger
 
 __all__ = ('PendingAuthAnonymous',)
 

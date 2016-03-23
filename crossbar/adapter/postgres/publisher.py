@@ -35,7 +35,8 @@ import six
 
 from autobahn.wamp.types import PublishOptions
 
-from crossbar._logging import make_logger
+from txaio import make_logger
+
 from crossbar.adapter.postgres.common import PostgreSQLAdapter
 
 __all__ = ('PostgreSQLPublisher',)

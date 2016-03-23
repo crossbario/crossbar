@@ -34,6 +34,7 @@ import os
 import json
 import re
 import six
+import yaml
 
 from collections import OrderedDict
 
@@ -47,9 +48,8 @@ from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
 from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
 from autobahn.wamp.uri import convert_starred_uri
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
-import yaml
 from yaml import Loader, SafeLoader
 
 if six.PY3:

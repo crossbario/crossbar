@@ -32,15 +32,15 @@ from __future__ import absolute_import
 
 import os
 import traceback
+import crossbar
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import *  # noqa
 
-import crossbar
+from txaio import make_logger
 
 from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked
-from crossbar._logging import make_logger
 
 log = make_logger()
 

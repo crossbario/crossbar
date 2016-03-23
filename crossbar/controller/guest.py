@@ -36,7 +36,7 @@ from twisted.internet import protocol
 from twisted.internet.error import ProcessDone, ProcessTerminated, ProcessExitedAlready
 from twisted.internet.error import ConnectionDone
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = ('create_guest_worker_client_factory',)
 

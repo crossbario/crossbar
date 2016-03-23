@@ -57,7 +57,7 @@ from crossbar.controller.process import NodeControllerSession
 from crossbar.controller.management import NodeManagementBridgeSession
 from crossbar.controller.management import NodeManagementSession
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 try:
     import nacl  # noqa
@@ -479,16 +479,19 @@ class Node(object):
             self.log.info("Using default node shutdown triggers {}".format(self._node_shutdown_triggers))
 
         # router and factory that creates router sessions
-        #
         self._router_factory = RouterFactory(self)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         rlm_config = {
+            # local node management realm (by default, "crossbar")
             'name': self._realm
         }
         rlm = RouterRealm(None, rlm_config)
 
-        # create a new router for the realm
+        # create a new router for the node management realm
+        #
+        # Note: the router factory by default only has a single role "trusted",
+        # stored in self._router_factory._routers[self._realm]._roles
         router = self._router_factory.start_realm(rlm)
 
         # add a router/realm service session

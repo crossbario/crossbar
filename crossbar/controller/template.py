@@ -34,7 +34,7 @@ import shutil
 import pkg_resources
 import jinja2
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = ('Templates',)
 

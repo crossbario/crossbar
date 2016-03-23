@@ -31,8 +31,9 @@
 from __future__ import absolute_import, division, print_function
 
 import six
-
 import txaio
+
+from txaio import make_logger
 
 from twisted.internet.defer import inlineCallbacks
 
@@ -46,8 +47,6 @@ from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
-
-from crossbar._logging import make_logger
 
 __all__ = (
     'RouterFactory',
@@ -439,8 +438,9 @@ class RouterFactory(object):
             proc = u'{}.activate_realm'.format(uri_prefix)
             self.log.info("Calling into node controller procedure '{proc}' with realm='{realm}'", proc=proc, realm=realm)
             d = self._auto_starting[realm] = self._node.call(proc, realm)
+            self.log.info("Auto-starting realm {realm} ...", realm=realm)
             def done(arg):
-                self.log.debug("Auto-activated realm '{realm}'", realm=realm)
+                self.log.debug("Auto-started realm '{realm}'", realm=realm)
                 del self._auto_starting[realm]
                 return arg
             d.addBoth(done)

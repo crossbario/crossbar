@@ -40,9 +40,10 @@ from twisted.web.static import File
 from twisted.web.proxy import ReverseProxyResource  # noqa (Republish resource)
 from twisted.python.filepath import FilePath
 
+from txaio import make_logger
+
 import crossbar
 from crossbar._compat import native_string
-from crossbar._logging import make_logger
 from crossbar.router import longpoll
 
 try:
