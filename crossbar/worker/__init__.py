@@ -64,13 +64,15 @@ def _appsession_loader(config):
                 )
 
         except Exception:
-            emsg = "Failed to import class '{}'\n{}".format(
-                klassname, Failure().getTraceback())
-            log.debug(emsg)
+            log.failure(
+                "Failed to import class '{cls}'",
+                cls=klassname,
+                failure=Failure(),
+            )
             log.debug("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
             raise ApplicationError(
                 u"crossbar.error.class_import_failed",
-                emsg,
+                klassname,
                 pythonpath=sys.path
             )
 
