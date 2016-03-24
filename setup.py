@@ -30,16 +30,11 @@
 
 from __future__ import absolute_import
 
-import sys
 import re
 import os
 import platform
+
 from setuptools import setup, find_packages
-
-version = getattr(sys, "version_info", (0,))
-
-CPY = platform.python_implementation() == 'CPython'
-PYPY = platform.python_implementation() == 'PyPy'
 
 LONGSDESC = open('README.rst').read()
 
@@ -55,7 +50,7 @@ else:
     raise RuntimeError("Unable to find version string in {}.".format(VERSIONFILE))
 
 # enforce use of CFFI for LMDB
-if PYPY:
+if platform.python_implementation() == 'PyPy':
     os.environ['LMDB_FORCE_CFFI'] = '1'
 
 # enforce use of bundled libsodium
@@ -96,52 +91,52 @@ install_requires = [
     # HTTP/REST bridge (also pulls in TLS packages!)
     'treq>=15.1.0',               # MIT license
 ]
-if sys.platform != 'win32':
-    # setproctitle does not provide wheels (https://github.com/dvarrazzo/py-setproctitle/issues/47) => disable on Windows
-    install_requires.append('setproctitle>=1.1.9')  # BSD license
 
-if sys.platform == 'win32':
-    install_requires.append('pypiwin32>=219')       # PSF license
+extras_require = {
+    ':sys_platform != "win32"': [
+        # setproctitle does not provide wheels (https://github.com/dvarrazzo/py-setproctitle/issues/47) => disable on Windows
+        'setproctitle>=1.1.9',    # BSD license
+        # Twisted manhole support
+        # pycrypto does not provide wheels => disable on Windows
+        'pycrypto>=2.6.1'         # Public Domain license
+    ],
+    ':sys_platform == "win32"': [
+        'pypiwin32>=219'          # PSF license
+    ],
+    ':"linux" in sys_platform': [
+        'pyinotify>=0.9.6'        # MIT license
+    ],
 
-# FIXME: https://github.com/crossbario/crossbar/issues/581
-if sys.platform.startswith('linux'):
-    install_requires.append('pyinotify>=0.9.6')     # MIT license
+    ':sys_platform != "win32" and platform_python_implementation == "CPython"': [
+        # wsaccel does not provide wheels (https://github.com/methane/wsaccel/issues/12) => disable on Windows
+        'wsaccel>=0.6.2',         # Apache 2.0
+        # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
+        'ujson>=1.33'             # BSD license
+    ],
 
-# native WebSocket/JSON acceleration - only for CPy (skip for PyPy, since it'll be _slower_ on that!)
-if CPY:
-    # wsaccel does not provide wheels (https://github.com/methane/wsaccel/issues/12) => disable on Windows
-    if sys.platform != 'win32':
-        install_requires.append('wsaccel>=0.6.2')   # Apache 2.0
+    # For Crossbar.io development
+    'dev': [
+        'flake8>=2.5.1',          # MIT license
+        'colorama>=0.3.3',        # BSD license
+        'mock>=1.3.0',            # BSD license
+        'wheel>=0.26.0',          # MIT license
+    ],
 
-    # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
-    if sys.platform != 'win32':
-        install_requires.append("ujson>=1.33")      # BSD license
+    # Crossbar.io/PostgreSQL integration
+    'postgres': ['txpostgres>=1.4.0'],  # MIT license
+    'postgres:platform_python_implementation == "CPython"': [
+        'psycopg2>=2.6.1'         # LGPL license
+    ],
+    'postgres:platform_python_implementation != "CPython"': [
+        'psycopg2cffi>=2.7.2'     # LGPL license
+    ],
 
-# For Crossbar.io development
-extras_require_dev = [
-    'flake8>=2.5.1',                # MIT license
-    'colorama>=0.3.3',              # BSD license
-    'mock>=1.3.0',                  # BSD license
-    'wheel>=0.26.0',                # MIT license
-]
-if sys.platform != 'win32':
-    # Twisted manhole support
-    # pycrypto does not provide wheels => disable on Windows
-    extras_require_dev.append('pycrypto>=2.6.1')   # Public Domain license
-
-# Crossbar.io/PostgreSQL integration
-extras_require_postgres = [
-    'txpostgres>=1.4.0'             # MIT license
-]
-if CPY:
-    extras_require_postgres.append('psycopg2>=2.6.1')       # LGPL license
-else:
-    extras_require_postgres.append('psycopg2cffi>=2.7.2')   # LGPL license
-
-# Crossbar.io/Oracle integration
-extras_require_oracle = [
-    'cx_Oracle>=5.2',               # Python Software Foundation license
-]
+    # Crossbar.io/Oracle integration
+    'oracle': [
+        'cx_Oracle>=5.2'          # Python Software Foundation license
+    ],
+}
+extras_require['all'] = extras_require['dev']
 
 
 setup(
@@ -155,12 +150,7 @@ setup(
     platforms=('Any'),
     license="AGPL3",
     install_requires=install_requires,
-    extras_require={
-        'all': extras_require_dev,
-        'dev': extras_require_dev,
-        'oracle': extras_require_oracle,
-        'postgres': extras_require_postgres,
-    },
+    extras_require=extras_require,
     entry_points={
         'console_scripts': [
             'crossbar = crossbar.controller.cli:run'
