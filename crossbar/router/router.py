@@ -439,6 +439,7 @@ class RouterFactory(object):
             self.log.info("Calling into node controller procedure '{proc}' with realm='{realm}'", proc=proc, realm=realm)
             d = self._auto_starting[realm] = self._node.call(proc, realm)
             self.log.info("Auto-starting realm {realm} ...", realm=realm)
+
             def done(arg):
                 self.log.debug("Auto-started realm '{realm}'", realm=realm)
                 del self._auto_starting[realm]
@@ -471,4 +472,3 @@ class RouterFactory(object):
                 role_id,
                 self._get_auto_role_config(role),
             )
-
