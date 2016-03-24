@@ -124,17 +124,19 @@ class PendingAuthTicket(PendingAuth):
             self._session_details[u'ticket'] = signature
             d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
+            @inlineCallbacks
             def on_authenticate_ok(principal):
                 # backwards compatibility: dynamic ticket authenticator
                 # was expected to return a role directly
                 if type(principal) == six.text_type:
                     principal = {u'role': principal}
 
-                error = self._assign_principal(principal)
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
+                    returnValue(error)
 
-                return self._accept()
+                x = yield self._accept()
+                returnValue(x)
 
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)

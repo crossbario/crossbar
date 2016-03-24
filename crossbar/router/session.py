@@ -391,6 +391,12 @@ class RouterSession(BaseSession):
                         msg = message.Challenge(res.method, res.extra)
 
                     elif isinstance(res, types.Deny):
+                        self.log.info(
+                            "{reason}: {message}: from {transport[peer]}",
+                            reason=res.reason,
+                            message=res.message,
+                            transport=self._transport._transport_info,
+                        )
                         msg = message.Abort(res.reason, res.message)
 
                     else:
