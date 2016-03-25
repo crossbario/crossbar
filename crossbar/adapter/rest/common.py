@@ -227,9 +227,7 @@ class _CommonResource(Resource):
                     assert key not in encoding_parts
                     encoding_parts[key] = _[1].strip().lower()
             except:
-                return self._deny_request(request, 400,
-                                          u"mangled Content-Type header",
-                                          log_category="AR450")
+                return self._deny_request(request, 400, log_category="AR450")
 
         charset_encoding = encoding_parts.get("charset", "utf-8")
 
