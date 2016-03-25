@@ -424,7 +424,6 @@ class StdoutObserverTests(TestCase):
         self.assertEqual(result[:-1], "[foo] DEBUG x~ z a")
 
 
-
 class StderrObserverTests(TestCase):
 
     def test_basic(self):
