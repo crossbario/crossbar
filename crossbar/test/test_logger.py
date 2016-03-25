@@ -42,7 +42,7 @@ from twisted.logger import formatTime
 
 from crossbar.test import TestCase
 from crossbar._logging import (LogCapturer, make_stdout_observer, make_JSON_observer,
-                               record_separator)
+                               record_separator, make_stderr_observer)
 
 from txaio import make_logger, get_global_log_level, set_global_log_level
 from txaio.tx import Logger, LogLevel
@@ -403,6 +403,94 @@ class StdoutObserverTests(TestCase):
 
         result = stream.getvalue()
         self.assertEqual(result[:-1], "[foo] Hi there!")
+
+    def test_format_log_category(self):
+        """
+        A log category in the event will mean the format is replaced with the
+        format string referencing it.
+        """
+        stream = NativeStringIO()
+        observer = make_stdout_observer(_file=stream, format="syslogd")
+
+        event = {'log_level': LogLevel.info,
+                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
+                 'log_category': "DBG100", 'x': 'x~', 'y': 'z', 'z': 'a',
+                 'log_source': None,
+                 'log_system': 'foo', 'log_time': 1434099813.77449}
+
+        observer(event)
+
+        result = stream.getvalue()
+        self.assertEqual(result[:-1], "[foo] DEBUG x~ z a")
+
+
+
+class StderrObserverTests(TestCase):
+
+    def test_basic(self):
+
+        stream = NativeStringIO()
+        observer = make_stderr_observer(_file=stream)
+        log = make_logger(observer=observer)
+
+        log.error("Hi!", log_system="foo")
+
+        result = stream.getvalue()
+        self.assertIn(u"[foo]", result)
+
+    def test_output_standard(self):
+        """
+        The output format is the time, the system in square brackets, and the
+        message.
+        """
+        stream = NativeStringIO()
+        observer = make_stderr_observer(_file=stream, format="standard")
+        event = {'log_level': LogLevel.error,
+                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
+                 'log_source': None, 'log_format': 'Hi there!',
+                 'log_system': 'foo', 'log_time': 1434099813.77449}
+
+        observer(event)
+
+        result = stream.getvalue()
+        self.assertEqual(result[:-1],
+                         formatTime(event["log_time"]) + " [foo] Hi there!")
+
+    def test_output_syslogd(self):
+        """
+        The syslogd output format is the system in square brackets, and the
+        message.
+        """
+        stream = NativeStringIO()
+        observer = make_stderr_observer(_file=stream, format="syslogd")
+        event = {'log_level': LogLevel.error,
+                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
+                 'log_source': None, 'log_format': 'Hi there!',
+                 'log_system': 'foo', 'log_time': 1434099813.77449}
+
+        observer(event)
+
+        result = stream.getvalue()
+        self.assertEqual(result[:-1], "[foo] Hi there!")
+
+    def test_format_log_category(self):
+        """
+        A log category in the event will mean the format is replaced with the
+        format string referencing it.
+        """
+        stream = NativeStringIO()
+        observer = make_stderr_observer(_file=stream, format="syslogd")
+
+        event = {'log_level': LogLevel.error,
+                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
+                 'log_category': "DBG100", 'x': 'x~', 'y': 'z', 'z': 'a',
+                 'log_source': None,
+                 'log_system': 'foo', 'log_time': 1434099813.77449}
+
+        observer(event)
+
+        result = stream.getvalue()
+        self.assertEqual(result[:-1], "[foo] DEBUG x~ z a")
 
 
 class LogCapturerTests(TestCase):

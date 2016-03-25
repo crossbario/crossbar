@@ -33,21 +33,23 @@ from __future__ import absolute_import, division, print_function
 # The log categories
 log_categories = {
 
+    "DBG100": "DEBUG {x} {y} {z}",
+
     # CBXXX - Generic Crossbar logs
-    "CB500": "Unhandled exception in Crossbar.",
+    "CB500": "Unhandled exception in Crossbar. {exc}",
 
     # ARXXX - Adapter, REST Bridge
-    "AR100": "REST bridge request recieved.",
-    "AR200": "REST bridge publish succeeded.",
+    "AR100": "REST bridge request recieved. (path='{path}', method={method})",
+    "AR200": "REST bridge publish succeeded. ({code}, {reason})",
     "AR201": "REST bridge webhook event succeeded.",
     "AR202": "REST bridge call succeeded.",
     "AR203": "REST bridge signature valid.",
     "AR400": "Malformed request to the REST bridge.",
-    "AR405": "Method not accepted by the REST bridge.",
+    "AR405": "Method not accepted by the REST bridge. ({reason})",
     "AR413": "Request too long.",
     "AR450": "Non-accepted request encoding.",
     "AR451": "Non-decodable request body.",
-    "AR452": "Non-accepted content type.",
+    "AR452": "Non-accepted content type. (must be one of '{accepted}', not '{given}')",
     "AR453": "Request body was invalid JSON.",
     "AR454": "Request body was valid JSON, but not well formed (incorrect type).",
     "AR455": "Request body was valid JSON, but not well formed (missing key).",

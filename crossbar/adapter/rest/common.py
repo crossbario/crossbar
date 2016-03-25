@@ -101,8 +101,7 @@ class _CommonResource(Resource):
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
 
-        self.log.debug("[request denied] - {code} / " + reason,
-                       code=code, **kwargs)
+        self.log.debug(reason=reason, code=code, **kwargs)
 
         request.setResponseCode(code)
         return reason.format(**kwargs).encode('utf8') + b"\n"
@@ -115,8 +114,7 @@ class _CommonResource(Resource):
             kwargs["log_category"] = "AR" + str(code)
 
         self.log.failure(None, log_failure=kwargs["log_failure"])
-        self.log.debug("[request failure] - {code} / " + reason,
-                       code=code, **kwargs)
+        self.log.debug(reason=reason, code=code, **kwargs)
 
         request.setResponseCode(code)
         if body:
@@ -131,8 +129,7 @@ class _CommonResource(Resource):
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
 
-        self.log.debug("[request succeeded] - {code} / " + reason,
-                       code=code, reason=reason, **kwargs)
+        self.log.debug(code=code, reason=reason, **kwargs)
         request.setResponseCode(code)
         request.write(body)
 
@@ -152,12 +149,11 @@ class _CommonResource(Resource):
             request.setHeader(b'access-control-allow-headers', headers)
 
     def render(self, request):
-        self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
-                       request=request)
+        self.log.debug(log_category="AR100", method=request.method, path=request.path)
 
         try:
             if request.method not in (b"POST", b"PUT", b"OPTIONS"):
-                return self._deny_request(request, 405, u"HTTP/{0} not allowed (only HTTP/POST or HTTP/PUT)".format(native_string(request.method)))
+                return self._deny_request(request, 405, u"HTTP/{0} not allowed, only HTTP/POST or HTTP/PUT".format(native_string(request.method)))
             else:
                 self._set_common_headers(request)
 
@@ -173,7 +169,7 @@ class _CommonResource(Resource):
                 else:
                     return self._render_request(request)
         except Exception as e:
-            self.log.failure("Unhandled server error. {exc}", exc=e)
+            self.log.failure(log_category="CB500", exc=e)
             return self._deny_request(request, 500, "Unhandled server error.", exc=e)
 
     def _render_request(self, request):
@@ -207,7 +203,8 @@ class _CommonResource(Resource):
                content_type_elements[0] not in _ALLOWED_CONTENT_TYPES:
                 return self._deny_request(
                     request, 400,
-                    u"bad content type: if a content type is present, it MUST be one of '{}', not '{}'".format(list(_ALLOWED_CONTENT_TYPES), content_type_elements[0]),
+                    accepted=list(_ALLOWED_CONTENT_TYPES),
+                    given=content_type_elements[0],
                     log_category="AR452"
                 )
 
