@@ -48,7 +48,7 @@ class PublisherResource(_CommonResource):
 
         if 'topic' not in event:
             return self._deny_request(request, 400,
-                                      "invalid request event - missing 'topic' in HTTP/POST body",
+                                      key="topic",
                                       log_category="AR455")
 
         topic = event.pop('topic')
@@ -78,7 +78,7 @@ class PublisherResource(_CommonResource):
             self._complete_request(request, 202, body, log_category="AR200")
 
         def on_publish_error(err):
-            return self._fail_request(request, 400, "PublisherResource failed with error {e}",
-                                      e=err.value, log_category="AR456")
+            return self._fail_request(request, 400,
+                                      log_failure=err, log_category="AR456")
 
         return d.addCallbacks(on_publish_ok, on_publish_error)

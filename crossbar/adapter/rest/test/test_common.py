@@ -83,7 +83,7 @@ class IPWhitelistingTestCase(TestCase):
             body=publishBody))
 
         self.assertEqual(request.code, 400)
-        self.assertIn(b"request denied based on IP address",
+        self.assertIn(b"Request denied based on IP address",
                       request.get_written_data())
 
 
@@ -263,7 +263,7 @@ class RequestBodyTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_category("AR400")
+        errors = l.get_category("AR465")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 

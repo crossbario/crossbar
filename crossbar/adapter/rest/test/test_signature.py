@@ -186,7 +186,7 @@ class SignatureTestCase(TestCase):
 
         self.assertEqual(request.code, 400)
 
-        errors = l.get_category("AR462")
+        errors = l.get_category("AR464")
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["code"], 400)
 
