@@ -100,12 +100,15 @@ def escape_formatting(text):
 
 def make_stdout_observer(levels=(LogLevel.info,),
                          show_source=False, format="standard", trace=False,
-                         colour=False, _file=None):
+                         colour=False, _file=None, _categories=None):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
     if _file is None:
         _file = sys.__stdout__
+
+    if _categories is None:
+        from crossbar._log_categories import log_categories as _categories
 
     @provider(ILogObserver)
     def StandardOutObserver(event):
@@ -124,6 +127,12 @@ def make_stdout_observer(levels=(LogLevel.info,),
 
         if show_source and event.get("log_namespace") is not None:
             logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+
+        if event.get("log_category"):
+            format_string = _categories.get(event['log_category'])
+            if format_string:
+                event = event.copy()
+                event["log_format"] = format_string
 
         if format == "standard":
             FORMAT_STRING = STANDARD_FORMAT
@@ -163,12 +172,15 @@ def make_stdout_observer(levels=(LogLevel.info,),
 def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                                  LogLevel.critical),
                          show_source=False, format="standard",
-                         colour=False, _file=None):
+                         colour=False, _file=None, _categories=None):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
     if _file is None:
         _file = sys.__stderr__
+
+    if _categories is None:
+        from crossbar._log_categories import log_categories as _categories
 
     @provider(ILogObserver)
     def StandardErrorObserver(event):
@@ -183,6 +195,12 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
 
         if show_source and event.get("log_namespace") is not None:
             logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+
+        if event.get("log_category"):
+            format_string = _categories.get(event['log_category'])
+            if format_string:
+                event = event.copy()
+                event["log_format"] = format_string
 
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
