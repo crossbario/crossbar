@@ -50,7 +50,7 @@ class CallerResource(_CommonResource):
         if 'procedure' not in event:
             return self._deny_request(
                 request, 400,
-                "invalid request event - missing 'procedure' in HTTP/POST body",
+                key='procedure',
                 log_category="AR455")
 
         procedure = event.pop('procedure')
@@ -80,7 +80,7 @@ class CallerResource(_CommonResource):
                               b'no-store, no-cache, must-revalidate, max-age=0')
 
             return self._complete_request(
-                request, 200, body, reason="WAMP call succeeded.",
+                request, 200, body,
                 log_category="AR202")
 
         def on_call_error(err):
@@ -101,7 +101,7 @@ class CallerResource(_CommonResource):
             request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
 
             return self._fail_request(
-                request, 400, "WAMP call failed with error {err}", err=res,
+                request, 400, exc=res,
                 log_category="AR458")
 
         return d.addCallbacks(on_call_ok, on_call_error)
