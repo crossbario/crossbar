@@ -50,7 +50,7 @@ from autobahn.wamp.uri import convert_starred_uri
 
 from txaio import make_logger
 
-from yaml import Loader, SafeLoader
+from yaml import Loader, SafeLoader, Dumper, SafeDumper
 
 if six.PY3:
     from collections.abc import Mapping, Sequence
@@ -157,15 +157,46 @@ def pprint_json(obj, log_to=None):
         print(output_str)
 
 
-# Hack: force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
-#
-# http://stackoverflow.com/a/2967461/884770
-#
+# Force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
+# see: http://stackoverflow.com/a/2967461/884770
 def construct_yaml_str(self, node):
     return self.construct_scalar(node)
 
-Loader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
-SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
+for Klass in [Loader, SafeLoader]:
+    Klass.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
+
+
+# Enable PyYAML to serialize OrderedDict
+def represent_ordered_dict(dump, tag, mapping, flow_style=None):
+    # the following works like BaseRepresenter.represent_mapping,
+    # but does not issue the sort().
+    # see: http://pyyaml.org/browser/pyyaml/trunk/lib/yaml/representer.py#L112
+    value = []
+    node = yaml.MappingNode(tag, value, flow_style=flow_style)
+    if dump.alias_key is not None:
+        dump.represented_objects[dump.alias_key] = node
+    best_style = True
+    if hasattr(mapping, 'items'):
+        mapping = mapping.items()
+        # mapping.sort()
+    for item_key, item_value in mapping:
+        node_key = dump.represent_data(item_key)
+        node_value = dump.represent_data(item_value)
+        if not (isinstance(node_key, yaml.ScalarNode) and not node_key.style):
+            best_style = False
+        if not (isinstance(node_value, yaml.ScalarNode) and not node_value.style):
+            best_style = False
+        value.append((node_key, node_value))
+    if flow_style is None:
+        if dump.default_flow_style is not None:
+            node.flow_style = dump.default_flow_style
+        else:
+            node.flow_style = best_style
+    return node
+
+for Klass in [Dumper, SafeDumper]:
+    Klass.add_representer(OrderedDict,
+                          lambda dumper, value: represent_ordered_dict(dumper, u'tag:yaml.org,2002:map', value))
 
 
 # Environment variable names used by the utilities in the Shell and Utilities volume
