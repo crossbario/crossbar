@@ -31,16 +31,20 @@
 from __future__ import absolute_import
 
 import os
+import re
+import copy
 import traceback
 import socket
 import getpass
+
+import six
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.ssl import optionsForClientTLS
 
 from autobahn.util import utcnow
-from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
+from autobahn.wamp.types import CallDetails, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationRunner
 
@@ -150,6 +154,16 @@ def maybe_generate_key(log, cbdir, privkey_path=u'node.key'):
     return pubkey
 
 
+class WorkerTemplate(object):
+
+    def __init__(self, config):
+        self.config = config
+        self.realm_pattern = None
+        pat = config.get('template-realm', None)
+        if pat:
+            self.realm_pattern = re.compile(pat)
+
+
 class Node(object):
     """
     A Crossbar.io node is the running a controller process and one or multiple
@@ -199,6 +213,11 @@ class Node(object):
 
         # map fro router worker IDs to
         self._realm_templates = {}
+
+        self._worker_templates = []
+
+        # fake call details we use to call into the local node management API
+        self._call_details = CallDetails(caller=0)
 
         # for node elements started under specific IDs, and where
         # the node configuration does not specify an ID, use a generic
@@ -460,16 +479,19 @@ class Node(object):
             self.log.info("Using default node shutdown triggers {}".format(self._node_shutdown_triggers))
 
         # router and factory that creates router sessions
-        #
-        self._router_factory = RouterFactory(self._node_id)
+        self._router_factory = RouterFactory(self)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
 
         rlm_config = {
+            # local node management realm (by default, "crossbar")
             'name': self._realm
         }
         rlm = RouterRealm(None, rlm_config)
 
-        # create a new router for the realm
+        # create a new router for the node management realm
+        #
+        # Note: the router factory by default only has a single role "trusted",
+        # stored in self._router_factory._routers[self._realm]._roles
         router = self._router_factory.start_realm(rlm)
 
         # add a router/realm service session
@@ -507,7 +529,7 @@ class Node(object):
         panic = False
 
         try:
-            yield self._startup(self._config)
+            yield self._run_config(self._config)
 
             # Notify systemd that crossbar is fully up and running
             # This has no effect on non-systemd platforms
@@ -531,231 +553,267 @@ class Node(object):
                 pass
 
     @inlineCallbacks
-    def _startup(self, config):
+    def _run_realm_config(self, worker_id, worker_logname, realm):
+        # start realm
+        if 'id' in realm:
+            realm_id = realm.pop('id')
+        else:
+            realm_id = 'realm-{:03d}'.format(self._realm_no)
+            self._realm_no += 1
+
+        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id),
+                                    realm_id, realm)
+        self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
+                      worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
+
+        # add roles to realm
+        for role in realm.get('roles', []):
+            if 'id' in role:
+                role_id = role.pop('id')
+            else:
+                role_id = 'role-{:03d}'.format(self._role_no)
+                self._role_no += 1
+
+            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id),
+                                        realm_id, role_id, role)
+            self.log.info("{worker}: role '{role_id}' (named '{role_name}') started on realm '{realm_id}'",
+                          worker=worker_logname, role_id=role_id, role_name=role['name'], realm_id=realm_id)
+
+        # start uplinks for realm
+        for uplink in realm.get('uplinks', []):
+            if 'id' in uplink:
+                uplink_id = uplink.pop('id')
+            else:
+                uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
+                self._uplink_no += 1
+
+            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_uplink'.format(self._node_id, worker_id),
+                                        realm_id, uplink_id, uplink)
+            self.log.info("{worker}: uplink '{uplink_id}' started on realm '{realm_id}'",
+                          worker=worker_logname, uplink_id=uplink_id, realm_id=realm_id)
+
+        for worker_template in self._worker_templates:
+            # WorkerTemplate
+            if worker_template.realm_pattern:
+                match = worker_template.realm_pattern.match(realm['name'])
+                if match:
+                    info = match.groupdict()
+                    self.log.info("Starting worker ({info}) ..", info=info)
+
+                    config = copy.deepcopy(worker_template.config)
+                    config.pop('template', None)
+                    config.pop('template-realm', None)
+
+                    from collections import OrderedDict
+
+                    def clean(obj, attr):
+                        if type(obj) in [dict, OrderedDict]:
+                            s = {}
+                            for k in obj:
+                                s[clean(k, attr)] = clean(obj[k], attr)
+                            return s
+                        elif type(obj) == list:
+                            s = []
+                            for e in obj:
+                                s.append(clean(e, attr))
+                            return s
+                        elif type(obj) == six.text_type:
+                            return obj.format(**attr)
+                        else:
+                            return obj
+
+                    config = clean(config, info)
+
+                    yield self._run_worker_config(config)
+
+    @inlineCallbacks
+    def _run_worker_config(self, worker):
+        # worker ID
+        if 'id' in worker:
+            worker_id = worker.pop('id')
+        else:
+            worker_id = 'worker-{:03d}'.format(self._worker_no)
+            self._worker_no += 1
+
+        # worker type - a type of working process from the following fixed list
+        worker_type = worker['type']
+        assert(worker_type in ['router', 'container', 'websocket-testee', 'guest'])
+
+        # set logname depending on worker type
+        if worker_type == 'router':
+            worker_logname = "Router '{}'".format(worker_id)
+        elif worker_type == 'container':
+            worker_logname = "Container '{}'".format(worker_id)
+        elif worker_type == 'websocket-testee':
+            worker_logname = "WebSocketTestee '{}'".format(worker_id)
+        elif worker_type == 'guest':
+            worker_logname = "Guest '{}'".format(worker_id)
+        else:
+            raise Exception("logic error")
+
+        # any worker specific options
+        worker_options = worker.get('options', {})
+
+        # start native worker process (router, container, websocket-testee)
+        if worker_type in ['router', 'container', 'websocket-testee']:
+
+            # start a new native worker process ..
+            if worker_type == 'router':
+                yield self._controller.start_router(worker_id, worker_options, details=self._call_details)
+
+            elif worker_type == 'container':
+                yield self._controller.start_container(worker_id, worker_options, details=self._call_details)
+
+            elif worker_type == 'websocket-testee':
+                yield self._controller.start_websocket_testee(worker_id, worker_options, details=self._call_details)
+
+            # setup native worker generic stuff
+            if 'pythonpath' in worker_options:
+                added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'])
+                self.log.debug("{worker}: PYTHONPATH extended for {paths}",
+                               worker=worker_logname, paths=added_paths)
+
+            if 'cpu_affinity' in worker_options:
+                new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'])
+                self.log.debug("{worker}: CPU affinity set to {affinity}",
+                               worker=worker_logname, affinity=new_affinity)
+
+            if 'manhole' in worker:
+                yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, worker_id), worker['manhole'])
+                self.log.debug("{worker}: manhole started",
+                               worker=worker_logname)
+
+            # setup container worker
+            if worker_type == 'router':
+                yield self._run_router_config(worker, worker_id, worker_logname, worker_options)
+
+            # setup container worker
+            elif worker_type == 'container':
+                yield self._run_container_config(worker, worker_id, worker_logname, worker_options)
+
+            # setup websocket-testee worker
+            elif worker_type == 'websocket-testee':
+
+                # start transport on websocket-testee
+                transport = worker['transport']
+                transport_id = 'transport-{:03d}'.format(self._transport_no)
+                self._transport_no = 1
+
+                yield self._controller.call('crossbar.node.{}.worker.{}.start_websocket_testee_transport'.format(self._node_id, worker_id), transport_id, transport)
+                self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
+
+            else:
+                raise Exception("logic error")
+
+        # start guest (= non-native) worker process
+        elif worker_type == 'guest':
+            yield self._controller.start_guest(worker_id, worker, details=self._call_details)
+            self.log.info("{worker}: started", worker=worker_logname)
+
+        else:
+            raise Exception("logic error")
+
+    @inlineCallbacks
+    def _run_router_config(self, worker, worker_id, worker_logname, worker_options):
+        # start realms on router
+        for realm in worker.get('realms', []):
+            if realm.get('template', False):
+                # templated realm elements are stored for later instantiation
+                if worker_id not in self._realm_templates:
+                    self._realm_templates[worker_id] = []
+                self._realm_templates[worker_id].append(realm)
+            else:
+                # regular realm elements are started directly
+                yield self._run_realm_config(worker_id, worker_logname, realm)
+
+        # start connections (such as PostgreSQL database connection pools)
+        # to run embedded in the router
+        for connection in worker.get('connections', []):
+
+            if 'id' in connection:
+                connection_id = connection.pop('id')
+            else:
+                connection_id = 'connection-{:03d}'.format(self._connection_no)
+                self._connection_no += 1
+
+            yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection)
+            self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
+
+        # start components to run embedded in the router
+        for component in worker.get('components', []):
+
+            if 'id' in component:
+                component_id = component.pop('id')
+            else:
+                component_id = 'component-{:03d}'.format(self._component_no)
+                self._component_no += 1
+
+            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component_id, component)
+            self.log.info("{}: component '{}' started".format(worker_logname, component_id))
+
+        # start transports on router
+        for transport in worker['transports']:
+
+            if 'id' in transport:
+                transport_id = transport.pop('id')
+            else:
+                transport_id = 'transport-{:03d}'.format(self._transport_no)
+                self._transport_no += 1
+
+            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport)
+            self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
+
+    @inlineCallbacks
+    def _run_container_config(self, worker, worker_id, worker_logname, worker_options):
+        # if components exit "very soon after" we try to
+        # start them, we consider that a failure and shut
+        # our node down. We remove this subscription 2
+        # seconds after we're done starting everything
+        # (see below). This is necessary as
+        # start_container_component returns as soon as
+        # we've established a connection to the component
+        def component_exited(info):
+            component_id = info.get("id")
+            self.log.critical("Component '{component_id}' failed to start; shutting down node.", component_id=component_id)
+            try:
+                self._reactor.stop()
+            except twisted.internet.error.ReactorNotRunning:
+                pass
+        topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self._node_id, worker_id)
+        component_stop_sub = yield self._controller.subscribe(component_exited, topic)
+
+        # start components to run embedded in the container
+        #
+        for component in worker.get('components', []):
+
+            if 'id' in component:
+                component_id = component.pop('id')
+            else:
+                component_id = 'component-{:03d}'.format(self._component_no)
+                self._component_no += 1
+
+            yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component)
+            self.log.info("{worker}: component '{component_id}' started",
+                          worker=worker_logname, component_id=component_id)
+
+        # after 2 seconds, consider all the application components running
+        self._reactor.callLater(2, component_stop_sub.unsubscribe)
+
+    @inlineCallbacks
+    def _run_config(self, config):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
-        # call options we use to call into the local node management API
-        call_options = CallOptions()
-
-        # fake call details we use to call into the local node management API
-        call_details = CallDetails(caller=0)
-
         # get contoller configuration subpart
         controller = config.get('controller', {})
 
         # start Manhole in node controller
         if 'manhole' in controller:
-            yield self._controller.start_manhole(controller['manhole'], details=call_details)
+            yield self._controller.start_manhole(controller['manhole'], details=self._call_details)
 
-        # startup all workers
+        # startup all workers ..
         for worker in config.get('workers', []):
-
-            # worker ID
-            if 'id' in worker:
-                worker_id = worker.pop('id')
+            if worker.get('template', False):
+                self._worker_templates.append(WorkerTemplate(worker))
             else:
-                worker_id = 'worker-{:03d}'.format(self._worker_no)
-                self._worker_no += 1
-
-            # worker type - a type of working process from the following fixed list
-            worker_type = worker['type']
-            assert(worker_type in ['router', 'container', 'guest', 'websocket-testee'])
-
-            # set logname depending on worker type
-            if worker_type == 'router':
-                worker_logname = "Router '{}'".format(worker_id)
-            elif worker_type == 'container':
-                worker_logname = "Container '{}'".format(worker_id)
-            elif worker_type == 'websocket-testee':
-                worker_logname = "WebSocketTestee '{}'".format(worker_id)
-            elif worker_type == 'guest':
-                worker_logname = "Guest '{}'".format(worker_id)
-            else:
-                raise Exception("logic error")
-
-            # any worker specific options
-            worker_options = worker.get('options', {})
-
-            # native worker processes: router, container, websocket-testee
-            if worker_type in ['router', 'container', 'websocket-testee']:
-
-                # start a new native worker process ..
-                if worker_type == 'router':
-                    yield self._controller.start_router(worker_id, worker_options, details=call_details)
-
-                elif worker_type == 'container':
-                    yield self._controller.start_container(worker_id, worker_options, details=call_details)
-
-                elif worker_type == 'websocket-testee':
-                    yield self._controller.start_websocket_testee(worker_id, worker_options, details=call_details)
-
-                else:
-                    raise Exception("logic error")
-
-                # setup native worker generic stuff
-                if 'pythonpath' in worker_options:
-                    added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'], options=call_options)
-                    self.log.debug("{worker}: PYTHONPATH extended for {paths}",
-                                   worker=worker_logname, paths=added_paths)
-
-                if 'cpu_affinity' in worker_options:
-                    new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'], options=call_options)
-                    self.log.debug("{worker}: CPU affinity set to {affinity}",
-                                   worker=worker_logname, affinity=new_affinity)
-
-                if 'manhole' in worker:
-                    yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, worker_id), worker['manhole'], options=call_options)
-                    self.log.debug("{worker}: manhole started",
-                                   worker=worker_logname)
-
-                # setup router worker
-                if worker_type == 'router':
-
-                    # start realms on router
-                    for realm in worker.get('realms', []):
-
-                        # start realm
-                        if 'id' in realm:
-                            realm_id = realm.pop('id')
-                        else:
-                            realm_id = 'realm-{:03d}'.format(self._realm_no)
-                            self._realm_no += 1
-
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, options=call_options)
-                        self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
-                                      worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
-
-                        # add roles to realm
-                        for role in realm.get('roles', []):
-                            if 'id' in role:
-                                role_id = role.pop('id')
-                            else:
-                                role_id = 'role-{:03d}'.format(self._role_no)
-                                self._role_no += 1
-
-                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
-                            self.log.info("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
-
-                        # start uplinks for realm
-                        for uplink in realm.get('uplinks', []):
-                            if 'id' in uplink:
-                                uplink_id = uplink.pop('id')
-                            else:
-                                uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
-                                self._uplink_no += 1
-
-                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_uplink'.format(self._node_id, worker_id), realm_id, uplink_id, uplink, options=call_options)
-                            self.log.info("{}: uplink '{}' started on realm '{}'".format(worker_logname, uplink_id, realm_id))
-
-                    # start connections (such as PostgreSQL database connection pools)
-                    # to run embedded in the router
-                    for connection in worker.get('connections', []):
-
-                        if 'id' in connection:
-                            connection_id = connection.pop('id')
-                        else:
-                            connection_id = 'connection-{:03d}'.format(self._connection_no)
-                            self._connection_no += 1
-
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
-                        self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
-
-                    # start components to run embedded in the router
-                    for component in worker.get('components', []):
-
-                        if 'id' in component:
-                            component_id = component.pop('id')
-                        else:
-                            component_id = 'component-{:03d}'.format(self._component_no)
-                            self._component_no += 1
-
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
-                        self.log.info("{}: component '{}' started".format(worker_logname, component_id))
-
-                    # start transports on router
-                    for transport in worker['transports']:
-
-                        if 'id' in transport:
-                            transport_id = transport.pop('id')
-                        else:
-                            transport_id = 'transport-{:03d}'.format(self._transport_no)
-                            self._transport_no += 1
-
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
-                        self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
-
-                # setup container worker
-                elif worker_type == 'container':
-
-                    # if components exit "very soon after" we try to
-                    # start them, we consider that a failure and shut
-                    # our node down. We remove this subscription 2
-                    # seconds after we're done starting everything
-                    # (see below). This is necessary as
-                    # start_container_component returns as soon as
-                    # we've established a connection to the component
-                    def component_exited(info):
-                        component_id = info.get("id")
-                        self.log.critical("Component '{component_id}' failed to start; shutting down node.", component_id=component_id)
-                        try:
-                            self._reactor.stop()
-                        except twisted.internet.error.ReactorNotRunning:
-                            pass
-                    topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self._node_id, worker_id)
-                    component_stop_sub = yield self._controller.subscribe(component_exited, topic)
-
-                    # start connections (such as PostgreSQL database connection pools)
-                    # to run embedded in the container
-                    #
-                    for connection in worker.get('connections', []):
-
-                        if 'id' in connection:
-                            connection_id = connection.pop('id')
-                        else:
-                            connection_id = 'connection-{:03d}'.format(self._connection_no)
-                            self._connection_no += 1
-
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
-                        self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
-
-                    # start components to run embedded in the container
-                    #
-                    for component in worker.get('components', []):
-
-                        if 'id' in component:
-                            component_id = component.pop('id')
-                        else:
-                            component_id = 'component-{:03d}'.format(self._component_no)
-                            self._component_no += 1
-
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
-                        self.log.info("{worker}: component '{component_id}' started",
-                                      worker=worker_logname, component_id=component_id)
-
-                    # after 2 seconds, consider all the application components running
-                    self._reactor.callLater(2, component_stop_sub.unsubscribe)
-
-                # setup websocket-testee worker
-                elif worker_type == 'websocket-testee':
-
-                    # start transport on websocket-testee
-                    transport = worker['transport']
-                    transport_id = 'transport-{:03d}'.format(self._transport_no)
-                    self._transport_no = 1
-
-                    yield self._controller.call('crossbar.node.{}.worker.{}.start_websocket_testee_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
-                    self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
-
-                else:
-                    raise Exception("logic error")
-
-            elif worker_type == 'guest':
-
-                # start guest worker
-                #
-                yield self._controller.start_guest(worker_id, worker, details=call_details)
-                self.log.info("{worker}: started", worker=worker_logname)
-
-            else:
-                raise Exception("logic error")
+                yield self._run_worker_config(worker)

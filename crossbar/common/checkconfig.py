@@ -42,7 +42,7 @@ from pprint import pformat
 
 from pygments import highlight, lexers, formatters
 
-from autobahn.websocket.protocol import parseWsUrl
+from autobahn.websocket.util import parse_url
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
 from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
@@ -979,7 +979,7 @@ def check_web_path_service_websocket(config):
         if not isinstance(url, six.text_type):
             raise InvalidConfigException("'url' in WebSocket configuration must be str ({} encountered)".format(type(url)))
         try:
-            parseWsUrl(url)
+            parse_url(url)
         except InvalidConfigException as e:
             raise InvalidConfigException("invalid 'url' in WebSocket configuration : {}".format(e))
 
@@ -1545,7 +1545,7 @@ def check_listening_transport_websocket(transport):
         if not isinstance(url, six.text_type):
             raise InvalidConfigException("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
         try:
-            parseWsUrl(url)
+            parse_url(url)
         except InvalidConfigException as e:
             raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
@@ -1597,7 +1597,7 @@ def check_listening_transport_websocket_testee(transport):
         if not isinstance(url, six.text_type):
             raise InvalidConfigException("'url' in WebSocket-Testee transport configuration must be str ({} encountered)".format(type(url)))
         try:
-            parseWsUrl(url)
+            parse_url(url)
         except InvalidConfigException as e:
             raise InvalidConfigException("invalid 'url' in WebSocket-Testee transport configuration : {}".format(e))
 
@@ -1760,7 +1760,7 @@ def check_connecting_transport_websocket(transport):
     if not isinstance(url, six.text_type):
         raise InvalidConfigException("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
     try:
-        parseWsUrl(url)
+        parse_url(url)
     except InvalidConfigException as e:
         raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
@@ -2209,7 +2209,7 @@ def check_container(container):
     :type router: dict
     """
     for k in container:
-        if k not in ['id', 'type', 'options', 'manhole', 'components', 'connections']:
+        if k not in ['id', 'type', 'options', 'manhole', 'components', 'connections', 'template', 'template-realm']:
             raise InvalidConfigException("encountered unknown attribute '{}' in container configuration".format(k))
 
     # check stuff common to all native workers
@@ -2219,6 +2219,12 @@ def check_container(container):
 
     if 'options' in container:
         check_native_worker_options(container['options'])
+
+    # template-realm
+    #
+    if container.get('template', False):
+        # FIXME
+        pass
 
     # connections
     #
