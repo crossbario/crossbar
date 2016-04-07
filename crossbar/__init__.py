@@ -58,6 +58,6 @@ from __future__ import absolute_import, division
 import txaio
 txaio.use_twisted()
 
-__version__ = "0.13.0"
+__version__ = "0.13.1"
 
 __all__ = ["__version__"]

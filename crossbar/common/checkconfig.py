@@ -2859,26 +2859,28 @@ def upgrade_config_file(configfile):
                 if worker[u'type'] == u'router':
                     for realm in worker.get(u'realms', []):
                         for role in realm.get(u'roles', []):
-                            permissions = []
-                            for p in role.get(u'permissions', []):
-                                uri, match = convert_starred_uri(p[u'uri'])
-                                pp = OrderedDict([
-                                    (u'uri', uri),
-                                    (u'match', match),
-                                    (u'allow', OrderedDict([
-                                        (u'call', p.get(u'call', False)),
-                                        (u'register', p.get(u'register', False)),
-                                        (u'publish', p.get(u'publish', False)),
-                                        (u'subscribe', p.get(u'subscribe', False))
-                                    ])),
-                                    (u'disclose', OrderedDict([
-                                        (u'caller', False),
-                                        (u'publisher', False),
-                                    ])),
-                                    (u'cache', True)
-                                ])
-                                permissions.append(pp)
-                            role[u'permissions'] = permissions
+                            # upgrade "permissions" subitem (if there is any)
+                            if u'permissions' in role:
+                                permissions = []
+                                for p in role[u'permissions']:
+                                    uri, match = convert_starred_uri(p[u'uri'])
+                                    pp = OrderedDict([
+                                        (u'uri', uri),
+                                        (u'match', match),
+                                        (u'allow', OrderedDict([
+                                            (u'call', p.get(u'call', False)),
+                                            (u'register', p.get(u'register', False)),
+                                            (u'publish', p.get(u'publish', False)),
+                                            (u'subscribe', p.get(u'subscribe', False))
+                                        ])),
+                                        (u'disclose', OrderedDict([
+                                            (u'caller', False),
+                                            (u'publisher', False),
+                                        ])),
+                                        (u'cache', True)
+                                    ])
+                                    permissions.append(pp)
+                                role[u'permissions'] = permissions
         else:
             raise Exception('logic error')
 
