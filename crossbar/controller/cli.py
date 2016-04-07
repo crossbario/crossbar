@@ -648,30 +648,29 @@ def run_command_check(options, **kwargs):
     from crossbar.common.checkconfig import check_config_file, color_json
     configfile = os.path.join(options.cbdir, options.config)
 
-    print("\nChecking node configuration file '{}':\n".format(configfile))
-
-    if False:
-        with open(configfile, 'rb') as f:
-            print(color_json(f.read().decode('utf8')))
+    verbose = False
 
     try:
+        print("Checking local node configuration file: {}".format(configfile))
         config = check_config_file(configfile)
     except Exception as e:
-        print("\nError: {}\n".format(e))
+        print("Error: {}".format(e))
         sys.exit(1)
     else:
-        print("Ok, node configuration looks good!\n")
+        print("Ok, node configuration looks good!")
 
-        import json
-        config_content = json.dumps(
-            config,
-            skipkeys=False,
-            sort_keys=False,
-            ensure_ascii=False,
-            separators=(',', ': '),
-            indent=4,
-        )
-        print(color_json(config_content))
+        if verbose:
+            import json
+            config_content = json.dumps(
+                config,
+                skipkeys=False,
+                sort_keys=False,
+                ensure_ascii=False,
+                separators=(',', ': '),
+                indent=4,
+            )
+            print(color_json(config_content))
+
         sys.exit(0)
 
 
@@ -944,6 +943,11 @@ def run(prog=None, args=None, reactor=None):
             else:
                 options.cbdir = '.'
         options.cbdir = os.path.abspath(options.cbdir)
+
+        # convenience: if --cbdir points to a config file, take
+        # the config file's base dirname as node directory
+        if os.path.isfile(options.cbdir):
+            options.cbdir = os.path.dirname(options.cbdir)
 
     # Crossbar.io node configuration file
     #
