@@ -166,7 +166,7 @@ class NodeControllerSession(NativeProcessSession):
             'start_websocket_testee',
             'stop_websocket_testee',
 
-            'activate_realm'
+            'activate_realm',
         ]
 
         dl = []

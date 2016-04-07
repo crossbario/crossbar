@@ -40,6 +40,7 @@ from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 
 from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.python.failure import Failure
 
 from autobahn import util
 from autobahn.wamp import types
@@ -97,6 +98,10 @@ class PendingAuthCryptosign(PendingAuth):
     @inlineCallbacks
     def hello(self, realm, details):
         # the channel binding requested by the client authenticating
+        if details.authextra is None:
+            raise Exception(
+                "Must specify 'authextra=' when calling .join()"
+            )
         channel_binding = details.authextra.get(u'channel_binding', None)
         if channel_binding is not None and channel_binding not in [u'tls-unique']:
             returnValue(types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding)))
@@ -168,24 +173,20 @@ class PendingAuthCryptosign(PendingAuth):
             self._session_details[u'authmethod'] = u'cryptosign'
             self._session_details[u'authextra'] = details.authextra
 
-            d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
-
-            @inlineCallbacks
-            def on_authenticate_ok(principal):
+            try:
+                principal = yield self._authenticator_session.call(
+                    self._authenticator, realm, details.authid, self._session_details,
+                )
                 error = yield self._assign_principal(principal)
                 if error:
                     returnValue(error)
-
                 self._verify_key = VerifyKey(principal[u'pubkey'], encoder=nacl.encoding.HexEncoder)
-
                 extra = self._compute_challenge(channel_binding)
                 returnValue(types.Challenge(self._authmethod, extra))
 
-            def on_authenticate_error(err):
-                return self._marshal_dynamic_authenticator_error(err)
-
-            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-            returnValue(d)
+            except Exception:
+                err = Failure()
+                returnValue(self._marshal_dynamic_authenticator_error(err))
 
         else:
             # should not arrive here, as config errors should be caught earlier
@@ -224,6 +225,8 @@ class PendingAuthCryptosign(PendingAuth):
             return self._accept()
 
         except Exception as e:
-
-            # should not arrive here .. but who knows
+            self.log.failure(
+                "Internal error processing WAMP-Cryptosign challenge: {log_failure}",
+                failure=Failure(),
+            )
             return types.Deny(message=u'internal error: {}'.format(e))
