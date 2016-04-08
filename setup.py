@@ -37,16 +37,6 @@ import platform
 
 from setuptools import setup, find_packages, __version__ as setuptools_ver
 
-if setuptools_ver < "20.0":
-    OLD_SETUPTOOLS = True
-
-    if "bdist_wheel" in sys.argv:
-        raise ValueError("too old setuptools to do bdist_wheel")
-
-else:
-    OLD_SETUPTOOLS = False
-
-
 LONGSDESC = open('README.rst').read()
 
 # Get package version from crossbar/__init__.py
@@ -106,7 +96,6 @@ install_requires = [
 
     # HTTP/REST bridge (also pulls in TLS packages!)
     'treq>=15.1.0',               # MIT license
-
 ]
 
 setproctitle_version = "1.1.9"  # BSD license
@@ -115,47 +104,21 @@ pyinotify_version = "0.9.6"  # MIT license
 wsaccel_version = "0.6.2"  # Apache 2.0
 ujson_version = "1.33"  # BSD license
 
+extras_require[":sys_platform != 'win32'"] = [
+    "setproctitle>=" + setproctitle_version
+]
 
-if OLD_SETUPTOOLS:
+extras_require[':sys_platform == "win32"'] = [
+    'pypiwin32>=' + pypiwin32_version
+]
 
-    if sys.platform != 'win32':
-        # setproctitle does not provide wheels (https://github.com/dvarrazzo/py-setproctitle/issues/47) => disable on Windows
-        install_requires.append('setproctitle>=' + setproctitle_version)
+extras_require[':"linux" in sys_platform'] = [
+    'pyinotify>=' + pyinotify_version
+]
 
-    if sys.platform == 'win32':
-        install_requires.append('pypiwin32>=' + pypiwin32_version)
-
-    # FIXME: https://github.com/crossbario/crossbar/issues/581
-    if sys.platform.startswith('linux'):
-        install_requires.append('pyinotify>=' + pyinotify_version)
-
-    # native WebSocket/JSON acceleration - only for CPy (skip for PyPy, since it'll be _slower_ on that!)
-    if CPY:
-        # wsaccel does not provide wheels (https://github.com/methane/wsaccel/issues/12) => disable on Windows
-        if sys.platform != 'win32':
-            install_requires.append('wsaccel>=' + wsaccel_version)
-
-        # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
-        if sys.platform != 'win32':
-            install_requires.append("ujson>=" + ujson_version)
-
-else:
-
-    extras_require[":sys_platform != 'win32'"] = [
-        "setproctitle>=" + setproctitle_version
-    ]
-
-    extras_require[':sys_platform == "win32"'] = [
-        'pypiwin32>=' + pypiwin32_version
-    ]
-
-    extras_require[':"linux" in sys_platform'] = [
-        'pyinotify>=' + pyinotify_version
-    ]
-
-    extras_require[':sys_platform != "win32" and platform_python_implementation == "CPython"'] = [
-        'wsaccel>=' + wsaccel_version, 'ujson>=' + ujson_version
-    ]
+extras_require[':sys_platform != "win32" and platform_python_implementation == "CPython"'] = [
+    'wsaccel>=' + wsaccel_version, 'ujson>=' + ujson_version
+]
 
 # For Crossbar.io development
 extras_require_dev = [
@@ -173,20 +136,13 @@ extras_require_postgres = [
 psycopg2_version = "2.6.1"  # LGPL license
 psycopg2cffi_version = "2.7.2"  # LGPL license
 
-if OLD_SETUPTOOLS:
-    if CPY:
-        extras_require_postgres.append('psycopg2>=' + psycopg2_version)
-    else:
-        extras_require_postgres.append('psycopg2cffi>=' + psycopg2cffi_version)
+extras_require['postgres:platform_python_implementation == "CPython"'] = [
+    'psycopg2>=' + psycopg2_version
+]
 
-else:
-    extras_require['postgres:platform_python_implementation == "CPython"'] = [
-        'psycopg2>=' + psycopg2_version
-    ]
-
-    extras_require['postgres:platform_python_implementation != "CPython"'] = [
-        'psycopg2cffi>=' + psycopg2cffi_version
-    ]
+extras_require['postgres:platform_python_implementation != "CPython"'] = [
+    'psycopg2cffi>=' + psycopg2cffi_version
+]
 
 # Crossbar.io/Oracle integration
 extras_require_oracle = [
