@@ -76,7 +76,6 @@ install_requires = [
     'pyyaml>=3.11',               # MIT license
     'shutilwhich>=1.1.0',         # PSF license
     'sdnotify>=0.3.0',            # MIT license
-
     'psutil>=3.2.1',              # BSD license
     'lmdb>=0.88',                 # OpenLDAP BSD
 
@@ -92,32 +91,27 @@ install_requires = [
     'service_identity>=14.0.0',   # MIT license
 
     # NaCl
-    'pynacl>=1.0.1',              # Apache license
+    'pynacl>=1.0.1',                # Apache license
 
     # HTTP/REST bridge (also pulls in TLS packages!)
-    'treq>=15.1.0',               # MIT license
+    'treq>=15.1.0',                 # MIT license
 ]
 
-setproctitle_version = "1.1.9"  # BSD license
-pypiwin32_version = "219"  # PSF license
-pyinotify_version = "0.9.6"  # MIT license
-wsaccel_version = "0.6.2"  # Apache 2.0
-ujson_version = "1.33"  # BSD license
-
 extras_require[":sys_platform != 'win32'"] = [
-    "setproctitle>=" + setproctitle_version
+    'setproctitle>=1.1.9'           # BSD license
 ]
 
 extras_require[':sys_platform == "win32"'] = [
-    'pypiwin32>=' + pypiwin32_version
+    'pypiwin32>=219'                # PSF license
 ]
 
 extras_require[':"linux" in sys_platform'] = [
-    'pyinotify>=' + pyinotify_version
+    'pyinotify>=0.9.6'              # MIT license
 ]
 
 extras_require[':sys_platform != "win32" and platform_python_implementation == "CPython"'] = [
-    'wsaccel>=' + wsaccel_version, 'ujson>=' + ujson_version
+    'wsaccel>=0.6.2',               # Apache 2.0
+    'ujson>=1.33'                   # BSD license
 ]
 
 # For Crossbar.io development
@@ -128,32 +122,8 @@ extras_require_dev = [
     'wheel>=0.26.0',                # MIT license
 ]
 
-# Crossbar.io/PostgreSQL integration
-extras_require_postgres = [
-    'txpostgres>=1.4.0',            # MIT license
-]
-
-psycopg2_version = "2.6.1"  # LGPL license
-psycopg2cffi_version = "2.7.2"  # LGPL license
-
-extras_require['postgres:platform_python_implementation == "CPython"'] = [
-    'psycopg2>=' + psycopg2_version
-]
-
-extras_require['postgres:platform_python_implementation != "CPython"'] = [
-    'psycopg2cffi>=' + psycopg2cffi_version
-]
-
-# Crossbar.io/Oracle integration
-extras_require_oracle = [
-    'cx_Oracle>=5.2',               # Python Software Foundation license
-]
-
 extras_require.update({
-    'all': [],
     'dev': extras_require_dev,
-    'oracle': extras_require_oracle,
-    'postgres': extras_require_postgres
 })
 
 
@@ -177,8 +147,8 @@ setup(
     include_package_data=True,
     data_files=[('.', ['LICENSE', 'COPYRIGHT'])],
     zip_safe=False,
+
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
-    #
     classifiers=["License :: OSI Approved :: GNU Affero General Public License v3",
                  "Development Status :: 4 - Beta",
                  "Environment :: No Input/Output (Daemon)",
