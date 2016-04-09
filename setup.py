@@ -52,19 +52,21 @@ extras_require = {
     'dev': []
 }
 
-with open('requirements.txt') as f:
+with open('requirements-frozen.txt') as f:
     for line in f.read().splitlines():
-        parts = line.strip().split(';')
-        if len(parts) > 1:
-            parts[0] = parts[0].strip()
-            parts[1] = ':{}'.format(parts[1].strip())
-            if parts[1] not in extras_require:
-                extras_require[parts[1]] = []
-            extras_require[parts[1]].append(parts[0])
-        else:
-            install_requires.append(parts)
+        line = line.strip()
+        if not line.startswith('#'):
+            parts = line.strip().split(';')
+            if len(parts) > 1:
+                parts[0] = parts[0].strip()
+                parts[1] = ':{}'.format(parts[1].strip())
+                if parts[1] not in extras_require:
+                    extras_require[parts[1]] = []
+                extras_require[parts[1]].append(parts[0])
+            else:
+                install_requires.append(parts)
 
-with open('dev-requirements.txt') as f:
+with open('requirements-dev.txt') as f:
     for line in f.read().splitlines():
         extras_require['dev'].append(line.strip())
 

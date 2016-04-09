@@ -23,6 +23,9 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
+freeze:
+	pip freeze -r requirements.txt | grep -v crossbar > requirements-frozen.txt
+
 install:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --upgrade -e .
 
