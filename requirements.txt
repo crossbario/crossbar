@@ -1,0 +1,29 @@
+click>=5.1
+setuptools>=18.3.1
+zope.interface>=4.1.2
+twisted>=16.0.0
+autobahn[twisted]>=0.13.1
+netaddr>=0.7.18
+pytrie>=0.2
+jinja2>=2.8
+mistune>=0.7.1
+pygments>=2.0.2
+pyyaml>=3.11
+shutilwhich>=1.1.0
+sdnotify>=0.3.0
+psutil>=3.2.1
+lmdb>=0.88
+msgpack-python>=0.4.6
+cbor>=0.1.24
+cryptography>=0.9.3
+pyOpenSSL>=0.15.1
+pyasn1>=0.1.8
+pyasn1-modules>=0.0.7
+service_identity>=14.0.0
+pynacl>=1.0.1
+treq>=15.1.0
+setproctitle>=1.1.9; sys_platform != 'win32'
+pypiwin32>=219; sys_platform == 'win32'
+pyinotify>=0.9.6; 'linux' in sys_platform
+wsaccel>=0.6.2; platform_python_implementation == 'CPython' and sys_platform != 'win32'
+ujson>=1.33; platform_python_implementation == 'CPython' and sys_platform != 'win32'

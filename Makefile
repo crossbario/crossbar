@@ -24,10 +24,10 @@ clean:
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
 install:
-	pip install --upgrade -e .[all]
+	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --upgrade -e .
 
 install3:
-	pip3 install --upgrade -e .[all]
+	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip3 install --upgrade -e .
 
 publish: clean
 	python setup.py register

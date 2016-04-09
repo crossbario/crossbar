@@ -28,110 +28,58 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
 import re
 import os
-import sys
-import platform
 
-from setuptools import setup, find_packages, __version__ as setuptools_ver
+from setuptools import setup
 
-LONGSDESC = open('README.rst').read()
 
-# Get package version from crossbar/__init__.py
-#
-VERSIONFILE = "crossbar/__init__.py"
-verstrline = open(VERSIONFILE, "rt").read()
-VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    verstr = mo.group(1)
-else:
-    raise RuntimeError("Unable to find version string in {}.".format(VERSIONFILE))
+# read package description
+with open('README.rst') as f:
+    long_description = f.read()
 
-CPY = platform.python_implementation() == 'CPython'
-PYPY = platform.python_implementation() == 'PyPy'
+# read package version
+with open('crossbar/__init__.py') as f:
+    mo = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", f.read(), re.M)
+    if mo:
+        version = mo.group(1)
+    else:
+        raise RuntimeError('could not read package version')
+
+# read requirements from requirements.txt
+install_requires = []
+extras_require = {
+    'dev': []
+}
+
+with open('requirements.txt') as f:
+    for line in f.read().splitlines():
+        parts = line.strip().split(';')
+        if len(parts) > 1:
+            parts[0] = parts[0].strip()
+            parts[1] = ':{}'.format(parts[1].strip())
+            if parts[1] not in extras_require:
+                extras_require[parts[1]] = []
+            extras_require[parts[1]].append(parts[0])
+        else:
+            install_requires.append(parts)
+
+with open('dev-requirements.txt') as f:
+    for line in f.read().splitlines():
+        extras_require['dev'].append(line.strip())
 
 # enforce use of CFFI for LMDB
-if PYPY:
-    os.environ['LMDB_FORCE_CFFI'] = '1'
+os.environ['LMDB_FORCE_CFFI'] = '1'
 
 # enforce use of bundled libsodium
 os.environ['SODIUM_INSTALL'] = 'bundled'
 
-extras_require = {}
-
-install_requires = [
-    'click>=5.1',                 # BSD license
-    'setuptools>=18.3.1',         # Python Software Foundation license
-    'zope.interface>=4.1.2',      # Zope Public license
-    'twisted>=16.0.0',            # MIT license
-    'autobahn[twisted]>=0.13.0',  # MIT license
-    'netaddr>=0.7.18',            # BSD license
-    'pytrie>=0.2',                # BSD license
-    'jinja2>=2.8',                # BSD license
-    'mistune>=0.7.1',             # BSD license
-    'pygments>=2.0.2',            # BSD license
-    'pyyaml>=3.11',               # MIT license
-    'shutilwhich>=1.1.0',         # PSF license
-    'sdnotify>=0.3.0',            # MIT license
-    'psutil>=3.2.1',              # BSD license
-    'lmdb>=0.88',                 # OpenLDAP BSD
-
-    # Serializers
-    'msgpack-python>=0.4.6',      # Apache 2.0 license
-    'cbor>=0.1.24',               # Apache 2.0 license
-
-    # TLS
-    'cryptography>=0.9.3',        # Apache license
-    'pyOpenSSL>=0.15.1',          # Apache license
-    'pyasn1>=0.1.8',              # BSD license
-    'pyasn1-modules>=0.0.7',      # BSD license
-    'service_identity>=14.0.0',   # MIT license
-
-    # NaCl
-    'pynacl>=1.0.1',                # Apache license
-
-    # HTTP/REST bridge (also pulls in TLS packages!)
-    'treq>=15.1.0',                 # MIT license
-]
-
-extras_require[":sys_platform != 'win32'"] = [
-    'setproctitle>=1.1.9'           # BSD license
-]
-
-extras_require[':sys_platform == "win32"'] = [
-    'pypiwin32>=219'                # PSF license
-]
-
-extras_require[':"linux" in sys_platform'] = [
-    'pyinotify>=0.9.6'              # MIT license
-]
-
-extras_require[':sys_platform != "win32" and platform_python_implementation == "CPython"'] = [
-    'wsaccel>=0.6.2',               # Apache 2.0
-    'ujson>=1.33'                   # BSD license
-]
-
-# For Crossbar.io development
-extras_require_dev = [
-    'flake8>=2.5.1',                # MIT license
-    'colorama>=0.3.3',              # BSD license
-    'mock>=1.3.0',                  # BSD license
-    'wheel>=0.26.0',                # MIT license
-]
-
-extras_require.update({
-    'dev': extras_require_dev,
-})
-
-
+# now actually call into setuptools ..
 setup(
     name='crossbar',
-    version=verstr,
+    version=version,
     description='Crossbar.io - The Unified Application Router',
-    long_description=LONGSDESC,
+    long_description=long_description,
     author='Tavendo GmbH',
     author_email='autobahnws@googlegroups.com',
     url='http://crossbar.io/',
@@ -143,9 +91,9 @@ setup(
         'console_scripts': [
             'crossbar = crossbar.controller.cli:run'
         ]},
-    packages=find_packages(),
+    packages=['crossbar'],
     include_package_data=True,
-    data_files=[('.', ['LICENSE', 'COPYRIGHT'])],
+    data_files=[('.', ['COPYRIGHT', 'LICENSE', 'LICENSE-FOR-API'])],
     zip_safe=False,
 
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
