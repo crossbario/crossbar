@@ -52,7 +52,7 @@ extras_require = {
     'dev': []
 }
 
-with open('requirements-frozen.txt') as f:
+with open('requirements-in.txt') as f:
     for line in f.read().splitlines():
         line = line.strip()
         if not line.startswith('#'):

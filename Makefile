@@ -24,10 +24,51 @@ clean:
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
 freeze:
-	pip freeze -r requirements.txt | grep -v crossbar > requirements-frozen.txt
+	pip freeze -r requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt
+
+hashin:
+	hashin click
+	hashin setuptools
+	hashin zope.interface
+	hashin Twisted
+	hashin autobahn
+	hashin netaddr
+	hashin PyTrie
+	hashin Jinja2
+	hashin mistune
+	hashin Pygments
+	hashin PyYAML
+	hashin shutilwhich
+	hashin sdnotify
+	hashin psutil
+	hashin lmdb
+	hashin msgpack-python
+	hashin cbor
+	hashin cryptography
+	hashin pyOpenSSL
+	hashin pyasn1
+	hashin pyasn1-modules
+	hashin service-identity
+	hashin PyNaCl
+	hashin treq
+	hashin setproctitle
+	hashin pyinotify
+	hashin wsaccel
+	hashin ujson
+	hashin attrs
+	hashin cffi
+	hashin enum34
+	hashin idna
+	hashin ipaddress
+	hashin MarkupSafe
+	hashin pycparser
+	hashin requests
+	hashin six
+	hashin txaio
 
 install:
-	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --upgrade -e .
+	#LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --upgrade -e .
+	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
 
 install3:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip3 install --upgrade -e .
