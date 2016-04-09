@@ -151,7 +151,7 @@ def maybe_generate_key(log, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.p
     if os.path.exists(privkey_path):
         # node private key seems to exist already .. check!
         tags = _parse_keyfile(privkey_path, private=True)
-        if not u'private-key-ed25519' in tags:
+        if u'private-key-ed25519' not in tags:
             raise Exception("Node private key file lacks a 'private-key-ed25519' tag!")
 
         privkey = tags[u'private-key-ed25519']
@@ -165,13 +165,13 @@ def maybe_generate_key(log, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.p
             if tags[u'public-key-ed25519'] != pubkey:
                 raise Exception(
                     ("Inconsistent key file '{}': 'public-key-ed25519' doesn't"
-                    " correspond to private-key-ed25519").format(privkey_path)
+                     " correspond to private-key-ed25519").format(privkey_path)
                 )
         log.debug("Node key already exists (public key: {})".format(pubkey))
 
         if os.path.exists(pubkey_path):
             pubtags = _parse_keyfile(pubkey_path, private=False)
-            if not u'public-key-ed25519' in pubtags:
+            if u'public-key-ed25519' not in pubtags:
                 raise Exception(
                     ("Pubkey file '{}' exists but lacks 'public-key-ed25519'"
                      " tag").format(pubkey_path)
@@ -179,7 +179,7 @@ def maybe_generate_key(log, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.p
             if pubtags[u'public-key-ed25519'] != pubkey:
                 raise Exception(
                     ("Inconsistent key file '{}': 'public-key-ed25519' doesn't"
-                    " correspond to private-key-ed25519").format(pubkey_path)
+                     " correspond to private-key-ed25519").format(pubkey_path)
                 )
         else:
             log.info("'{}' not found; re-creating from '{}'".format(pubkey_path, privkey_path))
