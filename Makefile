@@ -66,6 +66,9 @@ hashin:
 	hashin six
 	hashin txaio
 
+wheel:
+	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
+
 install:
 	#LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --upgrade -e .
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
