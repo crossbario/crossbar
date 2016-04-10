@@ -368,14 +368,15 @@ class RouterSession(BaseSession):
             if isinstance(msg, message.Hello):
 
                 self._session_roles = msg.roles
-
-                details = types.HelloDetails(realm=msg.realm,
-                                             authmethods=msg.authmethods,
-                                             authid=msg.authid,
-                                             authrole=msg.authrole,
-                                             authextra=msg.authextra,
-                                             session_roles=msg.roles,
-                                             pending_session=self._pending_session_id)
+                details = types.HelloDetails(
+                    realm=msg.realm,
+                    authmethods=msg.authmethods,
+                    authid=msg.authid,
+                    authrole=msg.authrole,
+                    authextra=msg.authextra,
+                    session_roles=msg.roles,
+                    pending_session=self._pending_session_id,
+                )
 
                 d = txaio.as_future(self.onHello, msg.realm, details)
 

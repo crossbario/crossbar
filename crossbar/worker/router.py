@@ -620,8 +620,12 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The component configuration.
         :type config: obj
         """
-        self.log.debug("{}.start_router_component".format(self.__class__.__name__),
-                       id=id, config=config)
+        self.log.info(
+            "{cls}.start_router_component({id}, {config})",
+            cls=self.__class__.__name__,
+            id=id,
+            config=config,
+        )
 
         # prohibit starting a component twice
         #

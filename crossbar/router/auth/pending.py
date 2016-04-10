@@ -104,6 +104,10 @@ class PendingAuth:
 
     @inlineCallbacks
     def _assign_principal(self, principal):
+        self.log.info(
+            "_assign_principal: {principal}",
+            principal=principal,
+        )
         if type(principal) == six.text_type:
             # FIXME: more strict authrole checking
             pass
@@ -173,7 +177,25 @@ class PendingAuth:
         if not self._router_factory[self._realm].has_role(self._authrole):
             # this actually might start the role asyncronously .. wait until the creation is finished
             # or fails finally
-            yield self._router_factory.auto_add_role(self._realm, self._authrole)
+            try:
+                yield self._router_factory.auto_add_role(self._realm, self._authrole)
+            except Exception as e:
+                self.log.info(
+                    "Failed to auto-activate role '{role}': {reason}",
+                    reason=str(e),
+                    role=self._authrole,
+                )
+                # we failed to auto-activate this role, so we don't have it
+                returnValue(
+                    types.Deny(
+                        ApplicationError.NO_SUCH_ROLE,
+                        message=u'realm "{}" has no role "{}"'.format(
+                            self._realm,
+                            self._authrole,
+                        )
+                    )
+                )
+                return
 
         # if role is not running on realm, bail out now!
         if not self._router_factory[self._realm].has_role(self._authrole):
@@ -207,12 +229,14 @@ class PendingAuth:
         return types.Deny(error, message)
 
     def _accept(self):
-        return types.Accept(realm=self._realm,
-                            authid=self._authid,
-                            authrole=self._authrole,
-                            authmethod=self._authmethod,
-                            authprovider=self._authprovider,
-                            authextra=self._authextra)
+        return types.Accept(
+            realm=self._realm,
+            authid=self._authid,
+            authrole=self._authrole,
+            authmethod=self._authmethod,
+            authprovider=self._authprovider,
+            authextra=self._authextra,
+        )
 
     def hello(self, realm, details):
         """

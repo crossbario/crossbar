@@ -260,7 +260,7 @@ class Node(object):
 
     def _prepare_node_keys(self):
         from nacl.signing import SigningKey
-        from nacl.encoding import HexEncoder
+        from nacl.encoding import HexEncoder, RawEncoder
 
         # make sure CBDIR/.cdc exists
         #
@@ -315,9 +315,7 @@ class Node(object):
             if skey_len in (32, 64):
                 with open(skey_file, 'r') as f:
                     skey_seed = f.read()
-                    encoder = None
-                    if skey_len == 64:
-                        encoder = HexEncoder
+                    encoder = HexEncoder if skey_len == 64 else RawEncoder
                     skey = SigningKey(skey_seed, encoder=encoder)
                 self.log.info("Existing CDC node key loaded from {skey_file}.", skey_file=skey_file)
             else:
