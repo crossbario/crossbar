@@ -36,7 +36,7 @@ from twisted.internet import protocol
 from twisted.internet.error import ProcessDone, ProcessTerminated, ProcessExitedAlready
 from twisted.internet.error import ConnectionDone
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = ('create_guest_worker_client_factory',)
 
@@ -101,7 +101,10 @@ class GuestWorkerClientProtocol(protocol.Protocol):
             else:
                 # get this when subprocess has exited early; should we just log error?
                 # should not arrive here
-                self.log.error("GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {}".format(reason))
+                self.log.error(
+                    "GuestWorkerClientProtocol: INTERNAL ERROR - should not arrive here - {reason}",
+                    reason=reason,
+                )
 
         except Exception:
             self.log.failure("GuestWorkerClientProtocol: INTERNAL ERROR - {log_failure}")

@@ -36,7 +36,7 @@ from autobahn.wamp import auth
 from autobahn.wamp.types import SubscribeOptions, PublishOptions
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = ('NodeManagementSession', 'NodeManagementBridgeSession')
 
@@ -139,8 +139,11 @@ class NodeManagementBridgeSession(ApplicationSession):
 
             try:
                 yield self._manager.publish(topic, *args, options=PublishOptions(acknowledge=True), **kwargs)
-            except Exception as e:
-                self.log.error("Failed to forward event on topic '{topic}': {error}", topic=topic, error=e)
+            except Exception:
+                self.log.failure(
+                    "Failed to forward event on topic '{topic}': {log_failure.value}",
+                    topic=topic,
+                )
             else:
                 self.log.debug("Forwarded management event on topic '{topic}'", topic=topic)
 
@@ -161,8 +164,11 @@ class NodeManagementBridgeSession(ApplicationSession):
 
             try:
                 reg = yield self._manager.register(forward_call, procedure)
-            except Exception as e:
-                self.log.error("Failed to register management procedure '{procedure}': {error}", procedure=procedure, error=e)
+            except Exception:
+                self.log.failure(
+                    "Failed to register management procedure '{procedure}': {log_failure.value}",
+                    procedure=procedure,
+                )
             else:
                 self._regs[registration['id']] = reg
                 self.log.debug("Management procedure registered: '{procedure}'", procedure=reg.procedure)

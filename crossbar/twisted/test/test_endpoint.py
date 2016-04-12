@@ -43,7 +43,8 @@ from twisted.python.runtime import platform
 
 from crossbar.test import TestCase
 from crossbar.twisted.endpoint import create_listening_endpoint_from_config
-from crossbar._logging import make_logger
+
+from txaio import make_logger
 
 
 class ListeningEndpointTests(TestCase):
@@ -140,5 +141,9 @@ class ListeningEndpointTests(TestCase):
         _ = "Windows does not have UNIX sockets"
         test_unix.skip = _
         test_unix_already_listening.skip = _
+        test_unix_already_listening_cant_delete.skip = _
+        del _
+    elif os.getuid() == 0:
+        _ = "Cannot run as root"
         test_unix_already_listening_cant_delete.skip = _
         del _

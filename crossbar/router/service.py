@@ -39,13 +39,44 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.observation import is_protected_uri
-from crossbar._logging import make_logger
+
+from txaio import make_logger
 
 __all__ = ('RouterServiceSession',)
 
 
 def _is_restricted_session(session):
     return session._authrole is None or session._authrole == u'trusted'
+
+
+# # extract schema information from WAMP-flavored Markdown
+# #
+# schemas = None
+# if 'schemas' in realm:
+#     schemas = {}
+#     schema_pat = re.compile(r"```javascript(.*?)```", re.DOTALL)
+#     cnt_files = 0
+#     cnt_decls = 0
+#     for schema_file in realm.pop('schemas'):
+#         schema_file = os.path.join(self._cbdir, schema_file)
+#         self.log.info("{worker}: processing WAMP-flavored Markdown file {schema_file} for WAMP schema declarations",
+#                       worker=worker_logname, schema_file=schema_file)
+#         with open(schema_file, 'r') as f:
+#             cnt_files += 1
+#             for d in schema_pat.findall(f.read()):
+#                 try:
+#                     o = json.loads(d)
+#                     if isinstance(o, dict) and '$schema' in o and o['$schema'] == u'http://wamp.ws/schema#':
+#                         uri = o['uri']
+#                         if uri not in schemas:
+#                             schemas[uri] = {}
+#                         schemas[uri].update(o)
+#                         cnt_decls += 1
+#                 except Exception:
+#                     self.log.failure("{worker}: WARNING - failed to process declaration in {schema_file} - {log_failure.value}",
+#                                      worker=worker_logname, schema_file=schema_file)
+#     self.log.info("{worker}: processed {cnt_files} files extracting {cnt_decls} schema declarations and {len_schemas} URIs",
+#                   worker=worker_logname, cnt_files=cnt_files, cnt_decls=cnt_decls, len_schemas=len(schemas))
 
 
 class RouterServiceSession(ApplicationSession):

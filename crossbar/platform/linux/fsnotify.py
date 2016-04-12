@@ -33,7 +33,7 @@ from __future__ import absolute_import
 import os
 import pyinotify
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = ('DirWatcher',)
 

@@ -59,19 +59,24 @@ class RESTCallee(ApplicationSession):
 
             newURL = urljoin(baseURL, url)
 
+            params = {x.encode('utf8'): y.encode('utf8') for x, y in params.items()}
+
             res = yield self._webtransport.request(
-                method.encode('utf8'),
-                newURL.encode('utf8'),
+                method,
+                newURL,
                 data=body.encode('utf8'),
                 headers=Headers(headers),
                 params=params
             )
             content = yield self._webtransport.text_content(res)
 
+            headers = {x.decode('utf8'): [z.decode('utf8') for z in y]
+                       for x, y in dict(res.headers.getAllRawHeaders()).items()}
+
             resp = {
                 u"code": res.code,
                 u"content": content,
-                u"headers": dict(res.headers.getAllRawHeaders())
+                u"headers": headers
             }
 
             returnValue(resp)

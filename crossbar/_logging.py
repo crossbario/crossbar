@@ -34,46 +34,22 @@ import os
 import sys
 import re
 import six
-import inspect
 import json
-import warnings
 
 from json import JSONEncoder
 
-from functools import partial
-
 from zope.interface import provider
 
-from twisted.logger import ILogObserver, formatEvent, Logger, globalLogPublisher
-from twisted.logger import LogLevel, globalLogBeginner, formatTime
-
-from twisted.python.constants import NamedConstant
-from twisted.python.reflect import qual
+from twisted.logger import ILogObserver, formatEvent, globalLogPublisher
+from twisted.logger import LogLevel, formatTime
 
 from pygments import highlight, lexers, formatters
 
-from weakref import WeakKeyDictionary
-
-from ._log_categories import log_keys
+from txaio import get_global_log_level, set_global_log_level
+from txaio.tx import log_levels
 
 record_separator = u"\x1e"
 cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
-
-_loggers = WeakKeyDictionary()
-_loglevel = "info"  # Default is "info"
-
-
-def set_global_log_level(level):
-    """
-    Set the global log level on all the loggers that have the level not
-    explicitly set.
-    """
-    for item in _loggers.keys():
-        if not item._log_level_explicitly_set:
-            item._log_level = level
-    global _loglevel
-    _loglevel = level
-
 
 try:
     from colorama import Fore
@@ -103,13 +79,6 @@ STANDARD_FORMAT = u"{startcolour}{time} [{system}]{endcolour} {text}"
 SYSLOGD_FORMAT = u"{startcolour}[{system}]{endcolour} {text}"
 NONE_FORMAT = u"{text}"
 
-POSSIBLE_LEVELS = ["none", "critical", "error", "warn", "info", "debug",
-                   "trace"]
-REAL_LEVELS = ["critical", "error", "warn", "info", "debug"]
-
-# Sanity check
-assert set(REAL_LEVELS).issubset(set(POSSIBLE_LEVELS))
-
 # A regex that matches ANSI escape sequences
 # http://stackoverflow.com/a/33925425
 _ansi_cleaner = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
@@ -129,20 +98,27 @@ def escape_formatting(text):
     return text.replace(u"{", u"{{").replace(u"}", u"}}")
 
 
-def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
+def make_stdout_observer(levels=(LogLevel.info,),
                          show_source=False, format="standard", trace=False,
-                         colour=False, _file=None):
+                         colour=False, _file=None, _categories=None):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
     if _file is None:
         _file = sys.__stdout__
 
+    if _categories is None:
+        from crossbar._log_categories import log_categories as _categories
+
     @provider(ILogObserver)
     def StandardOutObserver(event):
 
         if event["log_level"] not in levels:
             return
+
+        if event["log_level"] == LogLevel.debug:
+            if event.get("txaio_trace", False) and not trace:
+                return
 
         if event.get("log_system", "-") == "-":
             logSystem = "{:<10} {:>6}".format("Controller", os.getpid())
@@ -151,6 +127,12 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 
         if show_source and event.get("log_namespace") is not None:
             logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+
+        if event.get("log_category"):
+            format_string = _categories.get(event['log_category'])
+            if format_string:
+                event = event.copy()
+                event["log_format"] = format_string
 
         if format == "standard":
             FORMAT_STRING = STANDARD_FORMAT
@@ -190,12 +172,15 @@ def make_stdout_observer(levels=(LogLevel.info, LogLevel.debug),
 def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                                  LogLevel.critical),
                          show_source=False, format="standard",
-                         colour=False, _file=None):
+                         colour=False, _file=None, _categories=None):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
     if _file is None:
         _file = sys.__stderr__
+
+    if _categories is None:
+        from crossbar._log_categories import log_categories as _categories
 
     @provider(ILogObserver)
     def StandardErrorObserver(event):
@@ -210,6 +195,12 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
 
         if show_source and event.get("log_namespace") is not None:
             logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+
+        if event.get("log_category"):
+            format_string = _categories.get(event['log_category'])
+            if format_string:
+                event = event.copy()
+                event["log_format"] = format_string
 
         if event.get("log_format", None) is not None:
             eventText = formatEvent(event)
@@ -266,7 +257,7 @@ def make_JSON_observer(outFile):
         # outside our target log-level; this is to prevent
         # (de-)serializing all the debug() messages (for example) from
         # workers to the controller.
-        if POSSIBLE_LEVELS.index(level) > POSSIBLE_LEVELS.index(_loglevel):
+        if log_levels.index(level) > log_levels.index(get_global_log_level()):
             return
 
         done_json = {
@@ -354,122 +345,6 @@ def make_logfile_observer(path, show_source=False):
     return FileLogObserver(f, _render)
 
 
-class CrossbarLogger(object):
-    """
-    A logger that wraps a L{Logger} and no-ops messages that it doesn't want to
-    listen to.
-    """
-    def __init__(self, log_level=None, namespace=None, logger=None, observer=None):
-
-        assert logger is not None and \
-            observer is not None and \
-            namespace is not None, (
-                "Don't make a CrossbarLogger directly, use makeLogger")
-
-        if log_level is None:
-            # If an explicit log level isn't given, use the current global log
-            # level
-            self._setlog_level = _loglevel
-            self._log_level_explicitly_set = False
-        else:
-            self.set_log_level(log_level)
-
-        self.logger = logger(observer=observer, namespace=namespace)
-
-        def _log(self, level, *args, **kwargs):
-            """
-            When this is called, it checks whether the index is higher than the
-            current set level. If it is not, it is a no-op.
-            """
-            if isinstance(level, NamedConstant):
-                level = level.name
-
-            if "log_category" in kwargs:
-                if kwargs["log_category"] not in log_keys:
-                    warnings.warn("Invalid log ID")
-
-            if POSSIBLE_LEVELS.index(level) <= POSSIBLE_LEVELS.index(self._log_level):
-                getattr(self.logger, level)(*args, **kwargs)
-
-        for item in REAL_LEVELS:
-            # Set instances of _log which convert to no-ops.
-            setattr(self, item, partial(_log, self, item))
-
-        self.emit = partial(_log, self)
-
-    def failure(self, *args, **kwargs):
-        if POSSIBLE_LEVELS.index("critical") <= POSSIBLE_LEVELS.index(self._log_level):
-            return self.logger.failure(*args, **kwargs)
-
-    def trace(self, *args, **kwargs):
-        if POSSIBLE_LEVELS.index("trace") <= POSSIBLE_LEVELS.index(self._log_level):
-            return self.debug(*args, cb_trace=True, **kwargs)
-
-    def set_log_level(self, level):
-        """
-        Explicitly change the log level.
-        """
-        self._log_level_explicitly_set = True
-        self._log_level = level
-
-    @property
-    def _log_level(self):
-        return self._setlog_level
-
-    @_log_level.setter
-    def _log_level(self, level):
-        if level not in POSSIBLE_LEVELS:
-            raise ValueError(
-                "{level} not in {levels}".format(level=level,
-                                                 levels=POSSIBLE_LEVELS))
-        self._setlog_level = level
-
-
-def make_logger(log_level=None, logger=Logger, observer=None):
-    """
-    Make a new logger (of the type set by the kwarg logger) that publishes to
-    the observer set in the observer kwarg. If no explicit log_level is given,
-    it uses the current global log level.
-    """
-    if observer is None:
-        observer = globalLogPublisher
-
-    # Get the caller's frame
-    cf = inspect.currentframe().f_back
-
-    if "self" in cf.f_locals:
-        # We're probably in a class init or method
-        namespace = qual(cf.f_locals["self"].__class__)
-
-        logger = CrossbarLogger(log_level,
-                                namespace=namespace,
-                                logger=logger,
-                                observer=observer)
-    else:
-        namespace = cf.f_globals["__name__"]
-
-        if cf.f_code.co_name != "<module>":
-            # If it's not the module, and not in a class instance, add the code
-            # object's name.
-            namespace = namespace + "." + cf.f_code.co_name
-
-        logger = CrossbarLogger(log_level,
-                                namespace=namespace,
-                                logger=logger,
-                                observer=observer)
-
-    # Set up a weak ref, so that all loggers can be updated later
-    _loggers[logger] = True
-    return logger
-
-
-def start_logging():
-    """
-    Start logging to the publisher.
-    """
-    globalLogBeginner.beginLoggingTo([])
-
-
 def color_json(json_str):
     """
     Given an already formatted JSON string, return a colored variant which will
@@ -506,7 +381,7 @@ class LogCapturer(object):
     """
     def __init__(self, level="debug"):
         self.logs = []
-        self._old_log_level = _loglevel
+        self._old_log_level = get_global_log_level()
         self.desired_level = level
 
     def get_category(self, identifier):

@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, division
 
+import txaio
+
 from autobahn import util
 from autobahn.wamp import role
 from autobahn.wamp import message
@@ -42,9 +44,8 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions
-from crossbar._logging import make_logger
 
-import txaio
+from txaio import make_logger
 
 __all__ = ('Broker',)
 
@@ -334,7 +335,7 @@ class Broker(object):
                 different from the call to authorize succeed, but the
                 authorization being denied)
                 """
-                self.log.failure(err)
+                self.log.failure("Authorization failed", failure=err)
                 if publish.acknowledge:
                     reply = message.Error(
                         message.Publish.MESSAGE_TYPE,
@@ -424,7 +425,7 @@ class Broker(object):
             authorization being denied)
             """
             # XXX same as another code-block, can we collapse?
-            self.log.failure(err)
+            self.log.failure("Authorization failed", failure=err)
             reply = message.Error(
                 message.Subscribe.MESSAGE_TYPE,
                 subscribe.request,

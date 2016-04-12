@@ -44,15 +44,13 @@ from crossbar.worker.router import RouterRealm
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory, RouterSession
 from crossbar.router.broker import Broker
-from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
+from crossbar.router.role import RouterRoleStaticAuth
 
 
 class TestBrokerPublish(unittest.TestCase):
     """
     Tests for crossbar.router.broker.Broker
     """
-
-    skip = True
 
     def setUp(self):
         """
@@ -67,9 +65,23 @@ class TestBrokerPublish(unittest.TestCase):
         self.router_factory.start_realm(self.realm)
 
         # allow everything
-        permissions = RouterPermissions('', True, True, True, True, True)
         self.router = self.router_factory.get(u'realm1')
-        self.router.add_role(RouterRoleStaticAuth(self.router, None, default_permissions=permissions))
+        self.router.add_role(
+            RouterRoleStaticAuth(
+                self.router,
+                u'test_role',
+                default_permissions={
+                    u'uri': u'com.example.',
+                    u'match': u'prefix',
+                    u'allow': {
+                        u'call': True,
+                        u'register': True,
+                        u'publish': True,
+                        u'subscribe': True,
+                    }
+                }
+            )
+        )
 
         # create a router session factory
         self.session_factory = RouterSessionFactory(self.router_factory)
@@ -141,6 +153,7 @@ class TestBrokerPublish(unittest.TestCase):
         """
         # setup
         transport = mock.MagicMock()
+        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -162,8 +175,8 @@ class TestBrokerPublish(unittest.TestCase):
             # for a MagicMock call-object, 0th thing is the method-name, 1st
             # thing is the arg-tuple, 2nd thing is the kwargs.
             self.assertEqual(call[0], 'failure')
-            self.assertTrue('log_failure' in call[2])
-            self.assertEqual(call[2]['log_failure'].value, the_exception)
+            self.assertTrue('failure' in call[2])
+            self.assertEqual(call[2]['failure'].value, the_exception)
 
     def test_router_session_internal_error_onAuthenticate(self):
         """
@@ -172,6 +185,7 @@ class TestBrokerPublish(unittest.TestCase):
         """
         # setup
         transport = mock.MagicMock()
+        transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         the_exception = RuntimeError("kerblam")
 
         def boom(*args, **kw):
@@ -181,20 +195,12 @@ class TestBrokerPublish(unittest.TestCase):
         session.onOpen(transport)
         msg = message.Authenticate(u'bogus signature')
 
-        # XXX think: why isn't this using _RouterSession.log?
-        from crossbar.router.session import RouterSession
-        with mock.patch.object(RouterSession, 'log') as logger:
-            # do the test; should call onHello which is now "boom", above
-            session.onMessage(msg)
+        # do the test; should call onHello which is now "boom", above
+        session.onMessage(msg)
 
-            # check we got the right log.failure() call
-            self.assertTrue(len(logger.method_calls) > 0)
-            call = logger.method_calls[0]
-            # for a MagicMock call-object, 0th thing is the method-name, 1st
-            # thing is the arg-tuple, 2nd thing is the kwargs.
-            self.assertEqual(call[0], 'failure')
-            self.assertTrue('log_failure' in call[2])
-            self.assertEqual(call[2]['log_failure'].value, the_exception)
+        errors = self.flushLoggedErrors()
+        self.assertEqual(1, len(errors), "Expected just one error: {}".format(errors))
+        self.assertTrue(the_exception in [fail.value for fail in errors])
 
     def test_add_and_subscribe(self):
         """
@@ -218,7 +224,7 @@ class TestBrokerPublish(unittest.TestCase):
 
         session = TestSession(types.ComponentConfig(u'realm1'))
 
-        self.session_factory.add(session)
+        self.session_factory.add(session, authrole=u'test_role')
 
         return d
 
@@ -250,12 +256,14 @@ class TestBrokerPublish(unittest.TestCase):
         # _session_id *is* None (not joined yet, or left already)
         self.assertIs(None, session0._session_id)
         session0._transport = mock.MagicMock()
+        session0._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
         session1._session_id = 1234  # "from" session should look connected + joined
         session1._transport = mock.MagicMock()
+        session1._transport.channel_id = b'aaaabeef'
 
         # here's the main "cheat"; we're faking out the
         # router.authorize because we need it to callback immediately
-        router.authorize = mock.MagicMock(return_value=txaio.create_future_success(True))
+        router.authorize = mock.MagicMock(return_value=txaio.create_future_success(dict(allow=True, cache=False, disclose=True)))
 
         # now we scan call "processPublish" such that we get to the
         # condition we're interested in (this "comes from" session1
@@ -273,8 +281,6 @@ class TestRouterSession(unittest.TestCase):
     Tests for crossbar.router.session.RouterSession
     """
 
-    skip = True
-
     def test_wamp_session_on_leave(self):
         """
         wamp.session.on_leave receives valid session_id
@@ -288,6 +294,7 @@ class TestRouterSession(unittest.TestCase):
                 # for this test, pretend we're connected (without
                 # going through sending a Hello etc.)
                 self._transport = mock.MagicMock()
+                self._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
                 self._session_id = 1234
                 self._router = router  # normally done in Hello processing
                 self._service_session = mock.MagicMock()

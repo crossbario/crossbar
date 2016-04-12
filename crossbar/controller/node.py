@@ -31,8 +31,6 @@
 from __future__ import absolute_import
 
 import os
-import re
-import json
 import traceback
 import socket
 import getpass
@@ -55,7 +53,7 @@ from crossbar.controller.process import NodeControllerSession
 from crossbar.controller.management import NodeManagementBridgeSession
 from crossbar.controller.management import NodeManagementSession
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 try:
     import nacl  # noqa
@@ -198,6 +196,19 @@ class Node(object):
 
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
+
+        # map fro router worker IDs to
+        self._realm_templates = {}
+
+        # for node elements started under specific IDs, and where
+        # the node configuration does not specify an ID, use a generic
+        # name numbered sequentially using the counters here
+        self._worker_no = 1
+        self._realm_no = 1
+        self._role_no = 1
+        self._connection_no = 1
+        self._transport_no = 1
+        self._component_no = 1
 
     def load(self, configfile=None):
         """
@@ -358,9 +369,12 @@ class Node(object):
             if 'transport' in cdc_config:
                 transport = cdc_config['transport']
                 if 'tls' in transport['endpoint']:
-                    hostname = transport['endpoint']['tls']['hostname']
+                    if 'hostname' in transport['endpoint']:
+                        hostname = transport['endpoint']['tls']['hostname']
+                    else:
+                        raise Exception("TLS activated on CDC connection, but 'hostname' not provided")
                 else:
-                    raise Exception("TLS activated on CDC connection, but 'hostname' not provided")
+                    hostname = None
                 self.log.warn("CDC transport configuration overridden from node config!")
             else:
                 transport = {
@@ -413,7 +427,7 @@ class Node(object):
 
             runner = ApplicationRunner(
                 url=transport['url'], realm=realm, extra=extra,
-                ssl=optionsForClientTLS(hostname),
+                ssl=optionsForClientTLS(hostname) if hostname else None,
             )
 
             try:
@@ -518,58 +532,55 @@ class Node(object):
 
     @inlineCallbacks
     def _startup(self, config):
-        # fake call details information when calling into
-        # remoted procedure locally
-        #
+        """
+        Startup elements in the node as specified in the provided node configuration.
+        """
+        # call options we use to call into the local node management API
+        call_options = CallOptions()
+
+        # fake call details we use to call into the local node management API
         call_details = CallDetails(caller=0)
 
+        # get contoller configuration subpart
         controller = config.get('controller', {})
 
         # start Manhole in node controller
-        #
         if 'manhole' in controller:
             yield self._controller.start_manhole(controller['manhole'], details=call_details)
 
         # startup all workers
-        #
-        worker_no = 1
-
-        # FIXME: setup things so we disclose our identity!
-        call_options = CallOptions()
-
         for worker in config.get('workers', []):
-            # worker ID, type and logname
-            #
+
+            # worker ID
             if 'id' in worker:
                 worker_id = worker.pop('id')
             else:
-                worker_id = 'worker{}'.format(worker_no)
-                worker_no += 1
+                worker_id = 'worker-{:03d}'.format(self._worker_no)
+                self._worker_no += 1
 
+            # worker type - a type of working process from the following fixed list
             worker_type = worker['type']
-            worker_options = worker.get('options', {})
+            assert(worker_type in ['router', 'container', 'guest', 'websocket-testee'])
 
+            # set logname depending on worker type
             if worker_type == 'router':
                 worker_logname = "Router '{}'".format(worker_id)
-
             elif worker_type == 'container':
                 worker_logname = "Container '{}'".format(worker_id)
-
             elif worker_type == 'websocket-testee':
                 worker_logname = "WebSocketTestee '{}'".format(worker_id)
-
             elif worker_type == 'guest':
                 worker_logname = "Guest '{}'".format(worker_id)
-
             else:
                 raise Exception("logic error")
 
-            # router/container
-            #
+            # any worker specific options
+            worker_options = worker.get('options', {})
+
+            # native worker processes: router, container, websocket-testee
             if worker_type in ['router', 'container', 'websocket-testee']:
 
                 # start a new native worker process ..
-                #
                 if worker_type == 'router':
                     yield self._controller.start_router(worker_id, worker_options, details=call_details)
 
@@ -583,7 +594,6 @@ class Node(object):
                     raise Exception("logic error")
 
                 # setup native worker generic stuff
-                #
                 if 'pythonpath' in worker_options:
                     added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'], options=call_options)
                     self.log.debug("{worker}: PYTHONPATH extended for {paths}",
@@ -600,132 +610,83 @@ class Node(object):
                                    worker=worker_logname)
 
                 # setup router worker
-                #
                 if worker_type == 'router':
 
                     # start realms on router
-                    #
-                    realm_no = 1
-
                     for realm in worker.get('realms', []):
 
+                        # start realm
                         if 'id' in realm:
                             realm_id = realm.pop('id')
                         else:
-                            realm_id = 'realm{}'.format(realm_no)
-                            realm_no += 1
+                            realm_id = 'realm-{:03d}'.format(self._realm_no)
+                            self._realm_no += 1
 
-                        # extract schema information from WAMP-flavored Markdown
-                        #
-                        schemas = None
-                        if 'schemas' in realm:
-                            schemas = {}
-                            schema_pat = re.compile(r"```javascript(.*?)```", re.DOTALL)
-                            cnt_files = 0
-                            cnt_decls = 0
-                            for schema_file in realm.pop('schemas'):
-                                schema_file = os.path.join(self._cbdir, schema_file)
-                                self.log.info("{worker}: processing WAMP-flavored Markdown file {schema_file} for WAMP schema declarations",
-                                              worker=worker_logname, schema_file=schema_file)
-                                with open(schema_file, 'r') as f:
-                                    cnt_files += 1
-                                    for d in schema_pat.findall(f.read()):
-                                        try:
-                                            o = json.loads(d)
-                                            if isinstance(o, dict) and '$schema' in o and o['$schema'] == u'http://wamp.ws/schema#':
-                                                uri = o['uri']
-                                                if uri not in schemas:
-                                                    schemas[uri] = {}
-                                                schemas[uri].update(o)
-                                                cnt_decls += 1
-                                        except Exception:
-                                            self.log.failure("{worker}: WARNING - failed to process declaration in {schema_file} - {log_failure.value}",
-                                                             worker=worker_logname, schema_file=schema_file)
-                            self.log.info("{worker}: processed {cnt_files} files extracting {cnt_decls} schema declarations and {len_schemas} URIs",
-                                          worker=worker_logname, cnt_files=cnt_files, cnt_decls=cnt_decls, len_schemas=len(schemas))
-
-                        enable_trace = realm.get('trace', False)
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, schemas, enable_trace=enable_trace, options=call_options)
+                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, options=call_options)
                         self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
-                                      worker=worker_logname, realm_id=realm_id, realm_name=realm['name'], enable_trace=enable_trace)
+                                      worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
 
                         # add roles to realm
-                        #
-                        role_no = 1
                         for role in realm.get('roles', []):
                             if 'id' in role:
                                 role_id = role.pop('id')
                             else:
-                                role_id = 'role{}'.format(role_no)
-                                role_no += 1
+                                role_id = 'role-{:03d}'.format(self._role_no)
+                                self._role_no += 1
 
                             yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
                             self.log.info("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
 
                         # start uplinks for realm
-                        #
-                        uplink_no = 1
                         for uplink in realm.get('uplinks', []):
                             if 'id' in uplink:
                                 uplink_id = uplink.pop('id')
                             else:
-                                uplink_id = 'uplink{}'.format(uplink_no)
-                                uplink_no += 1
+                                uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
+                                self._uplink_no += 1
 
                             yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_uplink'.format(self._node_id, worker_id), realm_id, uplink_id, uplink, options=call_options)
                             self.log.info("{}: uplink '{}' started on realm '{}'".format(worker_logname, uplink_id, realm_id))
 
                     # start connections (such as PostgreSQL database connection pools)
                     # to run embedded in the router
-                    #
-                    connection_no = 1
-
                     for connection in worker.get('connections', []):
 
                         if 'id' in connection:
                             connection_id = connection.pop('id')
                         else:
-                            connection_id = 'connection{}'.format(connection_no)
-                            connection_no += 1
+                            connection_id = 'connection-{:03d}'.format(self._connection_no)
+                            self._connection_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
                         self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
 
                     # start components to run embedded in the router
-                    #
-                    component_no = 1
-
                     for component in worker.get('components', []):
 
                         if 'id' in component:
                             component_id = component.pop('id')
                         else:
-                            component_id = 'component{}'.format(component_no)
-                            component_no += 1
+                            component_id = 'component-{:03d}'.format(self._component_no)
+                            self._component_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
                         self.log.info("{}: component '{}' started".format(worker_logname, component_id))
 
                     # start transports on router
-                    #
-                    transport_no = 1
-
                     for transport in worker['transports']:
 
                         if 'id' in transport:
                             transport_id = transport.pop('id')
                         else:
-                            transport_id = 'transport{}'.format(transport_no)
-                            transport_no += 1
+                            transport_id = 'transport-{:03d}'.format(self._transport_no)
+                            self._transport_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
                         self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
 
                 # setup container worker
-                #
                 elif worker_type == 'container':
-
-                    component_no = 1
 
                     # if components exit "very soon after" we try to
                     # start them, we consider that a failure and shut
@@ -747,15 +708,13 @@ class Node(object):
                     # start connections (such as PostgreSQL database connection pools)
                     # to run embedded in the container
                     #
-                    connection_no = 1
-
                     for connection in worker.get('connections', []):
 
                         if 'id' in connection:
                             connection_id = connection.pop('id')
                         else:
-                            connection_id = 'connection{}'.format(connection_no)
-                            connection_no += 1
+                            connection_id = 'connection-{:03d}'.format(self._connection_no)
+                            self._connection_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
                         self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
@@ -767,8 +726,8 @@ class Node(object):
                         if 'id' in component:
                             component_id = component.pop('id')
                         else:
-                            component_id = 'component{}'.format(component_no)
-                            component_no += 1
+                            component_id = 'component-{:03d}'.format(self._component_no)
+                            self._component_no += 1
 
                         yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
                         self.log.info("{worker}: component '{component_id}' started",
@@ -778,14 +737,12 @@ class Node(object):
                     self._reactor.callLater(2, component_stop_sub.unsubscribe)
 
                 # setup websocket-testee worker
-                #
                 elif worker_type == 'websocket-testee':
 
-                    # start transports on router
-                    #
+                    # start transport on websocket-testee
                     transport = worker['transport']
-                    transport_no = 1
-                    transport_id = 'transport{}'.format(transport_no)
+                    transport_id = 'transport-{:03d}'.format(self._transport_no)
+                    self._transport_no = 1
 
                     yield self._controller.call('crossbar.node.{}.worker.{}.start_websocket_testee_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
                     self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))

@@ -40,7 +40,8 @@ from twisted.internet.selectreactor import SelectReactor
 from crossbar.test import TestCase
 from crossbar.router.role import RouterRoleStaticAuth, RouterPermissions
 from crossbar.worker import router
-from crossbar._logging import make_logger
+
+from txaio import make_logger
 
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.message import Publish, Published, Subscribe, Subscribed

@@ -37,7 +37,7 @@ from autobahn.wamp.exception import ApplicationError
 
 from twisted.python.failure import Failure
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 
 def _appsession_loader(config):

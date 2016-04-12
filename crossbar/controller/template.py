@@ -34,7 +34,7 @@ import shutil
 import pkg_resources
 import jinja2
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = ('Templates',)
 
@@ -297,7 +297,7 @@ class Templates:
 
             return template.get('get_started_hint', None)
 
-        except Exception as e:
+        except Exception:
             self.log.failure("Something went wrong while instantiating app template - rolling back changes ..")
             for ptype, path in reversed(created):
                 if ptype == 'file':
@@ -316,4 +316,4 @@ class Templates:
                         self.log.warn("Warning: could not remove directory {}".format(path))
                 else:
                     raise Exception("logic error")
-            raise e
+            raise

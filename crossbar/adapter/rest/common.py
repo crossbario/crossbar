@@ -34,8 +34,10 @@ import hmac
 import hashlib
 import base64
 
-from crossbar._logging import make_logger
+from txaio import make_logger
+
 from crossbar._compat import native_string
+from crossbar._log_categories import log_categories
 
 from netaddr.ip import IPAddress, IPNetwork
 
@@ -93,20 +95,21 @@ class _CommonResource(Resource):
 
         self._require_tls = options.get('require_tls', None)
 
-    def _deny_request(self, request, code, reason, **kwargs):
+    def _deny_request(self, request, code, **kwargs):
         """
         Called when client request is denied.
         """
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
 
-        self.log.debug("[request denied] - {code} / " + reason,
-                       code=code, **kwargs)
+        self.log.debug(code=code, **kwargs)
 
         request.setResponseCode(code)
-        return reason.format(**kwargs).encode('utf8') + b"\n"
 
-    def _fail_request(self, request, code, reason, body=None, **kwargs):
+        category_text = log_categories[kwargs['log_category']]
+        return category_text.format(**kwargs).encode('utf8') + b"\n"
+
+    def _fail_request(self, request, code, body=None, **kwargs):
         """
         Called when client request fails.
         """
@@ -114,24 +117,23 @@ class _CommonResource(Resource):
             kwargs["log_category"] = "AR" + str(code)
 
         self.log.failure(None, log_failure=kwargs["log_failure"])
-        self.log.debug("[request failure] - {code} / " + reason,
-                       code=code, **kwargs)
+        self.log.debug(code=code, **kwargs)
 
         request.setResponseCode(code)
         if body:
             request.write(body)
         else:
-            request.write(reason.format(**kwargs).encode('utf8') + b"\n")
+            category_text = log_categories[kwargs['log_category']]
+            request.write(category_text.format(**kwargs).encode('utf8') + b"\n")
 
-    def _complete_request(self, request, code, body, reason="", **kwargs):
+    def _complete_request(self, request, code, body, **kwargs):
         """
         Called when client request is complete.
         """
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
 
-        self.log.debug("[request succeeded] - {code} / " + reason,
-                       code=code, reason=reason, **kwargs)
+        self.log.debug(code=code, **kwargs)
         request.setResponseCode(code)
         request.write(body)
 
@@ -151,12 +153,12 @@ class _CommonResource(Resource):
             request.setHeader(b'access-control-allow-headers', headers)
 
     def render(self, request):
-        self.log.debug("[render] method={request.method} path={request.path} args={request.args}",
-                       request=request)
+        self.log.debug(log_category="AR100", method=request.method, path=request.path)
 
         try:
             if request.method not in (b"POST", b"PUT", b"OPTIONS"):
-                return self._deny_request(request, 405, u"HTTP/{0} not allowed (only HTTP/POST or HTTP/PUT)".format(native_string(request.method)))
+                return self._deny_request(request, 405, method=request.method,
+                                          allowed="POST, PUT")
             else:
                 self._set_common_headers(request)
 
@@ -172,8 +174,8 @@ class _CommonResource(Resource):
                 else:
                     return self._render_request(request)
         except Exception as e:
-            self.log.failure("Unhandled server error. {exc}", exc=e)
-            return self._deny_request(request, 500, "Unhandled server error.", exc=e)
+            self.log.failure(log_category="CB501", exc=e)
+            return self._deny_request(request, 500, log_category="CB500")
 
     def _render_request(self, request):
         """
@@ -206,7 +208,8 @@ class _CommonResource(Resource):
                content_type_elements[0] not in _ALLOWED_CONTENT_TYPES:
                 return self._deny_request(
                     request, 400,
-                    u"bad content type: if a content type is present, it MUST be one of '{}', not '{}'".format(list(_ALLOWED_CONTENT_TYPES), content_type_elements[0]),
+                    accepted=list(_ALLOWED_CONTENT_TYPES),
+                    given=content_type_elements[0],
                     log_category="AR452"
                 )
 
@@ -229,19 +232,14 @@ class _CommonResource(Resource):
                     assert key not in encoding_parts
                     encoding_parts[key] = _[1].strip().lower()
             except:
-                return self._deny_request(request, 400,
-                                          u"mangled Content-Type header",
-                                          log_category="AR450")
+                return self._deny_request(request, 400, log_category="AR450")
 
         charset_encoding = encoding_parts.get("charset", "utf-8")
 
         if charset_encoding not in ["utf-8", 'utf8']:
             return self._deny_request(
                 request, 400,
-                (u"'{charset_encoding}' is not an accepted charset encoding, "
-                 u"must be utf-8"),
-                log_category="AR450",
-                charset_encoding=charset_encoding)
+                log_category="AR450")
 
         # enforce "post_body_limit"
         #
@@ -253,7 +251,6 @@ class _CommonResource(Resource):
         elif len(content_length_header) > 1:
             return self._deny_request(
                 request, 400,
-                u"Multiple Content-Length headers are not allowed",
                 log_category="AR463")
         else:
             content_length = body_length
@@ -263,12 +260,15 @@ class _CommonResource(Resource):
             # Content-Length. This is so that clients can't lie and bypass
             # length restrictions by giving an incorrect header with a large
             # body.
-            return self._deny_request(request, 400, u"HTTP/POST|PUT body length ({0}) is different to Content-Length ({1})".format(body_length, content_length))
+            return self._deny_request(request, 400, bodylen=body_length,
+                                      conlen=content_length,
+                                      log_category="AR465")
 
         if self._post_body_limit and content_length > self._post_body_limit:
             return self._deny_request(
                 request, 413,
-                u"HTTP/POST|PUT body length ({0}) exceeds maximum ({1})".format(content_length, self._post_body_limit)
+                length=content_length,
+                accepted=self._post_body_limit
             )
 
         #
@@ -282,7 +282,8 @@ class _CommonResource(Resource):
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400, u"signed request required, but mandatory 'key' field missing",
+                    request, 400,
+                    reason=u"'key' field missing",
                     log_category="AR461")
 
         # timestamp
@@ -294,17 +295,17 @@ class _CommonResource(Resource):
                 delta = abs((ts - datetime.datetime.utcnow()).total_seconds())
                 if self._timestamp_delta_limit and delta > self._timestamp_delta_limit:
                     return self._deny_request(
-                        request, 400, u"request expired (delta {0} seconds)".format(delta),
-                        log_category="AR462")
+                        request, 400,
+                        log_category="AR464")
             except ValueError as e:
                 return self._deny_request(
                     request, 400,
-                    u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)),
+                    reason=u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)),
                     log_category="AR462")
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400, u"signed request required, but mandatory 'timestamp' field missing",
+                    request, 400, reason=u"signed request required, but mandatory 'timestamp' field missing",
                     log_category="AR461")
 
         # seq
@@ -316,12 +317,14 @@ class _CommonResource(Resource):
                 seq = int(seq_str)  # noqa
             except:
                 return self._deny_request(
-                    request, 400, u"invalid sequence number '{0}' (must be an integer)".format(native_string(seq_str)),
+                    request, 400,
+                    reason=u"invalid sequence number '{0}' (must be an integer)".format(native_string(seq_str)),
                     log_category="AR462")
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400, u"signed request required, but mandatory 'seq' field missing",
+                    request, 400,
+                    reason=u"'seq' field missing",
                     log_category="AR461")
 
         # nonce
@@ -333,12 +336,14 @@ class _CommonResource(Resource):
                 nonce = int(nonce_str)  # noqa
             except:
                 return self._deny_request(
-                    request, 400, u"invalid nonce '{0}' (must be an integer)".format(native_string(nonce_str)),
+                    request, 400,
+                    reason=u"invalid nonce '{0}' (must be an integer)".format(native_string(nonce_str)),
                     log_category="AR462")
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400, u"signed request required, but mandatory 'nonce' field missing",
+                    request, 400,
+                    reason=u"'nonce' field missing",
                     log_category="AR461")
 
         # signature
@@ -348,7 +353,8 @@ class _CommonResource(Resource):
         else:
             if self._secret:
                 return self._deny_request(
-                    request, 400, u"signed request required, but mandatory 'signature' field missing",
+                    request, 400,
+                    reason=u"'signature' field missing",
                     log_category="AR461")
 
         # do more checks if signed requests are required
@@ -357,7 +363,8 @@ class _CommonResource(Resource):
 
             if key_str != self._key:
                 return self._deny_request(
-                    request, 401, u"unknown key '{0}' in signed request".format(native_string(key_str)),
+                    request, 401,
+                    reason=u"unknown key '{0}' in signed request".format(native_string(key_str)),
                     log_category="AR460")
 
             # Compute signature: HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
@@ -370,7 +377,7 @@ class _CommonResource(Resource):
             signature_recomputed = base64.urlsafe_b64encode(hm.digest())
 
             if signature_str != signature_recomputed:
-                return self._deny_request(request, 401, u"invalid request signature",
+                return self._deny_request(request, 401,
                                           log_category="AR459")
             else:
                 self.log.debug("REST request signature valid.",
@@ -390,19 +397,20 @@ class _CommonResource(Resource):
                     allowed = True
                     break
             if not allowed:
-                return self._deny_request(request, 400, u"request denied based on IP address")
+                return self._deny_request(request, 400, log_category="AR466")
 
         # enforce TLS
         #
         if self._require_tls:
             if not is_secure:
-                return self._deny_request(request, 400, u"request denied because not using TLS")
+                return self._deny_request(request, 400,
+                                          reason=u"request denied because not using TLS")
 
         # FIXME: authorize request
         authorized = True
 
         if not authorized:
-            return self._deny_request(request, 401, u"not authorized")
+            return self._deny_request(request, 401, reason=u"not authorized")
 
         _validator.reset()
         validation_result = _validator.validate(body)
@@ -412,7 +420,6 @@ class _CommonResource(Resource):
         if not validation_result[0]:
             return self._deny_request(
                 request, 400,
-                u"invalid request event - HTTP/POST|PUT body was invalid UTF-8",
                 log_category="AR451")
 
         event = body.decode('utf8')
@@ -423,14 +430,12 @@ class _CommonResource(Resource):
             except Exception as e:
                 return self._deny_request(
                     request, 400,
-                    (u"invalid request event - HTTP/POST|PUT body must be "
-                     u"valid JSON: {exc}"), exc=e, log_category="AR453")
+                    exc=e, log_category="AR453")
 
             if not isinstance(event, dict):
                 return self._deny_request(
                     request, 400,
-                    (u"invalid request event - HTTP/POST|PUT body must be "
-                     u"a JSON dict"), log_category="AR454")
+                    log_category="AR454")
 
         d = self._process(request, event)
 

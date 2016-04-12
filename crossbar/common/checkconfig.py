@@ -34,23 +34,24 @@ import os
 import json
 import re
 import six
+import yaml
 
-from collections import OrderedDict
+from collections import OrderedDict, Hashable
 
 from pprint import pformat
 
 from pygments import highlight, lexers, formatters
 
-from autobahn.websocket.protocol import parseWsUrl
+from autobahn.websocket.util import parse_url
 
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
 from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
 from autobahn.wamp.uri import convert_starred_uri
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
-import yaml
-from yaml import Loader, SafeLoader
+from yaml import Loader, SafeLoader, Dumper, SafeDumper
+from yaml.constructor import ConstructorError
 
 if six.PY3:
     from collections.abc import Mapping, Sequence
@@ -157,15 +158,77 @@ def pprint_json(obj, log_to=None):
         print(output_str)
 
 
-# Hack: force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
-#
-# http://stackoverflow.com/a/2967461/884770
-#
+# Force PyYAML to parse _all_ strings into Unicode (as we want for CB configs)
+# see: http://stackoverflow.com/a/2967461/884770
 def construct_yaml_str(self, node):
     return self.construct_scalar(node)
 
-Loader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
-SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
+for Klass in [Loader, SafeLoader]:
+    Klass.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
+
+
+# Enable PyYAML to deserialize mappings into OrderedDicts
+# see: http://pyyaml.org/attachment/ticket/161/use_ordered_dict.py
+def construct_ordered_mapping(self, node, deep=False):
+    if not isinstance(node, yaml.MappingNode):
+        raise ConstructorError(None, None,
+                               "expected a mapping node, but found %s" % node.id,
+                               node.start_mark)
+    mapping = OrderedDict()
+    for key_node, value_node in node.value:
+        key = self.construct_object(key_node, deep=deep)
+        if not isinstance(key, Hashable):
+            raise ConstructorError("while constructing a mapping", node.start_mark,
+                                   "found unhashable key", key_node.start_mark)
+        value = self.construct_object(value_node, deep=deep)
+        mapping[key] = value
+    return mapping
+
+yaml.constructor.BaseConstructor.construct_mapping = construct_ordered_mapping
+
+
+def construct_yaml_map_with_ordered_dict(self, node):
+    data = OrderedDict()
+    yield data
+    value = self.construct_mapping(node)
+    data.update(value)
+
+for Klass in [Loader, SafeLoader]:
+    Klass.add_constructor('tag:yaml.org,2002:map',
+                          construct_yaml_map_with_ordered_dict)
+
+
+# Enable PyYAML to serialize OrderedDict
+def represent_ordered_dict(dump, tag, mapping, flow_style=None):
+    # the following works like BaseRepresenter.represent_mapping,
+    # but does not issue the sort().
+    # see: http://pyyaml.org/browser/pyyaml/trunk/lib/yaml/representer.py#L112
+    value = []
+    node = yaml.MappingNode(tag, value, flow_style=flow_style)
+    if dump.alias_key is not None:
+        dump.represented_objects[dump.alias_key] = node
+    best_style = True
+    if hasattr(mapping, 'items'):
+        mapping = mapping.items()
+        # mapping.sort()
+    for item_key, item_value in mapping:
+        node_key = dump.represent_data(item_key)
+        node_value = dump.represent_data(item_value)
+        if not (isinstance(node_key, yaml.ScalarNode) and not node_key.style):
+            best_style = False
+        if not (isinstance(node_value, yaml.ScalarNode) and not node_value.style):
+            best_style = False
+        value.append((node_key, node_value))
+    if flow_style is None:
+        if dump.default_flow_style is not None:
+            node.flow_style = dump.default_flow_style
+        else:
+            node.flow_style = best_style
+    return node
+
+for Klass in [Dumper, SafeDumper]:
+    Klass.add_representer(OrderedDict,
+                          lambda dumper, value: represent_ordered_dict(dumper, u'tag:yaml.org,2002:map', value))
 
 
 # Environment variable names used by the utilities in the Shell and Utilities volume
@@ -349,7 +412,7 @@ def check_transport_auth_ticket(config):
             raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-Ticket configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-Ticket configuration".format(config['authenticator']))
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_transport_auth_wampcra(config):
@@ -387,7 +450,7 @@ def check_transport_auth_wampcra(config):
             raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-CRA configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-CRA configuration".format(config['authenticator']))
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_transport_auth_tls(config):
@@ -411,7 +474,7 @@ def check_transport_auth_tls(config):
             raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-TLS configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-TLS configuration".format(config['authenticator']))
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_transport_auth_cryptosign(config):
@@ -444,7 +507,7 @@ def check_transport_auth_cryptosign(config):
             raise InvalidConfigException("missing mandatory attribute 'authenticator' in dynamic WAMP-Cryptosign configuration")
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-Cryptosign configuration".format(config['authenticator']))
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_transport_auth_cookie(config):
@@ -482,7 +545,7 @@ def check_transport_auth_anonymous(config):
         check_or_raise_uri(config['authenticator'], "invalid authenticator URI '{}' in dynamic WAMP-Anonymous configuration".format(config['authenticator']))
 
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_transport_auth(auth):
@@ -523,7 +586,8 @@ def check_cookie_store_file(store):
     """
     check_dict_args({
         'type': (True, [six.text_type]),
-        'filename': (False, [six.text_type])
+        'filename': (False, [six.text_type]),
+        'purge_on_startup': (False, [bool])
     }, store, "WebSocket memory-backed cookie store configuration")
 
 
@@ -575,7 +639,7 @@ def check_transport_cookie(cookie):
         elif store_type == 'file':
             check_cookie_store_file(store)
         else:
-            raise InvalidConfigException("logic error")
+            raise InvalidConfigException('logic error')
 
 
 def check_endpoint_backlog(backlog):
@@ -855,7 +919,7 @@ def check_listening_endpoint(endpoint):
     elif etype == 'unix':
         check_listening_endpoint_unix(endpoint)
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_connecting_endpoint(endpoint):
@@ -883,7 +947,7 @@ def check_connecting_endpoint(endpoint):
     elif etype == 'unix':
         check_connecting_endpoint_unix(endpoint)
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_websocket_options(options):
@@ -978,7 +1042,7 @@ def check_web_path_service_websocket(config):
         if not isinstance(url, six.text_type):
             raise InvalidConfigException("'url' in WebSocket configuration must be str ({} encountered)".format(type(url)))
         try:
-            parseWsUrl(url)
+            parse_url(url)
         except InvalidConfigException as e:
             raise InvalidConfigException("invalid 'url' in WebSocket configuration : {}".format(e))
 
@@ -1544,7 +1608,7 @@ def check_listening_transport_websocket(transport):
         if not isinstance(url, six.text_type):
             raise InvalidConfigException("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
         try:
-            parseWsUrl(url)
+            parse_url(url)
         except InvalidConfigException as e:
             raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
@@ -1596,7 +1660,7 @@ def check_listening_transport_websocket_testee(transport):
         if not isinstance(url, six.text_type):
             raise InvalidConfigException("'url' in WebSocket-Testee transport configuration must be str ({} encountered)".format(type(url)))
         try:
-            parseWsUrl(url)
+            parse_url(url)
         except InvalidConfigException as e:
             raise InvalidConfigException("invalid 'url' in WebSocket-Testee transport configuration : {}".format(e))
 
@@ -1759,7 +1823,7 @@ def check_connecting_transport_websocket(transport):
     if not isinstance(url, six.text_type):
         raise InvalidConfigException("'url' in WebSocket transport configuration must be str ({} encountered)".format(type(url)))
     try:
-        parseWsUrl(url)
+        parse_url(url)
     except InvalidConfigException as e:
         raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
@@ -1846,7 +1910,7 @@ def check_router_transport(transport):
         check_listening_transport_stream_testee(transport)
 
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_router_component(component):
@@ -1895,7 +1959,7 @@ def check_router_component(component):
         }, component, "invalid component configuration")
 
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_connecting_transport(transport):
@@ -1924,7 +1988,7 @@ def check_connecting_transport(transport):
         check_connecting_transport_rawsocket(transport)
 
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_container_component(component):
@@ -1970,7 +2034,7 @@ def check_container_component(component):
         }, component, "invalid component configuration")
 
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
     check_connecting_transport(component['transport'])
 
@@ -2124,7 +2188,7 @@ def check_connection(connection):
             }, connection['options'], "PostgreSQL connection options")
 
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_connections(connections):
@@ -2499,7 +2563,7 @@ def check_worker(worker):
         check_websocket_testee(worker)
 
     else:
-        raise InvalidConfigException("logic error")
+        raise InvalidConfigException('logic error')
 
 
 def check_controller_options(options):
@@ -2649,17 +2713,22 @@ def check_config_file(configfile):
     configext = os.path.splitext(configfile)[1]
     configfile = os.path.abspath(configfile)
 
+    if configext not in ['.json', '.yaml']:
+        raise Exception("invalid configuration file extension '{}'".format(configext))
+
     with open(configfile, 'r') as infile:
-        if configext == '.yaml':
+        if configext == '.json':
+            try:
+                config = json.load(infile, object_pairs_hook=OrderedDict)
+            except ValueError as e:
+                raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}')".format(e))
+        elif configext == '.yaml':
             try:
                 config = yaml.safe_load(infile)
             except InvalidConfigException as e:
                 raise InvalidConfigException("configuration file does not seem to be proper YAML ('{}')".format(e))
         else:
-            try:
-                config = json.load(infile, object_pairs_hook=OrderedDict)
-            except ValueError as e:
-                raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}')".format(e))
+            raise Exception('logic error')
 
     check_config(config)
 
@@ -2734,21 +2803,40 @@ def fill_config_from_env(config, keys=None):
 
 
 def upgrade_config_file(configfile):
+    """
+    Upgrade a local node configuration file.
+
+    :param configfile: Path to the node config file to upgrade.
+    :type configfile: unicode
+    """
     configext = os.path.splitext(configfile)[1]
     configfile = os.path.abspath(configfile)
 
-    with open(configfile, 'rb') as infile:
-        data = infile.read().decode('utf8')
+    if configext not in ['.json', '.yaml']:
+        raise Exception("invalid configuration file extension '{}'".format(configext))
+
+    # read and parse existing config file
+    with open(configfile, 'r') as infile:
+        # existing config has JSON format
         if configext == '.json':
             try:
-                config = json.loads(data, object_pairs_hook=OrderedDict)
+                config = json.load(infile, object_pairs_hook=OrderedDict)
             except ValueError as e:
-                raise InvalidConfigException("configuration file does not seem to be proper JSON ('{}')".format(e))
+                raise InvalidConfigException("configuration file does not seem to be proper JSON: {}".format(e))
+
+        # existing config has YAML format
+        elif configext == '.yaml':
+            try:
+                config = yaml.safe_load(infile)
+            except ValueError as e:
+                raise InvalidConfigException("configuration file does not seem to be proper YAML: {}".format(e))
+
+        # should not arrive here
         else:
-            raise Exception("not implemented")
+            raise Exception('logic error')
 
     if not isinstance(config, Mapping):
-        raise InvalidConfigException("configuration top-level item must be a dict")
+        raise InvalidConfigException("configuration top-level item must be a dict/mapping (was type {})".format(type(config), config))
 
     if u'version' in config:
         version = config[u'version']
@@ -2761,48 +2849,66 @@ def upgrade_config_file(configfile):
         print("Configuration already is at latest version {} - nothing to upgrade".format(LATEST_CONFIG_VERSION))
         return
 
+    # stepwise upgrade from version to version up to current ..
     while version < LATEST_CONFIG_VERSION:
         print("Upgrading configuration from version {} to version {}".format(version, version + 1))
 
+        # upgrade from version 1 -> 2
         if version == 1:
             for worker in config.get(u'workers', []):
                 if worker[u'type'] == u'router':
                     for realm in worker.get(u'realms', []):
                         for role in realm.get(u'roles', []):
-                            permissions = []
-                            for p in role.get(u'permissions', []):
-                                uri, match = convert_starred_uri(p[u'uri'])
-                                pp = OrderedDict([
-                                    (u'uri', uri),
-                                    (u'match', match),
-                                    (u'allow', OrderedDict([
-                                        (u'call', p.get(u'call', False)),
-                                        (u'register', p.get(u'register', False)),
-                                        (u'publish', p.get(u'publish', False)),
-                                        (u'subscribe', p.get(u'subscribe', False))
-                                    ])),
-                                    (u'disclose', OrderedDict([
-                                        (u'caller', False),
-                                        (u'publisher', False),
-                                    ])),
-                                    (u'cache', True)
-                                ])
-                                permissions.append(pp)
-                            role[u'permissions'] = permissions
+                            # upgrade "permissions" subitem (if there is any)
+                            if u'permissions' in role:
+                                permissions = []
+                                for p in role[u'permissions']:
+                                    uri, match = convert_starred_uri(p[u'uri'])
+                                    pp = OrderedDict([
+                                        (u'uri', uri),
+                                        (u'match', match),
+                                        (u'allow', OrderedDict([
+                                            (u'call', p.get(u'call', False)),
+                                            (u'register', p.get(u'register', False)),
+                                            (u'publish', p.get(u'publish', False)),
+                                            (u'subscribe', p.get(u'subscribe', False))
+                                        ])),
+                                        (u'disclose', OrderedDict([
+                                            (u'caller', False),
+                                            (u'publisher', False),
+                                        ])),
+                                        (u'cache', True)
+                                    ])
+                                    permissions.append(pp)
+                                role[u'permissions'] = permissions
         else:
-            raise Exception("logic error")
+            raise Exception('logic error')
 
         version += 1
 
+    # make sure the config version is there, and at top of config
     config = OrderedDict([(u'version', version)] + list(config.items()))
 
+    # write out updated configuration ..
     with open(configfile, 'wb') as outfile:
-        data = json.dumps(config,
-                          skipkeys=False,
-                          sort_keys=False,
-                          ensure_ascii=False,
-                          separators=(',', ': '),
-                          indent=3)
-        # ensure newline at end of file
-        data += u'\n'
-        outfile.write(data.encode('utf8'))
+        # write config in JSON format
+        if configext == '.json':
+            data = json.dumps(
+                config,
+                skipkeys=False,
+                sort_keys=False,
+                ensure_ascii=False,
+                separators=(',', ': '),
+                indent=4,
+            )
+            # ensure newline at end of file
+            data += u'\n'
+            outfile.write(data.encode('utf8'))
+
+        # write config in YAML format
+        elif configext == '.yaml':
+            yaml.safe_dump(config, outfile, default_flow_style=False)
+
+        # should not arrive here
+        else:
+            raise Exception('logic error')

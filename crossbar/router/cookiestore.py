@@ -30,12 +30,13 @@
 
 import os
 import json
+import datetime
 
 from six.moves import http_cookies
 
 from autobahn import util
 
-from crossbar._logging import make_logger
+from txaio import make_logger
 
 __all__ = (
     'CookieStoreMemoryBacked',
@@ -237,6 +238,9 @@ class CookieStoreFileBacked(CookieStore):
         # initialize cookie database
         self._init_store()
 
+        if config['store'].get('purge_on_startup', False):
+            self._clean_cookie_file()
+
     def _iter_persisted(self):
         with open(self._cookie_file_name, 'r') as f:
             for c in f.readlines():
@@ -264,7 +268,9 @@ class CookieStoreFileBacked(CookieStore):
         n = 0
         for cookie in self._iter_persisted():
             id = cookie.pop('id')
-            self._cookies[id] = cookie
+            if id not in self._cookies:
+                self._cookies[id] = {}
+            self._cookies[id].update(cookie)
             n += 1
 
         self.log.info("Loaded {cnt_cookie_records} cookie records from file. Cookie store has {cnt_cookies} entries.", cnt_cookie_records=n, cnt_cookies=len(self._cookies))
@@ -290,3 +296,25 @@ class CookieStoreFileBacked(CookieStore):
             if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']:
                 CookieStore.setAuth(self, cbtid, authid, authrole, authmethod)
                 self._persist(cbtid, cookie, status='modified')
+
+    def _clean_cookie_file(self):
+        with open(self._cookie_file_name, 'w') as cookie_file:
+            for cbtid, cookie in self._cookies.items():
+                expiration_delta = datetime.timedelta(seconds=int(cookie['max_age']))
+                upper_limit = util.utcstr(datetime.datetime.now() - expiration_delta)
+                if cookie['created'] < upper_limit:
+                    # This cookie is expired, discard
+                    continue
+
+                cookie_record = json.dumps({
+                    'id': cbtid,
+                    'created': cookie['created'],
+                    'max_age': cookie['max_age'],
+                    'authid': cookie['authid'],
+                    'authrole': cookie['authrole'],
+                    'authmethod': cookie['authmethod']
+                }) + '\n'
+                cookie_file.write(cookie_record)
+
+            cookie_file.flush()
+            os.fsync(cookie_file.fileno())

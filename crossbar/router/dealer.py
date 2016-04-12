@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import random
+import txaio
 
 from autobahn import util
 from autobahn.wamp import role
@@ -47,9 +48,8 @@ from autobahn.wamp.message import \
 
 from crossbar.router.observation import UriObservationMap
 from crossbar.router import RouterOptions
-from crossbar._logging import make_logger
 
-import txaio
+from txaio import make_logger
 
 __all__ = ('Dealer',)
 
@@ -261,7 +261,7 @@ class Dealer(object):
             different from the call to authorize succeed, but the
             authorization being denied)
             """
-            self.log.failure(err)
+            self.log.failure("Authorization failed", failure=err)
             reply = message.Error(
                 message.Register.MESSAGE_TYPE,
                 register.request,
@@ -462,7 +462,7 @@ class Dealer(object):
                 different from the call to authorize succeed, but the
                 authorization being denied)
                 """
-                self.log.failure(err)
+                self.log.failure("Authorization failed", failure=err)
                 reply = message.Error(
                     message.Call.MESSAGE_TYPE,
                     call.request,

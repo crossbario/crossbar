@@ -42,8 +42,8 @@ from twisted.internet.defer import Deferred
 from twisted.python.runtime import platform
 from twisted.internet.task import LoopingCall
 
-from crossbar._logging import make_logger, LogLevel, record_separator
-from crossbar._logging import cb_logging_aware, escape_formatting
+from txaio import make_logger
+from crossbar._logging import cb_logging_aware, escape_formatting, record_separator
 
 __all__ = ('RouterWorkerProcess',
            'ContainerWorkerProcess',
@@ -174,7 +174,7 @@ class WorkerProcess(object):
                              "text": u"INVALID JSON: {}".format(escape_formatting(log))}
                 event_text = event.pop("text")
                 event_namespace = event.pop("namespace", None)
-                level = LogLevel.levelWithName(event.pop("level"))
+                level = event.pop("level")
 
                 self._logger.emit(level, event_text, log_system=system,
                                   cb_namespace=event_namespace, **event)

@@ -30,16 +30,22 @@
 
 from __future__ import absolute_import
 
-import sys
 import re
 import os
+import sys
 import platform
-from setuptools import setup, find_packages
 
-version = getattr(sys, "version_info", (0,))
+from setuptools import setup, find_packages, __version__ as setuptools_ver
 
-CPY = platform.python_implementation() == 'CPython'
-PYPY = platform.python_implementation() == 'PyPy'
+if setuptools_ver < "20.0":
+    OLD_SETUPTOOLS = True
+
+    if "bdist_wheel" in sys.argv:
+        raise ValueError("too old setuptools to do bdist_wheel")
+
+else:
+    OLD_SETUPTOOLS = False
+
 
 LONGSDESC = open('README.rst').read()
 
@@ -54,6 +60,9 @@ if mo:
 else:
     raise RuntimeError("Unable to find version string in {}.".format(VERSIONFILE))
 
+CPY = platform.python_implementation() == 'CPython'
+PYPY = platform.python_implementation() == 'PyPy'
+
 # enforce use of CFFI for LMDB
 if PYPY:
     os.environ['LMDB_FORCE_CFFI'] = '1'
@@ -61,12 +70,14 @@ if PYPY:
 # enforce use of bundled libsodium
 os.environ['SODIUM_INSTALL'] = 'bundled'
 
+extras_require = {}
+
 install_requires = [
     'click>=5.1',                 # BSD license
     'setuptools>=18.3.1',         # Python Software Foundation license
     'zope.interface>=4.1.2',      # Zope Public license
-    'twisted>=15.5.0',            # MIT license
-    'autobahn[twisted]>=0.12.1',  # MIT license
+    'twisted>=16.0.0',            # MIT license
+    'autobahn[twisted]>=0.13.0',  # MIT license
     'netaddr>=0.7.18',            # BSD license
     'pytrie>=0.2',                # BSD license
     'jinja2>=2.8',                # BSD license
@@ -95,52 +106,99 @@ install_requires = [
 
     # HTTP/REST bridge (also pulls in TLS packages!)
     'treq>=15.1.0',               # MIT license
+
 ]
-if sys.platform != 'win32':
-    # setproctitle does not provide wheels (https://github.com/dvarrazzo/py-setproctitle/issues/47) => disable on Windows
-    install_requires.append('setproctitle>=1.1.9')  # BSD license
 
-if sys.platform == 'win32':
-    install_requires.append('pypiwin32>=219')       # PSF license
+setproctitle_version = "1.1.9"  # BSD license
+pypiwin32_version = "219"  # PSF license
+pyinotify_version = "0.9.6"  # MIT license
+wsaccel_version = "0.6.2"  # Apache 2.0
+ujson_version = "1.33"  # BSD license
 
-# FIXME: https://github.com/crossbario/crossbar/issues/581
-if sys.platform.startswith('linux'):
-    install_requires.append('pyinotify>=0.9.6')     # MIT license
 
-# native WebSocket/JSON acceleration - only for CPy (skip for PyPy, since it'll be _slower_ on that!)
-if CPY:
-    # wsaccel does not provide wheels (https://github.com/methane/wsaccel/issues/12) => disable on Windows
+if OLD_SETUPTOOLS:
+
     if sys.platform != 'win32':
-        install_requires.append('wsaccel>=0.6.2')   # Apache 2.0
+        # setproctitle does not provide wheels (https://github.com/dvarrazzo/py-setproctitle/issues/47) => disable on Windows
+        install_requires.append('setproctitle>=' + setproctitle_version)
 
-    # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
-    if sys.platform != 'win32':
-        install_requires.append("ujson>=1.33")      # BSD license
+    if sys.platform == 'win32':
+        install_requires.append('pypiwin32>=' + pypiwin32_version)
+
+    # FIXME: https://github.com/crossbario/crossbar/issues/581
+    if sys.platform.startswith('linux'):
+        install_requires.append('pyinotify>=' + pyinotify_version)
+
+    # native WebSocket/JSON acceleration - only for CPy (skip for PyPy, since it'll be _slower_ on that!)
+    if CPY:
+        # wsaccel does not provide wheels (https://github.com/methane/wsaccel/issues/12) => disable on Windows
+        if sys.platform != 'win32':
+            install_requires.append('wsaccel>=' + wsaccel_version)
+
+        # ujson is broken on Windows (https://github.com/esnme/ultrajson/issues/184)
+        if sys.platform != 'win32':
+            install_requires.append("ujson>=" + ujson_version)
+
+else:
+
+    extras_require[":sys_platform != 'win32'"] = [
+        "setproctitle>=" + setproctitle_version
+    ]
+
+    extras_require[':sys_platform == "win32"'] = [
+        'pypiwin32>=' + pypiwin32_version
+    ]
+
+    extras_require[':"linux" in sys_platform'] = [
+        'pyinotify>=' + pyinotify_version
+    ]
+
+    extras_require[':sys_platform != "win32" and platform_python_implementation == "CPython"'] = [
+        'wsaccel>=' + wsaccel_version, 'ujson>=' + ujson_version
+    ]
 
 # For Crossbar.io development
 extras_require_dev = [
     'flake8>=2.5.1',                # MIT license
     'colorama>=0.3.3',              # BSD license
     'mock>=1.3.0',                  # BSD license
+    'wheel>=0.26.0',                # MIT license
 ]
-if sys.platform != 'win32':
-    # Twisted manhole support
-    # pycrypto does not provide wheels => disable on Windows
-    extras_require_dev.append('pycrypto>=2.6.1')   # Public Domain license
 
 # Crossbar.io/PostgreSQL integration
 extras_require_postgres = [
-    'txpostgres>=1.4.0'             # MIT license
+    'txpostgres>=1.4.0',            # MIT license
 ]
-if CPY:
-    extras_require_postgres.append('psycopg2>=2.6.1')       # LGPL license
+
+psycopg2_version = "2.6.1"  # LGPL license
+psycopg2cffi_version = "2.7.2"  # LGPL license
+
+if OLD_SETUPTOOLS:
+    if CPY:
+        extras_require_postgres.append('psycopg2>=' + psycopg2_version)
+    else:
+        extras_require_postgres.append('psycopg2cffi>=' + psycopg2cffi_version)
+
 else:
-    extras_require_postgres.append('psycopg2cffi>=2.7.2')   # LGPL license
+    extras_require['postgres:platform_python_implementation == "CPython"'] = [
+        'psycopg2>=' + psycopg2_version
+    ]
+
+    extras_require['postgres:platform_python_implementation != "CPython"'] = [
+        'psycopg2cffi>=' + psycopg2cffi_version
+    ]
 
 # Crossbar.io/Oracle integration
 extras_require_oracle = [
     'cx_Oracle>=5.2',               # Python Software Foundation license
 ]
+
+extras_require.update({
+    'all': [],
+    'dev': extras_require_dev,
+    'oracle': extras_require_oracle,
+    'postgres': extras_require_postgres
+})
 
 
 setup(
@@ -154,12 +212,7 @@ setup(
     platforms=('Any'),
     license="AGPL3",
     install_requires=install_requires,
-    extras_require={
-        'all': extras_require_dev,
-        'dev': extras_require_dev,
-        'oracle': extras_require_oracle,
-        'postgres': extras_require_postgres,
-    },
+    extras_require=extras_require,
     entry_points={
         'console_scripts': [
             'crossbar = crossbar.controller.cli:run'
