@@ -1,5 +1,8 @@
 include COPYRIGHT
 include LICENSE
+include LICENSE-FOR-API
+include requirements.txt
+include requirements-in.txt
+include requirements-dev.txt
 recursive-include crossbar/web *
 recursive-include crossbar/templates *
-recursive-include crossbar/adapter/postgres/ddl *
