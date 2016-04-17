@@ -76,13 +76,10 @@ install:
 install3:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip3 install --upgrade -e .
 
+# publish to PyPI
 publish: clean
-	python setup.py register
-	python setup.py sdist upload
-	# we can't ship wheels: while CB itself doesn't have binary extensions,
-	# we do dynamic deps ..
-	# see: https://github.com/crossbario/crossbar/issues/525
-	#python setup.py bdist_wheel upload
+	python setup.py sdist bdist_wheel
+	twine upload dist/*
 
 test: flake8
 	trial crossbar
