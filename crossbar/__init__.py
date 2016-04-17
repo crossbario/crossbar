@@ -28,36 +28,11 @@
 #
 #####################################################################################
 
-"""
-Crossbar.io - Unified application router.
-
-Crossbar.io is an open-source server software that allows developers to create
-distributed systems, composed of application components which are loosely coupled,
-communicate in (soft) real-time and can be implemented in different languages.
-
-Crossbar.io features:
-
- - application routing core (RPC+PubSub)
- - full WAMP v2 AP implementation
- - application component hosting
- - multi-process architecture
- - and more
-
-For more information, please go to
-
- * Homepage: http://crossbar.io/
- * Documentation: http://crossbar.io/docs
- * Source code: https://github.com/crossbario/crossbar
-
-Open-source licensed under the GNU Affero General Public License version 3.
-Created by Tavendo GmbH. Get in contact at http://tavendo.com
-"""
-
-from __future__ import absolute_import, division
+from __future__ import absolute_import
 
 import txaio
 txaio.use_twisted()
 
-__version__ = "0.13.1"
+__version__ = '0.13.2'
 
-__all__ = ["__version__"]
+__all__ = ('__version__',)
