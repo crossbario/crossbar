@@ -34,6 +34,7 @@ import os
 import traceback
 import socket
 import getpass
+from collections import OrderedDict
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
@@ -65,7 +66,76 @@ except ImportError:
 __all__ = ('Node',)
 
 
-def maybe_generate_key(log, cbdir, privkey_path=u'node.key'):
+def _parse_keyfile(key_path, private=True):
+    """
+    Internal helper. This parses a node.pub or node.priv file and
+    returns a dict mapping tags -> values.
+    """
+    if os.path.exists(key_path) and not os.path.isfile(key_path):
+        raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
+
+    allowed_tags = [u'public-key-ed25519', u'machine-id', u'created-at',
+                    u'creator']
+    if private:
+        allowed_tags.append(u'private-key-ed25519')
+
+    tags = OrderedDict()
+    with open(key_path, 'r') as key_file:
+        got_blankline = False
+        for line in key_file.readlines():
+            if line.strip() == '':
+                got_blankline = True
+            elif got_blankline:
+                tag, value = line.split(':', 1)
+                tag = tag.strip().lower()
+                value = value.strip()
+                if tag not in allowed_tags:
+                    raise Exception("Invalid tag '{}' in key file {}".format(tag, key_path))
+                if tag in tags:
+                    raise Exception("Duplicate tag '{}' in key file {}".format(tag, key_path))
+                tags[tag] = value
+    return tags
+
+
+def _machine_id():
+    """
+    for informational purposes, try to get a machine unique id thing
+    """
+    try:
+        # why this? see: http://0pointer.de/blog/projects/ids.html
+        with open('/var/lib/dbus/machine-id', 'r') as f:
+            return f.read().strip()
+    except:
+        return None
+
+
+def _creator():
+    """
+    for informational purposes, try to identify the creator (user@hostname)
+    """
+    try:
+        return u'{}@{}'.format(getpass.getuser(), socket.gethostname())
+    except:
+        return None
+
+
+def _write_node_key(filepath, tags, msg):
+    """
+    Internal helper.
+    Write the given tags to the given file
+    """
+    with open(filepath, 'w') as f:
+        f.write(msg)
+        for (tag, value) in tags.items():
+            if value:
+                f.write(u'{}: {}\n'.format(tag, value))
+
+    # set file mode to read only for owner
+    # 384 (decimal) == 0600 (octal) - we use that for Py2/3 reasons
+    os.chmod(filepath, 384)
+
+
+def maybe_generate_key(log, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
     if not HAS_NACL:
         log.warn("Skipping node key generation - NaCl package not installed!")
         return
@@ -74,76 +144,74 @@ def maybe_generate_key(log, cbdir, privkey_path=u'node.key'):
     from nacl.encoding import HexEncoder
 
     privkey = None
+    pubkey = None
     privkey_path = os.path.join(cbdir, privkey_path)
+    pubkey_path = os.path.join(cbdir, pubkey_path)
 
     if os.path.exists(privkey_path):
         # node private key seems to exist already .. check!
-        if os.path.isfile(privkey_path):
-            with open(privkey_path, 'r') as privkey_file:
-                privkey = None
-                # parse key file lines, looking for tag "ed25519-privkey"
-                got_blankline = False
-                for line in privkey_file.read().splitlines():
-                    if line.strip() == '':
-                        got_blankline = True
-                    elif got_blankline:
-                        tag, value = line.split(':', 1)
-                        tag = tag.strip().lower()
-                        value = value.strip()
-                        if tag not in [u'private-key-ed25519', u'public-key-ed25519', u'machine-id', u'created-at', u'creator']:
-                            raise Exception("Invalid tag '{}' in node private key file {}".format(tag, privkey_path))
-                        if tag == u'private-key-ed25519':
-                            privkey = value
-                            break
+        tags = _parse_keyfile(privkey_path, private=True)
+        if u'private-key-ed25519' not in tags:
+            raise Exception("Node private key file lacks a 'private-key-ed25519' tag!")
 
-                if not privkey:
-                    raise Exception("Node private key file lacks a 'ed25519-privkey' tag!")
+        privkey = tags[u'private-key-ed25519']
+        # recreate a signing key from the base64 encoding
+        privkey_obj = SigningKey(privkey, encoder=HexEncoder)
+        pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder).decode('ascii')
 
-                # recreate a signing key from the base64 encoding
-                privkey_obj = SigningKey(privkey, encoder=HexEncoder)
-                pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder).decode('ascii')
+        # confirm we have the public key in the file, and that it is
+        # correct
+        if u'public-key-ed25519' in tags:
+            if tags[u'public-key-ed25519'] != pubkey:
+                raise Exception(
+                    ("Inconsistent key file '{}': 'public-key-ed25519' doesn't"
+                     " correspond to private-key-ed25519").format(privkey_path)
+                )
+        log.debug("Node key already exists (public key: {})".format(pubkey))
 
-            log.debug("Node key already exists (public key: {})".format(pubkey))
+        if os.path.exists(pubkey_path):
+            pubtags = _parse_keyfile(pubkey_path, private=False)
+            if u'public-key-ed25519' not in pubtags:
+                raise Exception(
+                    ("Pubkey file '{}' exists but lacks 'public-key-ed25519'"
+                     " tag").format(pubkey_path)
+                )
+            if pubtags[u'public-key-ed25519'] != pubkey:
+                raise Exception(
+                    ("Inconsistent key file '{}': 'public-key-ed25519' doesn't"
+                     " correspond to private-key-ed25519").format(pubkey_path)
+                )
         else:
-            raise Exception("Node private key path '{}' exists, but isn't a file".format(privkey_path))
+            log.info("'{}' not found; re-creating from '{}'".format(pubkey_path, privkey_path))
+            tags = OrderedDict([
+                (u'creator', _creator()),
+                (u'created-at', utcnow()),
+                (u'machine-id', _machine_id()),
+                (u'public-key-ed25519', pubkey),
+            ])
+            msg = u'Crossbar.io public key for node authentication\n\n'
+            _write_node_key(pubkey_path, tags, msg)
+
     else:
         # node private key does NOT yet exist: generate one
         privkey_obj = SigningKey.generate()
         privkey = privkey_obj.encode(encoder=HexEncoder).decode('ascii')
-        privkey_created_at = utcnow()
-
         pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder).decode('ascii')
 
-        # for informational purposes, try to get a machine unique id thing ..
-        machine_id = None
-        try:
-            # why this? see: http://0pointer.de/blog/projects/ids.html
-            with open('/var/lib/dbus/machine-id', 'r') as f:
-                machine_id = f.read().strip()
-        except:
-            pass
+        # first, write the public file
+        tags = OrderedDict([
+            (u'creator', _creator()),
+            (u'created-at', utcnow()),
+            (u'machine-id', _machine_id()),
+            (u'public-key-ed25519', pubkey),
+        ])
+        msg = u'Crossbar.io public key for node authentication\n\n'
+        _write_node_key(pubkey_path, tags, msg)
 
-        # for informational purposes, try to identify the creator (user@hostname)
-        creator = None
-        try:
-            creator = u'{}@{}'.format(getpass.getuser(), socket.gethostname())
-        except:
-            pass
-
-        # write out the private key file
-        with open(privkey_path, 'w') as privkey_file:
-            privkey_file.write(u'Crossbar.io private key for node authentication - KEEP THIS SAFE!\n\n')
-            if creator:
-                privkey_file.write(u'creator: {}\n'.format(creator))
-            privkey_file.write(u'created-at: {}\n'.format(privkey_created_at))
-            if machine_id:
-                privkey_file.write(u'machine-id: {}\n'.format(machine_id))
-            privkey_file.write(u'public-key-ed25519: {}\n'.format(pubkey))
-            privkey_file.write(u'private-key-ed25519: {}\n'.format(privkey))
-
-        # set file mode to read only for owner
-        # 384 (decimal) == 0600 (octal) - we use that for Py2/3 reasons
-        os.chmod(privkey_path, 384)
+        # now, add the private key and write the private file
+        tags[u'private-key-ed25519'] = privkey
+        msg = u'Crossbar.io private key for node authentication - KEEP THIS SAFE!\n\n'
+        _write_node_key(privkey_path, tags, msg)
 
         log.info("New node key generated!")
 
