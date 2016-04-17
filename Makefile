@@ -52,15 +52,13 @@ hashin:
 	hashin PyNaCl
 	hashin treq
 	hashin setproctitle
-	hashin pyinotify
-	hashin wsaccel
-	hashin ujson
+	hashin watchdog
+	hashin argh
 	hashin attrs
 	hashin cffi
-	hashin enum34
 	hashin idna
-	hashin ipaddress
 	hashin MarkupSafe
+	hashin pathtools
 	hashin pycparser
 	hashin requests
 	hashin six
