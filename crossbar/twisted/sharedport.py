@@ -47,7 +47,7 @@ if sys.platform.startswith('linux'):
         _LINUX_KERNEL_VERSION = [int(x) for x in tuple(platform.uname()[2].split('.')[:2])]
 
         # SO_REUSEPORT only supported for Linux kernels >= 3.9
-        if _LINUX_KERNEL_VERSION[0] >= 3 and _LINUX_KERNEL_VERSION[1] >= 9:
+        if (_LINUX_KERNEL_VERSION[0] == 3 and _LINUX_KERNEL_VERSION[1] >= 9) or _LINUX_KERNEL_VERSION[0] >= 4:
             _HAS_SHARED_LOADBALANCED_SOCKET = True
 
             # monkey patch missing constant if needed
