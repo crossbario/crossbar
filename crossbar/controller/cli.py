@@ -150,7 +150,11 @@ def check_is_running(cbdir):
                 remove_PID_type = "corrupt"
                 remove_PID_reason = "corrupt .pid file"
             else:
-                if sys.platform == 'win32' and not _HAS_PSUTIL:
+                if pid == os.getpid():
+                    # the process ID is our own -- this happens often when the Docker container is
+                    # shut down uncleanly
+                    return None
+                elif sys.platform == 'win32' and not _HAS_PSUTIL:
                     # when on Windows, and we can't actually determine if the PID exists,
                     # just assume it exists
                     return pid_data
