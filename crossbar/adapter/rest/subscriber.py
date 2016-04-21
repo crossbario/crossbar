@@ -78,7 +78,7 @@ class MessageForwarder(ApplicationSession):
 
             # http://treq.readthedocs.org/en/latest/api.html#treq.request
             res = yield self._webtransport.request(
-                method.encode('utf8'),
+                method,
                 url.encode('utf8'),
                 data=body.encode('utf8'),
                 headers=headers
