@@ -99,9 +99,10 @@ class CallerResource(_CommonResource):
                 res['args'] = ["{}".format(err)]
 
             request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
+            res = json.dumps(res).encode('utf8')
 
             return self._fail_request(
-                request, 400, exc=res,
+                request, 400, body=res, failure=err,
                 log_category="AR458")
 
         return d.addCallbacks(on_call_ok, on_call_error)

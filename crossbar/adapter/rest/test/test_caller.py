@@ -34,6 +34,8 @@ import json
 
 from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
+from autobahn.wamp.exception import ApplicationError
+
 from crossbar.test import TestCase
 from crossbar._compat import native_string
 from crossbar._logging import LogCapturer
@@ -67,6 +69,27 @@ class MockSession(object):
             self._testCase.assertEqual(args, self._args)
             self._testCase.assertEqual(kwargs, self._kwargs)
             return self._response
+
+        def _call(procedureName, *args, **kwargs):
+            return maybeDeferred(call, procedureName, *args, **kwargs)
+
+        setattr(self, "call", _call)
+
+    def _addFailingProcedureCall(self, procedureName, args=(), kwargs={}, response=None):
+        """
+        Add an expected procedure call which expects a certain arks, kwargs,
+        and raises the response.
+        """
+        self._procedureName = procedureName
+        self._args = args
+        self._kwargs = kwargs
+        self._response = response
+
+        def call(procedureName, *args, **kwargs):
+            self._testCase.assertEqual(procedureName, self._procedureName)
+            self._testCase.assertEqual(args, self._args)
+            self._testCase.assertEqual(kwargs, self._kwargs)
+            raise self._response
 
         def _call(procedureName, *args, **kwargs):
             return maybeDeferred(call, procedureName, *args, **kwargs)
@@ -107,6 +130,35 @@ class CallerTestCase(TestCase):
         logs = l.get_category("AR202")
         self.assertEqual(len(logs), 1)
         self.assertEqual(logs[0]["code"], 200)
+
+    @inlineCallbacks
+    def test_failure(self):
+        """
+        A failed call returns the error to the client.
+        """
+        session = MockSession(self)
+        session._addFailingProcedureCall("com.test.add2",
+                                         args=(1, 2),
+                                         kwargs={},
+                                         response=ApplicationError("wamp.test.broke", "broken!"))
+
+        resource = CallerResource({}, session)
+
+        with LogCapturer() as l:
+            request = yield renderResource(
+                resource, b"/",
+                method=b"POST",
+                headers={b"Content-Type": [b"application/json"]},
+                body=b'{"procedure": "com.test.add2", "args": [1,2]}')
+
+        self.flushLoggedErrors()
+        self.assertEqual(request.code, 400)
+        self.assertEqual(json.loads(native_string(request.get_written_data())),
+                         {u"error": u"wamp.test.broke", u"args": [u"broken!"]})
+
+        logs = l.get_category("AR458")
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["code"], 400)
 
     @inlineCallbacks
     def test_no_procedure(self):
