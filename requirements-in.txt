@@ -2,7 +2,7 @@ click>=5.1
 setuptools>=18.3.1
 zope.interface>=4.1.2
 Twisted>=16.0.0
-autobahn[twisted]>=0.13.1
+autobahn>=0.13.1
 netaddr>=0.7.18
 PyTrie>=0.2
 Jinja2>=2.8
@@ -22,8 +22,5 @@ pyasn1-modules>=0.0.7
 service_identity>=14.0.0
 PyNaCl>=1.0.1
 treq>=15.1.0
-setproctitle>=1.1.9; sys_platform != 'win32'
-pypiwin32>=219; sys_platform == 'win32'
-pyinotify>=0.9.6; 'linux' in sys_platform
-wsaccel>=0.6.2; platform_python_implementation == 'CPython' and sys_platform != 'win32'
-ujson>=1.33; platform_python_implementation == 'CPython' and sys_platform != 'win32'
+setproctitle>=1.1.9
+watchdog>=0.8.3
