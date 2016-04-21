@@ -56,7 +56,9 @@ hashin:
 	hashin argh
 	hashin attrs
 	hashin cffi
+	hashin enum34
 	hashin idna
+	hashin ipaddress
 	hashin MarkupSafe
 	hashin pathtools
 	hashin pycparser
