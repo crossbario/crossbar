@@ -41,7 +41,6 @@ import shutil
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
 from twisted.internet.error import ProcessExitedAlready
-from twisted.internet.threads import deferToThread
 from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
@@ -58,7 +57,7 @@ from crossbar.controller.processtypes import RouterWorkerProcess, \
     GuestWorkerProcess, \
     WebSocketTesteeWorkerProcess
 from crossbar.common.process import NativeProcessSession
-from crossbar.platform import HAS_FSNOTIFY, DirWatcher
+from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
 
 from txaio import make_logger, get_global_log_level
 
@@ -875,7 +874,7 @@ class NodeControllerSession(NativeProcessSession):
             #
             if 'watch' in options:
 
-                if HAS_FSNOTIFY:
+                if HAS_FS_WATCHER:
 
                     # assemble list of watched directories
                     watched_dirs = []
@@ -884,33 +883,36 @@ class NodeControllerSession(NativeProcessSession):
 
                     worker.watch_timeout = options['watch'].get('timeout', 1)
 
-                    # create a directory watcher
-                    worker.watcher = DirWatcher(dirs=watched_dirs, notify_once=True)
+                    # create a filesystem watcher
+                    worker.watcher = FilesystemWatcher(workdir, watched_dirs=watched_dirs)
 
-                    # make sure to stop the background thread running inside the
-                    # watcher upon Twisted being shut down
+                    # make sure to stop the watch upon Twisted being shut down
                     def on_shutdown():
                         worker.watcher.stop()
 
                     self._node._reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
 
                     # this handler will get fired by the watcher upon detecting an FS event
-                    def on_fsevent(evt):
+                    def on_filesystem_change(fs_event):
                         worker.watcher.stop()
                         proto.signal('TERM')
 
                         if options['watch'].get('action', None) == 'restart':
-                            self.log.info("Restarting guest ..")
+                            self.log.info("Filesystem watcher detected change {fs_event} - restarting guest in {watch_timeout} seconds ..", fs_event=fs_event, watch_timeout=worker.watch_timeout)
                             # Add a timeout large enough (perhaps add a config option later)
                             self._node._reactor.callLater(worker.watch_timeout, self.start_guest, id, config, details)
                             # Shut the worker down, after the restart event is scheduled
-                            worker.stop()
+                            # FIXME: all workers should have a stop() method ..
+                            # -> 'GuestWorkerProcess' object has no attribute 'stop'
+                            # worker.stop()
+                        else:
+                            self.log.info("Filesystem watcher detected change {fs_event} - no action taken!", fs_event=fs_event)
 
-                    # now run the watcher on a background thread
-                    deferToThread(worker.watcher.loop, on_fsevent)
+                    # now start watching ..
+                    worker.watcher.start(on_filesystem_change)
 
                 else:
-                    self.log.warn("Warning: cannot watch directory for changes - feature DirWatcher unavailable")
+                    self.log.warn("Cannot watch directories for changes - feature not available")
 
             # assemble guest worker startup information
             #
