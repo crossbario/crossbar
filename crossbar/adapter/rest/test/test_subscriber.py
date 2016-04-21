@@ -67,7 +67,7 @@ class MessageForwarderTestCase(TestCase):
                               options=PublishOptions(acknowledge=True))
 
         self.assertNotEqual(res.id, None)
-        self.assertEqual(m.maderequest["args"], (b"POST", b"https://foo.com/msg"))
+        self.assertEqual(m.maderequest["args"], ("POST", b"https://foo.com/msg"))
         self.assertEqual(m.maderequest["kwargs"], {
             "data": b'{"args":["hi"],"kwargs":{}}',
             "headers": Headers({b"Content-Type": [b"application/json"]})
