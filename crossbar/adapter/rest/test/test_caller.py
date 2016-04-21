@@ -75,7 +75,6 @@ class MockSession(object):
 
         setattr(self, "call", _call)
 
-
     def _addFailingProcedureCall(self, procedureName, args=(), kwargs={}, response=None):
         """
         Add an expected procedure call which expects a certain arks, kwargs,
