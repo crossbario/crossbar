@@ -32,6 +32,8 @@ from __future__ import absolute_import
 
 import six
 
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from autobahn.wamp import types
 from autobahn.wamp.exception import ApplicationError
 
@@ -65,7 +67,11 @@ class PendingAuth:
             u'transport': session._transport._transport_info,
             u'session': session._pending_session_id,
             u'authmethod': None,
-            u'authextra': None
+            u'authextra': None,
+
+            # The URI prefix under which the locally running router worker registers,
+            # eg "crossbar.node.corei7ub1310.worker.worker-001"
+            u'worker': session._router_factory._node._uri_prefix
         }
 
         # The router factory we are working for
@@ -96,7 +102,12 @@ class PendingAuth:
         # The session over which to issue the call to the authenticator (filled only in dynamic mode).
         self._authenticator_session = None
 
+    @inlineCallbacks
     def _assign_principal(self, principal):
+        self.log.info(
+            "_assign_principal: {principal}",
+            principal=principal,
+        )
         if type(principal) == six.text_type:
             # FIXME: more strict authrole checking
             pass
@@ -106,7 +117,7 @@ class PendingAuth:
         else:
             error = ApplicationError.AUTHENTICATION_FAILED
             message = u'got invalid return type "{}" from dynamic authenticator'.format(type(principal))
-            return types.Deny(error, message)
+            returnValue(types.Deny(error, message))
 
         # backwards compatibility: dynamic authenticator
         # was expected to return a role directly
@@ -135,33 +146,64 @@ class PendingAuth:
 
         # a realm must have been assigned by now, otherwise bail out!
         if not self._realm:
-            return types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm assigned')
+            returnValue(types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm assigned'))
 
         # an authid MUST be set at least by here - otherwise bail out now!
         if not self._authid:
-            return types.Deny(ApplicationError.NO_SUCH_PRINCIPAL, message=u'no authid assigned')
+            returnValue(types.Deny(ApplicationError.NO_SUCH_PRINCIPAL, message=u'no authid assigned'))
 
         # an authrole MUST be set at least by here - otherwise bail out now!
         if not self._authrole:
-            return types.Deny(ApplicationError.NO_SUCH_ROLE, message=u'no authrole assigned')
+            returnValue(types.Deny(ApplicationError.NO_SUCH_ROLE, message=u'no authrole assigned'))
 
         # realm auto-activation: if realm is not started on router, maybe start it ..
         if self._realm not in self._router_factory:
-            # FIXME: this can return a deferred!
-            self._router_factory.auto_start_realm(self._realm)
+            self.log.info("Auto starting realm '{realm}' ..", realm=self._realm)
 
-        # if realm is not started on router, bail out now!
-        if self._realm not in self._router_factory:
-            return types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm "{}" exists on this router'.format(self._realm))
+            # this actually might start the realm asyncronously .. wait until the creation is finished
+            # or fails finally
+            yield self._router_factory.auto_start_realm(self._realm)
+
+            # if realm is not started on router, bail out now!
+            if self._realm not in self._router_factory:
+                self.log.debug("Realm '{realm}' could not be auto started, and thus simply does not exist", realm=self._realm)
+                returnValue(types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm "{}" exists on this router'.format(self._realm)))
+            else:
+                self.log.info("Realm '{realm}' auto started succeesfully", realm=self._realm)
+        else:
+            self.log.debug("Realm '{realm}' already started", realm=self._realm)
 
         # role auto-activation: if role is not running on realm, maybe start it ..
         if not self._router_factory[self._realm].has_role(self._authrole):
-            # FIXME: this can return a deferred!
-            self._router_factory.auto_add_role(self._realm, self._authrole)
+            # this actually might start the role asyncronously .. wait until the creation is finished
+            # or fails finally
+            try:
+                yield self._router_factory.auto_add_role(self._realm, self._authrole)
+            except Exception as e:
+                self.log.info(
+                    "Failed to auto-activate role '{role}': {reason}",
+                    reason=str(e),
+                    role=self._authrole,
+                )
+                # we failed to auto-activate this role, so we don't have it
+                returnValue(
+                    types.Deny(
+                        ApplicationError.NO_SUCH_ROLE,
+                        message=u'realm "{}" has no role "{}"'.format(
+                            self._realm,
+                            self._authrole,
+                        )
+                    )
+                )
+                return
 
         # if role is not running on realm, bail out now!
         if not self._router_factory[self._realm].has_role(self._authrole):
-            return types.Deny(ApplicationError.NO_SUCH_ROLE, message=u'realm "{}" has no role "{}"'.format(self._realm, self._authrole))
+            returnValue(types.Deny(ApplicationError.NO_SUCH_ROLE, message=u'realm "{}" has no role "{}"'.format(self._realm, self._authrole)))
+
+        # hooray! all our checks have passed.
+
+        returnValue(None)
 
     def _init_dynamic_authenticator(self):
         self._authenticator = self._config['authenticator']
@@ -176,7 +218,10 @@ class PendingAuth:
                 return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"client did not specify a realm to join (and no explicit realm was configured for dynamic authenticator)")
             authenticator_realm = self._realm
 
-        self._authenticator_session = self._router_factory.get(authenticator_realm)._realm.session
+        if authenticator_realm not in self._router_factory:
+            return types.Deny(ApplicationError.NO_SUCH_REALM, message=u"realm <{}> to run dynamic authenticator on does not exist".format(authenticator_realm))
+
+        self._authenticator_session = self._router_factory[authenticator_realm]._realm.session
 
     def _marshal_dynamic_authenticator_error(self, err):
         error = ApplicationError.AUTHENTICATION_FAILED
@@ -184,12 +229,14 @@ class PendingAuth:
         return types.Deny(error, message)
 
     def _accept(self):
-        return types.Accept(realm=self._realm,
-                            authid=self._authid,
-                            authrole=self._authrole,
-                            authmethod=self._authmethod,
-                            authprovider=self._authprovider,
-                            authextra=self._authextra)
+        return types.Accept(
+            realm=self._realm,
+            authid=self._authid,
+            authrole=self._authrole,
+            authmethod=self._authmethod,
+            authprovider=self._authprovider,
+            authextra=self._authextra,
+        )
 
     def hello(self, realm, details):
         """

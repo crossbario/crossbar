@@ -85,6 +85,7 @@ class AppSessionLoaderTests(TestCase):
         self.assertIn(
             ("session not derived of ApplicationSession"),
             str(e.exception.args[0]))
+        self.flushLoggedErrors()
 
     def test_class_importerror(self):
         """
@@ -106,6 +107,7 @@ class AppSessionLoaderTests(TestCase):
         self.assertIn(
             ("ImportError"),
             str(e.exception.args[0]))
+        self.flushLoggedErrors()
 
     def test_class_syntaxerror(self):
         """
@@ -126,3 +128,4 @@ class AppSessionLoaderTests(TestCase):
         self.assertIn(
             ("SyntaxError"),
             str(e.exception.args[0]))
+        self.flushLoggedErrors()

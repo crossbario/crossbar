@@ -39,6 +39,9 @@ import nacl
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.python.failure import Failure
+
 from autobahn import util
 from autobahn.wamp import types
 
@@ -92,11 +95,16 @@ class PendingAuthCryptosign(PendingAuth):
         }
         return extra
 
+    @inlineCallbacks
     def hello(self, realm, details):
         # the channel binding requested by the client authenticating
+        if details.authextra is None:
+            raise Exception(
+                "Must specify 'authextra=' when calling .join()"
+            )
         channel_binding = details.authextra.get(u'channel_binding', None)
         if channel_binding is not None and channel_binding not in [u'tls-unique']:
-            return types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding))
+            returnValue(types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding)))
         else:
             self.log.info("WAMP-cryptosign CHANNEL BINDING requested: {}".format(channel_binding))
 
@@ -130,29 +138,29 @@ class PendingAuthCryptosign(PendingAuth):
                             if self._authid is None:
                                 self._authid = _authid
                             else:
-                                return types.Deny(message=u'cannot infer client identity from pubkey: multiple authids in principal database have this pubkey')
+                                returnValue(types.Deny(message=u'cannot infer client identity from pubkey: multiple authids in principal database have this pubkey'))
                     if self._authid is None:
-                        return types.Deny(message=u'cannot identify client: no authid requested and no principal found for provided extra.pubkey')
+                        returnValue(types.Deny(message=u'cannot identify client: no authid requested and no principal found for provided extra.pubkey'))
                 else:
-                    return types.Deny(message=u'cannot identify client: no authid requested and no extra.pubkey provided')
+                    returnValue(types.Deny(message=u'cannot identify client: no authid requested and no extra.pubkey provided'))
 
             if self._authid in self._config.get(u'principals', {}):
 
                 principal = self._config[u'principals'][self._authid]
 
                 if pubkey and (pubkey not in principal[u'authorized_keys']):
-                    return types.Deny(message=u'extra.pubkey provided does not match any one of authorized_keys for the principal')
+                    returnValue(types.Deny(message=u'extra.pubkey provided does not match any one of authorized_keys for the principal'))
 
-                error = self._assign_principal(principal)
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
+                    returnValue(error)
 
                 self._verify_key = VerifyKey(pubkey, encoder=nacl.encoding.HexEncoder)
 
                 extra = self._compute_challenge(channel_binding)
-                return types.Challenge(self._authmethod, extra)
+                returnValue(types.Challenge(self._authmethod, extra))
             else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
+                returnValue(types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid)))
 
         elif self._config[u'type'] == u'dynamic':
 
@@ -160,32 +168,29 @@ class PendingAuthCryptosign(PendingAuth):
 
             error = self._init_dynamic_authenticator()
             if error:
-                return error
+                returnValue(error)
 
             self._session_details[u'authmethod'] = u'cryptosign'
             self._session_details[u'authextra'] = details.authextra
 
-            d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
-
-            def on_authenticate_ok(principal):
-                error = self._assign_principal(principal)
+            try:
+                principal = yield self._authenticator_session.call(
+                    self._authenticator, realm, details.authid, self._session_details,
+                )
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
-
+                    returnValue(error)
                 self._verify_key = VerifyKey(principal[u'pubkey'], encoder=nacl.encoding.HexEncoder)
-
                 extra = self._compute_challenge(channel_binding)
-                return types.Challenge(self._authmethod, extra)
+                returnValue(types.Challenge(self._authmethod, extra))
 
-            def on_authenticate_error(err):
-                return self._marshal_dynamic_authenticator_error(err)
-
-            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-            return d
+            except Exception:
+                err = Failure()
+                returnValue(self._marshal_dynamic_authenticator_error(err))
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            returnValue(types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type'])))
 
     def authenticate(self, signed_message):
         """
@@ -220,6 +225,8 @@ class PendingAuthCryptosign(PendingAuth):
             return self._accept()
 
         except Exception as e:
-
-            # should not arrive here .. but who knows
+            self.log.failure(
+                "Internal error processing WAMP-Cryptosign challenge: {log_failure}",
+                failure=Failure(),
+            )
             return types.Deny(message=u'internal error: {}'.format(e))

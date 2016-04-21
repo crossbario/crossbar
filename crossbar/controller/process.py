@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import os
+import re
 import sys
 import pkg_resources
 from datetime import datetime
@@ -163,6 +164,8 @@ class NodeControllerSession(NativeProcessSession):
 
             'start_websocket_testee',
             'stop_websocket_testee',
+
+            'activate_realm',
         ]
 
         dl = []
@@ -180,6 +183,31 @@ class NodeControllerSession(NativeProcessSession):
         self.publish(u"crossbar.node.on_ready", self._node_id)
 
         self.log.debug("Node controller ready")
+
+    @inlineCallbacks
+    def activate_realm(self, realm, details=None):
+        self.log.info("Processing activation request for realm '{realm}'", realm=realm)
+
+        # find first matching template (if any)
+        match = None
+        for worker_id, templates in self._node._realm_templates.items():
+            for tmpl in templates:
+                pat_str = tmpl[u'name']
+                pat = re.compile(pat_str)
+                match = pat.match(realm)
+                if match:
+                    break
+        if match:
+            self.log.info("Realm '{realm}' matched from template '{pattern}'", realm=realm, pattern=pat_str)
+            tmpl[u'name'] = realm
+            try:
+                yield self._node._run_realm_config(worker_id, "Router '{}'".format(worker_id), tmpl)
+            except Exception as e:
+                self.log.error(e)
+            finally:
+                tmpl[u'name'] = pat_str
+        else:
+            self.log.info("No matching template for realm '{realm}'", realm=realm)
 
     def get_info(self, details=None):
         """

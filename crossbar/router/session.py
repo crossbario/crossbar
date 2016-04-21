@@ -368,14 +368,15 @@ class RouterSession(BaseSession):
             if isinstance(msg, message.Hello):
 
                 self._session_roles = msg.roles
-
-                details = types.HelloDetails(realm=msg.realm,
-                                             authmethods=msg.authmethods,
-                                             authid=msg.authid,
-                                             authrole=msg.authrole,
-                                             authextra=msg.authextra,
-                                             session_roles=msg.roles,
-                                             pending_session=self._pending_session_id)
+                details = types.HelloDetails(
+                    realm=msg.realm,
+                    authmethods=msg.authmethods,
+                    authid=msg.authid,
+                    authrole=msg.authrole,
+                    authextra=msg.authextra,
+                    session_roles=msg.roles,
+                    pending_session=self._pending_session_id,
+                )
 
                 d = txaio.as_future(self.onHello, msg.realm, details)
 
@@ -391,6 +392,12 @@ class RouterSession(BaseSession):
                         msg = message.Challenge(res.method, res.extra)
 
                     elif isinstance(res, types.Deny):
+                        self.log.info(
+                            "{reason}: {message}: from {transport[peer]}",
+                            reason=res.reason,
+                            message=res.message,
+                            transport=self._transport._transport_info,
+                        )
                         msg = message.Abort(res.reason, res.message)
 
                     else:
@@ -541,7 +548,7 @@ class RouterSession(BaseSession):
 
         DO NOT attach to Deferreds that are returned to calling code.
         """
-        self.log.failure("Internal error (2): {log_failure.value}", failure=fail)
+        self.log.failure("Internal error (3): {log_failure.value}", failure=fail)
 
         # tell other side we're done
         reply = message.Abort(u"wamp.error.authorization_failed", u"Internal server error")
@@ -651,8 +658,9 @@ class RouterSession(BaseSession):
                     return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
-            self.log.critical("Internal error")
-            return types.Deny(message=u'internal error: {}'.format(e))
+            raise
+            self.log.critical("Internal error (1)")
+            return types.Deny(message=u'internal error (1): {}'.format(e))
 
     def onAuthenticate(self, signature, extra):
         """
@@ -673,7 +681,7 @@ class RouterSession(BaseSession):
             # should not arrive here: logic error
             else:
                 self.log.warn('unexpected pending authentication {pending_auth}', pending_auth=self._pending_auth)
-                return types.Deny(message=u'internal error: unexpected pending authentication')
+                return types.Deny(message=u'internal error (2): unexpected pending authentication')
 
         # should not arrive here: client misbehaving!
         else:

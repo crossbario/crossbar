@@ -33,6 +33,8 @@ from __future__ import absolute_import
 import json
 import six
 
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from autobahn import util
 from autobahn.wamp import auth
 from autobahn.wamp import types
@@ -92,6 +94,7 @@ class PendingAuthWampCra(PendingAuth):
 
         return extra, signature
 
+    @inlineCallbacks
     def hello(self, realm, details):
 
         # remember the realm the client requested to join (if any)
@@ -109,17 +112,17 @@ class PendingAuthWampCra(PendingAuth):
 
                 principal = self._config[u'users'][self._authid]
 
-                error = self._assign_principal(principal)
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
+                    returnValue(error)
 
                 # now compute CHALLENGE.Extra and signature as
                 # expected for WAMP-CRA
                 extra, self._signature = self._compute_challenge(principal)
 
-                return types.Challenge(self._authmethod, extra)
+                returnValue(types.Challenge(self._authmethod, extra))
             else:
-                return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
+                returnValue(types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid)))
 
         # use configured procedure to dynamically get a ticket for the principal
         elif self._config[u'type'] == u'dynamic':
@@ -128,28 +131,29 @@ class PendingAuthWampCra(PendingAuth):
 
             error = self._init_dynamic_authenticator()
             if error:
-                return error
+                returnValue(error)
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
+            @inlineCallbacks
             def on_authenticate_ok(principal):
-                error = self._assign_principal(principal)
+                error = yield self._assign_principal(principal)
                 if error:
-                    return error
+                    returnValue(error)
 
                 # now compute CHALLENGE.Extra and signature expected
                 extra, self._signature = self._compute_challenge(principal)
-                return types.Challenge(self._authmethod, extra)
+                returnValue(types.Challenge(self._authmethod, extra))
 
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)
 
             d.addCallbacks(on_authenticate_ok, on_authenticate_error)
-            return d
+            returnValue(d)
 
         else:
             # should not arrive here, as config errors should be caught earlier
-            return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
+            returnValue(types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type'])))
 
     def authenticate(self, signature):
 
