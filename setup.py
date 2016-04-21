@@ -76,6 +76,9 @@ os.environ['LMDB_FORCE_CFFI'] = '1'
 # enforce use of bundled libsodium
 os.environ['SODIUM_INSTALL'] = 'bundled'
 
+# enforce use of pure Python py-ubjson (no Cython)
+os.environ['PYUBJSON_NO_EXTENSION'] = '1'
+
 # now actually call into setuptools ..
 setup(
     name='crossbar',
