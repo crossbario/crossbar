@@ -73,9 +73,6 @@ class GuestWorkerClientProtocol(protocol.Protocol):
                     self.transport.write(json.dumps(options['stdin']['value'], ensure_ascii=False).encode('utf8'))
                     self.log.debug("GuestWorkerClientProtocol: JSON value written to stdin on guest")
 
-                elif options['stdin']['type'] == 'msgpack':
-                    raise Exception("not implemented")
-
                 else:
                     raise Exception("logic error")
 

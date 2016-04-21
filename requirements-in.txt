@@ -1,7 +1,8 @@
 click>=5.1
 setuptools>=18.3.1
 zope.interface>=4.1.2
-Twisted>=16.0.0
+# we pin Twisted because of: https://github.com/crossbario/autobahn-python/issues/644
+Twisted>=16.0.0,<=16.1.1
 autobahn>=0.13.1
 netaddr>=0.7.18
 PyTrie>=0.2
@@ -15,6 +16,7 @@ psutil>=3.2.1
 lmdb>=0.88
 msgpack-python>=0.4.6
 cbor>=0.1.24
+py-ubjson>=0.8.4
 cryptography>=0.9.3
 pyOpenSSL>=0.15.1
 pyasn1>=0.1.8

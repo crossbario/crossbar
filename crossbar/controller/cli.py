@@ -271,6 +271,14 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         cbor_ver = '-'
 
+    # UBJSON Serializer
+    try:
+        import ubjson  # noqa
+        ubjson_ver = 'ubjson-%s' % pkg_resources.require('ubjson')[0].version
+        supported_serializers.append('UBJSON')
+    except ImportError:
+        ubjson_ver = '-'
+
     # LMDB
     try:
         import lmdb  # noqa
@@ -298,6 +306,7 @@ def run_command_version(options, reactor=None, **kwargs):
     log.debug("     JSON Codec     : {ver}", ver=decorate(json_ver))
     log.debug("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
     log.debug("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
+    log.debug("     UBJSON Codec   : {ver}", ver=decorate(ubjson_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))

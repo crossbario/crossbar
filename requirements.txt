@@ -118,6 +118,8 @@ msgpack-python==0.4.7 \
     --hash=sha256:5e001229a54180a02dcdd59db23c9978351af55b1290c27bc549e381f43acd6b
 cbor==1.0.0 \
     --hash=sha256:13225a262ddf5615cbd9fd55a76a0d53069d18b07d2e9f19c39e6acb8609bbb6
+py-ubjson==0.8.4 \
+    --hash=sha256:395c0cbbb097d88bb0db92fe1ac82d31b56f3be396946fe02d38f08e86a8efe9
 cryptography==1.3.1 \
     --hash=sha256:6c3313a11d222c8fa958229684fb611407dce4d48a262c73c6eeef972be454e6 \
     --hash=sha256:8ec4366bb4720219c90dad7077b15fffbc1f6235f4fce22ce87de0addc783052 \
