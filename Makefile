@@ -44,6 +44,7 @@ hashin:
 	hashin lmdb
 	hashin msgpack-python
 	hashin cbor
+	hashin py-ubjson
 	hashin cryptography
 	hashin pyOpenSSL
 	hashin pyasn1

@@ -543,11 +543,27 @@ class WampLongPollResource(Resource):
         if serializers is None:
             serializers = []
 
+            # try CBOR WAMP serializer
+            try:
+                from autobahn.wamp.serializer import CBORSerializer
+                serializers.append(CBORSerializer(batched=True))
+                serializers.append(CBORSerializer())
+            except ImportError:
+                pass
+
             # try MsgPack WAMP serializer
             try:
                 from autobahn.wamp.serializer import MsgPackSerializer
                 serializers.append(MsgPackSerializer(batched=True))
                 serializers.append(MsgPackSerializer())
+            except ImportError:
+                pass
+
+            # try UBJSON WAMP serializer
+            try:
+                from autobahn.wamp.serializer import UBJSONSerializer
+                serializers.append(UBJSONSerializer(batched=True))
+                serializers.append(UBJSONSerializer())
             except ImportError:
                 pass
 

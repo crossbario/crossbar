@@ -344,6 +344,16 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 else:
                     sers.discard('msgpack')
 
+            if 'ubjson' in sers:
+                # try UBJSON WAMP serializer
+                try:
+                    from autobahn.wamp.serializer import UBJSONSerializer
+                    serializers.append(UBJSONSerializer())
+                except ImportError:
+                    self.log.warn("Warning: could not load WAMP-UBJSON serializer")
+                else:
+                    sers.discard('ubjson')
+
             if 'json' in sers:
                 # try JSON WAMP serializer
                 try:
