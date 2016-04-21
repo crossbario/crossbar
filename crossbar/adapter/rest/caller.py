@@ -99,7 +99,7 @@ class CallerResource(_CommonResource):
                 res['args'] = ["{}".format(err)]
 
             request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
-            res = json.dumps(res)
+            res = json.dumps(res).encode('utf8')
 
             return self._fail_request(
                 request, 400, body=res, failure=err,
