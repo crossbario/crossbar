@@ -274,7 +274,7 @@ def run_command_version(options, reactor=None, **kwargs):
     # UBJSON Serializer
     try:
         import ubjson  # noqa
-        ubjson_ver = 'ubjson-%s' % pkg_resources.require('ubjson')[0].version
+        ubjson_ver = 'ubjson-%s' % pkg_resources.require('py-ubjson')[0].version
         supported_serializers.append('UBJSON')
     except ImportError:
         ubjson_ver = '-'
