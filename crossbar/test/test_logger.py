@@ -39,6 +39,7 @@ from io import StringIO
 from mock import Mock
 
 from twisted.logger import formatTime
+from twisted.python.failure import Failure
 
 from crossbar.test import TestCase
 from crossbar._logging import (LogCapturer, make_stdout_observer, make_JSON_observer,
@@ -251,7 +252,7 @@ class JSONObserverTests(TestCase):
         try:
             1 / 0
         except:
-            log.failure("Oh no")
+            log.failure("Oh no {0}".format("!"))
 
         result = stream.getvalue()
         log_entry = json.loads(result[:-1])
@@ -259,7 +260,7 @@ class JSONObserverTests(TestCase):
         self.assertEqual(result[-1], record_separator)
         self.assertEqual(len(log_entry.keys()), 4)
         self.assertIn(u"ZeroDivisionError", log_entry["text"])
-        self.assertIn(u"Oh no", log_entry["text"])
+        self.assertIn(u"Oh no !", log_entry["text"])
         self.assertEqual(log_entry["level"], u"critical")
 
     def test_not_json_serialisable(self):
@@ -490,6 +491,29 @@ class StderrObserverTests(TestCase):
 
         result = stream.getvalue()
         self.assertEqual(result[:-1], "[foo] DEBUG x~ z a")
+
+    def test_format_failure(self):
+        """
+        A traceback will print.
+        """
+        stream = NativeStringIO()
+        observer = make_stderr_observer(_file=stream, format="syslogd")
+
+        try:
+            raise ValueError("noooo {0}".format("!!"))
+        except:
+            err = Failure()
+
+        event = {'log_level': LogLevel.error,
+                 'log_namespace': 'crossbar.test.test_logger.StdoutObserverTests',
+                 'log_format': None, 'log_source': None,
+                 'log_failure': err,
+                 'log_system': 'foo', 'log_time': 1434099813.77449}
+
+        observer(event)
+
+        result = stream.getvalue()
+        self.assertIn("noooo {0}", result)
 
 
 class LogCapturerTests(TestCase):
