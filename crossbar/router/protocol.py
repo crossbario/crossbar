@@ -328,6 +328,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
+                    serializers.append(CBORSerializer(batched=True))
                     serializers.append(CBORSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
@@ -338,6 +339,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
+                    serializers.append(MsgPackSerializer(batched=True))
                     serializers.append(MsgPackSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
@@ -348,6 +350,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 # try UBJSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import UBJSONSerializer
+                    serializers.append(UBJSONSerializer(batched=True))
                     serializers.append(UBJSONSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
@@ -358,6 +361,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
+                    serializers.append(JsonSerializer(batched=True))
                     serializers.append(JsonSerializer())
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
