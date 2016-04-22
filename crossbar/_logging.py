@@ -227,12 +227,12 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
             eventString = FORMAT_STRING.format(
                 startcolour=fore, time=formatTime(event["log_time"]),
                 system=logSystem, endcolour=Fore.RESET,
-                text=formatEvent(event))
+                text=eventText)
         else:
             eventString = strip_ansi(FORMAT_STRING.format(
                 startcolour=u'', time=formatTime(event["log_time"]),
                 system=logSystem, endcolour=u'',
-                text=formatEvent(event)))
+                text=eventText))
 
         print(eventString, file=_file)
 
