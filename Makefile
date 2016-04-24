@@ -1,4 +1,4 @@
-.PHONY: test
+.PHONY: test docs
 
 all:
 	@echo "Targets:"
@@ -8,6 +8,7 @@ all:
 	@echo "   flake8           Run flake tests"
 	@echo "   install          Local install"
 	@echo "   publish          Clean build and publish to PyPI"
+	@echo "   docs             Build and test docs"
 	@echo ""
 
 clean:
@@ -22,6 +23,9 @@ clean:
 	find . -name "*.log" -exec rm -f {} \;
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
+
+docs:
+	python docs/test_server.py
 
 freeze:
 	pip freeze -r requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt

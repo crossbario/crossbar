@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block main %}
+<p>
+   <a href="/">HOME</a>
+</p>
+
+<hr>
+
+<h1>{{ title }}</h1>
+{{ contents|safe }}
+
+<hr>
+
+{% if last_commit %}
+   <p>Last edit by {{ last_commit }}</p>
+{% endif %}
+{% endblock %}
