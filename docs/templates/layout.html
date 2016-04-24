@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <title>Crossbar.io Docs</title>
+      <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename = 'pygments.css') }}" />
+      <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename = 'site.css') }}" media="screen,projection" />
+   </head>
+   <body>
+      <header></header>
+      <main id="main">
+         <div id="contents">
+            {% block main %}{% endblock %}
+         </div>
+      </main>
+      <footer></footer>
+   </body>
+</html>
