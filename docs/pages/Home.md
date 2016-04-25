@@ -12,6 +12,8 @@ Welcome to the Crossbar.io Reference Documentation.
 * [Architecture](Architecture)
 * [Features](Features)
 * [Roadmap](Roadmap)
+* [Releases](Releases)
+* [Compatibility Policy](Compatibility-Policy)
 
 ** Getting Started **
 
