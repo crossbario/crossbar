@@ -19,7 +19,7 @@ Externally, the cluster will behave like a single instance.
 
 ## Nodes
 
-A Crossbar.io node runs from a **node directory**, usually named `.crossbar`. This node directory contains the data the for the node, such as its local configuration, log files and server TLS keys/certificates. This means you can only run a single node per **node directory**:
+A Crossbar.io node runs from a **node directory**, usually named `.crossbar`. This node directory contains the data for the node, such as its local configuration, log files and server TLS keys/certificates. This means you can only run a single node per **node directory**:
 
 ![Crossbar.io Node](/static/img/docs/gen/crossbar_deployment_00b.png)
 
