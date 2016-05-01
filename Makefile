@@ -33,6 +33,7 @@ freeze:
 	pip freeze -r requirements-in.txt
 	pip install hashin
 	cat requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt
+	# FIXME: hashin each dependency in requirements.txt and remove the original entries (so no double entries are left)
 	hashin click
 	hashin setuptools
 	hashin zope.interface
