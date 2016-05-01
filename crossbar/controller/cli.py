@@ -215,7 +215,7 @@ def run_command_version(options, reactor=None, **kwargs):
     tx_loc = "[%s]" % qual(reactor.__class__)
 
     # txaio
-    txaio_ver = 'txaio-%s' % pkg_resources.require("txaio")[0].version
+    txaio_ver = '%s' % pkg_resources.require("txaio")[0].version
 
     # Autobahn
     from autobahn.websocket.protocol import WebSocketProtocol
@@ -293,15 +293,15 @@ def run_command_version(options, reactor=None, **kwargs):
     log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
     log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
-    log.debug("     txaio          : {ver}", ver=decorate(txaio_ver))
-    log.debug("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
+    log.debug("     txaio             : {ver}", ver=decorate(txaio_ver))
+    log.debug("     UTF8 Validator    : {ver}", ver=decorate(utf8_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(utf8_loc))
-    log.debug("     XOR Masker     : {ver}", ver=decorate(xor_ver))
+    log.debug("     XOR Masker        : {ver}", ver=decorate(xor_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
-    log.debug("     JSON Codec     : {ver}", ver=decorate(json_ver))
-    log.debug("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
-    log.debug("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
-    log.debug("     UBJSON Codec   : {ver}", ver=decorate(ubjson_ver))
+    log.debug("     JSON Codec        : {ver}", ver=decorate(json_ver))
+    log.debug("     MessagePack Codec : {ver}", ver=decorate(msgpack_ver))
+    log.debug("     CBOR Codec        : {ver}", ver=decorate(cbor_ver))
+    log.debug("     UBJSON Codec      : {ver}", ver=decorate(ubjson_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))

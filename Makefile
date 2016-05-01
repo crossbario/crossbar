@@ -77,12 +77,12 @@ freeze:
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
 
-install:
-	#LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --upgrade -e .
+# install dependencies exactly
+install_deps:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
 
-install3:
-	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip3 install --upgrade -e .
+install:
+	pip install -e .
 
 # publish to PyPI
 publish: clean
