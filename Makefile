@@ -27,10 +27,13 @@ clean:
 docs:
 	python docs/test_server.py
 
+# call this in a fresh virtualenv to update our frozen requirements.txt!
 freeze:
-	pip freeze -r requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt
-
-hashin:
+	pip install --no-cache-dir -r requirements-in.txt
+	pip freeze -r requirements-in.txt
+	pip install hashin
+	cat requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt
+	# FIXME: hashin each dependency in requirements.txt and remove the original entries (so no double entries are left)
 	hashin click
 	hashin setuptools
 	hashin zope.interface
@@ -46,7 +49,7 @@ hashin:
 	hashin sdnotify
 	hashin psutil
 	hashin lmdb
-	hashin msgpack-python
+	hashin u-msgpack-python
 	hashin cbor
 	hashin py-ubjson
 	hashin cryptography
@@ -74,12 +77,12 @@ hashin:
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
 
-install:
-	#LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --upgrade -e .
+# install dependencies exactly
+install_deps:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
 
-install3:
-	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip3 install --upgrade -e .
+install:
+	pip install -e .
 
 # publish to PyPI
 publish: clean
