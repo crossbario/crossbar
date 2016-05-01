@@ -249,16 +249,12 @@ def run_command_version(options, reactor=None, **kwargs):
     # JSON Serializer
     supported_serializers = ['JSON']
     from autobahn.wamp.serializer import JsonObjectSerializer
-    s = str(JsonObjectSerializer.JSON_MODULE)
-    if 'ujson' in s:
-        json_ver = 'ujson-%s' % pkg_resources.require('ujson')[0].version
-    else:
-        json_ver = 'stdlib'
+    json_ver = 'stdlib'
 
     # MsgPack Serializer
     try:
-        import msgpack  # noqa
-        msgpack_ver = 'msgpack-python-%s' % pkg_resources.require('msgpack-python')[0].version
+        import umsgpack  # noqa
+        msgpack_ver = 'u-msgpack-python-%s' % pkg_resources.require('u-msgpack-python')[0].version
         supported_serializers.append('MessagePack')
     except ImportError:
         msgpack_ver = '-'

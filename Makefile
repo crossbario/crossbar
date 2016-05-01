@@ -27,10 +27,12 @@ clean:
 docs:
 	python docs/test_server.py
 
+# call this in a fresh virtualenv to update our frozen requirements.txt!
 freeze:
-	pip freeze -r requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt
-
-hashin:
+	pip install --no-cache-dir -r requirements-in.txt
+	pip freeze -r requirements-in.txt
+	pip install hashin
+	cat requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt
 	hashin click
 	hashin setuptools
 	hashin zope.interface
@@ -46,7 +48,7 @@ hashin:
 	hashin sdnotify
 	hashin psutil
 	hashin lmdb
-	hashin msgpack-python
+	hashin u-msgpack-python
 	hashin cbor
 	hashin py-ubjson
 	hashin cryptography
