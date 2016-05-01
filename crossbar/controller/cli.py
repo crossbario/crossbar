@@ -248,7 +248,6 @@ def run_command_version(options, reactor=None, **kwargs):
 
     # JSON Serializer
     supported_serializers = ['JSON']
-    from autobahn.wamp.serializer import JsonObjectSerializer
     json_ver = 'stdlib'
 
     # MsgPack Serializer
