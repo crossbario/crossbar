@@ -1,4 +1,5 @@
 [Documentation](.) > [Administration](Administration) > [Processes](Processes) >[Router Configuration](Router Configuration) > Router Components
+
 # Router Components
 
 *Routers* can run WAMP application components written in Python *side-by-side*, i.e. within the same system process.

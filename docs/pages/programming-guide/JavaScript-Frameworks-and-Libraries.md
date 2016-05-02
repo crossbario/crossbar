@@ -1,3 +1,5 @@
+[Documentation](.) > [Programming Guide](Programming-Guide) > [JavaScript-Frameworks-and-Libraries](JavaScript-Frameworks-and-Libraries)
+
 We believe that browser frontends will increase in importance. Browsers are the most widely spread runtime ever, and they are gaining new features and capabilities at an amazing rate.
 
 When developing application components for the browser, developers do (and should) take advantage of the rich ecosystem of libraries and development frameworks that exists. With new candidates constantly being released, and support for old ones ending, it's difficult to keep an overview.
@@ -19,7 +21,7 @@ This page aims to collect some of the more popular of these frameworks, and give
 
 ### Ember
 
-[Ember.js](http://emberjs.com/) is a frontend framework which provides routing, templating and data binding. 
+[Ember.js](http://emberjs.com/) is a frontend framework which provides routing, templating and data binding.
 
 - write me -
 
