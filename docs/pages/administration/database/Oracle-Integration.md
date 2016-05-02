@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Database Integration](Database Integration) > Oracle Integration
+title: Oracle Integration
+toc: [Documentation, Administration, Database Integration, Oracle Integration]
 
 # Oracle Integration
 
@@ -77,7 +78,6 @@ No errors.
 Disconnected from Oracle Database 12c Enterprise Edition Release 12.1.0.2.0 - 64bit Production
 With the Partitioning, OLAP, Advanced Analytics and Real Application Testing options
 ```
-
 
 
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Contributing to the Project](Contributing to the project) > FAQ
+title: FAQ
+toc: [Documentation, Contributing to the Project, FAQ]
 
 # Contributing to the project - FAQ
 

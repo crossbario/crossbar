@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Going to Production](Going to Production) > Secure WebSocket and HTTPS
+title: Secure WebSocket and HTTPS
+toc: [Documentation, Administration, Going to Production, Secure WebSocket and HTTPS]
 
 # TLS Certificates
 

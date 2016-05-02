@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Local Installation](Local Installation) > Installation from Source
+title: Installation from Source
+toc: [Documentation, Installation, Local Installation, Installation from Source]
 
 # Installation from Source
 

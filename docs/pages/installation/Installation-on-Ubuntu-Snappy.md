@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Local Installation](Local Installation) > Installation on Ubuntu Snappy
+title: Installation on Ubuntu Snappy
+toc: [Documentation, Installation, Local Installation, Installation on Ubuntu Snappy]
 
 # Installation on Ubuntu Snappy
 

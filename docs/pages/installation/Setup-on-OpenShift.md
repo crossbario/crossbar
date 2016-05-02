@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Setup in the Cloud](Setup in the Cloud) > Setup on OpenShift
+title: Setup on OpenShift
+toc: [Documentation, Installation, Setup in the Cloud, Setup on OpenShift]
 
 # Setup on OpenShift
 

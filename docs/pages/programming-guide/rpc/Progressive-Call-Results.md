@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > RPC > Progressive Call Results
+title: Progressive Call Results
+toc: [Documentation, Programming Guide, WAMP Features, RPC, Progressive Call Results]
 
 # Progressive Call Results
 

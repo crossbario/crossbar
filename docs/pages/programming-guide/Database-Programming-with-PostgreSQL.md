@@ -1,4 +1,6 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > Frameworks and Specific Scenarios > Database Programming with PostgreSQL
+title: Database Programming with PostgreSQL
+toc: [Documentation, Programming Guide, Frameworks and Specific Scenarios, Database
+    Programming with PostgreSQL]
 
 # Database Programming with PostgreSQL
 

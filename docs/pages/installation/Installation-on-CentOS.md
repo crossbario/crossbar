@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Local Installation](Local Installation) > Installation on CentOS
+title: Installation on CentOS
+toc: [Documentation, Installation, Local Installation, Installation on CentOS]
 
 # Installation on CentOS
 

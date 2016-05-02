@@ -1,4 +1,6 @@
-[Documentation](.) > [Administration](Administration) > [Router Transports](Router Transports) > [WebSocket Transport](WebSocket Transport) > WebSocket Options
+title: WebSocket Options
+toc: [Documentation, Administration, Router Transports, WebSocket Transport, WebSocket
+    Options]
 
 # WebSocket Options
 

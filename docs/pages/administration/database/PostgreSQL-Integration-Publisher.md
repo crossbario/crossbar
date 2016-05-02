@@ -1,4 +1,6 @@
-[Documentation](.) > [Administration](Administration) > [Database Integration](Database Integration) > [PostgreSQL Integration](PostgreSQL Integration) > PostgreSQL Publisher
+title: PostgreSQL Publisher
+toc: [Documentation, Administration, Database Integration, PostgreSQL Integration,
+  PostgreSQL Publisher]
 
 # PostgreSQL Publisher
 

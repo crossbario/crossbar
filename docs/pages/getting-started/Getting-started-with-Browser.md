@@ -1,4 +1,5 @@
-[Documentation](.) > [Choose your Weapon](Choose your Weapon) > Getting started with JavaScript in the Browser
+title: Getting started with JavaScript in the Browser
+toc: [Documentation, Choose your Weapon, Getting started with JavaScript in the Browser]
 
 # Getting started with JavaScript in the Browser
 

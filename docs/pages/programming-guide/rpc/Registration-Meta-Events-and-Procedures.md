@@ -1,4 +1,6 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > RPC > Registration Meta-Events and Procedures
+title: Registration Meta Events and Procedures
+toc: [Documentation, Programming Guide, WAMP Features, RPC, Registration Meta Events
+    and Procedures]
 
 # Registration Meta-Events and Procedures
 

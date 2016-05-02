@@ -1,4 +1,5 @@
-[Documentation](.) > [Choose your Weapon](Choose your Weapon) > Getting started with PHP
+title: Getting started with PHP
+toc: [Documentation, Choose your Weapon, Getting started with PHP]
 
 # Getting started with PHP
 

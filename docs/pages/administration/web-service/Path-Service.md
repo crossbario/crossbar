@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Web Services](Web Services) > Path Service
+title: Path Service
+toc: [Documentation, Administration, Web Services, Path Service]
 
 # Path Service
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Authentication](Authentication) > Cryptosign Authentication
+title: Cryptosign Authentication
+toc: [Documentation, Administration, Authentication, Cryptosign Authentication]
 
 # WAMP-Cryptosing Authentication
 

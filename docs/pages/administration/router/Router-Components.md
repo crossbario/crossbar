@@ -1,4 +1,6 @@
-[Documentation](.) > [Administration](Administration) > [Processes](Processes) >[Router Configuration](Router Configuration) > Router Components
+title: Router Components
+toc: [Documentation, Administration, Processes, Router Configuration, Router Components]
+
 # Router Components
 
 *Routers* can run WAMP application components written in Python *side-by-side*, i.e. within the same system process.
@@ -51,4 +53,3 @@ parameter | description
 ---|---
 **`package`** | The name of the Python package ("distribution") containing the WAMPlet (**required**)
 **`entrypoint`** | The factory entry point within the package (**required**)
-

@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Authentication](Authentication) > Cookie Authentication
+title: Cookie Authentication
+toc: [Documentation, Administration, Authentication, Cookie Authentication]
 
 # Cookie Authentication
 

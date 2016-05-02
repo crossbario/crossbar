@@ -1,4 +1,5 @@
-[Documentation](.) > Installation
+title: Installation
+toc: [Documentation, Installation]
 
 # Installation
 

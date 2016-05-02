@@ -1,3 +1,6 @@
+title: Scaling Crossbar.io
+toc: [Documentation, Administration, Going to Production, Scaling Crossbar.io]
+
 # Scaling Crossbar.io
 
 The following discusses Crossbar.io scalability in terms of

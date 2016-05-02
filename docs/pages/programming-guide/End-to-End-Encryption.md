@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > Crossbar.io Features > End-to-end Encryption
+title: End to end Encryption
+toc: [Documentation, Programming Guide, Crossbar.io Features, End to end Encryption]
 
 # End-to-end Encryption
 

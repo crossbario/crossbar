@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Router Transports](Router Transports) > RawSocket Transport
+title: RawSocket Transport
+toc: [Documentation, Administration, Router Transports, RawSocket Transport]
 
 # RawSocket Transport
 
@@ -78,4 +79,3 @@ Here is an example *Transport* that will run WAMP-over-RawSocket on a Unix domai
 Write me.
 
 ---
-

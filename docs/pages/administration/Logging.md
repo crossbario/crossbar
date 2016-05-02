@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > Logging
+title: Logging
+toc: [Documentation, Administration, Logging]
 
 # Logging
 

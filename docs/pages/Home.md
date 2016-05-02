@@ -1,3 +1,6 @@
+title: Documentation
+toc: [Documentation]
+
 # Crossbar.io Documentation
 
 Welcome to the Crossbar.io Reference Documentation.

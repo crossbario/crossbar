@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Local Installation](Local Installation) > Installation on Ubuntu
+title: Installation on Ubuntu
+toc: [Documentation, Installation, Local Installation, Installation on Ubuntu]
 
 # Installation on Ubuntu
 

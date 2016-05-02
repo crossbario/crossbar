@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Processes](Processes) > Manhole
+title: Manhole
+toc: [Documentation, Administration, Processes, Manhole]
 
 # Manhole
 

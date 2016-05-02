@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > PubSub
+title: PubSub
+toc: [Documentation, Programming Guide, WAMP Features, PubSub]
 
 # Publish and Subscribe
 

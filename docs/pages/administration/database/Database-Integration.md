@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > Database Integration
+title: Database Integration
+toc: [Documentation, Administration, Database Integration]
 
 # Database Integration
 

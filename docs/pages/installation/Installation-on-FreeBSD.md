@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Local Installation](Local Installation) > Installation on FreeBSD
+title: Installation on FreeBSD
+toc: [Documentation, Installation, Local Installation, Installation on FreeBSD]
 
 # Installation on FreeBSD
 

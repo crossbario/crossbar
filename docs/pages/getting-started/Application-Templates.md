@@ -1,4 +1,5 @@
-[Documentation](.) > Application Templates
+title: Application Templates
+toc: [Documentation, Application Templates]
 
 # Application Templates
 

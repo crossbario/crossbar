@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Processes](Processes) >[Router Configuration](Router Configuration) > Router Realms
+title: Router Realms
+toc: [Documentation, Administration, Processes, Router Configuration, Router Realms]
 
 # Router Realms
 

@@ -1,4 +1,5 @@
-[Documentation](.) > Architecture
+title: Architecture
+toc: [Documentation, Architecture]
 
 # Architecture
 

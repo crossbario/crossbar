@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > RPC > Basic Registrations
+title: Basic Registrations
+toc: [Documentation, Programming Guide, WAMP Features, RPC, Basic Registrations]
 
 # Basic Registrations
 

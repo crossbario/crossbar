@@ -1,4 +1,5 @@
-[Documentation](.) > Features
+title: Features
+toc: [Documentation, Features]
 
 # Features
 

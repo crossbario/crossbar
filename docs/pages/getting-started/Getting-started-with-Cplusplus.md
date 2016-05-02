@@ -1,4 +1,5 @@
-[Documentation](.) > [Choose your Weapon](Choose your Weapon) > Getting started with C++
+title: Getting started with C++
+toc: [Documentation, Choose your Weapon, Getting started with C++]
 
 # Getting started with C++
 

@@ -1,4 +1,6 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > Session > Sample Authentication Flow
+title: Sample Authentication Flow
+toc: [Documentation, Programming Guide, WAMP Features, Session, Sample Authentication
+    Flow]
 
 # A Sample Authentication Flow
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Router Transports](Router Transports) > Endpoints
+title: Endpoints
+toc: [Documentation, Administration, Router Transports, Endpoints]
 
 # Transport Endpoints
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > URI Format
+title: URI Format
+toc: [Documentation, Programming Guide, WAMP Features, URI Format]
 
 # URI Format
 

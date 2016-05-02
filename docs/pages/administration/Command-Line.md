@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > The Command Line
+title: The Command Line
+toc: [Documentation, Administration, The Command Line]
 
 # The Command Line
 

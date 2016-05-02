@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Web Services](Web Services) > WebSocket Service
+title: WebSocket Service
+toc: [Documentation, Administration, Web Services, WebSocket Service]
 
 # WebSocket Service
 

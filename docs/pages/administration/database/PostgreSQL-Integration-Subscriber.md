@@ -1,4 +1,6 @@
-[Documentation](.) > [Administration](Administration) > [Database Integration](Database Integration) > PostgreSQL Integration Subscriber
+title: PostgreSQL Integration Subscriber
+toc: [Documentation, Administration, Database Integration, PostgreSQL Integration
+    Subscriber]
 
 # PostgreSQL Integration - Subscriber
 

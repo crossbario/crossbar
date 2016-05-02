@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Web Services](Web Services) > WSGI Host Service
+title: WSGI Host Service
+toc: [Documentation, Administration, Web Services, WSGI Host Service]
 
 # WSGI Host Service
 

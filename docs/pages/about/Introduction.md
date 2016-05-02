@@ -1,4 +1,5 @@
-[Documentation](.) > Introduction
+title: Introduction
+toc: [Documentation, Introduction]
 
 # Introduction
 

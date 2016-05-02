@@ -1,4 +1,5 @@
-[Documentation](.) > Contributing to the project
+title: Contributing to the project
+toc: [Documentation, Contributing to the project]
 
 # Contributing to the project
 

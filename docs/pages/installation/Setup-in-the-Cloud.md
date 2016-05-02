@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > Setup in the Cloud
+title: Setup in the Cloud
+toc: [Documentation, Installation, Setup in the Cloud]
 
 # Setup in the Cloud
 

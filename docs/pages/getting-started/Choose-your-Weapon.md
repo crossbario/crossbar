@@ -1,4 +1,5 @@
-[Documentation](.) > Choose your Weapon
+title: Choose your Weapon
+toc: [Documentation, Choose your Weapon]
 
 # Choose your Weapon
 

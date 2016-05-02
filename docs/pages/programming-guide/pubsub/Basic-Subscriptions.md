@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > [PubSub](PubSub) > Basic Subscriptions
+title: Basic Subscriptions
+toc: [Documentation, Programming Guide, WAMP Features, PubSub, Basic Subscriptions]
 
 # Basic Subscriptions
 
@@ -23,4 +24,3 @@ session.subscribe("com.myapp.topic1", myTopicHandler, { match: "exact" });
 ```
 
 With exact matching, there is no need to explicitly set the matching policy as an option.
-

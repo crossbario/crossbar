@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > Session > Using Schemas
+title: Using Schemas
+toc: [Documentation, Programming Guide, WAMP Features, Session, Using Schemas]
 
 # Using Schemas
 

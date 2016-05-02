@@ -1,4 +1,6 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > [PubSub](PubSub) > Subscription Meta-Events and Procedures
+title: Subscription Meta Events and Procedures
+toc: [Documentation, Programming Guide, WAMP Features, PubSub, Subscription Meta Events
+    and Procedures]
 
 # Subscription Meta Events and Procedures
 

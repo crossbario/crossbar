@@ -1,4 +1,6 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > Session > Session Meta Events and Procedures
+title: Session Meta Events and Procedures
+toc: [Documentation, Programming Guide, WAMP Features, Session, Session Meta Events
+    and Procedures]
 
 # Session Meta Events and Procedures
 

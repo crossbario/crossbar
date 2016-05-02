@@ -1,4 +1,5 @@
-[Documentation](.) > [Compatibility Policy](Compatibility-Policy)
+title: Compatibility Policy
+toc: [Documentation, Compatibility Policy]
 
 # Compatibility Policy
 
