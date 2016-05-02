@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Web Services](Web Services) > Long-poll Service
+title: Long poll Service
+toc: [Documentation, Administration, Web Services, Long poll Service]
 
 # Long-poll Service
 

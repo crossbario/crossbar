@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Database Integration](Database Integration) > PostgreSQL Integration
+title: PostgreSQL Integration
+toc: [Documentation, Administration, Database Integration, PostgreSQL Integration]
 
 # PostgreSQL Integration
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Local Installation](Local Installation) > Installation on Docker
+title: Installation on Docker
+toc: [Documentation, Installation, Local Installation, Installation on Docker]
 
 # Crossbar.io and Autobahn Docker Images
 

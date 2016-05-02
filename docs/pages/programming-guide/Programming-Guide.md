@@ -1,4 +1,5 @@
-[Documentation](.) > Programming Guide
+title: Programming Guide
+toc: [Documentation, Programming Guide]
 
 # Programming Guide
 

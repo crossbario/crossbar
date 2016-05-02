@@ -1,4 +1,6 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > Crossbar.io Features > Starting and Stopping Crossbar.io
+title: Starting and Stopping Crossbar.io
+toc: [Documentation, Programming Guide, Crossbar.io Features, Starting and Stopping
+    Crossbar.io]
 
 # Starting and Stopping Crossbar.io
 

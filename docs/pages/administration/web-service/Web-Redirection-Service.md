@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Web Services](Web Services) > Web Redirection Service
+title: Web Redirection Service
+toc: [Documentation, Administration, Web Services, Web Redirection Service]
 
 # Web Redirection Service
 

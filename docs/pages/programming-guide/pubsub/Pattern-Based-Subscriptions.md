@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > [PubSub](PubSub) > Pattern-Based Subscriptions
+title: Pattern Based Subscriptions
+toc: [Documentation, Programming Guide, WAMP Features, PubSub, Pattern Based Subscriptions]
 
 # Pattern Based Subscriptions
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > Authorization
+title: Authorization
+toc: [Documentation, Administration, Authorization]
 
 # Authorization
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > Demo Instance
+title: Demo Instance
+toc: [Documentation, Installation, Demo Instance]
 
 # Demo Instance
 

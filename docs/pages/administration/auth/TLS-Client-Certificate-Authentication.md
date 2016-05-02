@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Authentication](Authentication) > TLS Client Certificate Authentication
+title: TLS Client Certificate Authentication
+toc: [Documentation, Administration, Authentication, TLS Client Certificate Authentication]
 
 # TLS Client Certificate authentication
 

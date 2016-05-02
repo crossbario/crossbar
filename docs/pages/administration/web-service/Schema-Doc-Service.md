@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Web Services](Web Services) > Schema Doc Service
+title: Schema Doc Service
+toc: [Documentation, Administration, Web Services, Schema Doc Service]
 
 # Schema Doc Service
 

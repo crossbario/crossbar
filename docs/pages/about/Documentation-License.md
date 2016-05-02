@@ -1,4 +1,5 @@
-[Documentation](.) > Crossbar.io Documentation License
+title: Crossbar.io Documentation License
+toc: [Documentation, Crossbar.io Documentation License]
 
 # Crossbar.io Documentation License
 

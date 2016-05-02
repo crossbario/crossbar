@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Authentication](Authentication) > Dynamic Authenticators
+title: Dynamic Authenticators
+toc: [Documentation, Administration, Authentication, Dynamic Authenticators]
 
 
 # Dynamic Authenticators

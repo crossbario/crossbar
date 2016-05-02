@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > [PubSub](PubSub) > Event History
+title: Event History
+toc: [Documentation, Programming Guide, WAMP Features, PubSub, Event History]
 
 # Event History
 

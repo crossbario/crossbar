@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Going to Production](Going to Production) > Browser Support
+title: Browser Support
+toc: [Documentation, Administration, Going to Production, Browser Support]
 
 # Browser Support
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Local Installation](Local Installation) > Installation on RaspberryPi
+title: Installation on RaspberryPi
+toc: [Documentation, Installation, Local Installation, Installation on RaspberryPi]
 
 # Installation on the RaspberryPi
 

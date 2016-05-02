@@ -1,4 +1,6 @@
-[Documentation](.) > [Administration](Administration) > [Router Transports](Router Transports) > [WebSocket Transport](WebSocket Transport) > WebSocket Compression
+title: WebSocket Compression
+toc: [Documentation, Administration, Router Transports, WebSocket Transport, WebSocket
+    Compression]
 
 # WebSocket Compression
 

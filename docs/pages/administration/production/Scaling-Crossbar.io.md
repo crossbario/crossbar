@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Going to Production](Going to Production) > Scaling Crossbar.io
+title: Scaling Crossbar.io
+toc: [Documentation, Administration, Going to Production, Scaling Crossbar.io]
 
 # Scaling Crossbar.io
 

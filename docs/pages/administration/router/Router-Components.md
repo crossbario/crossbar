@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Processes](Processes) >[Router Configuration](Router Configuration) > Router Components
+title: Router Components
+toc: [Documentation, Administration, Processes, Router Configuration, Router Components]
 
 # Router Components
 
@@ -52,4 +53,3 @@ parameter | description
 ---|---
 **`package`** | The name of the Python package ("distribution") containing the WAMPlet (**required**)
 **`entrypoint`** | The factory entry point within the package (**required**)
-

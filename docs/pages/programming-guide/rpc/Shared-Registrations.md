@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > RPC > Shared Registrations
+title: Shared Registrations
+toc: [Documentation, Programming Guide, WAMP Features, RPC, Shared Registrations]
 
 # Shared Registrations
 

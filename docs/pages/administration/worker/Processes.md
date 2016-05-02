@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > Processes
+title: Processes
+toc: [Documentation, Administration, Processes]
 
 # Processes
 

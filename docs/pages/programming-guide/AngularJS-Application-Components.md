@@ -1,4 +1,6 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > Frameworks and Specific Scenarios > AngularJS Application Components
+title: AngularJS Application Components
+toc: [Documentation, Programming Guide, Frameworks and Specific Scenarios, AngularJS
+    Application Components]
 
 # AngularJS Application Components
 

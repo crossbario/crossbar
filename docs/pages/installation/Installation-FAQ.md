@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Installation FAQ](Installation FAQ)
+title: Installation FAQ
+toc: [Documentation, Installation, Installation FAQ]
 
 # Installation FAQ
 

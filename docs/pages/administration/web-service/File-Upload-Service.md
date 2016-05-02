@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Web Services](Web Services) > File Upload Service
+title: File Upload Service
+toc: [Documentation, Administration, Web Services, File Upload Service]
 
 # File Upload Service
 

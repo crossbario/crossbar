@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Router Transports](Router Transports) > Flash Policy Transport
+title: Flash Policy Transport
+toc: [Documentation, Administration, Router Transports, Flash Policy Transport]
 
 # Flash Policy Transport
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > [PubSub](PubSub) > How Subscriptions Work
+title: How Subscriptions Work
+toc: [Documentation, Programming Guide, WAMP Features, PubSub, How Subscriptions Work]
 
 # How Subscriptions Work
 

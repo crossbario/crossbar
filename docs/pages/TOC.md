@@ -1,4 +1,5 @@
-[Documentation](.) > Table of Contents
+title: Table of Contents
+toc: [Documentation, Table of Contents]
 
 # Table of Contents
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Router Transports](Router Transports) > WebSocket Transport
+title: WebSocket Transport
+toc: [Documentation, Administration, Router Transports, WebSocket Transport]
 
 # WebSocket Transport
 
@@ -83,4 +84,3 @@ To expose its WAMP routing services you can run an *Endpoint* that talks WAMP-ov
 Write me.
 
 ---
-

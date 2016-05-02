@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Processes](Processes) > Controller Configuration
+title: Controller Configuration
+toc: [Documentation, Administration, Processes, Controller Configuration]
 
 # Controller Configuration
 

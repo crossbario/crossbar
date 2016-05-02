@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > Node Configuration
+title: Node Configuration
+toc: [Documentation, Administration, Node Configuration]
 
 # Node Configuration
 

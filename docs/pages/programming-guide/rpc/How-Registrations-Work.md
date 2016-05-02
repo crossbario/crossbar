@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > RPC > How Registrations Work
+title: How Registrations Work
+toc: [Documentation, Programming Guide, WAMP Features, RPC, How Registrations Work]
 
 # How Registrations Work
 

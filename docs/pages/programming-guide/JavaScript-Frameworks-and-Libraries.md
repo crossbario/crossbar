@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming-Guide) > [JavaScript-Frameworks-and-Libraries](JavaScript-Frameworks-and-Libraries)
+title: JavaScript Frameworks and Libraries
+toc: [Documentation, Programming Guide, JavaScript Frameworks and Libraries]
 
 We believe that browser frontends will increase in importance. Browsers are the most widely spread runtime ever, and they are gaining new features and capabilities at an amazing rate.
 

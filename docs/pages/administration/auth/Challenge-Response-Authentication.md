@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Authentication](Authentication) > Challenge-Response Authentication
+title: Challenge Response Authentication
+toc: [Documentation, Administration, Authentication, Challenge Response Authentication]
 
 # Challenge-Response Authentication
 

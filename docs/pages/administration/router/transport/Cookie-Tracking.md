@@ -1,4 +1,6 @@
-[Documentation](.) > [Administration](Administration) > [Router Transports](Router Transports) > [WebSocket Transport](WebSocket Transport) > Cookie Tracking
+title: Cookie Tracking
+toc: [Documentation, Administration, Router Transports, WebSocket Transport, Cookie
+    Tracking]
 
 # Cookie Tracking
 

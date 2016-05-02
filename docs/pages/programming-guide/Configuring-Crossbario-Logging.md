@@ -1,4 +1,6 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > Crossbar.io Features > Configuring Crossbar.io's Logging
+title: Configuring Crossbar.io's Logging
+toc: [Documentation, Programming Guide, Crossbar.io Features, Configuring Crossbar.io's
+    Logging]
 
 # Configuring Crossbar.io Logging
 

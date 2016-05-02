@@ -1,4 +1,5 @@
-[Documentation](.) > [Installation](Installation) > [Local Installation](Local Installation) > Installation on MacOS X
+title: Installation on MacOS X
+toc: [Documentation, Installation, Local Installation, Installation on MacOS X]
 
 # Installation on MacOS X
 

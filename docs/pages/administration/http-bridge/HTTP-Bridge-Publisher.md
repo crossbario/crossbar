@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [HTTP Bridge](HTTP Bridge) > HTTP Bridge Publisher
+title: HTTP Bridge Publisher
+toc: [Documentation, Administration, HTTP Bridge, HTTP Bridge Publisher]
 
 # HTTP Bridge Publisher
 

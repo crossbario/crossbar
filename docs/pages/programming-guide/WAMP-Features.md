@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > WAMP Features
+title: WAMP Features
+toc: [Documentation, Programming Guide, WAMP Features]
 
 # WAMP Features
 

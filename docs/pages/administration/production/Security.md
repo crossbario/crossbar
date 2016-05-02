@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Going to Production](Going to Production) > Security
+title: Security
+toc: [Documentation, Administration, Going to Production, Security]
 
 # Security
 

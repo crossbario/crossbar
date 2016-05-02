@@ -1,4 +1,5 @@
-[Documentation](.) > FAQ
+title: FAQ
+toc: [Documentation, FAQ]
 
 # FAQ
 

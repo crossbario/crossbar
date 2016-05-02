@@ -1,4 +1,5 @@
-[Documentation](.) > Examples
+title: Examples
+toc: [Documentation, Examples]
 
 # Examples
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Choose your Weapon](Choose your Weapon) > Getting started with Java
+title: Getting started with Java
+toc: [Documentation, Choose your Weapon, Getting started with Java]
 
 # Getting started with Java
 

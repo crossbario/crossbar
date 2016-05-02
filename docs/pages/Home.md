@@ -1,4 +1,5 @@
-[Documentation](.)
+title: Documentation
+toc: [Documentation]
 
 # Crossbar.io Documentation
 

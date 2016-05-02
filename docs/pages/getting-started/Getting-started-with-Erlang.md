@@ -1,4 +1,5 @@
-[Documentation](.) > [Choose your Weapon](Choose your Weapon) > Getting started with Erlang
+title: Getting started with Erlang
+toc: [Documentation, Choose your Weapon, Getting started with Erlang]
 
 # Getting started with Erlang
 

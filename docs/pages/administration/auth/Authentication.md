@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > Authentication
+title: Authentication
+toc: [Documentation, Administration, Authentication]
 
 # Authentication
 

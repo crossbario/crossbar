@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Database Integration](Database Integration) > Database Connection Pools
+title: Database Connection Pools
+toc: [Documentation, Administration, Database Integration, Database Connection Pools]
 
 # Database Connection Pools
 

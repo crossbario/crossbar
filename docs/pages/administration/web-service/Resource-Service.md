@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Web Services](Web Services) > Resource Service
+title: Resource Service
+toc: [Documentation, Administration, Web Services, Resource Service]
 
 # Resource Service
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Choose your Weapon](Choose your Weapon) > Getting started with C Sharp
+title: Getting started with C Sharp
+toc: [Documentation, Choose your Weapon, Getting started with C Sharp]
 
 # Getting started with C Sharp
 

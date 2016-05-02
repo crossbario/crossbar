@@ -1,4 +1,5 @@
-[Documentation](.) > Quick Start
+title: Quick Start
+toc: [Documentation, Quick Start]
 
 # Quick Start
 

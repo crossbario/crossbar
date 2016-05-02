@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > [WAMP Features](WAMP Features) > Error Handling
+title: Error Handling
+toc: [Documentation, Programming Guide, WAMP Features, Error Handling]
 
 # Error Handling
 

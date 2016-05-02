@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > Try out without Installation
+title: Try out without Installation
+toc: [Documentation, Programming Guide, Try out without Installation]
 
 # Try out without installation
 
@@ -42,4 +43,3 @@ The rules for this are common sense:
 * We make no guarantees about performance or availability.
 
 Once you've decided that Crossbar.io is something you want, go install it yourself!
-

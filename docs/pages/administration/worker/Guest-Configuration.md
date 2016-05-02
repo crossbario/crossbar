@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Processes](Processes) > Guest Configuration
+title: Guest Configuration
+toc: [Documentation, Administration, Processes, Guest Configuration]
 
 # Guest Configuration
 

@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > Quick Ref
+title: Quick Ref
+toc: [Documentation, Administration, Quick Ref]
 
 # Quick Ref
 

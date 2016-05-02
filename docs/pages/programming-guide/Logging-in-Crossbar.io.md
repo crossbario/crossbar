@@ -1,4 +1,5 @@
-[Documentation](.) > [Programming Guide](Programming Guide) > Crossbar.io Features > Logging in Crossbar.io
+title: Logging in Crossbar.io
+toc: [Documentation, Programming Guide, Crossbar.io Features, Logging in Crossbar.io]
 
 # Logging in Crossbar.io
 

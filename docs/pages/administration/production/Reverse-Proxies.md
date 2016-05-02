@@ -1,4 +1,5 @@
-[Documentation](.) > [Administration](Administration) > [Going to Production](Going to Production) > Reverse Proxies
+title: Reverse Proxies
+toc: [Documentation, Administration, Going to Production, Reverse Proxies]
 
 # Reverse Proxies
 
@@ -15,4 +16,3 @@ Write me. You can find some Nginx examples and hints [here](https://github.com/n
 ## Apache
 
 Apache supports proxying WebSocket connections using [mod_proxy_wstunnel](http://httpd.apache.org/docs/2.4/mod/mod_proxy_wstunnel.html).
-
