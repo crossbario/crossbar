@@ -58,7 +58,37 @@ Questions are best asked here:
 
 ## Contributing Code
 
-To contribute code to Crossbar.io, please see guidelines [Contributing to the project](http://crossbar.io/docs/Contributing-to-the-project/).
+1. All development happens on GitHub and we use the usual fork the repository, branch-per-issue, [pull request](https://help.github.com/articles/using-pull-requests) and merge workflow, also known as [GitHub Flow](https://guides.github.com/introduction/flow/).
+2. A necessary **requirement** is that an issue needs to exist first. That is, a PR is always for a specific issue. The branch should be name like this: `<descriptive_name>_issue<NNN>`.
+3. Another prerequisite (for merging code) is that you have [signed and sent us a contributor agreement](#send-us-a-contributor-assignment-agreement). This only needs to be done once, but we cannot merge code until we have received a CAA.
+4. Further, we have a CI system in place running the whole set of unit tests for Crossbar.io on various platforms. The CI system will be triggered automatically when you do a PR. A necessary condition for a PR to be merged that all of our tests run green.
+5. An issue branch from a PR must be rebased to the **master** branch before merging. We don't have a policy (currently) regarding squashing - that is, you can leave your commits or squash them, but rebasing is necessary.
+6. If your branch doesn't run green on our CI, or your branch becomes stale, because other things were merged in between, you are responsible for fixing thing on your branch first.
+
+### Fork us on GitHub
+
+We use the Fork & Pull Model. This means that you fork the repo, make changes to your fork, and then make a pull request here on the main repo.
+
+> This [article on GitHub](https://help.github.com/articles/using-pull-requests) gives more detailed information on how the process works.
+
+### Send us a Contributor Assignment Agreement
+
+Before you can contribute any changes to the Crossbar.io project, we need a CAA (Contributor Assignment Agreement) from you.
+
+The CAA gives us the rights to your code, which we need e.g. to react to license violations by others, for possible future license changes and for dual-licensing of the code. The CAA closely follows a template established by the [Harmony project](http://harmonyagreements.org/), and CAAs are required by almost all open source projects which are non-trivial in scope.
+
+#### What we need you to do
+
+1. Download the [Individual CAA (PDF)](https://github.com/crossbario/crossbar/raw/master/legal/individual_caa.pdf).
+2. Fill in the required information that identifies you and sign the CAA.
+3. Scan the CAA to PNG, JPG or TIFF, or take a photo of the box on page 2 (the **entire box**, including the information identifying the document).
+4. Email the scan or photo to `service@tavendo.de` with the subject line "Crossbar.io project contributor assignment agreement"
+
+*If your write contributions as part of your work for a company, you also need to send us a [Entity CAA (PDF)](https://github.com/crossbario/crossbar/raw/master/legal/entity_caa.pdf) signed by somebody responsible in the company.*
+
+**You only need to do this once - all future contributions are covered!**
+
+> We are looking into a fully electronic workflow to get legally binding CAAs, but due to how different legislations handle electronic signing, we currently see no other way than the print/scan/mail workflow. Sorry for the inconvenience! For a detailed explanation of what the CAA means for you, and why we need it, see the [CAA FAQ](FAQ Contributor Assignment Agreement).
 
 ## Contributing Documentation
 
