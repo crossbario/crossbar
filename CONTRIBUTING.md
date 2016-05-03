@@ -58,10 +58,14 @@ Questions are best asked here:
 
 ## Contributing Code
 
-Write me.
+To contribute code to Crossbar.io, please see guidelines [Contributing to the project](http://crossbar.io/docs/Contributing-to-the-project/).
 
 ## Contributing Documentation
 
 Contributions to the documentation are highly welcome! Crossbar.io is a complex software, users have varying degrees of background and experience and we have limited resources. Also, developers of Crossbar.io usually don't have a **user perspective** (anymore) - but docs should be for users.
 
-Write me.
+All Crossbar.io documention is written in (enriched) [Markdown](https://en.wikipedia.org/wiki/Markdown) and contained in this repository [here](https://github.com/crossbario/crossbar/tree/master/docs).
+
+The documentation is the built (by us) and deployed [here](http://crossbar.io/docs/).
+
+For further details, please see [here](https://github.com/crossbario/crossbar/tree/master/docs/README.md).
