@@ -989,7 +989,8 @@ def check_websocket_options(options):
             'enable_flash_policy',
             'flash_policy',
             'compression',
-            'require_websocket_subprotocol'
+            'require_websocket_subprotocol',
+            'show_server_version',
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket options".format(k))
 
