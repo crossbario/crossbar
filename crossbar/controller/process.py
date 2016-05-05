@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import os
+import re
 import sys
 import pkg_resources
 from datetime import datetime
@@ -63,6 +64,24 @@ from txaio import make_logger, get_global_log_level
 
 
 __all__ = ('NodeControllerSession', 'create_process_env')
+
+
+def find_python_file(path, filename):
+    """
+    Find a Python file to execute either as *.py, *.py[cdo] or
+    *.opt-[0-9].pyc. Also check __pycache__ folder.
+    """
+    f_name, f_ext = os.path.splitext(filename)
+    p = re.compile(f_name + '\.(py(\Z|c|o|d))|(opt-[0-9].pyc)')
+
+    for t_path in [path, os.path.join(path, '__pycache__')]:
+        for f in os.listdir(t_path):
+            if len(p.findall(f)) == 0:
+                continue
+
+            return os.path.join(t_path, f)
+
+    return None
 
 
 def check_executable(fn):
@@ -401,7 +420,12 @@ class NodeControllerSession(NativeProcessSession):
 
         # all native workers (routers and containers for now) start from the same script
         #
-        filename = os.path.abspath(os.path.join(crossbar.__file__, "..", "worker", "process.py"))
+	filename = find_python_file(os.path.abspath(os.path.join(crossbar.__file__,
+                                                                 "..",
+                                                                 "worker")),
+                                                                 "process.py")
+        if filename is None:
+            raise ApplicationError(u'process.py not found', '')
 
         # assemble command line for forking the worker
         #
