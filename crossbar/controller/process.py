@@ -47,7 +47,6 @@ from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
-import crossbar
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
