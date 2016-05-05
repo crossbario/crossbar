@@ -62,6 +62,8 @@ class WampLongPollResourceSessionSend(Resource):
     A Web resource for sending via XHR that is part of :class:`autobahn.twisted.longpoll.WampLongPollResourceSession`.
     """
 
+    log = make_logger()
+
     def __init__(self, parent):
         """
 
@@ -380,6 +382,8 @@ class WampLongPollResourceOpen(Resource):
     """
     A Web resource for creating new WAMP sessions.
     """
+
+    log = make_logger()
 
     def __init__(self, parent):
         """
