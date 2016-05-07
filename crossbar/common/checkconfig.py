@@ -258,7 +258,7 @@ def _readenv(var, msg):
         raise InvalidConfigException("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
 
 
-_ENVPAT = re.compile(u"^\$\{(.+)\}$")
+_ENVPAT = re.compile(u"^\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}$")
 
 
 def maybe_from_env(config_item, value):

@@ -47,7 +47,7 @@ You can use **environment variables** to hold the secret if you do not want to a
 ```javascript
         "principals": {
             "joe": {
-                "ticket": "$(MYTICKET)",
+                "ticket": "${MYTICKET}",
                 "role": "frontend"
             }
         }
