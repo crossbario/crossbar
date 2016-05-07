@@ -25,6 +25,7 @@ clean:
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
 docs:
+	towncrier --draft > docs/pages/ChangeLog.md
 	python docs/test_server.py
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
