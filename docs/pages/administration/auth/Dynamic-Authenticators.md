@@ -69,7 +69,7 @@ With the above, the authenticator (which needs to be connected to `realm-auth`) 
 
 ## Data the authenticator can set
 
-I many methods, the authenticator need only return the `authrole` which it determines.
+In many methods, the authenticator need only return the `authrole` which it determines.
 
 It can, however, also always return an `authid` and a `realm`. In cases where these are provided by the client, this allows overwriting the clients' requests for these.
 
