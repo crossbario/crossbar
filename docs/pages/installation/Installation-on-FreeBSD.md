@@ -7,7 +7,7 @@ There are two methods of installing Crossbar.io on FreeBSD -- from the official 
 
 ## Installing the Official Distribution
 
-Crossbar.io hosts official binary packages for **FreeBSD 10.1**.
+Crossbar.io hosts official binary packages for **FreeBSD 10.1/10.2/10.3**.
 
 > If this is not the version of FreeBSD you are using, please install from source as mentioned below.
 
@@ -31,7 +31,7 @@ Then install the Crossbar package repository:
     mkdir -p /usr/local/etc/pkg/repos/
     cat >> /usr/local/etc/pkg/repos/crossbar.conf << EOT
     crossbar: {
-      url: "http://package.crossbar.io/freebsd/10.1",
+      url: "http://package.crossbar.io/freebsd/10",
       mirror_type: "http",
       signature_type: "pubkey",
       pubkey: "/usr/local/etc/ssl/certs/crossbar.cert",
