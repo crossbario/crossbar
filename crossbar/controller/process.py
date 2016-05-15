@@ -47,7 +47,6 @@ from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
-import crossbar
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
@@ -399,13 +398,14 @@ class NodeControllerSession(NativeProcessSession):
         else:
             exe = sys.executable
 
-        # all native workers (routers and containers for now) start from the same script
-        #
-        filename = os.path.abspath(os.path.join(crossbar.__file__, "..", "worker", "process.py"))
-
         # assemble command line for forking the worker
         #
-        args = [exe, "-u", filename]
+        # all native workers (routers and containers for now) start
+        # from the same script in crossbar/worker/process.py -- we're
+        # invoking via "-m" so that .pyc files, __pycache__ etc work
+        # properly.
+
+        args = [exe, "-u", "-m", "crossbar.worker.process"]
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--node", str(self._node_id)])
         args.extend(["--worker", str(id)])
