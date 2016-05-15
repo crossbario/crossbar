@@ -3,61 +3,172 @@ toc: [Documentation, Installation, Local Installation, Installation on Linux]
 
 # Installation on Linux
 
-The following provides installation instructions that should work on most Linux distributions.
+Crossbar.io provides official binary packages for several Linux distributions.
 
-> We provide more specific and polished installation instructions plus official binary packages for [Ubuntu 14.04 LTS](Installation-on-Ubuntu) and [CentOS 7/RHEL](Installation-on-CentOS). Please follow those if you are using one of these systems.
+> [Installation on Ubuntu](Installation on Ubuntu)
 
-## Requirements
+> [Installation on CentOS/RHEL](Installation on CentOS)
 
-Your system will need OpenSSL, libffi, and a working build chain.
-On a Debian (or Debian-derived) system, the requirements can be installed by:
+If you can't use either of these options, these instructions will walk you through installing Crossbar.io from sources on any generic Linux.
 
-    sudo apt-get install build-essential libssl-dev libffi-dev \
-        libreadline-dev libbz2-dev libsqlite3-dev libncurses5-dev
+This is a reliable, quick way of installation that does not require superuser rights, can install to any location (such as your home directory) and does not depend on system Python packages.
 
-Or for RedHat and derivatives:
+> Note: This recipe was tested on a completely fresh install of [Ubuntu](http://www.ubuntu.com/) [14.04 LTS 64-bit Server](http://www.ubuntu.com/download/server) running as a [Oracle VirtualBox](https://www.virtualbox.org/) virtual machine.
 
-    sudo yum install python-devel "@Development tools" libffi-devel openssl-devel
+## Prepare
 
-Then download and install a portable PyPy binary:
+### Debian
+
+After a fresh install of Ubuntu 16.04 LTS 64-bit Server, first make sure your system packages are fully up to date:
+
+    sudo apt-get update
+    sudo apt-get -y dist-upgrade
+
+Then install the prerequisites:
+
+    sudo apt-get -y install build-essential libssl-dev libffi-dev \
+       libreadline-dev libbz2-dev libsqlite3-dev libncurses5-dev
+
+### CentOS 7
+
+After a fresh install of CentOS 7 64bit, first make sure your system packages are fully up to date:
+
+    sudo yum update
+
+Then install the prerequisites:
+
+    yum install gcc gcc-c++ make openssl-devel libffi-devel
+
+Now continue to build for:
+
+ 1. [CPython](#cpython) or
+ 2. [PyPy](#pypy)
+
+
+## CPython
+
+After the [prepare-step](#prepare), build Python from vanilla sources and install it to your home directory:
 
     cd $HOME
-    wget https://bitbucket.org/squeaky/portable-pypy/downloads/pypy-2.5-linux_x86_64-portable.tar.bz2
-    tar xvjf pypy-2.5-linux_x86_64-portable.tar.bz2
+    wget https://www.python.org/ftp/python/2.7.11/Python-2.7.11.tar.xz
+    tar xvf Python-2.7.11.tar.xz
+    cd Python-2.7.11
+    ./configure --prefix=$HOME/python2711
+    make
+    make install
 
-Install pip:
+Install [Pip](https://pypi.python.org/pypi/pip) and make sure it is the latest version:
 
-    wget https://bootstrap.pypa.io/get-pip.py
-    ~/pypy-2.5-linux_x86_64-portable/bin/pypy get-pip.py
+    ~/python2711/bin/python -m ensurepip
+    ~/python2711/bin/python -m pip install -U pip
 
-## Installing Crossbar
+Install Crossbar and its dependencies from [PyPI](https://pypi.python.org/pypi/crossbar):
 
-This PyPy is a entirely self contained Python distribution.
-Any packages installed inside it are local only to that PyPy installation, without having to worry about conflicting Python packages installed from your distribution.
+    ~/python2711/bin/pip install crossbar
 
-Install Crossbar inside the PyPy distribution:
-
-    ~/pypy-2.5-linux_x86_64-portable/bin/pip install crossbar
-
-Then check the Crossbar installation to make sure it installed correctly
+Check the Crossbar installation:
 
 ```console
-$ ~/pypy-2.5-linux_x86_64-portable/bin/crossbar version
-Crossbar.io package versions and platform information:
+$ ~/python2711/bin/crossbar version
+     __  __  __  __  __  __      __     __
+    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
+    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
 
-Crossbar.io                  : 0.10.2
+ Crossbar.io        : 0.13.2
+   Autobahn         : 0.14.0 (with JSON, MessagePack, CBOR)
+   Twisted          : 16.1.1-EPollReactor
+   LMDB             : 0.89/lmdb-0.9.18
+   Python           : 2.7.11/CPython
+ OS                 : Linux-4.4.0-22-generic-x86_64-with-debian-stretch-sid
+ Machine            : x86_64
 
-  Autobahn|Python            : 0.10.1
-    WebSocket UTF8 Validator : autobahn
-    WebSocket XOR Masker     : autobahn
-    WAMP JSON Codec          : stdlib
-    WAMP MsgPack Codec       : msgpack-python-0.4.5
-  Twisted                    : 15.0.0-EPollReactor
-  Python                     : 2.7.8-PyPy
-
-OS                           : Linux-3.10.0-123.el7.x86_64-x86_64-with-centos-7.0.1406-Core
-Machine                      : x86_64
 ```
+
+If everything went fine, add the following to your `$HOME/.profile`:
+
+```shell
+export PATH=${HOME}/python2711/bin:${PATH}
+```
+
+## PyPy
+
+After the [prepare-step](#prepare), install PyPy to your home directory:
+
+    cd $HOME
+    wget https://bitbucket.org/pypy/pypy/downloads/pypy-5.1.1-linux64.tar.bz2
+    tar xvjf pypy-5.1.1-linux64.tar.bz2
+
+Install [Pip](https://pypi.python.org/pypi/pip) and make sure it is the latest version:
+
+    ~/pypy-5.1.1-linux64/bin/pypy -m ensurepip
+    ~/pypy-5.1.1-linux64/bin/pypy -m pip install -U pip
+
+Now, to install Crossbar from [PyPI](https://pypi.python.org/pypi/crossbar):
+
+    ~/pypy-5.1.1-linux64/bin/pip install crossbar
+
+Check the Crossbar installation:
+
+```console
+$ ~/pypy-5.1.1-linux64/bin/crossbar version
+     __  __  __  __  __  __      __     __
+    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
+    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
+
+ Crossbar.io        : 0.13.2
+   Autobahn         : 0.14.0 (with JSON, MessagePack, CBOR)
+   Twisted          : 16.1.1-EPollReactor
+   LMDB             : 0.89/lmdb-0.9.18
+   Python           : 2.7.10/PyPy-5.1.1
+ OS                 : Linux-4.4.0-22-generic-x86_64-with-debian-stretch-sid
+ Machine            : x86_64
+
+```
+
+If everything went fine, add the following to your `$HOME/.profile`:
+
+```shell
+export PATH=${HOME}/pypy-5.1.1-linux64/bin:${PATH}
+```
+
+## Updating from the Repository
+
+Once you've installed Crossbar.io, you can **update to the newest release version** at any time by doing
+
+    pip install -U crossbar
+
+If you want to **update to the most current development version** (e.g. for testing), you can do so from the git repository.
+
+### Cloning the repo
+
+> Note: The Amazon EC2 or Microsoft Azure images we provide already have the git repository cloned.*
+
+You need to have [git](http://git-scm.com/) installed.
+
+Then clone the repository into a directory `crossbar` in your current directory. If you're not registered on GitHub you can clone the repository by doing
+
+    git clone https://github.com/crossbario/crossbar.git
+
+else we suggest using SSH
+
+    git clone git@github.com:crossbario/crossbar.git
+
+If you want to name the directory differently, just add that directory name at the end, e.g.
+
+### Pulling changes
+
+Unless you've just cloned the repository, you need to update it before installing. In a shell, in the repository directory, do
+
+    git pull
+
+## Update Crossbar.io
+
+Then you can update your Crossbar.io installation by doing
+
+    cd crossbar
+    pip install --upgrade -e .[all]
+
+> On Windows, this will most likely require installing the [Microsoft Visual C++ Compiler for Python 2.7](http://www.microsoft.com/en-us/download/details.aspx?id=44266).
 
 ## Next
 

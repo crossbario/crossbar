@@ -10,7 +10,7 @@ There are two methods of installing Crossbar.io on Ubuntu
 
 ## Installing the Official Distribution
 
-Crossbar.io hosts official binary packages for **Ubuntu 14.04 LTS**.
+Crossbar.io hosts official binary packages for **Ubuntu 14.04 LTS** and **Ubuntu 16.04 LTS**.
 
 > If this is not the version of Ubuntu you are using, please install from source as mentioned below.
 
@@ -20,9 +20,9 @@ First, install the repo's GPG key:
 
 > If you are behind a coporate firewall, above command might fail or just hang. Please see [here](http://support.gpgtools.org/kb/faq/cant-reach-key-server-are-you-behind-a-company-firewall) and try with `--keyserver hkp://hkps.pool.sks-keyservers.net:80` in above.
 
-Then add the repo to your server's apt sources:
+Then add the repo to your server's apt sources (where ``distro`` is ``trusty`` for 14.04 or ``xenial`` for 16.04):
 
-    sudo sh -c "echo 'deb http://package.crossbar.io/ubuntu trusty main' \
+    sudo sh -c "echo 'deb http://package.crossbar.io/ubuntu <DISTRO> main' \
         > /etc/apt/sources.list.d/crossbar.list"
 
 Update your package sources:

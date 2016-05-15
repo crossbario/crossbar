@@ -22,7 +22,3 @@ as well as these special targets
 * [Installation on Docker](Installation on Docker)
 * [Installation on RaspberryPi](Installation on RaspberryPi)
 * [Installation on Ubuntu Snappy](Installation on Ubuntu Snappy)
-
-Tracking the bleeding edge (for developers, and for the brave):
-
-* [Installation from Source](Installation from Source)
