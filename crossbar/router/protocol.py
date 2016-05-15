@@ -297,6 +297,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
     Crossbar.io WAMP-over-WebSocket server factory.
     """
 
+    showServerVersion = False
     protocol = WampWebSocketServerProtocol
     log = make_logger()
 
@@ -315,7 +316,11 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
 
         options = config.get('options', {})
 
-        server = "Crossbar/{}".format(crossbar.__version__)
+        self.showServerVersion = options.get('show_server_version', self.showServerVersion)
+        if self.showServerVersion:
+            server = "Crossbar/{}".format(crossbar.__version__)
+        else:
+            server = "Crossbar"
         externalPort = options.get('external_port', None)
 
         # explicit list of WAMP serializers
