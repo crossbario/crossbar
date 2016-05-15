@@ -1,5 +1,5 @@
 title: Getting started with Python
-toc: [Documentation, Choose your Weapon, Getting started with Python]
+toc: [Documentation, Getting Started, Getting started with Python]
 
 # Getting started with Python
 

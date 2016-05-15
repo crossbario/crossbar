@@ -1,5 +1,5 @@
 title: Installation on FreeBSD
-toc: [Documentation, Installation, Local Installation, Installation on FreeBSD]
+toc: [Documentation, Installation, Installation on FreeBSD]
 
 # Installation on FreeBSD
 
@@ -53,8 +53,6 @@ Then test your installation:
 
 **You're done!**
 
-Ready for more? Then [choose your language or device of choice](Choose your Weapon).
-
 
 ## Installing from Source
 
@@ -81,25 +79,12 @@ To install Crossbar.io
 
     pip install -e .[all]
 
-To check the installation:
+You can then test the installation by printing out the versions of the Crossbar components.
 
-```console
-[oberstet@tvd_build_txpypy ~]$ crossbar version
-
-Crossbar.io software versions:
-
-Crossbar.io     : 0.9.1
-Autobahn        : 0.8.6
-Twisted         : 13.2.0-KQueueReactor
-Python          : 2.7.6
-UTF8 Validator  : autobahn
-XOR Masker      : autobahn
-```
+    crossbar version
 
 To update an existing Crossbar.io installation:
 
     pip install --upgrade -e .[all]
 
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).
+**You're done!**

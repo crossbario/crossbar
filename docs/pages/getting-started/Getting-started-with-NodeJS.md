@@ -1,5 +1,5 @@
 title: Getting started with JavaScript in NodeJS
-toc: [Documentation, Choose your Weapon, Getting started with JavaScript in NodeJS]
+toc: [Documentation, Getting Started, Getting started with JavaScript in NodeJS]
 
 # Getting started with JavaScript in NodeJS
 

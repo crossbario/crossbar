@@ -1,5 +1,5 @@
 title: Getting started with PHP
-toc: [Documentation, Choose your Weapon, Getting started with PHP]
+toc: [Documentation, Getting Started, Getting started with PHP]
 
 # Getting started with PHP
 

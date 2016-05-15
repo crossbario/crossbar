@@ -1,5 +1,5 @@
 title: Installation on Linux
-toc: [Documentation, Installation, Local Installation, Installation on Linux]
+toc: [Documentation, Installation, Installation on Linux]
 
 # Installation on Linux
 
@@ -169,7 +169,3 @@ Then you can update your Crossbar.io installation by doing
     pip install --upgrade -e .[all]
 
 > On Windows, this will most likely require installing the [Microsoft Visual C++ Compiler for Python 2.7](http://www.microsoft.com/en-us/download/details.aspx?id=44266).
-
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).

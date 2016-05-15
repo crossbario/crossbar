@@ -1,5 +1,5 @@
 title: Installation on MacOS X
-toc: [Documentation, Installation, Local Installation, Installation on MacOS X]
+toc: [Documentation, Installation, Installation on MacOS X]
 
 # Installation on MacOS X
 
@@ -83,7 +83,3 @@ Machine                      : x86_64
 To update an existing Crossbar.io installation:
 
     pip install -U crossbar
-
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).

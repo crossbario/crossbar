@@ -1,5 +1,5 @@
 title: Installation on Docker
-toc: [Documentation, Installation, Local Installation, Installation on Docker]
+toc: [Documentation, Installation, Installation on Docker]
 
 # Crossbar.io and Autobahn Docker Images
 
@@ -68,8 +68,3 @@ We have taken care to keep the image sizes low. As of this writing, the Crossbar
 * The base image which Crossbar.io uses only needs to be downloaded once on the machine you're using Docker on. After that this initial download is used by all Docker images based on the same base image.
 
 * Similarly, since containers use an overlay file system over the base image, additional containers only take up space on disk based on the differences to the root system.
-
-
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).

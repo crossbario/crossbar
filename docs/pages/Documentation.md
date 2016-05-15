@@ -21,7 +21,7 @@ Welcome to the Crossbar.io Reference Documentation.
 ** Getting Started **
 
 * **>> [Quick Start](Quick Start) <<**
-* [Choose your Weapon](Choose your Weapon) (choice of language)
+* [Getting Started](Getting Started)
 
 ** Administrators **
 

@@ -1,7 +1,7 @@
-title: Installation on CentOS
-toc: [Documentation, Installation, Local Installation, Installation on CentOS]
+title: Installation on CentOS and RedHat
+toc: [Documentation, Installation, Installation on CentOS and RedHat]
 
-# Installation on CentOS
+# Installation on CentOS and RedHat
 
 There are two methods of installing Crossbar.io on CentOS -- from the official binary distribution (recommended), or from source.
 
@@ -33,10 +33,17 @@ You can then test the installation by printing out the versions of the Crossbar 
 
 **You're done!**
 
-Ready for more? Then [choose your language or device of choice](Choose your Weapon).
-
 
 ## Installing from Source
+
+When installing from source, you have the choice of running on CPython (the standard Python interpreter) or PyPy (a high performance Python JIT compiler). Both are good choices, but running on PyPy is generally way faster.
+
+This guide will install Crossbar.io in a [virtualenv](http://docs.python-guide.org/en/latest/dev/virtualenvs/). **Installing in a virtualenv is highly recommended**.
+
+> *Why virtualenv?* Virtualenv, as the name suggests, creates a "virtual environment" for your Python packages. This means that you can have newer versions of packages that might already be on your system, without worrying about breaking any applications that might require previous versions.
+
+
+### Setup for CPython
 
 Install the requirements:
 
@@ -46,8 +53,6 @@ Install the requirements:
 Then create a new virtualenv:
 
     virtualenv python-venv
-
-> *Why virtualenv?* Virtualenv, as the name suggests, creates a "virtual environment" for your Python packages. This means that you can have newer versions of packages that might already be on your system, without worrying about breaking any applications that might require previous versions.
 
 Finally, start working in the virtual environment:
 
@@ -65,7 +70,7 @@ To install Crossbar.io with all additional (optional) dependencies:
 
     pip install crossbar[all]
 
-To check the installation:
+You can then test the installation by printing out the versions of the Crossbar components.
 
     crossbar version
 
@@ -73,9 +78,6 @@ To update an existing Crossbar.io installation:
 
     pip install -U crossbar
 
-You can then invoke Crossbar without activating the virtualenv by running `~/python-venv/bin/crossbar`.
+From now on, you invoke Crossbar without activating the virtualenv by running `~/python-venv/bin/crossbar`.
 
-
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).
+**You're done!**

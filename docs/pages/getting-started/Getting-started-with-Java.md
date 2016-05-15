@@ -1,5 +1,5 @@
 title: Getting started with Java
-toc: [Documentation, Choose your Weapon, Getting started with Java]
+toc: [Documentation, Getting Started, Getting started with Java]
 
 # Getting started with Java
 

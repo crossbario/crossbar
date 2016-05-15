@@ -1,5 +1,5 @@
 title: Getting started with JavaScript in the Browser
-toc: [Documentation, Choose your Weapon, Getting started with JavaScript in the Browser]
+toc: [Documentation, Getting Started, Getting started with JavaScript in the Browser]
 
 # Getting started with JavaScript in the Browser
 
