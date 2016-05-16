@@ -12,7 +12,7 @@ There are two methods of installing Crossbar.io on Ubuntu and Debian
 
 The binary packages bundle everything needed and provide a fully self-contained, optimized Crossbar.io installation.
 
-Crossbar.io currently hosts official binary packages for **Ubuntu 14.04 LTS** and **Ubuntu 16.04 LTS**. If this is not OS you are using, please follow the [Installing from Source](#installing-from-source).
+Crossbar.io currently hosts official binary packages for **Ubuntu 14.04 LTS** and **Ubuntu 16.04 LTS** on **x86-64**. If this is not OS or architecture you are using, please follow the [Installing from Source](#installing-from-source).
 
 First install our package repository's GPG signing key:
 

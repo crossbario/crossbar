@@ -3,12 +3,14 @@ toc: [Documentation, Installation]
 
 # Installing Crossbar.io
 
-Below are different ways of installing Crossbar.io. We recommend the tested binary packages we provide for common platforms. **If you have more questions, checkout the [Installation FAQ](Installation FAQ).**
+Below are different ways of installing Crossbar.io. We recommend the optimized binary packages we provide for common platforms.
+
+If you have an installation related question, please also check the [Installation FAQ](Installation FAQ).
 
 
 ## Installing from binary packages
 
-We provide tested binary packages that contain complete, self-contained and optimized builds of Crossbar.io for these platforms:
+We provide binary packages that contain completey self-contained and optimized builds of Crossbar.io and all dependencies for the following platforms:
 
 * [Installation on Ubuntu and Debian](Installation on Ubuntu and Debian)
 * [Installation on CentOS and RedHat](Installation on CentOS and RedHat)
