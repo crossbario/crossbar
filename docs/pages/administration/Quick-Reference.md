@@ -1,7 +1,7 @@
-title: Quick Ref
-toc: [Documentation, Administration, Quick Ref]
+title: Quick Reference
+toc: [Documentation, Administration, Quick Reference]
 
-# Quick Ref
+# Quick Reference
 
 A Crossbar.io node running in **local mode** reads a node configuration file upon startup and follows the configuration there to start services.
 
