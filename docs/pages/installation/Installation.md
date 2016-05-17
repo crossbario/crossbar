@@ -21,7 +21,7 @@ We provide binary packages that contain completey self-contained and optimized b
 
 We provide official Docker images for Crossbar.io in different flavors. This is an easy way of getting started with Crossbar.io quickly:
 
-* [Installation on Docker](Installation on Docker)
+* [Using Docker](Using Docker)
 
 
 ## Other Platforms
