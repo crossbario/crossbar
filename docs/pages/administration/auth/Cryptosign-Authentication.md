@@ -1,7 +1,7 @@
 title: Cryptosign Authentication
 toc: [Documentation, Administration, Authentication, Cryptosign Authentication]
 
-# WAMP-Cryptosing Authentication
+# Cryptosign Authentication
 
 WAMP-Cryptosign is a WAMP-level authentication mechanism which uses Curve25519-based cryptography - Ed25519 private signing keys.
 

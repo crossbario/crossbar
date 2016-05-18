@@ -1,7 +1,6 @@
 title: Dynamic Authenticators
 toc: [Documentation, Administration, Authentication, Dynamic Authenticators]
 
-
 # Dynamic Authenticators
 
 All authentication methods can be configured statically, i.e. the credentials are contained in the the Crossbar.io configuration.

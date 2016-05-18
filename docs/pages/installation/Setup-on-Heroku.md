@@ -1,5 +1,5 @@
 title: Setup on Heroku
-toc: [Documentation, Installation, Setup in the Cloud, Setup on Heroku]
+toc: [Documentation, Installation, Setup on Heroku]
 
 # Setup on Heroku
 

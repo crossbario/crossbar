@@ -1,5 +1,5 @@
 title: Setup on Microsoft Azure
-toc: [Documentation, Installation, Setup in the Cloud, Setup on Microsoft Azure]
+toc: [Documentation, Installation, Setup on Microsoft Azure]
 
 # Setup on Microsoft Azure
 

@@ -1,5 +1,5 @@
 title: Application Templates
-toc: [Documentation, Application Templates]
+toc: [Documentation, Getting Started, Application Templates]
 
 # Application Templates
 

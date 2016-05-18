@@ -1,5 +1,5 @@
 title: Installation on RaspberryPi
-toc: [Documentation, Installation, Local Installation, Installation on RaspberryPi]
+toc: [Documentation, Installation, Installation on RaspberryPi]
 
 # Installation on the RaspberryPi
 
@@ -82,7 +82,3 @@ Crossbar.io                  : 0.10.4
 OS                           : Linux-3.18.7+-armv6l-with-debian-7.8
 Machine                      : armv6l
 ```
-
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).

@@ -1,5 +1,5 @@
 title: Quick Start
-toc: [Documentation, Quick Start]
+toc: [Documentation, Getting Started, Quick Start]
 
 # Quick Start
 

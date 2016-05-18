@@ -1,5 +1,5 @@
 title: Installation on Ubuntu Snappy
-toc: [Documentation, Installation, Local Installation, Installation on Ubuntu Snappy]
+toc: [Documentation, Installation, Installation on Ubuntu Snappy]
 
 # Installation on Ubuntu Snappy
 
@@ -78,7 +78,3 @@ To start your node, run 'crossbar start --cbdir /home/ubuntu/apps/crossbar.cross
 2015-05-07 03:46:56+0000 [Controller   1740] Starting from node directory /home/ubuntu/apps/crossbar.crossbar/0.10.4/.crossbar
 2015-05-07 03:46:57+0000 [Controller   1740] Starting from local configuration '/home/ubuntu/apps/crossbar.crossbar/0.10.4/.crossbar/config.json'
 ```
-
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).

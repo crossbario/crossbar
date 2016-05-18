@@ -1,5 +1,5 @@
 title: Installation on Windows
-toc: [Documentation, Installation, Local Installation, Installation on Windows]
+toc: [Documentation, Installation, Installation on Windows]
 
 # Installation on Windows
 
@@ -68,7 +68,3 @@ To get logging output, do
     winpty crossbar start
 
 (The above only applies to Git shell - not the regular Windows command shell and Powershell.)
-
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).

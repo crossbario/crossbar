@@ -3,7 +3,6 @@ toc: [Documentation, Administration, Authentication, Anonymous Authentication]
 
 # Anonymous Authentication
 
-
 Anonymous Authentication allows you to explicitly define a role which is assigned to clients which connect without credentials.
 
 You need to explicitly allow Anonymous Authentication for a particular transport  - as a default this is not allowed. Clients may explicitly request Anonymous Authentication, but this is attempted absent any explicit defined authentication scheme as well.

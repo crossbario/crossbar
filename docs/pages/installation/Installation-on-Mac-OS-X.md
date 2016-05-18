@@ -1,10 +1,17 @@
-title: Installation on MacOS X
-toc: [Documentation, Installation, Local Installation, Installation on MacOS X]
+title: Installation on Mac OS X
+toc: [Documentation, Installation, Installation on Mac OS X]
 
-# Installation on MacOS X
+# Installation on Mac OS X
 
-When installing on OS X, you have the choice of installing on CPython (the standard interpreter) or PyPy (a high performance interpreter).
-Both are good choices, but PyPy is generally faster (at the cost of a little extra RAM).
+When installing on OS X natively, you have the choice of running on [CPython](https://www.python.org/) (the standard interpreter) or [PyPy](http://pypy.org/) (a high performance JIT compiler). Both are good choices, but PyPy is generally much faster at run-time, while being slower on startup.
+
+Please start from either [Setting up CPython](#setting-up-cpython) or [Setting up PyPy](#setting-up-pypy), and then continue with [Installing Crossbar.io](#installing-crossbar.io).
+
+Other options to get Crossbar.io running on OS X:
+
+* using **Docker**: see [Docker on Mac OS X](https://docs.docker.com/engine/installation/mac/) and then follow [Installation on Docker](Installation on Docker)
+* using **[VirtualBox](https://www.virtualbox.org/)**: setup an Ubuntu Linux VM and then follow [Installation on Ubuntu and Debian](Installation on Ubuntu and Debian)
+
 
 ## Setting up CPython
 
@@ -52,6 +59,8 @@ Finally, start working in the virtual environment:
     cd ~/pypy-venv/
     . bin/activate
 
+Continue with the step [Installing Crossbar.io](#installing-crossbar.io).
+
 
 ## Installing Crossbar.io
 
@@ -83,7 +92,3 @@ Machine                      : x86_64
 To update an existing Crossbar.io installation:
 
     pip install -U crossbar
-
-## Next
-
-Ready to go? Then [choose your language or device of choice](Choose your Weapon).
