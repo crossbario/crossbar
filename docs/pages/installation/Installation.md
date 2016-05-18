@@ -16,10 +16,12 @@ We provide binary packages that contain completey self-contained and optimized b
 * [Installation on CentOS and RedHat](Installation on CentOS and RedHat)
 * [Installation on FreeBSD](Installation on FreeBSD)
 
+Using the binary packages above, whether on bare metal, on virtual machines or within OS containers (Docker et al), is the recommended way to deploy Crossbar.io in production.
+
 
 ## Docker Images
 
-We provide official Docker images for Crossbar.io in different flavors. This is an easy way of getting started with Crossbar.io quickly:
+We provide official Docker images for Crossbar.io in different flavors. This is both a quick way getting started with Crossbar.io and a good approach going to production:
 
 * [Using Docker](Using Docker)
 
@@ -56,6 +58,8 @@ Additionally, Crossbar.io can be run on *Platform-as-a-Service (PaaS)* providers
 
 ## Demo Instance
 
-For light-weight testing purposes, you might also use our public demo instance:
+For light-weight testing purposes, you might also use our public demo instances of Crossbar.io:
 
 * [Demo Instance](Demo Instance)
+
+> The public demo instances of Crossbar.io is provided as a convenience, and for free. Please only use it for development and testing purposes. We don't make any guarantees whatsoever, and the service might be restricted in the future.

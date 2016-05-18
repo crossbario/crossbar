@@ -7,10 +7,10 @@ We run a demo instance which serves the [Crossbar.io demos](https://demo.crossba
 
 ## Using the Demo Instance
 
-The demo instance is reachable at
+The demo instance runs a WAMP-over-WebSocket listening transport at
 
 ```
-ws://demo.crossbar.io:8080
+wss://demo.crossbar.io/ws
 ```
 
 This offers a single realm:
