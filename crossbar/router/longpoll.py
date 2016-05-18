@@ -89,11 +89,11 @@ class WampLongPollResourceSessionSend(Resource):
             self._parent.onMessage(payload, None)
 
         except Exception as e:
-            return self._parent._parent._failRequest(request, "could not unserialize WAMP message: {0}".format(e))
+            return self._parent._parent._fail_request(request, "could not unserialize WAMP message: {0}".format(e))
 
         else:
             request.setResponseCode(http.NO_CONTENT)
-            self._parent._parent._setStandardHeaders(request)
+            self._parent._parent._set_standard_headers(request)
             self._parent._isalive = True
             return b""
 
@@ -183,7 +183,7 @@ class WampLongPollResourceSessionReceive(Resource):
         # remember request, which marks the session as being polled
         self._request = request
 
-        self._parent._parent._setStandardHeaders(request)
+        self._parent._parent._set_standard_headers(request)
         mime_type = self._parent._serializer.MIME_TYPE
         if type(mime_type) == six.text_type:
             mime_type = mime_type.encode('utf8')
@@ -228,7 +228,7 @@ class WampLongPollResourceSessionClose(Resource):
         self.log.debug("WampLongPoll: session ended and transport {0} closed".format(self._parent._transport_id))
 
         request.setResponseCode(http.NO_CONTENT)
-        self._parent._parent._setStandardHeaders(request)
+        self._parent._parent._set_standard_headers(request)
         return ""
 
 
@@ -253,6 +253,7 @@ class WampLongPollResourceSession(Resource):
         self._parent = parent
         self.reactor = self._parent.reactor
 
+        self._transport_details = transport_details
         self._transport_id = transport_details['transport']
         self._serializer = transport_details['serializer']
         self._session = None
@@ -299,6 +300,15 @@ class WampLongPollResourceSession(Resource):
         self.log.debug("WampLongPoll: session resource for transport '{0}' initialized)".format(self._transport_id))
 
         self.onOpen()
+
+    def render_GET(self, request):
+        self._parent._set_standard_headers(request)
+
+        res = {
+            u'transport': self._transport_id,
+            u'session': self._session.session_id if self._session else None
+        }
+        return json.dumps(res)
 
     def close(self):
         """
@@ -404,13 +414,13 @@ class WampLongPollResourceOpen(Resource):
         try:
             options = json.loads(payload)
         except Exception as e:
-            return self._parent._failRequest(request, "could not parse WAMP session open request body: {0}".format(e))
+            return self._parent._fail_request(request, "could not parse WAMP session open request body: {0}".format(e))
 
         if type(options) != dict:
-            return self._parent._failRequest(request, "invalid type for WAMP session open request [was {0}, expected dictionary]".format(type(options)))
+            return self._parent._fail_request(request, "invalid type for WAMP session open request [was {0}, expected dictionary]".format(type(options)))
 
         if u'protocols' not in options:
-            return self._parent._failRequest(request, "missing attribute 'protocols' in WAMP session open request")
+            return self._parent._fail_request(request, "missing attribute 'protocols' in WAMP session open request")
 
         # determine the protocol to speak
         #
@@ -424,7 +434,7 @@ class WampLongPollResourceOpen(Resource):
                 break
 
         if protocol is None:
-            return self.__failRequest(request, "no common protocol to speak (I speak: {0})".format(["wamp.2.{0}".format(s) for s in self._parent._serializers.keys()]))
+            return self.__fail_request(request, "no common protocol to speak (I speak: {0})".format(["wamp.2.{0}".format(s) for s in self._parent._serializers.keys()]))
 
         # make up new transport ID
         #
@@ -457,7 +467,7 @@ class WampLongPollResourceOpen(Resource):
 
         # create response
         #
-        self._parent._setStandardHeaders(request)
+        self._parent._set_standard_headers(request)
         request.setHeader(b'content-type', b'application/json; charset=utf-8')
 
         result = {
@@ -597,7 +607,7 @@ class WampLongPollResource(Resource):
     def render_GET(self, request):
         request.setHeader(b'content-type', b'text/html; charset=UTF-8')
         peer = b"{0}:{1}".format(request.client.host, request.client.port)
-        return self.getNotice(peer=peer)
+        return self._get_notice(peer=peer)
 
     def getChild(self, name, request):
         """
@@ -614,12 +624,12 @@ class WampLongPollResource(Resource):
             else:
                 return NoResource("no WAMP transport '{0}'".format(name))
 
-        if len(request.postpath) != 1 or request.postpath[0] not in [b'send', b'receive', b'close']:
+        if len(request.postpath) == 0 or (len(request.postpath) == 1 and request.postpath[0] in [b'send', b'receive', b'close']):
+            return self._transports[name]
+        else:
             return NoResource("invalid WAMP transport operation '{0}'".format(request.postpath))
 
-        return self._transports[name]
-
-    def _setStandardHeaders(self, request):
+    def _set_standard_headers(self, request):
         """
         Set standard HTTP response headers.
         """
@@ -634,36 +644,35 @@ class WampLongPollResource(Resource):
         if headers is not None:
             request.setHeader(b'access-control-allow-headers', headers)
 
-    def _failRequest(self, request, msg):
+    def _fail_request(self, request, msg):
         """
         Fails a request to the long-poll service.
         """
-        self._setStandardHeaders(request)
+        self._set_standard_headers(request)
         request.setHeader(b'content-type', b'text/plain; charset=UTF-8')
         request.setResponseCode(http.BAD_REQUEST)
         return msg
 
-    def getNotice(self, peer, redirectUrl=None, redirectAfter=0):
+    def _get_notice(self, peer, redirect_url=None, redirect_after=0):
         """
         Render a user notice (HTML page) when the Long-Poll root resource
         is accessed via HTTP/GET (by a user).
 
-        :param redirectUrl: Optional URL to redirect the user to.
-        :type redirectUrl: str
-        :param redirectAfter: When ``redirectUrl`` is provided, redirect after this time (seconds).
-        :type redirectAfter: int
+        :param redirect_url: Optional URL to redirect the user to.
+        :type redirect_url: str
+        :param redirect_after: When ``redirect_url`` is provided, redirect after this time (seconds).
+        :type redirect_after: int
         """
-        from autobahn import __version__
-
-        if redirectUrl:
-            redirect = b"""<meta http-equiv="refresh" content="%d;URL='%s'">""" % (redirectAfter, redirectUrl)
+        if redirect_url:
+            redirect = b"""<meta http-equiv="refresh" content="{};URL='{}'">""".format(redirect_after, redirect_url)
         else:
             redirect = b""
+
         html = b"""
 <!DOCTYPE html>
 <html>
    <head>
-      %s
+      {}
       <style>
          body {
             color: #fff;
@@ -678,21 +687,9 @@ class WampLongPollResource(Resource):
       </style>
    </head>
    <body>
-      <h1>AutobahnPython %s</h1>
-      <p>
-         I am not Web server, but a <b>WAMP-over-LongPoll</b> transport endpoint.
-      </p>
-      <p>
-         You can talk to me using the <a href="https://github.com/tavendo/WAMP/blob/master/spec/advanced.md#long-poll-transport">WAMP-over-LongPoll</a> protocol.
-      </p>
-      <p>
-         For more information, please see:
-         <ul>
-            <li><a href="http://wamp.ws/">WAMP</a></li>
-            <li><a href="http://autobahn.ws/python">AutobahnPython</a></li>
-         </ul>
-      </p>
+      <h1>Crossbar.io</h1>
+      <p>I am not Web server, but a <b>WAMP-over-Longpoll</b> listening transport.</p>
    </body>
 </html>
-""" % (redirect, __version__)
+""".format(redirect)
         return html
