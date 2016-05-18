@@ -43,7 +43,7 @@ from twisted.web.resource import Resource, NoResource
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
 
-from autobahn.util import newid
+from autobahn.util import generate_token
 
 from autobahn.wamp.websocket import parseSubprotocolIdentifier
 
@@ -306,7 +306,7 @@ class WampLongPollResourceSession(Resource):
 
         res = {
             u'transport': self._transport_id,
-            u'session': self._session.session_id if self._session else None
+            u'session': self._session._session_id if self._session else None
         }
         return json.dumps(res)
 
@@ -442,7 +442,7 @@ class WampLongPollResourceOpen(Resource):
             # use fixed transport ID for debugging purposes
             transport = self._parent._debug_transport_id
         else:
-            transport = newid()
+            transport = generate_token(1, 12)
 
         # this doesn't contain all the info (when a header key appears multiple times)
         # http_headers_received = request.getAllHeaders()
@@ -672,17 +672,17 @@ class WampLongPollResource(Resource):
 <!DOCTYPE html>
 <html>
    <head>
-      {}
+      %s
       <style>
          body {
-            color: #fff;
-            background-color: #027eae;
+            color: #333;
+            background-color: #ffde00;
             font-family: "Segoe UI", "Lucida Grande", "Helvetica Neue", Helvetica, Arial, sans-serif;
             font-size: 16px;
          }
 
          a, a:visited, a:hover {
-            color: #fff;
+            color: #333;
          }
       </style>
    </head>
@@ -691,5 +691,5 @@ class WampLongPollResource(Resource):
       <p>I am not Web server, but a <b>WAMP-over-Longpoll</b> listening transport.</p>
    </body>
 </html>
-""".format(redirect)
+""" % (redirect,)
         return html
