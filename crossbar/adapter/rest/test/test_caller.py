@@ -152,13 +152,14 @@ class CallerTestCase(TestCase):
                 body=b'{"procedure": "com.test.add2", "args": [1,2]}')
 
         self.flushLoggedErrors()
-        self.assertEqual(request.code, 400)
+        self.assertEqual(request.code, 200)
         self.assertEqual(json.loads(native_string(request.get_written_data())),
-                         {u"error": u"wamp.test.broke", u"args": [u"broken!"]})
+                         {u"error": u"wamp.test.broke", u"args": [u"broken!"],
+                          u"kwargs": {}})
 
         logs = l.get_category("AR458")
         self.assertEqual(len(logs), 1)
-        self.assertEqual(logs[0]["code"], 400)
+        self.assertEqual(logs[0]["code"], 200)
 
     @inlineCallbacks
     def test_no_procedure(self):

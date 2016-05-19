@@ -87,22 +87,7 @@ class CallerResource(_CommonResource):
             # a WAMP procedure call returning with error should be forwarded
             # to the HTTP-requestor still successfully
             #
-            res = {}
-            if isinstance(err.value, ApplicationError):
-                res['error'] = err.value.error
-                if err.value.args:
-                    res['args'] = err.value.args
-                if err.value.kwargs:
-                    res['kwargs'] = err.value.kwargs
-            else:
-                res['error'] = u'wamp.error.runtime_error'
-                res['args'] = ["{}".format(err)]
-
-            request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
-            res = json.dumps(res).encode('utf8')
-
-            return self._fail_request(
-                request, 400, body=res, failure=err,
-                log_category="AR458")
+            return self._fail_request(request, failure=err,
+                                      log_category="AR458")
 
         return d.addCallbacks(on_call_ok, on_call_error)

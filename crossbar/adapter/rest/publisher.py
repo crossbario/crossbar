@@ -33,6 +33,7 @@ from __future__ import absolute_import, division
 import json
 
 from autobahn.wamp.types import PublishOptions
+from autobahn.wamp.exception import ApplicationError
 
 from crossbar.adapter.rest.common import _CommonResource
 
@@ -75,10 +76,9 @@ class PublisherResource(_CommonResource):
                               b'application/json; charset=UTF-8')
             request.setHeader(b'cache-control',
                               b'no-store, no-cache, must-revalidate, max-age=0')
-            self._complete_request(request, 202, body, log_category="AR200")
+            self._complete_request(request, 200, body, log_category="AR200")
 
         def on_publish_error(err):
-            return self._fail_request(request, 400,
-                                      failure=err, log_category="AR456")
+            self._fail_request(request, failure=err, log_category="AR456")
 
         return d.addCallbacks(on_publish_ok, on_publish_error)

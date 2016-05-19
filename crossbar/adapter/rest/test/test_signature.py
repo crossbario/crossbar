@@ -67,7 +67,7 @@ class SignatureTestCase(TestCase):
                 body=publishBody,
                 sign=True, signKey="bazapp", signSecret="foobar")
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
         self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"id": session._published_messages[0]["id"]})
 

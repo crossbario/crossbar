@@ -34,6 +34,8 @@ import hmac
 import hashlib
 import base64
 
+from autobahn.wamp.exception import ApplicationError
+
 from txaio import make_logger
 
 from crossbar._compat import native_string
@@ -104,26 +106,72 @@ class _CommonResource(Resource):
 
         self.log.debug(code=code, **kwargs)
 
+        body = json.dumps({"error": log_categories[kwargs['log_category']],
+                           "args": [], "kwargs": {}})
+
+        request.setHeader(b'cache-control',
+                          b'no-store, no-cache, must-revalidate, max-age=0')
+        request.setHeader(b'content-type',
+                          b'application/json; charset=UTF-8')
+
         request.setResponseCode(code)
+        return body
 
-        category_text = log_categories[kwargs['log_category']]
-        return category_text.format(**kwargs).encode('utf8') + b"\n"
-
-    def _fail_request(self, request, code, body=None, **kwargs):
+    def _fail_request(self, request, close=True, **kwargs):
         """
         Called when client request fails.
         """
+        if "failure" in kwargs:
+            res = {}
+            err = kwargs["failure"]
+            if isinstance(err.value, ApplicationError):
+                res['error'] = err.value.error
+                if err.value.args:
+                    res['args'] = err.value.args
+                else:
+                    res['args'] = []
+                if err.value.kwargs:
+                    res['kwargs'] = err.value.kwargs
+                else:
+                    res['kwargs'] = {}
+
+                # This is a user-level error, not a CB error, so return 200
+                code = 200
+            else:
+                # This is a "CB" error, so return 500 and a generic error
+                res['error'] = u'wamp.error.runtime_error'
+                res['args'] = ["Sorry, Crossbar.io has encountered a problem."]
+                res['kwargs'] = {}
+
+                # CB-level error, return 500
+                code = 500
+
+                self.log.failure(None, failure=err, log_category="AR500")
+
+            body = json.dumps(res).encode('utf8')
+        else:
+            # Manual user-level error
+            code = 200
+
+            body = json.dumps({"error": log_categories[kwargs['log_category']],
+                               "args": [], "kwargs": {}})
+
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
 
         self.log.debug(code=code, **kwargs)
 
+        request.setHeader(b'cache-control', b'no-store, no-cache, must-revalidate, max-age=0')
+        request.setHeader(b'content-type',
+                          b'application/json; charset=UTF-8')
+
         request.setResponseCode(code)
-        if body:
-            request.write(body)
-        else:
-            category_text = log_categories[kwargs['log_category']]
-            request.write(category_text.format(**kwargs).encode('utf8') + b"\n")
+        request.write(body)
+
+        if close:
+            request.finish()
+
+
 
     def _complete_request(self, request, code, body, **kwargs):
         """
