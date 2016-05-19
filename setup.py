@@ -49,7 +49,10 @@ with open('crossbar/__init__.py') as f:
 # read requirements from requirements.txt
 install_requires = []
 extras_require = {
-    'dev': []
+    'dev': [
+        'towncrier',
+        'tox',
+    ]
 }
 
 with open('requirements-in.txt') as f:
