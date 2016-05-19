@@ -171,8 +171,6 @@ class _CommonResource(Resource):
         if close:
             request.finish()
 
-
-
     def _complete_request(self, request, code, body, **kwargs):
         """
         Called when client request is complete.

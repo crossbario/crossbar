@@ -33,7 +33,6 @@ from __future__ import absolute_import, division
 import json
 
 from autobahn.wamp.types import PublishOptions
-from autobahn.wamp.exception import ApplicationError
 
 from crossbar.adapter.rest.common import _CommonResource
 

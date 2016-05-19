@@ -32,7 +32,7 @@ from __future__ import absolute_import
 
 import json
 
-from twisted.internet.defer import inlineCallbacks, fail, maybeDeferred
+from twisted.internet.defer import inlineCallbacks, maybeDeferred
 
 from autobahn.wamp.exception import ApplicationError
 
@@ -42,7 +42,6 @@ from crossbar._logging import LogCapturer
 from crossbar._log_categories import log_categories
 from crossbar.adapter.rest import PublisherResource
 from crossbar.adapter.rest.test import MockPublisherSession, renderResource
-
 
 
 class PublisherTestCase(TestCase):
@@ -77,7 +76,6 @@ class PublisherTestCase(TestCase):
         self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"id": session._published_messages[0]["id"]})
 
-
     @inlineCallbacks
     def test_publish_error(self):
         """
@@ -89,6 +87,7 @@ class PublisherTestCase(TestCase):
             """
             def publish(self, topic, *args, **kwargs):
                 return maybeDeferred(self._publish, topic, *args, **kwargs)
+
             def _publish(self, topic, *args, **kwargs):
                 raise ApplicationError(u'wamp.error.not_authorized', foo="bar")
 
@@ -124,6 +123,7 @@ class PublisherTestCase(TestCase):
             """
             def publish(self, topic, *args, **kwargs):
                 return maybeDeferred(self._publish, topic, *args, **kwargs)
+
             def _publish(self, topic, *args, **kwargs):
                 raise ValueError("ono")
 
@@ -148,7 +148,7 @@ class PublisherTestCase(TestCase):
 
         self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"error": "wamp.error.runtime_error",
-                          "args": ["Sorry, Crossbar.io has encountered a problem.",],
+                          "args": ["Sorry, Crossbar.io has encountered a problem."],
                           "kwargs": {}})
 
         # We manually logged it, so this one is OK
