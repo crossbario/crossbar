@@ -117,7 +117,7 @@ class _CommonResource(Resource):
         request.setResponseCode(code)
         return body
 
-    def _fail_request(self, request, close=True, **kwargs):
+    def _fail_request(self, request, **kwargs):
         """
         Called when client request fails.
         """
@@ -161,9 +161,7 @@ class _CommonResource(Resource):
 
         request.setResponseCode(code)
         request.write(body)
-
-        if close:
-            request.finish()
+        request.finish()
 
     def _complete_request(self, request, code, body, **kwargs):
         """
