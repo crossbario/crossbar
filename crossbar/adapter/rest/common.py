@@ -116,7 +116,6 @@ class _CommonResource(Resource):
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
 
-        self.log.failure(None, failure=kwargs["failure"])
         self.log.debug(code=code, **kwargs)
 
         request.setResponseCode(code)

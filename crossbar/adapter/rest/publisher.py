@@ -79,6 +79,6 @@ class PublisherResource(_CommonResource):
 
         def on_publish_error(err):
             return self._fail_request(request, 400,
-                                      log_failure=err, log_category="AR456")
+                                      failure=err, log_category="AR456")
 
         return d.addCallbacks(on_publish_ok, on_publish_error)
