@@ -107,7 +107,7 @@ class _CommonResource(Resource):
         self.log.debug(code=code, **kwargs)
 
         body = json.dumps({"error": log_categories[kwargs['log_category']],
-                           "args": [], "kwargs": {}})
+                           "args": [], "kwargs": {}}).encode('utf8')
 
         request.setHeader(b'cache-control',
                           b'no-store, no-cache, must-revalidate, max-age=0')
