@@ -24,6 +24,15 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
+news: towncrier.ini crossbar/newsfragments/*.*
+	# this produces a NEWS.md file, 'git rm's crossbar/newsfragmes/* and 'git add's NEWS.md
+	# ...which we then use to update docs/pages/ChangeLog.md
+	towncrier
+	cat docs/templates/changelog_preamble.md > docs/pages/ChangeLog.md
+	cat NEWS.md >> docs/pages/ChangeLog.md
+	git add docs/pages/ChangeLog.md
+	echo You should now 'git commit -m "update NEWS and ChangeLog"' the result, if happy.
+
 docs:
 	towncrier --draft > docs/pages/ChangeLog.md
 	python docs/test_server.py
