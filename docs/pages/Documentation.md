@@ -5,7 +5,7 @@ toc: [Documentation]
 
 Welcome to the Crossbar.io Reference Documentation.
 
-* [Full Table of Contents](TOC)
+* [Full Table of Contents](Table of Contents)
 
 ## Topics
 
