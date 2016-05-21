@@ -3,13 +3,6 @@ toc: [Documentation, Table of Contents]
 
 # Table of Contents
 
-## Background
-
-* [Introduction](Introduction)
-* [Architecture](Architecture)
-* [Features](Features)
-* [Roadmap](Roadmap)
-
 ## Getting Started
 
 * [Quick Start](Quick Start)
