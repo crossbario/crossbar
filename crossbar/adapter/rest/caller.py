@@ -28,12 +28,11 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
-import json
+from __future__ import absolute_import, division
 
 from autobahn.wamp.types import CallResult
 
+from crossbar._util import dump_json
 from crossbar.adapter.rest.common import _CommonResource
 
 __all__ = ('CallerResource',)
@@ -72,11 +71,7 @@ class CallerResource(_CommonResource):
             else:
                 res = {'args': [value]}
 
-            body = json.dumps(res, separators=(',', ':'), ensure_ascii=False).encode('utf8')
-            request.setHeader(b'content-type',
-                              b'application/json; charset=UTF-8')
-            request.setHeader(b'cache-control',
-                              b'no-store, no-cache, must-revalidate, max-age=0')
+            body = dump_json(res, True).encode('utf8')
 
             return self._complete_request(
                 request, 200, body,

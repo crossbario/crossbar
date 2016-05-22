@@ -38,6 +38,7 @@ from autobahn.wamp.exception import ApplicationError
 
 from txaio import make_logger
 
+from crossbar._util import dump_json
 from crossbar._compat import native_string
 from crossbar._log_categories import log_categories
 
@@ -106,14 +107,8 @@ class _CommonResource(Resource):
 
         self.log.debug(code=code, **kwargs)
 
-        body = json.dumps({"error": log_categories[kwargs['log_category']],
-                           "args": [], "kwargs": {}}).encode('utf8')
-
-        request.setHeader(b'cache-control',
-                          b'no-store, no-cache, must-revalidate, max-age=0')
-        request.setHeader(b'content-type',
-                          b'application/json; charset=UTF-8')
-
+        body = dump_json({"error": log_categories[kwargs['log_category']],
+                          "args": [], "kwargs": {}}, True).encode('utf8')
         request.setResponseCode(code)
         return body
 
@@ -154,11 +149,6 @@ class _CommonResource(Resource):
 
         self.log.debug(code=code, **kwargs)
 
-        request.setHeader(b'cache-control',
-                          b'no-store, no-cache, must-revalidate, max-age=0')
-        request.setHeader(b'content-type',
-                          b'application/json; charset=UTF-8')
-
         request.setResponseCode(code)
         request.write(body)
         request.finish()
@@ -181,23 +171,28 @@ class _CommonResource(Resource):
         origin = request.getHeader(b'origin')
         if origin is None or origin == b'null':
             origin = b'*'
+
         request.setHeader(b'access-control-allow-origin', origin)
         request.setHeader(b'access-control-allow-credentials', b'true')
         request.setHeader(b'cache-control', b'no-store,no-cache,must-revalidate,max-age=0')
+        request.setHeader(b'content-type', b'application/json; charset=UTF-8')
 
         headers = request.getHeader(b'access-control-request-headers')
         if headers is not None:
             request.setHeader(b'access-control-allow-headers', headers)
 
     def render(self, request):
+        """
+        Handle the request. All requests start here.
+        """
         self.log.debug(log_category="AR100", method=request.method, path=request.path)
+        self._set_common_headers(request)
 
         try:
             if request.method not in (b"POST", b"PUT", b"OPTIONS"):
                 return self._deny_request(request, 405, method=request.method,
                                           allowed="POST, PUT")
             else:
-                self._set_common_headers(request)
 
                 if request.method == b"OPTIONS":
                     # http://greenbytes.de/tech/webdav/rfc2616.html#rfc.section.14.7
