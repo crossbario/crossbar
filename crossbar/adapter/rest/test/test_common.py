@@ -54,7 +54,7 @@ class IPWhitelistingTestCase(TestCase):
             headers={b"Content-Type": [b"application/json"]},
             body=publishBody))
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
 
     def test_allowed_IP_range(self):
         """
@@ -68,7 +68,7 @@ class IPWhitelistingTestCase(TestCase):
             headers={b"Content-Type": [b"application/json"]},
             body=publishBody))
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
 
     def test_disallowed_IP_range(self):
         """
@@ -103,7 +103,7 @@ class SecureTransportTestCase(TestCase):
             headers={b"Content-Type": [b"application/json"]},
             body=publishBody, isSecure=True))
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
 
     def test_not_required_tls_with_tls(self):
         """
@@ -117,7 +117,7 @@ class SecureTransportTestCase(TestCase):
             headers={b"Content-Type": [b"application/json"]},
             body=publishBody, isSecure=True))
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
 
     def test_required_tls_without_tls(self):
         """
@@ -150,7 +150,7 @@ class RequestBodyTestCase(TestCase):
             headers={b"Content-Type": [b"application/json; charset=utf-8"]},
             body=publishBody))
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
         self.assertIn(b'{"id":',
                       request.get_written_data())
 
@@ -166,7 +166,7 @@ class RequestBodyTestCase(TestCase):
             headers={b"CONTENT-TYPE": [b"APPLICATION/JSON"]},
             body=publishBody))
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
         self.assertIn(b'{"id":',
                       request.get_written_data())
 
@@ -317,7 +317,7 @@ class RequestBodyTestCase(TestCase):
             headers={b"Content-Type": [b"application/json"]},
             body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
         self.assertIn(b'{"id":',
                       request.get_written_data())
 
@@ -353,7 +353,7 @@ class RequestBodyTestCase(TestCase):
             headers={b"Content-Type": [b"application/json;charset=utf-8"]},
             body=b'{"topic": "com.test.messages", "args": ["\xe2\x98\x83"]}'))
 
-        self.assertEqual(request.code, 202)
+        self.assertEqual(request.code, 200)
         self.assertIn(b'{"id":',
                       request.get_written_data())
 

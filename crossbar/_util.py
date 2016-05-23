@@ -28,7 +28,10 @@
 #
 #####################################################################################
 
+from __future__ import absolute_import, division
+
 import inspect
+import json
 
 
 def class_name(obj):
@@ -41,3 +44,16 @@ def class_name(obj):
     else:
         cls = obj.__class__
     return '{}.{}'.format(cls.__module__, cls.__name__)
+
+
+def dump_json(obj, minified=True):
+    """
+    Dump JSON to a string, either pretty printed or not. Returns a Unicode
+    string.
+    """
+    if minified:
+        return json.dumps(obj, separators=(',', ':'), ensure_ascii=False)
+
+    else:
+        return json.dumps(obj, indent=4, separators=(',', ': '),
+                          sort_keys=True, ensure_ascii=False)

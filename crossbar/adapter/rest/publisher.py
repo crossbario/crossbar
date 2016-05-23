@@ -30,10 +30,9 @@
 
 from __future__ import absolute_import, division
 
-import json
-
 from autobahn.wamp.types import PublishOptions
 
+from crossbar._util import dump_json
 from crossbar.adapter.rest.common import _CommonResource
 
 __all__ = ('PublisherResource',)
@@ -53,9 +52,9 @@ class PublisherResource(_CommonResource):
 
         topic = event.pop('topic')
 
-        args = event.pop('args', [])
-        kwargs = event.pop('kwargs', {})
-        options = event.pop('options', {})
+        args = event['args'] if 'args' in event and event['args'] else []
+        kwargs = event['kwargs'] if 'kwargs' in event and event['kwargs'] else {}
+        options = event['options'] if 'options' in event and event['options'] else {}
 
         publish_options = PublishOptions(acknowledge=True,
                                          exclude=options.get('exclude', None),
@@ -69,16 +68,10 @@ class PublisherResource(_CommonResource):
 
         def on_publish_ok(pub):
             res = {'id': pub.id}
-            body = json.dumps(res, separators=(',', ':'),
-                              ensure_ascii=False).encode('utf8')
-            request.setHeader(b'content-type',
-                              b'application/json; charset=UTF-8')
-            request.setHeader(b'cache-control',
-                              b'no-store, no-cache, must-revalidate, max-age=0')
-            self._complete_request(request, 202, body, log_category="AR200")
+            body = dump_json(res, True).encode('utf8')
+            self._complete_request(request, 200, body, log_category="AR200")
 
         def on_publish_error(err):
-            return self._fail_request(request, 400,
-                                      log_failure=err, log_category="AR456")
+            self._fail_request(request, failure=err, log_category="AR456")
 
         return d.addCallbacks(on_publish_ok, on_publish_error)

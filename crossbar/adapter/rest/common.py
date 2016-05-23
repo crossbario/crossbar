@@ -34,8 +34,11 @@ import hmac
 import hashlib
 import base64
 
+from autobahn.wamp.exception import ApplicationError
+
 from txaio import make_logger
 
+from crossbar._util import dump_json
 from crossbar._compat import native_string
 from crossbar._log_categories import log_categories
 
@@ -104,27 +107,51 @@ class _CommonResource(Resource):
 
         self.log.debug(code=code, **kwargs)
 
+        body = dump_json({"error": log_categories[kwargs['log_category']],
+                          "args": [], "kwargs": {}}, True).encode('utf8')
         request.setResponseCode(code)
+        return body
 
-        category_text = log_categories[kwargs['log_category']]
-        return category_text.format(**kwargs).encode('utf8') + b"\n"
-
-    def _fail_request(self, request, code, body=None, **kwargs):
+    def _fail_request(self, request, **kwargs):
         """
         Called when client request fails.
         """
+        res = {}
+        err = kwargs["failure"]
+        if isinstance(err.value, ApplicationError):
+            res['error'] = err.value.error
+            if err.value.args:
+                res['args'] = err.value.args
+            else:
+                res['args'] = []
+            if err.value.kwargs:
+                res['kwargs'] = err.value.kwargs
+            else:
+                res['kwargs'] = {}
+
+            # This is a user-level error, not a CB error, so return 200
+            code = 200
+        else:
+            # This is a "CB" error, so return 500 and a generic error
+            res['error'] = u'wamp.error.runtime_error'
+            res['args'] = ["Sorry, Crossbar.io has encountered a problem."]
+            res['kwargs'] = {}
+
+            # CB-level error, return 500
+            code = 500
+
+            self.log.failure(None, failure=err, log_category="AR500")
+
+        body = json.dumps(res).encode('utf8')
+
         if "log_category" not in kwargs.keys():
             kwargs["log_category"] = "AR" + str(code)
 
-        self.log.failure(None, failure=kwargs["failure"])
         self.log.debug(code=code, **kwargs)
 
         request.setResponseCode(code)
-        if body:
-            request.write(body)
-        else:
-            category_text = log_categories[kwargs['log_category']]
-            request.write(category_text.format(**kwargs).encode('utf8') + b"\n")
+        request.write(body)
+        request.finish()
 
     def _complete_request(self, request, code, body, **kwargs):
         """
@@ -144,23 +171,28 @@ class _CommonResource(Resource):
         origin = request.getHeader(b'origin')
         if origin is None or origin == b'null':
             origin = b'*'
+
         request.setHeader(b'access-control-allow-origin', origin)
         request.setHeader(b'access-control-allow-credentials', b'true')
         request.setHeader(b'cache-control', b'no-store,no-cache,must-revalidate,max-age=0')
+        request.setHeader(b'content-type', b'application/json; charset=UTF-8')
 
         headers = request.getHeader(b'access-control-request-headers')
         if headers is not None:
             request.setHeader(b'access-control-allow-headers', headers)
 
     def render(self, request):
+        """
+        Handle the request. All requests start here.
+        """
         self.log.debug(log_category="AR100", method=request.method, path=request.path)
+        self._set_common_headers(request)
 
         try:
             if request.method not in (b"POST", b"PUT", b"OPTIONS"):
                 return self._deny_request(request, 405, method=request.method,
                                           allowed="POST, PUT")
             else:
-                self._set_common_headers(request)
 
                 if request.method == b"OPTIONS":
                     # http://greenbytes.de/tech/webdav/rfc2616.html#rfc.section.14.7
