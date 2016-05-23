@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, division
 
+from twisted.internet.defer import maybeDeferred
+
 from autobahn.wamp.types import CallResult
 
 from crossbar._util import dump_json
@@ -56,7 +58,10 @@ class CallerResource(_CommonResource):
         args = event['args'] if 'args' in event and event['args'] else []
         kwargs = event['kwargs'] if 'kwargs' in event and event['kwargs'] else {}
 
-        d = self._session.call(procedure, *args, **kwargs)
+        def _call(*args, **kwargs):
+            return self._session.call(*args, **kwargs)
+
+        d = maybeDeferred(_call, procedure, *args, **kwargs)
 
         def on_call_ok(value):
             # a WAMP procedure call result may have a single return value, but also
