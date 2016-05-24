@@ -30,4 +30,5 @@ Welcome to the Crossbar.io Reference Documentation. For full table of contents, 
 * [Crossbar.io Code License](Crossbar-License)
 * [Crossbar.io Documentation License](Documentation-License)
 * [Contributing to the Project](https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md)
+* [Contributing FAQ](Contributing FAQ)
 * [FAQ](FAQ)
