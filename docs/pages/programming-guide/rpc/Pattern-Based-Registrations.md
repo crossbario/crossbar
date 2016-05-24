@@ -1,5 +1,5 @@
 title: Patter Based Registrations
-toc: [Documentation, Programming Guide, WAMP Features, RPC, Patter Based Registrations]
+toc: [Documentation, Programming Guide, WAMP Features, RPC, Pattern Based Registrations]
 
 # Pattern-Based Registrations
 
@@ -51,7 +51,7 @@ For example, the registration URI
 
 `com.myapp.manage..create`
 
-contains four defined URI components ("com", "myapp", "manage", "create") and one wildcard. The wildcard is defined by the double dots betwen "manage" and "create". 
+contains four defined URI components ("com", "myapp", "manage", "create") and one wildcard. The wildcard is defined by the double dots betwen "manage" and "create".
 
 This would be matched by
 
@@ -93,7 +93,7 @@ Since this is the default, it is unnecessary though, unless there is a need to m
 
 Registrations are entities which are based on a combination of registration URI and matching policy. It is thus not possible to perform any set-based logic with registrations.
 
-As an example: 
+As an example:
 
 There is an existing registration for the URI `com.myapp` using prefix matching. It is then not possible to send an 'unregister' for the URI `com.myapp.procedure2` in order to prevent the callee being invoked for calls to this URI.
 
@@ -108,11 +108,11 @@ With pattern-based subscriptions comes the possibility of having multiple regist
 4. `com.myapp.manage...` - match: "wildcard"
 5. `com.myapp...create` - match: "wildcard"
 
-a call to 
+a call to
 
-`com.myapp.manage.47837483.create` 
+`com.myapp.manage.47837483.create`
 
-would in principle match all five registrations. 
+would in principle match all five registrations.
 
 Since we want only a single callee to be invoked, there is a need to determine which registration takes precedence.
 
@@ -126,7 +126,7 @@ The hierarchy is simply:
 - Prefix match
 - Wildcard match
 
-This means that a registration using prefix matching can only apply when there is no registration with an exact match for the call URI, and that a registration using wildcard matching can only apply when there is neither an exact match nor a prefix match for the call URI. 
+This means that a registration using prefix matching can only apply when there is no registration with an exact match for the call URI, and that a registration using wildcard matching can only apply when there is neither an exact match nor a prefix match for the call URI.
 
 In the initial example, registration 1. would apply.
 Registrations 2. and 3. could only apply absent registration 1..
@@ -136,7 +136,7 @@ Crossbar.io internally checks following this hierarchy. The rules below for pref
 
 ## Longest Prefix Match Wins
 
-If there are multiple registrations using prefix matchin which would in principle match (but no exact matching registration), then the longest of these prefixes wins. 
+If there are multiple registrations using prefix matchin which would in principle match (but no exact matching registration), then the longest of these prefixes wins.
 
 In the initial example, among registrations 2. and 3., registration 3. would apply since it is longer.
 

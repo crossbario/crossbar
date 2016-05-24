@@ -18,6 +18,7 @@ toc: [Documentation, Table of Contents]
 
 ## Administrators
 
+* [Quick Reference](Quick Reference)
 * [Installation](Installation)
    * Binary Packages
       * [Installation on Ubuntu and Debian](Installation on Ubuntu and Debian)
@@ -89,11 +90,11 @@ toc: [Documentation, Table of Contents]
             * [Authorization](Authorization)
    * [Logging](Logging)
    * [Going to Production](Going-to-Production)
-      * [Running on privileged ports](Running on privileged ports)
+      * [Running on privileged ports](Running on Privileged Ports)
       * [Secure WebSocket and HTTPS](Secure WebSocket and HTTPS)
-         * [TLS Certificates](TLS Certificates)
+      * [TLS Certificates](TLS Certificates)
       * [Payload Encryption (Cryptobox)](Cryptobox Payload Encryption)
-      * [Automatic startup and restart](Automatic startup and restart)
+      * [Automatic startup and restart](Automatic Startup and Restart)
       * [Network Tuning](Network Tuning)
       * [Reverse Proxies](Reverse Proxies)
       * [SSL/TLS Interception Proxies](SSL-TLS-Interception-Proxies)
@@ -133,8 +134,8 @@ toc: [Documentation, Table of Contents]
       - [[AngularJS Application Components]]
       - [Database Programming with PostgreSQL](Database Programming with PostgreSQL)
    * Crossbar.io features
-      - [Starting and Stopping Crossbar.io](Starting and Stopping)
-      - [Logging in Crossbar.io](Logging in Crossbar.io)
+      - [Starting and Stopping Crossbar.io](Starting and Stopping Crossbario)
+      - [Logging in Crossbar.io](Logging in Crossbario)
       - [Configuring Crossbar.io's Logging](Configuring Crossbario Logging)
    * [Crossbar.io Demo Instance](Demo Instance)
 * [Application Templates](Application Templates)
@@ -143,6 +144,7 @@ toc: [Documentation, Table of Contents]
 ## More
 
 * [FAQ](FAQ)
+* [Compatibility Policy](Compatibility-Policy)
 * [Crossbar.io Code License](Crossbar-License)
 * [Crossbar.io Documentation License](Documentation-License)
-* [Contributing to the Project](Contributing to the project)
+* [Contributing to the Project](https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md)**

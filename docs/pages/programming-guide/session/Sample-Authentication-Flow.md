@@ -1,6 +1,5 @@
 title: Sample Authentication Flow
-toc: [Documentation, Programming Guide, WAMP Features, Session, Sample Authentication
-    Flow]
+toc: [Documentation, Programming Guide, WAMP Features, Session, Sample Authentication Flow]
 
 # A Sample Authentication Flow
 
@@ -14,7 +13,7 @@ We will first take a look at the login and logout, and then how to add a registr
 
 ## Login
 
-For the login we use WAMP-CRA and cookie authentication. 
+For the login we use WAMP-CRA and cookie authentication.
 
 WAMP-CRA is an implementation of a challenge-response authentication (see the docs for more information). The flow here is very simple: The user provides a username and a password, which will usually get from a login form. (Since we're using WAMP you don't submit the form, but we still use a form with the usual login markup to enable password managers to store and enter the credentials.) The username is sent over the wire, Crossbar.io sends a challenge, our local code derives the correct response using the password, this travels back to Crossbar.io - and we have an authenticated connection.
 
@@ -41,7 +40,7 @@ To enable this you need to configure WAMP-CRA in the Crossbar.io config. A simpl
                         "role": "user"
                      }
                   }
-               }                     
+               }
             }
          }
       }
@@ -67,7 +66,7 @@ This works fine for applications where you have a limited and persistent number 
                "wampcra": {
                   "type": "dynamic",
                   "authenticator": "io.crossbar.examples.authenticate"
-               }                        
+               }
             }
          }
       }
@@ -83,13 +82,13 @@ var authenticate = function (args) {
    var realm = args[0];
    var authId = args[1];
    var details = args[2];
-   
+
    if (users[authId]) {
-      return {"secret": users[authId].secret, "role": users[authId].role};   
+      return {"secret": users[authId].secret, "role": users[authId].role};
    } else {
       throw "user unknown";
    }
-  
+
 };
 
 session.register("io.crossbar.advanced.backend.authenticate", authenticate)
@@ -104,9 +103,9 @@ var onChallenge = function (session, method, extra) {
    if (method === "wampcra") {
       return autobahn.auth_cra.sign(password, extra.challenge);
    }
-} 
+}
 
-connectionAuth = new autobahn.Connection({   
+connectionAuth = new autobahn.Connection({
    realm: "crossbario_advanced",
    authmethods: ["wampcra"],
    authid: username,
@@ -121,7 +120,7 @@ connectionAuth.open();
 Since nobody loves logins, you can make life easier for your users by adding cookie authentication. For each WAMP connection, you can define a list of authentication methods to try. Since we want cookies to be used instead of WAMP-CRA when possible, we add cookie authentication before WAMP-CRA.
 
 ```javascript
-connectionAuth = new autobahn.Connection({   
+connectionAuth = new autobahn.Connection({
    realm: "crossbario_advanced",
    authmethods: ["cookie", "wampcra"],
    authid: username,
@@ -131,7 +130,7 @@ connectionAuth = new autobahn.Connection({
 
 In Crossbar.io, we need to cofigure two things: the setting of the cookie in principle (this can be used for purposes other than authentication), and the cookie authentication itself for the transport.
 
-An example for setting up cookie tracking on our above dynamic authentication path would be 
+An example for setting up cookie tracking on our above dynamic authentication path would be
 
 ```json
 "dynamic": {
@@ -148,7 +147,7 @@ An example for setting up cookie tracking on our above dynamic authentication pa
       "wampcra": {
          "type": "dynamic",
          "authenticator": "io.crossbar.advanced.backend.authenticate"
-      }                       
+      }
    }
 }
 ```
@@ -162,7 +161,7 @@ and enabling cookie authentication for our transport from before just requires e
       "authenticator": "io.crossbar.advanced.backend.authenticate"
    },
    "cookie": {
-   }                          
+   }
 }
 ```
 
@@ -185,12 +184,12 @@ connectionAuth.close("wamp.close.logout");
 
 ## Registration
 
-For registration, we require at a minimum two items of information: the username and the password. These are sent to the backend using an anonymous WAMP connection. Since this means that the shared secret between the client and the router (the password) travels over the wire, this connection should be encrypted. 
+For registration, we require at a minimum two items of information: the username and the password. These are sent to the backend using an anonymous WAMP connection. Since this means that the shared secret between the client and the router (the password) travels over the wire, this connection should be encrypted.
 
 The registration is handled by a registration component which registers a procedure to call. This does not need to do any more than create the user in the user object (used above for login) or, more realistically, in the user database. Additionally you will most likely validate the registration data regarding your requirements for username and password.
 
 If the data sent passes these checks, then a new user is created, and the registration procedure returns a success.
 
-We then use the user data we still hold locally in the browser to establish a new, authenticated connection using WAMP-CRA. We also close the anonymous WAMP connection. 
+We then use the user data we still hold locally in the browser to establish a new, authenticated connection using WAMP-CRA. We also close the anonymous WAMP connection.
 
 If there is a problem with the registration data, we display this to the user.

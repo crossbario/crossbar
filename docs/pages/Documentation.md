@@ -3,45 +3,32 @@ toc: [Documentation]
 
 # Crossbar.io Documentation
 
-Welcome to the Crossbar.io Reference Documentation.
+Welcome to the Crossbar.io Reference Documentation. For full table of contents, please see [here](Table of Contents).
 
-* [Full Table of Contents](Table of Contents)
+> This documentation is an [open-source](#) community effort sponsored by [Tavendo](http://tavendo.com). Should you find errors or if you have suggestions, please [file an issue](https://github.com/crossbario/crossbar/issues/new).
 
-## Topics
+### Getting Started
 
-** Background **
-
-* [Introduction](Introduction)
-* [Architecture](Architecture)
-* [Features](Features)
-* [Roadmap](Roadmap)
-* [Releases](Releases)
-* [Compatibility Policy](Compatibility-Policy)
-
-** Getting Started **
-
-* **>> [Quick Start](Quick Start) <<**
+* [Quick Start](Quick Start)
 * [Getting Started](Getting Started)
 
-** Administrators **
+### Administrators
 
+* [Quick Reference](Quick Reference)
 * [Installation](Installation)
 * [Administration](Administration)
-* [Quick Reference](Quick-ref)
+* [Quick Reference](Quick Reference)
 
-** Programmers **
+### Programmers
 
 * [Programming Guide](Programming Guide)
 * [Application Templates](Application Templates)
 * [Examples](Examples)
 
-** More **
+### More
 
-* **[FAQ](FAQ)**
+* [FAQ](FAQ)
+* [Compatibility Policy](Compatibility-Policy)
 * [Crossbar.io Code License](Crossbar-License)
 * [Crossbar.io Documentation License](Documentation-License)
-* **>> [Contributing to the Project](Contributing to the project) <<**
-
----
-
-> This documentation is an [open-source](#) community effort sponsored by [Tavendo](http://tavendo.com). Should you find errors or if you have suggestions, please [file an issue](https://github.com/crossbario/crossbardocs/issues).
+* [Contributing to the Project](https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md)**
