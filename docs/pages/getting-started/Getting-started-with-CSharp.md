@@ -1,5 +1,5 @@
 title: Getting started with C Sharp
-toc: [Documentation, Getting Started, Getting started with C Sharp]
+toc: [Documentation, Getting Started, Getting started with CSharp]
 
 # Getting started with C Sharp
 

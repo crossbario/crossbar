@@ -1,5 +1,5 @@
 title: Getting started with C++
-toc: [Documentation, Getting Started, Getting started with C++]
+toc: [Documentation, Getting Started, Getting started with Cplusplus]
 
 # Getting started with C++
 
