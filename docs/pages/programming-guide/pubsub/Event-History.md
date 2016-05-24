@@ -1,5 +1,5 @@
 title: Event History
-toc: [Documentation, Programming Guide, WAMP Features, PubSub, Event History]
+toc: [Documentation, Programming Guide, Event History]
 
 # Event History
 
@@ -9,7 +9,7 @@ Event history allows a WAMP client to retrieve a set of past events for a subscr
 
 Crossbar.io does not normally store PubSub events. To enable event history for a topic, you need to configure an event store as part of the Crossbar.io config.
 
-An example for this is 
+An example for this is
 
 ```json
 {

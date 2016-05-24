@@ -1,5 +1,5 @@
 title: Caller Identification
-toc: [Documentation, Programming Guide, WAMP Features, RPC, Caller Identification]
+toc: [Documentation, Programming Guide, Caller Identification]
 
 # Caller Identification
 

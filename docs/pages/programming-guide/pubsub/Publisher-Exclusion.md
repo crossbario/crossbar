@@ -1,5 +1,5 @@
 title: Publisher Exclusion
-toc: [Documentation, Programming Guide, WAMP Features, PubSub, Publisher Exclusion]
+toc: [Documentation, Programming Guide, Publisher Exclusion]
 
 # Publisher Exclusion
 

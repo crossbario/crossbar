@@ -1,5 +1,5 @@
 title: Adding Real Time to Django Applications
-toc: [Documentation, Programming Guide, Frameworks and Specific Scenarios, Adding Real Time to Django Applications]
+toc: [Documentation, Programming Guide, Adding Real Time to Django Applications]
 
 # Adding Real-Time to Django Applications
 

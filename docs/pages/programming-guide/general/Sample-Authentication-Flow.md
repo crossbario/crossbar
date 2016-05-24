@@ -1,5 +1,5 @@
 title: Sample Authentication Flow
-toc: [Documentation, Programming Guide, WAMP Features, Session, Sample Authentication Flow]
+toc: [Documentation, Programming Guide, Sample Authentication Flow]
 
 # A Sample Authentication Flow
 

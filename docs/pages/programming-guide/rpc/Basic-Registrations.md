@@ -1,5 +1,5 @@
 title: Basic Registrations
-toc: [Documentation, Programming Guide, WAMP Features, RPC, Basic Registrations]
+toc: [Documentation, Programming Guide, Basic Registrations]
 
 # Basic Registrations
 
@@ -34,6 +34,6 @@ function procedure1 (args, kwargs, details) {
        d.resolve("async finished");
     }, 1000);
 
-    return d.promise;    
+    return d.promise;
 }
 ```

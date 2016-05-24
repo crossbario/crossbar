@@ -1,5 +1,5 @@
 title: Basic Subscriptions
-toc: [Documentation, Programming Guide, WAMP Features, PubSub, Basic Subscriptions]
+toc: [Documentation, Programming Guide, Basic Subscriptions]
 
 # Basic Subscriptions
 
@@ -17,7 +17,7 @@ Here's an example for a simple subscription in JavaScript using Autobahn|JS:
 session.subscribe("com.myapp.topic1", myTopicHandler);
 ```
 
-This is equivalent to 
+This is equivalent to
 
 ```javascript
 session.subscribe("com.myapp.topic1", myTopicHandler, { match: "exact" });

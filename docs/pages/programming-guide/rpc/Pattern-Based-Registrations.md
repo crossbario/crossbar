@@ -1,5 +1,5 @@
-title: Patter Based Registrations
-toc: [Documentation, Programming Guide, WAMP Features, RPC, Pattern Based Registrations]
+title: Pattern Based Registrations
+toc: [Documentation, Programming Guide, Pattern Based Registrations]
 
 # Pattern-Based Registrations
 
