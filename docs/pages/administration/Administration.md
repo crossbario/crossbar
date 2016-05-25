@@ -5,24 +5,39 @@ toc: [Documentation, Administration]
 
 This is the Crossbar.io **Administration Manual**. The documentation here discusses the configuration and administration of the different features that come with Crossbar.io.
 
-> For developers, we provide a [Programming Guide](Programming Guide) that provides documentation about programming aspects related to Crossbar.io
+> For developers, we provide a [Programming Guide](Programming Guide) that provides documentation about programming aspects related to Crossbar.io.
 
-## Contents
+### Node Configuration
 
-* [The Command Line](Command Line) - The Crossbar.io command line.
-* [Node Configuration](Node Configuration) - **General overview of Crossbar.io node configuration. << Start here!**
-    * [Processes](Processes) - Configuring the different process types of a Crossbar.io node.
-        * [Controller Configuration](Controller Configuration)
-        * [Guest Configuration](Guest Configuration)
-        * [Container Configuration](Container Configuration)
-        * [Router Configuration](Router Configuration)
-            * [Router Transports](Router Transports) - Configuring core router listening transports.
-            * [Web Services](Web Services) - Auxiliary Web Services provided by Crossbar.io
-            * [HTTP Bridge](HTTP Bridge) - HTTP-to-WAMP Bridge provided by Crossbar.io
-            * [Database Integration](Database Integration) - Crossbar.io database integration services
-            * [Authentication](Authentication) - Configuring authentication in Crossbar.io
-            * [Authorization](Authorization) - Configuring authorization in Crossbar.io
+A Crossbar.io node runs from a [Node Configuration](Node Configuration) and starts a number of [Processes](Processes) which can be configured:
+
+* [Router Configuration](Router Configuration)
+    * [Router Realms](Router Realms)
+    * [Router Components](Router Components)
+* [Container Configuration](Container Configuration)
+* [Guest Configuration](Guest Configuration)
+* [Controller Configuration](Controller Configuration)
+
+The router processes run [Router Transports](Router Transports)
+
+* [Transport Endpoints](Transport Endpoints)
+* [Web Transport and Services](Web Transport and Services)
+* [WebSocket Transport](WebSocket Transport)
+* [RawSocket Transport](RawSocket Transport)
+
+### Authentication and Authorization
+
+* [Authentication](Authentication)
+* [Authorization](Authorization)
+
+### Web Services
+
+* [Web Transport and Services](Web Transport and Services)
+* [Web Services](Web Services)
+* [HTTP Bridge](HTTP Bridge)
+
+### More
+
+* [The Command Line](Command Line)
 * [Logging](Logging) - Logging in Crossbar.io
-* [Going to Production](Going-to-Production) - Performance, compliance, security and general aspects
-
----
+* [Going to Production](Going-to-Production)

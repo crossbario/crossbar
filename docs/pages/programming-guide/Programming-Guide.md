@@ -7,6 +7,8 @@ Programming WAMP application components is tied to the particular client library
 
 We also operate a public [Crossbar.io Demo Instance](Demo Instance) and offer a range of materials for [IoT devices, components and applications](http://crossbario.com/iotcookbook).
 
+> For administrators, we provide a [Administration Manual](Administration) that provides documentation about administration aspects related to Crossbar.io.
+
 The following introduces different areas of WAMP application programming with Crossbar.io:
 
 ### Usage
