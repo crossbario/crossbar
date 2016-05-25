@@ -33,8 +33,6 @@ The [Autobahn project](http://autobahn.ws/) provides WAMP implementations in mul
 
 **Crossbar.io** builds on Autobahn|Python, one of the Autobahn projects, and provides a much larger set of functionality to make it into a powerful router for application messaging.
 
----
-
 ### What is WAMP?
 
 WAMP (Web Application Messaging Protocol) is a protocol which provides both Remote Procedure Calls (RPC) and Publish & Subscribe (PubSub) messaging patterns. All clients can be both publishers and subscribers, callers of remote procedures and offer remote procedure endpoints. A WAMP router connects the clients.
@@ -43,21 +41,15 @@ WAMP enables distributed, multi-client and server applications. It is an open pr
 
 WAMP has WebSocket as a preferred transport.
 
----
-
 ### What is Autobahn?
 
 The [Autobahn project](http://autobahn.ws/) provides open-source WebSocket and WAMP implementations for several programming languages. WAMP implementations are for client roles implementations.
-
----
 
 ### What is Crossbar.io?
 
 **Crossbar.io** builds on Autobahn|Python. It adds the full set of advanced WAMP router functionality, as well as things like an integrated Web server, hosting of application components or support for various authentication methods.
 <br>
 Applications developed with Crossbar.io can use any WAMP client library. This, obviously, includes the Autobahn libraries.
-
----
 
 ## Licenses
 
@@ -71,15 +63,11 @@ Your code remains yours, and you can license it in whichever way you want.
 
 If you need further assurance, you can email us at service@tavendo.de for a signed letter asserting our view on the license.
 
----
-
 ### What is the license for the application templates?
 
 We license all examples and other materials that you can use in creating your own applications as liberally as possible.
 
 In the case of the application templates, these are licensed either under the BSD 2-clause license or the Apache 2.0 license. Both allow you to use the code in your own applications, irrespective of which license you are using. And yes, this includes commercial & closed source.
-
----
 
 ## Modifying and Contributing
 
@@ -96,8 +84,6 @@ A 'third party' would usually be anybody else but you. An exception is when you 
 
 What this means is that you cannot use Crossbar.io as the basis for developing closed source software (except for when you are its only user).
 
----
-
 ### I want to contribute to Crossbar.io - what do I need to do?
 
 There are [full instructions](Contributing to the project) for how to contribute</a>.
@@ -109,8 +95,6 @@ Crossbar.io is hosted on GitHub, so you need to be familiar with the git develop
 Additionally, before we can accept your first contribution, you need to sign a Contributor Assignment Agreement (CAA) and mail this to us.
 
 This is needed in order for the Crossbar.io project to have all necessary rights to the code, e.g. to be able to switch licenses in the future.
-
----
 
 ## Python runtime
 
@@ -130,8 +114,6 @@ Different from CPython, PyPy is not an interpreter, but compiling Python bytecod
 
 Also, PyPy [has](http://morepypy.blogspot.de/2013/10/incremental-garbage-collector-in-pypy.html) a powerful and *incremental garbage collector*. A [garbage collector](http://en.wikipedia.org/wiki/Garbage_collection_%28computer_science%29) is responsible for managing memory in a dynamic language such as Python.
 
----
-
 ### Should I run on CPython or PyPy?
 
 Short answer: Using CPython is easier and quicker. If you don't need the highest possible performance, stick with CPython.
@@ -142,8 +124,6 @@ Running on PyPy will give you a *lot* more performance than CPython though. Of c
 * it takes some time (seconds to minutes) until Crossbar.io reaches maximum performance (since the JIT compiler needs to warm up on the code hot-paths)
 * it might have higher memory consumption than CPython
 
----
-
 ## Integration
 
 ### Can I integrate a non-WAMP application into my WAMP application?
@@ -151,5 +131,3 @@ Running on PyPy will give you a *lot* more performance than CPython though. Of c
 It is possible to have a WAMP component which communicates with your non-WAMP application (component) and does WAMP messaging based on this. How complex this is depends on the specifics of the use case, e.g. the protocol.
 
 We do provide components for communicating with other applications over HTTP/POST requests. For details see [the documentation](HTTP-Bridge).
-
----

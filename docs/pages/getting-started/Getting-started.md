@@ -15,13 +15,13 @@ Crossbar.io enables polyglot frontends and backends. Since all traffic is handle
 
 **You're free to choose one *or more* languages to fit app needs and your preferences:**
 
-* [Getting started with JavaScript in the Browser](Getting started with JavaScript in the Browser)
-* [Getting started with JavaScript and NodeJS](Getting started with JavaScript in NodeJS)
+* [Getting started with JavaScript in the Browser](Getting started with Browser)
+* [Getting started with JavaScript and NodeJS](Getting started with NodeJS)
 * [Getting started with Python](Getting started with Python)
 * [Getting started with PHP](Getting started with PHP)
 * [Getting started with Java](Getting started with Java)
-* [Getting started with C#](Getting started with C Sharp)
-* [Getting started with C++](Getting started with C++)
+* [Getting started with C#](Getting started with CSharp)
+* [Getting started with C++](Getting started with Cplusplus)
 * [Getting started with Erlang](Getting started with Erlang)
 
 ## Application Templates

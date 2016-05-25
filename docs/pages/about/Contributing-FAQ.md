@@ -1,12 +1,11 @@
 title: FAQ
-toc: [Documentation, Contributing to the Project, FAQ]
+toc: [Documentation, Contributing FAQ]
 
 # Contributing to the project - FAQ
 
 * [What is a CAA?](#what-is-a-caa?)
 * [Why a CAA?](#why-a-caa?)
 * [Can I contribute code where I do not own copyright?](#can-i-contribute-code-where-i-do-not-own-copyright?)
-
 
 ## What is a CAA?
 
@@ -19,8 +18,6 @@ The basics are:
 This document closely follows a template established by the [Harmony project](http://harmonyagreements.org/).
 
 Contributor agreements are required by almost all open source projects which are non-trivial in scope.
-
----
 
 ## Why a CAA?
 
@@ -48,8 +45,6 @@ The code is and remains available under the open source license applicable at th
 
 So the dual license does not affect you as an open source user - but without the possibility for dual licensing, we would not have released Crossbar.io as open source.
 
----
-
 ## Can I contribute code where I do not own copyright?
 
 **What if I do not own the copyright to the entire code I am contributing?**
@@ -59,5 +54,3 @@ You need to get the owner of the copyright in the other code to also sign a CAA.
 If you've included code from an open source project into your code (not just used a library as-is), then we can't accept this unless you do the above.
 
 This goes even if the code is licensed under the APGL or a compatible license. The reason for that is that this kills the possibility to freely re-license. Any re-licensing would be limited to APGL compatible licenses.
-
----

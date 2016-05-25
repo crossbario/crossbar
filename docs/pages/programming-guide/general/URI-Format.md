@@ -1,11 +1,11 @@
 title: URI Format
-toc: [Documentation, Programming Guide, WAMP Features, URI Format]
+toc: [Documentation, Programming Guide, URI Format]
 
 # URI Format
 
 WAMP uses URIs (*Uniform Resource Identifiers*) to identify topics, registered procedures, and errors. All of these form a single, global, hierarchical namespace.
 
-To avoid resource naming conflicts, WAMP follows the package naming convention from Java, where URIs should begin with (reversed) domain names owned by the organization defining the URI. 
+To avoid resource naming conflicts, WAMP follows the package naming convention from Java, where URIs should begin with (reversed) domain names owned by the organization defining the URI.
 
 So for a company using the domain "expressweasel.com" an URL for a login procedure could be
 

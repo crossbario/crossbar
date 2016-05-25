@@ -6,28 +6,40 @@ toc: [Documentation, Table of Contents]
 ## Getting Started
 
 * [Quick Start](Quick Start)
-* [Choose your Weapon](Choose your Weapon)
+* [Getting Started](Getting Started)
+   * [Getting started with JavaScript in the Browser](Getting started with Browser)
+   * [Getting started with JavaScript in NodeJS](Getting started with NodeJS)
+   * [Getting started with CSharp](Getting started with CSharp)
+   * [Getting started with Cplusplus](Getting started with Cplusplus)
+   * [Getting started with Erlang](Getting started with Erlang)
+   * [Getting started with Java](Getting started with Java)
+   * [Getting started with PHP](Getting started with PHP)
+   * [Getting started with Python](Getting started with Python)
 
 ## Administrators
 
+* [Quick Reference](Quick Reference)
 * [Installation](Installation)
-   * [Local Installation](Local Installation)
-      * [Installation on Ubuntu](Installation on Ubuntu)
-      * [Installation on CentOS](Installation on CentOS)
+   * Binary Packages
+      * [Installation on Ubuntu and Debian](Installation on Ubuntu and Debian)
+      * [Installation on CentOS and RedHat](Installation on CentOS and RedHat)
       * [Installation on FreeBSD](Installation on FreeBSD)
+   * Docker Images
+      * [Using Docker](Using Docker)
+   * Other Platforms
       * [Installation on (generic) Linux](Installation on Linux)
       * [Installation on Mac OS X](Installation on Mac OS X)
       * [Installation on Windows](Installation on Windows)
-      * [Installation on Docker](Installation on Docker)
+   * Devices
       * [Installation on RaspberryPi](Installation on RaspberryPi)
       * [Installation on Ubuntu Snappy](Installation on Ubuntu Snappy)
-      * [Installation from Source](Installation from Source)
-   * [Setup in the Cloud](Setup in the Cloud)
-      * [Setup on Microsoft Azure](Setup on Microsoft Azure)
-      * [Setup on Amazon EC2](Setup on Amazon EC2)
-      * [Setup on Heroku](Setup on Heroku)
-   * [Demo Instance](Demo Instance)
-   * [Try out without Installation](Try out without Installation)
+   * Setup on IaaS and PaaS Providers
+      * [Setup on Microsoft Azure](Setup-on-Microsoft-Azure)
+      * [Setup on Amazon EC2](Setup-on-Amazon-EC2)
+      * [Setup on Heroku](Setup-on-Heroku)
+      * [Setup on OpenShift](Setup-on-OpenShift)
+   * Demo Instance
+      * [Demo Instance](Demo Instance)
 * [Administration](Administration)
    * [The Command Line](Command Line)
    * [Node Configuration](Node Configuration)
@@ -61,17 +73,12 @@ toc: [Documentation, Table of Contents]
                * [CGI Script Service](CGI-Script-Service)
                * [WSGI Host Service](WSGI-Host-Service)
                * [Resource Service](Resource-Service)
-               * [Schema Doc Service](Schema Doc Service)
             * [HTTP Bridge](HTTP Bridge)
                * [HTTP Bridge Publisher](HTTP Bridge Publisher)
                * [HTTP Bridge Subscriber](HTTP Bridge Subscriber)
                * [HTTP Bridge Caller](HTTP Bridge Caller)
                * [HTTP Bridge Callee](HTTP Bridge Callee)
                * [HTTP Bridge Webhook](HTTP Bridge Webhook)
-            * [Database Integration](Database Integration)
-               * [Database Connection Pools](Database Connection Pools)
-               * [PostgreSQL Integration](PostgreSQL-Integration)
-               * [Oracle Integration](Oracle Integration)
             * [Authentication](Authentication)
                * [Anonymous Authentication](Anonymous Authentication)
                * [Challenge-Response Authentication](Challenge-Response Authentication)
@@ -81,14 +88,13 @@ toc: [Documentation, Table of Contents]
                * [TLS Client Certificate Authentication](TLS Client Certificate Authentication)
                * [Dynamic Authenticators](Dynamic Authenticators)
             * [Authorization](Authorization)
-         * [Manhole](Manhole)
    * [Logging](Logging)
    * [Going to Production](Going-to-Production)
-      * [Running on privileged ports](Running on privileged ports)
+      * [Running on privileged ports](Running on Privileged Ports)
       * [Secure WebSocket and HTTPS](Secure WebSocket and HTTPS)
-         * [TLS Certificates](TLS Certificates)
+      * [TLS Certificates](TLS Certificates)
       * [Payload Encryption (Cryptobox)](Cryptobox Payload Encryption)
-      * [Automatic startup and restart](Automatic startup and restart)
+      * [Automatic startup and restart](Automatic Startup and Restart)
       * [Network Tuning](Network Tuning)
       * [Reverse Proxies](Reverse Proxies)
       * [SSL/TLS Interception Proxies](SSL-TLS-Interception-Proxies)
@@ -128,8 +134,8 @@ toc: [Documentation, Table of Contents]
       - [[AngularJS Application Components]]
       - [Database Programming with PostgreSQL](Database Programming with PostgreSQL)
    * Crossbar.io features
-      - [Starting and Stopping Crossbar.io](Starting and Stopping)
-      - [Logging in Crossbar.io](Logging in Crossbar.io)
+      - [Starting and Stopping Crossbar.io](Starting and Stopping Crossbario)
+      - [Logging in Crossbar.io](Logging in Crossbario)
       - [Configuring Crossbar.io's Logging](Configuring Crossbario Logging)
    * [Crossbar.io Demo Instance](Demo Instance)
 * [Application Templates](Application Templates)
@@ -137,7 +143,9 @@ toc: [Documentation, Table of Contents]
 
 ## More
 
-* [FAQ](FAQ)
+* [Compatibility Policy](Compatibility-Policy)
 * [Crossbar.io Code License](Crossbar-License)
 * [Crossbar.io Documentation License](Documentation-License)
-* [Contributing to the Project](Contributing to the project)
+* [Contributing to the Project](https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md)**
+* [Contributing FAQ](Contributing FAQ)
+* [FAQ](FAQ)

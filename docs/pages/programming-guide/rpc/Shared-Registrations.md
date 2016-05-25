@@ -1,5 +1,5 @@
 title: Shared Registrations
-toc: [Documentation, Programming Guide, WAMP Features, RPC, Shared Registrations]
+toc: [Documentation, Programming Guide, Shared Registrations]
 
 # Shared Registrations
 
@@ -56,7 +56,7 @@ session.register("com.myapp.procedure4", procedure4, { invoke: "last"});
 
 ## Default
 
-It is possible to explicitly set the invocation rule for  `single` invocation, i.e. that only a single registration for an URI is allowed. 
+It is possible to explicitly set the invocation rule for  `single` invocation, i.e. that only a single registration for an URI is allowed.
 
 ```javascript
 session.register("com.myapp.procedure5", procedure5, { invoke: "single"});

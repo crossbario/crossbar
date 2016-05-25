@@ -1,5 +1,5 @@
 title: Crossbar.io Code License
-toc: [Documentation, Crossbar.io Code License]
+toc: [Documentation, Crossbar License]
 
 # Crossbar.io Code License
 
@@ -17,6 +17,3 @@ We see any code which connects to Crossbar.io via WAMP as a separate work. The C
 If you need further assurance, you can email us at service@tavendo.de for a signed letter asserting the above promise.
 
 We release all our client libraries (those provided by the [Autobahn project](http://autobahn.ws/) under non-copyleft licenses, which allow their use for closed-source & commercial software. For other client libraries see their respective licenses (these appear to be universally non-copyleft as well).
-
-
----

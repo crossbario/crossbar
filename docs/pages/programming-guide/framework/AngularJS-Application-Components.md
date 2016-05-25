@@ -1,6 +1,5 @@
 title: AngularJS Application Components
-toc: [Documentation, Programming Guide, Frameworks and Specific Scenarios, AngularJS
-    Application Components]
+toc: [Documentation, Programming Guide, AngularJS Application Components]
 
 # AngularJS Application Components
 
@@ -116,7 +115,7 @@ connection.onopen = function (session) {
       function (error) {
          console.log(error);
       }
-   ); 
+   );
 };
 
 

@@ -1,5 +1,5 @@
 title: Publisher Identification
-toc: [Documentation, Programming Guide, WAMP Features, PubSub, Publisher Identification]
+toc: [Documentation, Programming Guide, Publisher Identification]
 
 # Publisher Identification
 

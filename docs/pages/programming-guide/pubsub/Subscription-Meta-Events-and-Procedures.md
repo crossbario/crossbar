@@ -1,6 +1,5 @@
 title: Subscription Meta Events and Procedures
-toc: [Documentation, Programming Guide, WAMP Features, PubSub, Subscription Meta Events
-    and Procedures]
+toc: [Documentation, Programming Guide, Subscription Meta Events and Procedures]
 
 # Subscription Meta Events and Procedures
 

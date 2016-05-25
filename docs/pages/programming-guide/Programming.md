@@ -15,4 +15,4 @@ The following are language specific guides for application developers working wi
   - [Session Metaevents](Session Metaevents)
   - [Using Schemas](Using Schemas)
   - [[AngularJS Application Components]]
-* [Starting and Stopping Crossbar.io](Starting and Stopping Crossbar.io)
+* [Starting and Stopping Crossbar.io](Starting and Stopping Crossbario)

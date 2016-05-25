@@ -1,6 +1,5 @@
 title: Database Programming with PostgreSQL
-toc: [Documentation, Programming Guide, Frameworks and Specific Scenarios, Database
-    Programming with PostgreSQL]
+toc: [Documentation, Programming Guide, Database Programming with PostgreSQL]
 
 # Database Programming with PostgreSQL
 
@@ -177,7 +176,7 @@ For testing the database component, you can use the following AutobahnJS based W
             console.log("Connected");
 
             for (var i = 1; i < 4; ++i) {
-               (function (_i) {                  
+               (function (_i) {
                   session.call("com.example.now.v" + _i).then(
                      function (res) {
                         console.log("result " + _i, res);
