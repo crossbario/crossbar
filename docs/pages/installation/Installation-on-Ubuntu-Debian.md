@@ -14,6 +14,8 @@ The binary packages bundle everything needed and provide a fully self-contained,
 
 Crossbar.io currently hosts official binary packages for **Ubuntu 14.04 LTS** and **Ubuntu 16.04 LTS** on **x86-64**. If this is not OS or architecture you are using, please follow the [Installing from Source](#installing-from-source).
 
+### Add Repository Signing Key
+
 First install our package repository's GPG signing key:
 
     sudo apt-key adv --keyserver hkps.pool.sks-keyservers.net --recv D58C6920
@@ -22,28 +24,54 @@ This only needs to be done once.
 
 > If you are behind a coporate firewall, above command might fail or just hang. Please see [here](http://support.gpgtools.org/kb/faq/cant-reach-key-server-are-you-behind-a-company-firewall) and try with `--keyserver hkp://hkps.pool.sks-keyservers.net:80` in above.
 
-Then add the repo to your server's apt sources, where ``<DISTRO>`` is ``trusty`` for 14.04 or ``xenial`` for 16.04:
+### Add Package Repository
 
-    sudo sh -c "echo 'deb http://package.crossbar.io/ubuntu <DISTRO> main' \
+Then add our repo to your machine's apt sources.
+
+For **Ubuntu 14.04 ("Trusty")**:
+
+    sudo sh -c "echo 'deb http://package.crossbar.io/ubuntu trusty main' \
+        > /etc/apt/sources.list.d/crossbar.list"
+
+For **Ubuntu 16.04 ("Xenial")**:
+
+    sudo sh -c "echo 'deb http://package.crossbar.io/ubuntu xenial main' \
         > /etc/apt/sources.list.d/crossbar.list"
 
 Again, this only needs to be done once.
 
-Now update your packages and **install Crossbar.io**:
+### Install the Package
+
+Now update your packages and install Crossbar.io:
 
     sudo apt-get update
     sudo apt-get install crossbar
 
-You can then test the installation by printing out the versions of the Crossbar components.
+The package is installed under `/opt/crossbar`. You can test the installation by running `crossbar version`:
 
-    /opt/crossbar/bin/crossbar version
+```console
+oberstet@office-corei7:~$ /opt/crossbar/bin/crossbar version
+     __  __  __  __  __  __      __     __
+    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
+    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
+
+ Crossbar.io        : 0.13.2
+   Autobahn         : 0.13.1 (with JSON, MessagePack, CBOR)
+   Twisted          : 16.1.1-EPollReactor
+   LMDB             : 0.89/lmdb-0.9.18
+   Python           : 2.7.10/PyPy-5.0.1
+ OS                 : Linux-4.4.0-22-generic-x86_64-with-debian-stretch-sid
+ Machine            : x86_64
+```
+
+**Hooray! Installation is complete.**
+
+### Update the Package
 
 To update Crossbar.io later
 
     sudo apt-get update
     sudo apt-get install --upgrade crossbar
-
-**You're done!**
 
 
 ## Installing from Source
