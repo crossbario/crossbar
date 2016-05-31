@@ -149,9 +149,7 @@ In this case, Crossbar.io has automatically detected the node directory by its c
 
 You can set a different node directory via the command line option `--cbdir` or via an environment variable `CROSSBAR_DIR`.
 
-Open **http://localhost:8080** in your browser. You should see a 404 page rendered by Crossbar.io. Which means: it works!
-
-![Crossbar.io 404 page](/static/img/docs/shots/crossbar_404.png)
+Open **http://localhost:8080** in your browser. You should see a custom 404 page rendered by Crossbar.io. Which means: it works!
 
 To **stop** your Crossbar.io node, just hit CTRL-C:
 

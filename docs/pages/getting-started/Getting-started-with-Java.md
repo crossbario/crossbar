@@ -167,6 +167,20 @@ oberstet@ubuntu1404:~/mynode1$ crossbar start
 ...
 ```
 
-Now open your browser at [http://127.0.0.1:8080](http://127.0.0.1:8080) and watch the JavaScript console output.
+Now open your browser at [http://127.0.0.1:8080](http://127.0.0.1:8080) and watch the JavaScript console output. You should see something like this scrolling past you:
 
-![Hello from Java](/static/img/docs/getting_started_with_java_01.png)
+```
+Array[4]
+WebSocket transport send [70,1,{},[15]]
+Array[5]
+WebSocket transport send [16,2700639003043124,{},"com.example.onhello",["Hello from JavaScript (browser)"]]
+published to topic 'com.example.onhello'
+Array[5]
+WebSocket transport send [48,3944620048701570,{},"com.example.add2",[0,18]]
+WebSocket transport receive [50,3944620048701570,{},[18]]
+add2() result: 18
+WebSocket transport receive [36,1458377950842230,5111639174278683,{},[6]]
+on_counter() event received with counter 6
+WebSocket transport receive [68,3,850599850048825,{},[6,3]]
+mul2() called with 6 and 3
+```

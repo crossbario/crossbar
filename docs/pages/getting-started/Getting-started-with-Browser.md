@@ -81,22 +81,21 @@ oberstet@vbox-ubuntu1310:~/hello$ crossbar start
 
 ## Open the frontend
 
-Open [`http://localhost:8080/`](http://localhost:8080/) in your browser. You should see
+Open [`http://localhost:8080/`](http://localhost:8080/) in your browser. You should see an overview page with a link to start the demo backend and the frontend (You can only start one backend, but as many frontends as you want).
 
-![WAMP index page running in browser](/static/img/docs/shots/hello_browser_01.png)
+Now all you need to do is open the frontend and the backend pages and open the JavaScript console. In both the frontend and the backend you should see log output like
 
-Now all you need to do is open the frontend and the backend pages and open the JavaScript console. In the frontend you should see log output like
-
-![WAMP client with frontend code running in browser](/static/img/docs/shots/hello_browser_02.png)
-
-while in the backend you should see log output like
-
-![WAMP client with backend code running in browser](/static/img/docs/shots/hello_browser_03.png)
-
+```
+AutobahnJS debug enabled
+trying to create WAMP transport of type: websocket
+using WAMP transport type: websocket
+79 [1, "realm1", Object]
+79 WebSocket transport send [1,"realm1",{"roles":{"caller":{"features":{"caller_identification":true,"progressive_call_results":true}},"callee":{"features":{"caller_identification":true,"pattern_based_registration":true,"shared_registration":true,"progressive_call_results":true,"registration_revocation":true}},"publisher":{"features":{"publisher_identification":true,"subscriber_blackwhite_listing":true,"publisher_exclusion":true}},"subscriber":{"features":{"publisher_identification":true,"pattern_based_subscription":true,"subscription_revocation":true}}}}]
+autobahn.min.jgz:79 WebSocket transport receive [2,3351038269318367,{"realm":"realm1","authprovider":"static","roles":{"broker":{"features":{"publisher_identification":true,"pattern_based_subscription":true,"subscription_meta_api":true,"payload_encryption_cryptobox":true,"payload_transparency":true,"subscriber_blackwhite_listing":true,"session_meta_api":true,"publisher_exclusion":true,"subscription_revocation":true}},"dealer":{"features":{"payload_encryption_cryptobox":true,"payload_transparency":true,"pattern_based_registration":true,"registration_meta_api":true,"shared_registration":true,"caller_identification":true,"session_meta_api":true,"registration_revocation":true,"progressive_call_results":true}}},"authid":"6XXH-U6KV-7XA5-VNYC-WLKQ-TCSX","authrole":"anonymous","authmethod":"anonymous","x_cb_node_id":"goeddea-workdesktop"}]
+Connected
+```
 
 **Hooray! That means: it works;)**
-
-The calls and events were exchanged over [WAMP](http://wamp.ws/) and routed by Crossbar.io between the application components.
 
 
 ## Hacking the code

@@ -108,9 +108,23 @@ The Crossbar example configuration has started a WAMP router and a guest worker 
 
 ## Open the frontend
 
-Open [`http://localhost:8080/`](http://localhost:8080/) (or wherever Crossbar runs) in your browser. When you watch the browser's JavaScript console, you should see
+Open [`http://localhost:8080/`](http://localhost:8080/) (or wherever Crossbar runs) in your browser. When you watch the browser's JavaScript console, you should see something like this scrolling past you:
 
-![Hello from PHP](/static/img/docs/shots/hello_php.png)
+```
+Array[4]
+WebSocket transport send [70,1,{},[15]]
+Array[5]
+WebSocket transport send [16,2700639003043124,{},"com.example.onhello",["Hello from JavaScript (browser)"]]
+published to topic 'com.example.onhello'
+Array[5]
+WebSocket transport send [48,3944620048701570,{},"com.example.add2",[0,18]]
+WebSocket transport receive [50,3944620048701570,{},[18]]
+add2() result: 18
+WebSocket transport receive [36,1458377950842230,5111639174278683,{},[6]]
+on_counter() event received with counter 6
+WebSocket transport receive [68,3,850599850048825,{},[6,3]]
+mul2() called with 6 and 3
+```
 
 Hooray! That means: it works;)
 
