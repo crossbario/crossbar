@@ -8,7 +8,7 @@ This quick start describes how to install Crossbar.io, test the installation and
 
 ## Install Crossbar.io
 
-> Alternative routes for this generic installation are described in [these guides for specific operating systems](Local-Installation).
+>There is an [overview of more specific installation instructions](Installation) for specific Systems and Environments
 
 You will need [Python](http://python.org) 2/3 or [PyPy](http://pypy.org/) 2 and [pip](https://pip.pypa.io/).
 
@@ -87,7 +87,7 @@ When initializing an application template, a directory will be created with a co
 
 Here, `./.crossbar/config.json` is a configuration file for a Crossbar.io node while the other files are for the application itself.
 
-For further information about getting started with specific languages, see this [overview](Choose your Weapon).
+For further information about getting started with specific languages, see the [overview on this page](Getting Started).
 
 
 ## Run the Application
@@ -106,4 +106,4 @@ You can find the backend code in `./hello/hello.py` (for the Python variant) and
 
 ## What now?
 
-Go to [Command Line](Command Line) to learn about the Crossbar.io command line tool or jump into [Choose your Weapon](Choose your Weapon) to learn how to get started with your language of choice.
+Go to [Command Line](Command Line) to learn about the Crossbar.io command line tool or  learn how to [get started with your language of choice](Getting Started).

@@ -86,7 +86,7 @@ What this means is that you cannot use Crossbar.io as the basis for developing c
 
 ### I want to contribute to Crossbar.io - what do I need to do?
 
-There are [full instructions](Contributing to the project) for how to contribute</a>.
+There are [full instructions](https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md) for how to contribute.
 
 The short version:
 

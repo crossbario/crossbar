@@ -7,7 +7,7 @@ toc: [Documentation, Crossbar License]
 
 The Crossbar.io [source code](https://github.com/crossbario/crossbar/tree/master/crossbar) is licensed under the [GNU AGPL 3.0](http://www.gnu.org/licenses/agpl-3.0.html). You can find a copy of the license in the repository [here](https://github.com/crossbario/crossbar/blob/master/LICENSE) and references to this license at the top of each source code file.
 
-All rights to the Crossbar.io source code remain exclusively with [Tavendo](http://tavendo.com/). All [external contributors](https://github.com/crossbario/crossbar/blob/master/legal/contributors.md) need to sign a **contributor assignment agreement (CAA)** when [contributing to the project](Contributing to the project).
+All rights to the Crossbar.io source code remain exclusively with [Tavendo](http://tavendo.com/). All [external contributors](https://github.com/crossbario/crossbar/blob/master/legal/contributors.md) need to sign a **contributor assignment agreement (CAA)** when [contributing to the project](https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md).
 
 The Crossbar.io [application templates](https://github.com/crossbario/crossbar/tree/master/crossbar/templates) and instances of code generated from these templates are licensed under the [BSD 2-clause](http://opensource.org/licenses/BSD-2-Clause) license.
 
