@@ -302,7 +302,7 @@ class RouterSession(BaseSession):
             # channel ID isn't implemented for LongPolL!
             channel_id = self._transport.get_channel_id()
         if channel_id:
-            self._transport._transport_info[u'channel_id'] = six.u(binascii.b2a_hex(channel_id))
+            self._transport._transport_info[u'channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
 
         self.log.debug("Client session connected - transport: {transport_info}", transport_info=self._transport._transport_info)
 
