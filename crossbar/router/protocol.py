@@ -198,6 +198,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             #
             self._authid = None
             self._authrole = None
+            self._authrealm = None
             self._authmethod = None
             self._authprovider = None
 
@@ -230,14 +231,14 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 #
                 if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
 
-                    self._authid, self._authrole, self._authmethod = self.factory._cookiestore.getAuth(self._cbtid)
+                    self._authid, self._authrole, self._authmethod, self._authrealm = self.factory._cookiestore.getAuth(self._cbtid)
 
                     if self._authid:
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
                         self._authprovider = u'cookie'
-                        self.log.debug("Authenticated client via cookie cbtid={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}",
-                                       cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod)
+                        self.log.debug("Authenticated client via cookie cbtid={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
+                                       cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
                         self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
@@ -437,6 +438,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         #
         self._authid = None
         self._authrole = None
+        self._authrealm = None
         self._authmethod = None
         self._authprovider = None
 
