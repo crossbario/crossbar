@@ -289,7 +289,7 @@ class CookieStoreFileBacked(CookieStore):
 
         return cbtid, header
 
-    def setAuth(self, cbtid, authid, authrole, authmethod):
+    def setAuth(self, cbtid, authid, authrole, authmethod, authrealm):
 
         if self.exists(cbtid):
 
