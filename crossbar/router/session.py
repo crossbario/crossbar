@@ -53,6 +53,8 @@ from crossbar.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 
+from twisted.internet.defer import inlineCallbacks
+
 try:
     from crossbar.router.auth import PendingAuthCryptosign
 except ImportError:
@@ -123,8 +125,9 @@ class RouterApplicationSession(object):
         Implements :func:`autobahn.wamp.interfaces.ITransport.isOpen`
         """
 
+    @property
     def is_closed(self):
-        return False
+        return txaio.create_future(result=self)
 
     def close(self):
         """
@@ -230,15 +233,31 @@ class RouterApplicationSession(object):
         # ignore messages
         #
         elif isinstance(msg, message.Goodbye):
-            # fire onClose callback and handle any exception escaping from there
-            # FIXME onClose should receive True/False (clean or unclean exit)
-            d = txaio.as_future(self._session.onClose, None)
-            # note that onClose will fire 'leave' to listeners when
-            # the session is still connected, so we don't have to do
-            # that.
-            d.addErrback(lambda fail: self._log_error(fail, "While firing onClose"))
-            d.addCallback(lambda _: self._session.fire('disconnect', self._session))
-            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'disconnect'"))
+            details = types.CloseDetails(msg.reason, msg.message)
+            session = self._session
+
+            @inlineCallbacks
+            def do_goodbye():
+                try:
+                    yield session.onLeave(details)
+                except Exception:
+                    self._log_error(Failure(), "While firing onLeave")
+
+                if session._transport:
+                    session._transport.close()
+
+                try:
+                    yield session.fire('disconnect', session)
+                except Exception:
+                    self._log_error(Failure(), "While notifying 'disconnect'")
+
+                if self._router._realm.session:
+                    yield self._router._realm.session.publish(
+                        u'wamp.session.on_leave',
+                        session._session_id,
+                    )
+            d = do_goodbye()
+            d.addErrback(lambda fail: self._log_error(fail, "Internal error"))
 
         else:
             # should not arrive here
