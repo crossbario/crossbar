@@ -118,6 +118,7 @@ class CookieStore(object):
             # auth info is store here
             'authid': None,
             'authrole': None,
+            'authrealm': None,
             'authmethod': None,
 
             # set of WAMP transports (WebSocket connections) this
@@ -144,19 +145,19 @@ class CookieStore(object):
 
     def getAuth(self, cbtid):
         """
-        Return `(authid, authrole, authmethod)` triple given cookie ID.
+        Return `(authid, authrole, authmethod, authrealm)` tuple given cookie ID.
         """
         if cbtid in self._cookies:
             c = self._cookies[cbtid]
-            cookie_auth_info = c['authid'], c['authrole'], c['authmethod']
+            cookie_auth_info = c['authid'], c['authrole'], c['authmethod'], c['authrealm']
         else:
-            cookie_auth_info = None, None, None
+            cookie_auth_info = None, None, None, None
 
         self.log.debug("Cookie auth info for {cbtid} retrieved: {cookie_auth_info}", cbtid=cbtid, cookie_auth_info=cookie_auth_info)
 
         return cookie_auth_info
 
-    def setAuth(self, cbtid, authid, authrole, authmethod):
+    def setAuth(self, cbtid, authid, authrole, authmethod, authrealm):
         """
         Set `(authid, authrole, authmethod)` triple for given cookie ID.
         """
@@ -164,6 +165,7 @@ class CookieStore(object):
             c = self._cookies[cbtid]
             c['authid'] = authid
             c['authrole'] = authrole
+            c['authrealm'] = authrealm
             c['authmethod'] = authmethod
 
     def addProto(self, cbtid, proto):
@@ -259,7 +261,8 @@ class CookieStoreFileBacked(CookieStore):
         self._cookie_file.write(json.dumps({
             'id': id, status: c['created'], 'max_age': c['max_age'],
             'authid': c['authid'], 'authrole': c['authrole'],
-            'authmethod': c['authmethod']
+            'authmethod': c['authmethod'],
+            'authrealm': c['authrealm']
         }) + '\n')
         self._cookie_file.flush()
         os.fsync(self._cookie_file.fileno())
@@ -286,15 +289,15 @@ class CookieStoreFileBacked(CookieStore):
 
         return cbtid, header
 
-    def setAuth(self, cbtid, authid, authrole, authmethod):
+    def setAuth(self, cbtid, authid, authrole, authmethod, authrealm):
 
         if self.exists(cbtid):
 
             cookie = self._cookies[cbtid]
 
             # only set the changes and write them to the file if any of the values changed
-            if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']:
-                CookieStore.setAuth(self, cbtid, authid, authrole, authmethod)
+            if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod'] or authrealm != cookie['authrealm']:
+                CookieStore.setAuth(self, cbtid, authid, authrole, authmethod, authrealm)
                 self._persist(cbtid, cookie, status='modified')
 
     def _clean_cookie_file(self):
@@ -312,7 +315,8 @@ class CookieStoreFileBacked(CookieStore):
                     'max_age': cookie['max_age'],
                     'authid': cookie['authid'],
                     'authrole': cookie['authrole'],
-                    'authmethod': cookie['authmethod']
+                    'authmethod': cookie['authmethod'],
+                    'authrealm': cookie['authrealm']
                 }) + '\n'
                 cookie_file.write(cookie_record)
 
