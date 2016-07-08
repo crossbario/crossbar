@@ -141,7 +141,13 @@ class RouterApplicationSession(object):
             # immediate disconnect which winds up right here...so we
             # take at trip through the reactor loop.
             from twisted.internet import reactor
-            reactor.callLater(0, self._router.detach, self._session)
+
+            def detach(sess):
+                try:
+                    self._router.detach(sess)
+                except Exception:
+                    pass
+            reactor.callLater(0, detach, self._session)
 
     def abort(self):
         """
@@ -474,7 +480,10 @@ class RouterSession(BaseSession):
 
                 # We need to first detach the session from the router before
                 # erasing the session ID below ..
-                self._router.detach(self)
+                try:
+                    self._router.detach(self)
+                except Exception:
+                    pass
 
                 # In order to send wamp.session.on_leave properly
                 # (i.e. *with* the proper session_id) we save it
@@ -526,7 +535,10 @@ class RouterSession(BaseSession):
             except Exception:
                 self.log.failure("Exception raised in onLeave callback")
 
-            self._router.detach(self)
+            try:
+                self._router.detach(self)
+            except Exception:
+                pass
 
             self._session_id = None
 
@@ -568,7 +580,10 @@ class RouterSession(BaseSession):
 
         # cleanup
         if self._router:
-            self._router.detach(self)
+            try:
+                self._router.detach(self)
+            except Exception:
+                pass
         self._session_id = None
         self._pending_session_id = None
         return None  # we've handled the error; don't propagate
