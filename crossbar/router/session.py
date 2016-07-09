@@ -107,6 +107,7 @@ class RouterApplicationSession(object):
         #
         self._session._transport = self
 
+        self._session.fire('connect', self._session, self)
         self._session.onConnect()
 
     def _swallow_error(self, fail, msg):
