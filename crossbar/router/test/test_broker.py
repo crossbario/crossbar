@@ -202,6 +202,26 @@ class TestBrokerPublish(unittest.TestCase):
         self.assertEqual(1, len(errors), "Expected just one error: {}".format(errors))
         self.assertTrue(the_exception in [fail.value for fail in errors])
 
+    def test_router_session_goodbye_custom_message(self):
+        """
+        Reason should be propagated properly from Goodbye message
+        """
+        from crossbar.router.session import RouterApplicationSession
+        session = mock.Mock()
+        session._realm = u'realm'
+        router_factory = mock.Mock()
+        rap = RouterApplicationSession(session, router_factory)
+
+        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
+        session.reset_mock()
+        rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
+
+        leaves = [call for call in session.mock_calls if call[0] == 'onLeave']
+        self.assertEqual(1, len(leaves))
+        details = leaves[0][1][0]
+        self.assertEqual(u'wamp.reason.logout', details.reason)
+        self.assertEqual(u'some custom message', details.message)
+
     def test_add_and_subscribe(self):
         """
         Create an application session that subscribes to some
