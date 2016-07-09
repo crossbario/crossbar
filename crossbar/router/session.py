@@ -54,6 +54,7 @@ from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 
 from twisted.internet.defer import inlineCallbacks
+from twisted.python.failure import Failure
 
 try:
     from crossbar.router.auth import PendingAuthCryptosign
@@ -251,6 +252,11 @@ class RouterApplicationSession(object):
 
                 if session._transport:
                     session._transport.close()
+
+                try:
+                    yield session.fire('leave', session, details)
+                except Exception:
+                    self._log_error(Failure(), "While notifying 'leave'")
 
                 try:
                     yield session.fire('disconnect', session)
