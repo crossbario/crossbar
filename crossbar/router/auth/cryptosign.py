@@ -124,7 +124,7 @@ class PendingAuthCryptosign(PendingAuth):
                     # we do a naive search, but that is ok, since "static mode" is from
                     # node configuration, and won't contain a lot principals anyway
                     for _authid, _principal in self._config.get(u'principals', {}).items():
-                        if _principal[u'pubkey'] == pubkey:
+                        if pubkey in _principal[u'authorized_keys']:
                             # (*): this is necessary to detect multiple authid's having the same pubkey
                             # in which case we couldn't reliably map the authid from the pubkey
                             if self._authid is None:
@@ -151,6 +151,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 extra = self._compute_challenge(channel_binding)
                 return types.Challenge(self._authmethod, extra)
+
             else:
                 return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
 
