@@ -957,6 +957,7 @@ def check_websocket_options(options):
         if k not in [
             # WebSocket options
             'allowed_origins',
+            'allow_null_origin',
             'external_port',
             'enable_hybi10',
             'enable_rfc6455',
