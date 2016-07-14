@@ -560,6 +560,10 @@ class RouterSession(BaseSession):
             # default authentication method is "WAMP-Anonymous" if client doesn't specify otherwise
             authmethods = details.authmethods or [u'anonymous']
 
+            # if the client had a reassigned realm during authentication, restore it from the cookie
+            if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
+                realm = self._transport._authrealm
+
             # perform authentication
             if self._transport._authid is not None and (self._transport._authmethod == u'trusted' or self._transport._authprovider in authmethods):
 
@@ -651,7 +655,7 @@ class RouterSession(BaseSession):
                     return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
-            self.log.critical("Internal error")
+            self.log.critical("Internal error: {}".format(e))
             return types.Deny(message=u'internal error: {}'.format(e))
 
     def onAuthenticate(self, signature, extra):
@@ -683,7 +687,7 @@ class RouterSession(BaseSession):
 
         if hasattr(self._transport, '_cbtid') and self._transport._cbtid:
             if details.authmethod != 'cookie':
-                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole, details.authmethod)
+                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole, details.authmethod, self._realm)
 
         # Router/Realm service session
         #
@@ -728,7 +732,7 @@ class RouterSession(BaseSession):
                 cs = self._transport.factory._cookiestore
 
                 # set cookie to "not authenticated"
-                cs.setAuth(self._transport._cbtid, None, None, None)
+                cs.setAuth(self._transport._cbtid, None, None, None, None)
 
                 # kick all session for the same auth cookie
                 for proto in cs.getProtos(self._transport._cbtid):

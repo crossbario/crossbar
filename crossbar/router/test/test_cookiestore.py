@@ -31,6 +31,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.authid",
                 "authrole": "example.authrole",
+                "authrealm": "example.authrealm",
                 "authmethod": "example.authmethod"
             },
             {
@@ -39,6 +40,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
+                "authrealm": "example.other.authrealm",
                 "authmethod": "example.other.authmethod"
             },
             {
@@ -47,6 +49,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
+                "authrealm": "example.second.authrealm",
                 "authmethod": "example.second.authmethod"
             }
         ]
@@ -58,6 +61,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
+                "authrealm": "example.second.authrealm",
                 "authmethod": "example.second.authmethod"
             },
             {
@@ -66,6 +70,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
+                "authrealm": "example.other.authrealm",
                 "authmethod": "example.other.authmethod"
             }
         ]
@@ -95,6 +100,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.authid",
                 "authrole": "example.authrole",
+                "authrealm": "example.authrealm",
                 "authmethod": "example.authmethod"
             },
             {
@@ -103,6 +109,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
+                "authrealm": "example.second.authrealm",
                 "authmethod": "example.second.authmethod"
             },
             {
@@ -111,6 +118,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
+                "authrealm": "example.other.authrealm",
                 "authmethod": "example.other.authmethod"
             }
         ]
@@ -144,6 +152,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": max_age,
                 "authid": "example.authid",
                 "authrole": "example.authrole",
+                "authrealm": "example.authrealm",
                 "authmethod": "example.authmethod"
             },
             {
@@ -152,6 +161,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": max_age,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
+                "authrealm": "example.other.authrealm",
                 "authmethod": "example.other.authmethod"
             },
             {
@@ -160,6 +170,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": max_age,
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
+                "authrealm": "example.second.authrealm",
                 "authmethod": "example.second.authmethod"
             }
         ]
@@ -171,6 +182,7 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": max_age,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
+                "authrealm": "example.other.authrealm",
                 "authmethod": "example.other.authmethod"
             },
         ]
