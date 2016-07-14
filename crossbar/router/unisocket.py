@@ -31,7 +31,7 @@
 from __future__ import absolute_import
 
 import txaio
-txaio.use_twisted()
+txaio.use_twisted()  # noqa
 
 from twisted.internet.protocol import Factory, Protocol
 
@@ -59,7 +59,7 @@ class UniSocketServerProtocol(Protocol):
             # we already determined the actual protocol to speak. just forward received data
             self._proto.dataReceived(data)
         else:
-            if data[0] == b'\x7F':
+            if data[0:1] == b'\x7F':
                 # switch to RawSocket ..
                 if not self._factory._rawsocket_factory:
                     self.log.warn('client wants to talk RawSocket, but we have no factory configured for that')

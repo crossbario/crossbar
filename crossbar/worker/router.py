@@ -917,7 +917,7 @@ class RouterWorkerSession(NativeWorkerSession):
             if path != b"/":
                 resource.putChild(webPath, self._create_resource(paths[path]))
 
-    def _create_resource(self, path_config, nested=True, skip_websocket_resources=False):
+    def _create_resource(self, path_config, nested=True):
         """
         Creates child resource to be added to the parent.
 
