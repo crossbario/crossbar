@@ -46,6 +46,8 @@ from crossbar.router.session import RouterSessionFactory, RouterSession
 from crossbar.router.broker import Broker
 from crossbar.router.role import RouterRoleStaticAuth
 
+from twisted.internet import defer
+
 
 class TestBrokerPublish(unittest.TestCase):
     """
@@ -201,6 +203,102 @@ class TestBrokerPublish(unittest.TestCase):
         errors = self.flushLoggedErrors()
         self.assertEqual(1, len(errors), "Expected just one error: {}".format(errors))
         self.assertTrue(the_exception in [fail.value for fail in errors])
+
+    def test_router_session_goodbye_custom_message(self):
+        """
+        Reason should be propagated properly from Goodbye message
+        """
+        from crossbar.router.session import RouterApplicationSession
+        session = mock.Mock()
+        session._realm = u'realm'
+        router_factory = mock.Mock()
+        rap = RouterApplicationSession(session, router_factory)
+
+        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
+        session.reset_mock()
+        rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
+
+        leaves = [call for call in session.mock_calls if call[0] == 'onLeave']
+        self.assertEqual(1, len(leaves))
+        details = leaves[0][1][0]
+        self.assertEqual(u'wamp.reason.logout', details.reason)
+        self.assertEqual(u'some custom message', details.message)
+
+    def test_router_session_goodbye_onLeave_error(self):
+        """
+        Reason should be propagated properly from Goodbye message
+        """
+        from crossbar.router.session import RouterApplicationSession
+        session = mock.Mock()
+        the_exception = RuntimeError("onLeave fails")
+
+        def boom(*args, **kw):
+            raise the_exception
+        session.onLeave = mock.Mock(side_effect=boom)
+        session._realm = u'realm'
+        router_factory = mock.Mock()
+        rap = RouterApplicationSession(session, router_factory)
+
+        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
+        session.reset_mock()
+        rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
+
+        errors = self.flushLoggedErrors()
+        self.assertEqual(1, len(errors))
+        self.assertEqual(the_exception, errors[0].value)
+
+    def test_router_session_goodbye_fire_disconnect_error(self):
+        """
+        Reason should be propagated properly from Goodbye message
+        """
+        from crossbar.router.session import RouterApplicationSession
+        session = mock.Mock()
+        the_exception = RuntimeError("sad times at ridgemont high")
+
+        def boom(*args, **kw):
+            if args[0] == 'disconnect':
+                return defer.fail(the_exception)
+            return defer.succeed(None)
+        session.fire = mock.Mock(side_effect=boom)
+        session._realm = u'realm'
+        router_factory = mock.Mock()
+        rap = RouterApplicationSession(session, router_factory)
+
+        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
+        session.reset_mock()
+        rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
+
+        errors = self.flushLoggedErrors()
+        self.assertEqual(1, len(errors))
+        self.assertEqual(the_exception, errors[0].value)
+
+    def test_router_session_lifecycle(self):
+        """
+        We see all 'lifecycle' notifications.
+        """
+        from crossbar.router.session import RouterApplicationSession
+
+        def mock_fire(name, *args, **kw):
+            fired.append(name)
+            return defer.succeed(None)
+
+        fired = []
+        session = mock.Mock()
+        session._realm = u'realm'
+        session.fire = mock.Mock(side_effect=mock_fire)
+        router_factory = mock.Mock()
+        rap = RouterApplicationSession(session, router_factory)
+
+        # we never fake out the 'Welcome' message, so there will be no
+        # 'ready' notification...
+        rap.send(message.Hello(u'realm', {u'caller': role.RoleCallerFeatures()}))
+        rap.send(message.Goodbye(u'wamp.reason.logout', u'some custom message'))
+
+        self.assertTrue('connect' in fired)
+        self.assertTrue('join' in fired)
+        self.assertTrue('ready' in fired)
+        self.assertTrue('leave' in fired)
+        self.assertTrue('disconnect' in fired)
 
     def test_add_and_subscribe(self):
         """
