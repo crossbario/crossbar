@@ -65,7 +65,7 @@ class UniSocketServerProtocol(Protocol):
                     self.log.warn('client wants to talk RawSocket, but we have no factory configured for that')
                     self.transport.loseConnection()
                 else:
-                    self.log.info('switching to RawSocket')
+                    self.log.debug('switching to RawSocket')
                     self._proto = self._factory._rawsocket_factory.buildProtocol(self._addr)
                     self._proto.transport = self.transport
                     self._proto.connectionMade()
@@ -91,23 +91,31 @@ class UniSocketServerProtocol(Protocol):
 
                 request_uri = rl[1].strip()
 
-                self.log.debug('switching to HTTP on Request-URI {request_uri}', request_uri=request_uri)
+                # the first component for the URI requested, eg for "/ws/foo/bar", it'll be "ws", and "/"
+                # will map to ""
+                request_uri_first_component = filter(lambda x: x.strip() != "", request_uri.split('/'))
+                if len(request_uri_first_component) > 0:
+                    request_uri_first_component = request_uri_first_component[0]
+                else:
+                    request_uri_first_component = u''
 
-                # try to find a matching URL prefix in the WebSocket factory map ..
+                self.log.debug('switching to HTTP on Request-URI {request_uri}, mapping part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
+
+                # _first_ try to find a matching URL prefix in the WebSocket factory map ..
                 if self._factory._websocket_factory_map:
-                    for url, websocket_factory in self._factory._websocket_factory_map.items():
-                        self.log.info('testing {request_uri} versus {url}', request_uri=request_uri, url=url)
-                        if request_uri.startswith(url):
+                    for uri_component, websocket_factory in self._factory._websocket_factory_map.items():
+                        if request_uri_first_component == uri_component:
                             self._proto = websocket_factory.buildProtocol(self._addr)
-                            self.log.info('found and build websocket protocol for request URI {request_uri}', request_uri=url)
+                            self.log.debug('found and build websocket protocol for request URI {request_uri}, mapping part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
                             break
+                    self.log.debug('no mapping found for request URI {request_uri}, trying to map part {request_uri_first_component}', request_uri=request_uri, request_uri_first_component=request_uri_first_component)
 
                 if not self._proto:
                     # mmh, still no protocol, so there has to be a Twisted Web (a "Site") factory
                     # hooked on this URL
                     if self._factory._web_factory:
 
-                        self.log.info('switching to HTTP/Web on Request-URI {request_uri}', request_uri=request_uri)
+                        self.log.debug('switching to HTTP/Web on Request-URI {request_uri}', request_uri=request_uri)
                         self._proto = self._factory._web_factory.buildProtocol(self._addr)
 
                         # watch out: this is definitely a hack!
@@ -118,7 +126,7 @@ class UniSocketServerProtocol(Protocol):
                 else:
                     # we've got a protocol instance already created from a WebSocket factory. cool.
 
-                    self.log.info('switching to HTTP/WebSocket on Request-URI {request_uri}', request_uri=request_uri)
+                    self.log.debug('switching to HTTP/WebSocket on Request-URI {request_uri}', request_uri=request_uri)
 
                     # is this a hack? or am I allowed to do this?
                     self._proto.transport = self.transport
@@ -137,6 +145,8 @@ class UniSocketServerProtocol(Protocol):
 class UniSocketServerFactory(Factory):
     """
     """
+
+    noisy = False
 
     def __init__(self, web_factory=None, websocket_factory_map=None, rawsocket_factory=None):
         """
