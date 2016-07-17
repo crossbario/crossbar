@@ -812,7 +812,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # Universal transport
         #
-        elif config['type'] == 'unisocket':
+        elif config['type'] == 'universal':
             if 'web' in config:
                 web_factory = self._create_web_factory(config['web'])
             else:
@@ -826,11 +826,11 @@ class RouterWorkerSession(NativeWorkerSession):
 
             if 'websocket' in config:
                 websocket_factory_map = {}
-                for websocket_prefix, websocket_config in config['websocket'].items():
+                for websocket_url_first_component, websocket_config in config['websocket'].items():
                     websocket_transport_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, websocket_config, self._templates)
                     websocket_transport_factory.noisy = False
-                    websocket_factory_map[websocket_prefix] = websocket_transport_factory
-                    self.log.info('set websocket factory on request URI {request_uri}', request_uri=websocket_prefix)
+                    websocket_factory_map[websocket_url_first_component] = websocket_transport_factory
+                    self.log.debug('hooked up websocket factory on request URI {request_uri}', request_uri=websocket_url_first_component)
             else:
                 websocket_factory_map = None
 

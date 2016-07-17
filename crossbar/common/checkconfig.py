@@ -1876,7 +1876,7 @@ def check_router_transport(transport):
         'web',
         'websocket',
         'rawsocket',
-        'unisocket',
+        'universal',
         'flashpolicy',
         'websocket.testee',
         'stream.testee'
@@ -1889,9 +1889,9 @@ def check_router_transport(transport):
     elif ttype == 'rawsocket':
         check_listening_transport_rawsocket(transport)
 
-    elif ttype == 'unisocket':
+    elif ttype == 'universal':
         # FIXME
-        # check_listening_transport_unisocket(transport)
+        # check_listening_transport_universal(transport)
         pass
 
     elif ttype == 'web':
