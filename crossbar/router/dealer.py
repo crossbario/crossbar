@@ -55,18 +55,45 @@ __all__ = ('Dealer',)
 
 
 class InvocationRequest(object):
+    """
+    Holding information for an individual invocation.
+    """
 
-    def __init__(self, id, caller, call):
+    __slots__ = ('id', 'registration', 'caller', 'call', 'callee')
+
+    def __init__(self, id, registration, caller, call, callee):
         self.id = id
+        self.registration = registration
         self.caller = caller
         self.call = call
+        self.callee = callee
 
 
 class RegistrationExtra(object):
+    """
+    Registration-level extra information held in UriObservationMap.
+    """
+
+    __slots__ = ('invoke', 'roundrobin_current')
 
     def __init__(self, invoke=message.Register.INVOKE_SINGLE):
         self.invoke = invoke
         self.roundrobin_current = 0
+
+
+class RegistrationCalleeExtra(object):
+    """
+    Callee-level extra information held in UriObservationMap.
+    """
+
+    __slots__ = ('concurrency', 'concurrency_current')
+
+    def __init__(self, concurrency=None):
+        self.concurrency = concurrency
+        self.concurrency_current = 0
+
+    def __repr__(self):
+        return '{}(concurrency={}, concurrency_current={})'.format(self.__class__.__name__, self.concurrency, self.concurrency_current)
 
 
 class Dealer(object):
@@ -225,7 +252,8 @@ class Dealer(object):
                 # ok, session authorized to register. now get the registration
                 #
                 registration_extra = RegistrationExtra(register.invoke)
-                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(session, register.procedure, register.match, registration_extra)
+                registration_callee_extra = RegistrationCalleeExtra(register.concurrency)
+                registration, was_already_registered, is_first_callee = self._registration_map.add_observer(session, register.procedure, register.match, registration_extra, registration_callee_extra)
 
                 if not was_already_registered:
                     self._session_to_registrations[session].add(registration)
@@ -405,6 +433,21 @@ class Dealer(object):
                         # should not arrive here
                         raise Exception(u"logic error")
 
+                    callee_extra = registration.observers_extra.get(callee, None)
+                    if callee_extra:
+                        # check for maximum concurrency the callee can handle
+                        if callee_extra.concurrency > 0 and callee_extra.concurrency_current >= callee_extra.concurrency:
+                            reply = message.Error(
+                                message.Call.MESSAGE_TYPE,
+                                call.request,
+                                u'io.crossbar.error.max_concurrency_reached',
+                                [u'maximum concurrency {} of registration reached'.format(callee_extra.concurrency)]
+                            )
+                            self._router.send(session, reply)
+                            return
+                        else:
+                            callee_extra.concurrency_current += 1
+
                     # new ID for the invocation
                     #
                     invocation_request_id = self._request_id_gen.next()
@@ -453,7 +496,7 @@ class Dealer(object):
                                                         caller_authrole=caller_authrole,
                                                         procedure=procedure)
 
-                    self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, session, call)
+                    self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, registration, session, call, callee)
                     self._router.send(callee, invocation)
 
             def on_authorize_error(err):
@@ -520,6 +563,9 @@ class Dealer(object):
             # the call is done if it's a regular call (non-progressive) or if the payload was invalid
             #
             if not yield_.progress or not is_valid:
+                callee_extra = invocation_request.registration.observers_extra.get(session, None)
+                if callee_extra:
+                    callee_extra.concurrency_current -= 1
                 del self._invocations[yield_.request]
 
         else:
