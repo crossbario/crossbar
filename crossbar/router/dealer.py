@@ -436,7 +436,7 @@ class Dealer(object):
                     callee_extra = registration.observers_extra.get(callee, None)
                     if callee_extra:
                         # check for maximum concurrency the callee can handle
-                        if callee_extra.concurrency > 0 and callee_extra.concurrency_current >= callee_extra.concurrency:
+                        if callee_extra.concurrency and callee_extra.concurrency_current >= callee_extra.concurrency:
                             reply = message.Error(
                                 message.Call.MESSAGE_TYPE,
                                 call.request,
