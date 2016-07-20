@@ -411,20 +411,89 @@ class Dealer(object):
 
                 else:
 
+                    # will hold the callee (the concrete endpoint) that we will forward the call to ..
+                    #
+                    callee = None
+                    callee_extra = None
+
                     # determine callee according to invocation policy
                     #
-                    if registration.extra.invoke == message.Register.INVOKE_SINGLE:
-                        callee = registration.observers[0]
+                    if registration.extra.invoke in [message.Register.INVOKE_SINGLE, message.Register.INVOKE_FIRST, message.Register.INVOKE_LAST]:
 
-                    elif registration.extra.invoke == message.Register.INVOKE_FIRST:
-                        callee = registration.observers[0]
+                        # a single endpoint is considered for forwarding the call ..
 
-                    elif registration.extra.invoke == message.Register.INVOKE_LAST:
-                        callee = registration.observers[len(registration.observers) - 1]
+                        if registration.extra.invoke == message.Register.INVOKE_SINGLE:
+                            callee = registration.observers[0]
+
+                        elif registration.extra.invoke == message.Register.INVOKE_FIRST:
+                            callee = registration.observers[0]
+
+                        elif registration.extra.invoke == message.Register.INVOKE_LAST:
+                            callee = registration.observers[len(registration.observers) - 1]
+
+                        else:
+                            # should not arrive here
+                            raise Exception(u"logic error")
+
+                        # check maximum concurrency of the (single) endpoint
+                        callee_extra = registration.observers_extra.get(callee, None)
+                        if callee_extra:
+                            if callee_extra.concurrency and callee_extra.concurrency_current >= callee_extra.concurrency:
+                                reply = message.Error(
+                                    message.Call.MESSAGE_TYPE,
+                                    call.request,
+                                    u'crossbar.error.max_concurrency_reached',
+                                    [u'maximum concurrency {} of callee/endpoint reached (on non-shared/single registration)'.format(callee_extra.concurrency)]
+                                )
+                                self._router.send(session, reply)
+                                return
+                            else:
+                                callee_extra.concurrency_current += 1
 
                     elif registration.extra.invoke == message.Register.INVOKE_ROUNDROBIN:
-                        callee = registration.observers[registration.extra.roundrobin_current % len(registration.observers)]
-                        registration.extra.roundrobin_current += 1
+
+                        # remember where we started to search for a suitable callee/endpoint in the round-robin list of callee endpoints
+                        roundrobin_start_index = registration.extra.roundrobin_current % len(registration.observers)
+
+                        # now search fo a suitable callee/endpoint
+                        while True:
+                            callee = registration.observers[registration.extra.roundrobin_current % len(registration.observers)]
+                            callee_extra = registration.observers_extra.get(callee, None)
+
+                            registration.extra.roundrobin_current += 1
+
+                            if callee_extra and callee_extra.concurrency:
+
+                                if callee_extra.concurrency_current >= callee_extra.concurrency:
+
+                                    # this callee has set a maximum concurrency that has already been reached.
+                                    # we need to search further .. but only if we haven't reached the beginning
+                                    # of our round-robin list
+                                    if registration.extra.roundrobin_current % len(registration.observers) == roundrobin_start_index:
+                                        # we've looked through the whole round-robin list, and didn't find a suitable
+                                        # callee (one that hasn't it's maximum concurrency already reached). bail out.
+                                        reply = message.Error(
+                                            message.Call.MESSAGE_TYPE,
+                                            call.request,
+                                            u'crossbar.error.max_concurrency_reached',
+                                            [u'maximum concurrency of all callee/endpoints reached (on round-robin registration)'.format(callee_extra.concurrency)]
+                                        )
+                                        self._router.send(session, reply)
+                                        return
+                                    else:
+                                        # .. search on ..
+                                        pass
+                                else:
+                                    # ok, we've found a callee that has set a maximum concurrency, but where the
+                                    # maximum has not yet been reached
+                                    break
+                            else:
+                                # ok, we've found a callee which hasn't set a maximum concurrency, and hence is always
+                                # eligible for having a call forwarded to
+                                break
+
+                        if callee_extra:
+                            callee_extra.concurrency_current += 1
 
                     elif registration.extra.invoke == message.Register.INVOKE_RANDOM:
                         callee = registration.observers[random.randint(0, len(registration.observers) - 1)]
@@ -432,21 +501,6 @@ class Dealer(object):
                     else:
                         # should not arrive here
                         raise Exception(u"logic error")
-
-                    callee_extra = registration.observers_extra.get(callee, None)
-                    if callee_extra:
-                        # check for maximum concurrency the callee can handle
-                        if callee_extra.concurrency and callee_extra.concurrency_current >= callee_extra.concurrency:
-                            reply = message.Error(
-                                message.Call.MESSAGE_TYPE,
-                                call.request,
-                                u'io.crossbar.error.max_concurrency_reached',
-                                [u'maximum concurrency {} of registration reached'.format(callee_extra.concurrency)]
-                            )
-                            self._router.send(session, reply)
-                            return
-                        else:
-                            callee_extra.concurrency_current += 1
 
                     # new ID for the invocation
                     #
