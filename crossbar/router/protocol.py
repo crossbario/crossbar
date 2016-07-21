@@ -36,7 +36,7 @@ import crossbar
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
-from autobahn.websocket.compress import *  # noqa
+from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
 from txaio import make_logger
 
