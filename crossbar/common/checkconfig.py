@@ -2586,8 +2586,8 @@ def check_controller_options(options):
             raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
 
     if 'shutdown' in options:
-        if type(options['shutdown']) != Sequence:
-            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown_mode'])))
+        if not isinstance(options['shutdown'], Sequence):
+            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown'])))
         for shutdown_mode in options['shutdown']:
             if shutdown_mode not in NODE_SHUTDOWN_MODES:
                 raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
