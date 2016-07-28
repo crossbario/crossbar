@@ -22,17 +22,18 @@ The node controller can be configured using the `controller` item in the node's 
 
 The available parameters in the `controller` dictionary are:
 
-option | description
----|---
-**`id`** | The ID of the node (default: **hostname** of machine)
-**`options`** | Controller process options - see below (default: **`{}`**).
-**`manager`** | Uplink Crossbar.io management application (**upcoming**).
-**`manhole`** | [Manhole](Manhole) into the controller.
+option         | description
+---------------|--------------
+**`id`**       | The ID of the node (default: **hostname** of machine)
+**`options`**  | Controller process options - see below (default: **`{}`**).
+**`manager`**  | Uplink Crossbar.io management application (**upcoming**).
+**`manhole`**  | [Manhole](Manhole) into the controller.
 
 The available `options` are:
 
-option | description
----|---
-**`title`** | The controller process title (default: **`"crossbar-controller"`**)
+option         | description
+---------------|--------------
+**`title`**    | The controller process title (default: **`"crossbar-controller"`**)
+**`shutdown`** | Controls how and when crossbar shuts down. Permitted values are: `shutdown_on_shutdown_requested` (default for "managed" mode), `shutdown_on_worker_exit` (default), `shutdown_on_worker_exit_with_error`, `shutdown_on_last_worker_exit`.
 
 ---

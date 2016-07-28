@@ -50,9 +50,78 @@ except ImportError:
 __all__ = ('HAS_LMDB', 'MemoryRealmStore', 'LmdbRealmStore')
 
 
+class QueuedCall(object):
+
+    __slots__ = ('session', 'call', 'registration', 'authorization')
+
+    def __init__(self, session, call, registration, authorization):
+        self.session = session
+        self.call = call
+        self.registration = registration
+        self.authorization = authorization
+
+
+class MemoryCallQueue(object):
+    """
+    Memory-backed call queue.
+    """
+
+    log = make_logger()
+
+    GLOBAL_QUEUE_LIMIT = 1000
+    """
+    The global call queue limit, in case not overridden.
+    """
+
+    def __init__(self, config=None):
+        """
+
+        See the example here:
+
+            - https://github.com/crossbario/crossbarexamples/tree/master/concurrency-control/queued
+
+        config = {
+            'type': 'memory',
+            'limit': 1000,           <- global history limit (in case no procedure specific limit has been set)
+            'call-queue': [
+                {
+                    'uri': 'com.example.foobar',   <- procedure specific limit
+                    'match': 'exact',
+                    'limit': 10000
+                }
+            ]
+        }
+        """
+        # whole store configuration
+        self._config = config or {}
+
+        # limit to call queue per registration
+        self._limit = self._config.get('limit', self.GLOBAL_QUEUE_LIMIT)
+
+        # map: registration.id -> deque( (session, call, registration, authorization) )
+        self._queued_calls = {}
+
+    def maybe_queue_call(self, session, call, registration, authorization):
+        # FIXME: match this against the config, not just plain accept queueing!
+        if registration.id not in self._queued_calls:
+            self._queued_calls[registration.id] = deque()
+
+        self._queued_calls[registration.id].append(QueuedCall(session, call, registration, authorization))
+
+        return True
+
+    def get_queued_call(self, registration):
+        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
+            return self._queued_calls[registration.id][0]
+
+    def pop_queued_call(self, registration):
+        if registration.id in self._queued_calls and self._queued_calls[registration.id]:
+            return self._queued_calls[registration.id].popleft()
+
+
 class MemoryEventStore(object):
     """
-    Event store in-memory implementation.
+    Memory-backed event store.
     """
 
     log = make_logger()
@@ -64,6 +133,10 @@ class MemoryEventStore(object):
 
     def __init__(self, config=None):
         """
+
+        See the example here:
+
+            - https://github.com/crossbario/crossbarexamples/tree/master/event-history
 
         config = {
             'type': 'memory',
@@ -219,18 +292,27 @@ class MemoryEventStore(object):
 
 class MemoryRealmStore(object):
     """
+    Memory backed realm store.
     """
 
     event_store = None
     """
+    Store for event history.
+    """
+
+    call_store = None
+    """
+    Store for call queueing.
     """
 
     def __init__(self, config):
         self.event_store = MemoryEventStore(config)
+        self.call_store = MemoryCallQueue(config)
 
 
 class LmdbEventStore(object):
     """
+    LMDB backed event store.
     """
 
     def __init__(self, env):
@@ -240,10 +322,17 @@ class LmdbEventStore(object):
 
 class LmdbRealmStore(object):
     """
+    LMDB backed realm store.
     """
 
     event_store = None
     """
+    Store for event history.
+    """
+
+    call_store = None
+    """
+    Store for call queueing.
     """
 
     def __init__(self, config):

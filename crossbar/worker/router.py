@@ -59,6 +59,8 @@ from crossbar.router.router import RouterFactory
 from crossbar.router.protocol import WampWebSocketServerFactory, \
     WampRawSocketServerFactory
 
+from crossbar.router.unisocket import UniSocketServerFactory
+
 from crossbar.worker import _appsession_loader
 from crossbar.worker.testee import WebSocketTesteeServerFactory, \
     StreamTesteeServerFactory
@@ -806,42 +808,33 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         elif config['type'] == 'web':
 
-            options = config.get('options', {})
+            transport_factory = self._create_web_factory(config)
 
-            # create Twisted Web root resource
-            #
-            if '/' in config['paths']:
-                root_config = config['paths']['/']
-                root = self._create_resource(root_config, nested=False)
+        # Universal transport
+        #
+        elif config['type'] == 'universal':
+            if 'web' in config:
+                web_factory = self._create_web_factory(config['web'])
             else:
-                root = Resource404(self._templates, b'')
+                web_factory = None
 
-            # create Twisted Web resources on all non-root paths configured
-            #
-            self._add_paths(root, config.get('paths', {}))
+            if 'rawsocket' in config:
+                rawsocket_factory = WampRawSocketServerFactory(self._router_session_factory, config['rawsocket'])
+                rawsocket_factory.noisy = False
+            else:
+                rawsocket_factory = None
 
-            # create the actual transport factory
-            #
-            transport_factory = Site(root)
-            transport_factory.noisy = False
+            if 'websocket' in config:
+                websocket_factory_map = {}
+                for websocket_url_first_component, websocket_config in config['websocket'].items():
+                    websocket_transport_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, websocket_config, self._templates)
+                    websocket_transport_factory.noisy = False
+                    websocket_factory_map[websocket_url_first_component] = websocket_transport_factory
+                    self.log.debug('hooked up websocket factory on request URI {request_uri}', request_uri=websocket_url_first_component)
+            else:
+                websocket_factory_map = None
 
-            # Web access logging
-            #
-            if not options.get('access_log', False):
-                transport_factory.log = lambda _: None
-
-            # Traceback rendering
-            #
-            transport_factory.displayTracebacks = options.get('display_tracebacks', False)
-
-            # HSTS
-            #
-            if options.get('hsts', False):
-                if 'tls' in config['endpoint']:
-                    hsts_max_age = int(options.get('hsts_max_age', 31536000))
-                    transport_factory.requestFactory = createHSTSRequestFactory(transport_factory.requestFactory, hsts_max_age)
-                else:
-                    self.log.warn("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
+            transport_factory = UniSocketServerFactory(web_factory, websocket_factory_map, rawsocket_factory)
 
         # Unknown transport type
         #
@@ -869,6 +862,41 @@ class RouterWorkerSession(NativeWorkerSession):
 
         d.addCallbacks(ok, fail)
         return d
+
+    def _create_web_factory(self, config):
+
+        options = config.get('options', {})
+
+        # create Twisted Web root resource
+        if '/' in config['paths']:
+            root_config = config['paths']['/']
+            root = self._create_resource(root_config, nested=False)
+        else:
+            root = Resource404(self._templates, b'')
+
+        # create Twisted Web resources on all non-root paths configured
+        self._add_paths(root, config.get('paths', {}))
+
+        # create the actual transport factory
+        transport_factory = Site(root)
+        transport_factory.noisy = False
+
+        # Web access logging
+        if not options.get('access_log', False):
+            transport_factory.log = lambda _: None
+
+        # Traceback rendering
+        transport_factory.displayTracebacks = options.get('display_tracebacks', False)
+
+        # HSTS
+        if options.get('hsts', False):
+            if 'tls' in config['endpoint']:
+                hsts_max_age = int(options.get('hsts_max_age', 31536000))
+                transport_factory.requestFactory = createHSTSRequestFactory(transport_factory.requestFactory, hsts_max_age)
+            else:
+                self.log.warn("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
+
+        return transport_factory
 
     def _add_paths(self, resource, paths):
         """

@@ -1469,7 +1469,7 @@ def check_web_path_service(path, config, nested):
     checkers[ptype](config)
 
 
-def check_listening_transport_web(transport):
+def check_listening_transport_web(transport, with_endpoint=True):
     """
     Check a listening Web-WAMP transport configuration.
 
@@ -1486,10 +1486,13 @@ def check_listening_transport_web(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if 'endpoint' not in transport:
-        raise InvalidConfigException("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
-
-    check_listening_endpoint(transport['endpoint'])
+    if with_endpoint:
+        if 'endpoint' not in transport:
+            raise InvalidConfigException("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
+        check_listening_endpoint(transport['endpoint'])
+    else:
+        if 'endpoint' in transport:
+            raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport Web transport subitem\n\n{}".format(pformat(transport)))
 
     if 'paths' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'paths' in Web transport item\n\n{}".format(pformat(transport)))
@@ -1543,15 +1546,54 @@ def check_paths(paths, nested=False):
     """
     for p in paths:
         if not isinstance(p, six.text_type):
-            raise InvalidConfigException("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
+            raise InvalidConfigException("keys in 'paths' in Web transport / WebSocket subitems in Universal transport configuration must be strings ({} encountered)".format(type(p)))
 
         if not _WEB_PATH_PATH.match(p):
-            raise InvalidConfigException("invalid value '{}' for path in Web transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
+            raise InvalidConfigException("invalid value '{}' for path in Web transport / WebSocket subitem in Universal transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
         check_web_path_service(p, paths[p], nested)
 
 
-def check_listening_transport_websocket(transport):
+def check_listening_transport_universal(transport):
+
+    for k in transport:
+        if k not in [
+            'id',
+            'type',
+            'endpoint',
+            'rawsocket',
+            'websocket',
+            'web',
+        ]:
+            raise InvalidConfigException("encountered unknown attribute '{}' in Universal transport configuration".format(k))
+
+    if 'id' in transport:
+        check_id(transport['id'])
+
+    if 'endpoint' not in transport:
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in Universal transport item\n\n{}".format(pformat(transport)))
+
+    check_listening_endpoint(transport['endpoint'])
+
+    if 'rawsocket' in transport:
+        check_listening_transport_rawsocket(transport['rawsocket'], with_endpoint=False)
+
+    if 'websocket' in transport:
+        paths = transport['websocket']
+
+        if not isinstance(paths, Mapping):
+            raise InvalidConfigException("'websocket' attribute in Universal transport configuration must be dictionary ({} encountered)".format(type(paths)))
+
+        check_paths(paths)
+
+        for path in paths:
+            check_listening_transport_websocket(transport['websocket'][path], with_endpoint=False)
+
+    if 'web' in transport:
+        check_listening_transport_web(transport['web'], with_endpoint=False)
+
+
+def check_listening_transport_websocket(transport, with_endpoint=True):
     """
     Check a listening WebSocket-WAMP transport configuration.
 
@@ -1577,10 +1619,13 @@ def check_listening_transport_websocket(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if 'endpoint' not in transport:
-        raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
-
-    check_listening_endpoint(transport['endpoint'])
+    if with_endpoint:
+        if 'endpoint' not in transport:
+            raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
+        check_listening_endpoint(transport['endpoint'])
+    else:
+        if 'endpoint' in transport:
+            raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport WebSocket transport subitem\n\n{}".format(pformat(transport)))
 
     if 'options' in transport:
         check_websocket_options(transport['options'])
@@ -1729,7 +1774,7 @@ def check_listening_transport_flashpolicy(transport):
             check_endpoint_port(port, "Flash-policy allowed_ports")
 
 
-def check_listening_transport_rawsocket(transport):
+def check_listening_transport_rawsocket(transport, with_endpoint=True):
     """
     Check a listening RawSocket-WAMP transport configuration.
 
@@ -1754,10 +1799,13 @@ def check_listening_transport_rawsocket(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if 'endpoint' not in transport:
-        raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
-
-    check_listening_endpoint(transport['endpoint'])
+    if with_endpoint:
+        if 'endpoint' not in transport:
+            raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
+        check_listening_endpoint(transport['endpoint'])
+    else:
+        if 'endpoint' in transport:
+            raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport RawSocket transport subitem\n\n{}".format(pformat(transport)))
 
     if 'serializers' in transport:
         serializers = transport['serializers']
@@ -1877,6 +1925,7 @@ def check_router_transport(transport):
         'web',
         'websocket',
         'rawsocket',
+        'universal',
         'flashpolicy',
         'websocket.testee',
         'stream.testee'
@@ -1888,6 +1937,9 @@ def check_router_transport(transport):
 
     elif ttype == 'rawsocket':
         check_listening_transport_rawsocket(transport)
+
+    elif ttype == 'universal':
+        check_listening_transport_universal(transport)
 
     elif ttype == 'web':
         check_listening_transport_web(transport)
@@ -2587,8 +2639,8 @@ def check_controller_options(options):
             raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
 
     if 'shutdown' in options:
-        if type(options['shutdown']) != Sequence:
-            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown_mode'])))
+        if not isinstance(options['shutdown'], Sequence):
+            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown'])))
         for shutdown_mode in options['shutdown']:
             if shutdown_mode not in NODE_SHUTDOWN_MODES:
                 raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))

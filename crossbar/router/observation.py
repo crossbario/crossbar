@@ -116,6 +116,9 @@ class UriObservation(object):
         else:
             self.observers = set()
 
+        # arbitrary, opaque extra data attached to the observers of this observation
+        self.observers_extra = {}
+
     def __repr__(self):
         return "{}(id={}, uri={}, match={}, ordered={}, extra={}, created={}, observers={})".format(
             self.__class__.__name__, self.id, self.uri, self.match, self.ordered, self.extra, self.created,
@@ -195,7 +198,7 @@ class UriObservationMap(object):
             self._observations_wildcard,
             self._observation_id_to_observation)
 
-    def add_observer(self, observer, uri, match=u"exact", extra=None):
+    def add_observer(self, observer, uri, match=u"exact", extra=None, observer_extra=None):
         """
         Adds a observer to the observation set and returns the respective observation.
 
@@ -266,8 +269,14 @@ class UriObservationMap(object):
         # add observer if not already in observation
         #
         if observer not in observation.observers:
-            observation.observers.add(observer)
             was_already_observed = False
+
+            # add the observer to the set of observers sitting on the observation
+            observation.observers.add(observer)
+
+            # if there is observer-specific extra data, store it
+            if observer_extra:
+                observation.observers_extra[observer] = observer_extra
         else:
             was_already_observed = True
 
@@ -398,6 +407,11 @@ class UriObservationMap(object):
             # remove observer from observation
             #
             observation.observers.discard(observer)
+
+            # discard observer-level extra data (if any)
+            #
+            if observer in observation.observers_extra:
+                del observation.observers_extra[observer]
 
             # no more observers on this observation!
             #
