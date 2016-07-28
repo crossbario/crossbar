@@ -103,7 +103,7 @@ def set_websocket_options(factory, options):
 
     # WebSocket compression
     #
-    per_msg_compression = lambda _: None
+    per_msg_compression = lambda _: None  # noqa
     if 'compression' in c:
 
         # permessage-deflate
