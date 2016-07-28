@@ -34,7 +34,7 @@ news: towncrier.ini crossbar/newsfragments/*.*
 	echo You should now 'git commit -m "update NEWS and ChangeLog"' the result, if happy.
 
 docs:
-	towncrier --draft > docs/pages/ChangeLog.md
+	# towncrier --draft > docs/pages/ChangeLog.md
 	python docs/test_server.py
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
