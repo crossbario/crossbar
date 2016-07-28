@@ -62,6 +62,9 @@ class PendingAuthCryptosign(PendingAuth):
         PendingAuth.__init__(self, session, config)
         self._verify_key = None
 
+        # https://tools.ietf.org/html/rfc5056
+        # https://tools.ietf.org/html/rfc5929
+        # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
         channel_id_hex = session._transport._transport_info.get(u'channel_id', None)
         if channel_id_hex:
             self._channel_id = binascii.a2b_hex(channel_id_hex)

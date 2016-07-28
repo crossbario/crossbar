@@ -322,13 +322,28 @@ class RouterRoleDynamicAuth(RouterRole):
 
     def __init__(self, router, uri, authorizer):
         """
-        Ctor.
 
-        :param uri: The URI of the role.
-        :type uri: str
+        :param router: The router to which to add the role
+        :type router: instance of ``crossbar.router.router.Router``
+        :param id: The URI of the role.
+        :type id: unicode
+        :param authorizer: The dynamic authroizer configuration.
+        :type authorizer: dict
         """
         RouterRole.__init__(self, router, uri)
+
+        # the URI (identifying name) of the authorizer
+        self._uri = uri
+
+        # the dynamic authorizer configuration
+        # {
+        #     "name": "app",
+        #     "authorizer": "com.example.auth"
+        # }
         self._authorizer = authorizer
+
+        # the session from which to call the dynamic authorizer: this is
+        # the default service session on the realm
         self._session = router._realm.session
 
     def authorize(self, session, uri, action):
@@ -346,10 +361,12 @@ class RouterRoleDynamicAuth(RouterRole):
         :return: bool -- Flag indicating whether session is authorized or not.
         """
         self.log.debug(
-            "CrossbarRouterRoleDynamicAuth.authorize {myuri} {uri} {action}",
-            myuri=self.uri, uri=uri, action=action)
-        return self._session.call(self._authorizer, session._session_details,
-                                  uri, action)
+            "CrossbarRouterRoleDynamicAuth.authorize {uri} {action}",
+            uri=uri, action=action)
+        return self._session.call(self._authorizer,
+                                  getattr(session, '_session_details', None),
+                                  uri,
+                                  action)
 
 
 class RouterRoleLMDBAuth(RouterRole):
