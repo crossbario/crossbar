@@ -101,30 +101,9 @@ def set_websocket_options(factory, options):
     if "auto_ping_timeout" in c:
         autoPingTimeout = float(c["auto_ping_timeout"]) / 1000.
 
-    factory.setProtocolOptions(versions=versions,
-                               webStatus=c.get("enable_webstatus", True),
-                               utf8validateIncoming=c.get("validate_utf8", True),
-                               maskServerFrames=c.get("mask_server_frames", False),
-                               requireMaskedClientFrames=c.get("require_masked_client_frames", True),
-                               applyMask=c.get("apply_mask", True),
-                               maxFramePayloadSize=c.get("max_frame_size", 0),
-                               maxMessagePayloadSize=c.get("max_message_size", 0),
-                               autoFragmentSize=c.get("auto_fragment_size", 0),
-                               failByDrop=c.get("fail_by_drop", False),
-                               echoCloseCodeReason=c.get("echo_close_codereason", False),
-                               openHandshakeTimeout=openHandshakeTimeout,
-                               closeHandshakeTimeout=closeHandshakeTimeout,
-                               tcpNoDelay=c.get("tcp_nodelay", True),
-                               autoPingInterval=autoPingInterval,
-                               autoPingTimeout=autoPingTimeout,
-                               autoPingSize=c.get("auto_ping_size", None),
-                               serveFlashSocketPolicy=c.get("enable_flash_policy", None),
-                               flashSocketPolicy=c.get("flash_policy", None),
-                               allowedOrigins=c.get("allowed_origins", ["*"]))
-
     # WebSocket compression
     #
-    factory.setProtocolOptions(perMessageCompressionAccept=lambda _: None)
+    per_msg_compression = lambda _: None  # noqa
     if 'compression' in c:
 
         # permessage-deflate
@@ -152,8 +131,32 @@ def set_websocket_options(factory, options):
                                                                 noContextTakeover=noContextTakeover,
                                                                 windowBits=windowBits,
                                                                 memLevel=memLevel)
+            per_msg_compression = accept
 
-            factory.setProtocolOptions(perMessageCompressionAccept=accept)
+    factory.setProtocolOptions(
+        versions=versions,
+        webStatus=c.get("enable_webstatus", True),
+        utf8validateIncoming=c.get("validate_utf8", True),
+        maskServerFrames=c.get("mask_server_frames", False),
+        requireMaskedClientFrames=c.get("require_masked_client_frames", True),
+        applyMask=c.get("apply_mask", True),
+        maxFramePayloadSize=c.get("max_frame_size", 0),
+        maxMessagePayloadSize=c.get("max_message_size", 0),
+        autoFragmentSize=c.get("auto_fragment_size", 0),
+        failByDrop=c.get("fail_by_drop", False),
+        echoCloseCodeReason=c.get("echo_close_codereason", False),
+        openHandshakeTimeout=openHandshakeTimeout,
+        closeHandshakeTimeout=closeHandshakeTimeout,
+        tcpNoDelay=c.get("tcp_nodelay", True),
+        autoPingInterval=autoPingInterval,
+        autoPingTimeout=autoPingTimeout,
+        autoPingSize=c.get("auto_ping_size", None),
+        serveFlashSocketPolicy=c.get("enable_flash_policy", None),
+        flashSocketPolicy=c.get("flash_policy", None),
+        allowedOrigins=c.get("allowed_origins", ["*"]),
+        allowNullOrigin=bool(c.get("allow_null_origin", True)),
+        perMessageCompressionAccept=per_msg_compression,
+    )
 
 
 class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
