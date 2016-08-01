@@ -390,7 +390,10 @@ class Node(object):
                 yield runner.run(NodeManagementSession, start_reactor=False, auto_reconnect=True)
 
                 # wait until we have attached to the uplink CDC
-                self._manager = yield extra['onready']
+                self._manager, management_realm, node_id, node_extra = yield extra['onready']
+
+                self.log.info("Connected to CDC - management realm '{management_realm}', node ID '{node_id}', node extra '{node_extra}'", management_realm=management_realm, node_id=node_id, node_extra=node_extra)
+
             except Exception as e:
                 raise Exception("Could not connect to CDC - {}".format(e))
 

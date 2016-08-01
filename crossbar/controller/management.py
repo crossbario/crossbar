@@ -97,8 +97,9 @@ class NodeManagementSession(ApplicationSession):
             raise Exception("don't know how to compute challenge for authmethod {}".format(challenge.method))
 
     def onJoin(self, details):
-        self.log.info("CDC uplink (remote leg) ready!")
-        self.config.extra['onready'].callback(self)
+        # SessionDetails(realm=<com.crossbario.cdc.mrealm-test1>, session=3537745190930657, authid=<node0>, authrole=<cdc-node>, authmethod=cryptosign, authprovider=dynamic, authextra={'bar': 'baz', 'foo': 42})
+        self.log.info("CDC uplink (remote leg) ready: {details}", details=details)
+        self.config.extra['onready'].callback((self, details.realm, details.authid, details.authextra))
 
     def onLeave(self, details):
         if details.reason != u"wamp.close.normal":
