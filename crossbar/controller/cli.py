@@ -40,14 +40,29 @@ import signal
 import sys
 import six
 
-import crossbar
-
-from txaio import make_logger
+import txaio
+txaio.use_twisted()  # noqa
+from txaio import make_logger, start_logging, set_global_log_level
 
 from twisted.python.reflect import qual
+from twisted.logger import globalLogPublisher
+
+from crossbar._logging import make_logfile_observer
+from crossbar._logging import make_stdout_observer
+from crossbar._logging import make_stderr_observer
+from crossbar._logging import LogLevel
+
+import crossbar
 
 from autobahn.twisted.choosereactor import install_reactor
+from autobahn.websocket.protocol import WebSocketProtocol
+from autobahn.websocket.utf8validator import Utf8Validator
+from autobahn.websocket.xormasker import XorMaskerNull
 
+from crossbar.controller.node import Node, maybe_generate_key
+from crossbar.controller.template import Templates
+from crossbar.common.checkconfig import check_config_file, \
+    color_json, convert_config_file, upgrade_config_file, InvalidConfigException
 
 try:
     import psutil
@@ -218,12 +233,10 @@ def run_command_version(options, reactor=None, **kwargs):
     txaio_ver = '%s' % pkg_resources.require("txaio")[0].version
 
     # Autobahn
-    from autobahn.websocket.protocol import WebSocketProtocol
     ab_ver = pkg_resources.require("autobahn")[0].version
     ab_loc = "[%s]" % qual(WebSocketProtocol)
 
     # UTF8 Validator
-    from autobahn.websocket.utf8validator import Utf8Validator
     s = qual(Utf8Validator)
     if 'wsaccel' in s:
         utf8_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
@@ -235,7 +248,6 @@ def run_command_version(options, reactor=None, **kwargs):
     utf8_loc = "[%s]" % qual(Utf8Validator)
 
     # XOR Masker
-    from autobahn.websocket.xormasker import XorMaskerNull
     s = qual(XorMaskerNull)
     if 'wsaccel' in s:
         xor_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
@@ -316,8 +328,6 @@ def run_command_templates(options, **kwargs):
     """
     Subcommand "crossbar templates".
     """
-    from crossbar.controller.template import Templates
-
     templates = Templates()
     templates.help()
 
@@ -327,8 +337,6 @@ def run_command_init(options, **kwargs):
     Subcommand "crossbar init".
     """
     log = make_logger()
-
-    from crossbar.controller.template import Templates
 
     templates = Templates()
 
@@ -429,9 +437,6 @@ def _startlog(options, reactor):
     """
     Start the logging in a way that all the subcommands can use it.
     """
-    from twisted.logger import globalLogPublisher
-    from txaio import start_logging, set_global_log_level
-
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
     colour = getattr(options, "colour", "auto")
@@ -443,8 +448,6 @@ def _startlog(options, reactor):
 
     if getattr(options, "logtofile", False):
         # We want to log to a file
-        from crossbar._logging import make_logfile_observer
-
         if not options.logdir:
             logdir = options.cbdir
         else:
@@ -460,9 +463,6 @@ def _startlog(options, reactor):
         observers.append(make_logfile_observer(logfile, show_source))
     else:
         # We want to log to stdout/stderr.
-        from crossbar._logging import make_stdout_observer
-        from crossbar._logging import make_stderr_observer
-        from crossbar._logging import LogLevel
 
         if colour == "auto":
             if sys.__stdout__.isatty():
@@ -567,7 +567,6 @@ def run_command_start(options, reactor=None):
 
     # possibly generate new node key
     #
-    from crossbar.controller.node import maybe_generate_key
     pubkey = maybe_generate_key(log, options.cbdir)
 
     # Print the banner.
@@ -583,13 +582,9 @@ def run_command_start(options, reactor=None):
 
     log.info("Running from node directory '{cbdir}'", cbdir=options.cbdir)
 
-    from twisted.python.reflect import qual
     log.info("Controller process starting ({python}-{reactor}) ..",
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
-
-    from crossbar.controller.node import Node
-    from crossbar.common.checkconfig import InvalidConfigException
 
     # represents the running Crossbar.io node
     #
@@ -653,7 +648,6 @@ def run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
-    from crossbar.common.checkconfig import check_config_file, color_json
     configfile = os.path.join(options.cbdir, options.config)
 
     verbose = False
@@ -668,7 +662,6 @@ def run_command_check(options, **kwargs):
         print("Ok, node configuration looks good!")
 
         if verbose:
-            import json
             config_content = json.dumps(
                 config,
                 skipkeys=False,
@@ -686,7 +679,6 @@ def run_command_convert(options, **kwargs):
     """
     Subcommand "crossbar convert".
     """
-    from crossbar.common.checkconfig import convert_config_file
     configfile = os.path.join(options.cbdir, options.config)
 
     print("Converting local configuration file {}".format(configfile))
@@ -704,7 +696,6 @@ def run_command_upgrade(options, **kwargs):
     """
     Subcommand "crossbar upgrade".
     """
-    from crossbar.common.checkconfig import upgrade_config_file
     configfile = os.path.join(options.cbdir, options.config)
 
     print("Upgrading local configuration file {}".format(configfile))
@@ -968,14 +959,6 @@ def run(prog=None, args=None, reactor=None):
                     options.config = f
                     break
 
-            if not options.config:
-                if options.cdc:
-                    # in CDC mode, we will use a built-in default config
-                    # if not overridden from explicit config file
-                    pass
-                else:
-                    raise Exception("No config file specified, and neither CBDIR/config.json nor CBDIR/config.yaml exists")
-
     # Log directory
     #
     if hasattr(options, 'logdir'):
@@ -1012,5 +995,4 @@ def run(prog=None, args=None, reactor=None):
 
 
 if __name__ == '__main__':
-    import sys
     run(args=sys.argv[1:])
