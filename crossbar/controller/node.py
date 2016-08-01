@@ -36,9 +36,14 @@ import socket
 import getpass
 from collections import OrderedDict
 
+from nacl.signing import SigningKey
+from nacl.encoding import HexEncoder
+
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.ssl import optionsForClientTLS
+
+from txaio import make_logger
 
 from autobahn.util import utcnow
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
@@ -53,14 +58,6 @@ from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
 from crossbar.controller.management import NodeManagementBridgeSession
 from crossbar.controller.management import NodeManagementSession
-
-from txaio import make_logger
-
-try:
-    import nacl  # noqa
-    HAS_NACL = True
-except ImportError:
-    HAS_NACL = False
 
 
 __all__ = ('Node',)
@@ -130,18 +127,8 @@ def _write_node_key(filepath, tags, msg):
             if value:
                 f.write(u'{}: {}\n'.format(tag, value))
 
-    # set file mode to read only for owner
-    # 384 (decimal) == 0600 (octal) - we use that for Py2/3 reasons
-    os.chmod(filepath, 384)
-
 
 def maybe_generate_key(log, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
-    if not HAS_NACL:
-        log.warn("Skipping node key generation - NaCl package not installed!")
-        return
-
-    from nacl.signing import SigningKey
-    from nacl.encoding import HexEncoder
 
     privkey = None
     pubkey = None
@@ -214,6 +201,17 @@ def maybe_generate_key(log, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.p
         _write_node_key(privkey_path, tags, msg)
 
         log.info("New node key generated!")
+
+    # fix file permissions on node public/private key files
+    # note: we use decimals instead of octals as octal literals have changed between Py2/3
+    #
+    if os.stat(pubkey_path).st_mode & 511 != 420:  # 420 (decimal) == 0644 (octal)
+        os.chmod(pubkey_path, 420)
+        log.info("File permissions on node public key fixed!")
+
+    if os.stat(privkey_path).st_mode & 511 != 384:  # 384 (decimal) == 0600 (octal)
+        os.chmod(privkey_path, 384)
+        log.info("File permissions on node private key fixed!")
 
     return pubkey
 
@@ -298,93 +296,12 @@ class Node(object):
                           configfile=configfile)
         else:
             self._config = {
-                u"controller": {
-                    u"cdc": {
-                        u"enabled": True
-                    }
-                }
+                u'version': 2,
+                u'controller': {},
+                u'workers': []
             }
             checkconfig.check_config(self._config)
-            self.log.info("Node configuration loaded from built-in CDC config.")
-
-    def _prepare_node_keys(self):
-        from nacl.signing import SigningKey
-        from nacl.encoding import HexEncoder
-
-        # make sure CBDIR/.cdc exists
-        #
-        cdc_dir = os.path.join(self._cbdir, '.cdc')
-        if os.path.isdir(cdc_dir):
-            pass
-        elif os.path.exists(cdc_dir):
-            raise Exception(".cdc exists, but isn't a directory")
-        else:
-            os.mkdir(cdc_dir)
-            self.log.info("CDC directory created")
-
-        # load node ID, either from .cdc/node.id or from CDC_NODE_ID
-        #
-        def split_nid(nid_s):
-            nid_c = nid_s.strip().split('@')
-            if len(nid_c) != 2:
-                raise Exception("illegal node principal '{}' - must follow the form <node id>@<management realm>".format(nid_s))
-            node_id, realm = nid_c
-            # FIXME: regex check node_id and realm
-            return node_id, realm
-
-        nid_file = os.path.join(cdc_dir, 'node.id')
-        node_id, realm = None, None
-        if os.path.isfile(nid_file):
-            with open(nid_file, 'r') as f:
-                node_id, realm = split_nid(f.read())
-        elif os.path.exists(nid_file):
-            raise Exception("{} exists, but isn't a file".format(nid_file))
-        else:
-            if 'CDC_NODE_ID' in os.environ:
-                node_id, realm = split_nid(os.environ['CDC_NODE_ID'])
-            else:
-                raise Exception("Neither node ID file {} exists nor CDC_NODE_ID environment variable set".format(nid_file))
-
-        # Load the node key, either from .cdc/node.key or from CDC_NODE_KEY.
-        # The node key is a Ed25519 key in either raw format (32 bytes) or in
-        # hex-encoded form (64 characters).
-        #
-        # Actually, what's loaded is not the secret Ed25519 key, but the _seed_
-        # for that key. Private keys are derived from this 32-byte (256-bit)
-        # random seed value. It is thus the seed value which is sensitive and
-        # must be protected.
-        #
-        skey_file = os.path.join(cdc_dir, 'node.key')
-        skey = None
-        if os.path.isfile(skey_file):
-            # FIXME: check file permissions are 0600!
-
-            # This value is read in here.
-            skey_len = os.path.getsize(skey_file)
-            if skey_len in (32, 64):
-                with open(skey_file, 'r') as f:
-                    skey_seed = f.read()
-                    encoder = None
-                    if skey_len == 64:
-                        encoder = HexEncoder
-                    skey = SigningKey(skey_seed, encoder=encoder)
-                self.log.info("Existing CDC node key loaded from {skey_file}.", skey_file=skey_file)
-            else:
-                raise Exception("invalid node key length {} (key must either be 32 raw bytes or hex encoded 32 bytes, hence 64 byte char length)")
-        elif os.path.exists(skey_file):
-            raise Exception("{} exists, but isn't a file".format(skey_file))
-        else:
-            skey = SigningKey.generate()
-            skey_seed = skey.encode(encoder=HexEncoder)
-            with open(skey_file, 'w') as f:
-                f.write(skey_seed)
-
-            # set file mode to read only for owner
-            # 384 (decimal) == 0600 (octal) - we use that for Py2/3 reasons
-            os.chmod(skey_file, 384)
-            self.log.info("New CDC node key {skey_file} generated.", skey_file=skey_file)
-
-        return realm, node_id, skey
+            self.log.info("Node configuration loaded from built-in config.")
 
     @inlineCallbacks
     def start(self, cdc_mode=False):
@@ -500,7 +417,7 @@ class Node(object):
 
             try:
                 self.log.info("Connecting to CDC at '{url}' ..", url=transport['url'])
-                yield runner.run(NodeManagementSession, start_reactor=False)
+                yield runner.run(NodeManagementSession, start_reactor=False, auto_reconnect=True)
 
                 # wait until we have attached to the uplink CDC
                 self._manager = yield extra['onready']

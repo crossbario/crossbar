@@ -593,15 +593,7 @@ def run_command_start(options, reactor=None):
     # check and load the node configuration
     #
     try:
-        if options.config:
-            # load node config from file
-            node.load(options.config)
-        elif options.cdc:
-            # load built-in CDC config
-            node.load()
-        else:
-            # no config file, and not running CDC mode
-            raise Exception("Neither a node config was found, nor CDC mode is active.")
+        node.load(options.config)
     except InvalidConfigException as e:
         log.error("Invalid node configuration")
         log.error("{e!s}", e=e)
