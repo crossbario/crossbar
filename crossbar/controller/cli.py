@@ -59,7 +59,7 @@ from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
 
-from crossbar.controller.node import Node, maybe_generate_key
+from crossbar.controller.node import Node
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
@@ -565,11 +565,27 @@ def run_command_start(options, reactor=None):
 
     log = make_logger()
 
+    # represents the running Crossbar.io node
+    #
+    node = Node(options.cbdir, reactor=reactor)
+
     # possibly generate new node key
     #
-    pubkey = maybe_generate_key(log, options.cbdir)
+    pubkey = node.maybe_generate_key(options.cbdir)
+
+    # check and load the node configuration
+    #
+    try:
+        node.load(options.config)
+    except InvalidConfigException as e:
+        log.error("Invalid node configuration")
+        log.error("{e!s}", e=e)
+        sys.exit(1)
+    except:
+        raise
 
     # Print the banner.
+    #
     for line in BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
@@ -585,21 +601,6 @@ def run_command_start(options, reactor=None):
     log.info("Controller process starting ({python}-{reactor}) ..",
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
-
-    # represents the running Crossbar.io node
-    #
-    node = Node(options.cbdir, reactor=reactor)
-
-    # check and load the node configuration
-    #
-    try:
-        node.load(options.config)
-    except InvalidConfigException as e:
-        log.error("Invalid node configuration")
-        log.error("{e!s}", e=e)
-        sys.exit(1)
-    except:
-        raise
 
     # now actually start the node ..
     #

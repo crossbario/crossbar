@@ -32,7 +32,6 @@ from __future__ import absolute_import
 
 from twisted.internet.defer import inlineCallbacks
 
-from autobahn.wamp import auth
 from autobahn.wamp.types import SubscribeOptions, PublishOptions
 from autobahn.twisted.wamp import ApplicationSession
 
@@ -50,16 +49,50 @@ class NodeManagementSession(ApplicationSession):
     log = make_logger()
 
     def onConnect(self):
-        authid = self.config.extra['authid']
-        realm = self.config.realm
-        self.log.info("CDC session joining realm '{}' under authid '{}' ..".format(realm, authid))
-        self.join(realm, [u"wampcra"], authid)
+        self.log.info("CDC connection established")
+
+        extra = {
+            # forward the client pubkey: this allows us to omit authid as
+            # the router can identify us with the pubkey already
+            u'pubkey': self.config.extra['node_key'].public_key(),
+
+            # not yet implemented. a public key the router should provide
+            # a trustchain for it's public key. the trustroot can eg be
+            # hard-coded in the client, or come from a command line option.
+            u'trustroot': None,
+
+            # not yet implemented. for authenticating the router, this
+            # challenge will need to be signed by the router and send back
+            # in AUTHENTICATE for client to verify. A string with a hex
+            # encoded 32 bytes random value.
+            u'challenge': None,
+
+            # https://tools.ietf.org/html/rfc5929
+            u'channel_binding': u'tls-unique'
+        }
+
+        # now request to join ..
+        self.join(realm=None,
+                  authmethods=[u'cryptosign'],
+                  authextra=extra)
 
     def onChallenge(self, challenge):
-        if challenge.method == u"wampcra":
-            authkey = self.config.extra['authkey'].encode('utf8')
-            signature = auth.compute_wcs(authkey, challenge.extra['challenge'].encode('utf8'))
-            return signature.decode('ascii')
+        self.log.info("authentication challenge received: {challenge}", challenge=challenge)
+
+        if challenge.method == u'cryptosign':
+            # alright, we've got a challenge from the router.
+
+            # not yet implemented. check the trustchain the router provided against
+            # our trustroot, and check the signature provided by the
+            # router for our previous challenge. if both are ok, everything
+            # is fine - the router is authentic wrt our trustroot.
+
+            # sign the challenge with our private key.
+            signed_challenge = self.config.extra['node_key'].sign_challenge(self, challenge)
+
+            # send back the signed challenge for verification
+            return signed_challenge
+
         else:
             raise Exception("don't know how to compute challenge for authmethod {}".format(challenge.method))
 

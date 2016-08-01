@@ -46,6 +46,7 @@ from twisted.internet.ssl import optionsForClientTLS
 from txaio import make_logger
 
 from autobahn.util import utcnow
+from autobahn.wamp import cryptosign
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationRunner
@@ -128,94 +129,6 @@ def _write_node_key(filepath, tags, msg):
                 f.write(u'{}: {}\n'.format(tag, value))
 
 
-def maybe_generate_key(log, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
-
-    privkey = None
-    pubkey = None
-    privkey_path = os.path.join(cbdir, privkey_path)
-    pubkey_path = os.path.join(cbdir, pubkey_path)
-
-    if os.path.exists(privkey_path):
-        # node private key seems to exist already .. check!
-        tags = _parse_keyfile(privkey_path, private=True)
-        if u'private-key-ed25519' not in tags:
-            raise Exception("Node private key file lacks a 'private-key-ed25519' tag!")
-
-        privkey = tags[u'private-key-ed25519']
-        # recreate a signing key from the base64 encoding
-        privkey_obj = SigningKey(privkey, encoder=HexEncoder)
-        pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder).decode('ascii')
-
-        # confirm we have the public key in the file, and that it is
-        # correct
-        if u'public-key-ed25519' in tags:
-            if tags[u'public-key-ed25519'] != pubkey:
-                raise Exception(
-                    ("Inconsistent key file '{}': 'public-key-ed25519' doesn't"
-                     " correspond to private-key-ed25519").format(privkey_path)
-                )
-        log.debug("Node key already exists (public key: {})".format(pubkey))
-
-        if os.path.exists(pubkey_path):
-            pubtags = _parse_keyfile(pubkey_path, private=False)
-            if u'public-key-ed25519' not in pubtags:
-                raise Exception(
-                    ("Pubkey file '{}' exists but lacks 'public-key-ed25519'"
-                     " tag").format(pubkey_path)
-                )
-            if pubtags[u'public-key-ed25519'] != pubkey:
-                raise Exception(
-                    ("Inconsistent key file '{}': 'public-key-ed25519' doesn't"
-                     " correspond to private-key-ed25519").format(pubkey_path)
-                )
-        else:
-            log.info("'{}' not found; re-creating from '{}'".format(pubkey_path, privkey_path))
-            tags = OrderedDict([
-                (u'creator', _creator()),
-                (u'created-at', utcnow()),
-                (u'machine-id', _machine_id()),
-                (u'public-key-ed25519', pubkey),
-            ])
-            msg = u'Crossbar.io public key for node authentication\n\n'
-            _write_node_key(pubkey_path, tags, msg)
-
-    else:
-        # node private key does NOT yet exist: generate one
-        privkey_obj = SigningKey.generate()
-        privkey = privkey_obj.encode(encoder=HexEncoder).decode('ascii')
-        pubkey = privkey_obj.verify_key.encode(encoder=HexEncoder).decode('ascii')
-
-        # first, write the public file
-        tags = OrderedDict([
-            (u'creator', _creator()),
-            (u'created-at', utcnow()),
-            (u'machine-id', _machine_id()),
-            (u'public-key-ed25519', pubkey),
-        ])
-        msg = u'Crossbar.io public key for node authentication\n\n'
-        _write_node_key(pubkey_path, tags, msg)
-
-        # now, add the private key and write the private file
-        tags[u'private-key-ed25519'] = privkey
-        msg = u'Crossbar.io private key for node authentication - KEEP THIS SAFE!\n\n'
-        _write_node_key(privkey_path, tags, msg)
-
-        log.info("New node key generated!")
-
-    # fix file permissions on node public/private key files
-    # note: we use decimals instead of octals as octal literals have changed between Py2/3
-    #
-    if os.stat(pubkey_path).st_mode & 511 != 420:  # 420 (decimal) == 0644 (octal)
-        os.chmod(pubkey_path, 420)
-        log.info("File permissions on node public key fixed!")
-
-    if os.stat(privkey_path).st_mode & 511 != 384:  # 384 (decimal) == 0600 (octal)
-        os.chmod(privkey_path, 384)
-        log.info("File permissions on node private key fixed!")
-
-    return pubkey
-
-
 class Node(object):
     """
     A Crossbar.io node is the running a controller process and one or multiple
@@ -275,6 +188,98 @@ class Node(object):
         self._connection_no = 1
         self._transport_no = 1
         self._component_no = 1
+
+        # node private key autobahn.wamp.cryptosign.SigningKey
+        self._node_key = None
+
+    def maybe_generate_key(self, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
+
+        privkey_path = os.path.join(cbdir, privkey_path)
+        pubkey_path = os.path.join(cbdir, pubkey_path)
+
+        if os.path.exists(privkey_path):
+
+            # node private key seems to exist already .. check!
+
+            priv_tags = _parse_keyfile(privkey_path, private=True)
+            for tag in [u'creator', u'created-at', u'machine-id', u'public-key-ed25519', u'private-key-ed25519']:
+                if tag not in priv_tags:
+                    raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
+
+            privkey_hex = priv_tags[u'private-key-ed25519']
+            privkey = SigningKey(privkey_hex, encoder=HexEncoder)
+            pubkey = privkey.verify_key
+            pubkey_hex = pubkey.encode(encoder=HexEncoder).decode('ascii')
+
+            if priv_tags[u'public-key-ed25519'] != pubkey_hex:
+                raise Exception(
+                    ("Inconsistent node private key file {} - public-key-ed25519 doesn't"
+                     " correspond to private-key-ed25519").format(pubkey_path)
+                )
+
+            if os.path.exists(pubkey_path):
+                pub_tags = _parse_keyfile(pubkey_path, private=False)
+                for tag in [u'creator', u'created-at', u'machine-id', u'public-key-ed25519']:
+                    if tag not in pub_tags:
+                        raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
+
+                if pub_tags[u'public-key-ed25519'] != pubkey_hex:
+                    raise Exception(
+                        ("Inconsistent node public key file {} - public-key-ed25519 doesn't"
+                         " correspond to private-key-ed25519").format(pubkey_path)
+                    )
+            else:
+                self.log.info("Node public key file {} not found - re-creating from node private key file {}".format(pubkey_path, privkey_path))
+                pub_tags = OrderedDict([
+                    (u'creator', priv_tags[u'creator']),
+                    (u'created-at', priv_tags[u'created-at']),
+                    (u'machine-id', priv_tags[u'machine-id']),
+                    (u'public-key-ed25519', pubkey_hex),
+                ])
+                msg = u'Crossbar.io public key for node authentication\n\n'
+                _write_node_key(pubkey_path, pub_tags, msg)
+
+            self.log.debug("Node key already exists (public key: {})".format(pubkey_hex))
+
+        else:
+            # node private key does not yet exist: generate one
+
+            privkey = SigningKey.generate()
+            privkey_hex = privkey.encode(encoder=HexEncoder).decode('ascii')
+            pubkey = privkey.verify_key
+            pubkey_hex = pubkey.encode(encoder=HexEncoder).decode('ascii')
+
+            # first, write the public file
+            tags = OrderedDict([
+                (u'creator', _creator()),
+                (u'created-at', utcnow()),
+                (u'machine-id', _machine_id()),
+                (u'public-key-ed25519', pubkey_hex),
+            ])
+            msg = u'Crossbar.io public key for node authentication\n\n'
+            _write_node_key(pubkey_path, tags, msg)
+
+            # now, add the private key and write the private file
+            tags[u'private-key-ed25519'] = privkey_hex
+            msg = u'Crossbar.io private key for node authentication - KEEP THIS SAFE!\n\n'
+            _write_node_key(privkey_path, tags, msg)
+
+            self.log.info("New node key pair generated!")
+
+        # fix file permissions on node public/private key files
+        # note: we use decimals instead of octals as octal literals have changed between Py2/3
+        #
+        if os.stat(pubkey_path).st_mode & 511 != 420:  # 420 (decimal) == 0644 (octal)
+            os.chmod(pubkey_path, 420)
+            self.log.info("File permissions on node public key fixed!")
+
+        if os.stat(privkey_path).st_mode & 511 != 384:  # 384 (decimal) == 0600 (octal)
+            os.chmod(privkey_path, 384)
+            self.log.info("File permissions on node private key fixed!")
+
+        self._node_key = cryptosign.SigningKey(privkey)
+
+        return pubkey_hex
 
     def load(self, configfile=None):
         """
@@ -341,82 +346,47 @@ class Node(object):
             self._node_id = u'{}'.format(socket.gethostname())
             self.log.info("Node ID '{node_id}' set from hostname", node_id=self._node_id)
 
-        # standalone vs managed mode
-        #
-        if 'cdc' in controller_config and controller_config['cdc'].get('enabled', False):
+        if cdc_mode:
+            cdc_config = controller_config.get('cdc', {
 
-            self._prepare_node_keys()
-
-            cdc_config = controller_config['cdc']
-
-            # CDC connecting transport
-            #
-            if 'transport' in cdc_config:
-                transport = cdc_config['transport']
-                if 'tls' in transport['endpoint']:
-                    if 'hostname' in transport['endpoint']:
-                        hostname = transport['endpoint']['tls']['hostname']
-                    else:
-                        raise Exception("TLS activated on CDC connection, but 'hostname' not provided")
-                else:
-                    hostname = None
-                self.log.warn("CDC transport configuration overridden from node config!")
-            else:
-                transport = {
-                    "type": u"websocket",
-                    "url": u"wss://devops.crossbario.com/ws",
-                    "endpoint": {
-                        "type": u"tcp",
-                        "host": u"devops.crossbario.com",
-                        "port": 443,
-                        "timeout": 5,
-                        "tls": {
-                            "hostname": u"devops.crossbario.com"
+                # CDC connecting transport
+                u'transport': {
+                    u'type': u'websocket',
+                    u'url': u'wss://devops.crossbario.com/ws',
+                    u'endpoint': {
+                        u'type': u'tcp',
+                        u'host': u'devops.crossbario.com',
+                        u'port': 443,
+                        u'timeout': 5,
+                        u'tls': {
+                            u'hostname': u'devops.crossbario.com'
                         }
                     }
                 }
-                hostname = u'devops.crossbario.com'
+            })
 
-            # CDC management realm
-            #
-            if 'realm' in cdc_config:
-                realm = cdc_config['realm']
-                self.log.info("CDC management realm '{realm}' set from config", realm=realm)
-            elif 'CDC_REALM' in os.environ:
-                realm = u"{}".format(os.environ['CDC_REALM']).strip()
-                self.log.info("CDC management realm '{realm}' set from enviroment variable CDC_REALM", realm=realm)
-            else:
-                raise Exception("CDC management realm not set - either 'realm' must be set in node configuration, or in CDC_REALM enviroment variable")
-
-            # CDC authentication credentials (for WAMP-CRA)
-            #
-            authid = self._node_id
-            if 'secret' in cdc_config:
-                authkey = cdc_config['secret']
-                self.log.info("CDC authentication secret loaded from config")
-            elif 'CDC_SECRET' in os.environ:
-                authkey = u"{}".format(os.environ['CDC_SECRET']).strip()
-                self.log.info("CDC authentication secret loaded from environment variable CDC_SECRET")
-            else:
-                raise Exception("CDC authentication secret not set - either 'secret' must be set in node configuration, or in CDC_SECRET enviroment variable")
+            transport = cdc_config[u'transport']
+            hostname = None
+            if u'tls' in transport[u'endpoint']:
+                transport[u'endpoint'][u'tls'][u'hostname']
 
             # extra info forwarded to CDC client session
-            #
             extra = {
                 'node': self,
                 'onready': Deferred(),
                 'onexit': Deferred(),
-                'authid': authid,
-                'authkey': authkey
+                'node_key': self._node_key,
             }
 
             runner = ApplicationRunner(
-                url=transport['url'], realm=realm, extra=extra,
+                url=transport['url'],
+                realm=None,
+                extra=extra,
                 ssl=optionsForClientTLS(hostname) if hostname else None,
             )
 
             try:
-                self.log.info("Connecting to CDC at '{url}' ..", url=transport['url'])
+                self.log.info("Connecting to CDC at '{url}' ..", url=transport[u'url'])
                 yield runner.run(NodeManagementSession, start_reactor=False, auto_reconnect=True)
 
                 # wait until we have attached to the uplink CDC
