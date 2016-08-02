@@ -159,8 +159,14 @@ class Node(object):
         # the node's name (must be unique within the management realm)
         self._node_id = None
 
-        # the node's management realm
-        self._realm = None
+        # if run in managed mode, this comes from CDC
+        self._node_extra = None
+
+        # the node management realm when running in managed mode
+        self._management_realm = None
+
+        # the node controller realm
+        self._realm = u'crossbar'
 
         # config of this node.
         self._config = None
@@ -329,23 +335,6 @@ class Node(object):
         else:
             setproctitle.setproctitle(controller_options.get('title', 'crossbar-controller'))
 
-        # the node controller realm
-        #
-        self._realm = controller_config.get(u'realm', u'crossbar')
-
-        # the node's name (must be unique within the management realm when running
-        # in "managed mode")
-        #
-        if 'id' in controller_config:
-            self._node_id = controller_config['id']
-            self.log.info("Node ID '{node_id}' set from config", node_id=self._node_id)
-        elif 'CDC_ID' in os.environ:
-            self._node_id = u'{}'.format(os.environ['CDC_ID'])
-            self.log.info("Node ID '{node_id}' set from environment variable CDC_ID", node_id=self._node_id)
-        else:
-            self._node_id = u'{}'.format(socket.gethostname())
-            self.log.info("Node ID '{node_id}' set from hostname", node_id=self._node_id)
-
         if cdc_mode:
             cdc_config = controller_config.get('cdc', {
 
@@ -390,9 +379,14 @@ class Node(object):
                 yield runner.run(NodeManagementSession, start_reactor=False, auto_reconnect=True)
 
                 # wait until we have attached to the uplink CDC
-                self._manager, management_realm, node_id, node_extra = yield extra['onready']
+                self._manager, self._management_realm, self._node_id, self._node_extra = yield extra['onready']
 
-                self.log.info("Connected to CDC - management realm '{management_realm}', node ID '{node_id}', node extra '{node_extra}'", management_realm=management_realm, node_id=node_id, node_extra=node_extra)
+                self.log.info("Connected to CDC - management realm '{management_realm}', node ID '{node_id}', node extra '{node_extra}'", management_realm=self._management_realm, node_id=self._node_id, node_extra=self._node_extra)
+
+                now = yield self._manager.call(u'com.crossbario.cdc.backend.get_now')
+                self.log.info("Current time at CDC is {now}", now=now)
+
+                self.log.info("Node ID '{node_id}' set from CDC", node_id=self._node_id)
 
             except Exception as e:
                 raise Exception("Could not connect to CDC - {}".format(e))
@@ -404,6 +398,13 @@ class Node(object):
             self.log.info("Connected to Crossbar.io DevOps Center (CDC)! Your node runs in managed mode.")
         else:
             self._manager = None
+
+            if u'id' in controller_config:
+                self._node_id = controller_config[u'id']
+                self.log.info("Node ID '{node_id}' set from config", node_id=self._node_id)
+            else:
+                self._node_id = u'{}'.format(socket.gethostname())
+                self.log.info("Node ID '{node_id}' set from hostname", node_id=self._node_id)
 
             # in standalone mode, a node - by default - is immediately shutting down whenever
             # a worker exits (successfully or with error)
