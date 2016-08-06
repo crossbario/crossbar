@@ -6,3 +6,4 @@ include requirements-in.txt
 include requirements-dev.txt
 recursive-include crossbar/web *
 recursive-include crossbar/templates *
+recursive-include crossbar/keys *
