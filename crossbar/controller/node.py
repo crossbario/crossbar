@@ -34,7 +34,11 @@ import os
 import traceback
 import socket
 import getpass
+import pkg_resources
+import binascii
 from collections import OrderedDict
+
+import pyqrcode
 
 from nacl.signing import SigningKey
 from nacl.encoding import HexEncoder
@@ -50,7 +54,9 @@ from autobahn.wamp import cryptosign
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationRunner
+from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
 
+import crossbar
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
@@ -62,6 +68,26 @@ from crossbar.controller.management import NodeManagementSession
 
 
 __all__ = ('Node',)
+
+
+def _read_release_pubkey():
+    release_pubkey_file = 'crossbar-{}.pub'.format('-'.join(crossbar.__version__.split('.')[0:2]))
+    release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'keys'), release_pubkey_file)
+
+    release_pubkey_hex = binascii.b2a_hex(_read_signify_ed25519_pubkey(release_pubkey_path)).decode('ascii')
+
+    with open(release_pubkey_path) as f:
+        release_pubkey_base64 = f.read().splitlines()[1]
+
+    release_pubkey_qrcode = _qrcode_from_signify_ed25519_pubkey(release_pubkey_path)
+
+    release_pubkey = {
+        u'base64': release_pubkey_base64,
+        u'hex': release_pubkey_hex,
+        u'qrcode': release_pubkey_qrcode
+    }
+
+    return release_pubkey
 
 
 def _parse_keyfile(key_path, private=True):
@@ -93,6 +119,43 @@ def _parse_keyfile(key_path, private=True):
                     raise Exception("Duplicate tag '{}' in key file {}".format(tag, key_path))
                 tags[tag] = value
     return tags
+
+
+def _read_node_pubkey(cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
+
+    node_pubkey_path = os.path.join(cbdir, pubkey_path)
+
+    if not os.path.exists(node_pubkey_path):
+        raise Exception('no node public key found at {}'.format(node_pubkey_path))
+
+    node_pubkey_tags = _parse_keyfile(node_pubkey_path)
+
+    node_pubkey_hex = node_pubkey_tags[u'public-key-ed25519']
+
+    qr = pyqrcode.create(node_pubkey_hex, error='L', mode='binary')
+
+    mode = 'text'
+
+    if mode == 'text':
+        node_pubkey_qr = qr.terminal()
+
+    elif mode == 'svg':
+        import io
+        data_buffer = io.BytesIO()
+
+        qr.svg(data_buffer, omithw=True)
+
+        node_pubkey_qr = data_buffer.getvalue()
+
+    else:
+        raise Exception('logic error')
+
+    node_pubkey = {
+        u'hex': node_pubkey_hex,
+        u'qrcode': node_pubkey_qr
+    }
+
+    return node_pubkey
 
 
 def _machine_id():
@@ -242,7 +305,7 @@ class Node(object):
                     (u'machine-id', priv_tags[u'machine-id']),
                     (u'public-key-ed25519', pubkey_hex),
                 ])
-                msg = u'Crossbar.io public key for node authentication\n\n'
+                msg = u'Crossbar.io node public key\n\n'
                 _write_node_key(pubkey_path, pub_tags, msg)
 
             self.log.debug("Node key already exists (public key: {})".format(pubkey_hex))
@@ -262,12 +325,12 @@ class Node(object):
                 (u'machine-id', _machine_id()),
                 (u'public-key-ed25519', pubkey_hex),
             ])
-            msg = u'Crossbar.io public key for node authentication\n\n'
+            msg = u'Crossbar.io node public key\n\n'
             _write_node_key(pubkey_path, tags, msg)
 
             # now, add the private key and write the private file
             tags[u'private-key-ed25519'] = privkey_hex
-            msg = u'Crossbar.io private key for node authentication - KEEP THIS SAFE!\n\n'
+            msg = u'Crossbar.io node private key - KEEP THIS SAFE!\n\n'
             _write_node_key(privkey_path, tags, msg)
 
             self.log.info("New node key pair generated!")

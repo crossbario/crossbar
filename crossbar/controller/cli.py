@@ -59,7 +59,7 @@ from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
 
-from crossbar.controller.node import Node
+from crossbar.controller.node import Node, _read_release_pubkey, _read_node_pubkey
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
@@ -214,7 +214,6 @@ def run_command_version(options, reactor=None, **kwargs):
     Subcommand "crossbar version".
     """
     log = make_logger()
-    # verbose = True
 
     # Python
     py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
@@ -294,6 +293,9 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         lmdb_ver = '-'
 
+    # Release Public Key
+    release_pubkey = _read_release_pubkey()
+
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
@@ -321,7 +323,29 @@ def run_command_version(options, reactor=None, **kwargs):
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
     log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
+    log.info(" Release key        : {release_pubkey}", release_pubkey=decorate(release_pubkey[u'base64']))
     log.info("")
+
+
+def run_command_keys(options, reactor=None, **kwargs):
+    """
+    Subcommand "crossbar keys".
+    """
+    log = make_logger()
+
+    # Release (public) key
+    release_pubkey = _read_release_pubkey()
+
+    # Node (public) key
+    node_pubkey = _read_node_pubkey(options.cbdir)
+
+    log.info(release_pubkey[u'qrcode'])
+    log.info('   Release key: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
+    log.info('')
+
+    log.info(node_pubkey[u'qrcode'])
+    log.info('   Node key: {node_pubkey}', node_pubkey=node_pubkey[u'hex'])
+    log.info('')
 
 
 def run_command_templates(options, **kwargs):
@@ -751,6 +775,23 @@ def run(prog=None, args=None, reactor=None):
                                 **colour_args)
 
     parser_version.set_defaults(func=run_command_version)
+
+    # "keys" command
+    #
+    parser_keys = subparsers.add_parser('keys',
+                                        help='Print Crossbar.io release and node keys.')
+
+    parser_keys.add_argument('--cbdir',
+                             type=six.text_type,
+                             default=None,
+                             help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser_keys.add_argument('--loglevel',
+                             **loglevel_args)
+    parser_keys.add_argument('--colour',
+                             **colour_args)
+
+    parser_keys.set_defaults(func=run_command_keys)
 
     # "init" command
     #
