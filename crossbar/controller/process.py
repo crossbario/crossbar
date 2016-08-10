@@ -149,6 +149,8 @@ class NodeControllerSession(NativeProcessSession):
             'shutdown',
 
             'get_workers',
+
+            'get_worker',
             'get_worker_log',
 
             'start_router',
@@ -286,6 +288,26 @@ class NodeControllerSession(NativeProcessSession):
                 }
             )
         return res
+
+    def get_worker(self, id, details=None):
+        if id not in self._workers:
+            emsg = "No worker with ID '{}'".format(id)
+            raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
+
+        worker = self._workers[id]
+
+        worker_info = {
+            u'id': worker.id,
+            u'pid': worker.pid,
+            u'type': worker.TYPE,
+            u'status': worker.status,
+            u'created': utcstr(worker.created),
+            u'started': utcstr(worker.started),
+            u'startup_time': (worker.started - worker.created).total_seconds() if worker.started else None,
+            u'uptime': (now - worker.started).total_seconds() if worker.started else None,
+        }
+
+        return worker_info
 
     def get_worker_log(self, id, limit=None, details=None):
         """
