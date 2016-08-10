@@ -446,7 +446,7 @@ class Node(object):
 
                 self.log.info("Connected to CDC - management realm '{management_realm}', node ID '{node_id}', node extra '{node_extra}'", management_realm=self._management_realm, node_id=self._node_id, node_extra=self._node_extra)
 
-                now = yield self._manager.call(u'com.crossbario.cdc.backend.get_now')
+                now = yield self._manager.call(u'com.crossbario.cdc.api.get_now')
                 self.log.info("Current time at CDC is {now}", now=now)
 
                 self.log.info("Node ID '{node_id}' set from CDC", node_id=self._node_id)
