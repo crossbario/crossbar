@@ -113,7 +113,7 @@ class CallerTestCase(TestCase):
     def setUp(self):
 
         # create a router factory
-        self.router_factory = RouterFactory(u'mynode')
+        self.router_factory = RouterFactory()
 
         # start a realm
         self.realm = RouterRealm(None, {u'name': u'realm1'})

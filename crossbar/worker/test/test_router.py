@@ -91,8 +91,9 @@ class FakeWAMPTransport(object):
             self._session.onMessage(
                 Registered(message.request, message.request))
         elif isinstance(message, Publish):
-            self._session.onMessage(
-                Published(message.request, message.request))
+            if message.acknowledge:
+                self._session.onMessage(
+                    Published(message.request, message.request))
         elif isinstance(message, Subscribe):
             self._session.onMessage(
                 Subscribed(message.request, message.request))
@@ -112,8 +113,7 @@ class RouterWorkerSessionTests(TestCase):
         Set up the common component config.
         """
         self.realm = u"realm1"
-        config_extras = DottableDict({"node": "testnode",
-                                      "worker": "worker1",
+        config_extras = DottableDict({"worker": "worker1",
                                       "cbdir": self.mktemp()})
         self.config = ComponentConfig(self.realm, extra=config_extras)
 
@@ -282,8 +282,7 @@ class WebTests(TestCase):
     def setUp(self):
         self.cbdir = self.mktemp()
         os.makedirs(self.cbdir)
-        config_extras = DottableDict({"node": u"testnode",
-                                      "worker": u"worker1",
+        config_extras = DottableDict({"worker": u"worker1",
                                       "cbdir": self.cbdir.decode('utf8')
                                       if not isinstance(self.cbdir, six.text_type)
                                       else self.cbdir})
@@ -360,8 +359,7 @@ class WSGITests(TestCase):
     def setUp(self):
         self.cbdir = self.mktemp()
         os.makedirs(self.cbdir)
-        config_extras = DottableDict({"node": "testnode",
-                                      "worker": "worker1",
+        config_extras = DottableDict({"worker": "worker1",
                                       "cbdir": self.cbdir})
         self.config = ComponentConfig(u"realm1", extra=config_extras)
 

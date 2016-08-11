@@ -93,7 +93,7 @@ class WorkerProcess(object):
         else:
             self._log_fds = [1, 2]
         self._log_lineno = 0
-        self._log_topic = 'crossbar.node.{}.worker.{}.on_log'.format(self._controller._node_id, self.id)
+        self._log_topic = u'crossbar.worker.{}.on_log'.format(self.id)
 
         self._log_rich = None  # Does not support rich logs
 

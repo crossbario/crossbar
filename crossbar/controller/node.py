@@ -219,14 +219,14 @@ class Node(object):
             from twisted.internet import reactor
         self._reactor = reactor
 
-        # the node's name (must be unique within the management realm)
+        # the node's management realm when running in managed mode (this comes from CDC!)
+        self._management_realm = None
+
+        # the node's ID when running in managed mode (this comes from CDC!)
         self._node_id = None
 
-        # if run in managed mode, this comes from CDC
+        # node extra when running in managed mode (this comes from CDC!)
         self._node_extra = None
-
-        # the node management realm when running in managed mode
-        self._management_realm = None
 
         # the node controller realm
         self._realm = u'crossbar'
@@ -234,18 +234,24 @@ class Node(object):
         # config of this node.
         self._config = None
 
+        # node private key autobahn.wamp.cryptosign.SigningKey
+        self._node_key = None
+
         # node controller session (a singleton ApplicationSession embedded
         # in the local node router)
         self._controller = None
 
-        # when run in "managed mode", this will hold the uplink WAMP session
-        # from the node controller to the mananagement application
+        # when running in managed mode, this will hold the bridge session
+        # attached to the local management router
+        self._bridge_session = None
+
+        # when running in managed mode, this will hold the uplink session to CDC
         self._manager = None
 
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
 
-        # map fro router worker IDs to
+        # map from router worker IDs to
         self._realm_templates = {}
 
         # for node elements started under specific IDs, and where
@@ -257,9 +263,6 @@ class Node(object):
         self._connection_no = 1
         self._transport_no = 1
         self._component_no = 1
-
-        # node private key autobahn.wamp.cryptosign.SigningKey
-        self._node_key = None
 
     def maybe_generate_key(self, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
 
@@ -386,6 +389,8 @@ class Node(object):
         if not self._config:
             raise Exception("No node configuration loaded")
 
+        # get controller config/options
+        #
         controller_config = self._config.get('controller', {})
         controller_options = controller_config.get('options', {})
 
@@ -398,20 +403,49 @@ class Node(object):
         else:
             setproctitle.setproctitle(controller_options.get('title', 'crossbar-controller'))
 
+        # router and factory that creates router sessions
+        #
+        self._router_factory = RouterFactory()
+        self._router_session_factory = RouterSessionFactory(self._router_factory)
+
+        # create a new router for the realm
+        #
+        rlm_config = {
+            'name': self._realm
+        }
+        rlm = RouterRealm(None, rlm_config)
+        router = self._router_factory.start_realm(rlm)
+
+        # always add a realm service session
+        #
+        cfg = ComponentConfig(self._realm)
+        rlm.session = RouterServiceSession(cfg, router)
+        self._router_session_factory.add(rlm.session, authrole=u'trusted')
+
+        # add a router bridge session when running in managed mode
+        #
+        if cdc_mode:
+            self._bridge_session = NodeManagementBridgeSession(cfg)
+            self._router_session_factory.add(self._bridge_session, authrole=u'trusted')
+        else:
+            self._bridge_session = None
+
+        # setup uplink management session when running in connected mode
+        #
         if cdc_mode:
             cdc_config = controller_config.get('cdc', {
 
                 # CDC connecting transport
                 u'transport': {
                     u'type': u'websocket',
-                    u'url': u'wss://devops.crossbario.com/ws',
+                    u'url': u'wss://cdc.crossbario.com/ws',
                     u'endpoint': {
                         u'type': u'tcp',
-                        u'host': u'devops.crossbario.com',
+                        u'host': u'cdc.crossbario.com',
                         u'port': 443,
                         u'timeout': 5,
                         u'tls': {
-                            u'hostname': u'devops.crossbario.com'
+                            u'hostname': u'cdc.crossbario.com'
                         }
                     }
                 }
@@ -422,53 +456,60 @@ class Node(object):
             if u'tls' in transport[u'endpoint']:
                 transport[u'endpoint'][u'tls'][u'hostname']
 
-            # extra info forwarded to CDC client session
-            extra = {
-                'node': self,
-                'onready': Deferred(),
-                'onexit': Deferred(),
-                'node_key': self._node_key,
-            }
-
             runner = ApplicationRunner(
                 url=transport['url'],
                 realm=None,
-                extra=extra,
+                extra=None,
                 ssl=optionsForClientTLS(hostname) if hostname else None,
             )
 
-            try:
-                self.log.info("Connecting to CDC at '{url}' ..", url=transport[u'url'])
-                yield runner.run(NodeManagementSession, start_reactor=False, auto_reconnect=True)
+            def make(config):
+                # extra info forwarded to CDC client session
+                extra = {
+                    'node': self,
+                    'on_ready': Deferred(),
+                    'on_exit': Deferred(),
+                    'node_key': self._node_key,
+                }
 
-                # wait until we have attached to the uplink CDC
-                self._manager, self._management_realm, self._node_id, self._node_extra = yield extra['onready']
+                @inlineCallbacks
+                def on_ready(res):
+                    self._manager, self._management_realm, self._node_id, self._node_extra = res
 
-                self.log.info("Connected to CDC - management realm '{management_realm}', node ID '{node_id}', node extra '{node_extra}'", management_realm=self._management_realm, node_id=self._node_id, node_extra=self._node_extra)
+                    if self._bridge_session:
+                        self._bridge_session.attach_manager(self._manager, self._management_realm, self._node_id)
+                    else:
+                        self.log.warn('Uplink CDC session established, but no bridge session setup!')
 
-                now = yield self._manager.call(u'com.crossbario.cdc.api.get_now')
-                self.log.info("Current time at CDC is {now}", now=now)
+                    now = yield self._manager.call(u'com.crossbario.cdc.api.get_now')
+                    self.log.info("Connected to CDC (current time is {now})", now=now)
 
-                self.log.info("Node ID '{node_id}' set from CDC", node_id=self._node_id)
+                def on_exit(res):
+                    if self._bridge_session:
+                        self._bridge_session.detach_manager()
+                    else:
+                        self.log.warn('Uplink CDC session lost, but no bridge session setup!')
 
-            except Exception as e:
-                raise Exception("Could not connect to CDC - {}".format(e))
+                    self._manager, self._management_realm, self._node_id, self._node_extra = None, None, None, None
 
+                extra['on_ready'].addCallback(on_ready)
+                extra['on_exit'].addCallback(on_exit)
+
+                config = ComponentConfig(extra=extra)
+                session = NodeManagementSession(config)
+
+                return session
+
+            self.log.info("Connecting to CDC at '{url}' ..", url=transport[u'url'])
+            yield runner.run(make, start_reactor=False, auto_reconnect=True)
+
+        # Node shutdown mode
+        #
+        if cdc_mode:
             # in managed mode, a node - by default - only shuts down when explicitly asked to,
             # or upon a fatal error in the node controller
             self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED]
-
-            self.log.info("Connected to Crossbar.io DevOps Center (CDC)! Your node runs in managed mode.")
         else:
-            self._manager = None
-
-            if u'id' in controller_config:
-                self._node_id = controller_config[u'id']
-                self.log.info("Node ID '{node_id}' set from config", node_id=self._node_id)
-            else:
-                self._node_id = u'{}'.format(socket.gethostname())
-                self.log.info("Node ID '{node_id}' set from hostname", node_id=self._node_id)
-
             # in standalone mode, a node - by default - is immediately shutting down whenever
             # a worker exits (successfully or with error)
             self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
@@ -481,40 +522,15 @@ class Node(object):
         else:
             self.log.info("Using default node shutdown triggers {}".format(self._node_shutdown_triggers))
 
-        # router and factory that creates router sessions
-        #
-        self._router_factory = RouterFactory(self._node_id)
-        self._router_session_factory = RouterSessionFactory(self._router_factory)
+        from autobahn.twisted.util import sleep
+        yield sleep(2)
 
-        rlm_config = {
-            'name': self._realm
-        }
-        rlm = RouterRealm(None, rlm_config)
-
-        # create a new router for the realm
-        router = self._router_factory.start_realm(rlm)
-
-        # add a router/realm service session
-        cfg = ComponentConfig(self._realm)
-
-        rlm.session = RouterServiceSession(cfg, router)
-        self._router_session_factory.add(rlm.session, authrole=u'trusted')
-
-        if self._manager:
-            self._bridge_session = NodeManagementBridgeSession(cfg, self, self._manager)
-            self._router_session_factory.add(self._bridge_session, authrole=u'trusted')
-        else:
-            self._bridge_session = None
-
-        # the node controller singleton WAMP application session
+        # add the node controller singleton session
         #
         self._controller = NodeControllerSession(self)
-
-        # add the node controller singleton session to the router
-        #
         self._router_session_factory.add(self._controller, authrole=u'trusted')
 
-        # Detect WAMPlets
+        # detect WAMPlets (FIXME: remove this!)
         #
         wamplets = self._controller._get_wamplets()
         if len(wamplets) > 0:
@@ -526,8 +542,9 @@ class Node(object):
         else:
             self.log.debug("No WAMPlets detected in enviroment.")
 
+        # Startup the node
+        #
         panic = False
-
         try:
             yield self._startup(self._config)
 
@@ -557,6 +574,8 @@ class Node(object):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
+        self.log.info('Configuring node from config ..')
+
         # call options we use to call into the local node management API
         call_options = CallOptions()
 
@@ -617,17 +636,17 @@ class Node(object):
 
                 # setup native worker generic stuff
                 if 'pythonpath' in worker_options:
-                    added_paths = yield self._controller.call('crossbar.node.{}.worker.{}.add_pythonpath'.format(self._node_id, worker_id), worker_options['pythonpath'], options=call_options)
+                    added_paths = yield self._controller.call('crossbar.worker.{}.add_pythonpath'.format(worker_id), worker_options['pythonpath'], options=call_options)
                     self.log.debug("{worker}: PYTHONPATH extended for {paths}",
                                    worker=worker_logname, paths=added_paths)
 
                 if 'cpu_affinity' in worker_options:
-                    new_affinity = yield self._controller.call('crossbar.node.{}.worker.{}.set_cpu_affinity'.format(self._node_id, worker_id), worker_options['cpu_affinity'], options=call_options)
+                    new_affinity = yield self._controller.call('crossbar.worker.{}.set_cpu_affinity'.format(worker_id), worker_options['cpu_affinity'], options=call_options)
                     self.log.debug("{worker}: CPU affinity set to {affinity}",
                                    worker=worker_logname, affinity=new_affinity)
 
                 if 'manhole' in worker:
-                    yield self._controller.call('crossbar.node.{}.worker.{}.start_manhole'.format(self._node_id, worker_id), worker['manhole'], options=call_options)
+                    yield self._controller.call('crossbar.worker.{}.start_manhole'.format(worker_id), worker['manhole'], options=call_options)
                     self.log.debug("{worker}: manhole started",
                                    worker=worker_logname)
 
@@ -644,7 +663,7 @@ class Node(object):
                             realm_id = 'realm-{:03d}'.format(self._realm_no)
                             self._realm_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm'.format(self._node_id, worker_id), realm_id, realm, options=call_options)
+                        yield self._controller.call('crossbar.worker.{}.start_router_realm'.format(worker_id), realm_id, realm, options=call_options)
                         self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
                                       worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
 
@@ -656,7 +675,7 @@ class Node(object):
                                 role_id = 'role-{:03d}'.format(self._role_no)
                                 self._role_no += 1
 
-                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_role'.format(self._node_id, worker_id), realm_id, role_id, role, options=call_options)
+                            yield self._controller.call('crossbar.worker.{}.start_router_realm_role'.format(worker_id), realm_id, role_id, role, options=call_options)
                             self.log.info("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
 
                         # start uplinks for realm
@@ -667,7 +686,7 @@ class Node(object):
                                 uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
                                 self._uplink_no += 1
 
-                            yield self._controller.call('crossbar.node.{}.worker.{}.start_router_realm_uplink'.format(self._node_id, worker_id), realm_id, uplink_id, uplink, options=call_options)
+                            yield self._controller.call('crossbar.worker.{}.start_router_realm_uplink'.format(worker_id), realm_id, uplink_id, uplink, options=call_options)
                             self.log.info("{}: uplink '{}' started on realm '{}'".format(worker_logname, uplink_id, realm_id))
 
                     # start connections (such as PostgreSQL database connection pools)
@@ -680,7 +699,7 @@ class Node(object):
                             connection_id = 'connection-{:03d}'.format(self._connection_no)
                             self._connection_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
+                        yield self._controller.call('crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=call_options)
                         self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
 
                     # start components to run embedded in the router
@@ -692,7 +711,7 @@ class Node(object):
                             component_id = 'component-{:03d}'.format(self._component_no)
                             self._component_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
+                        yield self._controller.call('crossbar.worker.{}.start_router_component'.format(worker_id), component_id, component, options=call_options)
                         self.log.info("{}: component '{}' started".format(worker_logname, component_id))
 
                     # start transports on router
@@ -704,7 +723,7 @@ class Node(object):
                             transport_id = 'transport-{:03d}'.format(self._transport_no)
                             self._transport_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_router_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
+                        yield self._controller.call('crossbar.worker.{}.start_router_transport'.format(worker_id), transport_id, transport, options=call_options)
                         self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
 
                 # setup container worker
@@ -724,7 +743,7 @@ class Node(object):
                             self._reactor.stop()
                         except twisted.internet.error.ReactorNotRunning:
                             pass
-                    topic = 'crossbar.node.{}.worker.{}.container.on_component_stop'.format(self._node_id, worker_id)
+                    topic = 'crossbar.worker.{}.container.on_component_stop'.format(worker_id)
                     component_stop_sub = yield self._controller.subscribe(component_exited, topic)
 
                     # start connections (such as PostgreSQL database connection pools)
@@ -738,7 +757,7 @@ class Node(object):
                             connection_id = 'connection-{:03d}'.format(self._connection_no)
                             self._connection_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_connection'.format(self._node_id, worker_id), connection_id, connection, options=call_options)
+                        yield self._controller.call('crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=call_options)
                         self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
 
                     # start components to run embedded in the container
@@ -751,7 +770,7 @@ class Node(object):
                             component_id = 'component-{:03d}'.format(self._component_no)
                             self._component_no += 1
 
-                        yield self._controller.call('crossbar.node.{}.worker.{}.start_container_component'.format(self._node_id, worker_id), component_id, component, options=call_options)
+                        yield self._controller.call('crossbar.worker.{}.start_container_component'.format(worker_id), component_id, component, options=call_options)
                         self.log.info("{worker}: component '{component_id}' started",
                                       worker=worker_logname, component_id=component_id)
 
@@ -766,7 +785,7 @@ class Node(object):
                     transport_id = 'transport-{:03d}'.format(self._transport_no)
                     self._transport_no = 1
 
-                    yield self._controller.call('crossbar.node.{}.worker.{}.start_websocket_testee_transport'.format(self._node_id, worker_id), transport_id, transport, options=call_options)
+                    yield self._controller.call('crossbar.worker.{}.start_websocket_testee_transport'.format(worker_id), transport_id, transport, options=call_options)
                     self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
 
                 else:

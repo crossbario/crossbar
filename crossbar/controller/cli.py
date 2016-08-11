@@ -633,7 +633,7 @@ def run_command_start(options, reactor=None):
 
         def on_error(err):
             log.error("{e!s}", e=err.value)
-            log.error("Could not start node")
+            log.error("Could not start node: {err}".format(err))
             if reactor.running:
                 reactor.stop()
         d.addErrback(on_error)
