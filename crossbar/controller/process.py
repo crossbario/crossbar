@@ -294,6 +294,7 @@ class NodeControllerSession(NativeProcessSession):
             emsg = "No worker with ID '{}'".format(id)
             raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
 
+        now = datetime.utcnow()
         worker = self._workers[id]
 
         worker_info = {
