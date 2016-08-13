@@ -183,10 +183,19 @@ class NodeManagementBridgeSession(ApplicationSession):
 
             crossbar.worker.worker-001.start_manhole
                 ->
-            com.crossbario.cdc.api.node.<node_id>.worker.<worker_id>.start_manhole
+            com.crossbario.cdc.node.<node_id>.worker.<worker_id>.start_manhole
+
+        The complete namespace "com.crossbario.cdc.node.*"" is part of the node
+        management API.
         """
-        if uri.startswith('crossbar.'):
-            return u'local.crossbar.node.{}.{}'.format(self._node_id, uri[9:])
+        _PREFIX = 'crossbar.'
+        _TARGET_PREFIX = 'com.crossbario.cdc.node.'
+
+        if uri.startswith(_PREFIX):
+            suffix = uri[len(_PREFIX):]
+            mapped_uri = u''.join([_TARGET_PREFIX, self._node_id, suffix])
+            self.log.info("mapped URI {uri} to {mapped_uri}", uri=uri, mapped_uri=mapped_uri)
+            return mapped_uri
         else:
             raise Exception("don't know how to translate URI {}".format(uri))
 
