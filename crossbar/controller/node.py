@@ -482,11 +482,11 @@ class Node(object):
                         self.log.warn('Uplink CDC session established, but no bridge session setup!')
 
                     try:
-                        now = yield self._manager.call(u'com.crossbario.cdc.general.get_now@1')
+                        status = yield self._manager.call(u'com.crossbario.cdc.general.get_status@1')
                     except:
                         self.log.failure()
                     else:
-                        self.log.info("Connected to CDC (current time is {now})", now=now)
+                        self.log.info('Connected to CDC for management realm "{realm}" (current time is {now})', realm=status[u'realm'], now=status[u'now'])
 
                 def on_exit(res):
                     self.log.error(res)
