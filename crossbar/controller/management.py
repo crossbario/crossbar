@@ -98,8 +98,13 @@ class NodeManagementSession(ApplicationSession):
 
     def onJoin(self, details):
         # SessionDetails(realm=<com.crossbario.cdc.mrealm-test1>, session=3537745190930657, authid=<node0>, authrole=<cdc-node>, authmethod=cryptosign, authprovider=dynamic, authextra={'bar': 'baz', 'foo': 42})
-        self.log.info("CDC uplink (remote leg) ready: {details}", details=details)
-        self.config.extra['on_ready'].callback((self, details.realm, details.authid, details.authextra))
+        self.log.info("CDC uplink (remote leg) initializing .. {details}", details=details)
+        try:
+            self.config.extra['on_ready'].callback((self, details.realm, details.authid, details.authextra))
+        except:
+            self.log.failure()
+        else:
+            self.log.info("CDC uplink (remote leg) ready!")
 
     def onLeave(self, details):
         if details.reason != u"wamp.close.normal":
@@ -188,12 +193,12 @@ class NodeManagementBridgeSession(ApplicationSession):
         The complete namespace "com.crossbario.cdc.node.*"" is part of the node
         management API.
         """
-        _PREFIX = 'crossbar.'
-        _TARGET_PREFIX = 'com.crossbario.cdc.node.'
+        _PREFIX = u'crossbar.'
+        _TARGET_PREFIX = u'com.crossbario.cdc.node'
 
         if uri.startswith(_PREFIX):
             suffix = uri[len(_PREFIX):]
-            mapped_uri = u''.join([_TARGET_PREFIX, self._node_id, suffix])
+            mapped_uri = u'.'.join([_TARGET_PREFIX, self._node_id, suffix])
             self.log.info("mapped URI {uri} to {mapped_uri}", uri=uri, mapped_uri=mapped_uri)
             return mapped_uri
         else:

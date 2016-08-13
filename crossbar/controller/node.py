@@ -481,10 +481,15 @@ class Node(object):
                     else:
                         self.log.warn('Uplink CDC session established, but no bridge session setup!')
 
-                    now = yield self._manager.call(u'com.crossbario.cdc.api.get_now')
-                    self.log.info("Connected to CDC (current time is {now})", now=now)
+                    try:
+                        now = yield self._manager.call(u'com.crossbario.cdc.general.get_now@1')
+                    except:
+                        self.log.failure()
+                    else:
+                        self.log.info("Connected to CDC (current time is {now})", now=now)
 
                 def on_exit(res):
+                    self.log.error(res)
                     if self._bridge_session:
                         self._bridge_session.detach_manager()
                     else:
