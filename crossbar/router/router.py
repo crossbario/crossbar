@@ -279,6 +279,9 @@ class Router(object):
                 if action in [u'call', u'publish']:
                     authorization[u'disclose'] = False
 
+                if role == u'trusted':
+                    authorization[u'disclose'] = True
+
             self.log.debug("Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and authrole '{authrole}' -> authorization: {authorization}",
                            session_id=session._session_id,
                            uri=uri,

@@ -430,84 +430,6 @@ class Node(object):
         else:
             self._bridge_session = None
 
-        # setup uplink management session when running in connected mode
-        #
-        if cdc_mode:
-            cdc_config = controller_config.get('cdc', {
-
-                # CDC connecting transport
-                u'transport': {
-                    u'type': u'websocket',
-                    u'url': u'wss://cdc.crossbario.com/ws',
-                    u'endpoint': {
-                        u'type': u'tcp',
-                        u'host': u'cdc.crossbario.com',
-                        u'port': 443,
-                        u'timeout': 5,
-                        u'tls': {
-                            u'hostname': u'cdc.crossbario.com'
-                        }
-                    }
-                }
-            })
-
-            transport = cdc_config[u'transport']
-            hostname = None
-            if u'tls' in transport[u'endpoint']:
-                transport[u'endpoint'][u'tls'][u'hostname']
-
-            runner = ApplicationRunner(
-                url=transport['url'],
-                realm=None,
-                extra=None,
-                ssl=optionsForClientTLS(hostname) if hostname else None,
-            )
-
-            def make(config):
-                # extra info forwarded to CDC client session
-                extra = {
-                    'node': self,
-                    'on_ready': Deferred(),
-                    'on_exit': Deferred(),
-                    'node_key': self._node_key,
-                }
-
-                @inlineCallbacks
-                def on_ready(res):
-                    self._manager, self._management_realm, self._node_id, self._node_extra = res
-
-                    if self._bridge_session:
-                        self._bridge_session.attach_manager(self._manager, self._management_realm, self._node_id)
-                    else:
-                        self.log.warn('Uplink CDC session established, but no bridge session setup!')
-
-                    try:
-                        status = yield self._manager.call(u'com.crossbario.cdc.general.get_status@1')
-                    except:
-                        self.log.failure()
-                    else:
-                        self.log.info('Connected to CDC for management realm "{realm}" (current time is {now})', realm=status[u'realm'], now=status[u'now'])
-
-                def on_exit(res):
-                    self.log.error(res)
-                    if self._bridge_session:
-                        self._bridge_session.detach_manager()
-                    else:
-                        self.log.warn('Uplink CDC session lost, but no bridge session setup!')
-
-                    self._manager, self._management_realm, self._node_id, self._node_extra = None, None, None, None
-
-                extra['on_ready'].addCallback(on_ready)
-                extra['on_exit'].addCallback(on_exit)
-
-                config = ComponentConfig(extra=extra)
-                session = NodeManagementSession(config)
-
-                return session
-
-            self.log.info("Connecting to CDC at '{url}' ..", url=transport[u'url'])
-            yield runner.run(make, start_reactor=False, auto_reconnect=True)
-
         # Node shutdown mode
         #
         if cdc_mode:
@@ -527,9 +449,6 @@ class Node(object):
         else:
             self.log.info("Using default node shutdown triggers {}".format(self._node_shutdown_triggers))
 
-        from autobahn.twisted.util import sleep
-        yield sleep(2)
-
         # add the node controller singleton session
         #
         self._controller = NodeControllerSession(self)
@@ -547,14 +466,92 @@ class Node(object):
         else:
             self.log.debug("No WAMPlets detected in enviroment.")
 
-        # Startup the node
-        #
         panic = False
         try:
+            # startup the node from local node configuration
+            #
             yield self._startup(self._config)
 
+            # connect to CDC when running in managed mode
+            #
+            if cdc_mode:
+                cdc_config = controller_config.get('cdc', {
+
+                    # CDC connecting transport
+                    u'transport': {
+                        u'type': u'websocket',
+                        u'url': u'wss://cdc.crossbario.com/ws',
+                        u'endpoint': {
+                            u'type': u'tcp',
+                            u'host': u'cdc.crossbario.com',
+                            u'port': 443,
+                            u'timeout': 5,
+                            u'tls': {
+                                u'hostname': u'cdc.crossbario.com'
+                            }
+                        }
+                    }
+                })
+
+                transport = cdc_config[u'transport']
+                hostname = None
+                if u'tls' in transport[u'endpoint']:
+                    transport[u'endpoint'][u'tls'][u'hostname']
+
+                runner = ApplicationRunner(
+                    url=transport['url'],
+                    realm=None,
+                    extra=None,
+                    ssl=optionsForClientTLS(hostname) if hostname else None,
+                )
+
+                def make(config):
+                    # extra info forwarded to CDC client session
+                    extra = {
+                        'node': self,
+                        'on_ready': Deferred(),
+                        'on_exit': Deferred(),
+                        'node_key': self._node_key,
+                    }
+
+                    @inlineCallbacks
+                    def on_ready(res):
+                        self._manager, self._management_realm, self._node_id, self._node_extra = res
+
+                        if self._bridge_session:
+                            self._bridge_session.attach_manager(self._manager, self._management_realm, self._node_id)
+                        else:
+                            self.log.warn('Uplink CDC session established, but no bridge session setup!')
+
+                        try:
+                            status = yield self._manager.call(u'com.crossbario.cdc.general.get_status@1')
+                        except:
+                            self.log.failure()
+                        else:
+                            self.log.info('Connected to CDC for management realm "{realm}" (current time is {now})', realm=status[u'realm'], now=status[u'now'])
+
+                    def on_exit(res):
+                        self.log.error(res)
+                        if self._bridge_session:
+                            self._bridge_session.detach_manager()
+                        else:
+                            self.log.warn('Uplink CDC session lost, but no bridge session setup!')
+
+                        self._manager, self._management_realm, self._node_id, self._node_extra = None, None, None, None
+
+                    extra['on_ready'].addCallback(on_ready)
+                    extra['on_exit'].addCallback(on_exit)
+
+                    config = ComponentConfig(extra=extra)
+                    session = NodeManagementSession(config)
+
+                    return session
+
+                self.log.info("Connecting to CDC at '{url}' ..", url=transport[u'url'])
+                yield runner.run(make, start_reactor=False, auto_reconnect=True)
+
             # Notify systemd that crossbar is fully up and running
-            # This has no effect on non-systemd platforms
+            # (this has no effect on non-systemd platforms)
             try:
                 import sdnotify
                 sdnotify.SystemdNotifier().notify("READY=1")
@@ -564,6 +561,7 @@ class Node(object):
         except ApplicationError as e:
             panic = True
             self.log.error("{msg}", msg=e.error_message())
+
         except Exception:
             panic = True
             traceback.print_exc()

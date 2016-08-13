@@ -150,7 +150,16 @@ class NodeManagementBridgeSession(ApplicationSession):
         self._management_realm = None
         self._node_id = None
         self._regs = {}
+        self._authrole = u'trusted'
+        self._authmethod = u'trusted'
+        self._sub_on_mgmt = None
+        self._sub_on_reg_create = None
+        self._sub_on_reg_delete = None
 
+    def onJoin(self, details):
+        self.log.info("CDC uplink (local leg) ready!")
+
+    @inlineCallbacks
     def attach_manager(self, manager, management_realm, node_id):
         """
         Attach management uplink session when the latter has been fully established
@@ -164,16 +173,26 @@ class NodeManagementBridgeSession(ApplicationSession):
         :type node_id: unicode
         """
         assert(self._manager is None)
-        self.log.info('NodeManagementBridgeSession: manager attached (as node "{node_id}" on management realm "{management_realm}")', node_id=node_id, management_realm=management_realm)
+
         self._manager = manager
         self._management_realm = management_realm
         self._node_id = node_id
 
+        yield self._start_event_forwarding()
+        yield self._start_call_forwarding()
+
+        self.log.info('NodeManagementBridgeSession: manager attached (as node "{node_id}" on management realm "{management_realm}")', node_id=node_id, management_realm=management_realm)
+
+    @inlineCallbacks
     def detach_manager(self):
         """
         Detach management uplink session (eg when that session has been lost).
         """
         assert(self._manager is not None)
+
+        yield self._stop_event_forwarding()
+        yield self._stop_call_forwarding()
+
         self._manager = None
         self._management_realm = None
         self._node_id = None
@@ -205,9 +224,7 @@ class NodeManagementBridgeSession(ApplicationSession):
             raise Exception("don't know how to translate URI {}".format(uri))
 
     @inlineCallbacks
-    def onJoin(self, details):
-
-        self.log.info("Joined realm '{realm}' on node management router", realm=details.realm)
+    def _start_event_forwarding(self):
 
         # setup event forwarding (events originating locally are forwarded uplink)
         #
@@ -235,9 +252,18 @@ class NodeManagementBridgeSession(ApplicationSession):
             else:
                 self.log.info("Forwarded management event on topic '{topic}'", topic=topic)
 
-        yield self.subscribe(on_management_event, u"crossbar.", options=SubscribeOptions(match=u"prefix", details_arg="details"))
+        self._sub_on_mgmt = yield self.subscribe(on_management_event, u"crossbar.", options=SubscribeOptions(match=u"prefix", details_arg="details"))
 
-        # setup call forwarding (calls originating remotely from CDC are forwarded locally)
+    @inlineCallbacks
+    def _stop_event_forwarding(self):
+        if self._sub_on_mgmt:
+            yield self._sub_on_mgmt.unsubscribe()
+            self._sub_on_mgmt = None
+
+    @inlineCallbacks
+    def _start_call_forwarding(self):
+
+        # forward future new registrations
         #
         @inlineCallbacks
         def on_registration_create(session_id, registration):
@@ -268,9 +294,9 @@ class NodeManagementBridgeSession(ApplicationSession):
                 self._regs[registration['id']] = reg
                 self.log.debug("Management procedure registered: '{remote_uri}'", remote_uri=reg.procedure)
 
-        yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
+        self._sub_on_reg_create = yield self.subscribe(on_registration_create, u'wamp.registration.on_create')
 
-        # tear down call forwarding
+        # stop forwarding future registrations
         #
         @inlineCallbacks
         def on_registration_delete(session_id, registration_id):
@@ -286,6 +312,41 @@ class NodeManagementBridgeSession(ApplicationSession):
             else:
                 self.log.warn("Could not remove forwarding for unmapped registration_id {reg_id}", reg_id=registration_id)
 
-        yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
+        self._sub_on_reg_delete = yield self.subscribe(on_registration_delete, u'wamp.registration.on_delete')
 
-        self.log.info("CDC uplink (local leg) ready!")
+        # start forwarding current registrations
+        #
+        res = yield self.call(u'wamp.registration.list')
+        for match_type, reg_ids in res.items():
+            for reg_id in reg_ids:
+                registration = yield self.call(u'wamp.registration.get', reg_id)
+                if registration[u'uri'].startswith(u'crossbar.'):
+
+                    local_uri = registration['uri']
+                    remote_uri = self._translate_uri(local_uri)
+
+                    self.log.info('Setup management API forwarding: {remote_uri} -> {local_uri}', remote_uri=remote_uri, local_uri=local_uri)
+
+                    def forward_call(*args, **kwargs):
+                        return self.call(local_uri, *args, **kwargs)
+
+                    try:
+                        reg = yield self._manager.register(forward_call, remote_uri)
+                    except Exception:
+                        self.log.failure(
+                            "Failed to register management procedure '{remote_uri}': {log_failure.value}",
+                            remote_uri=remote_uri,
+                        )
+                    else:
+                        self._regs[registration['id']] = reg
+                        self.log.info("Management procedure registered: '{remote_uri}'", remote_uri=reg.procedure)
+
+    @inlineCallbacks
+    def _stop_call_forwarding(self):
+        if self._sub_on_reg_create:
+            yield self._sub_on_reg_create.unsubscribe()
+            self._sub_on_reg_create = None
+
+        if self._sub_on_reg_delete:
+            yield self._sub_on_reg_delete.unsubscribe()
+            self._sub_on_reg_delete = None
