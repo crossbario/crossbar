@@ -24,4 +24,5 @@ service_identity>=16.0.0
 PyNaCl>=1.0.1
 treq>=15.1.0
 setproctitle>=1.1.10
+pyqrcode>=1.2.1
 watchdog>=0.8.3
