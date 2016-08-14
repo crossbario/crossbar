@@ -38,7 +38,7 @@ docs:
 	python docs/test_server.py
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
-freeze:
+freeze: clean
 	pip install --no-cache-dir -r requirements-in.txt
 	pip freeze -r requirements-in.txt
 	pip install hashin
@@ -70,6 +70,7 @@ freeze:
 	hashin PyNaCl
 	hashin treq
 	hashin setproctitle
+	hashin pyqrcode
 	hashin watchdog
 	hashin argh
 	hashin attrs
@@ -107,7 +108,7 @@ full_test: clean flake8
 
 # This will run pep8, pyflakes and can skip lines that end with # noqa
 flake8:
-	flake8 --ignore=E501,E731,N801,N802,N803,N805,N806 crossbar
+	flake8 --ignore=E402,F405,E501,E731,N801,N802,N803,N805,N806 crossbar
 
 flake8_stats:
 	flake8 --statistics --max-line-length=119 -qq crossbar

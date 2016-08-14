@@ -68,15 +68,12 @@ class NativeWorkerSession(NativeProcessSession):
 
     log = make_logger()
 
-    def onUserError(self, err, errmsg):
-        self.log.error("NativeWorkerSession.onUserError", failure=err)
-
     def onConnect(self):
         """
         Called when the worker has connected to the node's management router.
         """
-        self._node_id = self.config.extra.node
-        self._uri_prefix = 'crossbar.node.{}.worker.{}'.format(self.config.extra.node, self.config.extra.worker)
+        self._worker_id = self.config.extra.worker
+        self._uri_prefix = 'crossbar.worker.{}'.format(self._worker_id)
 
         NativeProcessSession.onConnect(self, False)
 
@@ -161,7 +158,7 @@ class NativeWorkerSession(NativeProcessSession):
         # will either be sequenced from the local node configuration file or remotely
         # from a management service
         yield self.publish(
-            'crossbar.node.{}.on_worker_ready'.format(self.config.extra.node),
+            u'{}.on_worker_ready'.format(self._uri_prefix),
             {
                 u'type': self.WORKER_TYPE,
                 u'id': self.config.extra.worker,
@@ -171,13 +168,13 @@ class NativeWorkerSession(NativeProcessSession):
         )
 
         self.log.debug("Worker '{worker}' running as PID {pid}",
-                       worker=self.config.extra.node, pid=os.getpid())
+                       worker=self.config.extra.worker, pid=os.getpid())
 
     @inlineCallbacks
     def shutdown(self, details=None):
         """
-        Registered under: ``crossbar.node.<node_id>.worker.<worker_id>.shutdown``
-        Event published under: ``crossbar.node.<node_id>.worker.<worker_id>.on_shutdown_requested``
+        Registered under: ``crossbar.worker.<worker_id>.shutdown``
+        Event published under: ``crossbar.worker.<worker_id>.on_shutdown_requested``
         """
         if self._is_shutting_down:
             # ignore: we are already shutting down ..
@@ -191,7 +188,7 @@ class NativeWorkerSession(NativeProcessSession):
         # publish management API event
         #
         yield self.publish(
-            u'crossbar.node.{}.worker.{}.on_shutdown_requested'.format(self.config.extra.node, self.config.extra.worker),
+            u'{}.on_shutdown_requested'.format(self._uri_prefix),
             {
                 u'who': details.caller if details else None,
                 u'when': utcnow()
@@ -207,7 +204,7 @@ class NativeWorkerSession(NativeProcessSession):
 
     def get_profilers(self, details=None):
         """
-        Registered under: ``crossbar.node.<node_id>.worker.<worker_id>.get_profilers``
+        Registered under: ``crossbar.worker.<worker_id>.get_profilers``
 
         Returns available profilers.
 
@@ -220,7 +217,7 @@ class NativeWorkerSession(NativeProcessSession):
 
     def start_profiler(self, profiler, runtime=10, async=True, details=None):
         """
-        Registered under: ``crossbar.node.<node_id>.worker.<worker_id>.start_profiler``
+        Registered under: ``crossbar.worker.<worker_id>.start_profiler``
 
         Start a profiler producing a profile which is stored and can be
         queried later.
@@ -248,8 +245,8 @@ class NativeWorkerSession(NativeProcessSession):
         # that will fire with the actual profile recorded
         profile_id, profile_finished = profiler.start(runtime=runtime)
 
-        on_profile_started = u'crossbar.node.{}.worker.{}.on_profile_started'.format(self.config.extra.node, self.config.extra.worker)
-        on_profile_finished = u'crossbar.node.{}.worker.{}.on_profile_finished'.format(self.config.extra.node, self.config.extra.worker)
+        on_profile_started = u'{}.on_profile_started'.format(self._uri_prefix)
+        on_profile_finished = u'{}.on_profile_finished'.format(self._uri_prefix)
 
         if async:
             publish_options = None
@@ -319,7 +316,7 @@ class NativeWorkerSession(NativeProcessSession):
         Get a profile previously produced by a profiler run.
 
         This procedure is registered under WAMP URI
-        ``crossbar.node.<node_id>.worker.<worker_id>.get_profile``.
+        ``crossbar.worker.<worker_id>.get_profile``.
 
         When no profile with given ID exists, a WAMP error
         ``crossbar.error.no_such_object`` is raised.
@@ -337,7 +334,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         This procedure is registered under
 
-        * ``crossbar.node.<node_id>.worker.<worker_id>.get_cpu_count``
+        * ``crossbar.worker.<worker_id>.get_cpu_count``
 
         **Errors:**
 
@@ -366,7 +363,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         This procedure is registered under
 
-        * ``crossbar.node.<node_id>.worker.<worker_id>.get_cpu_affinity``
+        * ``crossbar.worker.<worker_id>.get_cpu_affinity``
 
         **Errors:**
 
@@ -401,7 +398,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         This procedure is registered under
 
-        * ``crossbar.node.<node_id>.worker.<worker_id>.set_cpu_affinity``
+        * ``crossbar.worker.<worker_id>.set_cpu_affinity``
 
         **Errors:**
 
@@ -417,7 +414,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         :param cpus: List of CPU IDs to set process affinity to. Each CPU ID must be
             from the list `[0 .. N_CPUs]`, where N_CPUs can be retrieved via
-            ``crossbar.node.<node_id>.worker.<worker_id>.get_cpu_count``.
+            ``crossbar.worker.<worker_id>.get_cpu_count``.
         :type cpus: list of int
         """
         if not _HAS_PSUTIL:
@@ -437,7 +434,7 @@ class NativeWorkerSession(NativeProcessSession):
 
             # publish info to all but the caller ..
             #
-            cpu_affinity_set_topic = u'crossbar.node.{}.worker.{}.on_cpu_affinity_set'.format(self.config.extra.node, self.config.extra.worker)
+            cpu_affinity_set_topic = u'{}.on_cpu_affinity_set'.format(self._uri_prefix)
             cpu_affinity_set_info = {
                 u'affinity': new_affinity,
                 u'who': details.caller
@@ -453,7 +450,7 @@ class NativeWorkerSession(NativeProcessSession):
         Returns the current Python module search paths.
 
         This procedure is registered under WAMP URI
-        ``crossbar.node.<node_id>.worker.<worker_id>.get_pythonpath``.
+        ``crossbar.worker.<worker_id>.get_pythonpath``.
 
         :returns: The current module search paths.
         :rtype: list of unicode
@@ -466,7 +463,7 @@ class NativeWorkerSession(NativeProcessSession):
         Add paths to Python module search paths.
 
         This procedure is registered under WAMP URI
-        ``crossbar.node.<node_id>.worker.<worker_id>.add_pythonpath``.
+        ``crossbar.worker.<worker_id>.add_pythonpath``.
 
         :param paths: List of paths. Relative paths will be resolved relative
                       to the node directory.
@@ -509,9 +506,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         # publish event "on_pythonpath_add" to all but the caller
         #
-        topic = 'crossbar.node.{}.worker.{}.on_pythonpath_add'.format(
-            self.config.extra.node, self.config.extra.worker)
-
+        topic = '{}.on_pythonpath_add'.format(self._uri_prefix)
         res = {
             u'paths': sys.path,
             u'paths_added': paths_added,

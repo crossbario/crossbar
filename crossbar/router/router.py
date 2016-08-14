@@ -279,6 +279,10 @@ class Router(object):
                 if action in [u'call', u'publish']:
                     authorization[u'disclose'] = False
 
+            auto_disclose_trusted = False
+            if auto_disclose_trusted and role == u'trusted' and action in [u'call', u'publish']:
+                authorization[u'disclose'] = True
+
             self.log.debug("Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and authrole '{authrole}' -> authorization: {authorization}",
                            session_id=session._session_id,
                            uri=uri,
@@ -310,14 +314,12 @@ class RouterFactory(object):
     The router class this factory will create router instances from.
     """
 
-    def __init__(self, node_id, options=None):
+    def __init__(self, options=None):
         """
 
         :param options: Default router options.
         :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
         """
-        assert(type(node_id) == six.text_type)
-        self._node_id = node_id
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False
@@ -420,7 +422,7 @@ class RouterFactory(object):
                        realm=realm, role=role)
 
     def auto_start_realm(self, realm):
-        raise Exception("realm auto-activation not yet implemented")
+        raise Exception("realm auto-activation (realm '{}') not yet implemented".format(realm))
 
     def auto_add_role(self, realm, role):
-        raise Exception("role auto-activation not yet implemented")
+        raise Exception("role auto-activation (role '{}') not yet implemented".format(role))

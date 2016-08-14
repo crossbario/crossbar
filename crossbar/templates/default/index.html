@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+   <body>
+      <h1>Open JavaScript console to watch log output (hit F12)</h1>
+      <script>AUTOBAHN_DEBUG = false;</script>
+      <script src="http://autobahn.s3.amazonaws.com/autobahnjs/latest/autobahn.min.jgz"></script>
+      <script>
+         var url;
+         if (document.location.origin == "file://") {
+            url = "ws://127.0.0.1:8080/ws";
+
+         } else {
+            url = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+                        document.location.host + "/ws";
+         }
+
+         var connection = new autobahn.Connection({
+            url: url,
+            realm: "realm1"
+         });
+
+         var connection = new autobahn.Connection({
+            url: "ws://localhost:8080/ws",
+            realm: "realm1"
+         });
+
+         connection.onopen = function (session, details) {
+            console.log("Connected:", details);
+         };
+
+         connection.onclose = function (reason, details) {
+            console.log("Connection lost: " + reason);
+         }
+
+         connection.open();
+      </script>
+   </body>
+</html>

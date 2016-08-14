@@ -2697,9 +2697,6 @@ def check_cdc(config):
         raise InvalidConfigException("'config' item with CDC configuration must of type dictionary ({} encountered)\n\n{}".format(type(config), pformat(config)))
 
     check_dict_args({
-        'enabled': (True, [bool]),
-        'secret': (False, [six.text_type]),
-        'realm': (False, [six.text_type]),
         'transport': (False, [Mapping]),
     }, config, "invalid 'cdc' configuration")
 

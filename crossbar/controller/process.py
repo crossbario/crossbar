@@ -89,10 +89,11 @@ class NodeControllerSession(NativeProcessSession):
 
         # associated node
         self._node = node
-        self._node_id = node._node_id
         self._realm = node._realm
 
         self.cbdir = self._node._cbdir
+
+        self._uri_prefix = u'crossbar'
 
         self._started = None
         self._pid = os.getpid()
@@ -106,9 +107,6 @@ class NodeControllerSession(NativeProcessSession):
 
         self.log.debug("Connected to node management router")
 
-        # self._uri_prefix = u'crossbar.node.{}'.format(self.config.extra.node)
-        self._uri_prefix = u'crossbar.node.{}'.format(self._node_id)
-
         NativeProcessSession.onConnect(self, False)
 
         # self.join(self.config.realm)
@@ -116,6 +114,8 @@ class NodeControllerSession(NativeProcessSession):
 
     @inlineCallbacks
     def onJoin(self, details):
+
+        from autobahn.wamp.types import SubscribeOptions
 
         self.log.info("Joined realm '{realm}' on node management router", realm=details.realm)
 
@@ -138,7 +138,7 @@ class NodeControllerSession(NativeProcessSession):
                 self.log.error("Internal error: on_worker_ready() fired for process {process}, but no process with that ID",
                                process=id)
 
-        self.subscribe(on_worker_ready, 'crossbar.node.{}.on_worker_ready'.format(self._node_id))
+        self.subscribe(on_worker_ready, u'crossbar.worker..on_worker_ready', SubscribeOptions(match=u'wildcard'))
 
         yield NativeProcessSession.onJoin(self, details)
 
@@ -149,6 +149,8 @@ class NodeControllerSession(NativeProcessSession):
             'shutdown',
 
             'get_workers',
+
+            'get_worker',
             'get_worker_log',
 
             'start_router',
@@ -176,7 +178,7 @@ class NodeControllerSession(NativeProcessSession):
 
         self._started = utcnow()
 
-        self.publish(u"crossbar.node.on_ready", self._node_id)
+        self.publish(u"crossbar.on_ready")
 
         self.log.debug("Node controller ready")
 
@@ -216,7 +218,7 @@ class NodeControllerSession(NativeProcessSession):
             u'when': utcnow()
         }
         yield self.publish(
-            'crossbar.node.{}.on_shutdown'.format(self._node_id),
+            u'{}.on_shutdown'.format(self._uri_prefix),
             shutdown_info,
             options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
         )
@@ -287,7 +289,28 @@ class NodeControllerSession(NativeProcessSession):
             )
         return res
 
-    def get_worker_log(self, id, limit=None, details=None):
+    def get_worker(self, id, details=None):
+        if id not in self._workers:
+            emsg = "No worker with ID '{}'".format(id)
+            raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
+
+        now = datetime.utcnow()
+        worker = self._workers[id]
+
+        worker_info = {
+            u'id': worker.id,
+            u'pid': worker.pid,
+            u'type': worker.TYPE,
+            u'status': worker.status,
+            u'created': utcstr(worker.created),
+            u'started': utcstr(worker.started),
+            u'startup_time': (worker.started - worker.created).total_seconds() if worker.started else None,
+            u'uptime': (now - worker.started).total_seconds() if worker.started else None,
+        }
+
+        return worker_info
+
+    def get_worker_log(self, id, limit=100, details=None):
         """
         Get buffered log for a worker.
 
@@ -407,7 +430,6 @@ class NodeControllerSession(NativeProcessSession):
 
         args = [exe, "-u", "-m", "crossbar.worker.process"]
         args.extend(["--cbdir", self._node._cbdir])
-        args.extend(["--node", str(self._node_id)])
         args.extend(["--worker", str(id)])
         args.extend(["--realm", self._realm])
         args.extend(["--type", wtype])
@@ -446,14 +468,14 @@ class NodeControllerSession(NativeProcessSession):
         # topic URIs used (later)
         #
         if wtype == 'router':
-            starting_topic = 'crossbar.node.{}.on_router_starting'.format(self._node_id)
-            started_topic = 'crossbar.node.{}.on_router_started'.format(self._node_id)
+            starting_topic = 'crossbar.node.on_router_starting'
+            started_topic = 'crossbar.node.on_router_started'
         elif wtype == 'container':
-            starting_topic = 'crossbar.node.{}.on_container_starting'.format(self._node_id)
-            started_topic = 'crossbar.node.{}.on_container_started'.format(self._node_id)
+            starting_topic = 'crossbar.node.on_container_starting'
+            started_topic = 'crossbar.node.on_container_started'
         elif wtype == 'websocket-testee':
-            starting_topic = 'crossbar.node.{}.on_websocket_testee_starting'.format(self._node_id)
-            started_topic = 'crossbar.node.{}.on_websocket_testee_started'.format(self._node_id)
+            starting_topic = 'crossbar.node.on_websocket_testee_starting'
+            started_topic = 'crossbar.node.on_websocket_testee_started'
         else:
             raise Exception("logic error")
 
@@ -755,7 +777,7 @@ class NodeControllerSession(NativeProcessSession):
         # publish management API event
         #
         yield self.publish(
-            'crossbar.node.{}.worker.{}.on_stop_requested'.format(self._node_id, worker.id),
+            u'{}.on_stop_requested'.format(self._uri_prefix),
             stop_info,
             options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
         )
@@ -841,8 +863,8 @@ class NodeControllerSession(NativeProcessSession):
 
         # topic URIs used (later)
         #
-        starting_topic = 'crossbar.node.{}.on_guest_starting'.format(self._node_id)
-        started_topic = 'crossbar.node.{}.on_guest_started'.format(self._node_id)
+        starting_topic = u'{}.on_guest_starting'.format(self._uri_prefix)
+        started_topic = u'{}.on_guest_started'.format(self._uri_prefix)
 
         # add worker tracking instance to the worker map ..
         #

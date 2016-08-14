@@ -271,7 +271,7 @@ class RouterWorkerSession(NativeWorkerSession):
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
         # factory for producing (per-realm) routers
-        self._router_factory = RouterFactory(self._node_id)
+        self._router_factory = RouterFactory()
 
         # factory for producing router sessions
         self._router_session_factory = RouterSessionFactory(self._router_factory)
@@ -329,14 +329,14 @@ class RouterWorkerSession(NativeWorkerSession):
         Get realms currently running on this router worker.
 
         :returns: List of realms currently running.
-        :rtype: list of dict
+        :rtype: list of str
         """
         self.log.debug("{}.get_router_realms".format(self.__class__.__name__))
 
-        raise Exception("not implemented")
+        return sorted(self.realms.keys())
 
     @inlineCallbacks
-    def start_router_realm(self, id, config, enable_trace=False, details=None):
+    def start_router_realm(self, realm_id, config, enable_trace=False, details=None):
         """
         Starts a realm on this router worker.
 
@@ -346,12 +346,12 @@ class RouterWorkerSession(NativeWorkerSession):
         :type config: dict
         """
         self.log.debug("{}.start_router_realm".format(self.__class__.__name__),
-                       id=id, config=config)
+                       realm_id=realm_id, config=config)
 
         # prohibit starting a realm twice
         #
-        if id in self.realms:
-            emsg = "Could not start realm: a realm with ID '{}' is already running (or starting)".format(id)
+        if realm_id in self.realms:
+            emsg = "Could not start realm: a realm with ID '{}' is already running (or starting)".format(realm_id)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.already_running', emsg)
 
@@ -368,9 +368,9 @@ class RouterWorkerSession(NativeWorkerSession):
         realm = config['name']
 
         # track realm
-        rlm = RouterRealm(id, config)
-        self.realms[id] = rlm
-        self.realm_to_id[realm] = id
+        rlm = RouterRealm(realm_id, config)
+        self.realms[realm_id] = rlm
+        self.realm_to_id[realm] = realm_id
 
         # create a new router for the realm
         router = self._router_factory.start_realm(rlm)
@@ -392,7 +392,9 @@ class RouterWorkerSession(NativeWorkerSession):
 
         self.log.info("Realm '{realm}' started", realm=realm)
 
-    def stop_router_realm(self, id, close_sessions=False, details=None):
+        self.publish(u'{}.on_realm_started'.format(self._uri_prefix), realm_id)
+
+    def stop_router_realm(self, realm_id, close_sessions=False, details=None):
         """
         Stop a realm currently running on this router worker.
 
@@ -405,7 +407,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :type close_sessions: bool
         """
         self.log.debug("{}.stop_router_realm".format(self.__class__.__name__),
-                       id=id, close_sessions=close_sessions)
+                       realm_id=realm_id, close_sessions=close_sessions)
 
         # FIXME
         raise NotImplementedError()
@@ -451,6 +453,11 @@ class RouterWorkerSession(NativeWorkerSession):
 
         realm = self.realms[id].config['name']
         self._router_factory.add_role(realm, config)
+
+        topic = self._uri_prefix + '.on_router_realm_role_started'
+        event = {u'id': id}
+        caller = details.caller if details else None
+        self.publish(topic, event, options=PublishOptions(exclude=caller))
 
     def stop_router_realm_role(self, id, role_id, details=None):
         """
@@ -675,7 +682,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 session=class_name(session),
                 session_id=session._session_id,
             )
-            topic = self._uri_prefix + '.container.on_component_stop'
+            topic = self._uri_prefix + '.on_component_stop'
             event = {u'id': id}
             caller = details.caller if details else None
             self.publish(topic, event, options=PublishOptions(exclude=caller))
@@ -687,7 +694,7 @@ class RouterWorkerSession(NativeWorkerSession):
                 session=class_name(session),
                 session_id=session._session_id,
             )
-            topic = self._uri_prefix + '.container.on_component_start'
+            topic = self._uri_prefix + '.on_component_start'
             event = {u'id': id}
             caller = details.caller if details else None
             self.publish(topic, event, options=PublishOptions(exclude=caller))

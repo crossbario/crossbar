@@ -80,16 +80,6 @@ def run():
                         type=six.text_type,
                         help="Crossbar.io node directory (required).")
 
-    parser.add_argument('-n',
-                        '--node',
-                        type=six.text_type,
-                        help='Crossbar.io node ID (required).')
-
-    parser.add_argument('-w',
-                        '--worker',
-                        type=six.text_type,
-                        help='Crossbar.io worker ID (required).')
-
     parser.add_argument('-r',
                         '--realm',
                         type=six.text_type,
@@ -99,6 +89,11 @@ def run():
                         '--type',
                         choices=['router', 'container', 'websocket-testee'],
                         help='Worker type (required).')
+
+    parser.add_argument('-w',
+                        '--worker',
+                        type=six.text_type,
+                        help='Crossbar.io worker ID (required).')
 
     parser.add_argument('--title',
                         type=six.text_type,
