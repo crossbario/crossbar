@@ -519,21 +519,25 @@ class Node(object):
                         self._manager, self._management_realm, self._node_id, self._node_extra = res
 
                         if self._bridge_session:
-                            self._bridge_session.attach_manager(self._manager, self._management_realm, self._node_id)
+                            try:
+                                yield self._bridge_session.attach_manager(self._manager, self._management_realm, self._node_id)
+                                status = yield self._manager.call(u'com.crossbario.cdc.general.get_status@1')
+                            except:
+                                self.log.failure()
+                            else:
+                                self.log.info('Connected to CDC for management realm "{realm}" (current time is {now})', realm=self._management_realm, now=status[u'now'])
                         else:
                             self.log.warn('Uplink CDC session established, but no bridge session setup!')
 
-                        try:
-                            status = yield self._manager.call(u'com.crossbario.cdc.general.get_status@1')
-                        except:
-                            self.log.failure()
-                        else:
-                            self.log.info('Connected to CDC for management realm "{realm}" (current time is {now})', realm=status[u'realm'], now=status[u'now'])
-
+                    @inlineCallbacks
                     def on_exit(res):
-                        self.log.error(res)
                         if self._bridge_session:
-                            self._bridge_session.detach_manager()
+                            try:
+                                yield self._bridge_session.detach_manager()
+                            except:
+                                self.log.failure()
+                            else:
+                                self.log.info('Disconnected from CDC for management realm "{realm}"', realm=self._management_realm)
                         else:
                             self.log.warn('Uplink CDC session lost, but no bridge session setup!')
 

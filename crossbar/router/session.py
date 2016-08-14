@@ -265,6 +265,7 @@ class RouterApplicationSession(object):
                     self._log_error(Failure(), "While notifying 'disconnect'")
 
                 if self._router._realm.session:
+                    print("XXX", session._session_id)
                     yield self._router._realm.session.publish(
                         u'wamp.session.on_leave',
                         session._session_id,
@@ -471,7 +472,10 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-                raise ProtocolError(u"Received {0} message, and session is not yet established".format(msg.__class__))
+                # raise ProtocolError(u"PReceived {0} message while session is not joined".format(msg.__class__))
+                # self.log.warn('Protocol state error - received {message} while session is not joined')
+                # swallow all noise like still getting PUBLISH messages from log event forwarding - maybe FIXME
+                pass
 
         else:
 

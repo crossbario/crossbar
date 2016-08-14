@@ -30,8 +30,10 @@
 
 from __future__ import absolute_import
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, succeed
+from twisted.internet.task import LoopingCall
 
+from autobahn.util import utcnow
 from autobahn.wamp.types import SubscribeOptions, PublishOptions
 from autobahn.twisted.wamp import ApplicationSession
 
@@ -172,7 +174,9 @@ class NodeManagementBridgeSession(ApplicationSession):
         :param node_id: The node ID that was assigned by CDC to this node.
         :type node_id: unicode
         """
-        assert(self._manager is None)
+        if self._manager:
+            self.log.warn('manager already attached!')
+            return
 
         self._manager = manager
         self._management_realm = management_realm
@@ -180,18 +184,35 @@ class NodeManagementBridgeSession(ApplicationSession):
 
         yield self._start_call_forwarding()
         yield self._start_event_forwarding()
+        self._start_cdc_heartbeat()
 
-        self.log.info('NodeManagementBridgeSession: manager attached (as node "{node_id}" on management realm "{management_realm}")', node_id=node_id, management_realm=management_realm)
+        self.log.info('NodeManagementBridgeSession: manager attached (as node "{node_id}" on management realm "{management_realm}")', node_id=self._node_id, management_realm=self._management_realm)
 
     @inlineCallbacks
     def detach_manager(self):
         """
         Detach management uplink session (eg when that session has been lost).
         """
-        assert(self._manager is not None)
+        if not self._manager:
+            self.log.warn('no manager manager currently attached!')
+            return
 
-        yield self._stop_event_forwarding()
-        yield self._stop_call_forwarding()
+        try:
+            self._stop_cdc_heartbeat()
+        except:
+            self.log.failure()
+
+        try:
+            yield self._stop_event_forwarding()
+        except:
+            self.log.failure()
+
+        try:
+            yield self._stop_call_forwarding()
+        except:
+            self.log.failure()
+
+        self.log.info('NodeManagementBridgeSession: manager detached (for node "{node_id}" on management realm "{management_realm}")', node_id=self._node_id, management_realm=self._management_realm)
 
         self._manager = None
         self._management_realm = None
@@ -222,6 +243,37 @@ class NodeManagementBridgeSession(ApplicationSession):
             return mapped_uri
         else:
             raise Exception("don't know how to translate URI {}".format(uri))
+
+    def _send_heartbeat(self, acknowledge=True):
+        if self._manager and self._manager.is_attached():
+            return self._manager.publish(self._translate_uri(u'crossbar.on_heartbeat'), self._heartbeat, self._heartbeat_time, options=PublishOptions(acknowledge=acknowledge))
+        else:
+            return succeed(None)
+
+    def _start_cdc_heartbeat(self):
+        self._heartbeat_time = None
+        self._heartbeat = 0
+
+        @inlineCallbacks
+        def publish():
+            self._heartbeat_time = utcnow()
+            self._heartbeat += 1
+            try:
+                yield self._send_heartbeat()
+            except:
+                self.log.failure()
+
+        self._heartbeat_call = LoopingCall(publish)
+        self._heartbeat_call.start(1.)
+
+    def _stop_cdc_heartbeat(self):
+        if self._heartbeat_call:
+            self._heartbeat_call.stop()
+            self._heartbeat_call = None
+            self._heartbeat_time = None
+            self._heartbeat = 0
+            # send stop signal
+            self._send_heartbeat(acknowledge=False)
 
     @inlineCallbacks
     def _start_event_forwarding(self):
