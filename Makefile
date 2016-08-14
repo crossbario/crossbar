@@ -38,7 +38,7 @@ docs:
 	python docs/test_server.py
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
-freeze:
+freeze: clean
 	pip install --no-cache-dir -r requirements-in.txt
 	pip freeze -r requirements-in.txt
 	pip install hashin
@@ -70,6 +70,7 @@ freeze:
 	hashin PyNaCl
 	hashin treq
 	hashin setproctitle
+	hashin pyqrcode
 	hashin watchdog
 	hashin argh
 	hashin attrs
