@@ -498,7 +498,7 @@ class RouterSession(BaseSession):
                 try:
                     self._router.detach(self)
                 except Exception:
-                    pass
+                    self.log.failure("Internal error")
 
                 # In order to send wamp.session.on_leave properly
                 # (i.e. *with* the proper session_id) we save it

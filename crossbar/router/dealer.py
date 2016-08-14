@@ -123,6 +123,12 @@ class Dealer(object):
         # map: session -> set of registrations (needed for detach)
         self._session_to_registrations = {}
 
+        # map: session -> in-flight invocations
+        self._callee_to_invocations = {}
+        # BEWARE: this map must be kept up-to-date along with the
+        # _invocations map below! Use the helper methods
+        # _add_invoke_request and _remove_invoke_request
+
         # pending callee invocation requests
         self._invocations = {}
 
@@ -160,9 +166,25 @@ class Dealer(object):
         Implements :func:`crossbar.router.interfaces.IDealer.detach`
         """
         if session in self._session_to_registrations:
+            # send out Errors for any in-flight calls we have
+            outstanding = self._callee_to_invocations.get(session, [])
+            for invoke in outstanding:
+                self.log.debug(
+                    "Cancelling in-flight INVOKE with id={request} on"
+                    " session {session}",
+                    request=invoke.call.request,
+                    session=session._session_id,
+                )
+                reply = message.Error(
+                    message.Call.MESSAGE_TYPE,
+                    invoke.call.request,
+                    ApplicationError.CANCELED,
+                    [u"callee disconnected from in-flight request"],
+                )
+                # send this directly to the caller's session
+                invoke.caller._transport.send(reply)
 
             for registration in self._session_to_registrations[session]:
-
                 was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
 
                 # publish WAMP meta events
@@ -587,10 +609,32 @@ class Dealer(object):
                                             caller_authrole=caller_authrole,
                                             procedure=procedure)
 
-        self._invocations[invocation_request_id] = InvocationRequest(invocation_request_id, registration, session, call, callee)
+        self._add_invoke_request(invocation_request_id, registration, session, call, callee)
         self._router.send(callee, invocation)
-
         return True
+
+    def _add_invoke_request(self, invocation_request_id, registration, session, call, callee):
+        """
+        Internal helper.  Adds an InvocationRequest to both the
+        _callee_to_invocations and _invocations maps.
+        """
+        invoke_request = InvocationRequest(invocation_request_id, registration, session, call, callee)
+        self._invocations[invocation_request_id] = invoke_request
+        invokes = self._callee_to_invocations.get(callee, [])
+        invokes.append(invoke_request)
+        self._callee_to_invocations[callee] = invokes
+        return invoke_request
+
+    def _remove_invoke_request(self, invocation_request):
+        """
+        Internal helper. Removes an InvocationRequest from both the
+        _callee_to_invocations and _invocations maps.
+        """
+        invokes = self._callee_to_invocations[invocation_request.callee]
+        invokes.remove(invocation_request)
+        if not invokes:
+            del self._callee_to_invocations[invocation_request.callee]
+        del self._invocations[invocation_request.id]
 
     # noinspection PyUnusedLocal
     def processCancel(self, session, cancel):
@@ -638,7 +682,8 @@ class Dealer(object):
                 callee_extra = invocation_request.registration.observers_extra.get(session, None)
                 if callee_extra:
                     callee_extra.concurrency_current -= 1
-                del self._invocations[yield_.request]
+
+                self._remove_invoke_request(invocation_request)
 
                 # check for any calls queued on the registration for which an
                 # invocation just returned, and hence there is likely concurrency
@@ -703,7 +748,8 @@ class Dealer(object):
 
             # the call is done
             #
-            del self._invocations[error.request]
+            invoke = self._invocations[error.request]
+            self._remove_invoke_request(invoke)
 
         else:
             raise ProtocolError(u"Dealer.onInvocationError(): ERROR received for non-pending request_type {0} and request ID {1}".format(error.request_type, error.request))
