@@ -42,8 +42,12 @@ __all__ = (
 )
 
 
-def is_protected_uri(uri):
-    return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
+def is_protected_uri(uri, details=None):
+    trusted = details and details.caller_authrole == u'trusted'
+    if True or trusted:
+        return uri.startswith(u'wamp.')
+    else:
+        return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
 
 
 class OrderedSet(set):

@@ -169,7 +169,7 @@ class NodeControllerSession(NativeProcessSession):
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.info("Registering management API procedure {proc}", proc=uri)
+            self.log.debug("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
@@ -310,7 +310,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return worker_info
 
-    def get_worker_log(self, id, limit=None, details=None):
+    def get_worker_log(self, id, limit=100, details=None):
         """
         Get buffered log for a worker.
 

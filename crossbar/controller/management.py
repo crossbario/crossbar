@@ -178,8 +178,8 @@ class NodeManagementBridgeSession(ApplicationSession):
         self._management_realm = management_realm
         self._node_id = node_id
 
-        yield self._start_event_forwarding()
         yield self._start_call_forwarding()
+        yield self._start_event_forwarding()
 
         self.log.info('NodeManagementBridgeSession: manager attached (as node "{node_id}" on management realm "{management_realm}")', node_id=node_id, management_realm=management_realm)
 
@@ -218,7 +218,7 @@ class NodeManagementBridgeSession(ApplicationSession):
         if uri.startswith(_PREFIX):
             suffix = uri[len(_PREFIX):]
             mapped_uri = u'.'.join([_TARGET_PREFIX, self._node_id, suffix])
-            self.log.info("mapped URI {uri} to {mapped_uri}", uri=uri, mapped_uri=mapped_uri)
+            self.log.debug("mapped URI {uri} to {mapped_uri}", uri=uri, mapped_uri=mapped_uri)
             return mapped_uri
         else:
             raise Exception("don't know how to translate URI {}".format(uri))
@@ -250,7 +250,7 @@ class NodeManagementBridgeSession(ApplicationSession):
                     topic=topic,
                 )
             else:
-                self.log.info("Forwarded management event on topic '{topic}'", topic=topic)
+                self.log.debug("Forwarded management event on topic '{topic}'", topic=topic)
 
         self._sub_on_mgmt = yield self.subscribe(on_management_event, u"crossbar.", options=SubscribeOptions(match=u"prefix", details_arg="details"))
 
@@ -278,9 +278,11 @@ class NodeManagementBridgeSession(ApplicationSession):
             local_uri = registration['uri']
             remote_uri = self._translate_uri(local_uri)
 
-            self.log.info('Setup management API forwarding: {remote_uri} -> {local_uri}', remote_uri=remote_uri, local_uri=local_uri)
+            self.log.debug('Setup management API forwarding: {remote_uri} -> {local_uri}', remote_uri=remote_uri, local_uri=local_uri)
 
             def forward_call(*args, **kwargs):
+                details = kwargs.pop('details', None)
+                self.log.debug('forwarding call with details {}', details=details)
                 return self.call(local_uri, *args, **kwargs)
 
             try:
@@ -325,13 +327,17 @@ class NodeManagementBridgeSession(ApplicationSession):
                     local_uri = registration['uri']
                     remote_uri = self._translate_uri(local_uri)
 
-                    self.log.info('Setup management API forwarding: {remote_uri} -> {local_uri}', remote_uri=remote_uri, local_uri=local_uri)
+                    self.log.debug('Setup management API forwarding: {remote_uri} -> {local_uri}', remote_uri=remote_uri, local_uri=local_uri)
 
-                    def forward_call(*args, **kwargs):
-                        return self.call(local_uri, *args, **kwargs)
+                    def create_forward_call(local_uri):
+                        def forward_call(*args, **kwargs):
+                            details = kwargs.pop('details', None)
+                            self.log.debug('forwarding call with details {}', details=details)
+                            return self.call(local_uri, *args, **kwargs)
+                        return forward_call
 
                     try:
-                        reg = yield self._manager.register(forward_call, remote_uri)
+                        reg = yield self._manager.register(create_forward_call(local_uri), remote_uri)
                     except Exception:
                         self.log.failure(
                             "Failed to register management procedure '{remote_uri}': {log_failure.value}",
@@ -339,7 +345,9 @@ class NodeManagementBridgeSession(ApplicationSession):
                         )
                     else:
                         self._regs[registration['id']] = reg
-                        self.log.info("Management procedure registered: '{remote_uri}'", remote_uri=reg.procedure)
+                        self.log.debug("Management procedure registered: '{remote_uri}'", remote_uri=reg.procedure)
+                else:
+                    self.log.warn('skipped {uri}', uri=registration[u'uri'])
 
     @inlineCallbacks
     def _stop_call_forwarding(self):
