@@ -429,7 +429,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         return self.realms[id].roles.values()
 
-    def start_router_realm_role(self, id, role_id, config, details=None):
+    def start_router_realm_role(self, realm_id, role_id, role_config, details=None):
         """
         Start a role on a realm running on this router worker.
 
@@ -441,23 +441,27 @@ class RouterWorkerSession(NativeWorkerSession):
         :type config: dict
         """
         self.log.debug("{}.start_router_realm_role".format(self.__class__.__name__),
-                       id=id, role_id=role_id, config=config)
+                       realm_id=realm_id, role_id=role_id, role_config=role_config)
 
-        if id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
-        if role_id in self.realms[id].roles:
-            raise ApplicationError(u"crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, id))
+        if role_id in self.realms[realm_id].roles:
+            raise ApplicationError(u"crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, realm_id))
 
-        self.realms[id].roles[role_id] = RouterRealmRole(role_id, config)
+        self.realms[realm_id].roles[role_id] = RouterRealmRole(role_id, role_config)
 
-        realm = self.realms[id].config['name']
-        self._router_factory.add_role(realm, config)
+        realm = self.realms[realm_id].config['name']
+        self._router_factory.add_role(realm, role_config)
 
-        topic = self._uri_prefix + '.on_router_realm_role_started'
-        event = {u'id': id}
+        topic = u'{}.on_router_realm_role_started'.format(self._uri_prefix)
+        event = {
+            u'id': role_id
+        }
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
+
+        self.log.info('role {role_id} on realm {realm_id} started', realm_id=realm_id, role_id=role_id, role_config=role_config)
 
     def stop_router_realm_role(self, id, role_id, details=None):
         """
