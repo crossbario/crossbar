@@ -553,7 +553,7 @@ Get detailed status information on a transport running in a router worker.
 
 Start a new transport on a router worker.
 
-* **`cdc.remote.stop_transport@1`**`(<node_id>, <worker_id>)`
+* **`cdc.remote.stop_transport@1`**`(<node_id>, <worker_id>, <transport_id>)`
 
 Stop the given transport currently running in a router worker.
 
