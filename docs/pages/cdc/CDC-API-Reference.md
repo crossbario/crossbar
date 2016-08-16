@@ -5,7 +5,7 @@ toc: [Documentation, CDC, CDC API Reference]
 
 This is a complete reference of the public API of Crossbar.io DevOps Center (CDC). This API is intended to be used by Crossbar.io users for management of Crossbar.io based solutions directly from within applications and from user tools for automation.
 
-> **WARNING: CDC is currently in pre-alpha phase - a lot of stuff does not work yet and is still in flux.**
+> **WARNING** CDC is currently in pre-alpha phase - a lot of stuff does not work yet and is still in flux. Read the **[API Status](CDC API Status)**.
 
 * [Top](#cdc-api-reference)
     * [Notation](#notation)
@@ -14,22 +14,22 @@ This is a complete reference of the public API of Crossbar.io DevOps Center (CDC
 * [User and Realm Management](#user-and-realm-management)
     * [Creating Users](#creating-users)
     * [Creating Realms](#creating-realms)
-    * [User Registration](#user-registration)
+    * [Registering Users](#registering-users)
     * [Pairing Nodes](#pairing-nodes)
 * [Remote Node API](#remote-node-api)
-    * [Nodes](#nodes)
+    * [Managing Nodes](#nodes)
         * [Configuration Files](#configuration-files)
-    * [Workers](#workers)
+    * [Managing Workers](#workers)
         * [Remote Log Access](#remote-log-access)
         * [Resource Limits](#resource-limits)
-        * [Profiling](#profiling)
-    * [Routers](#routers)
-        * [Realms](#realms)
-        * [Roles](#roles)
-        * [Grants](#grants)
-        * [Transports](#transports)
+        * [Profiling Workers](#profiling)
+    * [Managing Routers](#routers)
+        * [Router Realms](#realms)
+            * [Roles](#roles)
+            * [Role Grants](#grants)
+        * [Router Transports](#transports)
             * [Web Resources](#web-resources)
-        * [Components](#components)
+        * [Router Components](#components)
 
 ---
 
@@ -88,9 +88,11 @@ The user will need to read the token/PIN from the captcha and enter that allowin
 
 Verify a token/PIN code reveived for a pending user registration.
 
+> **Security note.** Any client can call this. A successful call will make both the `<verification_id>` and the `token` be consumed, and the values cannot be reused. Upon an unsucessful call, the number of retries is limited per `<verification_id>` and per `<token>`.
+
 When this call returns successfully, the user is created.
 
-> To register more public keys for the user, calls above procedure again with different public keys. This will send a challenge as well and proceed exactly like above.
+To register more public keys for the user, calls above procedure again with different public keys. This will send a challenge as well and proceed exactly like above.
 
 ### Creating Realms
 
@@ -102,13 +104,15 @@ Register a new management realm and return a `<verification_id>`.
 
 The user with the given `<owner_pubkey>` will be sent a verification token/PIN and upon successful verification, become owner of the new realm.
 
-> The public key must have been registered before for a user, and the management realm must be valid and still be available. The registering owner's email address is already known, and used for sending a captcha with a PIN like above to the owner.
+The public key must have been registered before for a user, and the management realm must be valid and still be available. The registering owner's email address is already known, and used for sending a captcha with a PIN like above to the owner.
 
 To verify the token/PIN code received and finalize the realm creation, call
 
 * **`cdc.manage.verify@1`**`(<verification_id>, <token>)`
 
 Verify a token/PIN code received for a pending realm creation.
+
+> **Security note.** Any client can call this. A successful call will make both the `<verification_id>` and the `token` be consumed, and the values cannot be reused. Upon an unsucessful call, the number of retries is limited per `<verification_id>` and per `<token>`.
 
 When this call returns successfully, the management realm is created. The owner of the management realm can manage the realm by allowing new Crossbar.io node public keys and CDC API client public keys access to the management realm under respective roles.
 
@@ -130,7 +134,7 @@ The user is granted rights on the management realm depending on `<user_role>`:
 
 Optionally, custom extra information can be provided which is forwarded to the client during authentication.
 
-> **Security: only the owner of the respective management realm may call this.**
+> **Security note.** Only the owner of the respective management realm is authorized to call this procedure.
 
 The owner of the management realm will be sent a verification token/PIN for the registration. To verify the token/PIN code received and finalize the node registration, call
 
@@ -141,32 +145,34 @@ Verify a token/PIN code received for a pending user registration.
 When this call returns successfully, the user is registered with the respective realm.
 
 
-### Pairing Nodes
+### Registering Nodes
 
-To **pair a Crossbar.io node with a management realm**:
+To **register a Crossbar.io node with a management realm**:
 
-* **`cdc.manage.pair_node@1`**`(<management_realm>, <node_pubkey>, <node_id>, <node_extra>)`
+* **`cdc.manage.register_node@1`**`(<management_realm>, <node_pubkey>, <node_id>, <node_extra>)`
 
-Pairs a Crossbar.io node and return a `<verification_id>`.
+Registers a Crossbar.io node and return a `<verification_id>`.
 
 The `<node_id>` must be unique within the given management realm and must conform to the regular expression for names (see [here](#names-and-ids)).
 
 Optionally, custom extra information can be provided which is forwarded to the node during authentication.
 
-> **Security: only the owner of the respective management realm may call this.**
+> **Security note.** Only the owner of the respective management realm is authorized to call this procedure.
 
-The owner of the management realm will be sent a verification PIN for the node pairing. To verify the PIN code received and finalize the node pairing, call
+The owner of the management realm will be sent a verification PIN for the node registration. To verify the PIN code received and finalize the node registration, call
 
 * **`cdc.manage.verify@1`**`(<verification_id>, <token>)`
 
-Verify a PIN code received for a pending node pairing.
+Verify a PIN code received for a pending node registration.
 
-When this call returns successfully, the node is paired with the respective realm.
+When this call returns successfully, the node is registered with the respective realm. The node will have `<node_id>` assigned and joined on the management realm under the role `"node"`.
 
 ---
 
 
 ## Remote Node API
+
+### Global
 
 **Procedures**
 
@@ -189,7 +195,7 @@ def main(session):
         print('Connected to CDC realm "{}", time is {}'.format(realm, now))
 ```
 
-### Nodes
+### Node Management
 
 Crossbar.io nodes connected to CDC can be managed remotely. Provisioned nodes can be listed and queried:
 
@@ -268,7 +274,7 @@ Download the current node configuration file. Note that the live node configurat
 
 ---
 
-### Workers
+### Worker Management
 
 Crossbar.io nodes provide services via worker processes, of which there are three types:
 
@@ -467,7 +473,9 @@ Stop a realm currently started on a router worker on some node.
 
 **Events**
 
-* **`cdc.remote.on_realm_status@1`** - Fires when the status of a realm changes (with a tuple `(node_id, worker_id, realm_id, old_status, new_status)` an event payload).
+* **`cdc.remote.on_realm_status@1`**
+
+Fires when the status of a realm changes (with a tuple `(node_id, worker_id, realm_id, old_status, new_status)` an event payload).
 
 #### Roles
 
