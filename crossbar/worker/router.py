@@ -34,7 +34,6 @@ import os
 import sys
 import importlib
 import pkg_resources
-import tempfile
 import six
 
 from datetime import datetime
