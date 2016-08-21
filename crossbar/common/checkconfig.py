@@ -1376,55 +1376,6 @@ def check_web_path_service_max_file_size(limit):
         raise InvalidConfigException("invalid value {} for 'max_file_size' attribute - must be non-negative".format(limit))
 
 
-def check_web_path_service_upload(config):
-    """
-    Check a file upload path service on Web transport.
-
-    http://crossbar.io/docs/
-    https://github.com/crossbario/crossbardocs/blob/master/pages/docs/administration/web-service/File-Upload-Service.md
-
-    :param config: The path service configuration.
-    :type config: dict
-    """
-
-    check_dict_args({
-        'type': (True, [six.text_type]),
-        'realm': (True, [six.text_type]),
-        'role': (True, [six.text_type]),
-        'directory': (True, [six.text_type]),
-        'temp_directory': (False, [six.text_type]),
-        'form_fields': (True, [Mapping]),
-        'options': (False, [Mapping])
-    }, config, "Web transport 'upload' path service")
-
-    check_dict_args({
-        'file_name': (True, [six.text_type]),
-        'mime_type': (True, [six.text_type]),
-        'total_size': (True, [six.text_type]),
-        'chunk_number': (True, [six.text_type]),
-        'chunk_size': (True, [six.text_type]),
-        'total_chunks': (True, [six.text_type]),
-        'content': (True, [six.text_type]),
-        'on_progress': (False, [six.text_type]),
-        'session': (False, [six.text_type]),
-        'chunk_extra': (False, [six.text_type]),
-        'finish_extra': (False, [six.text_type])
-    }, config['form_fields'], "File upload form field settings")
-
-    if 'on_progress' in config['form_fields']:
-        check_or_raise_uri(config['form_fields']['on_progress'], "invalid File Progress URI '{}' in File Upload configuration. ".format(config['form_fields']['on_progress']))
-
-    if 'options' in config:
-        check_dict_args({
-            'max_file_size': (False, six.integer_types),
-            'file_types': (False, [Sequence]),
-            'file_permissions': (False, [six.text_type])
-        }, config['options'], "Web transport 'upload' path service")
-
-        if 'max_file_size' in config['options']:
-            check_web_path_service_max_file_size(config['options']['max_file_size'])
-
-
 def check_web_path_service(path, config, nested):
     """
     Check a single path service on Web transport.
@@ -1445,13 +1396,12 @@ def check_web_path_service(path, config, nested):
         if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook']:
             raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload']:
+        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource']:
             raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
         'path': check_web_path_service_path,
         'static': check_web_path_service_static,
-        'upload': check_web_path_service_upload,
         'websocket': check_web_path_service_websocket,
         'longpoll': check_web_path_service_longpoll,
         'redirect': check_web_path_service_redirect,

@@ -93,8 +93,6 @@ from crossbar.twisted.resource import JsonResource, \
     RedirectResource, \
     ReverseProxyResource
 
-from crossbar.twisted.fileupload import FileUploadResource
-
 from crossbar.twisted.flashpolicy import FlashPolicyFactory
 
 from autobahn.wamp.types import ComponentConfig
@@ -1145,42 +1143,6 @@ class RouterWorkerSession(NativeWorkerSession):
             # now create the caller Twisted Web resource
             #
             return CallerResource(path_config.get('options', {}), caller_session)
-
-        # File Upload resource
-        #
-        elif path_config['type'] == 'upload':
-
-            upload_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
-            upload_directory = upload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-            if not os.path.isdir(upload_directory):
-                emsg = "configured upload directory '{}' in file upload resource isn't a directory".format(upload_directory)
-                self.log.error(emsg)
-                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-
-            if 'temp_directory' in path_config:
-                temp_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
-                temp_directory = temp_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-            else:
-                temp_directory = os.path.abspath(tempfile.gettempdir())
-                temp_directory = os.path.join(temp_directory, 'crossbar-uploads')
-                if not os.path.exists(temp_directory):
-                    os.makedirs(temp_directory)
-
-            if not os.path.isdir(temp_directory):
-                emsg = "configured temp directory '{}' in file upload resource isn't a directory".format(temp_directory)
-                self.log.error(emsg)
-                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-
-            # file upload progress and finish events are published via this session
-            #
-            upload_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
-            upload_session = ApplicationSession(upload_session_config)
-
-            self._router_session_factory.add(upload_session, authrole=path_config.get('role', 'anonymous'))
-
-            self.log.info("File upload resource started. Uploads to {upl} using temp folder {tmp}.", upl=upload_directory, tmp=temp_directory)
-
-            return FileUploadResource(upload_directory, temp_directory, path_config['form_fields'], upload_session, path_config.get('options', {}))
 
         # Generic Twisted Web resource
         #
