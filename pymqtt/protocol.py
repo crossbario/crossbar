@@ -30,123 +30,23 @@
 
 from __future__ import absolute_import, division, print_function
 
+from pymqtt._events import (
+    Failure, FailedParsing,
+    Connect
+)
+
 from struct import unpack
 import bitstring
 import attr
-
-# These are event IDs that pyMQTT may return.
-events = ["STOP_AND_CATCH_FIRE", "CONNECT"]
-
 
 # State machine events
 WAITING_FOR_NEW_PACKET = 0
 COLLECTING_REST_OF_PACKET = 1
 
-
-@attr.s
-class Failure(object):
-    reason = attr.ib(default=None)
-
-
-@attr.s
-class Connect(object):
-
-    flags = attr.ib()
-    keep_alive = attr.ib()
-    client_id = attr.ib()
-    will_topic = attr.ib()
-    will_message = attr.ib()
-    username = attr.ib()
-    password = attr.ib()
-
-    def write(self):
-        """
-        Assemble this into an on-wire message.
-        """
-
-
-def read_prefixed_data(data):
-    """
-    Reads the next 16-bit-uint prefixed data block from `data`.
-    """
-    data_length = data.read('uint:16')
-    return data.read(data_length * 8).bytes
-
-def read_string(data):
-    """
-    Reads the next MQTT pascal-style string from `data`.
-    """
-    return read_prefixed_data(data).decode('utf8')
-
-
-def packet_CONNECT(flags, data):
-
-    if flags.int != 0:
-        return Failure("Bad flags")
-
-    protocol = read_string(data)
-
-    if protocol != u"MQTT":
-        return Failure("Bad protocol name")
-
-    protocol_level = data.read(8).uint
-
-    if protocol_level != 4:
-        return Failure("Bad protocol level")
-
-    flags = {
-        "User Name": data.read(1).bool,
-        "Password": data.read(1).bool,
-        "Will Retain": data.read(1).bool,
-        "Will QoS": data.read(2).uint,
-        "Will": data.read(1).bool,
-        "Clean Session": data.read(1).bool,
-        "Reserved": data.read(1).bool,
-    }
-
-    # Conformance checking
-    if flags["Reserved"] == 1:
-        # MQTT-3.1.2-3, reserved flag must not be used
-        return Failure("Reserved flag in CONNECT used")
-
-    # Keep alive, in seconds
-    keep_alive = data.read('uint:16')
-
-    # The client ID
-    client_id = read_string(data)
-
-    if flags["Will"] == 1:
-        # MQTT-3.1.3-10, topic must be UTF-8
-        will_topic = read_string(data)
-        will_message = read_prefixed_data(data)
-    else:
-        will_topic = None
-        will_message = None
-
-    # Username
-    if flags["User Name"] == 1:
-        username = read_string(data)
-    else:
-        username = None
-
-    # Password
-    if flags["Password"] == 1:
-        password = read_string(data)
-    else:
-        password = None
-
-    # The event
-    return Connect(flags=flags, keep_alive=keep_alive, client_id=client_id,
-                   will_topic=will_topic, will_message=will_message,
-                   username=username, password=password)
-
-
 P_CONNECT = 1
 
-
-
 packet_handlers = {
-    P_CONNECT: packet_CONNECT
+    P_CONNECT: Connect
 }
 
 class MQTTServerProtocol(object):
@@ -171,7 +71,10 @@ class MQTTServerProtocol(object):
 
                 # New packet
                 packet_type = self._data.read('uint:4')
-                flags = self._data.read(4)
+                flags = (self._data.read("bool"),
+                         self._data.read("bool"),
+                         self._data.read("bool"),
+                         self._data.read("bool"))
 
                 final_length = 0
 
@@ -215,9 +118,19 @@ class MQTTServerProtocol(object):
                 if self._packet_count > 0 and packet_type != P_CONNECT:
                     return [Failure("Connect packet was not first")]
 
-                dataToGive = self._data.read(value*8)
-
-                events.append(packet_handlers[packet_type](flags, dataToGive))
+                dataToGive = self._data.read(value * 8)
+                packet_handler = packet_handlers[packet_type]
+                try:
+                    deser = packet_handler.deserialise(flags, dataToGive)
+                    events.append(deser)
+                except FailedParsing as e:
+                    events.append(Failure(e.args[0]))
+                    return events
+                except bitstring.ReadError as e:
+                    # whoops the parsing fell off the amount of data
+                    events.append(Failure("Corrupt data, fell off the end: " +
+                                          str(e)))
+                    return events
 
                 self._packet_header = None
                 self._data = self._data[self._data.bitpos:]
