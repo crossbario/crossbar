@@ -31,8 +31,58 @@
 from __future__ import absolute_import
 
 from twisted.trial import unittest
+from twisted.internet import defer
 
 from crossbar.router.role import RouterRoleStaticAuth
+from crossbar.router.auth import cryptosign, wampcra
+
+from autobahn.wamp import types
+
+from mock import Mock
+
+
+class TestDynamicAuth(unittest.TestCase):
+
+    def test_authextra_wampcryptosign(self):
+        session = Mock()
+        session._transport._transport_info = {}
+
+        def fake_call(method, *args, **kw):
+            realm, authid, details = args
+            self.assertEqual("foo.auth_a_doodle", method)
+            self.assertEqual("realm", realm)
+            self.assertEqual(details["authmethod"], "cryptosign")
+            self.assertEqual(details["authextra"], {"foo": "bar"})
+            return defer.succeed({
+                "pubkey": 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                "role": "some_role",
+                "authextra": {
+                    "what": "authenticator-supplied authextra",
+                }
+            })
+        session.call = Mock(side_effect=fake_call)
+        realm = Mock()
+        realm._realm.session = session
+        session._router_factory = {
+            "realm": realm,
+        }
+        config = {
+            "type": "dynamic",
+            "authenticator": "foo.auth_a_doodle",
+        }
+        extra = {
+            "foo": "bar",
+        }
+        details = Mock()
+        details.authextra = extra
+
+        auth = cryptosign.PendingAuthCryptosign(session, config)
+        reply = auth.hello(u"realm", details)
+
+        val = reply.result
+        self.assertTrue(isinstance(val, types.Challenge))
+        self.assertEqual("cryptosign", val.method)
+        self.assertTrue("challenge" in val.extra)
 
 
 class TestRouterRoleStaticAuth(unittest.TestCase):
