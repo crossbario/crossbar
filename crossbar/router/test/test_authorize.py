@@ -34,7 +34,7 @@ from twisted.trial import unittest
 from twisted.internet import defer
 
 from crossbar.router.role import RouterRoleStaticAuth
-from crossbar.router.auth import cryptosign, wampcra, ticket, tls
+from crossbar.router.auth import cryptosign, wampcra, ticket, tls, anonymous
 
 from autobahn.wamp import types
 
@@ -177,6 +177,52 @@ class TestDynamicAuth(unittest.TestCase):
         val = reply.result
         self.assertTrue(isinstance(val, types.Accept))
         self.assertEqual(val.authmethod, "tls")
+        self.assertEqual(val.authextra, {"what": "authenticator-supplied authextra"})
+
+    def test_authextra_anonymous(self):
+        """
+        We pass along the authextra to a dynamic authenticator
+        """
+        session = Mock()
+        session._transport._transport_info = {}
+
+        def fake_call(method, *args, **kw):
+            realm, authid, details = args
+            self.assertEqual("foo.auth_a_doodle", method)
+            self.assertEqual("realm", realm)
+            self.assertEqual(details["authmethod"], "anonymous")
+            self.assertEqual(details["authextra"], {"foo": "bar"})
+            return defer.succeed({
+                "secret": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                "role": u"some_role",
+                "extra": {
+                    "what": "authenticator-supplied authextra",
+                }
+            })
+        session.call = Mock(side_effect=fake_call)
+        realm = Mock()
+        realm._realm.session = session
+        session._pending_session_id = 'pending session id'
+        session._router_factory = {
+            "realm": realm,
+        }
+        config = {
+            "type": "dynamic",
+            "authenticator": "foo.auth_a_doodle",
+        }
+        extra = {
+            "foo": "bar",
+        }
+        details = Mock()
+        details.authid = u'alice'
+        details.authextra = extra
+
+        auth = anonymous.PendingAuthAnonymous(session, config)
+        reply = auth.hello(u"realm", details)
+
+        val = reply.result
+        self.assertTrue(isinstance(val, types.Accept))
+        self.assertEqual(val.authmethod, "anonymous")
         self.assertEqual(val.authextra, {"what": "authenticator-supplied authextra"})
 
     def test_authextra_ticket(self):
