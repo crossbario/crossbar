@@ -94,6 +94,9 @@ class PendingAuthTicket(PendingAuth):
             if error:
                 return error
 
+            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details[u'authextra'] = details.authextra
+
             return types.Challenge(self._authmethod)
 
         else:
