@@ -44,6 +44,9 @@ from mock import Mock
 class TestDynamicAuth(unittest.TestCase):
 
     def test_authextra_wampcryptosign(self):
+        """
+        We pass along the authextra to a dynamic authenticator
+        """
         session = Mock()
         session._transport._transport_info = {}
 
@@ -82,6 +85,52 @@ class TestDynamicAuth(unittest.TestCase):
         val = reply.result
         self.assertTrue(isinstance(val, types.Challenge))
         self.assertEqual("cryptosign", val.method)
+        self.assertTrue("challenge" in val.extra)
+
+    def test_authextra_wampcra(self):
+        """
+        We pass along the authextra to a dynamic authenticator
+        """
+        session = Mock()
+        session._transport._transport_info = {}
+
+        def fake_call(method, *args, **kw):
+            realm, authid, details = args
+            self.assertEqual("foo.auth_a_doodle", method)
+            self.assertEqual("realm", realm)
+            self.assertEqual(details["authmethod"], "wampcra")
+            self.assertEqual(details["authextra"], {"foo": "bar"})
+            return defer.succeed({
+                "secret": 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                "role": "some_role",
+                "authextra": {
+                    "what": "authenticator-supplied authextra",
+                }
+            })
+        session.call = Mock(side_effect=fake_call)
+        realm = Mock()
+        realm._realm.session = session
+        session._pending_session_id = 'pending session id'
+        session._router_factory = {
+            "realm": realm,
+        }
+        config = {
+            "type": "dynamic",
+            "authenticator": "foo.auth_a_doodle",
+        }
+        extra = {
+            "foo": "bar",
+        }
+        details = Mock()
+        details.authid = 'alice'
+        details.authextra = extra
+
+        auth = wampcra.PendingAuthWampCra(session, config)
+        reply = auth.hello(u"realm", details)
+
+        val = reply.result
+        self.assertTrue(isinstance(val, types.Challenge))
+        self.assertEqual("wampcra", val.method)
         self.assertTrue("challenge" in val.extra)
 
 
