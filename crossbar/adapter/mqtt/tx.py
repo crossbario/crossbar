@@ -34,6 +34,7 @@ from .protocol import (
     MQTTServerProtocol, Failure,
     Connect, ConnACK,
     Subscribe, SubACK,
+    Publish, PubACK,
 )
 
 from twisted.internet.protocol import Protocol
@@ -62,18 +63,36 @@ class MQTTServerTwistedProtocol(Protocol):
         events = self._mqtt.data_received(data)
 
         for event in events:
+            print("Got event", event)
 
             if isinstance(event, Connect):
                 # XXX: Do some better stuff here wrt session continuation
                 connack = ConnACK(session_present=False, return_code=0)
                 self.transport.write(connack.serialise())
+                continue
 
             elif isinstance(event, Subscribe):
-                print(event)
-
                 suback = SubACK(packet_identifier=event.packet_identifier,
                                 return_codes=[x.max_qos for x in event.topic_requests])
                 self.transport.write(suback.serialise())
+                continue
+
+            elif isinstance(event, Publish):
+
+                if event.qos_level == 0:
+                    # Publish, no acks
+
+                    # TODO: Send off the packet to the WAMP backer
+
+                elif event.qos_level == 1:
+                    # Publish > PubACK
+
+                    puback = PubACK(packet_identifier, event.packet_identifier)
+                    self.transport.write(puback.serialise())
+                    continue
+
+                elif event.qos_level == 2:
+                    # Publish > PubREC > PubREL > PubCOMP
 
             elif isinstance(event, Failure):
                 print(event)

@@ -44,11 +44,130 @@ unicode = type(u"")
 class ParseFailure(Exception):
     pass
 
+class SerialisationFailure(Exception):
+    pass
 
 @attr.s
 class Failure(object):
     reason = attr.ib(default=None)
 
+
+@attr.s
+class PubACK(object):
+    packet_identifier = attr.ib(validator=instance_of(int))
+
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        payload = self._make_payload()
+        header = build_header(4, (False, False, False, False), len(payload))
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+        b.append(pack('uint:16', self.packet_identifier).bytes)
+        return b"".join(b)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        """
+        Disassemble from an on-wire message.
+        """
+        if flags != (False, False, False, False):
+            raise ParseFailure("Bad flags")
+
+        packet_identifier = data.read('uint:16')
+
+        return cls(packet_identifier)
+
+
+@attr.s
+class Publish(object):
+    duplicate = attr.ib(validator=instance_of(bool))
+    qos_level = attr.ib(validator=instance_of(int))
+    retain = attr.ib(validator=instance_of(bool))
+    topic_name = attr.ib(validator=instance_of(unicode))
+    packet_identifier = attr.ib(validator=optional(instance_of(int)))
+    payload = attr.ib(validator=instance_of(bytes))
+
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        flags = [self.duplicate]
+        if self.qos_level == 0:
+            flags.extend([False, False])
+        elif self.qos_level == 1:
+            flags.extend([False, True])
+        elif self.qos_level == 2:
+            flags.extend([True, False])
+        else:
+            raise SerialisationFailure("QoS must be 0, 1, or 2")
+        flags.append(self.retain)
+
+        payload = self._make_payload()
+        header = build_header(3, flags, len(payload))
+
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+
+        # Topic Name
+        b.append(build_string(self.topic_name))
+
+        if self.packet_identifier:
+            if self.qos_level > 0:
+                # Session identifier
+                b.append(pack('uint:16', self.packet_identifier).bytes)
+            else:
+                raise SerialisationFailure("Packet Identifier on non-QoS 1/2 packet")
+        else:
+            if self.qos_level > 0:
+                raise SerialisationFailure("QoS level > 0 but no Packet Identifier")
+
+        # Payload (bytes)
+        b.append(self.payload)
+
+        return b"".join(b)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+
+        total_length = len(data)
+
+        duplicate = flags[0]
+
+        if flags[1:3] == (False, False):
+            qos_level = 0
+        elif flags[1:3] == (False, True):
+            qos_level = 1
+        elif flags[1:3] == (True, False):
+            qos_level = 2
+        elif flags[1:3] == (True, True):
+            raise ParseFailure("Invalid QoS value")
+
+        retain = flags[3]
+
+        topic_name = read_string(data)
+
+        if qos_level in [1, 2]:
+            packet_identifier = data.read('uint:16')
+        else:
+            packet_identifier = None
+
+        payload = data.read(total_length - data.bitpos).bytes
+
+        return cls(duplicate=duplicate, qos_level=qos_level, retain=retain,
+                   topic_name=topic_name, packet_identifier=packet_identifier,
+                   payload=payload)
 
 @attr.s
 class SubACK(object):

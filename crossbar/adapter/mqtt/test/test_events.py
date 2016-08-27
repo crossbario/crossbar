@@ -34,7 +34,8 @@ from bitstring import BitStream
 
 from crossbar.adapter.mqtt.protocol import (
     Connect, ConnACK,
-    Subscribe, SubACK
+    Subscribe, SubACK,
+    Publish, PubACK,
 )
 
 from twisted.trial.unittest import TestCase
@@ -104,5 +105,55 @@ class SubACKTests(TestCase):
         header = b"\x90\x03"
         good = b"\x00\x01\x00"
         event = SubACK.deserialise((False, False, False, False),
+                                   BitStream(bytes=good))
+        self.assertEqual(event.serialise(), header + good)
+
+
+class PublishTests(TestCase):
+    """
+    Tests for Publish.
+    """
+    def test_round_trip(self):
+        """
+        Deserialising a message and serialising it again results in the same
+        binary message.
+        """
+        # DUP0, QoS 0, Retain 0
+        header = b"\x30\x1a"
+        good = (b"\x00\x0b\x66\x6f\x6f\x2f\x62\x61\x72\x2f\x62\x61\x7a\x68\x65"
+                b"\x6c\x6c\x6f\x20\x66\x72\x69\x65\x6e\x64\x73")
+
+        event = Publish.deserialise((False, False, False, False),
+                                    BitStream(bytes=good))
+        self.assertEqual(event.serialise(), header + good)
+
+    def test_round_trip_qos1(self):
+        """
+        Deserialising a message and serialising it again results in the same
+        binary message.
+        """
+        # DUP0, QoS 1, Retain 0
+        header = b"\x32\x1c"
+        good = (b"\x00\x0b\x66\x6f\x6f\x2f\x62\x61\x72\x2f\x62\x61\x7a\x00\x02"
+                b"\x68\x65\x6c\x6c\x6f\x20\x66\x72\x69\x65\x6e\x64\x73")
+
+        event = Publish.deserialise((False, False, True, False),
+                                    BitStream(bytes=good))
+        self.assertEqual(event.serialise(), header + good)
+
+
+class PubACKTests(TestCase):
+    """
+    Tests for PubACK.
+    """
+    def test_round_trip(self):
+        """
+        Deserialising a message and serialising it again results in the same
+        binary message.
+        """
+        header = b"\x40\x02"
+        good = b"\x00\x02"
+
+        event = PubACK.deserialise((False, False, False, False),
                                    BitStream(bytes=good))
         self.assertEqual(event.serialise(), header + good)

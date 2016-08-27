@@ -34,12 +34,15 @@ from ._events import (
     Failure, ParseFailure,
     Connect, ConnACK,
     Subscribe, SubACK,
+    Publish, PubACK,
 )
 
 import bitstring
 
 __all__ = [
     "Connect", "ConnACK",
+    "Subscribe", "SubACK",
+    "Publish", "PubACK",
     "MQTTServerProtocol",
 ]
 
@@ -49,13 +52,21 @@ COLLECTING_REST_OF_PACKET = 1
 
 P_CONNECT = 1
 P_CONNACK = 2
+P_PUBLISH = 3
+P_PUBACK = 4
 P_SUBSCRIBE = 8
 P_SUBACK = 9
 
-packet_handlers = {
+server_packet_handlers = {
     P_CONNECT: Connect,
-    P_CONNACK: ConnACK,
+    P_PUBLISH: Publish,
     P_SUBSCRIBE: Subscribe,
+}
+
+client_packet_handlers = {
+    P_CONNACK: ConnACK,
+    P_PUBLISH: Publish,
+    P_PUBACK: PubACK,
     P_SUBACK: SubACK,
 }
 
@@ -146,12 +157,12 @@ class MQTTServerProtocol(object):
                 try:
                     dataToGive = self._data.read(value * 8)
 
-                    if packet_type not in packet_handlers:
+                    if packet_type not in server_packet_handlers:
                         events.append(Failure("Unimplemented packet type %d" % (
                             packet_type,)))
                         return events
 
-                    packet_handler = packet_handlers[packet_type]
+                    packet_handler = server_packet_handlers[packet_type]
                     deser = packet_handler.deserialise(flags, dataToGive)
                     events.append(deser)
                 except ParseFailure as e:
