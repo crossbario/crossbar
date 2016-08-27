@@ -30,7 +30,7 @@
 
 from __future__ import absolute_import, division, print_function
 
-from pymqtt.protocol import (
+from .protocol import (
     MQTTServerProtocol, Failure,
     Connect, ConnACK,
     Subscribe, SubACK,

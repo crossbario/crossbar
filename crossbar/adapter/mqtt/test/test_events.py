@@ -33,7 +33,10 @@ from __future__ import absolute_import, division
 from bitstring import BitStream
 import attr
 
-from pymqtt._events import Connect, ConnACK, Subscribe, SubACK
+from crossbar.adapter.mqtt.protocol import (
+    Connect, ConnACK,
+    Subscribe, SubACK
+)
 
 from twisted.trial.unittest import TestCase
 

@@ -33,7 +33,7 @@ from __future__ import absolute_import, division
 import bitstring
 import attr
 
-from pymqtt.protocol import MQTTServerProtocol
+from crossbar.adapter.mqtt.protocol import MQTTServerProtocol
 
 from twisted.trial.unittest import TestCase
 

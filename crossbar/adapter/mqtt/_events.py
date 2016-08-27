@@ -38,7 +38,7 @@ from attr.validators import instance_of, optional
 
 from bitstring import pack
 
-from pymqtt._utils import read_prefixed_data, read_string
+from ._utils import read_prefixed_data, read_string
 
 unicode = type(u"")
 
