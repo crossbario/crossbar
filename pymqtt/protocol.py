@@ -64,8 +64,6 @@ def _parse_header(data):
              data.read("bool"),
              data.read("bool"))
 
-    final_length = 0
-
     multiplier = 1
     value = 0
     encodedByte = -1
@@ -95,6 +93,7 @@ class MQTTServerProtocol(object):
         events = []
 
         self._data.append(bitstring.BitArray(bytes=data))
+        self._data = self._data[self._data.bitpos:]
 
         while True:
 
@@ -119,14 +118,14 @@ class MQTTServerProtocol(object):
 
                 self._data = self._data[self._data.bitpos:]
 
-                if len(self._data) * 8 < self._bytes_expected:
+                if len(self._data) < self._bytes_expected * 8:
                     return events
 
             else:
                 self._data = self._data[self._data.bitpos:]
                 return events
 
-            if self._bytes_expected <= len(self._data) * 8:
+            if self._bytes_expected * 8 <= len(self._data):
 
                 self._state = WAITING_FOR_NEW_PACKET
 
@@ -139,15 +138,15 @@ class MQTTServerProtocol(object):
                     events.append(Failure("Connect packet sent later"))
                     return events
 
-                dataToGive = self._data.read(value * 8)
-
-                if packet_type not in packet_handlers:
-                    events.append(Failure("Unimplemented packet type %d" % (
-                        packet_type,)))
-                    return events
-
-                packet_handler = packet_handlers[packet_type]
                 try:
+                    dataToGive = self._data.read(value * 8)
+
+                    if packet_type not in packet_handlers:
+                        events.append(Failure("Unimplemented packet type %d" % (
+                            packet_type,)))
+                        return events
+
+                    packet_handler = packet_handlers[packet_type]
                     deser = packet_handler.deserialise(flags, dataToGive)
                     events.append(deser)
                 except ParseFailure as e:

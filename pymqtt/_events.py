@@ -78,6 +78,23 @@ class Failure(object):
 
 
 @attr.s
+class SubscriptionTopicRequest(object):
+    topic_filter = attr.ib(validator=instance_of(unicode))
+    max_qos = attr.ib(validator=instance_of(int))
+
+
+@attr.s
+class Subscribe(object):
+    packet_identifier = attr.ib(validator=instance_of(int))
+    topic_requests = attr.ib(validator=instance_of(list))
+
+    @classmethod
+    def deserialise(self, flags, data):
+        if flags != (False, False, True, False):
+            raise ParseFailure("Bad flags")
+
+
+@attr.s
 class ConnACK(object):
     session_present = attr.ib(validator=instance_of(bool))
     return_code = attr.ib(validator=instance_of(int))
@@ -105,9 +122,13 @@ class ConnACK(object):
 
         return b"".join(b)
 
-
     @classmethod
     def deserialise(cls, flags, data):
+        """
+        Take an on-wire message and turn it into an instance of this class.
+        """
+        if flags != (False, False, False, False):
+            raise ParseFailure("Bad flags")
 
         reserved = data.read(7).uint
 
@@ -222,17 +243,17 @@ class Connect(object):
         Disassemble from an on-wire message.
         """
         if flags != (False, False, False, False):
-            return Failure("Bad flags")
+            raise ParseFailure("Bad flags")
 
         protocol = read_string(data)
 
         if protocol != u"MQTT":
-            return Failure("Bad protocol name")
+            raise ParseFailure("Bad protocol name")
 
         protocol_level = data.read('uint:8')
 
         if protocol_level != 4:
-            return Failure("Bad protocol level")
+            raise ParseFailure("Bad protocol level")
 
         flags = ConnectFlags.deserialise(data.read(8))
 
