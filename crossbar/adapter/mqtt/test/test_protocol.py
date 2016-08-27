@@ -30,16 +30,12 @@
 
 from __future__ import absolute_import, division
 
-import bitstring
 import attr
 
 from crossbar.adapter.mqtt.protocol import MQTTServerProtocol
+from crossbar.adapter.mqtt._utils import iterbytes
 
 from twisted.trial.unittest import TestCase
-
-def iterbytes(b):
-    for i in range(len(b)):
-        yield b[i:i+1]
 
 
 class ProtocolTests(TestCase):

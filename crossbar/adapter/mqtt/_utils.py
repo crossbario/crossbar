@@ -30,7 +30,7 @@
 
 from __future__ import absolute_import, division, print_function
 
-import bitstring
+from bitstring import pack
 
 
 def read_prefixed_data(data):
@@ -40,8 +40,37 @@ def read_prefixed_data(data):
     data_length = data.read('uint:16')
     return data.read(data_length * 8).bytes
 
+
 def read_string(data):
     """
     Reads the next MQTT pascal-style string from `data`.
     """
     return read_prefixed_data(data).decode('utf8')
+
+
+def build_string(string):
+
+    string = string.encode('utf8')
+    return pack('uint:16', len(string)).bytes + string
+
+
+def build_header(packet_id, flags, payload_length):
+
+    header = pack('uint:4, bool, bool, bool, bool', packet_id, *flags)
+
+    length_bytes = []
+
+    while payload_length > 0:
+        encoded_byte = payload_length % 128
+        payload_length = payload_length // 128
+        if payload_length > 0:
+            encoded_byte = encoded_byte | 128
+        length_bytes.append(encoded_byte)
+
+    return header.bytes + pack(','.join(['uint:8'] * len(length_bytes)),
+                               *length_bytes).bytes
+
+
+def iterbytes(b):
+    for i in range(len(b)):
+        yield b[i:i + 1]

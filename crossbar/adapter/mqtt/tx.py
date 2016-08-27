@@ -39,6 +39,7 @@ from .protocol import (
 from twisted.internet.protocol import Protocol
 from twisted.internet.defer import inlineCallbacks, succeed
 
+
 class MQTTServerTwistedProtocol(Protocol):
 
     def __init__(self):

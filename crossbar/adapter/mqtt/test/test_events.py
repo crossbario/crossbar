@@ -31,7 +31,6 @@
 from __future__ import absolute_import, division
 
 from bitstring import BitStream
-import attr
 
 from crossbar.adapter.mqtt.protocol import (
     Connect, ConnACK,
@@ -39,10 +38,6 @@ from crossbar.adapter.mqtt.protocol import (
 )
 
 from twisted.trial.unittest import TestCase
-
-def iterbytes(b):
-    for i in range(len(b)):
-        yield b[i:i+1]
 
 
 class ConnectTests(TestCase):

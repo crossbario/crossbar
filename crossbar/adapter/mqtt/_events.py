@@ -30,46 +30,19 @@
 
 from __future__ import absolute_import, division, print_function
 
-import attr
 import warnings
+import attr
 
 from attr.validators import instance_of, optional
-
-
 from bitstring import pack
 
-from ._utils import read_prefixed_data, read_string
+from ._utils import read_prefixed_data, read_string, build_string, build_header
 
 unicode = type(u"")
 
 
 class ParseFailure(Exception):
     pass
-
-
-def build_string(string):
-
-    string = string.encode('utf8')
-    return pack('uint:16', len(string)).bytes + string
-
-
-def build_header(packet_id, flags, payload_length):
-
-    header = pack('uint:4, bool, bool, bool, bool', packet_id, *flags)
-
-    byte_count = 0
-
-    byted = []
-
-    while payload_length > 0:
-
-        encodedByte = payload_length % 128
-        payload_length = payload_length // 128
-        if payload_length > 0:
-            encodedByte = encodedByte | 128
-        byted.append(encodedByte)
-
-    return header.bytes + pack(','.join(['uint:8'] * len(byted)), *byted).bytes
 
 
 @attr.s
@@ -186,7 +159,7 @@ class Subscribe(object):
             if reserved:
                 raise ParseFailure("Data in QoS Reserved area")
 
-            if not max_qos in [0, 1, 2]:
+            if max_qos not in [0, 1, 2]:
                 raise ParseFailure("Invalid QoS")
 
             pairs.append(SubscriptionTopicRequest(topic_filter=topic_filter,
@@ -341,7 +314,6 @@ class Connect(object):
         # XXX: Implement other fields
 
         return b"".join(b)
-
 
     @classmethod
     def deserialise(cls, flags, data):

@@ -36,9 +36,7 @@ from ._events import (
     Subscribe, SubACK,
 )
 
-from struct import unpack
 import bitstring
-import attr
 
 __all__ = [
     "Connect", "ConnACK",
@@ -52,12 +50,15 @@ COLLECTING_REST_OF_PACKET = 1
 P_CONNECT = 1
 P_CONNACK = 2
 P_SUBSCRIBE = 8
+P_SUBACK = 9
 
 packet_handlers = {
     P_CONNECT: Connect,
     P_CONNACK: ConnACK,
     P_SUBSCRIBE: Subscribe,
+    P_SUBACK: SubACK,
 }
+
 
 def _parse_header(data):
     # New packet
@@ -76,7 +77,7 @@ def _parse_header(data):
         value += (encodedByte & 127) * multiplier
         multiplier = multiplier * 128
 
-        if multiplier > (128*128*128):
+        if multiplier > (128 * 128 * 128):
             raise ParseFailure("Too big packet size")
 
     return (packet_type, flags, value)
