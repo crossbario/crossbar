@@ -82,16 +82,76 @@ class SubscriptionTopicRequest(object):
     topic_filter = attr.ib(validator=instance_of(unicode))
     max_qos = attr.ib(validator=instance_of(int))
 
+    def serialise(self):
+        """
+        Assemble this into an on-wire message part.
+        """
+        b = []
+
+        # Topic filter, as UTF-8
+        b.append(build_string(self.topic_filter))
+
+        # Reserved section + max QoS
+        b.append(pack('uint:6, uint:2', 0, self.max_qos).bytes)
+
+        return b"".join(b)
+
 
 @attr.s
 class Subscribe(object):
     packet_identifier = attr.ib(validator=instance_of(int))
     topic_requests = attr.ib(validator=instance_of(list))
 
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        payload = self._make_payload()
+        header = build_header(8, (False, False, True, False), len(payload))
+
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+
+        # Session identifier
+        b.append(pack('uint:16', self.packet_identifier).bytes)
+
+        for request in self.topic_requests:
+            b.append(request.serialise())
+
+        return b"".join(b)
+
     @classmethod
-    def deserialise(self, flags, data):
+    def deserialise(cls, flags, data):
         if flags != (False, False, True, False):
             raise ParseFailure("Bad flags")
+
+        pairs = []
+        packet_identifier = data.read('uint:16')
+
+        def parse_pair():
+
+            topic_filter = read_string(data)
+            reserved = data.read("uint:6")
+            max_qos = data.read("uint:2")
+
+            if reserved:
+                raise ParseFailure("Data in QoS Reserved area")
+
+            if not max_qos in [0, 1, 2]:
+                raise ParseFailure("Invalid QoS")
+
+            pairs.append(SubscriptionTopicRequest(topic_filter=topic_filter,
+                                                  max_qos=max_qos))
+
+
+        parse_pair()
+
+        return cls(packet_identifier=packet_identifier, topic_requests=pairs)
 
 
 @attr.s
