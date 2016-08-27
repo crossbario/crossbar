@@ -30,7 +30,11 @@
 
 from __future__ import absolute_import, division, print_function
 
-from pymqtt.protocol import MQTTServerProtocol, Connect, ConnACK, Failure
+from pymqtt.protocol import (
+    MQTTServerProtocol, Failure,
+    Connect, ConnACK,
+    Subscribe, SubACK,
+)
 
 from twisted.internet.protocol import Protocol
 from twisted.internet.defer import inlineCallbacks, succeed
@@ -62,6 +66,13 @@ class MQTTServerTwistedProtocol(Protocol):
                 # XXX: Do some better stuff here wrt session continuation
                 connack = ConnACK(session_present=False, return_code=0)
                 self.transport.write(connack.serialise())
+
+            elif isinstance(event, Subscribe):
+                print(event)
+
+                suback = SubACK(packet_identifier=event.packet_identifier,
+                                return_codes=[x.max_qos for x in event.topic_requests])
+                self.transport.write(suback.serialise())
 
             elif isinstance(event, Failure):
                 print(event)

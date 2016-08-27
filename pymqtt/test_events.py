@@ -33,7 +33,7 @@ from __future__ import absolute_import, division
 from bitstring import BitStream
 import attr
 
-from pymqtt._events import Connect, ConnACK, Subscribe
+from pymqtt._events import Connect, ConnACK, Subscribe, SubACK
 
 from twisted.trial.unittest import TestCase
 
@@ -91,4 +91,20 @@ class SubscribeTests(TestCase):
                 b"\x7a\x00")
         event = Subscribe.deserialise((False, False, True, False),
                                       BitStream(bytes=good))
+        self.assertEqual(event.serialise(), header + good)
+
+
+class SubACKTests(TestCase):
+    """
+    Tests for SubACK.
+    """
+    def test_round_trip(self):
+        """
+        Deserialising a message and serialising it again results in the same
+        binary message.
+        """
+        header = b"\x90\x03"
+        good = b"\x00\x01\x00"
+        event = SubACK.deserialise((False, False, False, False),
+                                   BitStream(bytes=good))
         self.assertEqual(event.serialise(), header + good)

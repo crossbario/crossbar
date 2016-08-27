@@ -32,7 +32,8 @@ from __future__ import absolute_import, division, print_function
 
 from pymqtt._events import (
     Failure, ParseFailure,
-    Connect, ConnACK
+    Connect, ConnACK,
+    Subscribe, SubACK,
 )
 
 from struct import unpack
@@ -50,10 +51,12 @@ COLLECTING_REST_OF_PACKET = 1
 
 P_CONNECT = 1
 P_CONNACK = 2
+P_SUBSCRIBE = 8
 
 packet_handlers = {
     P_CONNECT: Connect,
     P_CONNACK: ConnACK,
+    P_SUBSCRIBE: Subscribe,
 }
 
 def _parse_header(data):
@@ -77,6 +80,7 @@ def _parse_header(data):
             raise ParseFailure("Too big packet size")
 
     return (packet_type, flags, value)
+
 
 class MQTTServerProtocol(object):
 
