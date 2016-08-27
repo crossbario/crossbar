@@ -28,50 +28,42 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import, division
+from __future__ import absolute_import, division, print_function
 
-from bitstring import BitStream
-import attr
+from pymqtt.protocol import MQTTServerProtocol, Connect, ConnACK, Failure
 
-from pymqtt._events import Connect, ConnACK
+from twisted.internet.protocol import Protocol
+from twisted.internet.defer import inlineCallbacks, succeed
 
-from twisted.trial.unittest import TestCase
+class MQTTServerTwistedProtocol(Protocol):
 
-def iterbytes(b):
-    for i in range(len(b)):
-        yield b[i:i+1]
+    def __init__(self):
+        self._mqtt = MQTTServerProtocol()
 
+    def dataReceived(self, data):
+        # Pause the producer as we need to process some of these things
+        # serially -- for example, subscribes in Autobahn are a Deferred op,
+        # so we don't want any more data yet
+        self.transport.pauseProducing()
+        d = self._handle(data)
+        d.addCallback(lambda _: self.transport.resumeProducing())
 
-class ConnectTests(TestCase):
-    """
-    Tests for Connect.
-    """
-    def test_round_trip(self):
-        """
-        Deserialising a message and serialising it again results in the same
-        binary message.
-        """
-        # Header for CONNECT
-        header = b"\x10\x13"
-        # CONNECT without header, valid, client ID is "test123", clean session
-        good = b"\x00\x04MQTT\x04\x02\x00\x00\x00\x07test123"
+    @inlineCallbacks
+    def _handle(self, data):
 
-        event = Connect.deserialise((False, False, False, False),
-                                    BitStream(bytes=good))
-        self.assertEqual(event.serialise(), header + good)
+        # ugh generators
+        yield succeed(True)
 
+        events = self._mqtt.data_received(data)
 
-class ConnectAckTests(TestCase):
-    """
-    Tests for ConnectAck.
-    """
-    def test_round_trip(self):
-        """
-        Deserialising a message and serialising it again results in the same
-        binary message.
-        """
-        header = b"\x20\x02"
-        good = b"\x00\x00"
-        event = ConnACK.deserialise((False, False, False, False),
-                                    BitStream(bytes=good))
-        self.assertEqual(event.serialise(), header + good)
+        for event in events:
+
+            if isinstance(event, Connect):
+                # XXX: Do some better stuff here wrt session continuation
+                connack = ConnACK(session_present=False, return_code=0)
+                self.transport.write(connack.serialise())
+
+            elif isinstance(event, Failure):
+                print(event)
+                self.transport.loseConnection()
+                return

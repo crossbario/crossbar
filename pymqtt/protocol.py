@@ -31,23 +31,54 @@
 from __future__ import absolute_import, division, print_function
 
 from pymqtt._events import (
-    Failure, FailedParsing,
-    Connect
+    Failure, ParseFailure,
+    Connect, ConnACK
 )
 
 from struct import unpack
 import bitstring
 import attr
 
+__all__ = [
+    "Connect", "ConnACK",
+    "MQTTServerProtocol",
+]
+
 # State machine events
 WAITING_FOR_NEW_PACKET = 0
 COLLECTING_REST_OF_PACKET = 1
 
 P_CONNECT = 1
+P_CONNACK = 2
 
 packet_handlers = {
-    P_CONNECT: Connect
+    P_CONNECT: Connect,
+    P_CONNACK: ConnACK,
 }
+
+def _parse_header(data):
+    # New packet
+    packet_type = data.read('uint:4')
+    flags = (data.read("bool"),
+             data.read("bool"),
+             data.read("bool"),
+             data.read("bool"))
+
+    final_length = 0
+
+    multiplier = 1
+    value = 0
+    encodedByte = -1
+
+    while (encodedByte & 128) != 0:
+        encodedByte = data.read('uint:8')
+        value += (encodedByte & 127) * multiplier
+        multiplier = multiplier * 128
+
+        if multiplier > (128*128*128):
+            raise ParseFailure("Too big packet size")
+
+    return (packet_type, flags, value)
 
 class MQTTServerProtocol(object):
 
@@ -69,32 +100,18 @@ class MQTTServerProtocol(object):
 
             if self._state == WAITING_FOR_NEW_PACKET and len(self._data) > 8:
 
-                # New packet
-                packet_type = self._data.read('uint:4')
-                flags = (self._data.read("bool"),
-                         self._data.read("bool"),
-                         self._data.read("bool"),
-                         self._data.read("bool"))
+                try:
+                    self._packet_header = _parse_header(self._data)
+                except ParseFailure as e:
+                    events.append(Failure(e.args[0]))
+                    return events
+                except bitstring.ReadError as e:
+                    # whoops the parsing fell off the amount of data
+                    events.append(Failure(("Corrupt data, fell off the end of "
+                                           "the header: ") + str(e)))
+                    return events
 
-                final_length = 0
-
-                multiplier = 1
-                value = 0
-                encodedByte = -1
-
-                while (encodedByte & 128) != 0:
-                    encodedByte = self._data.read('uint:8')
-                    value += (encodedByte & 127) * multiplier
-                    multiplier = multiplier * 128
-
-                    if multiplier > (128*128*128):
-                        events.append(Failure("Too big packet size"))
-                        return events
-
-                self._bytes_expected = value * 8
-
-                self._packet_header = (packet_type, flags, value)
-
+                self._bytes_expected = self._packet_header[2]
                 self._data = self._data[self._data.bitpos:]
                 self._state = COLLECTING_REST_OF_PACKET
 
@@ -102,28 +119,38 @@ class MQTTServerProtocol(object):
 
                 self._data = self._data[self._data.bitpos:]
 
-                if len(self._data) < self._bytes_expected:
+                if len(self._data) * 8 < self._bytes_expected:
                     return events
 
             else:
                 self._data = self._data[self._data.bitpos:]
                 return events
 
-            if self._bytes_expected <= len(self._data):
+            if self._bytes_expected <= len(self._data) * 8:
 
                 self._state = WAITING_FOR_NEW_PACKET
 
                 packet_type, flags, value = self._packet_header
 
-                if self._packet_count > 0 and packet_type != P_CONNECT:
+                if self._packet_count == 0 and packet_type != P_CONNECT:
                     return [Failure("Connect packet was not first")]
 
+                if self._packet_count > 0 and packet_type == P_CONNECT:
+                    events.append(Failure("Connect packet sent later"))
+                    return events
+
                 dataToGive = self._data.read(value * 8)
+
+                if packet_type not in packet_handlers:
+                    events.append(Failure("Unimplemented packet type %d" % (
+                        packet_type,)))
+                    return events
+
                 packet_handler = packet_handlers[packet_type]
                 try:
                     deser = packet_handler.deserialise(flags, dataToGive)
                     events.append(deser)
-                except FailedParsing as e:
+                except ParseFailure as e:
                     events.append(Failure(e.args[0]))
                     return events
                 except bitstring.ReadError as e:

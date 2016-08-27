@@ -43,7 +43,7 @@ from pymqtt._utils import read_prefixed_data, read_string
 unicode = type(u"")
 
 
-class FailedParsing(Exception):
+class ParseFailure(Exception):
     pass
 
 
@@ -75,6 +75,58 @@ def build_header(packet_id, flags, payload_length):
 @attr.s
 class Failure(object):
     reason = attr.ib(default=None)
+
+
+@attr.s
+class ConnACK(object):
+    session_present = attr.ib(validator=instance_of(bool))
+    return_code = attr.ib(validator=instance_of(int))
+
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        payload = self._make_payload()
+        header = build_header(2, (False, False, False, False), len(payload))
+
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+
+        # Flags -- 7 bit reserved + Session Present flag
+        b.append(pack('uint:7, bool', 0, self.session_present).bytes)
+
+        # Return code
+        b.append(pack('uint:8', self.return_code).bytes)
+
+        return b"".join(b)
+
+
+    @classmethod
+    def deserialise(cls, flags, data):
+
+        reserved = data.read(7).uint
+
+        if reserved:
+            raise ParseFailure("Reserved flag used.")
+
+        built = cls(session_present=data.read(1).bool,
+                    return_code=data.read(8).uint)
+
+        # XXX: Do some more verification, re conn flags
+
+        if not data.bitpos == len(data):
+            # There's some wacky stuff going on here -- data they included, but
+            # didn't put flags for, maybe?
+            warnings.warn(("Quirky server CONNACK -- packet length was "
+                           "%d bytes but only had %d bytes of useful data") % (
+                               data.bitpos, len(data)))
+
+        return built
 
 
 @attr.s
@@ -113,7 +165,7 @@ class ConnectFlags(object):
 
         if built.reserved:
             # MQTT-3.1.2-3, reserved flag must not be used
-            raise FailedParsing("Reserved flag in CONNECT used")
+            raise ParseFailure("Reserved flag in CONNECT used")
 
         return built
 
@@ -133,16 +185,15 @@ class Connect(object):
         """
         Assemble this into an on-wire message.
         """
-        payload = self.make_payload()
+        payload = self._make_payload()
+        header = build_header(1, (False, False, False, False), len(payload))
 
-        return self.make_header(len(payload)) + payload
+        return header + payload
 
-    def make_header(self, payload_length):
-
-        return build_header(1, (False, False, False, False), payload_length)
-
-    def make_payload(self):
-
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
         b = []
 
         # Protocol name (MQTT)
