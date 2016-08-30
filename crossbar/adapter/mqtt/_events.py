@@ -44,8 +44,10 @@ unicode = type(u"")
 class ParseFailure(Exception):
     pass
 
+
 class SerialisationFailure(Exception):
     pass
+
 
 @attr.s
 class Failure(object):
@@ -168,6 +170,7 @@ class Publish(object):
         return cls(duplicate=duplicate, qos_level=qos_level, retain=retain,
                    topic_name=topic_name, packet_identifier=packet_identifier,
                    payload=payload)
+
 
 @attr.s
 class SubACK(object):

@@ -32,7 +32,7 @@ from __future__ import absolute_import, division, print_function
 
 from .protocol import (
     MQTTServerProtocol, Failure,
-    Connect, ConnACK,
+    Connect,
     Subscribe, SubACK,
     Publish, PubACK,
 )
@@ -43,8 +43,11 @@ from twisted.internet.defer import inlineCallbacks, succeed
 
 class MQTTServerTwistedProtocol(Protocol):
 
-    def __init__(self):
+    def __init__(self, handler):
         self._mqtt = MQTTServerProtocol()
+        self._handler = handler
+        self._in_flight_publishes = set()
+        self._waiting_for_ack = {}
 
     def dataReceived(self, data):
         # Pause the producer as we need to process some of these things
@@ -53,6 +56,23 @@ class MQTTServerTwistedProtocol(Protocol):
         self.transport.pauseProducing()
         d = self._handle(data)
         d.addCallback(lambda _: self.transport.resumeProducing())
+
+    def send_publish(self, topic, qos, body):
+
+        if qos == 0:
+            publish = Publish(duplicate=False, qos_level=qos, retain=False,
+                              packet_identifier=None, topic_name=topic,
+                              payload=body)
+
+        elif qos == 1:
+            packet_id = self._get_packet_id()
+            publish = Publish(duplicate=False, qos_level=qos, retain=False,
+                              packet_identifier=packet_id, topic_name=topic,
+                              payload=body)
+
+            self._waiting_for_ack[packet_id] = (1, 0)
+
+        self.transport.write(publish.serialise())
 
     @inlineCallbacks
     def _handle(self, data):
@@ -66,14 +86,16 @@ class MQTTServerTwistedProtocol(Protocol):
             print("Got event", event)
 
             if isinstance(event, Connect):
-                # XXX: Do some better stuff here wrt session continuation
-                connack = ConnACK(session_present=False, return_code=0)
+
+                connack = yield self._handler.process_connect(event)
                 self.transport.write(connack.serialise())
                 continue
 
             elif isinstance(event, Subscribe):
+                return_codes = yield self._handler.process_subscribe(event)
+
                 suback = SubACK(packet_identifier=event.packet_identifier,
-                                return_codes=[x.max_qos for x in event.topic_requests])
+                                return_codes=return_codes)
                 self.transport.write(suback.serialise())
                 continue
 
@@ -83,16 +105,27 @@ class MQTTServerTwistedProtocol(Protocol):
                     # Publish, no acks
 
                     # TODO: Send off the packet to the WAMP backer
+                    self._handler.publish_qos_0(event)
+                    continue
 
                 elif event.qos_level == 1:
                     # Publish > PubACK
+                    def _acked(*args):
+                        puback = PubACK(
+                            packet_identifier=event.packet_identifier)
+                        self.transport.write(puback.serialise())
 
-                    puback = PubACK(packet_identifier, event.packet_identifier)
-                    self.transport.write(puback.serialise())
+                    d = self._handler.publish_qos_1(event)
+                    d.addCallback(_acked)
                     continue
 
                 elif event.qos_level == 2:
                     # Publish > PubREC > PubREL > PubCOMP
+
+                    # add to set, send pubrec here -- in the branching loop,
+                    # handle pubrel + pubcomp
+
+                    raise ValueError("Dunno about this yet.")
 
             elif isinstance(event, Failure):
                 print(event)
