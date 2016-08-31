@@ -32,8 +32,9 @@ from __future__ import absolute_import, division, print_function
 
 from .protocol import (
     MQTTServerProtocol, Failure,
-    Connect,
+    Connect, ConnACK,
     Subscribe, SubACK,
+    Unsubscribe, UnsubACK,
     Publish, PubACK,
 )
 
@@ -48,6 +49,7 @@ class MQTTServerTwistedProtocol(Protocol):
         self._handler = handler
         self._in_flight_publishes = set()
         self._waiting_for_ack = {}
+        self._timeout = None
 
     def dataReceived(self, data):
         # Pause the producer as we need to process some of these things
@@ -77,18 +79,21 @@ class MQTTServerTwistedProtocol(Protocol):
     @inlineCallbacks
     def _handle(self, data):
 
-        # ugh generators
-        yield succeed(True)
-
         events = self._mqtt.data_received(data)
 
         for event in events:
             print("Got event", event)
 
             if isinstance(event, Connect):
-
-                connack = yield self._handler.process_connect(event)
+                connack_details = yield self._handler.process_connect(event)
+                connack = ConnACK(session_present=connack_details[0],
+                                  return_code=connack_details[1])
                 self.transport.write(connack.serialise())
+
+                if connack.return_code != 0:
+                    self.transport.loseConnection()
+                    return
+
                 continue
 
             elif isinstance(event, Subscribe):
@@ -99,12 +104,15 @@ class MQTTServerTwistedProtocol(Protocol):
                 self.transport.write(suback.serialise())
                 continue
 
-            elif isinstance(event, Publish):
+            elif isinstance(event, Unsubscribe):
+                yield self._handler.process_unsubscribe(event)
+                unsuback = UnsubACK(packet_identifier=event.packet_identifier)
+                self.transport.write(unsuback.serialise())
+                continue
 
+            elif isinstance(event, Publish):
                 if event.qos_level == 0:
                     # Publish, no acks
-
-                    # TODO: Send off the packet to the WAMP backer
                     self._handler.publish_qos_0(event)
                     continue
 
@@ -129,5 +137,10 @@ class MQTTServerTwistedProtocol(Protocol):
 
             elif isinstance(event, Failure):
                 print(event)
+                self.transport.loseConnection()
+                return
+            else:
+                # Something else!
+                print("I don't understand %r" % (event,))
                 self.transport.loseConnection()
                 return

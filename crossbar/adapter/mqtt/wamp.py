@@ -37,7 +37,7 @@ from functools import partial
 from twisted.internet.protocol import Protocol, Factory
 from twisted.internet.defer import succeed, inlineCallbacks, returnValue
 
-from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol, ConnACK
+from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
 
 from autobahn.wamp.types import PublishOptions, ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession
@@ -48,6 +48,7 @@ class WampMQTTServerProtocol(Protocol):
     def __init__(self, session):
         self._session = session
         self._mqtt = MQTTServerTwistedProtocol(self)
+        self._subscriptions = {}
 
     def connectionMade(self):
         self._mqtt.transport = self.transport
@@ -55,7 +56,7 @@ class WampMQTTServerProtocol(Protocol):
     def process_connect(self, packet):
 
         # XXX: Do some better stuff here wrt session continuation
-        return succeed(ConnACK(session_present=False, return_code=0))
+        return succeed((False, 0))
 
     def _publish(self, event, options):
 
@@ -85,17 +86,31 @@ class WampMQTTServerProtocol(Protocol):
                 responses.append(128)
                 continue
             else:
-                yield self._session.subscribe(
-                    partial(handle_publish, x.topic_filter, x.max_qos),
-                    x.topic_filter)
+                try:
+                    sub = yield self._session.subscribe(
+                        partial(handle_publish, x.topic_filter, x.max_qos),
+                        x.topic_filter)
+                    self._subscriptions[x.topic_filter] = sub
 
-                # We don't allow subscribes with a QoS larger than 2
-                if x.max_qos > 1:
-                    responses.append(1)
-                else:
-                    responses.append(x.max_qos)
+                    # We don't allow QoS 2 subscriptions
+                    if x.max_qos > 1:
+                        responses.append(1)
+                    else:
+                        responses.append(x.max_qos)
+                except Exception as e:
+                    print("Failed subscribing to topic %s" % (x.topic_filter,))
+                    responses.append(128)
 
         returnValue(responses)
+
+    @inlineCallbacks
+    def process_unsubscribe(self, packet):
+
+        for topic in packet.topics:
+            if topic in self._subscriptions:
+                yield self._subscriptions.pop(topic).unsubscribe()
+
+        return
 
     def dataReceived(self, data):
         self._mqtt.dataReceived(data)

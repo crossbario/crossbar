@@ -34,6 +34,7 @@ from ._events import (
     Failure, ParseFailure,
     Connect, ConnACK,
     Subscribe, SubACK,
+    Unsubscribe, UnsubACK,
     Publish, PubACK,
 )
 
@@ -42,6 +43,7 @@ import bitstring
 __all__ = [
     "Connect", "ConnACK",
     "Subscribe", "SubACK",
+    "Unsubscribe", "UnsubACK",
     "Publish", "PubACK",
     "MQTTServerProtocol",
 ]
@@ -56,11 +58,14 @@ P_PUBLISH = 3
 P_PUBACK = 4
 P_SUBSCRIBE = 8
 P_SUBACK = 9
+P_UNSUBSCRIBE = 10
+P_UNSUBACK = 11
 
 server_packet_handlers = {
     P_CONNECT: Connect,
     P_PUBLISH: Publish,
     P_SUBSCRIBE: Subscribe,
+    P_UNSUBSCRIBE: Unsubscribe,
 }
 
 client_packet_handlers = {
@@ -68,6 +73,7 @@ client_packet_handlers = {
     P_PUBLISH: Publish,
     P_PUBACK: PubACK,
     P_SUBACK: SubACK,
+    P_UNSUBACK: UnsubACK,
 }
 
 

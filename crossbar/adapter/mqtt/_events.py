@@ -55,6 +55,89 @@ class Failure(object):
 
 
 @attr.s
+class UnsubACK(object):
+    packet_identifier = attr.ib(validator=instance_of(int))
+
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        payload = self._make_payload()
+        header = build_header(11, (False, False, False, False), len(payload))
+
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+
+        # Session identifier
+        b.append(pack('uint:16', self.packet_identifier).bytes)
+
+        return b"".join(b)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        if flags != (False, False, False, False):
+            raise ParseFailure("Bad flags")
+
+        topics = []
+        packet_identifier = data.read('uint:16')
+
+        return cls(packet_identifier=packet_identifier)
+
+
+@attr.s
+class Unsubscribe(object):
+    packet_identifier = attr.ib(validator=instance_of(int))
+    topics = attr.ib(validator=instance_of(list))
+
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        payload = self._make_payload()
+        header = build_header(10, (False, False, True, False), len(payload))
+
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+
+        # Session identifier
+        b.append(pack('uint:16', self.packet_identifier).bytes)
+
+        for topic in self.topics:
+            if not isinstance(topic, unicode):
+                raise SerialisationFailure("Topics must be Unicode")
+
+            b.append(build_string(topic))
+
+        return b"".join(b)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        if flags != (False, False, True, False):
+            raise ParseFailure("Bad flags")
+
+        topics = []
+        packet_identifier = data.read('uint:16')
+
+        while not data.bitpos == len(data):
+            topics.append(read_string(data))
+
+        if len(topics) == 0:
+            raise ParseFailure("Must contain a payload.")
+
+        return cls(packet_identifier=packet_identifier, topics=topics)
+
+
+@attr.s
 class PubACK(object):
     packet_identifier = attr.ib(validator=instance_of(int))
 

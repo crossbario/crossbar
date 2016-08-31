@@ -35,6 +35,7 @@ from bitstring import BitStream
 from crossbar.adapter.mqtt.protocol import (
     Connect, ConnACK,
     Subscribe, SubACK,
+    Unsubscribe, UnsubACK,
     Publish, PubACK,
 )
 
@@ -156,4 +157,39 @@ class PubACKTests(TestCase):
 
         event = PubACK.deserialise((False, False, False, False),
                                    BitStream(bytes=good))
+        self.assertEqual(event.serialise(), header + good)
+
+
+class UnsubscribeTests(TestCase):
+    """
+    Tests for Unsubscribe.
+    """
+    def test_round_trip(self):
+        """
+        Deserialising a message and serialising it again results in the same
+        binary message.
+        """
+        header = b"\xa2\x19"
+        good = (b"\x00\x03\x00\x15\x63\x6f\x6d\x2e\x65\x78\x61\x6d\x70\x6c\x65"
+                b"\x2e\x6f\x6e\x63\x6f\x75\x6e\x74\x65\x72")
+
+        event = Unsubscribe.deserialise((False, False, True, False),
+                                        BitStream(bytes=good))
+        self.assertEqual(event.serialise(), header + good)
+
+
+class UnsubACKTests(TestCase):
+    """
+    Tests for UnsubACK.
+    """
+    def test_round_trip(self):
+        """
+        Deserialising a message and serialising it again results in the same
+        binary message.
+        """
+        header = b"\xb0\x02"
+        good = b"\x00\x03"
+
+        event = UnsubACK.deserialise((False, False, False, False),
+                                     BitStream(bytes=good))
         self.assertEqual(event.serialise(), header + good)
