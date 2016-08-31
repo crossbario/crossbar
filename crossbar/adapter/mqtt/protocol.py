@@ -36,6 +36,7 @@ from ._events import (
     Subscribe, SubACK,
     Unsubscribe, UnsubACK,
     Publish, PubACK,
+    PingREQ, PingRESP,
 )
 
 import bitstring
@@ -45,6 +46,7 @@ __all__ = [
     "Subscribe", "SubACK",
     "Unsubscribe", "UnsubACK",
     "Publish", "PubACK",
+    "PingREQ", "PingRESP",
     "MQTTServerProtocol",
 ]
 
@@ -60,12 +62,15 @@ P_SUBSCRIBE = 8
 P_SUBACK = 9
 P_UNSUBSCRIBE = 10
 P_UNSUBACK = 11
+P_PINGREQ = 12
+P_PINGRESP = 13
 
 server_packet_handlers = {
     P_CONNECT: Connect,
     P_PUBLISH: Publish,
     P_SUBSCRIBE: Subscribe,
     P_UNSUBSCRIBE: Unsubscribe,
+    P_PINGREQ: PingREQ,
 }
 
 client_packet_handlers = {
@@ -74,6 +79,7 @@ client_packet_handlers = {
     P_PUBACK: PubACK,
     P_SUBACK: SubACK,
     P_UNSUBACK: UnsubACK,
+    P_PINGRESP: PingRESP,
 }
 
 

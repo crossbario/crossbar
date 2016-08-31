@@ -45,9 +45,9 @@ from autobahn.twisted.wamp import ApplicationSession
 
 class WampMQTTServerProtocol(Protocol):
 
-    def __init__(self, session):
+    def __init__(self, session, reactor):
         self._session = session
-        self._mqtt = MQTTServerTwistedProtocol(self)
+        self._mqtt = MQTTServerTwistedProtocol(self, reactor)
         self._subscriptions = {}
 
     def connectionMade(self):
@@ -76,7 +76,13 @@ class WampMQTTServerProtocol(Protocol):
     def process_subscribe(self, packet):
 
         def handle_publish(topic, qos, *args, **kwargs):
-            body = json.dumps({"args": args, "kwargs": kwargs}).encode('utf8')
+            # If there's a single kwarg which is mqtt_message, then just send
+            # that, so that CB can be 'drop in'
+            if not args and kwargs.keys() == "mqtt_message":
+                body = kwargs["mqtt_message"].encode('utf8')
+            else:
+                body = json.dumps({"args": args,
+                                   "kwargs": kwargs}).encode('utf8')
             self._mqtt.send_publish(topic, qos, body)
 
         responses = []
@@ -120,9 +126,10 @@ class WampMQTTServerFactory(Factory):
 
     protocol = WampMQTTServerProtocol
 
-    def __init__(self, session_factory, config):
+    def __init__(self, session_factory, config, reactor):
         self._session_factory = session_factory
         self._config = config["options"]
+        self._reactor = reactor
 
     def buildProtocol(self, addr):
 
@@ -134,6 +141,4 @@ class WampMQTTServerFactory(Factory):
             session,
             authrole=self._config.get('role', u'anonymous'))
 
-        p = self.protocol(session)
-
-        return p
+        return self.protocol(session, self._reactor)

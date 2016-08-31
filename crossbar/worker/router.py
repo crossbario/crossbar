@@ -817,8 +817,8 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         elif config['type'] == 'mqtt':
 
-            print(config)
-            transport_factory = WampMQTTServerFactory(self._router_session_factory, config)
+            transport_factory = WampMQTTServerFactory(
+                self._router_session_factory, config, self._reactor)
             transport_factory.noisy = False
 
         # Twisted Web based transport

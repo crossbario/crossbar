@@ -55,6 +55,38 @@ class Failure(object):
 
 
 @attr.s
+class PingRESP(object):
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        return build_header(13, (False, False, False, False), 0)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        if flags != (False, False, False, False):
+            raise ParseFailure("Bad flags")
+
+        return cls()
+
+
+@attr.s
+class PingREQ(object):
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        return build_header(12, (False, False, False, False), 0)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        if flags != (False, False, False, False):
+            raise ParseFailure("Bad flags")
+
+        return cls()
+
+
+@attr.s
 class UnsubACK(object):
     packet_identifier = attr.ib(validator=instance_of(int))
 

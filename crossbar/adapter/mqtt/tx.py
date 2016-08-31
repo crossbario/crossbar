@@ -36,6 +36,7 @@ from .protocol import (
     Subscribe, SubACK,
     Unsubscribe, UnsubACK,
     Publish, PubACK,
+    PingREQ, PingRESP,
 )
 
 from twisted.internet.protocol import Protocol
@@ -44,20 +45,34 @@ from twisted.internet.defer import inlineCallbacks, succeed
 
 class MQTTServerTwistedProtocol(Protocol):
 
-    def __init__(self, handler):
+    def __init__(self, handler, reactor):
+        self._reactor = reactor
         self._mqtt = MQTTServerProtocol()
         self._handler = handler
         self._in_flight_publishes = set()
         self._waiting_for_ack = {}
         self._timeout = None
+        self._timeout_time = 0
+
+    def _reset_timeout(self):
+        if self._timeout:
+            self._timeout.reset(self._timeout_time)
 
     def dataReceived(self, data):
+        # The client is alive, reset the timeout
+        self._reset_timeout()
+
         # Pause the producer as we need to process some of these things
         # serially -- for example, subscribes in Autobahn are a Deferred op,
         # so we don't want any more data yet
         self.transport.pauseProducing()
         d = self._handle(data)
-        d.addCallback(lambda _: self.transport.resumeProducing())
+        d.addBoth(lambda _: self.transport.resumeProducing())
+
+    def connectionLost(self, reason):
+        if self._timeout:
+            self._timeout.cancel()
+            self._timeout = None
 
     def send_publish(self, topic, qos, body):
 
@@ -76,8 +91,18 @@ class MQTTServerTwistedProtocol(Protocol):
 
         self.transport.write(publish.serialise())
 
+    def _lose_connection(self):
+        print("MQTT client is timed out... Nothing for %d seconds" % (self._timeout_time,))
+        self.transport.loseConnection()
+
+    def _send_packet(self, packet):
+        print("Sending %r" %(packet,))
+        self.transport.write(packet.serialise())
+
     @inlineCallbacks
     def _handle(self, data):
+
+        yield succeed(True)
 
         events = self._mqtt.data_received(data)
 
@@ -88,11 +113,18 @@ class MQTTServerTwistedProtocol(Protocol):
                 connack_details = yield self._handler.process_connect(event)
                 connack = ConnACK(session_present=connack_details[0],
                                   return_code=connack_details[1])
-                self.transport.write(connack.serialise())
+                self._send_packet(connack)
 
                 if connack.return_code != 0:
                     self.transport.loseConnection()
                     return
+
+                # If we have a connection, we should make sure timeouts don't
+                # happen. MQTT-3.1.2-24 says it is 1.5x the keep alive time.
+                if event.keep_alive:
+                    self._timeout_time = event.keep_alive * 1.5
+                    self._timeout = self._reactor.callLater(
+                        self._timeout_time, self._lose_connection)
 
                 continue
 
@@ -101,13 +133,13 @@ class MQTTServerTwistedProtocol(Protocol):
 
                 suback = SubACK(packet_identifier=event.packet_identifier,
                                 return_codes=return_codes)
-                self.transport.write(suback.serialise())
+                self._send_packet(suback)
                 continue
 
             elif isinstance(event, Unsubscribe):
                 yield self._handler.process_unsubscribe(event)
                 unsuback = UnsubACK(packet_identifier=event.packet_identifier)
-                self.transport.write(unsuback.serialise())
+                self._send_packet(unsuback)
                 continue
 
             elif isinstance(event, Publish):
@@ -121,7 +153,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     def _acked(*args):
                         puback = PubACK(
                             packet_identifier=event.packet_identifier)
-                        self.transport.write(puback.serialise())
+                        self._send_packet(puback)
 
                     d = self._handler.publish_qos_1(event)
                     d.addCallback(_acked)
@@ -134,6 +166,11 @@ class MQTTServerTwistedProtocol(Protocol):
                     # handle pubrel + pubcomp
 
                     raise ValueError("Dunno about this yet.")
+
+            elif isinstance(event, PingREQ):
+                resp = PingRESP()
+                self._send_packet(resp)
+                continue
 
             elif isinstance(event, Failure):
                 print(event)

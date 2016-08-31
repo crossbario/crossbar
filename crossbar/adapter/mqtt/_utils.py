@@ -58,14 +58,17 @@ def build_header(packet_id, flags, payload_length):
 
     header = pack('uint:4, bool, bool, bool, bool', packet_id, *flags)
 
-    length_bytes = []
+    if payload_length > 0:
+        length_bytes = []
 
-    while payload_length > 0:
-        encoded_byte = payload_length % 128
-        payload_length = payload_length // 128
-        if payload_length > 0:
-            encoded_byte = encoded_byte | 128
-        length_bytes.append(encoded_byte)
+        while payload_length > 0:
+            encoded_byte = payload_length % 128
+            payload_length = payload_length // 128
+            if payload_length > 0:
+                encoded_byte = encoded_byte | 128
+            length_bytes.append(encoded_byte)
+    else:
+        length_bytes = [0]
 
     return header.bytes + pack(','.join(['uint:8'] * len(length_bytes)),
                                *length_bytes).bytes
