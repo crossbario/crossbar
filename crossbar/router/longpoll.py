@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import json
-import binascii
 import six
 
 from collections import deque
@@ -94,8 +93,17 @@ class WampLongPollResourceSessionSend(Resource):
             # process (batch of) WAMP message(s)
             self._parent.onMessage(payload, None)
 
-        except Exception as e:
-            return self._parent._parent._fail_request(request, "could not unserialize WAMP message: {0}".format(e))
+        except Exception:
+            f = create_failure()
+            self.log.error(
+                "Could not unserialize WAMP message: {msg}",
+                msg=failure_message(f),
+            )
+            self.log.debug("{tb}", tb=failure_format_traceback(f))
+            return self._parent._parent._fail_request(
+                request,
+                b"could not unserialize WAMP message."
+            )
 
         else:
             request.setResponseCode(http.NO_CONTENT)
@@ -252,7 +260,7 @@ class WampLongPollResourceSessionClose(Resource):
 
         request.setResponseCode(http.NO_CONTENT)
         self._parent._parent._set_standard_headers(request)
-        return ""
+        return b""
 
 
 class WampLongPollResourceSession(Resource):
@@ -343,7 +351,7 @@ class WampLongPollResourceSession(Resource):
             u'transport': self._transport_id,
             u'session': self._session._session_id if self._session else None
         }
-        return json.dumps(res)
+        return json.dumps(res).encode()
 
     def close(self):
         """
@@ -457,7 +465,7 @@ class WampLongPollResourceOpen(Resource):
         """
         self.log.debug("WampLongPoll: creating new session ..")
 
-        payload = request.content.read()
+        payload = request.content.read().decode('utf8')
         try:
             options = json.loads(payload)
         except Exception:
@@ -487,7 +495,11 @@ class WampLongPollResourceOpen(Resource):
                 break
 
         if protocol is None:
-            return self.__fail_request(request, "no common protocol to speak (I speak: {0})".format(["wamp.2.{0}".format(s) for s in self._parent._serializers.keys()]))
+            return self._fail_request(
+                request,
+                b"no common protocol to speak (I speak: {0})".format(
+                    ["wamp.2.{0}".format(s) for s in self._parent._serializers.keys()])
+            )
 
         # make up new transport ID
         #
@@ -528,11 +540,15 @@ class WampLongPollResourceOpen(Resource):
             u'protocol': protocol
         }
 
+        self.log.debug(
+            "WampLongPoll: new session created on transport"
+            " '{transport}'".format(
+                transport=transport,
+            )
+        )
+
         payload = json.dumps(result)
-
-        self.log.debug("WampLongPoll: new session created on transport '{0}'".format(transport))
-
-        return payload
+        return payload.encode()
 
 
 class WampLongPollResource(Resource):
@@ -671,8 +687,11 @@ class WampLongPollResource(Resource):
            * :class:`twisted.web.resource.Resource`
            * :class:`zipfile.ZipFile`
         """
+
+        name = name.decode('utf8')
+
         if name not in self._transports:
-            if name == b'':
+            if not name:
                 return self
             else:
                 self.log.error("No WAMP transport '{name}'", name=name)
