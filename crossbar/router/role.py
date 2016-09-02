@@ -35,6 +35,7 @@ import six
 from pytrie import StringTrie
 
 from autobahn.wamp.uri import convert_starred_uri
+from twisted.python.failure import Failure
 
 from txaio import make_logger
 
@@ -387,30 +388,42 @@ class RouterRoleDynamicAuth(RouterRole):
             Ensure the return-value we got from the user-supplied method makes sense
             """
             if isinstance(authorization, dict):
-                acceptable = True
                 for key in authorization.keys():
                     if key not in [u'allow', u'cache', u'disclose']:
-                        self.log.error(
-                            "Authorizer returned unknown key '{key}'",
-                            key=key,
+                        return Failure(
+                            ValueError(
+                                "Authorizer returned unknown key '{key}'".format(
+                                    key=key,
+                                )
+                            )
                         )
-                        acceptable = False
-            elif isinstance(authorization, bool):
-                acceptable = True
-            else:
-                self.log.error(
-                    "Authorizer returned unknown type '{name}'",
-                    name=type(authorization).__name__,
-                )
-                acceptable = False
+                # must have "allow"
+                if u'allow' not in authorization:
+                    return Failure(
+                        ValueError(
+                            "Authorizer must have 'allow' in returned dict"
+                        )
+                    )
+                # all values must be bools
+                for key, value in authorization.items():
+                    if not isinstance(value, bool):
+                        return Failure(
+                            ValueError(
+                                "Authorizer must have bool for '{}'".format(key)
+                            )
+                        )
+                return authorization
 
-            if not acceptable:
-                self.log.error(
-                    "Rejecting return value from '{uri}' and using defaults",
-                    uri=self._authorizer,
+            elif isinstance(authorization, bool):
+                return authorization
+
+            return Failure(
+                ValueError(
+                    "Authorizer returned unknown type '{name}'".format(
+                    name=type(authorization).__name__,
+                    )
                 )
-                return False
-            return authorization
+            )
         d.addCallback(sanity_check)
         return d
 
