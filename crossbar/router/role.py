@@ -360,14 +360,59 @@ class RouterRoleDynamicAuth(RouterRole):
 
         :return: bool -- Flag indicating whether session is authorized or not.
         """
-        self.log.debug(
-            "CrossbarRouterRoleDynamicAuth.authorize {uri} {action}",
-            uri=uri, action=action)
-        return self._session.call(self._authorizer,
-                                  getattr(session, '_session_details', None),
-                                  uri,
-                                  action)
+        session_details = getattr(session, '_session_details', None)
+        if session_details is None:
+            # this happens for "embedded" sessions -- perhaps we
+            # should have a better way to detect this -- also
+            # session._transport should be a RouterApplicationSession
+            session_details = {
+                u'session': session._session_id,
+                u'authid': session._authid,
+                u'authrole': session._authrole,
+                u'authmethod': session._authmethod,
+                u'authprovider': session._authprovider,
+                u'transport': {
+                    u'type': u'stdio',  # or maybe "embedded"?
+                }
+            }
 
+        self.log.debug(
+            "CrossbarRouterRoleDynamicAuth.authorize {uri} {action} {details}",
+            uri=uri, action=action, details=session_details)
+
+        d = self._session.call(self._authorizer, session_details, uri, action)
+
+        def sanity_check(authorization):
+            """
+            Ensure the return-value we got from the user-supplied method makes sense
+            """
+            if isinstance(authorization, dict):
+                acceptable = True
+                for key in authorization.keys():
+                    if key not in [u'allow', u'cache', u'disclose']:
+                        self.log.error(
+                            "Authorizer returned unknown key '{key}'",
+                            key=key,
+                        )
+                        acceptable = False
+            elif isinstance(authorization, bool):
+                acceptable = True
+            else:
+                self.log.error(
+                    "Authorizer returned unknown type '{name}'",
+                    name=type(authorization).__name__,
+                )
+                acceptable = False
+
+            if not acceptable:
+                self.log.error(
+                    "Rejecting return value from '{uri}' and using defaults",
+                    uri=self._authorizer,
+                )
+                return False
+            return authorization
+        d.addCallback(sanity_check)
+        return d
 
 class RouterRoleLMDBAuth(RouterRole):
     """
