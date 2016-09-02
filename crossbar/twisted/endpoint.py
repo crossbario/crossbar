@@ -343,7 +343,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
             try:
                 port = int(environ[config['port'][1:]])
             except Exception as e:
-                log.warn("Could not read listening port from env var: {}".format(e))
+                log.warn("Could not read listening port from env var: {e}", e=e)
                 raise
         else:
             port = config['port']

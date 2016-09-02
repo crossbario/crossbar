@@ -126,22 +126,22 @@ class TrackingModuleReloader:
                     _, old_mtime = self._module_mtimes[mod_name]
 
                     if new_mtime == old_mtime:
-                        self.log.debug("Module {} unchanged".format(mod_name))
+                        self.log.debug("Module {mod_name} unchanged", mod_name=mod_name)
                     else:
                         self._module_mtimes[mod_name] = (f, new_mtime)
                         reload_modules.append(mod_name)
-                        self.log.debug("Change of module {} detected (file {}).".format(mod_name, f))
+                        self.log.debug("Change of module {mod_name} detected (file {f}).", mod_name=mod_name, f=f)
                 else:
                     self._module_mtimes[mod_name] = get_module_path_and_mtime(m)
                     reload_modules.append(mod_name)
-                    self.log.debug("Tracking new module {}".format(mod_name))
+                    self.log.debug("Tracking new module {mod_name}", mod_name=mod_name)
         else:
             reload_modules = maybe_dirty_modules
 
         if len(reload_modules):
-            self.log.debug("Reloading {} possibly changed modules".format(len(reload_modules)))
+            self.log.debug("Reloading {modules} possibly changed modules", modules=len(reload_modules))
             for module in reload_modules:
-                self.log.debug("Reloading module {}".format(module))
+                self.log.debug("Reloading module {module}", module=module)
 
                 # this is doing the actual work
                 #

@@ -101,7 +101,10 @@ class PendingAuthCryptosign(PendingAuth):
         if channel_binding is not None and channel_binding not in [u'tls-unique']:
             return types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding))
         else:
-            self.log.info("WAMP-cryptosign CHANNEL BINDING requested: {}".format(channel_binding))
+            self.log.info(
+                "WAMP-cryptosign CHANNEL BINDING requested: {binding}",
+                binding=channel_binding,
+            )
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
