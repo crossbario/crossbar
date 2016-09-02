@@ -129,7 +129,7 @@ As a shortcut and for backwards compatibility you can instead return a single `b
 
 The arguments to the call are:
 
- - `session`: `None` for embedded componets or a `dict` containing session details (as sent to `onJoin`)
+ - `session`: a `dict` containing session details
  - `uri`: A string, the WAMP URI of the action being authorized
  - `action`: A string, one of `publish`, `subscribe`, `register`, or `call` indicating what is being authorized
 
