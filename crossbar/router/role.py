@@ -420,12 +420,13 @@ class RouterRoleDynamicAuth(RouterRole):
             return Failure(
                 ValueError(
                     "Authorizer returned unknown type '{name}'".format(
-                    name=type(authorization).__name__,
+                        name=type(authorization).__name__,
                     )
                 )
             )
         d.addCallback(sanity_check)
         return d
+
 
 class RouterRoleLMDBAuth(RouterRole):
     """
