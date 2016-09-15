@@ -37,7 +37,6 @@ import mock
 from autobahn.wamp import message
 from autobahn.wamp import role
 
-from crossbar.router import RouterOptions
 from crossbar.worker.router import RouterRealm
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
@@ -57,10 +56,10 @@ class TestDealer(unittest.TestCase):
         """
 
         # create a router factory
-        self.router_factory = RouterFactory(RouterOptions())
+        self.router_factory = RouterFactory()
 
         # start a realm
-        self.realm = RouterRealm(None, {u'name': u'realm1'})
+        self.realm = RouterRealm(u'realm-001', {u'name': u'realm1'})
         self.router_factory.start_realm(self.realm)
 
         # allow everything

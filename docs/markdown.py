@@ -102,7 +102,7 @@ class DocPageRenderer(mistune.Renderer):
 
    def block_code(self, code, lang):
       if self.debug:
-         print "CODE", lang, len(code)
+         print("CODE", lang, len(code))
 
       lexer = None
       if lang:
@@ -119,12 +119,12 @@ class DocPageRenderer(mistune.Renderer):
 
    def autolink(self, link, is_email = False):
       if self.debug:
-         print "autolink", link
+         print("autolink", link)
       return mistune.Renderer.autolink(self, link, is_email)
 
    def codespan(self, text):
       if self.debug:
-         print "codespan", text
+         print("codespan", text)
       return mistune.Renderer.codespan(self, text)
 
    def link(self, link, title, content):
@@ -135,7 +135,7 @@ class DocPageRenderer(mistune.Renderer):
             link = "{}/".format(link.replace(' ', '-'))
 
       if self.debug:
-         print "link", link, title, content
+         print("link", link, title, content)
       return mistune.Renderer.link(self, link, title, content)
 
 
@@ -160,14 +160,14 @@ class DocPages:
                   source = fd.read()
                   try:
                      if self.debug:
-                        print "\nprocessing {}".format(fp)
+                        print("\nprocessing {}".format(fp))
                      if base == 'Home':
                         rend._prefix = None
                      else:
                         rend._prefix = '..'
                      contents = self._renderer(source)
                   except Exception as e:
-                     print "warning: failed to process {}: {}".format(fp, e)
+                     print("warning: failed to process {}: {}".format(fp, e))
                      errors += 1
                   else:
                      path = base
