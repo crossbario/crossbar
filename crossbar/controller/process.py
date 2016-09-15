@@ -549,13 +549,13 @@ class NodeControllerSession(NativeProcessSession):
         worker.ready.addCallbacks(on_ready_success, on_ready_error)
 
         def on_exit_success(_):
-            self.log.info("Node worker {} ended successfully".format(worker.id))
+            self.log.info("Node worker {worker.id} ended successfully", worker=worker)
             worker.log_stats(0)
             del self._workers[worker.id]
             return True
 
         def on_exit_error(err):
-            self.log.info("Node worker {} ended with error ({})".format(worker.id, err))
+            self.log.info("Node worker {worker.id} ended with error ({err})", worker=worker, err=err)
             worker.log_stats(0)
             del self._workers[worker.id]
             return False
@@ -566,19 +566,19 @@ class NodeControllerSession(NativeProcessSession):
             # automatically shutdown node whenever a worker ended (successfully, or with error)
             #
             if checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT in self._node._node_shutdown_triggers:
-                self.log.info("Node worker ended, and trigger '{}' active".format(checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT))
+                self.log.info("Node worker ended, and trigger '{trigger}' active", trigger=checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT)
                 shutdown = True
 
             # automatically shutdown node when worker ended with error
             #
             if not was_successful and checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR in self._node._node_shutdown_triggers:
-                self.log.info("Node worker ended with error, and trigger '{}' active".format(checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR))
+                self.log.info("Node worker ended with error, and trigger '{trigger}' active", trigger=checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR)
                 shutdown = True
 
             # automatically shutdown node when no more workers are left
             #
             if len(self._workers) == 0 and checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT in self._node._node_shutdown_triggers:
-                self.log.info("No more node workers running, and trigger '{}' active".format(checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT))
+                self.log.info("No more node workers running, and trigger '{trigger}' active", trigger=checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT)
                 shutdown = True
 
             # initiate shutdown (but only if we are not already shutting down)
@@ -591,7 +591,10 @@ class NodeControllerSession(NativeProcessSession):
                     # ignore: shutdown already initiated ..
                     self.log.info("Node is already shutting down.")
             else:
-                self.log.info("Node will continue to run (node shutdown triggers active: {})".format(self._node._node_shutdown_triggers))
+                self.log.info(
+                    "Node will continue to run (node shutdown triggers active: {triggers})",
+                    triggers=self._node._node_shutdown_triggers,
+                )
 
         d_on_exit = worker.exit.addCallbacks(on_exit_success, on_exit_error)
         d_on_exit.addBoth(check_for_shutdown)

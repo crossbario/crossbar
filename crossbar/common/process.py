@@ -282,7 +282,7 @@ class NativeProcessSession(ApplicationSession):
             self.log.warn(emsg)
             raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.info("Starting {} in process.".format(config['type']))
+            self.log.info("Starting {ptype} in process.", ptype=config['type'])
 
         if config['type'] == u'postgresql.connection':
             if _HAS_POSTGRESQL:
