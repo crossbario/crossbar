@@ -37,6 +37,7 @@ import mock
 from autobahn.wamp import message
 from autobahn.wamp import role
 
+from crossbar.router import RouterOptions
 from crossbar.worker.router import RouterRealm
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
