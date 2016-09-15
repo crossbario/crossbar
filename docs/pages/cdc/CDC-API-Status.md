@@ -70,9 +70,9 @@ Limits
 Profiles
 
 * `[ ]` **`cdc.remote.list_profiles@1`**`(<node_id>, <worker_id>, <filter_running=False>)`
-* `[ ]` **`cdc.remote.query_profile@1`**`(<profile_id>)`
-* `[ ]` **`cdc.remote.start_profile@1`**`(<node_id>, <worker_id>, <profiler="vmprof">, <run_secs=10>, <run_async=True>)`
-* `[ ]` **`cdc.remote.stop_profile@1`**`(<node_id>, <worker_id>, <profiler_id>)`
+* `[ ]` **`cdc.remote.query_profile@1`**`(<node_id>, <worker_id>, <profile_id>)`
+* `[ ]` **`cdc.remote.start_profile@1`**`(<node_id>, <worker_id>, <profile_id>, <profile_config>)`
+* `[ ]` **`cdc.remote.stop_profile@1`**`(<node_id>, <worker_id>, <profile_id>)`
 
 Realms
 
@@ -93,7 +93,7 @@ Grants
 * `[ ]` **`cdc.remote.list_grants@1`**`(<node_id>, <worker_id>, <realm_id>, <role_id>)`
 * `[ ]` **`cdc.remote.query_grant@1`**`(<node_id>, <worker_id>, <realm_id>, <role_id>, <grant_id>)`
 * `[ ]` **`cdc.remote.start_grant@1`**`(<node_id>, <worker_id>, <realm_id>, <role_id>, <grant_id>, <grant_config>)`
-* `[ ]` **`cdc.remote.stop_role@1`**`(<node_id>, <worker_id>, <realm_id>, <role_id>, <grant_id>)`
+* `[ ]` **`cdc.remote.stop_grant@1`**`(<node_id>, <worker_id>, <realm_id>, <role_id>, <grant_id>)`
 
 Transports
 
@@ -105,9 +105,9 @@ Transports
 Web Resources
 
 * `[ ]` **`cdc.remote.list_web_resources@1`**`(<node_id>, <worker_id>, <transport_id>)`
-* `[ ]` **`cdc.remote.query_web_resource@1`**`(<node_id>, <worker_id>, <transport_id>, <resource_id>)`
-* `[ ]` **`cdc.remote.start_web_resource@1`**`(<node_id>, <worker_id>, <transport_id>, <resource_id>, <resource_config>)`
-* `[ ]` **`cdc.remote.stop_web_resource@1`**`(<node_id>, <worker_id>, <transport_id>, <resource_id>)`
+* `[ ]` **`cdc.remote.query_web_resource@1`**`(<node_id>, <worker_id>, <transport_id>, <web_resource_id>)`
+* `[ ]` **`cdc.remote.start_web_resource@1`**`(<node_id>, <worker_id>, <transport_id>, <web_resource_id>, <web_resource_config>)`
+* `[ ]` **`cdc.remote.stop_web_resource@1`**`(<node_id>, <worker_id>, <transport_id>, <web_resource_id>)`
 
 Components
 
