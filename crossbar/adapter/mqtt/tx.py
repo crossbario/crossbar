@@ -30,6 +30,9 @@
 
 from __future__ import absolute_import, division, print_function
 
+import attr
+import collections
+
 from .protocol import (
     MQTTServerProtocol, Failure,
     Connect, ConnACK,
@@ -43,9 +46,24 @@ from twisted.internet.protocol import Protocol
 from twisted.internet.defer import inlineCallbacks, succeed
 
 
+@attr.s
+class Session(object):
+
+    session = attr.ib()
+    queued_messages = attr.ib(default=attr.Factory(collections.deque))
+
+
+@attr.s
+class Message(object):
+
+    topic = attr.ib()
+    body = attr.ib()
+    qos = attr.ib()
+
+
 class MQTTServerTwistedProtocol(Protocol):
 
-    def __init__(self, handler, reactor):
+    def __init__(self, handler, reactor, mqtt_sessions):
         self._reactor = reactor
         self._mqtt = MQTTServerProtocol()
         self._handler = handler
@@ -53,6 +71,8 @@ class MQTTServerTwistedProtocol(Protocol):
         self._waiting_for_ack = {}
         self._timeout = None
         self._timeout_time = 0
+        self._mqtt_sessions = mqtt_sessions
+        self._flush_publishes = None
 
     def _reset_timeout(self):
         if self._timeout:
@@ -75,6 +95,12 @@ class MQTTServerTwistedProtocol(Protocol):
             self._timeout = None
 
     def send_publish(self, topic, qos, body):
+
+        self.session.queued_messages.append(Message(topic=topic, qos=qos, body=body))
+        if not self._flush_publishes:
+            self._flush_publishes = self.reactor.callLater(0, self._flush_saved_messages)
+
+    def _send_publish(self, topic, qos, body):
 
         if qos == 0:
             publish = Publish(duplicate=False, qos_level=qos, retain=False,
@@ -99,10 +125,17 @@ class MQTTServerTwistedProtocol(Protocol):
         print("Sending %r" %(packet,))
         self.transport.write(packet.serialise())
 
+    def _flush_saved_messages(self):
+
+        if self._flush_publishes:
+            self._flush_publishes = None
+
+        for message in self.session.queued_messages:
+            self.send_publish(message.topic, message.qos, message.body)
+
+
     @inlineCallbacks
     def _handle(self, data):
-
-        yield succeed(True)
 
         events = self._mqtt.data_received(data)
 
@@ -110,21 +143,54 @@ class MQTTServerTwistedProtocol(Protocol):
             print("Got event", event)
 
             if isinstance(event, Connect):
-                connack_details = yield self._handler.process_connect(event)
-                connack = ConnACK(session_present=connack_details[0],
-                                  return_code=connack_details[1])
-                self._send_packet(connack)
+                accept_conn = yield self._handler.process_connect(event)
 
-                if connack.return_code != 0:
+                if accept_conn == 0:
+                    # If we have a connection, we should make sure timeouts
+                    # don't happen. MQTT-3.1.2-24 says it is 1.5x the keep
+                    # alive time.
+                    if event.keep_alive:
+                        self._timeout_time = event.keep_alive * 1.5
+                        self._timeout = self._reactor.callLater(
+                            self._timeout_time, self._lose_connection)
+
+                    if event.flags.clean_session:
+                        # Delete the session, so the next check will fail
+                        # See MQTT-3.2.2-1
+                        del self._mqtt_sessions[event.client_id]
+
+                    if event.client_id in self._mqtt_sessions:
+                        self.session = self._mqtt_sessions[event.client_id]
+                        self.reactor.callLater(self._flush_saved_messages)
+                        self._handler.existing_wamp_session(self.session)
+                        # Have a session, set to 1 as in MQTT-3.2.2-2
+                        session_present = 1
+                    else:
+                        self.session = Session()
+                        self.session.wamp_session = yield self._handler.new_wamp_session(event)
+                        # Don't have session, set to 0 as in MQTT-3.2.2-3
+                        session_present = 0
+
+                elif accept_conn in [1, 2, 3, 4, 5]:
+                    # If it's a valid, non-zero return code, the
+                    # session_present must be 0, as per MQTT-3.2.2-4
+                    session_present = 0
+
+                else:
+                    # No valid return codes, so drop the connection, as per
+                    # MQTT-3.2.2-6
                     self.transport.loseConnection()
                     return
 
-                # If we have a connection, we should make sure timeouts don't
-                # happen. MQTT-3.1.2-24 says it is 1.5x the keep alive time.
-                if event.keep_alive:
-                    self._timeout_time = event.keep_alive * 1.5
-                    self._timeout = self._reactor.callLater(
-                        self._timeout_time, self._lose_connection)
+                connack = ConnACK(session_present=session_present,
+                    return_code=accept_conn)
+                self._send_packet(connack)
+
+                if accept_conn != 0:
+                    # If we send a CONNACK with a non-0 response code, drop the
+                    # connection after sending the CONNACK, as in MQTT-3.2.2-5
+                    self.transport.loseConnection()
+                    return
 
                 continue
 

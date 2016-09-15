@@ -30,7 +30,9 @@
 
 from __future__ import absolute_import, division, print_function
 
+import attr
 import json
+import collections
 
 from functools import partial
 
@@ -45,21 +47,34 @@ from autobahn.twisted.wamp import ApplicationSession
 
 class WampMQTTServerProtocol(Protocol):
 
-    def __init__(self, session, reactor):
-        self._session = session
-        self._mqtt = MQTTServerTwistedProtocol(self, reactor)
+    def __init__(self, session_factory, reactor, mqtt_sessions):
+        self._session_factory = session_factory
+        self._mqtt = MQTTServerTwistedProtocol(self, reactor, mqtt_sessions)
         self._subscriptions = {}
 
     def connectionMade(self):
         self._mqtt.transport = self.transport
 
-    def process_connect(self, packet):
+    def new_wamp_session(self):
+        session_config = ComponentConfig(realm=self._config['realm'],
+                                            extra=None)
+        session = ApplicationSession(session_config)
 
-        # XXX: Do some better stuff here wrt session continuation
-        return succeed((False, 0))
+        self._session_factory.add(
+            session,
+            authrole=self._config.get('role', u'anonymous'))
+        self._session = session
+
+        return session
+
+    def existing_wamp_session(self, session):
+        self._session = session.wamp_session
+
+    def process_connect(self, packet):
+        # Should add some authorisation here?
+        return succeed(0)
 
     def _publish(self, event, options):
-
         payload = {'mqtt_message': event.payload.decode('utf8')}
 
         return self._session.publish(event.topic_name, options=options,
@@ -78,8 +93,14 @@ class WampMQTTServerProtocol(Protocol):
         def handle_publish(topic, qos, *args, **kwargs):
             # If there's a single kwarg which is mqtt_message, then just send
             # that, so that CB can be 'drop in'
-            if not args and kwargs.keys() == "mqtt_message":
+            if not args and set(kwargs.keys()) == set("mqtt_message", "mqtt_qos"):
                 body = kwargs["mqtt_message"].encode('utf8')
+
+                if kwargs["mqtt_qos"] < qos:
+                    # If the QoS of the message is lower than our max QoS, use
+                    # the lower QoS. Otherwise, bracket it at our QoS.
+                    qos = kwargs["mqtt_qos"]
+
             else:
                 body = json.dumps({"args": args,
                                    "kwargs": kwargs}).encode('utf8')
@@ -130,15 +151,9 @@ class WampMQTTServerFactory(Factory):
         self._session_factory = session_factory
         self._config = config["options"]
         self._reactor = reactor
+        self._mqtt_sessions = {}
 
     def buildProtocol(self, addr):
 
-        session_config = ComponentConfig(realm=self._config['realm'],
-                                         extra=None)
-        session = ApplicationSession(session_config)
-
-        self._session_factory.add(
-            session,
-            authrole=self._config.get('role', u'anonymous'))
-
-        return self.protocol(session, self._reactor)
+        return self.protocol(self._session_factory,
+                             self._reactor, _mqtt_sessions)
