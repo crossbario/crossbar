@@ -85,6 +85,8 @@ class PendingAuthAnonymous(PendingAuth):
             if error:
                 return error
 
+            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details[u'authextra'] = details.authextra
             d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
             def on_authenticate_ok(principal):
