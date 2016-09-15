@@ -218,7 +218,7 @@ class Templates:
         basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
         if IS_WIN:
             basedir = basedir.replace('\\', '/')  # Jinja need forward slashes even on Windows
-        self.log.info("Using template from '{}'".format(basedir))
+        self.log.info("Using template from '{dir}'", dir=basedir)
 
         appdir = os.path.abspath(appdir)
 
@@ -249,9 +249,9 @@ class Templates:
                             self.log.info(msg)
                             raise Exception(msg)
                         else:
-                            self.log.warn("{} - SKIPPING".format(msg))
+                            self.log.warn("{msg} - SKIPPING", msg=msg)
                     else:
-                        self.log.info("Creating directory {}".format(create_dir_path))
+                        self.log.info("Creating directory {dir}", dir=create_dir_path)
                         if not dryrun:
                             os.mkdir(create_dir_path)
                         created.append(('dir', create_dir_path))
@@ -275,9 +275,9 @@ class Templates:
                                 self.log.info(msg)
                                 raise Exception(msg)
                             else:
-                                self.log.warn("{} - SKIPPING".format(msg))
+                                self.log.warn("{msg} - SKIPPING", msg=msg)
                         else:
-                            self.log.info("Creating file {}".format(dst_file))
+                            self.log.info("Creating file {name}", name=dst_file)
                             if not dryrun:
                                 if f in template.get('skip_jinja', []):
                                     shutil.copy(src_file, dst_file)
@@ -302,18 +302,18 @@ class Templates:
             for ptype, path in reversed(created):
                 if ptype == 'file':
                     try:
-                        self.log.info("Removing file {}".format(path))
+                        self.log.info("Removing file {path}", path=path)
                         if not dryrun:
                             os.remove(path)
                     except:
-                        self.log.warn("Warning: could not remove file {}".format(path))
+                        self.log.warn("Warning: could not remove file {path}", path=path)
                 elif ptype == 'dir':
                     try:
-                        self.log.info("Removing directory {}".format(path))
+                        self.log.info("Removing directory {path}", path=path)
                         if not dryrun:
                             os.rmdir(path)
                     except:
-                        self.log.warn("Warning: could not remove directory {}".format(path))
+                        self.log.warn("Warning: could not remove directory {path}", path=path)
                 else:
                     raise Exception("logic error")
             raise

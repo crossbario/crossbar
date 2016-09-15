@@ -256,7 +256,7 @@ def run():
             reactor.run()
 
     except Exception as e:
-        log.info("Unhandled exception: {}".format(e))
+        log.info("Unhandled exception: {e}", e=e)
         if reactor.running:
             reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
             reactor.stop()

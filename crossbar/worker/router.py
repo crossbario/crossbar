@@ -333,7 +333,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :returns: List of realms currently running.
         :rtype: list of str
         """
-        self.log.debug("{}.get_router_realms".format(self.__class__.__name__))
+        self.log.debug("{name}.get_router_realms", name=self.__class__.__name__)
 
         return sorted(self.realms.keys())
 
@@ -347,8 +347,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The realm configuration.
         :type config: dict
         """
-        self.log.debug("{}.start_router_realm".format(self.__class__.__name__),
-                       realm_id=realm_id, config=config)
+        self.log.debug("{name}.start_router_realm", name=self.__class__.__name__)
 
         # prohibit starting a realm twice
         #
@@ -408,8 +407,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param close_sessions: If `True`, close all session currently attached.
         :type close_sessions: bool
         """
-        self.log.debug("{}.stop_router_realm".format(self.__class__.__name__),
-                       realm_id=realm_id, close_sessions=close_sessions)
+        self.log.debug("{name}.stop_router_realm", name=self.__class__.__name__)
 
         # FIXME
         raise NotImplementedError()
@@ -424,14 +422,14 @@ class RouterWorkerSession(NativeWorkerSession):
         :returns: A list of roles.
         :rtype: list of dicts
         """
-        self.log.debug("{}.get_router_realm_roles".format(self.__class__.__name__), id=id)
+        self.log.debug("{name}.get_router_realm_roles({id})", name=self.__class__.__name__, id=id)
 
         if id not in self.realms:
             raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
 
         return self.realms[id].roles.values()
 
-    def start_router_realm_role(self, id, role_id, config, details=None):
+    def start_router_realm_role(self, realm_id, role_id, role_config, details=None):
         """
         Start a role on a realm running on this router worker.
 
@@ -442,24 +440,27 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The role configuration.
         :type config: dict
         """
-        self.log.debug("{}.start_router_realm_role".format(self.__class__.__name__),
-                       id=id, role_id=role_id, config=config)
+        self.log.debug("{name}.start_router_realm_role", name=self.__class__.__name__)
 
-        if id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
 
-        if role_id in self.realms[id].roles:
-            raise ApplicationError(u"crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, id))
+        if role_id in self.realms[realm_id].roles:
+            raise ApplicationError(u"crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(role_id, realm_id))
 
-        self.realms[id].roles[role_id] = RouterRealmRole(role_id, config)
+        self.realms[realm_id].roles[role_id] = RouterRealmRole(role_id, role_config)
 
-        realm = self.realms[id].config['name']
-        self._router_factory.add_role(realm, config)
+        realm = self.realms[realm_id].config['name']
+        self._router_factory.add_role(realm, role_config)
 
-        topic = self._uri_prefix + '.on_router_realm_role_started'
-        event = {u'id': id}
+        topic = u'{}.on_router_realm_role_started'.format(self._uri_prefix)
+        event = {
+            u'id': role_id
+        }
         caller = details.caller if details else None
         self.publish(topic, event, options=PublishOptions(exclude=caller))
+
+        self.log.info('role {role_id} on realm {realm_id} started', realm_id=realm_id, role_id=role_id, role_config=role_config)
 
     def stop_router_realm_role(self, id, role_id, details=None):
         """
@@ -470,8 +471,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param role_id: The ID of the role to be stopped.
         :type role_id: str
         """
-        self.log.debug("{}.stop_router_realm_role".format(self.__class__.__name__),
-                       id=id, role_id=role_id)
+        self.log.debug("{name}.stop_router_realm_role", name=self.__class__.__name__)
 
         if id not in self.realms:
             raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
@@ -491,7 +491,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :returns: A list of uplinks.
         :rtype: list of dicts
         """
-        self.log.debug("{}.get_router_realm_uplinks".format(self.__class__.__name__))
+        self.log.debug("{name}.get_router_realm_uplinks", name=self.__class__.__name__)
 
         if id not in self.realms:
             raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
@@ -510,8 +510,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param uplink_config: The uplink configuration.
         :type uplink_config: dict
         """
-        self.log.debug("{}.start_router_realm_uplink".format(self.__class__.__name__),
-                       realm_id=realm_id, uplink_id=uplink_id, uplink_config=uplink_config)
+        self.log.debug("{name}.start_router_realm_uplink", name=self.__class__.__name__)
 
         # check arguments
         if realm_id not in self.realms:
@@ -552,8 +551,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param uplink_id: The ID of the uplink within the realm to stop.
         :type uplink_id: str
         """
-        self.log.debug("{}.stop_router_realm_uplink".format(self.__class__.__name__),
-                       id=id, uplink_id=uplink_id)
+        self.log.debug("{name}.stop_router_realm_uplink", name=self.__class__.__name__)
 
         raise NotImplementedError()
 
@@ -564,7 +562,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :returns: List of app components currently running.
         :rtype: list of dict
         """
-        self.log.debug("{}.get_router_components".format(self.__class__.__name__))
+        self.log.debug("{name}.get_router_components", name=self.__class__.__name__)
 
         res = []
         for component in sorted(self.components.values(), key=lambda c: c.created):
@@ -607,8 +605,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The component configuration.
         :type config: obj
         """
-        self.log.debug("{}.start_router_component".format(self.__class__.__name__),
-                       id=id, config=config)
+        self.log.debug("{name}.start_router_component", name=self.__class__.__name__)
 
         # prohibit starting a component twice
         #
@@ -719,10 +716,10 @@ class RouterWorkerSession(NativeWorkerSession):
         :param id: The ID of the component to stop.
         :type id: str
         """
-        self.log.debug("{}.stop_router_component".format(self.__class__.__name__), id=id)
+        self.log.debug("{name}.stop_router_component({id})", name=self.__class__.__name__, id=id)
 
         if id in self.components:
-            self.log.debug("Worker {}: stopping component {}".format(self.config.extra.worker, id))
+            self.log.debug("Worker {worker}: stopping component {id}", worker=self.config.extra.worker, id=id)
 
             try:
                 # self._components[id].disconnect()
@@ -740,7 +737,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :returns: List of transports currently running.
         :rtype: list of dict
         """
-        self.log.debug("{}.get_router_transports".format(self.__class__.__name__))
+        self.log.debug("{name}.get_router_transports", name=self.__class__.__name__)
 
         res = []
         for transport in sorted(self.transports.values(), key=lambda c: c.created):
@@ -760,8 +757,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The transport configuration.
         :type config: dict
         """
-        self.log.debug("{}.start_router_transport".format(self.__class__.__name__),
-                       id=id, config=config)
+        self.log.debug("{name}.start_router_transport", name=self.__class__.__name__)
 
         # prohibit starting a transport twice
         #
@@ -779,7 +775,7 @@ class RouterWorkerSession(NativeWorkerSession):
             self.log.error(emsg)
             raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.debug("Starting {}-transport on router.".format(config['type']))
+            self.log.debug("Starting {ttype}-transport on router.", ttype=config['type'])
 
         # standalone WAMP-RawSocket transport
         #
@@ -869,7 +865,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         def ok(port):
             self.transports[id] = RouterTransport(id, config, transport_factory, port)
-            self.log.debug("Router transport '{}'' started and listening".format(id))
+            self.log.debug("Router transport '{id}'' started and listening", id)
             return
 
         def fail(err):
@@ -1199,7 +1195,7 @@ class RouterWorkerSession(NativeWorkerSession):
             try:
                 klassname = path_config['classname']
 
-                self.log.debug("Starting class '{}'".format(klassname))
+                self.log.debug("Starting class '{name}'", name=klassname)
 
                 c = klassname.split('.')
                 module_name, klass_name = '.'.join(c[:-1]), c[-1]
@@ -1258,7 +1254,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :param id: The ID of the transport to stop.
         :type id: str
         """
-        self.log.debug("{}.stop_router_transport".format(self.__class__.__name__), id=id)
+        self.log.debug("{name}.stop_router_transport", name=self.__class__.__name__)
 
         # FIXME
         if id not in self.transports:
@@ -1267,7 +1263,7 @@ class RouterWorkerSession(NativeWorkerSession):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
-        self.log.debug("Stopping transport with ID '{}'".format(id))
+        self.log.debug("Stopping transport with ID '{id}'", id=id)
 
         d = self.transports[id].port.stopListening()
 

@@ -31,11 +31,7 @@
 from __future__ import absolute_import
 
 import six
-
-if six.PY3:
-    from urllib import parse as urlparse
-else:
-    import urlparse
+from six.moves.urllib import parse as urlparse
 
 import txaio
 txaio.use_twisted()  # noqa
@@ -95,6 +91,7 @@ class UniSocketServerProtocol(Protocol):
                 if len(rl) != 3:
                     self.log.warn('received invalid HTTP request line for HTTP protocol subswitch')
                     self.transport.loseConnection()
+                    return
 
                 request_uri = rl[1].strip()
 
@@ -137,6 +134,7 @@ class UniSocketServerProtocol(Protocol):
                     else:
                         self.log.warn('client wants to talk HTTP/Web, but we have no factory configured for that')
                         self.transport.loseConnection()
+                        return
                 else:
                     # we've got a protocol instance already created from a WebSocket factory. cool.
 

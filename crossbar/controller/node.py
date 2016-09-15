@@ -302,7 +302,11 @@ class Node(object):
                          " correspond to private-key-ed25519").format(pubkey_path)
                     )
             else:
-                self.log.info("Node public key file {} not found - re-creating from node private key file {}".format(pubkey_path, privkey_path))
+                self.log.info(
+                    "Node public key file {pub_path} not found - re-creating from node private key file {priv_path}",
+                    pub_path=pubkey_path,
+                    priv_path=privkey_path,
+                )
                 pub_tags = OrderedDict([
                     (u'creator', priv_tags[u'creator']),
                     (u'created-at', priv_tags[u'created-at']),
@@ -312,7 +316,7 @@ class Node(object):
                 msg = u'Crossbar.io node public key\n\n'
                 _write_node_key(pubkey_path, pub_tags, msg)
 
-            self.log.debug("Node key already exists (public key: {})".format(pubkey_hex))
+            self.log.debug("Node key already exists (public key: {hex})", hex=pubkey_hex)
 
         else:
             # node private key does not yet exist: generate one
@@ -445,10 +449,10 @@ class Node(object):
         # allow to override node shutdown triggers
         #
         if 'shutdown' in controller_options:
-            self.log.info("Overriding default node shutdown triggers with {} from node config".format(controller_options['shutdown']))
+            self.log.info("Overriding default node shutdown triggers with {triggers} from node config", triggers=controller_options['shutdown'])
             self._node_shutdown_triggers = controller_options['shutdown']
         else:
-            self.log.info("Using default node shutdown triggers {}".format(self._node_shutdown_triggers))
+            self.log.info("Using default node shutdown triggers {triggers}", triggers=self._node_shutdown_triggers)
 
         # add the node controller singleton session
         #
@@ -684,7 +688,13 @@ class Node(object):
                                 self._role_no += 1
 
                             yield self._controller.call('crossbar.worker.{}.start_router_realm_role'.format(worker_id), realm_id, role_id, role, options=call_options)
-                            self.log.info("{}: role '{}' (named '{}') started on realm '{}'".format(worker_logname, role_id, role['name'], realm_id))
+                            self.log.info(
+                                "{logname}: role '{role}' (named '{role_name}') started on realm '{realm}'",
+                                logname=worker_logname,
+                                role=role_id,
+                                role_name=role['name'],
+                                realm=realm_id,
+                            )
 
                         # start uplinks for realm
                         for uplink in realm.get('uplinks', []):
@@ -695,7 +705,12 @@ class Node(object):
                                 self._uplink_no += 1
 
                             yield self._controller.call('crossbar.worker.{}.start_router_realm_uplink'.format(worker_id), realm_id, uplink_id, uplink, options=call_options)
-                            self.log.info("{}: uplink '{}' started on realm '{}'".format(worker_logname, uplink_id, realm_id))
+                            self.log.info(
+                                "{logname}: uplink '{uplink}' started on realm '{realm}'",
+                                logname=worker_logname,
+                                uplink=uplink_id,
+                                realm=realm_id,
+                            )
 
                     # start connections (such as PostgreSQL database connection pools)
                     # to run embedded in the router
@@ -708,7 +723,11 @@ class Node(object):
                             self._connection_no += 1
 
                         yield self._controller.call('crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=call_options)
-                        self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
+                        self.log.info(
+                            "{logname}: connection '{connection}' started",
+                            logname=worker_logname,
+                            connection=connection_id,
+                        )
 
                     # start components to run embedded in the router
                     for component in worker.get('components', []):
@@ -720,7 +739,11 @@ class Node(object):
                             self._component_no += 1
 
                         yield self._controller.call('crossbar.worker.{}.start_router_component'.format(worker_id), component_id, component, options=call_options)
-                        self.log.info("{}: component '{}' started".format(worker_logname, component_id))
+                        self.log.info(
+                            "{logname}: component '{component}' started",
+                            logname=worker_logname,
+                            component=component_id,
+                        )
 
                     # start transports on router
                     for transport in worker['transports']:
@@ -732,7 +755,11 @@ class Node(object):
                             self._transport_no += 1
 
                         yield self._controller.call('crossbar.worker.{}.start_router_transport'.format(worker_id), transport_id, transport, options=call_options)
-                        self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
+                        self.log.info(
+                            "{logname}: transport '{tid}' started",
+                            logname=worker_logname,
+                            tid=transport_id,
+                        )
 
                 # setup container worker
                 elif worker_type == 'container':
@@ -766,7 +793,11 @@ class Node(object):
                             self._connection_no += 1
 
                         yield self._controller.call('crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=call_options)
-                        self.log.info("{}: connection '{}' started".format(worker_logname, connection_id))
+                        self.log.info(
+                            "{logname}: connection '{connection}' started",
+                            logname=worker_logname,
+                            connection=connection_id,
+                        )
 
                     # start components to run embedded in the container
                     #
@@ -794,7 +825,11 @@ class Node(object):
                     self._transport_no = 1
 
                     yield self._controller.call('crossbar.worker.{}.start_websocket_testee_transport'.format(worker_id), transport_id, transport, options=call_options)
-                    self.log.info("{}: transport '{}' started".format(worker_logname, transport_id))
+                    self.log.info(
+                        "{logname}: transport '{tid}' started",
+                        logname=worker_logname,
+                        tid=transport_id,
+                    )
 
                 else:
                     raise Exception("logic error")

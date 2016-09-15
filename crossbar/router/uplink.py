@@ -48,7 +48,7 @@ class BridgeSession(ApplicationSession):
     @inlineCallbacks
     def _setup_event_forwarding(self, other):
 
-        self.log.info("setup event forwarding between {} and {} ..".format(self, other))
+        self.log.info("setup event forwarding between {me} and {other} ..", me=self, other=other)
 
         self._subs = {}
 
@@ -56,7 +56,13 @@ class BridgeSession(ApplicationSession):
         #
         @inlineCallbacks
         def on_subscription_create(sub_id, sub_details, details=None):
-            self.log.info("Subscription created: {} {} {} {}".format(self, sub_id, sub_details, details))
+            self.log.info(
+                "Subscription created: {me} {sub_id} {sub_details} {details}",
+                me=self,
+                sub_id=sub_id,
+                sub_details=sub_details,
+                details=details,
+            )
 
             self._subs[sub_id] = sub_details
 
@@ -66,13 +72,19 @@ class BridgeSession(ApplicationSession):
                 details = kwargs.pop('details')
                 # FIXME: setup things so out (the node's) identity gets disclosed
                 self.publish(uri, *args, options=PublishOptions(), **kwargs)
-                # self.log.info("forwarded event from {} to {} - args={}, details={}\n".format(other, self, args, details))
-                self.log.info("forwarded from {} event to {} ({}): args={}, details={}\n".format(other, self, self._DIR, args, details))
+                self.log.info(
+                    "forwarded from {other} event to {me} ({dir}): args={args}, details={details}",
+                    other=other,
+                    me=self,
+                    dir=self._DIR,
+                    args=args,
+                    details=details,
+                )
 
             sub = yield other.subscribe(on_event, uri, options=SubscribeOptions(details_arg="details"))
             self._subs[sub_id]['sub'] = sub
 
-            self.log.info("{} subscribed to {}".format(other, uri))
+            self.log.info("{other} subscribed to {me}".format(other=other, me=uri))
 
         yield self.subscribe(on_subscription_create, u"wamp.subscription.on_create", options=SubscribeOptions(details_arg="details"))
 
@@ -80,7 +92,13 @@ class BridgeSession(ApplicationSession):
         #
         @inlineCallbacks
         def on_subscription_delete(session_id, sub_id, details=None):
-            self.log.info("Subscription deleted: {} {} {} {}".format(self, session_id, sub_id, details))
+            self.log.info(
+                "Subscription deleted: {me} {session} {sub_id} {details}",
+                me=self,
+                session=session_id,
+                sub_id=sub_id,
+                details=details,
+            )
 
             sub_details = self._subs.get(sub_id, None)
             if not sub_details:
@@ -93,7 +111,7 @@ class BridgeSession(ApplicationSession):
 
             del self._subs[sub_id]
 
-            self.log.info("{} unsubscribed from {}".format(other, uri))
+            self.log.info("{other} unsubscribed from {uri}".format(other=other, uri=uri))
 
         yield self.subscribe(on_subscription_delete, u"wamp.subscription.on_delete", options=SubscribeOptions(details_arg="details"))
 
@@ -152,10 +170,10 @@ class RemoteSession(BridgeSession):
         realm = self.config.realm
         authid = self.config.extra.get('authid', None)
         if authid:
-            self.log.debug("Uplink - joining realm '{}' as '{}' ..".format(realm, authid))
+            self.log.debug("Uplink - joining realm '{realm}' as '{authid}' ..", realm=realm, authid=authid)
             self.join(realm, [u"wampcra"], authid)
         else:
-            self.log.debug("Uplink - joining realm '{}' ..".format(realm))
+            self.log.debug("Uplink - joining realm '{realm}' ..", realm=realm)
             self.join(realm)
 
     def onChallenge(self, challenge):
@@ -179,9 +197,9 @@ class RemoteSession(BridgeSession):
 
     def onLeave(self, details):
         if details.reason != u"wamp.close.normal":
-            self.log.warn("Uplink left: {}".format(details))
+            self.log.warn("Uplink left: {defailts}", details=details)
         else:
-            self.log.debug("Uplink detached: {}".format(details))
+            self.log.debug("Uplink detached: {details}", details=details)
         self.disconnect()
 
     def onDisconnect(self):

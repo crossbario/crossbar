@@ -80,7 +80,7 @@ def _appsession_loader(config):
             dist = config['package']
             name = config['entrypoint']
 
-            log.debug("Starting WAMPlet '{}/{}'".format(dist, name))
+            log.debug("Starting WAMPlet '{dist}/{name}'", dist=dist, name=name)
 
             # component is supposed to make instances of ApplicationSession
             component = pkg_resources.load_entry_point(

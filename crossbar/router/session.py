@@ -265,7 +265,6 @@ class RouterApplicationSession(object):
                     self._log_error(Failure(), "While notifying 'disconnect'")
 
                 if self._router._realm.session:
-                    print("XXX", session._session_id)
                     yield self._router._realm.session.publish(
                         u'wamp.session.on_leave',
                         session._session_id,
@@ -704,7 +703,7 @@ class RouterSession(BaseSession):
                     return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
-            self.log.critical("Internal error: {}".format(e))
+            self.log.critical("Internal error: {msg}", msg=str(e))
             return types.Deny(message=u'internal error: {}'.format(e))
 
     def onAuthenticate(self, signature, extra):
