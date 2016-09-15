@@ -265,7 +265,6 @@ class RouterApplicationSession(object):
                     self._log_error(Failure(), "While notifying 'disconnect'")
 
                 if self._router._realm.session:
-                    print("XXX", session._session_id)
                     yield self._router._realm.session.publish(
                         u'wamp.session.on_leave',
                         session._session_id,
