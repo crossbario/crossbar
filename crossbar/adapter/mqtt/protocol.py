@@ -50,9 +50,15 @@ __all__ = [
     "MQTTServerProtocol",
 ]
 
+class _NeedMoreData(Exception):
+    """
+    We need more data before we can get the bytes length.
+    """
+
 # State machine events
 WAITING_FOR_NEW_PACKET = 0
 COLLECTING_REST_OF_PACKET = 1
+PROTOCOL_VIOLATION = 2
 
 P_CONNECT = 1
 P_CONNACK = 2
@@ -96,7 +102,11 @@ def _parse_header(data):
     encodedByte = -1
 
     while (encodedByte & 128) != 0:
-        encodedByte = data.read('uint:8')
+        try:
+            encodedByte = data.read('uint:8')
+        except bitstring.ReadError:
+            # Not enough data yet, raise that up...
+            raise _NeedMoreData()
         value += (encodedByte & 127) * multiplier
         multiplier = multiplier * 128
 
@@ -118,6 +128,12 @@ class MQTTServerProtocol(object):
 
     def data_received(self, data):
 
+        if self._state is PROTOCOL_VIOLATION:
+            # Conformance statement MQTT-4.8.0-1: Must close the connection on
+            # a protocol violation. For us, if we keep getting data somehow
+            # (e.g. flushed input buffers), just drop the data.
+            return []
+
         events = []
 
         self._data.append(bitstring.BitArray(bytes=data))
@@ -129,13 +145,14 @@ class MQTTServerProtocol(object):
 
                 try:
                     self._packet_header = _parse_header(self._data)
+                except _NeedMoreData:
+                    # Reset the data stream
+                    self._data.bitpos = 0
+                    # Return the events we have
+                    return events
                 except ParseFailure as e:
                     events.append(Failure(e.args[0]))
-                    return events
-                except bitstring.ReadError as e:
-                    # whoops the parsing fell off the amount of data
-                    events.append(Failure(("Corrupt data, fell off the end of "
-                                           "the header: ") + str(e)))
+                    self._state = PROTOCOL_VIOLATION
                     return events
 
                 self._bytes_expected = self._packet_header[2]
@@ -160,16 +177,19 @@ class MQTTServerProtocol(object):
                 packet_type, flags, value = self._packet_header
 
                 if self._packet_count == 0 and packet_type != P_CONNECT:
+                    self._state = PROTOCOL_VIOLATION
                     return [Failure("Connect packet was not first")]
 
                 if self._packet_count > 0 and packet_type == P_CONNECT:
-                    events.append(Failure("Connect packet sent later"))
+                    events.append(Failure("Multiple Connect packets"))
+                    self._state = PROTOCOL_VIOLATION
                     return events
 
                 try:
                     dataToGive = self._data.read(value * 8)
 
                     if packet_type not in server_packet_handlers:
+                        self._state = PROTOCOL_VIOLATION
                         events.append(Failure("Unimplemented packet type %d" % (
                             packet_type,)))
                         return events
@@ -178,12 +198,18 @@ class MQTTServerProtocol(object):
                     deser = packet_handler.deserialise(flags, dataToGive)
                     events.append(deser)
                 except ParseFailure as e:
-                    events.append(Failure(e.args[0]))
+                    if len(e.args) == 1:
+                        events.append(Failure(e.args[0]))
+                    else:
+                        events.append(Failure(
+                            e.args[1] + " in " + e.args[0].__name__))
+                    self._state = PROTOCOL_VIOLATION
                     return events
                 except bitstring.ReadError as e:
                     # whoops the parsing fell off the amount of data
                     events.append(Failure("Corrupt data, fell off the end: " +
                                           str(e)))
+                    self._state = PROTOCOL_VIOLATION
                     return events
 
                 self._packet_header = None

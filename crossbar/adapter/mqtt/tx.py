@@ -172,12 +172,14 @@ class MQTTServerTwistedProtocol(Protocol):
                 self._send_packet(resp)
                 continue
 
-            elif isinstance(event, Failure):
-                print(event)
-                self.transport.loseConnection()
-                return
             else:
-                # Something else!
-                print("I don't understand %r" % (event,))
+                if isinstance(event, Failure):
+                    print("Protocol violation, closing the connection: %r" % (
+                        event,))
+                else:
+                    print("I don't understand %r, closing conn" % (event,))
+
+                # Conformance statement MQTT-4.8.0-1: Must close the connection
+                # on a protocol violation.
                 self.transport.loseConnection()
                 return

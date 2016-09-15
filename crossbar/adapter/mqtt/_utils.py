@@ -32,6 +32,19 @@ from __future__ import absolute_import, division, print_function
 
 from bitstring import pack
 
+from autobahn.websocket.utf8validator import Utf8Validator
+
+
+_validator = Utf8Validator()
+
+
+class ParseFailure(Exception):
+    pass
+
+
+class SerialisationFailure(Exception):
+    pass
+
 
 def read_prefixed_data(data):
     """
@@ -45,7 +58,16 @@ def read_string(data):
     """
     Reads the next MQTT pascal-style string from `data`.
     """
-    return read_prefixed_data(data).decode('utf8')
+    byte_data = read_prefixed_data(data)
+    _validator.reset()
+
+    if _validator.validate(byte_data)[0]:
+        decoded = byte_data.decode('utf8', 'strict')
+        if u"\u0000" in decoded:
+            raise ParseFailure("Invalid UTF-8 string (contains nulls)")
+        return decoded
+    else:
+        raise ParseFailure("Invalid UTF-8 string (contains surrogates)")
 
 
 def build_string(string):

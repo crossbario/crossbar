@@ -36,17 +36,10 @@ import attr
 from attr.validators import instance_of, optional
 from bitstring import pack
 
-from ._utils import read_prefixed_data, read_string, build_string, build_header
+from ._utils import (read_prefixed_data, read_string, build_string,
+                     build_header, ParseFailure, SerialisationFailure)
 
 unicode = type(u"")
-
-
-class ParseFailure(Exception):
-    pass
-
-
-class SerialisationFailure(Exception):
-    pass
 
 
 @attr.s
@@ -65,7 +58,7 @@ class PingRESP(object):
     @classmethod
     def deserialise(cls, flags, data):
         if flags != (False, False, False, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         return cls()
 
@@ -81,7 +74,7 @@ class PingREQ(object):
     @classmethod
     def deserialise(cls, flags, data):
         if flags != (False, False, False, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         return cls()
 
@@ -113,7 +106,7 @@ class UnsubACK(object):
     @classmethod
     def deserialise(cls, flags, data):
         if flags != (False, False, False, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         topics = []
         packet_identifier = data.read('uint:16')
@@ -146,7 +139,7 @@ class Unsubscribe(object):
 
         for topic in self.topics:
             if not isinstance(topic, unicode):
-                raise SerialisationFailure("Topics must be Unicode")
+                raise SerialisationFailure(cls, "Topics must be Unicode")
 
             b.append(build_string(topic))
 
@@ -155,7 +148,7 @@ class Unsubscribe(object):
     @classmethod
     def deserialise(cls, flags, data):
         if flags != (False, False, True, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         topics = []
         packet_identifier = data.read('uint:16')
@@ -164,7 +157,7 @@ class Unsubscribe(object):
             topics.append(read_string(data))
 
         if len(topics) == 0:
-            raise ParseFailure("Must contain a payload.")
+            raise ParseFailure(cls, "Must contain a payload.")
 
         return cls(packet_identifier=packet_identifier, topics=topics)
 
@@ -195,7 +188,7 @@ class PubACK(object):
         Disassemble from an on-wire message.
         """
         if flags != (False, False, False, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         packet_identifier = data.read('uint:16')
 
@@ -223,7 +216,7 @@ class Publish(object):
         elif self.qos_level == 2:
             flags.extend([True, False])
         else:
-            raise SerialisationFailure("QoS must be 0, 1, or 2")
+            raise SerialisationFailure(cls, "QoS must be 0, 1, or 2")
         flags.append(self.retain)
 
         payload = self._make_payload()
@@ -245,10 +238,10 @@ class Publish(object):
                 # Session identifier
                 b.append(pack('uint:16', self.packet_identifier).bytes)
             else:
-                raise SerialisationFailure("Packet Identifier on non-QoS 1/2 packet")
+                raise SerialisationFailure(cls, "Packet Identifier on non-QoS 1/2 packet")
         else:
             if self.qos_level > 0:
-                raise SerialisationFailure("QoS level > 0 but no Packet Identifier")
+                raise SerialisationFailure(cls, "QoS level > 0 but no Packet Identifier")
 
         # Payload (bytes)
         b.append(self.payload)
@@ -269,7 +262,7 @@ class Publish(object):
         elif flags[1:3] == (True, False):
             qos_level = 2
         elif flags[1:3] == (True, True):
-            raise ParseFailure("Invalid QoS value")
+            raise ParseFailure(cls, "Invalid QoS value")
 
         retain = flags[3]
 
@@ -318,7 +311,7 @@ class SubACK(object):
     @classmethod
     def deserialise(cls, flags, data):
         if flags != (False, False, False, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         return_codes = []
         packet_identifier = data.read('uint:16')
@@ -382,7 +375,7 @@ class Subscribe(object):
     @classmethod
     def deserialise(cls, flags, data):
         if flags != (False, False, True, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         pairs = []
         packet_identifier = data.read('uint:16')
@@ -394,10 +387,10 @@ class Subscribe(object):
             max_qos = data.read("uint:2")
 
             if reserved:
-                raise ParseFailure("Data in QoS Reserved area")
+                raise ParseFailure(cls, "Data in QoS Reserved area")
 
             if max_qos not in [0, 1, 2]:
-                raise ParseFailure("Invalid QoS")
+                raise ParseFailure(cls, "Invalid QoS")
 
             pairs.append(SubscriptionTopicRequest(topic_filter=topic_filter,
                                                   max_qos=max_qos))
@@ -444,12 +437,12 @@ class ConnACK(object):
         Take an on-wire message and turn it into an instance of this class.
         """
         if flags != (False, False, False, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         reserved = data.read(7).uint
 
         if reserved:
-            raise ParseFailure("Reserved flag used.")
+            raise ParseFailure(cls, "Reserved flag used.")
 
         built = cls(session_present=data.read(1).bool,
                     return_code=data.read(8).uint)
@@ -502,7 +495,7 @@ class ConnectFlags(object):
 
         if built.reserved:
             # MQTT-3.1.2-3, reserved flag must not be used
-            raise ParseFailure("Reserved flag in CONNECT used")
+            raise ParseFailure(cls, "Reserved flag in CONNECT used")
 
         return built
 
@@ -558,17 +551,18 @@ class Connect(object):
         Disassemble from an on-wire message.
         """
         if flags != (False, False, False, False):
-            raise ParseFailure("Bad flags")
+            raise ParseFailure(cls, "Bad flags")
 
         protocol = read_string(data)
 
         if protocol != u"MQTT":
-            raise ParseFailure("Bad protocol name")
+            print(protocol)
+            raise ParseFailure(cls, "Bad protocol name")
 
         protocol_level = data.read('uint:8')
 
         if protocol_level != 4:
-            raise ParseFailure("Bad protocol level")
+            raise ParseFailure(cls, "Bad protocol level")
 
         flags = ConnectFlags.deserialise(data.read(8))
 
