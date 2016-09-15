@@ -130,6 +130,9 @@ class PendingAuthWampCra(PendingAuth):
             if error:
                 return error
 
+            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details[u'authextra'] = details.authextra
+
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
             def on_authenticate_ok(principal):

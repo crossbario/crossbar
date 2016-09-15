@@ -176,11 +176,14 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             from twisted.internet import reactor
 
             def print_traffic():
-                self.log.info("Traffic {}: {} / {} in / out bytes - {} / {} in / out msgs".format(self.peer,
-                                                                                                  self.trafficStats.incomingOctetsWireLevel,
-                                                                                                  self.trafficStats.outgoingOctetsWireLevel,
-                                                                                                  self.trafficStats.incomingWebSocketMessages,
-                                                                                                  self.trafficStats.outgoingWebSocketMessages))
+                self.log.info(
+                    "Traffic {peer}: {wire_in} / {wire_out} in / out bytes - {ws_in} / {ws_out} in / out msgs",
+                    peer=self.peer,
+                    wire_in=self.trafficStats.incomingOctetsWireLevel,
+                    wire_out=self.trafficStats.outgoingOctetsWireLevel,
+                    ws_in=self.trafficStats.incomingWebSocketMessages,
+                    ws_out=self.trafficStats.outgoingWebSocketMessages,
+                )
                 reactor.callLater(1, print_traffic)
 
             print_traffic()
@@ -228,7 +231,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # associated with the same cookie
                 self.factory._cookiestore.addProto(self._cbtid, self)
 
-                self.log.debug("Cookie tracking enabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking enabled on WebSocket connection {ws}", ws=self)
 
                 # if cookie-based authentication is enabled, set auth info from cookie store
                 #
@@ -248,7 +251,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 else:
                     self.log.debug("Cookie-based authentication disabled")
             else:
-                self.log.debug("Cookie tracking disabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"

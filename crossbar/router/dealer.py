@@ -317,7 +317,7 @@ class Dealer(object):
             different from the call to authorize succeed, but the
             authorization being denied)
             """
-            self.log.failure("Authorization failed", failure=err)
+            self.log.failure("Authorization of 'register' for '{uri}' failed", uri=register.procedure, failure=err)
             reply = message.Error(
                 message.Register.MESSAGE_TYPE,
                 register.request,
@@ -429,7 +429,6 @@ class Dealer(object):
             d = self._router.authorize(session, call.procedure, u'call')
 
             def on_authorize_success(authorization):
-
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
                 # the action was actually authorized or not ..
                 #
@@ -446,7 +445,7 @@ class Dealer(object):
                 different from the call to authorize succeed, but the
                 authorization being denied)
                 """
-                self.log.failure("Authorization failed", failure=err)
+                self.log.failure("Authorization of 'call' for '{uri}' failed", uri=call.procedure, failure=err)
                 reply = message.Error(
                     message.Call.MESSAGE_TYPE,
                     call.request,

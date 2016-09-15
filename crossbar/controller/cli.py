@@ -184,9 +184,9 @@ def check_is_running(cbdir):
                                 nicecmdline = ' '.join(cmdline)
                                 if len(nicecmdline) > 76:
                                     nicecmdline = nicecmdline[:38] + ' ... ' + nicecmdline[-38:]
-                                log.info('"{}" points to PID {} which is not a crossbar process:'.format(fp, pid))
-                                log.info('  ' + nicecmdline)
-                                log.info('Verify manually and either kill {} or delete {}'.format(pid, fp))
+                                log.info('"{fp}" points to PID {pid} which is not a crossbar process:', fp=fp, pid=pid)
+                                log.info('  {cmdline}', cmdline=nicecmdline)
+                                log.info('Verify manually and either kill {pid} or delete {fp}', pid=pid, fp=fp)
                                 return None
                         return pid_data
                     else:
@@ -392,7 +392,7 @@ def run_command_init(options, **kwargs):
     log.info("Application template initialized")
 
     if get_started_hint:
-        log.info("\n{}\n".format(get_started_hint))
+        log.info("\n{hint}\n", hint=get_started_hint)
     else:
         log.info("\nTo start your node, run 'crossbar start --cbdir {cbdir}'\n",
                  cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
@@ -633,7 +633,7 @@ def run_command_start(options, reactor=None):
 
         def on_error(err):
             log.error("{e!s}", e=err.value)
-            log.error("Could not start node: {err}".format(err))
+            log.error("Could not start node: {err}", err=err)
             if reactor.running:
                 reactor.stop()
         d.addErrback(on_error)
@@ -1002,7 +1002,7 @@ def run(prog=None, args=None, reactor=None):
                 try:
                     os.mkdir(options.logdir)
                 except Exception as e:
-                    print("Could not create log directory: {}".format(e))
+                    print("Could not create log directory: {e}".format(e))
                     sys.exit(1)
 
     if not reactor:

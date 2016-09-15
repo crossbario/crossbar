@@ -271,7 +271,7 @@ class Router(object):
 
         def got_authorization(authorization):
             # backward compatibility
-            if type(authorization) == bool:
+            if isinstance(authorization, bool):
                 authorization = {
                     u'allow': authorization,
                     u'cache': False

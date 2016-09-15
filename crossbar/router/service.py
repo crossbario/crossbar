@@ -74,11 +74,17 @@ class RouterServiceSession(ApplicationSession):
         self._schemas = {}
         if schemas:
             self._schemas.update(schemas)
-            self.log.info('initialized schemas cache with {} entries'.format(len(self._schemas)))
+            self.log.info(
+                'initialized schemas cache with {entries} entries',
+                entries=len(self._schemas),
+            )
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.log.debug('Router service session attached: {}'.format(details))
+        self.log.debug(
+            'Router service session attached: {details}',
+            details=details,
+        )
 
         if True:
             procs = [
@@ -109,7 +115,7 @@ class RouterServiceSession(ApplicationSession):
         else:
             regs = yield self.register(self)
 
-        self.log.debug('Registered {} procedures'.format(len(regs)))
+        self.log.debug('Registered {regs} procedures', regs=regs)
 
         if self.config.extra and 'onready' in self.config.extra:
             self.config.extra['onready'].callback(self)

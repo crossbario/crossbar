@@ -94,6 +94,9 @@ class PendingAuthTicket(PendingAuth):
             if error:
                 return error
 
+            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details[u'authextra'] = details.authextra
+
             return types.Challenge(self._authmethod)
 
         else:
@@ -113,7 +116,13 @@ class PendingAuthTicket(PendingAuth):
                 return self._accept()
             else:
                 # ticket was invalid: deny client
-                self.log.debug('WAMP-Ticket (static): expected ticket "{}"" ({}), but got "{}" ({})'.format(self._signature, type(self._signature), signature, type(signature)))
+                self.log.debug(
+                    'WAMP-Ticket (static): expected ticket "{expected}"" ({expected_type}), but got "{sig}" ({sig_type})',
+                    expected=self._signature,
+                    expected_type=type(self._signature),
+                    sig=signature,
+                    sig_type=type(signature),
+                )
                 return types.Deny(message=u"ticket in static WAMP-Ticket authentication is invalid")
 
         # WAMP-Ticket "dynamic"

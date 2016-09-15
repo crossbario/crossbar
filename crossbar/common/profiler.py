@@ -128,7 +128,7 @@ if _HAS_VMPROF:
 
             # this will run on a background thread
             def convert_profile(profile_filename):
-                self.log.info("Converting profile file {}".format(profile_filename))
+                self.log.info("Converting profile file {fname}", fname=profile_filename)
 
                 try:
                     stats = vmprof.read_profile(profile_filename, virtual_only=True, include_extra_info=True)
