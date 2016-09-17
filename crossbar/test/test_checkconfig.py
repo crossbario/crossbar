@@ -56,7 +56,8 @@ class CheckDictArgsTests(TestCase):
                 "Nice message for the user"
             )
         self.assertEqual(
-            "Nice message for the user - invalid type for configuration item - expected Sequence, got str",
+            "Nice message for the user - invalid type str encountered for "
+            "attribute 'foo', must be one of (Sequence)",
             str(e.exception),
         )
 
