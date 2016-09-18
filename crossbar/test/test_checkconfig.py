@@ -61,6 +61,17 @@ class CheckDictArgsTests(TestCase):
             str(e.exception),
         )
 
+    def test_sequence_list(self):
+        """
+        A Sequence should accept list
+        """
+        checkconfig.check_dict_args(
+            {"foo": (True, [Sequence])},
+            {"foo": ["a", "real", "sequence"]},
+            "Nice message for the user"
+        )
+        # should work, with no exceptions
+
     def test_notDict(self):
         """
         A non-dict passed in as the config will raise a
