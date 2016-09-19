@@ -35,7 +35,7 @@ import attr
 from binascii import unhexlify
 
 from crossbar.adapter.mqtt.protocol import (
-    MQTTServerProtocol,
+    MQTTParser,
     Failure, PROTOCOL_VIOLATION,
     Connect, ConnACK,
     Subscribe, SubACK,
@@ -65,7 +65,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         and compliant with the spec.
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         good = b"\x10\x13\x00\x04MQTT\x04\x02\x00x\x00\x07test123"
 
@@ -100,7 +100,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         is safely handled.
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         bad = b"\x10\x13\x00\x04MQTT\x04\x02\x00x\x00\x09test123"
 
@@ -123,7 +123,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         cannot mean anything), we should just cope with it.
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         #             vv correct length                           vv why???
         good = b"\x10\x15\x00\x04MQTT\x04\x02\x00x\x00\x07test123\x00\x00"
@@ -164,7 +164,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         A connect, then a ping.
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         data = (
             # CONNECT
@@ -209,7 +209,7 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         A connect, then a subscribe and an immediate unsubscribe.
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         data = (
             # CONNECT
@@ -281,7 +281,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         Conformance Statement MQTT-3.1.0-1
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         data = (
             # SUBSCRIBE
@@ -310,7 +310,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         Conformance Statement MQTT-3.1.0-2
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         data = (
             # CONNECT
@@ -344,7 +344,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         Conformance Statement MQTT-3.1.2-3
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         data = (
             # CONNECT using the second nibble
@@ -373,7 +373,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         Conformance Statement MQTT-3.1.2-3
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         data = (
             # CONNECT using the second nibble, plus junk we should never read
@@ -402,7 +402,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         Conformance statement MQTT-1.5.3-1
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         bad = b"\x10\x13\x00\x04\xed\xbf\xbfT\x04\x02\x00x\x00\x07test123"
 
@@ -425,7 +425,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         Conformance statement MQTT-1.5.3-2
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         bad = b"\x10\x13\x00\x04\x00QTT\x04\x02\x00x\x00\x07test123"
 
@@ -449,7 +449,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         Conformance statement MQTT-1.5.3-3
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         bad = b"\x10\x13\x00\x04MQTT\x04\x02\x00x\x00\x07test\xef\xbb\xbf"
 
@@ -485,7 +485,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         No conformance statement, but see "Table 2.1 - Control packet types".
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         data = (
             # CONNECT
@@ -519,7 +519,7 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         No conformance statement, but see "Table 2.1 - Control packet types".
         """
         events = []
-        p = MQTTServerProtocol()
+        p = MQTTParser()
 
         data = (
             # CONNECT
