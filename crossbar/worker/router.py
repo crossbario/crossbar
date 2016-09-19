@@ -865,7 +865,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         def ok(port):
             self.transports[id] = RouterTransport(id, config, transport_factory, port)
-            self.log.debug("Router transport '{id}'' started and listening", id)
+            self.log.debug("Router transport '{id}'' started and listening", id=id)
             return
 
         def fail(err):
