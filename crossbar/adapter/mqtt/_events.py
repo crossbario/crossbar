@@ -461,13 +461,13 @@ class ConnACK(object):
 
 @attr.s
 class ConnectFlags(object):
-    username = attr.ib(validator=instance_of(bool))
-    password = attr.ib(validator=instance_of(bool))
-    will = attr.ib(validator=instance_of(bool))
-    will_retain = attr.ib(validator=instance_of(bool))
-    will_qos = attr.ib(validator=instance_of(int))
-    clean_session = attr.ib(validator=instance_of(bool))
-    reserved = attr.ib(validator=instance_of(bool))
+    username = attr.ib(validator=instance_of(bool), default=False)
+    password = attr.ib(validator=instance_of(bool), default=False)
+    will = attr.ib(validator=instance_of(bool), default=False)
+    will_retain = attr.ib(validator=instance_of(bool), default=False)
+    will_qos = attr.ib(validator=instance_of(int), default=False)
+    clean_session = attr.ib(validator=instance_of(bool), default=False)
+    reserved = attr.ib(validator=instance_of(bool), default=False)
 
     def serialise(self):
         """
@@ -503,13 +503,17 @@ class ConnectFlags(object):
 @attr.s
 class Connect(object):
 
-    flags = attr.ib(validator=instance_of(ConnectFlags))
-    keep_alive = attr.ib(validator=instance_of(int))
     client_id = attr.ib(validator=instance_of(unicode))
-    will_topic = attr.ib(validator=optional(instance_of(unicode)))
-    will_message = attr.ib(validator=optional(instance_of(unicode)))
-    username = attr.ib(validator=optional(instance_of(unicode)))
-    password = attr.ib(validator=optional(instance_of(unicode)))
+    flags = attr.ib(validator=instance_of(ConnectFlags))
+    keep_alive = attr.ib(validator=instance_of(int), default=0)
+    will_topic = attr.ib(validator=optional(instance_of(unicode)),
+                         default=None)
+    will_message = attr.ib(validator=optional(instance_of(unicode)),
+                           default=None)
+    username = attr.ib(validator=optional(instance_of(unicode)),
+                       default=None)
+    password = attr.ib(validator=optional(instance_of(unicode)),
+                       default=None)
 
     def serialise(self):
         """

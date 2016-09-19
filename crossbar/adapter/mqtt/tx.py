@@ -34,7 +34,7 @@ import attr
 import collections
 
 from .protocol import (
-    MQTTServerProtocol, Failure,
+    MQTTParser, Failure,
     Connect, ConnACK,
     Subscribe, SubACK,
     Unsubscribe, UnsubACK,
@@ -43,14 +43,18 @@ from .protocol import (
 )
 
 from twisted.internet.protocol import Protocol
-from twisted.internet.defer import inlineCallbacks, succeed
+from twisted.internet.defer import inlineCallbacks, succeed, returnValue
 
 
 @attr.s
 class Session(object):
 
-    session = attr.ib()
+    client_id = attr.ib()
+    wamp_session = attr.ib()
     queued_messages = attr.ib(default=attr.Factory(collections.deque))
+    subscriptions = attr.ib(default=attr.Factory(dict))
+    connected = attr.ib(default=False)
+    survives = attr.ib(default=False)
 
 
 @attr.s
@@ -65,7 +69,7 @@ class MQTTServerTwistedProtocol(Protocol):
 
     def __init__(self, handler, reactor, mqtt_sessions):
         self._reactor = reactor
-        self._mqtt = MQTTServerProtocol()
+        self._mqtt = MQTTParser()
         self._handler = handler
         self._in_flight_publishes = set()
         self._waiting_for_ack = {}
@@ -79,26 +83,40 @@ class MQTTServerTwistedProtocol(Protocol):
             self._timeout.reset(self._timeout_time)
 
     def dataReceived(self, data):
-        # The client is alive, reset the timeout
-        self._reset_timeout()
-
         # Pause the producer as we need to process some of these things
         # serially -- for example, subscribes in Autobahn are a Deferred op,
         # so we don't want any more data yet
         self.transport.pauseProducing()
         d = self._handle(data)
-        d.addBoth(lambda _: self.transport.resumeProducing())
+        d.addErrback(print)
+        d.addBoth(lambda _: self._resume_producing)
+
+    def _resume_producing(self):
+        if self.transport.connected:
+            self.transport.resumeProducing()
 
     def connectionLost(self, reason):
         if self._timeout:
             self._timeout.cancel()
             self._timeout = None
 
+        # Allow other sessions to connect
+        self.session.connected = False
+
+        # Destroy the session, if it is not meant to survive, so it cannot be
+        # reused.
+        # See MQTT-3.1.2-6.
+        if not self.session.survives:
+            for x in self.session.subscriptions.values():
+                x.unsubscribe()
+
+            del self._mqtt_sessions[self.session.client_id]
+
     def send_publish(self, topic, qos, body):
 
         self.session.queued_messages.append(Message(topic=topic, qos=qos, body=body))
-        if not self._flush_publishes:
-            self._flush_publishes = self.reactor.callLater(0, self._flush_saved_messages)
+        if not self._flush_publishes and self.transport.connected:
+            self._flush_publishes = self._reactor.callLater(0, self._flush_saved_messages)
 
     def _send_publish(self, topic, qos, body):
 
@@ -115,7 +133,7 @@ class MQTTServerTwistedProtocol(Protocol):
 
             self._waiting_for_ack[packet_id] = (1, 0)
 
-        self.transport.write(publish.serialise())
+        self._send_packet(publish)
 
     def _lose_connection(self):
         print("MQTT client is timed out... Nothing for %d seconds" % (self._timeout_time,))
@@ -130,19 +148,41 @@ class MQTTServerTwistedProtocol(Protocol):
         if self._flush_publishes:
             self._flush_publishes = None
 
-        for message in self.session.queued_messages:
-            self.send_publish(message.topic, message.qos, message.body)
+        # Closed connection, we don't want to send messages here
+        if not self.transport.connected:
+            return
+
+        while self.session.queued_messages:
+            message = self.session.queued_messages.popleft()
+            self._send_publish(message.topic, message.qos, message.body)
 
 
     @inlineCallbacks
     def _handle(self, data):
 
+        try:
+            res = yield self._handle_data(data)
+            returnValue(res)
+        except Exception as e:
+            print("ERROR")
+            raise
+
+
+    @inlineCallbacks
+    def _handle_data(self, data):
+
         events = self._mqtt.data_received(data)
+
+        if events:
+            # We've got at least one full control packet -- the client is
+            # alive, reset the timeout.
+            self._reset_timeout()
 
         for event in events:
             print("Got event", event)
 
             if isinstance(event, Connect):
+
                 accept_conn = yield self._handler.process_connect(event)
 
                 if accept_conn == 0:
@@ -154,27 +194,46 @@ class MQTTServerTwistedProtocol(Protocol):
                         self._timeout = self._reactor.callLater(
                             self._timeout_time, self._lose_connection)
 
-                    if event.flags.clean_session:
-                        # Delete the session, so the next check will fail
-                        # See MQTT-3.2.2-1
-                        del self._mqtt_sessions[event.client_id]
+                    # Connected client IDs must be unique, see MQTT-3.1.3-2
+                    if event.client_id in self._mqtt_sessions:
+                        if self._mqtt_sessions[event.client_id].connected:
+                            connack = ConnACK(session_present=True,
+                                              return_code=2)
+                            self._send_packet(connack)
+                            self.transport.loseConnection()
+                            return
+
+                    # Use the client ID to control sessions, as per compliance
+                    # statement MQTT-3.1.3-2
+                    if (event.flags.clean_session and
+                        event.client_id in self._mqtt_sessions):
+                        # Delete the session if there is one. See MQTT-3.2.2-1
+                        session = self._mqtt_sessions[event.client_id]
+                        for x in session.subscriptions.values():
+                            x.unsubscribe()
+                        del self._mqtt_sessions[session.client_id]
 
                     if event.client_id in self._mqtt_sessions:
                         self.session = self._mqtt_sessions[event.client_id]
-                        self.reactor.callLater(self._flush_saved_messages)
+                        self._reactor.callLater(0, self._flush_saved_messages)
                         self._handler.existing_wamp_session(self.session)
-                        # Have a session, set to 1 as in MQTT-3.2.2-2
-                        session_present = 1
+                        # Have a session, set to 1/True as in MQTT-3.2.2-2
+                        session_present = True
                     else:
-                        self.session = Session()
-                        self.session.wamp_session = yield self._handler.new_wamp_session(event)
-                        # Don't have session, set to 0 as in MQTT-3.2.2-3
-                        session_present = 0
+                        wamp_session = self._handler.new_wamp_session(event)
+                        self.session = Session(wamp_session=wamp_session,
+                                               client_id=event.client_id)
+                        # Don't have session, set to 0/False as in MQTT-3.2.2-3
+                        session_present = False
+
+                    self.session.survives = not event.flags.clean_session
+                    self.session.connected = True
+                    self._mqtt_sessions[event.client_id] = self.session
 
                 elif accept_conn in [1, 2, 3, 4, 5]:
                     # If it's a valid, non-zero return code, the
-                    # session_present must be 0, as per MQTT-3.2.2-4
-                    session_present = 0
+                    # session_present must be 0/False, as per MQTT-3.2.2-4
+                    session_present = False
 
                 else:
                     # No valid return codes, so drop the connection, as per
@@ -183,7 +242,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     return
 
                 connack = ConnACK(session_present=session_present,
-                    return_code=accept_conn)
+                                  return_code=accept_conn)
                 self._send_packet(connack)
 
                 if accept_conn != 0:

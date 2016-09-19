@@ -47,7 +47,7 @@ __all__ = [
     "Unsubscribe", "UnsubACK",
     "Publish", "PubACK",
     "PingREQ", "PingRESP",
-    "MQTTServerProtocol",
+    "MQTTParser",
 ]
 
 class _NeedMoreData(Exception):
@@ -116,7 +116,10 @@ def _parse_header(data):
     return (packet_type, flags, value)
 
 
-class MQTTServerProtocol(object):
+class MQTTParser(object):
+
+    _packet_handlers = server_packet_handlers
+    _first_pkt = P_CONNECT
 
     def __init__(self):
 
@@ -176,11 +179,11 @@ class MQTTServerProtocol(object):
 
                 packet_type, flags, value = self._packet_header
 
-                if self._packet_count == 0 and packet_type != P_CONNECT:
+                if self._packet_count == 0 and packet_type != self._first_pkt:
                     self._state = PROTOCOL_VIOLATION
                     return [Failure("Connect packet was not first")]
 
-                if self._packet_count > 0 and packet_type == P_CONNECT:
+                if self._packet_count > 0 and packet_type == self._first_pkt:
                     events.append(Failure("Multiple Connect packets"))
                     self._state = PROTOCOL_VIOLATION
                     return events
@@ -188,13 +191,13 @@ class MQTTServerProtocol(object):
                 try:
                     dataToGive = self._data.read(value * 8)
 
-                    if packet_type not in server_packet_handlers:
+                    if packet_type not in self._packet_handlers:
                         self._state = PROTOCOL_VIOLATION
                         events.append(Failure("Unimplemented packet type %d" % (
                             packet_type,)))
                         return events
 
-                    packet_handler = server_packet_handlers[packet_type]
+                    packet_handler = self._packet_handlers[packet_type]
                     deser = packet_handler.deserialise(flags, dataToGive)
                     events.append(deser)
                 except ParseFailure as e:

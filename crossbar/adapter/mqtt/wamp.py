@@ -47,45 +47,45 @@ from autobahn.twisted.wamp import ApplicationSession
 
 class WampMQTTServerProtocol(Protocol):
 
-    def __init__(self, session_factory, reactor, mqtt_sessions):
-        self._session_factory = session_factory
+    def __init__(self, reactor, mqtt_sessions):
         self._mqtt = MQTTServerTwistedProtocol(self, reactor, mqtt_sessions)
-        self._subscriptions = {}
 
     def connectionMade(self):
         self._mqtt.transport = self.transport
 
-    def new_wamp_session(self):
-        session_config = ComponentConfig(realm=self._config['realm'],
-                                            extra=None)
+    def new_wamp_session(self, event):
+        session_config = ComponentConfig(realm=self.factory._config['realm'],
+                                         extra=None)
         session = ApplicationSession(session_config)
 
-        self._session_factory.add(
+        self.factory._session_factory.add(
             session,
-            authrole=self._config.get('role', u'anonymous'))
-        self._session = session
+            authrole=self.factory._config.get('role', u'anonymous'))
+        self._wamp_session = session
 
         return session
 
     def existing_wamp_session(self, session):
-        self._session = session.wamp_session
+        self._full_session = session
+        self._wamp_session = session.wamp_session
 
     def process_connect(self, packet):
         # Should add some authorisation here?
         return succeed(0)
 
     def _publish(self, event, options):
-        payload = {'mqtt_message': event.payload.decode('utf8')}
+        payload = {'mqtt_message': event.payload.decode('utf8'),
+                   'mqtt_qos': event.qos_level}
 
-        return self._session.publish(event.topic_name, options=options,
+        return self._wamp_session.publish(event.topic_name, options=options,
                                      **payload)
 
     def publish_qos_0(self, event):
-        return self._publish(event, None)
+        return self._publish(event, options=PublishOptions(exclude_me=False))
 
     def publish_qos_1(self, event):
         return self._publish(event,
-                             options=PublishOptions(acknowledge=True))
+                             options=PublishOptions(acknowledge=True, exclude_me=False))
 
     @inlineCallbacks
     def process_subscribe(self, packet):
@@ -93,7 +93,7 @@ class WampMQTTServerProtocol(Protocol):
         def handle_publish(topic, qos, *args, **kwargs):
             # If there's a single kwarg which is mqtt_message, then just send
             # that, so that CB can be 'drop in'
-            if not args and set(kwargs.keys()) == set("mqtt_message", "mqtt_qos"):
+            if not args and set(kwargs.keys()) == set(["mqtt_message", "mqtt_qos"]):
                 body = kwargs["mqtt_message"].encode('utf8')
 
                 if kwargs["mqtt_qos"] < qos:
@@ -114,10 +114,14 @@ class WampMQTTServerProtocol(Protocol):
                 continue
             else:
                 try:
-                    sub = yield self._session.subscribe(
+
+                    if x.topic_filter in self._subscriptions:
+                        yield self._subscriptions[x.topic_filter].unsubscribe()
+
+                    sub = yield self._wamp_session.subscribe(
                         partial(handle_publish, x.topic_filter, x.max_qos),
                         x.topic_filter)
-                    self._subscriptions[x.topic_filter] = sub
+                    self._full_session.subscriptions[x.topic_filter] = sub
 
                     # We don't allow QoS 2 subscriptions
                     if x.max_qos > 1:
@@ -148,12 +152,13 @@ class WampMQTTServerFactory(Factory):
     protocol = WampMQTTServerProtocol
 
     def __init__(self, session_factory, config, reactor):
-        self._session_factory = session_factory
+        self._wamp_session_factory = session_factory
         self._config = config["options"]
         self._reactor = reactor
         self._mqtt_sessions = {}
 
     def buildProtocol(self, addr):
 
-        return self.protocol(self._session_factory,
-                             self._reactor, _mqtt_sessions)
+        protocol = self.protocol(self._reactor, self._mqtt_sessions)
+        protocol.factory = self
+        return protocol
