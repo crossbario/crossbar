@@ -358,8 +358,17 @@ def check_dict_args(spec, config, msg):
             valid_type = False
             for t in spec[k][1]:
                 if isinstance(config[k], t):
-                    valid_type = True
-                    break
+                    # We're special-casing Sequence here, because in
+                    # general if we say a Sequence is okay, we do NOT
+                    # want strings to be allowed but Python says that
+                    # "isinstance('foo', Sequence) == True"
+                    if t is Sequence:
+                        if not isinstance(config[k], (six.text_type, str)):
+                            valid_type = True
+                            break
+                    else:
+                        valid_type = True
+                        break
             if not valid_type:
                 raise InvalidConfigException("{} - invalid type {} encountered for attribute '{}', must be one of ({})".format(msg, type(config[k]).__name__, k, ', '.join([x.__name__ for x in spec[k][1]])))
 

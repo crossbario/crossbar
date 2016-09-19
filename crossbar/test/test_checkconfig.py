@@ -34,12 +34,44 @@ from crossbar.test import TestCase
 from crossbar.common import checkconfig
 
 import json
+import six
+if six.PY3:
+    from collections.abc import Sequence
+else:
+    from collections import Sequence
 
 
 class CheckDictArgsTests(TestCase):
     """
     Tests for L{crossbar.common.checkconfig.check_dict_args}.
     """
+    def test_sequence_string(self):
+        """
+        A Sequence should not imply we accept strings
+        """
+        with self.assertRaises(checkconfig.InvalidConfigException) as e:
+            checkconfig.check_dict_args(
+                {"foo": (True, [Sequence])},
+                {"foo": "not really a Sequence"},
+                "Nice message for the user"
+            )
+        self.assertEqual(
+            "Nice message for the user - invalid type str encountered for "
+            "attribute 'foo', must be one of (Sequence)",
+            str(e.exception),
+        )
+
+    def test_sequence_list(self):
+        """
+        A Sequence should accept list
+        """
+        checkconfig.check_dict_args(
+            {"foo": (True, [Sequence])},
+            {"foo": ["a", "real", "sequence"]},
+            "Nice message for the user"
+        )
+        # should work, with no exceptions
+
     def test_notDict(self):
         """
         A non-dict passed in as the config will raise a
