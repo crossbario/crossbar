@@ -65,6 +65,11 @@ log_categories = {
     "AR464": "Request expired, too old timestamp.",
     "AR465": "Body length ({bodylen}) is different to Content-Length header ({conlen}).",
     "AR466": "Request denied based on IP address.",
+
+    # MQXXX - Adapter, MQTT Bridge
+    "MQ100": "Got packet from '{client_id}': {packet!r}",
+    "MQ101": "Sent packet to '{client_id}': {packet!r}",
+    "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
 }
 
 

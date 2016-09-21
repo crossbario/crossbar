@@ -30,8 +30,13 @@
 
 from __future__ import absolute_import, division, print_function
 
+import six
 import attr
 import collections
+
+from itertools import count
+
+from txaio import make_logger
 
 from .protocol import (
     MQTTParser, Failure,
@@ -45,6 +50,7 @@ from .protocol import (
 from twisted.internet.protocol import Protocol
 from twisted.internet.defer import inlineCallbacks, succeed, returnValue
 
+_ids = count()
 
 @attr.s
 class Session(object):
@@ -67,7 +73,9 @@ class Message(object):
 
 class MQTTServerTwistedProtocol(Protocol):
 
-    def __init__(self, handler, reactor, mqtt_sessions):
+    log = make_logger()
+
+    def __init__(self, handler, reactor, mqtt_sessions, _id_maker=_ids):
         self._reactor = reactor
         self._mqtt = MQTTParser()
         self._handler = handler
@@ -77,6 +85,9 @@ class MQTTServerTwistedProtocol(Protocol):
         self._timeout_time = 0
         self._mqtt_sessions = mqtt_sessions
         self._flush_publishes = None
+        self._connection_id = next(_id_maker)
+        self.session = Session(client_id=u"<still connecting>",
+                               wamp_session=None)
 
     def _reset_timeout(self):
         if self._timeout:
@@ -136,11 +147,14 @@ class MQTTServerTwistedProtocol(Protocol):
         self._send_packet(publish)
 
     def _lose_connection(self):
-        print("MQTT client is timed out... Nothing for %d seconds" % (self._timeout_time,))
+        self.log.debug(log_category="MQ400", client_id=self.session.client_id,
+                       seconds=self._timeout_time,
+                       conn_id=self._connection_id)
         self.transport.loseConnection()
 
     def _send_packet(self, packet):
-        print("Sending %r" %(packet,))
+        self.log.trace(log_category="MQ101", client_id=self.session.client_id,
+                       packet=packet, conn_id=self._connection_id)
         self.transport.write(packet.serialise())
 
     def _flush_saved_messages(self):
@@ -179,7 +193,8 @@ class MQTTServerTwistedProtocol(Protocol):
             self._reset_timeout()
 
         for event in events:
-            print("Got event", event)
+            self.log.trace(log_category="MQ100", conn_id=self._connection_id,
+                           client_id=self.session.client_id, packet=event)
 
             if isinstance(event, Connect):
 

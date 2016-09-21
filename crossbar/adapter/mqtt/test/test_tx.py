@@ -39,9 +39,10 @@ from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
 from crossbar.adapter.mqtt.protocol import (
     MQTTParser, client_packet_handlers, P_CONNACK)
 from crossbar.adapter.mqtt._events import (
-    Connect, ConnectFlags
+    Connect, ConnectFlags, ConnACK
 )
 from crossbar.adapter.mqtt._utils import iterbytes
+from crossbar._logging import LogCapturer, LogLevel
 
 from twisted.test.proto_helpers import Clock, StringTransport
 from twisted.trial.unittest import TestCase
@@ -67,6 +68,75 @@ class BasicHandler(object):
 
     def existing_wamp_session(self, event):
         return None
+
+class TwistedProtocolLoggingTests(TestCase):
+    """
+    Tests for the logging functionality of the Twisted MQTT protocol.
+    """
+
+    def test_send_packet(self):
+        """
+        On sending a packet, a trace log message is emitted with details of the
+        sent packet.
+        """
+        sessions = {}
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            # CONNECT
+            b"101300044d51545404020002000774657374313233"
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(unhexlify(data)):
+                p.dataReceived(x)
+
+        sent_logs = logs.get_category("MQ101")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.debug)
+        self.assertEqual(sent_logs[0]["txaio_trace"], True)
+        self.assertIn("ConnACK", logs.log_text.getvalue())
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 1)
+        self.assertIsInstance(events[0], ConnACK)
+
+    def test_recv_packet(self):
+        """
+        On receiving a packet, a trace log message is emitted with details of
+        the received packet.
+        """
+        sessions = {}
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            # CONNECT
+            b"101300044d51545404020002000774657374313233"
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(unhexlify(data)):
+                p.dataReceived(x)
+
+        sent_logs = logs.get_category("MQ100")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.debug)
+        self.assertEqual(sent_logs[0]["txaio_trace"], True)
+        self.assertIn("Connect", logs.log_text.getvalue())
 
 
 class TwistedProtocolTests(TestCase):
