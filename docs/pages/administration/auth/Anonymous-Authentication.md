@@ -58,4 +58,4 @@ Here the authenticator function which is registered for `com.example.authenticat
 
 For a full working example of Anonymous Authentication using a dynamic authenticator, see [Crossbarexamples](https://github.com/crossbario/crossbarexamples/tree/master/authentication/anonymous/dynamic).
 
-For more on dynamica authenticators read [this documentation page](Dynamic Authenticators).
+For more on dynamic authenticators read [this documentation page](Dynamic Authenticators).
