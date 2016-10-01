@@ -411,7 +411,7 @@ class TwistedProtocolTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
-        self.assertEqual(sessions.keys(), [u"test123"])
+        self.assertEqual(list(sessions.keys()), [u"test123"])
         old_session = sessions[u"test123"]
 
         # Close the connection
@@ -444,7 +444,7 @@ class TwistedProtocolTests(TestCase):
                 'session_present': False,
             })
 
-        self.assertEqual(sessions.keys(), [u"test123"])
+        self.assertEqual(list(sessions.keys()), [u"test123"])
         new_session = sessions[u"test123"]
 
         # Brand new session, that won't survive
@@ -453,4 +453,4 @@ class TwistedProtocolTests(TestCase):
 
         # We close the connection, the session is destroyed
         p2.connectionLost(None)
-        self.assertEqual(sessions.keys(), [])
+        self.assertEqual(list(sessions.keys()), [])
