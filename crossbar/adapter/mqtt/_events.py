@@ -108,9 +108,7 @@ class UnsubACK(object):
         if flags != (False, False, False, False):
             raise ParseFailure(cls, "Bad flags")
 
-        topics = []
         packet_identifier = data.read('uint:16')
-
         return cls(packet_identifier=packet_identifier)
 
 
@@ -139,7 +137,7 @@ class Unsubscribe(object):
 
         for topic in self.topics:
             if not isinstance(topic, unicode):
-                raise SerialisationFailure(cls, "Topics must be Unicode")
+                raise SerialisationFailure(self, "Topics must be Unicode")
 
             b.append(build_string(topic))
 
@@ -216,7 +214,7 @@ class Publish(object):
         elif self.qos_level == 2:
             flags.extend([True, False])
         else:
-            raise SerialisationFailure(cls, "QoS must be 0, 1, or 2")
+            raise SerialisationFailure(self, "QoS must be 0, 1, or 2")
         flags.append(self.retain)
 
         payload = self._make_payload()
@@ -238,10 +236,10 @@ class Publish(object):
                 # Session identifier
                 b.append(pack('uint:16', self.packet_identifier).bytes)
             else:
-                raise SerialisationFailure(cls, "Packet Identifier on non-QoS 1/2 packet")
+                raise SerialisationFailure(self, "Packet Identifier on non-QoS 1/2 packet")
         else:
             if self.qos_level > 0:
-                raise SerialisationFailure(cls, "QoS level > 0 but no Packet Identifier")
+                raise SerialisationFailure(self, "QoS level > 0 but no Packet Identifier")
 
         # Payload (bytes)
         b.append(self.payload)

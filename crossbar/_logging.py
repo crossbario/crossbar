@@ -111,7 +111,7 @@ def make_stdout_observer(levels=(LogLevel.info,),
         _file = sys.__stdout__
 
     if _categories is None:
-         _categories = _log_categories.log_categories
+        _categories = _log_categories.log_categories
 
     @provider(ILogObserver)
     def StandardOutObserver(event):

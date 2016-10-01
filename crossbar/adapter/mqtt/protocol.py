@@ -50,6 +50,7 @@ __all__ = [
     "MQTTParser",
 ]
 
+
 class _NeedMoreData(Exception):
     """
     We need more data before we can get the bytes length.

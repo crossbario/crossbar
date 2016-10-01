@@ -69,6 +69,7 @@ class BasicHandler(object):
     def existing_wamp_session(self, event):
         return None
 
+
 class TwistedProtocolLoggingTests(TestCase):
     """
     Tests for the logging functionality of the Twisted MQTT protocol.
@@ -262,7 +263,7 @@ class TwistedProtocolTests(TestCase):
         self.assertFalse(t.disconnecting)
 
         data = (
-            # PINGREQ header
+            # Full PINGREQ packet
             b"c000"
         )
 
@@ -295,7 +296,7 @@ class TwistedProtocolTests(TestCase):
         p.makeConnection(t)
 
         data = (
-            # CONNECT, client ID of 123
+            # CONNECT, client ID of test123
             b"\x10\x13\x00\x04MQTT\x04\x02\x00x\x00\x07test123"
         )
 
