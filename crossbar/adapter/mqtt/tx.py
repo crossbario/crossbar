@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import, division, print_function
 
-import six
 import attr
 import collections
 
@@ -48,9 +47,10 @@ from .protocol import (
 )
 
 from twisted.internet.protocol import Protocol
-from twisted.internet.defer import inlineCallbacks, succeed, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 _ids = count()
+
 
 @attr.s
 class Session(object):
@@ -170,17 +170,14 @@ class MQTTServerTwistedProtocol(Protocol):
             message = self.session.queued_messages.popleft()
             self._send_publish(message.topic, message.qos, message.body)
 
-
     @inlineCallbacks
     def _handle(self, data):
 
         try:
             res = yield self._handle_data(data)
             returnValue(res)
-        except Exception as e:
-            print("ERROR")
+        except Exception:
             raise
-
 
     @inlineCallbacks
     def _handle_data(self, data):
@@ -220,8 +217,7 @@ class MQTTServerTwistedProtocol(Protocol):
 
                     # Use the client ID to control sessions, as per compliance
                     # statement MQTT-3.1.3-2
-                    if (event.flags.clean_session and
-                        event.client_id in self._mqtt_sessions):
+                    if (event.flags.clean_session and event.client_id in self._mqtt_sessions):
                         # Delete the session if there is one. See MQTT-3.2.2-1
                         session = self._mqtt_sessions[event.client_id]
                         for x in session.subscriptions.values():

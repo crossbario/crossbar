@@ -33,7 +33,6 @@ from __future__ import absolute_import, division
 import attr
 
 from binascii import unhexlify
-from bitstring import BitStream
 
 from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
 from crossbar.adapter.mqtt.protocol import (
@@ -120,7 +119,6 @@ class TwistedProtocolLoggingTests(TestCase):
         r = Clock()
         t = StringTransport()
         p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
 
         p.makeConnection(t)
 
@@ -178,7 +176,6 @@ class TwistedProtocolTests(TestCase):
         r.advance(0.1)
         self.assertTrue(t.disconnecting)
 
-
     def test_keepalive_requires_full_packet(self):
         """
         If a client connects with a keepalive, and sends no FULL packets in
@@ -229,7 +226,6 @@ class TwistedProtocolTests(TestCase):
         r.advance(0.1)
         self.assertTrue(t.disconnecting)
 
-
     def test_keepalive_full_packet_resets_timeout(self):
         """
         If a client connects with a keepalive, and sends packets in under
@@ -278,7 +274,6 @@ class TwistedProtocolTests(TestCase):
         r.advance(0.1)
         self.assertFalse(t.disconnecting)
 
-
     def test_only_unique(self):
         """
         Connected clients must have unique client IDs.
@@ -315,7 +310,7 @@ class TwistedProtocolTests(TestCase):
         # New session
         r2 = Clock()
         t2 = StringTransport()
-        p2 = MQTTServerTwistedProtocol(h, r, sessions)
+        p2 = MQTTServerTwistedProtocol(h, r2, sessions)
         cp2 = MQTTClientParser()
 
         p2.makeConnection(t2)
@@ -350,8 +345,7 @@ class TwistedProtocolTests(TestCase):
 
         data = (
             Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=False)
-            ).serialise()
+                    flags=ConnectFlags(clean_session=False)).serialise()
         )
 
         for x in iterbytes(data):
@@ -371,7 +365,7 @@ class TwistedProtocolTests(TestCase):
         # New session
         r2 = Clock()
         t2 = StringTransport()
-        p2 = MQTTServerTwistedProtocol(h, r, sessions)
+        p2 = MQTTServerTwistedProtocol(h, r2, sessions)
         cp2 = MQTTClientParser()
 
         p2.makeConnection(t2)
@@ -406,14 +400,12 @@ class TwistedProtocolTests(TestCase):
         r = Clock()
         t = StringTransport()
         p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
 
         p.makeConnection(t)
 
         data = (
             Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=False)
-            ).serialise()
+                    flags=ConnectFlags(clean_session=False)).serialise()
         )
 
         for x in iterbytes(data):
@@ -428,13 +420,12 @@ class TwistedProtocolTests(TestCase):
         # New session, clean_session=True
         data = (
             Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)
-            ).serialise()
+                    flags=ConnectFlags(clean_session=True)).serialise()
         )
 
         r2 = Clock()
         t2 = StringTransport()
-        p2 = MQTTServerTwistedProtocol(h, r, sessions)
+        p2 = MQTTServerTwistedProtocol(h, r2, sessions)
         cp2 = MQTTClientParser()
 
         p2.makeConnection(t2)

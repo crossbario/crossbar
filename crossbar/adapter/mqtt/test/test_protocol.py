@@ -37,11 +37,9 @@ from binascii import unhexlify
 from crossbar.adapter.mqtt.protocol import (
     MQTTParser,
     Failure, PROTOCOL_VIOLATION,
-    Connect, ConnACK,
-    Subscribe, SubACK,
-    Unsubscribe, UnsubACK,
-    Publish, PubACK,
-    PingREQ, PingRESP,
+    Connect,
+    Subscribe, Unsubscribe,
+    PingREQ,
 )
 from crossbar.adapter.mqtt._utils import iterbytes
 
@@ -158,7 +156,6 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
                          ("Quirky client CONNECT -- packet length was 152 "
                           "bytes but only had 168 bytes of useful data"))
 
-
     def test_connect_ping(self):
         """
         A connect, then a ping.
@@ -178,7 +175,8 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
 
         self.assertEqual(len(events), 2)
 
-        self._assert_event(events.pop(0), Connect,
+        self._assert_event(
+            events.pop(0), Connect,
             {
                 'username': None,
                 'password': None,
@@ -203,7 +201,6 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
 
-
     def test_connect_subscribe_unsubscribe(self):
         """
         A connect, then a subscribe and an immediate unsubscribe.
@@ -225,7 +222,8 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
 
         self.assertEqual(len(events), 3)
 
-        self._assert_event(events.pop(0), Connect,
+        self._assert_event(
+            events.pop(0), Connect,
             {
                 'username': None,
                 'password': None,
@@ -245,7 +243,8 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             }
         )
 
-        self._assert_event(events.pop(0), Subscribe,
+        self._assert_event(
+            events.pop(0), Subscribe,
             {
                 'packet_identifier': 1,
                 'topic_requests': [
@@ -257,7 +256,8 @@ class ProtocolTests(TestCase, MQTTEventTestBase):
             }
         )
 
-        self._assert_event(events.pop(0), Unsubscribe,
+        self._assert_event(
+            events.pop(0), Unsubscribe,
             {
                 'packet_identifier': 3,
                 'topics': [u'test/123'],
@@ -302,7 +302,6 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 0)
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
-
     def test_multiple_connects(self):
         """
         Sending multiple CONNECT packets is a protocol violation.
@@ -336,7 +335,6 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         self.assertEqual(len(events), 0)
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
 
-
     def test_connect_reserved_area(self):
         """
         The reserved section in the CONNECT packet must not be used.
@@ -364,7 +362,6 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
-
 
     def test_too_large_header(self):
         """
@@ -510,7 +507,6 @@ class MQTTConformanceTests(TestCase, MQTTEventTestBase):
         # We want to have consumed all the events
         self.assertEqual(len(events), 0)
         self.assertEqual(p._state, PROTOCOL_VIOLATION)
-
 
     def test_reserved_packet_0(self):
         """

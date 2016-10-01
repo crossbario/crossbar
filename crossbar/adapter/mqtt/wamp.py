@@ -31,7 +31,6 @@
 from __future__ import absolute_import, division, print_function
 
 import json
-import collections
 
 from functools import partial
 
@@ -77,7 +76,7 @@ class WampMQTTServerProtocol(Protocol):
                    'mqtt_qos': event.qos_level}
 
         return self._wamp_session.publish(event.topic_name, options=options,
-                                     **payload)
+                                          **payload)
 
     def publish_qos_0(self, event):
         return self._publish(event, options=PublishOptions(exclude_me=False))
@@ -113,7 +112,6 @@ class WampMQTTServerProtocol(Protocol):
                 continue
             else:
                 try:
-
                     if x.topic_filter in self._subscriptions:
                         yield self._subscriptions[x.topic_filter].unsubscribe()
 
@@ -127,7 +125,7 @@ class WampMQTTServerProtocol(Protocol):
                         responses.append(1)
                     else:
                         responses.append(x.max_qos)
-                except Exception as e:
+                except Exception:
                     print("Failed subscribing to topic %s" % (x.topic_filter,))
                     responses.append(128)
 
