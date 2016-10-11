@@ -18,3 +18,8 @@ parts:
   crossbar:
     plugin: python
     source: https://github.com/crossbario/crossbar.git
+    build-packages:
+      - gcc
+      - libffi-dev
+      - libssl-dev
+      - make
