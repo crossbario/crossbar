@@ -1544,6 +1544,29 @@ _WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
 _WEB_PATH_PATH = re.compile(_WEB_PATH_PAT_STR)
 
 
+def check_listening_transport_mqtt(transport):
+    """
+    Check a listening MQTT-WAMP transport configuration.
+
+    http://crossbar.io/docs/
+
+    :param transport: The MQTT transport configuration to check.
+    :type transport: dict
+    """
+    for k in transport:
+        if k not in ['id', 'type', 'endpoint', 'options']:
+            raise InvalidConfigException("encountered unknown attribute '{}' in MQTT transport configuration".format(k))
+
+    if 'id' in transport:
+        check_id(transport['id'])
+
+    if 'endpoint' not in transport:
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in MQTT transport item\n\n{}".format(pformat(transport)))
+    check_listening_endpoint(transport['endpoint'])
+
+    # Check options...
+
+
 def check_paths(paths, nested=False):
     """
     Checks all configured paths.
@@ -1935,6 +1958,7 @@ def check_router_transport(transport):
         'websocket',
         'rawsocket',
         'universal',
+        'mqtt',
         'flashpolicy',
         'websocket.testee',
         'stream.testee'
@@ -1952,6 +1976,9 @@ def check_router_transport(transport):
 
     elif ttype == 'web':
         check_listening_transport_web(transport)
+
+    elif ttype == 'mqtt':
+        check_listening_transport_mqtt(transport)
 
     elif ttype == 'flashpolicy':
         check_listening_transport_flashpolicy(transport)

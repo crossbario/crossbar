@@ -1,10 +1,16 @@
 [run]
-source = crossbar
-include =
-     crossbar/*
 omit =
      crossbar/worker/test/examples/syntaxerror.py
 branch = True
+source = crossbar
+parallel = True
+
+[paths]
+source=
+   crossbar
+   .tox/*/lib/python*/site-packages/crossbar
+   .tox/*/lib/site-packages/crossbar
+   .tox/pypy*/site-packages/crossbar
 
 [report]
 precision = 2

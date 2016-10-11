@@ -93,6 +93,8 @@ from crossbar.twisted.resource import JsonResource, \
     RedirectResource, \
     ReverseProxyResource
 
+from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
+
 from crossbar.twisted.fileupload import FileUploadResource
 
 from crossbar.twisted.flashpolicy import FlashPolicyFactory
@@ -807,6 +809,14 @@ class RouterWorkerSession(NativeWorkerSession):
 
             transport_factory = StreamTesteeServerFactory()
 
+        # MQTT legacy adapter transport
+        #
+        elif config['type'] == 'mqtt':
+
+            transport_factory = WampMQTTServerFactory(
+                self._router_session_factory, config, self._reactor)
+            transport_factory.noisy = False
+
         # Twisted Web based transport
         #
         elif config['type'] == 'web':
@@ -855,7 +865,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         def ok(port):
             self.transports[id] = RouterTransport(id, config, transport_factory, port)
-            self.log.debug("Router transport '{id}'' started and listening", id)
+            self.log.debug("Router transport '{id}'' started and listening", id=id)
             return
 
         def fail(err):

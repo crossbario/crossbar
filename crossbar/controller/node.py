@@ -167,7 +167,8 @@ def _machine_id():
         with open('/var/lib/dbus/machine-id', 'r') as f:
             return f.read().strip()
     except:
-        return None
+        # OS X? Something else? Get a hostname, at least.
+        return socket.gethostname()
 
 
 def _creator():
