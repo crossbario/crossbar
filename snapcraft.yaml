@@ -1,5 +1,5 @@
 name: crossbar
-version: '0.1'
+version: '0.15.0'
 summary: Crossbar.io - WAMP application router
 description: |
   Crossbar.io is a networking platform for distributed and microservice applications.
