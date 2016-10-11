@@ -23,3 +23,4 @@ parts:
       - libffi-dev
       - libssl-dev
       - make
+      - python3-cffi
