@@ -3,12 +3,13 @@ omit =
      crossbar/worker/test/examples/syntaxerror.py
 branch = True
 source = crossbar
+parallel = True
 
 [paths]
 source=
    crossbar
    .tox/*/lib/python*/site-packages/crossbar
-   .tox/*/Lib/site-packages/crossbar
+   .tox/*/lib/site-packages/crossbar
    .tox/pypy*/site-packages/crossbar
 
 [report]
