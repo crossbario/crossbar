@@ -18,6 +18,7 @@ parts:
   crossbar:
     plugin: python
     source: https://github.com/crossbario/crossbar.git
+    requirements: requirements.txt
     build-packages:
       - gcc
       - libffi-dev
