@@ -100,10 +100,11 @@ class MQTTServerTwistedProtocol(Protocol):
         self.transport.pauseProducing()
         d = self._handle(data)
         d.addErrback(print)
-        d.addBoth(lambda _: self._resume_producing)
+        d.addBoth(lambda _: self._resume_producing())
 
     def _resume_producing(self):
-        if self.transport.connected:
+        if (self.transport.connected and not getattr(
+                self.transport, "disconnecting", False)):
             self.transport.resumeProducing()
 
     def connectionLost(self, reason):
@@ -262,11 +263,16 @@ class MQTTServerTwistedProtocol(Protocol):
                     self.transport.loseConnection()
                     return
 
+                self.log.debug(log_category="MQ200", client_id=event.client_id)
                 continue
 
             elif isinstance(event, Subscribe):
                 return_codes = yield self._handler.process_subscribe(event)
 
+                # MQTT-3.8.4-1 - we always need to send back this SubACK, even
+                #                if the subscriptions are unsuccessful -- their
+                #                unsuccessfulness is listed in the return codes
+                # MQTT-3.8.4-2 - the suback needs to have the same packet id
                 suback = SubACK(packet_identifier=event.packet_identifier,
                                 return_codes=return_codes)
                 self._send_packet(suback)
@@ -310,10 +316,13 @@ class MQTTServerTwistedProtocol(Protocol):
 
             else:
                 if isinstance(event, Failure):
-                    print("Protocol violation, closing the connection: %r" % (
-                        event,))
+                    self.log.error(
+                        log_category="MQ500", client_id=self.session.client_id,
+                        error=event.reason)
                 else:
-                    print("I don't understand %r, closing conn" % (event,))
+                    self.log.error(
+                        log_category="MQ501", client_id=self.session.client_id,
+                        packet_id=event.__class__.__name__)
 
                 # Conformance statement MQTT-4.8.0-1: Must close the connection
                 # on a protocol violation.
