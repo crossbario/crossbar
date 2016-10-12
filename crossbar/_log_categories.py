@@ -69,7 +69,10 @@ log_categories = {
     # MQXXX - Adapter, MQTT Bridge
     "MQ100": "Got packet from '{client_id}': {packet!r}",
     "MQ101": "Sent packet to '{client_id}': {packet!r}",
+    "MQ200": "Successful connection from '{client_id}'",
     "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
+    "MQ500": "Protocol violation from '{client_id}', terminating connection: {error}",
+    "MQ501": "Got a packet ('{packet_id}') from '{client_id} that is invalid for a server, terminating connection"
 }
 
 
