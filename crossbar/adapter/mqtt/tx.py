@@ -267,7 +267,16 @@ class MQTTServerTwistedProtocol(Protocol):
                 continue
 
             elif isinstance(event, Subscribe):
-                return_codes = yield self._handler.process_subscribe(event)
+                try:
+                    return_codes = yield self._handler.process_subscribe(event)
+                except:
+                    # MQTT-4.8.0-2 - If we get a transient error (like
+                    # subscribing raising an exception), we must close the
+                    # connection.
+                    self.log.failure(
+                        log_category="MQ500", client_id=self.session.client_id)
+                    self.transport.loseConnection()
+                    return
 
                 # MQTT-3.8.4-1 - we always need to send back this SubACK, even
                 #                if the subscriptions are unsuccessful -- their
@@ -317,11 +326,11 @@ class MQTTServerTwistedProtocol(Protocol):
             else:
                 if isinstance(event, Failure):
                     self.log.error(
-                        log_category="MQ500", client_id=self.session.client_id,
+                        log_category="MQ401", client_id=self.session.client_id,
                         error=event.reason)
                 else:
                     self.log.error(
-                        log_category="MQ501", client_id=self.session.client_id,
+                        log_category="MQ402", client_id=self.session.client_id,
                         packet_id=event.__class__.__name__)
 
                 # Conformance statement MQTT-4.8.0-1: Must close the connection
