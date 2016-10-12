@@ -721,6 +721,45 @@ class SubscribeHandlingTests(TestCase):
 
         events = cp.data_received(t.value())
         self.assertEqual(len(events), 2)
+        self.assertEqual(events[1].return_codes, [128])
+
+
+    def test_subscribe_same_id(self):
+        """
+        SubACKs have the same packet IDs as the Subscription that it is
+        replying to.
+
+        Compliance statements MQTT-3.8.4-2
+        """
+        sessions = {}
+
+        class SubHandler(BasicHandler):
+            def process_subscribe(self, event):
+                return succeed([0])
+
+        h = SubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise() +
+            Subscribe(packet_identifier=1234,
+                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]
+            ).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 2)
+        self.assertEqual(events[1].return_codes, [0])
+        self.assertEqual(events[1].packet_identifier, 1234)
 
 
     def test_exception_in_subscribe_drops_connection(self):
