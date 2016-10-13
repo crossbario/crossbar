@@ -32,20 +32,22 @@ from __future__ import absolute_import, division
 
 import attr
 
+from functools import partial
 from binascii import unhexlify
 
 from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
 from crossbar.adapter.mqtt.protocol import (
     MQTTParser, client_packet_handlers, P_CONNACK)
 from crossbar.adapter.mqtt._events import (
-    Connect, ConnectFlags, ConnACK
+    Connect, ConnectFlags, ConnACK, SubACK, Subscribe,
+    SubscriptionTopicRequest
 )
 from crossbar.adapter.mqtt._utils import iterbytes
 from crossbar._logging import LogCapturer, LogLevel
 
 from twisted.test.proto_helpers import Clock, StringTransport
 from twisted.trial.unittest import TestCase
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, succeed, inlineCallbacks
 
 
 class MQTTClientParser(MQTTParser):
@@ -71,7 +73,7 @@ class BasicHandler(object):
 
 class TwistedProtocolLoggingTests(TestCase):
     """
-    Tests for the logging functionality of the Twisted MQTT protocol.
+    Tests for the logging functionality of the Twisted MQTT protocol.b
     """
 
     def test_send_packet(self):
@@ -175,6 +177,41 @@ class TwistedProtocolTests(TestCase):
 
         r.advance(0.1)
         self.assertTrue(t.disconnecting)
+
+
+    def test_keepalive_canceled_on_lost_connection(self):
+        """
+        If a client connects with a timeout, and disconnects themselves, we
+        will remove the timeout.
+        """
+        sessions = {}
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+
+        p.makeConnection(t)
+
+        data = (
+            # CONNECT, with keepalive of 2
+            b"101300044d51545404020002000774657374313233"
+        )
+
+        for x in iterbytes(unhexlify(data)):
+            p.dataReceived(x)
+
+        self.assertEqual(len(r.calls), 1)
+        self.assertEqual(r.calls[0].getTime(), 3.0)
+        timeout = r.calls[0]
+
+        # Clean connection lost
+        p.connectionLost(None)
+
+        self.assertEqual(len(r.calls), 0)
+        self.assertTrue(timeout.cancelled)
+        self.assertFalse(timeout.called)
+
 
     def test_keepalive_requires_full_packet(self):
         """
@@ -298,6 +335,7 @@ class TwistedProtocolTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
+        self.assertFalse(t.disconnecting)
         events = cp.data_received(t.value())
         self.assertEqual(len(events), 1)
         self.assertEqual(
@@ -351,6 +389,7 @@ class TwistedProtocolTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
+        self.assertFalse(t.disconnecting)
         events = cp.data_received(t.value())
         self.assertEqual(len(events), 1)
         self.assertEqual(
@@ -411,6 +450,7 @@ class TwistedProtocolTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
+        self.assertFalse(t.disconnecting)
         self.assertEqual(list(sessions.keys()), [u"test123"])
         old_session = sessions[u"test123"]
 
@@ -454,3 +494,317 @@ class TwistedProtocolTests(TestCase):
         # We close the connection, the session is destroyed
         p2.connectionLost(None)
         self.assertEqual(list(sessions.keys()), [])
+
+    def test_transport_paused_while_processing(self):
+        """
+        The transport is paused whilst the MQTT protocol is parsing/handling
+        existing items.
+        """
+        sessions = {}
+
+        d = Deferred()
+        h = BasicHandler()
+        h.process_connect = lambda x: d
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+
+        t.connected = True
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=False)).serialise()
+        )
+
+        self.assertEqual(t.producerState, 'producing')
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        self.assertEqual(t.producerState, 'paused')
+        d.callback(0)
+        self.assertEqual(t.producerState, 'producing')
+
+    def test_unknown_connect_code_must_lose_connection(self):
+        """
+        A non-zero, and non-1-to-5 connect code from the handler must result in
+        a lost connection, and no CONNACK.
+
+        Compliance statements MQTT-3.2.2-4, MQTT-3.2.2-5
+        """
+        sessions = {}
+
+        d = Deferred()
+        h = BasicHandler(6)
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=False)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        self.assertTrue(t.disconnecting)
+        self.assertEqual(t.value(), b'')
+
+    def test_lose_conn_on_protocol_violation(self):
+        """
+        When a protocol violation occurs, the connection to the client will be
+        terminated, and an error will be logged.
+
+        Compliance statement MQTT-4.8.0-1
+        """
+        sessions = {}
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+
+        p.makeConnection(t)
+
+        data = (
+            # Invalid CONNECT
+            b"111300044d51545404020002000774657374313233"
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(unhexlify(data)):
+                p.dataReceived(x)
+
+        sent_logs = logs.get_category("MQ401")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.error)
+        self.assertIn("Connect", logs.log_text.getvalue())
+
+        self.assertEqual(t.value(), b'')
+        self.assertTrue(t.disconnecting)
+
+    def test_lose_conn_on_unimplemented_packet(self):
+        """
+        If we get a valid, but unimplemented for that role packet (e.g. SubACK,
+        which we will only ever send, and getting it is a protocol violation),
+        we will drop the connection.
+
+        Compliance statement: MQTT-4.8.0-1
+        """
+        sessions = {}
+
+        # This shouldn't normally happen, but just in case.
+        from crossbar.adapter.mqtt import protocol
+        protocol.server_packet_handlers[protocol.P_SUBACK] = SubACK
+        self.addCleanup(
+            lambda: protocol.server_packet_handlers.pop(protocol.P_SUBACK))
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=False)).serialise() +
+            SubACK(1, [1]).serialise()
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(data):
+                p.dataReceived(x)
+
+        sent_logs = logs.get_category("MQ402")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.error)
+        self.assertEqual(sent_logs[0]["packet_id"], "SubACK")
+
+        self.assertTrue(t.disconnecting)
+
+
+class NonZeroConnACKTests(object):
+
+    connect_code = None
+
+    def test_non_zero_connect_code_must_have_no_present_session(self):
+        """
+        A non-zero connect code in a CONNACK must be paired with no session
+        present.
+
+        Compliance statement MQTT-3.2.2-4
+        """
+        sessions = {}
+
+        d = Deferred()
+        h = BasicHandler(self.connect_code)
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=False)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 1)
+        self.assertEqual(
+            attr.asdict(events[0]),
+            {
+                'return_code': self.connect_code,
+                'session_present': False,
+            })
+
+
+for x in [1, 2, 3, 4, 5]:
+    # Generate test cases for each of the return codes.
+    class cls(NonZeroConnACKTests, TestCase):
+        connect_code = x
+
+    name = "NonZeroConnACKWithCode" + str(x) + "Tests"
+
+    cls.__name__ = name
+    if hasattr(cls, "__qualname__"):
+        cls.__qualname__ = cls.__qualname__.replace("cls", name)
+
+    globals().update({name: cls})
+    del name
+    del cls
+
+
+class SubscribeHandlingTests(TestCase):
+
+    def test_subscribe_always_gets_packet(self):
+        """
+        Subscriptions always get a ConnACK, even if none of the subscriptions
+        were successful.
+
+        Compliance statements MQTT-3.8.4-1
+        """
+        sessions = {}
+
+        class SubHandler(BasicHandler):
+            def process_subscribe(self, event):
+                return succeed([128])
+
+        h = SubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise() +
+            Subscribe(packet_identifier=1234,
+                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]
+            ).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 2)
+        self.assertEqual(events[1].return_codes, [128])
+
+
+    def test_subscribe_same_id(self):
+        """
+        SubACKs have the same packet IDs as the Subscription that it is
+        replying to.
+
+        Compliance statements MQTT-3.8.4-2
+        """
+        sessions = {}
+
+        class SubHandler(BasicHandler):
+            def process_subscribe(self, event):
+                return succeed([0])
+
+        h = SubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise() +
+            Subscribe(packet_identifier=1234,
+                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]
+            ).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 2)
+        self.assertEqual(events[1].return_codes, [0])
+        self.assertEqual(events[1].packet_identifier, 1234)
+
+
+    def test_exception_in_subscribe_drops_connection(self):
+        """
+        Transient failures (like an exception from handler.process_subscribe)
+        will cause the connection it happened on to be dropped.
+
+        Compliance statement MQTT-4.8.0-2
+        """
+        sessions = {}
+
+        class SubHandler(BasicHandler):
+            @inlineCallbacks
+            def process_subscribe(self, event):
+                raise Exception("boom!")
+
+        h = SubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise() +
+            Subscribe(packet_identifier=1234,
+                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]
+            ).serialise()
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(data):
+                p.dataReceived(x)
+
+        sent_logs = logs.get_category("MQ500")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.critical)
+        self.assertEqual(sent_logs[0]["log_failure"].value.args[0], "boom!")
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 1)
+        self.assertTrue(t.disconnecting)
+
+        # We got the error, we need to flush it so it doesn't make the test
+        # error
+        self.flushLoggedErrors()
