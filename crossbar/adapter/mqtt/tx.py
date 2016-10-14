@@ -165,7 +165,7 @@ class MQTTServerTwistedProtocol(Protocol):
 
         # Closed connection, we don't want to send messages here
         if not self.transport.connected:
-            return
+            return None
 
         while self.session.queued_messages:
             message = self.session.queued_messages.popleft()
@@ -195,8 +195,15 @@ class MQTTServerTwistedProtocol(Protocol):
                            client_id=self.session.client_id, packet=event)
 
             if isinstance(event, Connect):
-
-                accept_conn = yield self._handler.process_connect(event)
+                try:
+                    accept_conn = yield self._handler.process_connect(event)
+                except:
+                    # MQTT-4.8.0-2 - If we get a transient error (like
+                    # connecting raising an exception), we must close the
+                    # connection.
+                    self.log.failure(log_category="MQ500")
+                    self.transport.loseConnection()
+                    return None
 
                 if accept_conn == 0:
                     # If we have a connection, we should make sure timeouts
@@ -214,7 +221,7 @@ class MQTTServerTwistedProtocol(Protocol):
                                               return_code=2)
                             self._send_packet(connack)
                             self.transport.loseConnection()
-                            return
+                            return None
 
                     # Use the client ID to control sessions, as per compliance
                     # statement MQTT-3.1.3-2
@@ -251,7 +258,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     # No valid return codes, so drop the connection, as per
                     # MQTT-3.2.2-6
                     self.transport.loseConnection()
-                    return
+                    return None
 
                 connack = ConnACK(session_present=session_present,
                                   return_code=accept_conn)
@@ -261,7 +268,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     # If we send a CONNACK with a non-0 response code, drop the
                     # connection after sending the CONNACK, as in MQTT-3.2.2-5
                     self.transport.loseConnection()
-                    return
+                    return None
 
                 self.log.debug(log_category="MQ200", client_id=event.client_id)
                 continue
@@ -274,9 +281,9 @@ class MQTTServerTwistedProtocol(Protocol):
                     # subscribing raising an exception), we must close the
                     # connection.
                     self.log.failure(
-                        log_category="MQ500", client_id=self.session.client_id)
+                        log_category="MQ501", client_id=self.session.client_id)
                     self.transport.loseConnection()
-                    return
+                    return None
 
                 # MQTT-3.8.4-1 - we always need to send back this SubACK, even
                 #                if the subscriptions are unsuccessful -- their
@@ -288,7 +295,16 @@ class MQTTServerTwistedProtocol(Protocol):
                 continue
 
             elif isinstance(event, Unsubscribe):
-                yield self._handler.process_unsubscribe(event)
+                try:
+                    yield self._handler.process_unsubscribe(event)
+                except:
+                    # MQTT-4.8.0-2 - If we get a transient error (like
+                    # unsubscribing raising an exception), we must close the
+                    # connection.
+                    self.log.failure(
+                        log_category="MQ502", client_id=self.session.client_id)
+                    self.transport.loseConnection()
+                    return None
                 unsuback = UnsubACK(packet_identifier=event.packet_identifier)
                 self._send_packet(unsuback)
                 continue
@@ -336,4 +352,4 @@ class MQTTServerTwistedProtocol(Protocol):
                 # Conformance statement MQTT-4.8.0-1: Must close the connection
                 # on a protocol violation.
                 self.transport.loseConnection()
-                return
+                return None

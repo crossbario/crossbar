@@ -39,7 +39,9 @@ from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
 from crossbar.adapter.mqtt.protocol import (
     MQTTParser, client_packet_handlers, P_CONNACK)
 from crossbar.adapter.mqtt._events import (
-    Connect, ConnectFlags, ConnACK, SubACK, Subscribe,
+    Connect, ConnectFlags, ConnACK,
+    SubACK, Subscribe,
+    Unsubscribe, UnsubACK,
     SubscriptionTopicRequest
 )
 from crossbar.adapter.mqtt._utils import iterbytes
@@ -796,7 +798,7 @@ class SubscribeHandlingTests(TestCase):
             for x in iterbytes(data):
                 p.dataReceived(x)
 
-        sent_logs = logs.get_category("MQ500")
+        sent_logs = logs.get_category("MQ501")
         self.assertEqual(len(sent_logs), 1)
         self.assertEqual(sent_logs[0]["log_level"], LogLevel.critical)
         self.assertEqual(sent_logs[0]["log_failure"].value.args[0], "boom!")
@@ -808,3 +810,177 @@ class SubscribeHandlingTests(TestCase):
         # We got the error, we need to flush it so it doesn't make the test
         # error
         self.flushLoggedErrors()
+
+
+class ConnectHandlingTests(TestCase):
+
+    def test_got_sent_packet(self):
+        """
+        `process_connect` on the handler will get the correct Connect packet.
+        """
+        sessions = {}
+        got_packets = []
+
+        class SubHandler(BasicHandler):
+            def process_connect(self_, event):
+                got_packets.append(event)
+                return succeed(0)
+
+        h = SubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        self.assertEqual(len(got_packets), 1)
+        self.assertEqual(got_packets[0].client_id, u"test123")
+        self.assertEqual(got_packets[0].serialise(), data)
+
+    def test_exception_in_connect_drops_connection(self):
+        """
+        Transient failures (like an exception from handler.process_connect)
+        will cause the connection it happened on to be dropped.
+
+        Compliance statement MQTT-4.8.0-2
+        """
+        sessions = {}
+
+        class SubHandler(BasicHandler):
+            @inlineCallbacks
+            def process_connect(self, event):
+                raise Exception("boom!")
+
+        h = SubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise()
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(data):
+                p.dataReceived(x)
+
+        sent_logs = logs.get_category("MQ500")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.critical)
+        self.assertEqual(sent_logs[0]["log_failure"].value.args[0], "boom!")
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 0)
+        self.assertTrue(t.disconnecting)
+
+        # We got the error, we need to flush it so it doesn't make the test
+        # error
+        self.flushLoggedErrors()
+
+
+class UnsubscribeHandlingTests(TestCase):
+
+
+    def test_exception_in_connect_drops_connection(self):
+        """
+        Transient failures (like an exception from handler.process_connect)
+        will cause the connection it happened on to be dropped.
+
+        Compliance statement MQTT-4.8.0-2
+        """
+        sessions = {}
+
+        class SubHandler(BasicHandler):
+            def process_unsubscribe(self, event):
+                raise Exception("boom!")
+
+        h = SubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise() +
+            Unsubscribe(packet_identifier=1234, topics=[u"foo"]).serialise()
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(data):
+                p.dataReceived(x)
+
+        sent_logs = logs.get_category("MQ502")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.critical)
+        self.assertEqual(sent_logs[0]["log_failure"].value.args[0], "boom!")
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 1)
+        self.assertTrue(t.disconnecting)
+
+        # We got the error, we need to flush it so it doesn't make the test
+        # error
+        self.flushLoggedErrors()
+
+
+    def test_unsubscription_gets_unsuback_with_same_id(self):
+        """
+        When an unsubscription is processed, the UnsubACK has the same ID.
+        Unsubscriptions are always processed.
+
+        Compliance statements MQTT-3.10.4-4, MQTT-3.10.4-5, MQTT-3.12.4-1
+        """
+        sessions = {}
+        got_packets = []
+
+        class SubHandler(BasicHandler):
+            def process_unsubscribe(self, event):
+                got_packets.append(event)
+                return succeed(None)
+
+        h = SubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        unsub = Unsubscribe(packet_identifier=1234,
+                            topics=[u"foo"]).serialise()
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise() + unsub
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 2)
+        self.assertFalse(t.disconnecting)
+
+        # UnsubACK that has the same ID
+        self.assertIsInstance(events[1], UnsubACK)
+        self.assertEqual(events[1].packet_identifier, 1234)
+
+        # The unsubscribe handler should have been called
+        self.assertEqual(len(got_packets), 1)
+        self.assertEqual(got_packets[0].serialise(), unsub)

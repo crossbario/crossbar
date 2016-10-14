@@ -73,7 +73,9 @@ log_categories = {
     "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
     "MQ401": "Protocol violation from '{client_id}', terminating connection: {error}",
     "MQ402": "Got a packet ('{packet_id}') from '{client_id} that is invalid for a server, terminating connection",
-    "MQ500": "Error handling a Subscribe from '{client_id}', dropping connection",
+    "MQ500": "Error handling a Connect, dropping connection",
+    "MQ501": "Error handling a Subscribe from '{client_id}', dropping connection",
+    "MQ502": "Error handling an Unsubscribe from '{client_id}', dropping connection",
 }
 
 
