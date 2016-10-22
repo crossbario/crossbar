@@ -39,10 +39,12 @@ from txaio import make_logger
 
 from .protocol import (
     MQTTParser, Failure,
+)
+from ._events import (
     Connect, ConnACK,
     Subscribe, SubACK,
     Unsubscribe, UnsubACK,
-    Publish, PubACK,
+    Publish, PubACK, PubREC, PubREL, PubCOMP,
     PingREQ, PingRESP,
 )
 
@@ -180,7 +182,6 @@ class MQTTServerTwistedProtocol(Protocol):
         except Exception:
             raise
 
-    @inlineCallbacks
     def _handle_data(self, data):
 
         events = self._mqtt.data_received(data)
@@ -189,6 +190,11 @@ class MQTTServerTwistedProtocol(Protocol):
             # We've got at least one full control packet -- the client is
             # alive, reset the timeout.
             self._reset_timeout()
+
+        return self._handle_events(events)
+
+    @inlineCallbacks
+    def _handle_events(self, events):
 
         for event in events:
             self.log.trace(log_category="MQ100", conn_id=self._connection_id,
@@ -335,7 +341,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         # MQTT-4.8.0-2 - If we get a transient error (like
                         # publishing raising an exception), we must close the
                         # connection.
-                        self.log.failure(log_category="MQ503",
+                        self.log.failure(log_category="MQ504",
                                          client_id=self.session.client_id)
                         self.transport.loseConnection()
                         return None
@@ -353,10 +359,42 @@ class MQTTServerTwistedProtocol(Protocol):
                     # add to set, send pubrec here -- in the branching loop,
                     # handle pubrel + pubcomp
 
-                    raise ValueError("Dunno about this yet.")
+                    try:
+                        self._handler.process_publish_qos_2(event)
+                    except:
+                        # MQTT-4.8.0-2 - If we get a transient error (like
+                        # publishing raising an exception), we must close the
+                        # connection.
+                        self.log.failure(log_category="MQ505",
+                                         client_id=self.session.client_id)
+                        self.transport.loseConnection()
+                        return None
+
+                    self.log.debug(log_category="MQ203", publish=event,
+                                   client_id=self.session.client_id)
+
+                    pubrec = PubREC(packet_identifier=event.packet_identifier)
+                    self._send_packet(pubrec)
+                    continue
+
+                else:
+                    # MQTT-3.3.1-4 - We got a QoS "3" (both QoS bits set)
+                    # packet -- something the spec does not allow! Nor our
+                    # events implementation (it will be caught before it gets
+                    # here), but the tests do some trickery to cover this
+                    # case :)
+                    self.log.error(log_category="MQ403",
+                                   client_id=self.session.client_id)
+                    self.transport.loseConnection()
+                    return
 
             elif isinstance(event, PingREQ):
                 resp = PingRESP()
+                self._send_packet(resp)
+                continue
+
+            elif isinstance(event, PubREL):
+                resp = PubCOMP(packet_identifier=event.packet_identifier)
                 self._send_packet(resp)
                 continue
 

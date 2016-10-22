@@ -161,6 +161,104 @@ class Unsubscribe(object):
 
 
 @attr.s
+class PubCOMP(object):
+    packet_identifier = attr.ib(validator=instance_of(int))
+
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        payload = self._make_payload()
+        header = build_header(7, (False, False, False, False), len(payload))
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+        b.append(pack('uint:16', self.packet_identifier).bytes)
+        return b"".join(b)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        """
+        Disassemble from an on-wire message.
+        """
+        if flags != (False, False, False, False):
+            raise ParseFailure(cls, "Bad flags")
+
+        packet_identifier = data.read('uint:16')
+
+        return cls(packet_identifier)
+
+
+@attr.s
+class PubREL(object):
+    packet_identifier = attr.ib(validator=instance_of(int))
+
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        payload = self._make_payload()
+        header = build_header(6, (False, False, True, False), len(payload))
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+        b.append(pack('uint:16', self.packet_identifier).bytes)
+        return b"".join(b)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        """
+        Disassemble from an on-wire message.
+        """
+        if flags != (False, False, True, False):
+            raise ParseFailure(cls, "Bad flags")
+
+        packet_identifier = data.read('uint:16')
+
+        return cls(packet_identifier)
+
+@attr.s
+class PubREC(object):
+    packet_identifier = attr.ib(validator=instance_of(int))
+
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        payload = self._make_payload()
+        header = build_header(5, (False, False, False, False), len(payload))
+        return header + payload
+
+    def _make_payload(self):
+        """
+        Build the payload from its constituent parts.
+        """
+        b = []
+        b.append(pack('uint:16', self.packet_identifier).bytes)
+        return b"".join(b)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        """
+        Disassemble from an on-wire message.
+        """
+        if flags != (False, False, False, False):
+            raise ParseFailure(cls, "Bad flags")
+
+        packet_identifier = data.read('uint:16')
+
+        return cls(packet_identifier)
+
+
+@attr.s
 class PubACK(object):
     packet_identifier = attr.ib(validator=instance_of(int))
 

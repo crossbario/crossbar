@@ -41,7 +41,7 @@ from crossbar.adapter.mqtt.protocol import (
 from crossbar.adapter.mqtt._events import (
     Connect, ConnectFlags, ConnACK,
     SubACK, Subscribe,
-    Publish, PubACK,
+    Publish, PubACK, PubREC, PubREL, PubCOMP,
     Unsubscribe, UnsubACK,
     SubscriptionTopicRequest
 )
@@ -631,6 +631,37 @@ class TwistedProtocolTests(TestCase):
 
         self.assertTrue(t.disconnecting)
 
+    def test_lose_conn_on_reserved_qos3(self):
+        """
+        If we get, somehow, a QoS "3" Publish (one with both QoS bits set to
+        3), we will drop the connection.
+
+        Compliance statement: MQTT-3.3.1-4
+        """
+        sessions = {}
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+
+        p.makeConnection(t)
+
+        conn = Connect(client_id=u"test123",
+                       flags=ConnectFlags(clean_session=False))
+        pub = Publish(duplicate=False, qos_level=3, retain=False,
+                      topic_name=u"foo", packet_identifier=2345,
+                      payload=b"bar")
+
+        with LogCapturer("trace") as logs:
+            p._handle_events([conn, pub])
+
+        sent_logs = logs.get_category("MQ403")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.error)
+
+        self.assertTrue(t.disconnecting)
+
 
 class NonZeroConnACKTests(object):
 
@@ -1169,7 +1200,123 @@ class PublishHandlingTests(TestCase):
             for x in iterbytes(data):
                 p.dataReceived(x)
 
-        sent_logs = logs.get_category("MQ503")
+        sent_logs = logs.get_category("MQ504")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.critical)
+        self.assertEqual(sent_logs[0]["log_failure"].value.args[0], "boom!")
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 1)
+        self.assertTrue(t.disconnecting)
+
+        # We got the error, we need to flush it so it doesn't make the test
+        # error
+        self.flushLoggedErrors()
+
+    def test_qos_2_sends_ack(self):
+        """
+        When a QoS 2 Publish packet is recieved, we send a PubREC with the same
+        packet identifier as the original Publish, wait for a PubREL, and then
+        send a PubCOMP.
+
+        Compliance statement MQTT-4.3.3-2
+        Spec part 3.4, 4.3.3
+        """
+        sessions = {}
+        got_packets = []
+
+        class PubHandler(BasicHandler):
+            def process_publish_qos_2(self, event):
+                got_packets.append(event)
+                return succeed(None)
+
+        h = PubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        pub = Publish(duplicate=False, qos_level=2, retain=False,
+                      topic_name=u"foo", packet_identifier=2345,
+                      payload=b"bar").serialise()
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise() + pub
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(data):
+                p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertFalse(t.disconnecting)
+
+        # ConnACK + PubREC with the same packet ID
+        self.assertEqual(len(events), 2)
+        self.assertEqual(events[1], PubREC(packet_identifier=2345))
+
+        # The publish handler should have been called
+        self.assertEqual(len(got_packets), 1)
+        self.assertEqual(got_packets[0].serialise(), pub)
+
+        # We should get a debug message saying we got the publish
+        messages = logs.get_category("MQ203")
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]["publish"].serialise(), pub)
+
+        # Clear the client transport
+        t.clear()
+
+        # Now we send the PubREL
+        pubrel = PubREL(packet_identifier=2345)
+        for x in iterbytes(pubrel.serialise()):
+            p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertFalse(t.disconnecting)
+
+        # We should get a PubCOMP in response
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0], PubCOMP(packet_identifier=2345))
+
+    def test_qos_2_failure_drops_connection(self):
+        """
+        Transient failures (like an exception from
+        handler.process_publish_qos_2) will cause the connection it happened on
+        to be dropped.
+
+        Compliance statement MQTT-4.8.0-2
+        """
+        sessions = {}
+
+        class PubHandler(BasicHandler):
+            def process_publish_qos_2(self, event):
+                raise Exception("boom!")
+
+        h = PubHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise() +
+            Publish(duplicate=False, qos_level=2, retain=False,
+                    topic_name=u"foo", packet_identifier=2345,
+                    payload=b"bar").serialise()
+        )
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(data):
+                p.dataReceived(x)
+
+        sent_logs = logs.get_category("MQ505")
         self.assertEqual(len(sent_logs), 1)
         self.assertEqual(sent_logs[0]["log_level"], LogLevel.critical)
         self.assertEqual(sent_logs[0]["log_failure"].value.args[0], "boom!")
