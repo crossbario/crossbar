@@ -1434,20 +1434,19 @@ class SendPublishTests(TestCase):
         r.advance(0.1)
 
         # We should now get the sent Publish
+        expected_publish = Publish(
+            duplicate=False, qos_level=1, retain=False, packet_identifier=4567,
+            topic_name=u"hello", payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
         self.assertEqual(len(events), 1)
-        self.assertEqual(
-            events[0],
-            Publish(duplicate=False, qos_level=1, retain=False,
-                    packet_identifier=4567, topic_name=u"hello",
-                    payload=b"some bytes"))
+        self.assertEqual(events[0], expected_publish)
 
         # Server is still awaiting the client's response
         self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
         self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
         self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=1, stage=0))
+                         AwaitingACK(qos=1, stage=0, message=expected_publish))
 
         # We send the PubACK, which we don't get a response to
         puback = PubACK(packet_identifier=4567)
@@ -1461,6 +1460,56 @@ class SendPublishTests(TestCase):
         # It is no longer queued
         self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
         self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertFalse(t.disconnecting)
+
+    def test_qos_1_unassociated_puback_warns(self):
+        """
+        On receiving a PubACK which does not reference any known existing
+        Publish the server has sent, it will drop it and raise a warning.
+
+        XXX: Spec is unclear if this is the proper behaviour!
+        """
+        sessions = {}
+        got_packets = []
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        # Connect has happened
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertFalse(t.disconnecting)
+        self.assertIsInstance(events[0], ConnACK)
+
+        # We send the PubACK, which we don't get a response to (and also
+        # doesn't refer to any Publish the client was sent)
+        puback = PubACK(packet_identifier=4567)
+
+        with LogCapturer("trace") as logs:
+            for x in iterbytes(puback.serialise()):
+                p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 0)
+
+        # A warning is raised
+        sent_logs = logs.get_category("MQ300")
+        self.assertEqual(len(sent_logs), 1)
+        self.assertEqual(sent_logs[0]["log_level"], LogLevel.warn)
+        self.assertEqual(sent_logs[0]["pub_id"], 4567)
 
     def test_qos_2_queues_message(self):
         """
@@ -1509,12 +1558,44 @@ class SendPublishTests(TestCase):
         r.advance(0.1)
 
         # We should now get the sent Publish
+        expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
+                                   packet_identifier=4567, topic_name=u"hello",
+                                   payload=b"some bytes")
         events = cp.data_received(t.value())
+        t.clear()
         self.assertEqual(len(events), 1)
-        self.assertEqual(
-            events[0],
-            Publish(duplicate=False, qos_level=2, retain=False,
-                    packet_identifier=4567, topic_name=u"hello",
-                    payload=b"some bytes"))
+        self.assertEqual(events[0], expected_publish)
 
-        raise ValueError("Need to handle PubREC/PubREL/PubCOMP")
+        # Server is still awaiting the client's response
+        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
+        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
+                         AwaitingACK(qos=2, stage=0, message=expected_publish))
+
+        # We send the PubREC, which we should get a PubREL back with
+        pubrec = PubREC(packet_identifier=4567)
+
+        for x in iterbytes(pubrec.serialise()):
+            p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0], PubREL(packet_identifier=4567))
+
+        # Server is still awaiting the client's response, it is not complete
+        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
+        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
+                         AwaitingACK(qos=2, stage=1, message=expected_publish))
+
+        # We send the PubCOMP, which has no response
+        pubcomp = PubCOMP(packet_identifier=4567)
+
+        for x in iterbytes(pubcomp.serialise()):
+            p.dataReceived(x)
+
+        # It is no longer queued
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
+        self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertFalse(t.disconnecting)

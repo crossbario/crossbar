@@ -74,10 +74,13 @@ P_PINGRESP = 13
 server_packet_handlers = {
     P_CONNECT: Connect,
     P_PUBLISH: Publish,
+    P_PUBACK: PubACK,
     P_SUBSCRIBE: Subscribe,
     P_UNSUBSCRIBE: Unsubscribe,
     P_PINGREQ: PingREQ,
     P_PUBREL: PubREL,
+    P_PUBREC: PubREC,
+    P_PUBCOMP: PubCOMP,
 }
 
 client_packet_handlers = {

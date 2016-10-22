@@ -88,6 +88,7 @@ class AwaitingACK(object):
 
     qos = attr.ib()
     stage = attr.ib()
+    message = attr.ib()
 
 
 class MQTTServerTwistedProtocol(Protocol):
@@ -162,7 +163,7 @@ class MQTTServerTwistedProtocol(Protocol):
                               packet_identifier=packet_id, topic_name=topic,
                               payload=body)
 
-            waiting_ack = AwaitingACK(qos=1, stage=0)
+            waiting_ack = AwaitingACK(qos=1, stage=0, message=publish)
             self.session._publishes_awaiting_ack[packet_id] = waiting_ack
             self.session._in_flight_packet_ids.add(packet_id)
 
@@ -173,7 +174,7 @@ class MQTTServerTwistedProtocol(Protocol):
                               packet_identifier=packet_id, topic_name=topic,
                               payload=body)
 
-            waiting_ack = AwaitingACK(qos=2, stage=0)
+            waiting_ack = AwaitingACK(qos=2, stage=0, message=publish)
             self.session._publishes_awaiting_ack[packet_id] = waiting_ack
             self.session._in_flight_packet_ids.add(packet_id)
 
@@ -425,6 +426,18 @@ class MQTTServerTwistedProtocol(Protocol):
                 resp = PingRESP()
                 self._send_packet(resp)
                 continue
+
+            elif isinstance(event, PubACK):
+
+                if event.packet_identifier in self.session._publishes_awaiting_ack:
+                    # MQTT-4.3.2-1: Only acknowledge when it has been PubACK'd
+                    del self.session._publishes_awaiting_ack[event.packet_identifier]
+                    self.session._in_flight_packet_ids.remove(event.packet_identifier)
+
+                else:
+                    self.log.warn(
+                        log_category="MQ300", client_id=self.session.client_id,
+                        pub_id=event.packet_identifier)
 
             elif isinstance(event, PubREL):
                 resp = PubCOMP(packet_identifier=event.packet_identifier)

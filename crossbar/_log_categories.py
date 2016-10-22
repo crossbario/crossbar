@@ -73,6 +73,7 @@ log_categories = {
     "MQ201": "Received a QoS 0 Publish from '{client_id}'",
     "MQ202": "Received a QoS 1 Publish from '{client_id}'",
     "MQ203": "Received a QoS 2 Publish from '{client_id}'",
+    "MQ300": "Got a PubACK for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
     "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
     "MQ401": "Protocol violation from '{client_id}', terminating connection: {error}",
     "MQ402": "Got a packet ('{packet_id}') from '{client_id}' that is invalid for a server, terminating connection",
