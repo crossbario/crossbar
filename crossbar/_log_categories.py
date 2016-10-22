@@ -74,6 +74,9 @@ log_categories = {
     "MQ202": "Received a QoS 1 Publish from '{client_id}'",
     "MQ203": "Received a QoS 2 Publish from '{client_id}'",
     "MQ300": "Got a PubACK for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
+    "MQ301": "Got a PubREC for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
+    "MQ302": "Got a PubREC for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
+    "MQ302": "Got a PubCOMP for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
     "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
     "MQ401": "Protocol violation from '{client_id}', terminating connection: {error}",
     "MQ402": "Got a packet ('{packet_id}') from '{client_id}' that is invalid for a server, terminating connection",
@@ -84,6 +87,12 @@ log_categories = {
     "MQ503": "Error handling a QoS 0 Publish from '{client_id}', dropping connection",
     "MQ504": "Error handling a QoS 1 Publish from '{client_id}', dropping connection",
     "MQ505": "Error handling a QoS 2 Publish from '{client_id}', dropping connection",
+    "MQ506": "Client '{client_id}' sent a PubACK for a non-QoS 1 Publish, dropping connection",
+    "MQ507": "Client '{client_id}' sent a PubREC for a non-QoS 2 Publish, dropping connection",
+    "MQ508": "Client '{client_id}' sent a duplicate PubREC, dropping connection",
+    "MQ509": "Client '{client_id}' sent a PubCOMP for a non-QoS 2 Publish, dropping connection",
+    "MQ510": "Client '{client_id}' sent a PubCOMP before a PubREC, dropping connection",
+
 }
 
 

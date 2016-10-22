@@ -91,6 +91,7 @@ client_packet_handlers = {
     P_UNSUBACK: UnsubACK,
     P_PINGRESP: PingRESP,
     P_PUBREC: PubREC,
+    P_PUBREL: PubREL,
     P_PUBCOMP: PubCOMP,
 }
 

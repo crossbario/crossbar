@@ -430,6 +430,13 @@ class MQTTServerTwistedProtocol(Protocol):
             elif isinstance(event, PubACK):
 
                 if event.packet_identifier in self.session._publishes_awaiting_ack:
+
+                    if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 1:
+                        self.log.error(log_category="MQ506",
+                                       client_id=self.session.client_id)
+                        self.transport.loseConnection()
+                        returnValue(None)
+
                     # MQTT-4.3.2-1: Only acknowledge when it has been PubACK'd
                     del self.session._publishes_awaiting_ack[event.packet_identifier]
                     self.session._in_flight_packet_ids.remove(event.packet_identifier)
@@ -439,10 +446,65 @@ class MQTTServerTwistedProtocol(Protocol):
                         log_category="MQ300", client_id=self.session.client_id,
                         pub_id=event.packet_identifier)
 
+            elif isinstance(event, PubREC):
+
+                if event.packet_identifier in self.session._publishes_awaiting_ack:
+
+                    if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 2:
+                        self.log.error(log_category="MQ507",
+                                       client_id=self.session.client_id)
+                        self.transport.loseConnection()
+                        returnValue(None)
+
+                    if not self.session._publishes_awaiting_ack[event.packet_identifier].stage == 0:
+                        self.log.error(log_category="MQ508",
+                                       client_id=self.session.client_id)
+                        self.transport.loseConnection()
+                        returnValue(None)
+
+                    # MQTT-4.3.3-1: Send back a PubREL
+                    self.session._publishes_awaiting_ack[event.packet_identifier].stage = 1
+
+                    resp = PubREL(packet_identifier=event.packet_identifier)
+                    self._send_packet(resp)
+
+                else:
+                    self.log.warn(
+                        log_category="MQ301", client_id=self.session.client_id,
+                        pub_id=event.packet_identifier)
+
             elif isinstance(event, PubREL):
                 resp = PubCOMP(packet_identifier=event.packet_identifier)
                 self._send_packet(resp)
                 continue
+
+            elif isinstance(event, PubCOMP):
+
+                if event.packet_identifier in self.session._publishes_awaiting_ack:
+
+                    if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 2:
+                        self.log.error(log_category="MQ509",
+                                       client_id=self.session.client_id)
+                        self.transport.loseConnection()
+                        returnValue(None)
+
+                    if not self.session._publishes_awaiting_ack[event.packet_identifier].stage == 1:
+                        self.log.error(log_category="MQ510",
+                                       client_id=self.session.client_id)
+                        self.transport.loseConnection()
+                        returnValue(None)
+
+                    # MQTT-4.3.3-1: Send back a PubCOMP, release the packet
+                    del self.session._publishes_awaiting_ack[event.packet_identifier]
+                    self.session._in_flight_packet_ids.remove(event.packet_identifier)
+
+                    resp = PubCOMP(packet_identifier=event.packet_identifier)
+                    self._send_packet(resp)
+
+                else:
+                    self.log.warn(
+                        log_category="MQ302", client_id=self.session.client_id,
+                        pub_id=event.packet_identifier)
 
             else:
                 if isinstance(event, Failure):
