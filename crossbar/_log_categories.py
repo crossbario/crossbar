@@ -70,12 +70,15 @@ log_categories = {
     "MQ100": "Got packet from '{client_id}': {packet!r}",
     "MQ101": "Sent packet to '{client_id}': {packet!r}",
     "MQ200": "Successful connection from '{client_id}'",
+    "MQ201": "Received a QoS 0 Publish from '{client_id}'",
+    "MQ202": "Received a QoS 1 Publish from '{client_id}'",
     "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
     "MQ401": "Protocol violation from '{client_id}', terminating connection: {error}",
     "MQ402": "Got a packet ('{packet_id}') from '{client_id} that is invalid for a server, terminating connection",
     "MQ500": "Error handling a Connect, dropping connection",
     "MQ501": "Error handling a Subscribe from '{client_id}', dropping connection",
     "MQ502": "Error handling an Unsubscribe from '{client_id}', dropping connection",
+    "MQ503": "Error handling a Publish from '{client_id}', dropping connection",
 }
 
 

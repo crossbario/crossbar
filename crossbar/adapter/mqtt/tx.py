@@ -312,18 +312,39 @@ class MQTTServerTwistedProtocol(Protocol):
             elif isinstance(event, Publish):
                 if event.qos_level == 0:
                     # Publish, no acks
-                    self._handler.publish_qos_0(event)
+                    try:
+                        yield self._handler.process_publish_qos_0(event)
+                    except:
+                        # MQTT-4.8.0-2 - If we get a transient error (like
+                        # publishing raising an exception), we must close the
+                        # connection.
+                        self.log.failure(log_category="MQ503",
+                                         client_id=self.session.client_id)
+                        self.transport.loseConnection()
+                        return None
+
+                    self.log.debug(log_category="MQ201", publish=event,
+                                   client_id=self.session.client_id)
                     continue
 
                 elif event.qos_level == 1:
                     # Publish > PubACK
-                    def _acked(*args):
-                        puback = PubACK(
-                            packet_identifier=event.packet_identifier)
-                        self._send_packet(puback)
+                    try:
+                        self._handler.process_publish_qos_1(event)
+                    except:
+                        # MQTT-4.8.0-2 - If we get a transient error (like
+                        # publishing raising an exception), we must close the
+                        # connection.
+                        self.log.failure(log_category="MQ503",
+                                         client_id=self.session.client_id)
+                        self.transport.loseConnection()
+                        return None
 
-                    d = self._handler.publish_qos_1(event)
-                    d.addCallback(_acked)
+                    self.log.debug(log_category="MQ202", publish=event,
+                                   client_id=self.session.client_id)
+
+                    puback = PubACK(packet_identifier=event.packet_identifier)
+                    self._send_packet(puback)
                     continue
 
                 elif event.qos_level == 2:
