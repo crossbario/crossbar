@@ -893,7 +893,6 @@ class ConnectHandlingTests(TestCase):
 
 class UnsubscribeHandlingTests(TestCase):
 
-
     def test_exception_in_connect_drops_connection(self):
         """
         Transient failures (like an exception from handler.process_connect)
@@ -937,7 +936,6 @@ class UnsubscribeHandlingTests(TestCase):
         # We got the error, we need to flush it so it doesn't make the test
         # error
         self.flushLoggedErrors()
-
 
     def test_unsubscription_gets_unsuback_with_same_id(self):
         """
