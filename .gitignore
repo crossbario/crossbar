@@ -31,3 +31,4 @@ node_modules
 *.swp
 *.ropeproject
 docs/_build
+.coverage.*
