@@ -8,13 +8,11 @@ install:
 env:
   - TOX_ENV=flake8
 
-  - TOX_ENV=py27-twtrunk-abtrunk,coverage-report
-  - TOX_ENV=py27-twcurrent-abtrunk,coverage-report
-  #- TOX_ENV=py27-twcurrent-abcurrent
+  - TOX_ENV=py27-unpinned,coverage-report
+  - TOX_ENV=py27-pinned,coverage-report
 
-  - TOX_ENV=py34-twtrunk-abtrunk,coverage-report
-  - TOX_ENV=py34-twcurrent-abtrunk,coverage-report
-  #- TOX_ENV=py34-twcurrent-abcurrent
+  - TOX_ENV=py34-unpinned,coverage-report
+  - TOX_ENV=py34-pinned,coverage-report
 
   # Travis needs to update it's PyPy
   #- TOX_ENV=pypy-twtrunk-abtrunk
@@ -41,12 +39,8 @@ matrix:
   include:
     - python: 3.5
       env:
-      - TOX_ENV=py35-twtrunk-abtrunk,coverage-report
+      - TOX_ENV=py35-unpinned,coverage-report
 
     - python: 3.5
       env:
-      - TOX_ENV=py35-twcurrent-abtrunk,coverage-report
-
-#    - python: 3.5
-#      env:
-#      - TOX_ENV=py35-twcurrent-abcurrent
+      - TOX_ENV=py35-pinned,coverage-report
