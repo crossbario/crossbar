@@ -33,6 +33,7 @@ from __future__ import absolute_import, division, print_function
 import attr
 import collections
 
+from random import randint
 from itertools import count
 
 from txaio import make_logger
@@ -52,6 +53,7 @@ from twisted.internet.protocol import Protocol
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 _ids = count()
+_SIXTEEN_BIT_MAX = 65535
 
 
 @attr.s
@@ -63,6 +65,14 @@ class Session(object):
     subscriptions = attr.ib(default=attr.Factory(dict))
     connected = attr.ib(default=False)
     survives = attr.ib(default=False)
+    _in_flight_packet_ids = attr.ib(default=attr.Factory(set))
+    _publishes_awaiting_ack = attr.ib(default=attr.Factory(dict))
+
+    def get_packet_id(self):
+        x = 0
+        while x == 0 or x in self._in_flight_packet_ids:
+            x = randint(1, _SIXTEEN_BIT_MAX)
+        return x
 
 
 @attr.s
@@ -71,6 +81,13 @@ class Message(object):
     topic = attr.ib()
     body = attr.ib()
     qos = attr.ib()
+
+
+@attr.s
+class AwaitingACK(object):
+
+    qos = attr.ib()
+    stage = attr.ib()
 
 
 class MQTTServerTwistedProtocol(Protocol):
@@ -140,12 +157,28 @@ class MQTTServerTwistedProtocol(Protocol):
                               payload=body)
 
         elif qos == 1:
-            packet_id = self._get_packet_id()
+            packet_id = self.session.get_packet_id()
             publish = Publish(duplicate=False, qos_level=qos, retain=False,
                               packet_identifier=packet_id, topic_name=topic,
                               payload=body)
 
-            self._waiting_for_ack[packet_id] = (1, 0)
+            waiting_ack = AwaitingACK(qos=1, stage=0)
+            self.session._publishes_awaiting_ack[packet_id] = waiting_ack
+            self.session._in_flight_packet_ids.add(packet_id)
+
+        elif qos == 2:
+
+            packet_id = self.session.get_packet_id()
+            publish = Publish(duplicate=False, qos_level=qos, retain=False,
+                              packet_identifier=packet_id, topic_name=topic,
+                              payload=body)
+
+            waiting_ack = AwaitingACK(qos=2, stage=0)
+            self.session._publishes_awaiting_ack[packet_id] = waiting_ack
+            self.session._in_flight_packet_ids.add(packet_id)
+
+        else:
+            raise ValueError("QoS must be [0, 1, 2]")
 
         self._send_packet(publish)
 

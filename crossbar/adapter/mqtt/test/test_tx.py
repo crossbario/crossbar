@@ -35,7 +35,7 @@ import attr
 from functools import partial
 from binascii import unhexlify
 
-from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
+from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol, AwaitingACK
 from crossbar.adapter.mqtt.protocol import (
     MQTTParser, client_packet_handlers, P_CONNACK)
 from crossbar.adapter.mqtt._events import (
@@ -1328,3 +1328,193 @@ class PublishHandlingTests(TestCase):
         # We got the error, we need to flush it so it doesn't make the test
         # error
         self.flushLoggedErrors()
+
+
+class SendPublishTests(TestCase):
+    """
+    Tests for the WAMP layer sending messages to MQTT clients.
+    """
+
+    def test_qos_0_queues_message(self):
+        """
+        The WAMP layer calling send_publish will queue a message up for
+        sending, and send it next time it has a chance.
+        """
+        sessions = {}
+        got_packets = []
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        # No queued messages
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+
+        # Connect has happened
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertFalse(t.disconnecting)
+        self.assertIsInstance(events[0], ConnACK)
+
+        # WAMP layer calls send_publish
+        p.send_publish(u"hello", 0, b'some bytes')
+
+        # Nothing should have been sent yet, it is queued
+        self.assertEqual(t.value(), b'')
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
+
+        # Advance the clock
+        r.advance(0.1)
+
+        # We should now get the sent Publish
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 1)
+        self.assertEqual(
+            events[0],
+            Publish(duplicate=False, qos_level=0, retain=False,
+                    packet_identifier=None, topic_name=u"hello",
+                    payload=b"some bytes"))
+
+    def test_qos_1_queues_message(self):
+        """
+        The WAMP layer calling send_publish will queue a message up for
+        sending, and send it next time it has a chance.
+        """
+        sessions = {}
+        got_packets = []
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        # No queued messages
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+
+        # Make the packet ID be deterministic
+        sessions[u"test123"].get_packet_id = lambda: 4567
+
+        # Connect has happened
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertFalse(t.disconnecting)
+        self.assertIsInstance(events[0], ConnACK)
+
+        # WAMP layer calls send_publish, with QoS 1
+        p.send_publish(u"hello", 1, b'some bytes')
+
+        # Nothing should have been sent yet, it is queued
+        self.assertEqual(t.value(), b'')
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
+
+        # Advance the clock
+        r.advance(0.1)
+
+        # We should now get the sent Publish
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertEqual(len(events), 1)
+        self.assertEqual(
+            events[0],
+            Publish(duplicate=False, qos_level=1, retain=False,
+                    packet_identifier=4567, topic_name=u"hello",
+                    payload=b"some bytes"))
+
+        # Server is still awaiting the client's response
+        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
+        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
+                         AwaitingACK(qos=1, stage=0))
+
+        # We send the PubACK, which we don't get a response to
+        puback = PubACK(packet_identifier=4567)
+
+        for x in iterbytes(puback.serialise()):
+            p.dataReceived(x)
+
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 0)
+
+        # It is no longer queued
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
+        self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+
+    def test_qos_2_queues_message(self):
+        """
+        The WAMP layer calling send_publish will queue a message up for
+        sending, and send it next time it has a chance.
+        """
+        sessions = {}
+        got_packets = []
+
+        h = BasicHandler()
+        r = Clock()
+        t = StringTransport()
+        p = MQTTServerTwistedProtocol(h, r, sessions)
+        cp = MQTTClientParser()
+
+        p.makeConnection(t)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        # No queued messages
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+
+        # Make the packet ID be deterministic
+        sessions[u"test123"].get_packet_id = lambda: 4567
+
+        # Connect has happened
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertFalse(t.disconnecting)
+        self.assertIsInstance(events[0], ConnACK)
+
+        # WAMP layer calls send_publish, with QoS 2
+        p.send_publish(u"hello", 2, b'some bytes')
+
+        # Nothing should have been sent yet, it is queued
+        self.assertEqual(t.value(), b'')
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
+
+        # Advance the clock
+        r.advance(0.1)
+
+        # We should now get the sent Publish
+        events = cp.data_received(t.value())
+        self.assertEqual(len(events), 1)
+        self.assertEqual(
+            events[0],
+            Publish(duplicate=False, qos_level=2, retain=False,
+                    packet_identifier=4567, topic_name=u"hello",
+                    payload=b"some bytes"))
+
+        raise ValueError("Need to handle PubREC/PubREL/PubCOMP")
