@@ -99,8 +99,6 @@ class MQTTServerTwistedProtocol(Protocol):
         self._reactor = reactor
         self._mqtt = MQTTParser()
         self._handler = handler
-        self._in_flight_publishes = set()
-        self._waiting_for_ack = {}
         self._timeout = None
         self._timeout_time = 0
         self._mqtt_sessions = mqtt_sessions
@@ -194,7 +192,7 @@ class MQTTServerTwistedProtocol(Protocol):
                        packet=packet, conn_id=self._connection_id)
         self.transport.write(packet.serialise())
 
-    def _flush_saved_messages(self):
+    def _flush_saved_messages(self, including_non_acked=False):
 
         if self._flush_publishes:
             self._flush_publishes = None
@@ -203,6 +201,13 @@ class MQTTServerTwistedProtocol(Protocol):
         if not self.transport.connected:
             return None
 
+        if including_non_acked:
+            for message in self.session._publishes_awaiting_ack.values():
+                if message.qos == 1:
+                    message.message.duplicate = True
+                    self._send_packet(message.message)
+
+        # New, queued messages
         while self.session.queued_messages:
             message = self.session.queued_messages.popleft()
             self._send_publish(message.topic, message.qos, message.body)
@@ -274,7 +279,8 @@ class MQTTServerTwistedProtocol(Protocol):
 
                     if event.client_id in self._mqtt_sessions:
                         self.session = self._mqtt_sessions[event.client_id]
-                        self._reactor.callLater(0, self._flush_saved_messages)
+                        self._flush_publishes = self._reactor.callLater(
+                            0, self._flush_saved_messages, True)
                         self._handler.existing_wamp_session(self.session)
                         # Have a session, set to 1/True as in MQTT-3.2.2-2
                         session_present = True
