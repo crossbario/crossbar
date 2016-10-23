@@ -69,7 +69,7 @@ class PublisherResource(_CommonResource):
         def on_publish_ok(pub):
             res = {'id': pub.id}
             body = dump_json(res, True).encode('utf8')
-            self._complete_request(request, 200, body, log_category="AR200")
+            self._complete_request(request, 200, body, log_category="AR200", reason="OK")
 
         def on_publish_error(err):
             self._fail_request(request, failure=err, log_category="AR456")
