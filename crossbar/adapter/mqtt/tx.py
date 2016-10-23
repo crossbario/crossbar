@@ -206,6 +206,19 @@ class MQTTServerTwistedProtocol(Protocol):
                 if message.qos == 1:
                     message.message.duplicate = True
                     self._send_packet(message.message)
+                if message.qos == 2:
+                    # Stage 0 == Publish sent
+                    if message.stage == 0:
+                        message.message.duplicate = True
+                        self._send_packet(message.message)
+
+                    # Stage 1 == PubREC got, PubREL sent
+                    elif message.stage == 1:
+                        pass
+
+                    # Invalid!
+                    else:
+                        pass
 
         # New, queued messages
         while self.session.queued_messages:
@@ -443,7 +456,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         self.transport.loseConnection()
                         returnValue(None)
 
-                    # MQTT-4.3.2-1: Only acknowledge when it has been PubACK'd
+                    # MQTT-4.3.2-1: Release the packet ID
                     del self.session._publishes_awaiting_ack[event.packet_identifier]
                     self.session._in_flight_packet_ids.remove(event.packet_identifier)
 
@@ -500,12 +513,9 @@ class MQTTServerTwistedProtocol(Protocol):
                         self.transport.loseConnection()
                         returnValue(None)
 
-                    # MQTT-4.3.3-1: Send back a PubCOMP, release the packet
+                    # MQTT-4.3.3-1: Release the packet ID
                     del self.session._publishes_awaiting_ack[event.packet_identifier]
                     self.session._in_flight_packet_ids.remove(event.packet_identifier)
-
-                    resp = PubCOMP(packet_identifier=event.packet_identifier)
-                    self._send_packet(resp)
 
                 else:
                     self.log.warn(
