@@ -35,7 +35,8 @@ import attr
 from functools import partial
 from binascii import unhexlify
 
-from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol, AwaitingACK
+from crossbar.adapter.mqtt.tx import (
+    MQTTServerTwistedProtocol, AwaitingACK, Session)
 from crossbar.adapter.mqtt.protocol import (
     MQTTParser, client_packet_handlers, P_CONNACK)
 from crossbar.adapter.mqtt._events import (
@@ -74,9 +75,23 @@ class BasicHandler(object):
         return None
 
 
+def make_test_items(handler, sessions=None):
+
+    sessions = sessions or {}
+
+    r = Clock()
+    t = StringTransport()
+    p = MQTTServerTwistedProtocol(handler, r, sessions)
+    cp = MQTTClientParser()
+
+    p.makeConnection(t)
+
+    return sessions, r, t, p, cp
+
+
 class TwistedProtocolLoggingTests(TestCase):
     """
-    Tests for the logging functionality of the Twisted MQTT protocol.b
+    Tests for the logging functionality of the Twisted MQTT protocol.
     """
 
     def test_send_packet(self):
@@ -84,15 +99,8 @@ class TwistedProtocolLoggingTests(TestCase):
         On sending a packet, a trace log message is emitted with details of the
         sent packet.
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT
@@ -118,14 +126,8 @@ class TwistedProtocolLoggingTests(TestCase):
         On receiving a packet, a trace log message is emitted with details of
         the received packet.
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT
@@ -152,14 +154,8 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statement MQTT-3.1.2-24
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, with keepalive of 2
@@ -187,14 +183,8 @@ class TwistedProtocolTests(TestCase):
         If a client connects with a timeout, and disconnects themselves, we
         will remove the timeout.
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, with keepalive of 2
@@ -223,14 +213,8 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statement MQTT-3.1.2-24
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, with keepalive of 2
@@ -272,14 +256,8 @@ class TwistedProtocolTests(TestCase):
         keep_alive * 1.5, the connection will remain, and the timeout will be
         reset.
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, with keepalive of 2
@@ -320,15 +298,8 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statement MQTT-3.1.3-2
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, client ID of test123
@@ -349,12 +320,7 @@ class TwistedProtocolTests(TestCase):
             })
 
         # New session
-        r2 = Clock()
-        t2 = StringTransport()
-        p2 = MQTTServerTwistedProtocol(h, r2, sessions)
-        cp2 = MQTTClientParser()
-
-        p2.makeConnection(t2)
+        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
 
         # Send the same connect, with the same client ID
         for x in iterbytes(data):
@@ -374,15 +340,8 @@ class TwistedProtocolTests(TestCase):
         If a client connects and there is an existing session which is
         disconnected, it may connect.
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -405,12 +364,7 @@ class TwistedProtocolTests(TestCase):
         p.connectionLost(None)
 
         # New session
-        r2 = Clock()
-        t2 = StringTransport()
-        p2 = MQTTServerTwistedProtocol(h, r2, sessions)
-        cp2 = MQTTClientParser()
-
-        p2.makeConnection(t2)
+        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
 
         # Send the same connect, with the same client ID
         for x in iterbytes(data):
@@ -436,14 +390,8 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statement MQTT-3.2.2-1
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -466,12 +414,7 @@ class TwistedProtocolTests(TestCase):
                     flags=ConnectFlags(clean_session=True)).serialise()
         )
 
-        r2 = Clock()
-        t2 = StringTransport()
-        p2 = MQTTServerTwistedProtocol(h, r2, sessions)
-        cp2 = MQTTClientParser()
-
-        p2.makeConnection(t2)
+        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
 
         # Send the same connect, with the same client ID
         for x in iterbytes(data):
@@ -503,17 +446,10 @@ class TwistedProtocolTests(TestCase):
         The transport is paused whilst the MQTT protocol is parsing/handling
         existing items.
         """
-        sessions = {}
-
         d = Deferred()
         h = BasicHandler()
         h.process_connect = lambda x: d
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        t.connected = True
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -536,16 +472,9 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statements MQTT-3.2.2-4, MQTT-3.2.2-5
         """
-        sessions = {}
-
         d = Deferred()
         h = BasicHandler(6)
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -565,14 +494,8 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statement MQTT-4.8.0-1
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             # Invalid CONNECT
@@ -599,8 +522,6 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statement: MQTT-4.8.0-1
         """
-        sessions = {}
-
         # This shouldn't normally happen, but just in case.
         from crossbar.adapter.mqtt import protocol
         protocol.server_packet_handlers[protocol.P_SUBACK] = SubACK
@@ -608,11 +529,7 @@ class TwistedProtocolTests(TestCase):
             lambda: protocol.server_packet_handlers.pop(protocol.P_SUBACK))
 
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -638,14 +555,8 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statement: MQTT-3.3.1-4
         """
-        sessions = {}
-
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         conn = Connect(client_id=u"test123",
                        flags=ConnectFlags(clean_session=False))
@@ -662,6 +573,18 @@ class TwistedProtocolTests(TestCase):
 
         self.assertTrue(t.disconnecting)
 
+    def test_packet_id_is_sixteen_bit(self):
+        """
+        The packet ID generator makes IDs that fit within a 16bit uint.
+        """
+        session = Session(client_id=u"test123", wamp_session=None)
+        session_id = session.get_packet_id()
+        self.assertTrue(session_id > -1)
+        self.assertTrue(session_id < 65536)
+
+        # And it is a valid session ID...
+        SubACK(session_id, [1]).serialise()
+
 
 class NonZeroConnACKTests(object):
 
@@ -674,16 +597,9 @@ class NonZeroConnACKTests(object):
 
         Compliance statement MQTT-3.2.2-4
         """
-        sessions = {}
-
         d = Deferred()
         h = BasicHandler(self.connect_code)
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -728,19 +644,12 @@ class SubscribeHandlingTests(TestCase):
 
         Compliance statements MQTT-3.8.4-1
         """
-        sessions = {}
-
         class SubHandler(BasicHandler):
             def process_subscribe(self, event):
                 return succeed([128])
 
         h = SubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -765,19 +674,12 @@ class SubscribeHandlingTests(TestCase):
 
         Compliance statements MQTT-3.8.4-2
         """
-        sessions = {}
-
         class SubHandler(BasicHandler):
             def process_subscribe(self, event):
                 return succeed([0])
 
         h = SubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -803,20 +705,13 @@ class SubscribeHandlingTests(TestCase):
 
         Compliance statement MQTT-4.8.0-2
         """
-        sessions = {}
-
         class SubHandler(BasicHandler):
             @inlineCallbacks
             def process_subscribe(self, event):
                 raise Exception("boom!")
 
         h = SubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -850,7 +745,6 @@ class ConnectHandlingTests(TestCase):
         """
         `process_connect` on the handler will get the correct Connect packet.
         """
-        sessions = {}
         got_packets = []
 
         class SubHandler(BasicHandler):
@@ -859,12 +753,7 @@ class ConnectHandlingTests(TestCase):
                 return succeed(0)
 
         h = SubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -885,20 +774,13 @@ class ConnectHandlingTests(TestCase):
 
         Compliance statement MQTT-4.8.0-2
         """
-        sessions = {}
-
         class SubHandler(BasicHandler):
             @inlineCallbacks
             def process_connect(self, event):
                 raise Exception("boom!")
 
         h = SubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -932,19 +814,12 @@ class UnsubscribeHandlingTests(TestCase):
 
         Compliance statement MQTT-4.8.0-2
         """
-        sessions = {}
-
         class SubHandler(BasicHandler):
             def process_unsubscribe(self, event):
                 raise Exception("boom!")
 
         h = SubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -976,7 +851,6 @@ class UnsubscribeHandlingTests(TestCase):
 
         Compliance statements MQTT-3.10.4-4, MQTT-3.10.4-5, MQTT-3.12.4-1
         """
-        sessions = {}
         got_packets = []
 
         class SubHandler(BasicHandler):
@@ -985,12 +859,7 @@ class UnsubscribeHandlingTests(TestCase):
                 return succeed(None)
 
         h = SubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         unsub = Unsubscribe(packet_identifier=1234,
                             topics=[u"foo"]).serialise()
@@ -1022,7 +891,6 @@ class PublishHandlingTests(TestCase):
         """
         When a QoS 0 Publish packet is recieved, we don't send back a PubACK.
         """
-        sessions = {}
         got_packets = []
 
         class PubHandler(BasicHandler):
@@ -1031,12 +899,7 @@ class PublishHandlingTests(TestCase):
                 return succeed(None)
 
         h = PubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=0, retain=False,
                       topic_name=u"foo", packet_identifier=None,
@@ -1074,19 +937,12 @@ class PublishHandlingTests(TestCase):
 
         Compliance statement MQTT-4.8.0-2
         """
-        sessions = {}
-
         class PubHandler(BasicHandler):
             def process_publish_qos_0(self, event):
                 raise Exception("boom!")
 
         h = PubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1121,7 +977,6 @@ class PublishHandlingTests(TestCase):
         Compliance statement MQTT-3.3.4-1
         Spec part 3.4
         """
-        sessions = {}
         got_packets = []
 
         class PubHandler(BasicHandler):
@@ -1130,12 +985,7 @@ class PublishHandlingTests(TestCase):
                 return succeed(None)
 
         h = PubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=1, retain=False,
                       topic_name=u"foo", packet_identifier=2345,
@@ -1174,19 +1024,12 @@ class PublishHandlingTests(TestCase):
 
         Compliance statement MQTT-4.8.0-2
         """
-        sessions = {}
-
         class PubHandler(BasicHandler):
             def process_publish_qos_1(self, event):
                 raise Exception("boom!")
 
         h = PubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1222,7 +1065,6 @@ class PublishHandlingTests(TestCase):
         Compliance statement MQTT-4.3.3-2
         Spec part 3.4, 4.3.3
         """
-        sessions = {}
         got_packets = []
 
         class PubHandler(BasicHandler):
@@ -1231,12 +1073,7 @@ class PublishHandlingTests(TestCase):
                 return succeed(None)
 
         h = PubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=2, retain=False,
                       topic_name=u"foo", packet_identifier=2345,
@@ -1290,19 +1127,12 @@ class PublishHandlingTests(TestCase):
 
         Compliance statement MQTT-4.8.0-2
         """
-        sessions = {}
-
         class PubHandler(BasicHandler):
             def process_publish_qos_2(self, event):
                 raise Exception("boom!")
 
         h = PubHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1340,16 +1170,10 @@ class SendPublishTests(TestCase):
         The WAMP layer calling send_publish will queue a message up for
         sending, and send it next time it has a chance.
         """
-        sessions = {}
         got_packets = []
 
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1392,16 +1216,10 @@ class SendPublishTests(TestCase):
         The WAMP layer calling send_publish will queue a message up for
         sending, and send it next time it has a chance.
         """
-        sessions = {}
         got_packets = []
 
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1469,16 +1287,10 @@ class SendPublishTests(TestCase):
 
         XXX: Spec is unclear if this is the proper behaviour!
         """
-        sessions = {}
         got_packets = []
 
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1516,16 +1328,10 @@ class SendPublishTests(TestCase):
         The WAMP layer calling send_publish will queue a message up for
         sending, and send it next time it has a chance.
         """
-        sessions = {}
         got_packets = []
 
         h = BasicHandler()
-        r = Clock()
-        t = StringTransport()
-        p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
-
-        p.makeConnection(t)
+        sessions, r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
