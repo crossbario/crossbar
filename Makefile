@@ -42,48 +42,8 @@ freeze: clean
 	pip install --no-cache-dir -r requirements-in.txt
 	pip freeze -r requirements-in.txt
 	pip install hashin
-	cat requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt
-	# FIXME: hashin each dependency in requirements.txt and remove the original entries (so no double entries are left)
-	hashin click
-	hashin setuptools
-	hashin zope.interface
-	hashin Twisted
-	hashin autobahn
-	hashin netaddr
-	hashin PyTrie
-	hashin Jinja2
-	hashin mistune
-	hashin Pygments
-	hashin PyYAML
-	hashin shutilwhich
-	hashin sdnotify
-	hashin psutil
-	hashin lmdb
-	hashin u-msgpack-python
-	hashin cbor
-	hashin py-ubjson
-	hashin cryptography
-	hashin pyOpenSSL
-	hashin pyasn1
-	hashin pyasn1-modules
-	hashin service-identity
-	hashin PyNaCl
-	hashin treq
-	hashin setproctitle
-	hashin pyqrcode
-	hashin watchdog
-	hashin argh
-	hashin attrs
-	hashin cffi
-	hashin enum34
-	hashin idna
-	hashin ipaddress
-	hashin MarkupSafe
-	hashin pathtools
-	hashin pycparser
-	hashin requests
-	hashin six
-	hashin txaio
+	rm requirements.txt
+	cat requirements-in.txt | sed -e "s/>=/==/g" | xargs hashin -v > requirements.txt
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt

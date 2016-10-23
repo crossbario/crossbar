@@ -1,7 +1,7 @@
 click>=6.6
 setuptools>=28.3.0
 zope.interface>=4.3.2
-Twisted>=16.5.0rc1
+Twisted>=16.5.0rc2
 autobahn>=0.16.0
 netaddr>=0.7.18
 PyTrie>=0.2
@@ -28,5 +28,5 @@ pyqrcode>=1.2.1
 watchdog>=0.8.3
 bitstring>=3.1.5
 attrs>=16.2.0
-incremental>=16.10.0
+incremental>=16.10.1
 constantly>=15.1.0
