@@ -66,7 +66,7 @@ class Session(object):
     connected = attr.ib(default=False)
     survives = attr.ib(default=False)
     _in_flight_packet_ids = attr.ib(default=attr.Factory(set))
-    _publishes_awaiting_ack = attr.ib(default=attr.Factory(dict))
+    _publishes_awaiting_ack = attr.ib(default=attr.Factory(collections.OrderedDict))
 
     def get_packet_id(self):
         x = 0
