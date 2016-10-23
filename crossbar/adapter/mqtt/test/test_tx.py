@@ -1632,3 +1632,125 @@ class SendPublishTests(TestCase):
         self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
         self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
         self.assertFalse(t2.disconnecting)
+
+    def test_qos_2_resent_on_disconnect_pubcomp(self):
+        """
+        If we send a QoS2 Publish and we did not get a PubCOMP from the client
+        before it disconnected, we will resend the PubREL packet if it
+        connects with a non-clean session.
+
+        Compliance statements: MQTT-4.4.0-1, MQTT-3.3.1-1
+        """
+        h = BasicHandler()
+        sessions, r, t, p, cp = make_test_items(h)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=False)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        # No queued messages
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+
+        # Make the packet ID be deterministic
+        sessions[u"test123"].get_packet_id = lambda: 4567
+
+        # WAMP layer calls send_publish, with QoS 2
+        p.send_publish(u"hello", 2, b'some bytes')
+
+        # Nothing should have been sent yet, it is queued
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
+
+        # Advance the clock
+        r.advance(0.1)
+
+        # We should now get the sent Publish
+        expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
+                                   packet_identifier=4567, topic_name=u"hello",
+                                   payload=b"some bytes")
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertEqual(len(events), 2)
+        self.assertEqual(events[1], expected_publish)
+
+        # Server is waiting for us to send the PubREC -- QoS2, Stage 0
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
+        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+        self.assertFalse(t.disconnecting)
+        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
+                         AwaitingACK(qos=2, stage=0, message=expected_publish))
+
+        # We send the PubREC to this Publish
+        pubrec = PubREC(packet_identifier=4567)
+
+        for x in iterbytes(pubrec.serialise()):
+            p.dataReceived(x)
+
+        # Should get a PubREL back
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0], PubREL(packet_identifier=4567))
+
+        # Server is waiting for a PubCOMP -- QoS2, Stage 1
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
+        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+        self.assertFalse(t.disconnecting)
+        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
+                         AwaitingACK(qos=2, stage=1, message=expected_publish))
+
+        # Disconnect the client
+        t.connected = False
+        t.loseConnection()
+        p.connectionLost(None)
+
+        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
+
+        # We must NOT have a clean session
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=False)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p2.dataReceived(x)
+
+        # The flushing is queued, so we'll have to spin the reactor
+        self.assertEqual(p2._flush_publishes.args, (True,))
+        r2.advance(0.1)
+
+        # Should get a resent PubREL back
+        events = cp2.data_received(t2.value())
+        t2.clear()
+        self.assertEqual(len(events), 2)
+        self.assertIsInstance(events[0], ConnACK)
+        self.assertEqual(events[1], PubREL(packet_identifier=4567))
+
+        # Server is still waiting for us to send the PubCOMP -- QoS2, Stage 1
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
+        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+        self.assertFalse(t2.disconnecting)
+        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
+                         AwaitingACK(qos=2, stage=1, message=expected_publish))
+
+        # We send the PubCOMP to this PubREL
+        pubcomp = PubCOMP(packet_identifier=4567)
+
+        for x in iterbytes(pubcomp.serialise()):
+            p2.dataReceived(x)
+
+        # No more packets sent to us
+        events = cp2.data_received(t2.value())
+        self.assertEqual(len(events), 0)
+
+        # Not queued, not awaiting ACK
+        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
+        self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+        self.assertFalse(t2.disconnecting)

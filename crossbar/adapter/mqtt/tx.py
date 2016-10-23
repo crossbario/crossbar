@@ -207,14 +207,17 @@ class MQTTServerTwistedProtocol(Protocol):
                     message.message.duplicate = True
                     self._send_packet(message.message)
                 if message.qos == 2:
-                    # Stage 0 == Publish sent
                     if message.stage == 0:
+                        # Stage 0 == Publish sent
+                        # Resend Publish
                         message.message.duplicate = True
                         self._send_packet(message.message)
 
-                    # Stage 1 == PubREC got, PubREL sent
                     elif message.stage == 1:
-                        pass
+                        # Stage 1 == PubREC got, PubREL sent
+                        # Resend PubREL
+                        pkt = PubREL(packet_identifier=message.message.packet_identifier)
+                        self._send_packet(pkt)
 
                     # Invalid!
                     else:
