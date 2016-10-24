@@ -36,6 +36,8 @@ import socket
 import getpass
 import pkg_resources
 import binascii
+import six
+import subprocess
 from collections import OrderedDict
 
 import pyqrcode
@@ -46,6 +48,7 @@ from nacl.encoding import HexEncoder
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.ssl import optionsForClientTLS
+from twisted.python.runtime import platform
 
 from txaio import make_logger
 
@@ -162,12 +165,29 @@ def _machine_id():
     """
     for informational purposes, try to get a machine unique id thing
     """
-    try:
-        # why this? see: http://0pointer.de/blog/projects/ids.html
-        with open('/var/lib/dbus/machine-id', 'r') as f:
-            return f.read().strip()
-    except:
-        # OS X? Something else? Get a hostname, at least.
+    if platform.isLinux():
+        try:
+            # why this? see: http://0pointer.de/blog/projects/ids.html
+            with open('/var/lib/dbus/machine-id', 'r') as f:
+                return f.read().strip()
+        except:
+            # Non-dbus using Linux, get a hostname
+            return socket.gethostname()
+
+    elif platform.isMacOSX():
+        # Get the serial number of the platform
+        import plistlib
+        plist_data = subprocess.check_output(["ioreg", "-rd1", "-c", "IOPlatformExpertDevice", "-a"])
+
+        if six.PY2:
+            # Only API on 2.7
+            return plistlib.readPlistFromString(plist_data)["IOPlatformSerialNumber"]
+        else:
+            # New, non-deprecated 3.4+ API
+            return plistlib.loads(plist_data)[0]["IOPlatformSerialNumber"]
+
+    else:
+        # Something else, just get a hostname
         return socket.gethostname()
 
 
