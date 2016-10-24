@@ -74,7 +74,7 @@ def request(path, method=b"GET", args=[], isSecure=False, headers={}, body=b'',
 
     # Set the host we are, and the client we're talking to
     req.setHost(host, port, isSecure)
-    req.client = IPv4Address("TCP", b"127.0.0.1", 8000)
+    req.client = IPv4Address("TCP", "127.0.0.1", 8000)
 
     _written_data = BytesIO()
 

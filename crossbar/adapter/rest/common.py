@@ -422,7 +422,7 @@ class _CommonResource(Resource):
         # enforce client IP address
         #
         if self._require_ip:
-            ip = IPAddress(native_string(client_ip))
+            ip = IPAddress(client_ip)
             allowed = False
             for net in self._require_ip:
                 if ip in net:
