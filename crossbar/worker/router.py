@@ -90,8 +90,7 @@ from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
     Resource404, \
-    RedirectResource, \
-    ReverseProxyResource
+    RedirectResource
 
 from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
 
@@ -1069,6 +1068,10 @@ class RouterWorkerSession(NativeWorkerSession):
         # Reverse proxy resource
         #
         elif path_config['type'] == 'reverseproxy':
+
+            # Import late because t.w.proxy imports the reactor
+            from twisted.web.proxy import ReverseProxyResource
+
             host = path_config['host']
             port = int(path_config.get('port', 80))
             path = path_config.get('path', '').encode('ascii', 'ignore')

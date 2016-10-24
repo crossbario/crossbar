@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import
 
-import treq
 import json
 
 from functools import partial
@@ -50,7 +49,12 @@ class MessageForwarder(ApplicationSession):
     log = make_logger()
 
     def __init__(self, *args, **kwargs):
-        self._webtransport = kwargs.pop("webTransport", treq)
+        self._webtransport = kwargs.pop("webTransport")
+
+        if not self._webtransport:
+            import treq
+            self._webtransport = treq
+
         super(MessageForwarder, self).__init__(*args, **kwargs)
 
     @inlineCallbacks

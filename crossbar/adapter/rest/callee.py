@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import treq
-
 from six.moves.urllib.parse import urljoin
 
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -43,7 +41,12 @@ from autobahn.twisted.wamp import ApplicationSession
 class RESTCallee(ApplicationSession):
 
     def __init__(self, *args, **kwargs):
-        self._webtransport = kwargs.pop("webTransport", treq)
+        self._webtransport = kwargs.pop("webTransport")
+
+        if not self._webtransport:
+            import treq
+            self._webtransport = treq
+
         super(RESTCallee, self).__init__(*args, **kwargs)
 
     @inlineCallbacks

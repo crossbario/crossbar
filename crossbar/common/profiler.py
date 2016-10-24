@@ -35,7 +35,6 @@ import tempfile
 
 import six
 
-from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 from twisted.internet.threads import deferToThread
 
@@ -221,6 +220,7 @@ if _HAS_VMPROF:
 
             self.log.info("Starting profiling using {profiler} for {runtime} seconds.", profiler=self._id, runtime=runtime)
 
+            from twisted.internet import reactor
             reactor.callLater(runtime, finish_profile)
 
             return self._profile_id, self._finished
