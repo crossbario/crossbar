@@ -42,7 +42,7 @@ docs:
 freeze: clean
 	virtualenv vers
 	vers/bin/pip install -r requirements-min.txt
-	vers/bin/pip freeze > requirements-latest.txt
+	vers/bin/pip freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-latest.txt
 	vers/bin/pip install hashin
 	rm requirements.txt
 	cat requirements-latest.txt | xargs vers/bin/hashin > requirements.txt
