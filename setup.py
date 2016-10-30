@@ -55,7 +55,7 @@ extras_require = {
     ]
 }
 
-with open('requirements-in.txt') as f:
+with open('requirements-min.txt') as f:
     for line in f.read().splitlines():
         line = line.strip()
         if not line.startswith('#'):
