@@ -18,6 +18,7 @@ clean:
 	rm -rf ./.crossbar
 	rm -rf ./_trial_temp
 	rm -rf ./.tox
+	rm -rf ./vers
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
@@ -25,7 +26,7 @@ clean:
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
 news: towncrier.ini crossbar/newsfragments/*.*
-	# this produces a NEWS.md file, 'git rm's crossbar/newsfragmes/* and 'git add's NEWS.md
+	# this produces a NEWS.md file, 'git rm's crossbar/newsfragments/* and 'git add's NEWS.md
 	# ...which we then use to update docs/pages/ChangeLog.md
 	towncrier
 	cat docs/templates/changelog_preamble.md > docs/pages/ChangeLog.md
@@ -39,11 +40,12 @@ docs:
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
 freeze: clean
-	pip install --no-cache-dir -r requirements-in.txt
-	pip freeze -r requirements-in.txt
-	pip install hashin
+	virtualenv vers
+	vers/bin/pip install -r requirements-min.txt
+	vers/bin/pip freeze > requirements-latest.txt
+	vers/bin/pip install hashin
 	rm requirements.txt
-	cat requirements-in.txt | sed -e "s/>=/==/g" | xargs hashin -v > requirements.txt
+	cat requirements-latest.txt | xargs vers/bin/hashin > requirements.txt
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
