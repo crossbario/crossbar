@@ -18,6 +18,7 @@ clean:
 	rm -rf ./.crossbar
 	rm -rf ./_trial_temp
 	rm -rf ./.tox
+	rm -rf ./vers
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
@@ -25,7 +26,7 @@ clean:
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
 news: towncrier.ini crossbar/newsfragments/*.*
-	# this produces a NEWS.md file, 'git rm's crossbar/newsfragmes/* and 'git add's NEWS.md
+	# this produces a NEWS.md file, 'git rm's crossbar/newsfragments/* and 'git add's NEWS.md
 	# ...which we then use to update docs/pages/ChangeLog.md
 	towncrier
 	cat docs/templates/changelog_preamble.md > docs/pages/ChangeLog.md
@@ -39,51 +40,12 @@ docs:
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
 freeze: clean
-	pip install --no-cache-dir -r requirements-in.txt
-	pip freeze -r requirements-in.txt
-	pip install hashin
-	cat requirements-in.txt | grep -v crossbar | grep -v hashin > requirements.txt
-	# FIXME: hashin each dependency in requirements.txt and remove the original entries (so no double entries are left)
-	hashin click
-	hashin setuptools
-	hashin zope.interface
-	hashin Twisted
-	hashin autobahn
-	hashin netaddr
-	hashin PyTrie
-	hashin Jinja2
-	hashin mistune
-	hashin Pygments
-	hashin PyYAML
-	hashin shutilwhich
-	hashin sdnotify
-	hashin psutil
-	hashin lmdb
-	hashin u-msgpack-python
-	hashin cbor
-	hashin py-ubjson
-	hashin cryptography
-	hashin pyOpenSSL
-	hashin pyasn1
-	hashin pyasn1-modules
-	hashin service-identity
-	hashin PyNaCl
-	hashin treq
-	hashin setproctitle
-	hashin pyqrcode
-	hashin watchdog
-	hashin argh
-	hashin attrs
-	hashin cffi
-	hashin enum34
-	hashin idna
-	hashin ipaddress
-	hashin MarkupSafe
-	hashin pathtools
-	hashin pycparser
-	hashin requests
-	hashin six
-	hashin txaio
+	virtualenv vers
+	vers/bin/pip install -r requirements-min.txt
+	vers/bin/pip freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-latest.txt
+	vers/bin/pip install hashin
+	rm requirements.txt
+	cat requirements-latest.txt | xargs vers/bin/hashin > requirements.txt
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
