@@ -75,6 +75,10 @@ class PublisherTestCase(TestCase):
 
         self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"id": session._published_messages[0]["id"]})
+        # ensure we have all the format-keys AR200 asks for (can we
+        # extract these from the _log_categories string instead?)
+        self.assertIn('code', logs[0])
+        self.assertIn('reason', logs[0])
 
     @inlineCallbacks
     def test_publish_error(self):
