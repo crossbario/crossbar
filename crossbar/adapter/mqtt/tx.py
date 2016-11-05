@@ -459,10 +459,9 @@ class MQTTServerTwistedProtocol(Protocol):
                 if event.packet_identifier in self.session._publishes_awaiting_ack:
 
                     if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 1:
-                        self.log.error(log_category="MQ506",
-                                       client_id=self.session.client_id)
-                        self.transport.loseConnection()
-                        returnValue(None)
+                        self.log.warn(log_category="MQ303",
+                                      client_id=self.session.client_id)
+                        break
 
                     # MQTT-4.3.2-1: Release the packet ID
                     del self.session._publishes_awaiting_ack[event.packet_identifier]
@@ -478,16 +477,14 @@ class MQTTServerTwistedProtocol(Protocol):
                 if event.packet_identifier in self.session._publishes_awaiting_ack:
 
                     if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 2:
-                        self.log.error(log_category="MQ507",
-                                       client_id=self.session.client_id)
-                        self.transport.loseConnection()
-                        returnValue(None)
+                        self.log.warn(log_category="MQ304",
+                                      client_id=self.session.client_id)
+                        break
 
                     if not self.session._publishes_awaiting_ack[event.packet_identifier].stage == 0:
-                        self.log.error(log_category="MQ508",
-                                       client_id=self.session.client_id)
-                        self.transport.loseConnection()
-                        returnValue(None)
+                        self.log.warn(log_category="MQ305",
+                                      client_id=self.session.client_id)
+                        break
 
                     self.session._publishes_awaiting_ack[event.packet_identifier].stage = 1
 
@@ -513,16 +510,14 @@ class MQTTServerTwistedProtocol(Protocol):
                 if event.packet_identifier in self.session._publishes_awaiting_ack:
 
                     if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 2:
-                        self.log.error(log_category="MQ509",
-                                       client_id=self.session.client_id)
-                        self.transport.loseConnection()
-                        returnValue(None)
+                        self.log.warn(log_category="MQ306",
+                                      client_id=self.session.client_id)
+                        break
 
                     if not self.session._publishes_awaiting_ack[event.packet_identifier].stage == 1:
-                        self.log.error(log_category="MQ510",
-                                       client_id=self.session.client_id)
-                        self.transport.loseConnection()
-                        returnValue(None)
+                        self.log.warn(log_category="MQ307",
+                                      client_id=self.session.client_id)
+                        break
 
                     # MQTT-4.3.3-1: Release the packet ID
                     del self.session._publishes_awaiting_ack[event.packet_identifier]

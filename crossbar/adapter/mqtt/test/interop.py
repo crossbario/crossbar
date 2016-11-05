@@ -52,7 +52,7 @@ def run(host, port):
     fmt_results = []
     for r in results:
         fmt_results.append((r.name,
-                            "True" if r.success else "False", r.reason, r.transcript))
+                            "True" if r.success else "False", r.reason if r.reason else "", r.transcript))
 
     t = Texttable()
     t.set_cols_width([20, 10, 80, 60])
