@@ -78,51 +78,69 @@ class ReplayProtocol(Protocol):
     def __init__(self, factory):
         self.factory = factory
         self._record = deque(self.factory.record)
-        self._buffer = b""
         self._waiting_for_nothing = None
         self._client = MQTTClientParser()
 
     def connectionMade(self):
 
         if self._record[0].send:
-            self.transport.write(self._record.popleft().data)
+            to_send = self._record.popleft()
+            if isinstance(to_send.data, bytes):
+                self.transport.write(to_send.data)
+            else:
+                self.transport.write(to_send.data.serialise())
 
     def dataReceived(self, data):
-        self.factory._timer.reset(5)
-        self._buffer = self._buffer + data
+        self.factory._timer.reset(7)
 
-        self.factory.client_transcript.extend(self._client.data_received(data))
+        got_data = self._client.data_received(data)
+        self.factory.client_transcript.extend(got_data)
 
         if self._waiting_for_nothing:
-            self.factory.reason = "Got unexpected data " + repr(self._buffer)
-            self.factory.success = False
-            self.factory.reactor.stop()
-            return
-
-        if len(self._record) > 0 and len(self._buffer) == len(self._record[0].data):
-            reading = self._record.popleft()
-
-            if self._buffer == reading.data:
-                pass
+            if data == b"":
+                got_data.append(b"")
+                self._waiting_for_nothing = None
             else:
+                self.factory.reason = "Got unexpected data " + repr(got_data)
                 self.factory.success = False
-                self.factory.reason = (self._buffer, reading.data)
                 self.factory.reactor.stop()
                 return
 
-            self._buffer = b''
+        if len(self._record) > 0 and got_data:
+            for x in got_data:
+                reading = self._record.popleft()
 
-            if len(self._record) > 0:
-                if self._record[0].send:
-                    self.transport.write(self._record.popleft().data)
-
-                # Then if we are supposed to wait...
-                if isinstance(self._record[0], Frame) and self._record[0].send is False and self._record[0].data == b"":
-                    def wait():
-                        self._waiting_for_nothing = None
-                        self.dataReceived(b"")
-                    self._waiting_for_nothing = self.factory.reactor.callLater(2, wait)
+                if x == reading.data:
+                    pass
+                elif isinstance(reading.data, list) and x in reading.data:
+                    reading.data.remove(x)
+                else:
+                    self.factory.success = False
+                    self.factory.reason = (x, reading.data)
+                    self.factory.reactor.stop()
                     return
+
+                if len(self._record) > 0:
+                    while len(self._record) > 0 and self._record[0].send:
+                        to_send = self._record.popleft()
+                        if isinstance(to_send.data, bytes):
+                            self.transport.write(to_send.data)
+                        else:
+                            self.transport.write(to_send.data.serialise())
+
+                if isinstance(reading.data, list):
+                    if reading.data:
+                        self._record.appendleft(reading)
+
+                if len(self._record) > 0:
+
+                    # Then if we are supposed to wait...
+                    if isinstance(self._record[0], Frame) and self._record[0].send is False and self._record[0].data == b"":
+                        def wait():
+                            self.dataReceived(b"")
+                        self._waiting_for_nothing = self.factory.reactor.callLater(2, wait)
+                        return
+
 
     def connectionLost(self, reason):
         if self.factory.reactor.running:
@@ -151,10 +169,10 @@ class ReplayClientFactory(ClientFactory):
         p = self.protocol(self)
 
         def disconnect():
-            self.reason = "Timeout (buffer was " + repr(p._buffer) + ", remaining assertions were " + repr(p._record) + ")"
+            self.reason = "Timeout (remaining assertions were " + repr(p._record) + ")"
             self.reactor.stop()
 
-        self._timer = self.reactor.callLater(5, disconnect)
+        self._timer = self.reactor.callLater(7, disconnect)
         return p
 
 

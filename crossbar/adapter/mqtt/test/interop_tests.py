@@ -14,13 +14,13 @@ def test_connect(host, port):
         Frame(
             send=True,
             data=Connect(client_id=u"test_cleanconnect",
-                         flags=ConnectFlags(clean_session=True)).serialise()),
+                         flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
-            data=ConnACK(session_present=False, return_code=0).serialise()),
+            data=ConnACK(session_present=False, return_code=0)),
         Frame(
             send=True,
-            data=Disconnect().serialise()),
+            data=Disconnect()),
         ConnectionLoss(),
     ]
 
@@ -40,10 +40,10 @@ def test_quirks_mode_connect(host, port):
             data=b"\x10\x15\x00\x04MQTT\x04\x02\x00x\x00\x07testqrk\x00\x00"),
         Frame(
             send=False,
-            data=ConnACK(session_present=False, return_code=0).serialise()),
+            data=ConnACK(session_present=False, return_code=0)),
         Frame(
             send=True,
-            data=Disconnect().serialise()),
+            data=Disconnect()),
         ConnectionLoss(),
     ]
 
@@ -61,10 +61,10 @@ def test_reserved_packet_15(host, port):
         Frame(
             send=True,
             data=Connect(client_id=u"test_reserved15",
-                         flags=ConnectFlags(clean_session=True)).serialise()),
+                         flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
-            data=ConnACK(session_present=False, return_code=0).serialise()),
+            data=ConnACK(session_present=False, return_code=0)),
         Frame(
             send=True,
             #        v pkt 15 right here
@@ -86,10 +86,10 @@ def test_reserved_packet_0(host, port):
         Frame(
             send=True,
             data=Connect(client_id=u"test_reserved0",
-                         flags=ConnectFlags(clean_session=True)).serialise()),
+                         flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
-            data=ConnACK(session_present=False, return_code=0).serialise()),
+            data=ConnACK(session_present=False, return_code=0)),
         Frame(
             send=True,
             #        v pkt 0 right here
@@ -111,19 +111,19 @@ def test_uninvited_puback(host, port):
         Frame(
             send=True,
             data=Connect(client_id=u"test_puback",
-                         flags=ConnectFlags(clean_session=True)).serialise()),
+                         flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
-            data=ConnACK(session_present=False, return_code=0).serialise()),
+            data=ConnACK(session_present=False, return_code=0)),
         Frame(
             send=True,
-            data=PubACK(packet_identifier=1234).serialise()),
+            data=PubACK(packet_identifier=1234)),
         Frame(
             send=False,
             data=b""),
         Frame(
             send=True,
-            data=Disconnect().serialise()),
+            data=Disconnect()),
         ConnectionLoss(),
     ]
 
@@ -141,19 +141,19 @@ def test_uninvited_pubrel(host, port):
         Frame(
             send=True,
             data=Connect(client_id=u"test_pubrel",
-                         flags=ConnectFlags(clean_session=True)).serialise()),
+                         flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
-            data=ConnACK(session_present=False, return_code=0).serialise()),
+            data=ConnACK(session_present=False, return_code=0)),
         Frame(
             send=True,
-            data=PubREL(packet_identifier=1234).serialise()),
+            data=PubREL(packet_identifier=1234)),
         Frame(
             send=False,
-            data=PubCOMP(packet_identifier=1234).serialise()),
+            data=PubCOMP(packet_identifier=1234)),
         Frame(
             send=True,
-            data=Disconnect().serialise()),
+            data=Disconnect()),
         ConnectionLoss(),
     ]
 
@@ -171,28 +171,28 @@ def test_self_subscribe(host, port):
         Frame(
             send=True,
             data=Connect(client_id=u"test_selfsub",
-                         flags=ConnectFlags(clean_session=True)).serialise()),
+                         flags=ConnectFlags(clean_session=True))),
         Frame(
             send=False,
-            data=ConnACK(session_present=False, return_code=0).serialise()),
+            data=ConnACK(session_present=False, return_code=0)),
         Frame(
             send=True,
             data=Subscribe(packet_identifier=1234,
-                           topic_requests=[SubscriptionTopicRequest(u"foo", 2)]).serialise()),
+                           topic_requests=[SubscriptionTopicRequest(u"foo", 2)])),
         Frame(
             send=False,
-            data=SubACK(packet_identifier=1234, return_codes=[2]).serialise()),
+            data=SubACK(packet_identifier=1234, return_codes=[2])),
         Frame(
             send=True,
             data=Publish(duplicate=False, qos_level=0, topic_name=u"foo",
-                         payload=b"abc", retain=False).serialise()),
+                         payload=b"abc", retain=False)),
         Frame(
             send=False,
             data=Publish(duplicate=False, qos_level=0, topic_name=u"foo",
-                         payload=b"abc", retain=False).serialise()),
+                         payload=b"abc", retain=False)),
         Frame(
             send=True,
-            data=Disconnect().serialise()),
+            data=Disconnect()),
         ConnectionLoss(),
     ]
 
@@ -203,3 +203,104 @@ def test_self_subscribe(host, port):
     r.run()
 
     return Result("self_subscribe", f.success, f.reason, f.client_transcript)
+
+
+def test_qos2_send_wrong_confirm(host, port):
+    record = [
+        Frame(
+            send=True,
+            data=Connect(client_id=u"test_wrong_confirm_qos2",
+                         flags=ConnectFlags(clean_session=True))),
+        Frame(
+            send=False,
+            data=ConnACK(session_present=False, return_code=0)),
+        Frame(
+            send=True,
+            data=Subscribe(packet_identifier=1234,
+                           topic_requests=[SubscriptionTopicRequest(u"foo", 2)])),
+        Frame(
+            send=False,
+            data=SubACK(packet_identifier=1234, return_codes=[2])),
+        Frame(
+            send=True,
+            data=Publish(duplicate=False, qos_level=2, topic_name=u"foo",
+                         payload=b"abc", retain=False, packet_identifier=12)),
+        Frame(
+            send=False,
+            data=[
+                PubREC(packet_identifier=12),
+                Publish(duplicate=False, qos_level=2, topic_name=u"foo",
+                        payload=b"abc", retain=False, packet_identifier=1),
+                PubCOMP(packet_identifier=12)]),
+        Frame(
+            send=True,
+            data=PubREL(packet_identifier=12)),
+        Frame(
+            send=True,
+            data=PubACK(packet_identifier=1)),
+        Frame(
+            send=False,
+            data=b""),
+        Frame(
+            send=True,
+            data=Disconnect()),
+        ConnectionLoss(),
+    ]
+
+    r = SelectReactor()
+    f = ReplayClientFactory(r, record)
+    e = TCP4ClientEndpoint(r, host, port)
+    e.connect(f)
+    r.run()
+
+    return Result("qos2_wrong_confirm", f.success, f.reason, f.client_transcript)
+
+
+
+def test_qos1_send_wrong_confirm(host, port):
+    record = [
+        Frame(
+            send=True,
+            data=Connect(client_id=u"test_wrong_confirm_qos1",
+                         flags=ConnectFlags(clean_session=True))),
+        Frame(
+            send=False,
+            data=ConnACK(session_present=False, return_code=0)),
+        Frame(
+            send=True,
+            data=Subscribe(packet_identifier=1234,
+                           topic_requests=[SubscriptionTopicRequest(u"foo", 2)])),
+        Frame(
+            send=False,
+            data=SubACK(packet_identifier=1234, return_codes=[2])),
+        Frame(
+            send=True,
+            data=Publish(duplicate=False, qos_level=1, topic_name=u"foo",
+                         payload=b"abc", retain=False, packet_identifier=12)),
+        Frame(
+            send=False,
+            data=[
+                PubACK(packet_identifier=12),
+                Publish(duplicate=False, qos_level=1, topic_name=u"foo",
+                        payload=b"abc", retain=False, packet_identifier=1)]),
+        # We send a pubrel to the packet_id expecting a puback
+        Frame(
+            send=True,
+            data=PubREL(packet_identifier=1)),
+        # ..aaaaand we get a pubcomp back (even though mosquitto warns).
+        Frame(
+            send=False,
+            data=PubCOMP(packet_identifier=1)),
+        Frame(
+            send=True,
+            data=Disconnect()),
+        ConnectionLoss(),
+    ]
+
+    r = SelectReactor()
+    f = ReplayClientFactory(r, record)
+    e = TCP4ClientEndpoint(r, host, port)
+    e.connect(f)
+    r.run()
+
+    return Result("qos1_wrong_confirm", f.success, f.reason, f.client_transcript)
