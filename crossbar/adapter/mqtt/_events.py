@@ -48,6 +48,22 @@ class Failure(object):
 
 
 @attr.s
+class Disconnect(object):
+    def serialise(self):
+        """
+        Assemble this into an on-wire message.
+        """
+        return build_header(14, (False, False, False, False), 0)
+
+    @classmethod
+    def deserialise(cls, flags, data):
+        if flags != (False, False, False, False):
+            raise ParseFailure(cls, "Bad flags")
+
+        return cls()
+
+
+@attr.s
 class PingRESP(object):
     def serialise(self):
         """
@@ -297,8 +313,9 @@ class Publish(object):
     qos_level = attr.ib(validator=instance_of(int))
     retain = attr.ib(validator=instance_of(bool))
     topic_name = attr.ib(validator=instance_of(unicode))
-    packet_identifier = attr.ib(validator=optional(instance_of(int)))
     payload = attr.ib(validator=instance_of(bytes))
+    packet_identifier = attr.ib(validator=optional(instance_of(int)),
+                                default=None)
 
     def serialise(self):
         """

@@ -47,6 +47,7 @@ from ._events import (
     Unsubscribe, UnsubACK,
     Publish, PubACK, PubREC, PubREL, PubCOMP,
     PingREQ, PingRESP,
+    Disconnect,
 )
 
 from twisted.internet.protocol import Protocol
@@ -488,18 +489,21 @@ class MQTTServerTwistedProtocol(Protocol):
                         self.transport.loseConnection()
                         returnValue(None)
 
-                    # MQTT-4.3.3-1: Send back a PubREL
                     self.session._publishes_awaiting_ack[event.packet_identifier].stage = 1
-
-                    resp = PubREL(packet_identifier=event.packet_identifier)
-                    self._send_packet(resp)
 
                 else:
                     self.log.warn(
                         log_category="MQ301", client_id=self.session.client_id,
                         pub_id=event.packet_identifier)
 
+                # MQTT-4.3.3-1: MUST send back a PubREL -- even if it's not an
+                # ID we know about, apparently, according to Mosquitto and
+                # ActiveMQ.
+                resp = PubREL(packet_identifier=event.packet_identifier)
+                self._send_packet(resp)
+
             elif isinstance(event, PubREL):
+                # Should check if it is valid here
                 resp = PubCOMP(packet_identifier=event.packet_identifier)
                 self._send_packet(resp)
                 continue
@@ -528,6 +532,13 @@ class MQTTServerTwistedProtocol(Protocol):
                     self.log.warn(
                         log_category="MQ302", client_id=self.session.client_id,
                         pub_id=event.packet_identifier)
+
+            elif isinstance(event, Disconnect):
+                # TODO: get rid of some will messages
+
+                # 3.14.4 -- we can close it if we want to
+                self.transport.loseConnection()
+                returnValue(None)
 
             else:
                 if isinstance(event, Failure):

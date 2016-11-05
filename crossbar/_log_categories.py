@@ -73,6 +73,7 @@ log_categories = {
     "MQ201": "Received a QoS 0 Publish from '{client_id}'",
     "MQ202": "Received a QoS 1 Publish from '{client_id}'",
     "MQ203": "Received a QoS 2 Publish from '{client_id}'",
+    "MQ204": "Received a Disconnect from '{client_id}', closing connection",
     "MQ300": "Got a PubACK for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
     "MQ301": "Got a PubREC for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
     "MQ302": "Got a PubREC for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",

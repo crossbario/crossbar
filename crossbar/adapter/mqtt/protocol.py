@@ -227,3 +227,8 @@ class MQTTParser(object):
                 self._packet_count += 1
             else:
                 return events
+
+
+class MQTTClientParser(MQTTParser):
+    _first_pkt = P_CONNACK
+    _packet_handlers = client_packet_handlers

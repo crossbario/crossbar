@@ -38,7 +38,7 @@ from binascii import unhexlify
 from crossbar.adapter.mqtt.tx import (
     MQTTServerTwistedProtocol, AwaitingACK, Session, Message)
 from crossbar.adapter.mqtt.protocol import (
-    MQTTParser, client_packet_handlers, P_CONNACK)
+    MQTTParser, MQTTClientParser, client_packet_handlers, P_CONNACK)
 from crossbar.adapter.mqtt._events import (
     Connect, ConnectFlags, ConnACK,
     SubACK, Subscribe,
@@ -52,11 +52,6 @@ from crossbar._logging import LogCapturer, LogLevel
 from twisted.test.proto_helpers import Clock, StringTransport
 from twisted.trial.unittest import TestCase
 from twisted.internet.defer import Deferred, succeed, inlineCallbacks
-
-
-class MQTTClientParser(MQTTParser):
-    _first_pkt = P_CONNACK
-    _packet_handlers = client_packet_handlers
 
 
 @attr.s
