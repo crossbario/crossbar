@@ -36,7 +36,7 @@ from functools import partial
 from binascii import unhexlify
 
 from crossbar.adapter.mqtt.tx import (
-    MQTTServerTwistedProtocol, AwaitingACK, Session)
+    MQTTServerTwistedProtocol, AwaitingACK, Session, Message)
 from crossbar.adapter.mqtt.protocol import (
     MQTTParser, client_packet_handlers, P_CONNACK)
 from crossbar.adapter.mqtt._events import (
@@ -1754,3 +1754,93 @@ class SendPublishTests(TestCase):
         self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
         self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
         self.assertFalse(t2.disconnecting)
+
+    def test_non_allowed_qos_not_queued(self):
+        """
+        A non-QoS 0, 1, or 2 message will be rejected by the publish layer.
+        """
+        got_packets = []
+
+        h = BasicHandler()
+        sessions, r, t, p, cp = make_test_items(h)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        # No queued messages
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+
+        # Connect has happened
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertFalse(t.disconnecting)
+        self.assertIsInstance(events[0], ConnACK)
+
+        # WAMP layer calls send_publish w/ invalid QoS
+        with self.assertRaises(ValueError):
+            p.send_publish(u"hello", 5, b'some bytes')
+
+        # Nothing will be sent or queued
+        self.assertEqual(t.value(), b'')
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+
+        # Advance the clock
+        r.advance(0.1)
+
+        # Still nothing
+        self.assertEqual(t.value(), b'')
+
+    def test_non_allowed_qos_in_queue_dropped(self):
+        """
+        If a non-QoS 0, 1, or 2 message gets into the queue, it will be
+        dropped.
+        """
+        got_packets = []
+
+        h = BasicHandler()
+        sessions, r, t, p, cp = make_test_items(h)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=True)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        # Add a queued message
+        sessions[u"test123"].queued_messages.append(Message(
+            topic=u"foo", body=b"bar", qos=3))
+
+        # Connect has happened
+        events = cp.data_received(t.value())
+        t.clear()
+        self.assertFalse(t.disconnecting)
+        self.assertIsInstance(events[0], ConnACK)
+
+        # Nothing is sent, one is queued
+        self.assertEqual(t.value(), b'')
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
+
+        with LogCapturer("trace") as logs:
+            # Flush the saved messages
+            p._flush_saved_messages()
+
+        # We got the warning
+        logs = logs.get_category("MQ303")
+        self.assertEqual(len(logs), 1)
+
+        # Nothing queued
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+
+        # Nothing sent
+        self.assertEqual(t.value(), b'')
+
+
+class OutOfOrderAckTests(TestCase):
+    pass

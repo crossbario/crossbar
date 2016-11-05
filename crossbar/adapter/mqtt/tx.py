@@ -144,6 +144,9 @@ class MQTTServerTwistedProtocol(Protocol):
 
     def send_publish(self, topic, qos, body):
 
+        if not qos in [0, 1, 2]:
+            raise ValueError("QoS must be [0, 1, 2]")
+
         self.session.queued_messages.append(Message(topic=topic, qos=qos, body=body))
         if not self._flush_publishes and self.transport.connected:
             self._flush_publishes = self._reactor.callLater(0, self._flush_saved_messages)
@@ -177,7 +180,8 @@ class MQTTServerTwistedProtocol(Protocol):
             self.session._in_flight_packet_ids.add(packet_id)
 
         else:
-            raise ValueError("QoS must be [0, 1, 2]")
+            self.log.warn(log_category="MQ303")
+            return
 
         self._send_packet(publish)
 

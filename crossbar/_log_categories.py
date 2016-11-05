@@ -77,6 +77,7 @@ log_categories = {
     "MQ301": "Got a PubREC for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
     "MQ302": "Got a PubREC for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
     "MQ302": "Got a PubCOMP for publish ID {pub_id} from '{client_id}' that doesn't correspond to any Publish we sent",
+    "MQ303": "Got a non-allowed QoS value in the publish queue, dropping it.",
     "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
     "MQ401": "Protocol violation from '{client_id}', terminating connection: {error}",
     "MQ402": "Got a packet ('{packet_id}') from '{client_id}' that is invalid for a server, terminating connection",
