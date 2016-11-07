@@ -121,11 +121,7 @@ The Crossbar example configuration has started a WAMP router and a guest worker 
 
 ## Open the frontend
 
-Open [`http://localhost:8080/`](http://localhost:8080/) (or wherever Crossbar runs) in your browser. When you watch the browser's JavaScript console, you should see
-
-![WAMP client running in browser](/static/img/docs/shots/hello_python.png)
-
-Hooray! That means: it works;)
+Open [`http://localhost:8080/`](http://localhost:8080/) (or wherever Crossbar runs) in your browser. When you watch the browser's JavaScript console.
 
 You have just watched the Erlang backend component talking to the JavaScript frontend component and vice-versa. The calls and events were exchanged over [WAMP](http://wamp.ws/) and routed by Crossbar.io between the application components.
 

@@ -57,9 +57,7 @@ The boxes are networked via 10GbE.
 
 ## Netperf
 
-The following is a dump of performance results using [netperf](http://linux.die.net/man/1/netperf). [Here](https://gist.github.com/cgbystrom/985475) are some numbers to compare the results with. [Link](/static/img/docs/netperf_benchmark_results.png) to full picture.
-
-![Crossbar.io raw TCP performance](/static/img/docs/netperf_benchmark_results.png)
+The following is a dump of performance results using [netperf](http://linux.die.net/man/1/netperf). [Here](https://gist.github.com/cgbystrom/985475) are some numbers to compare the results with.
 
 ### TCP_RR
 

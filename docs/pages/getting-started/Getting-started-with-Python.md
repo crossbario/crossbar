@@ -93,11 +93,7 @@ oberstet@vbox-ubuntu1310:~/hello$ crossbar start
 
 ## Open the frontend
 
-Open [`http://localhost:8080/`](http://localhost:8080/) in your browser. When you watch the browser's JavaScript console, you should see
-
-![WAMP client running in browser](/static/img/docs/shots/hello_python.png)
-
-**Hooray! That means: it works;)**
+Open [`http://localhost:8080/`](http://localhost:8080/) in your browser. When you watch the browser's JavaScript console.
 
 You have just watched the Python backend component talking to the JavaScript frontend component and vice-versa. The calls and events were exchanged over [WAMP](http://wamp.ws/) and routed by Crossbar.io between the application components.
 

@@ -134,10 +134,6 @@ WebSocket transport receive [68,3,850599850048825,{},[6,3]]
 mul2() called with 6 and 3
 ```
 
-![WAMP client running in browser](/static/img/docs/shots/hello_python.png)
-
-**Hooray! That means: it works;)**
-
 You have just watched the JavaScript (NodeJS) backend component talking to the JavaScript frontend component and vice-versa. The calls and events were exchanged over [WAMP](http://wamp.ws/) and routed by Crossbar.io between the application components.
 
 

@@ -112,34 +112,6 @@ View the server certificate:
 
     openssl x509 -text -noout -in .crossbar/server_cert.pem
 
-### CA Certificate Import
-
-Browser will by default not accept your server certificate, since your CA certificate is not preinstalled in their trust store.
-
-The following describes how to import your CA certificate into browsers. After doing so, browsers will silently accept any server certificate you issue with your CA.
-
-On Microsoft Windows, both Internet Explorer and Google Chrome use the Windows OS-wide certificate store. Mozilla Firefox uses an own certificate store unrelated to the Windows OS-wide certificate store.
-
-To import your CA certificate on Windows for browsers using the Windows certificate store, rename the CA certificate file to `*.crt` and double click it:
-
-![Windows certificate import - step 1](/static/img/docs/shots/windows_cert_import1.png)
-
-start the import wizard:
-
-![Windows certificate import - step 2](/static/img/docs/shots/windows_cert_import2.png)
-
-make sure you manually **select the "Trusted Root Certificate" store (!)**:
-
-![Windows certificate import - step 3](/static/img/docs/shots/windows_cert_import3.png)
-
-.. continue ..
-
-![Windows certificate import - step 4](/static/img/docs/shots/windows_cert_import4.png)
-
-verify the CA certificate fingerprint:
-
-![Windows certificate import - step 5](/static/img/docs/shots/windows_cert_import5.png)
-
 ---
 
 ## Testing

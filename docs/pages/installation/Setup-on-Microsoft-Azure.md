@@ -36,11 +36,6 @@ On first startup, the system and Crossbar.io are automatically updated. Because 
 
 To check whether Crossbar.io is up, get the public IP of your instance from the Azure dashboard, and point your browser to it.
 
-You should then see the welcome screen below:
-
-![Azure Welcome Screen](/static/img/docs/shots/azure_welcome.png)
-
-
 > Note: If you want to test the actual Crossbar.io core functionality, i.e. WAMP routing, you can run any of the [Crossbar.io examples](https://github.com/crossbario/crossbarexamples). For these you need to adapt the connection data.
 
 We suggest you use the [Votes Browser Demo](https://github.com/crossbario/crossbarexamples/tree/master/demos/votes/browser), since this runs entirely in the browser. To run this
