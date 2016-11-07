@@ -526,7 +526,7 @@ class Node(object):
                         if self._bridge_session:
                             try:
                                 yield self._bridge_session.attach_manager(self._manager, self._management_realm, self._node_id)
-                                status = yield self._manager.call(u'com.crossbario.cdc.general.get_status@1')
+                                status = yield self._manager.call(u'cdc.remote.status@1')
                             except:
                                 self.log.failure()
                             else:
@@ -586,7 +586,7 @@ class Node(object):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
-        self.log.info('Configuring node from config ..')
+        self.log.info('Configuring node from local configuration ...')
 
         # call options we use to call into the local node management API
         call_options = CallOptions()
@@ -602,7 +602,12 @@ class Node(object):
             yield self._controller.start_manhole(controller['manhole'], details=call_details)
 
         # startup all workers
-        for worker in config.get('workers', []):
+        workers = config.get('workers', [])
+        if len(workers):
+            self.log.info('Starting {nworkers} workers ...', nworkers=len(workers))
+        else:
+            self.log.info('No workers configured!')
+        for worker in workers:
 
             # worker ID
             if 'id' in worker:
@@ -843,3 +848,5 @@ class Node(object):
 
             else:
                 raise Exception("logic error")
+
+        self.log.info('Local node configuration applied.')
