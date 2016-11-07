@@ -3,7 +3,7 @@ toc: [Documentation, Getting Started, Getting started with Python]
 
 # Getting started with Python
 
-In this recipe we will use Crossbar.io to generate an application template for a [WAMP](http://wamp.ws/) application written in Python using [AutobahnPython](https://github.com/tavendo/AutobahnPython), an open-source WAMP implementation. The generated application includes a JavaScript frontend to run in a browser.
+In this recipe we will use Crossbar.io to generate an application template for a [WAMP](http://wamp.ws/) application written in Python using [AutobahnPython](https://github.com/crossbario/autobahn-python), an open-source WAMP implementation. The generated application includes a JavaScript frontend to run in a browser.
 
 The frontend and backend components will talk with each other using all four main interactions available in WAMP:
 
@@ -18,11 +18,11 @@ We will run the whole application with Crossbar.io serving as a WAMP router, sta
 
 ## Prerequisites
 
-[CPython](https://www.python.org/) or [PyPy](http://pypy.org/) and [AutobahnPython](https://github.com/tavendo/AutobahnPython) - but those will have been installed with Crossbar.io already.
+[CPython](https://www.python.org/) or [PyPy](http://pypy.org/) and [AutobahnPython](https://github.com/crossbario/autobahn-python) - but those will have been installed with Crossbar.io already.
 
 ## Create an app
 
-To create a new Crossbar.io node and generate a [Python](https://www.python.org/) / [AutobahnPython](https://github.com/tavendo/AutobahnPython) based "Hello world!" example application:
+To create a new Crossbar.io node and generate a [Python](https://www.python.org/) / [AutobahnPython](https://github.com/crossbario/autobahn-python) based "Hello world!" example application:
 
 ```console
 oberstet@vbox-ubuntu1310:~$ crossbar init --template hello:python --appdir $HOME/hello
@@ -93,11 +93,7 @@ oberstet@vbox-ubuntu1310:~/hello$ crossbar start
 
 ## Open the frontend
 
-Open [`http://localhost:8080/`](http://localhost:8080/) in your browser. When you watch the browser's JavaScript console, you should see
-
-![WAMP client running in browser](/static/img/docs/shots/hello_python.png)
-
-**Hooray! That means: it works;)**
+Open [`http://localhost:8080/`](http://localhost:8080/) in your browser. When you watch the browser's JavaScript console.
 
 You have just watched the Python backend component talking to the JavaScript frontend component and vice-versa. The calls and events were exchanged over [WAMP](http://wamp.ws/) and routed by Crossbar.io between the application components.
 

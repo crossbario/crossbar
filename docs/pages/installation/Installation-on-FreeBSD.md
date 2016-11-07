@@ -56,7 +56,7 @@ Then test your installation:
 
 ## Installing from Source
 
-For installing [PyPy](http://pypy.org/) on FreeBSD, please follow [this](http://tavendo.com/blog/post/pypy-on-freebsd-nightlies/).
+For installing [PyPy](http://pypy.org/) on FreeBSD, please follow [this](http://crossbario.com/blog/post/pypy-on-freebsd-nightlies/).
 
 Add the following to `$HOME/.profile` (adjusting the path to PyPy according to the one you unpacked):
 

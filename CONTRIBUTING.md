@@ -82,7 +82,7 @@ The CAA gives us the rights to your code, which we need e.g. to react to license
 1. Download the [Individual CAA (PDF)](https://github.com/crossbario/crossbar/raw/master/legal/individual_caa.pdf).
 2. Fill in the required information that identifies you and sign the CAA.
 3. Scan the CAA to PNG, JPG or TIFF, or take a photo of the box on page 2 (the **entire box**, including the information identifying the document).
-4. Email the scan or photo to `service@tavendo.de` with the subject line "Crossbar.io project contributor assignment agreement"
+4. Email the scan or photo to `contact@crossbario.com` with the subject line "Crossbar.io project contributor assignment agreement"
 
 *If your write contributions as part of your work for a company, you also need to send us a [Entity CAA (PDF)](https://github.com/crossbario/crossbar/raw/master/legal/entity_caa.pdf) signed by somebody responsible in the company.*
 

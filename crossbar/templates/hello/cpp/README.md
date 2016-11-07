@@ -1,6 +1,6 @@
 # Hello WAMP in C++11
 
-A [C++11](http://en.wikipedia.org/wiki/C%2B%2B11) / [AutobahnCpp](https://github.com/tavendo/AutobahnCpp) based "Hello world!" example WAMP application.
+A [C++11](http://en.wikipedia.org/wiki/C%2B%2B11) / [AutobahnCpp](https://github.com/crossbario/autobahn-cpp) based "Hello world!" example WAMP application.
 
 **See: [Getting started with C++](http://crossbar.io/docs/Getting-started-with-Cplusplus/)**
 

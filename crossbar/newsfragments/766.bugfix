@@ -1,1 +1,0 @@
-replace ``msgpack-python`` with ``u-msgpack`` and upgrade several other dependencies

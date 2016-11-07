@@ -40,10 +40,6 @@ That's it.
 
 Crossbar.io will now negotiate the **permessage-deflate** extension with any client connecting during the WebSocket opening handshake.
 
-Here is how the WebSocket opening handshake will look like (Chrome as client) with further parameters set (see below):
-
-![WebSocket opening handshake with compression negotiated](/static/img/docs/shots/ws_compr1.png)
-
 ## Compression Options
 
 The compression configuration has a couple of options:

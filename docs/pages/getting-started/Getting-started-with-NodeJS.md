@@ -5,7 +5,7 @@ toc: [Documentation, Getting Started, Getting started with NodeJS]
 
 In this recipe we will use Crossbar.io to generate an application template for a [WAMP](http://wamp.ws/) application with a JavaScript frontend and backend.
 
-Both components use the open source library [AutobahnJS](https://github.com/tavendo/AutobahnJS) to provide WAMP functionality.
+Both components use the open source library [AutobahnJS](https://github.com/crossbario/autobahn-js) to provide WAMP functionality.
 
 The backend runs under [NodeJS](http://nodejs.org/), the frontend in the browser
 
@@ -30,7 +30,7 @@ As an example, on Linux/BSD systems, do
    sudo apt-get -y install nodejs npm
    sudo ln -s /usr/bin/nodejs /usr/bin/node
 
-> You will need a recent NodeJS version (0.10.x). Linux distributions might only include versions too old. E.g. on Ubuntu 12.04, you [need](https://github.com/tavendo/AutobahnJS/issues/92) a couple of [extra steps](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint-elementary-os):
+> You will need a recent NodeJS version (0.10.x). Linux distributions might only include versions too old. E.g. on Ubuntu 12.04, you [need](https://github.com/crossbario/autobahn-js/issues/92) a couple of [extra steps](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint-elementary-os):
 >
 >     sudo add-apt-repository ppa:chris-lea/node.js
 >     sudo apt-get update
@@ -40,7 +40,7 @@ For other systems, follow the installation instructions at the [NodeJS website](
 
 ## Create an app
 
-To create a new Crossbar.io node and generate a [JavaScript](http://en.wikipedia.org/wiki/JavaScript) / [AutobahnJS](https://github.com/tavendo/AutobahnJS) based "Hello world!" example application:
+To create a new Crossbar.io node and generate a [JavaScript](http://en.wikipedia.org/wiki/JavaScript) / [AutobahnJS](https://github.com/crossbario/autobahn-js) based "Hello world!" example application:
 
    crossbar init --template hello:nodejs --appdir $HOME/hello
 
@@ -133,10 +133,6 @@ on_counter() event received with counter 6
 WebSocket transport receive [68,3,850599850048825,{},[6,3]]
 mul2() called with 6 and 3
 ```
-
-![WAMP client running in browser](/static/img/docs/shots/hello_python.png)
-
-**Hooray! That means: it works;)**
 
 You have just watched the JavaScript (NodeJS) backend component talking to the JavaScript frontend component and vice-versa. The calls and events were exchanged over [WAMP](http://wamp.ws/) and routed by Crossbar.io between the application components.
 

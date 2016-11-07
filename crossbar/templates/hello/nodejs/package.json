@@ -10,7 +10,7 @@
     "crossbario",
     "wamp"
   ],
-  "author": "Tavendo GmbH",
+  "author": "Crossbar.io Technologies GmbH",
   "license": "Apache 2.0",
   "dependencies": {
     "autobahn": "^0.9.5"

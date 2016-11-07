@@ -38,12 +38,4 @@ The [WAMP spec](https://github.com/wamp-proto/wamp-proto/blob/master/rfc/draft-o
 * [WAMP-over-RawSocket Transport]
 * [WAMP-over-Longpoll Transport]
 
-Crossbar.io currently supports **18** WAMP transports in total:
-
-![Crossbar.io: supported WAMP Transports](/static/img/docs/gen/crossbar_transports_1.png)
-
-The most common transports are the following:
-
-![Common WAMP Transports](/static/img/docs/gen/crossbar_transports_2.png)
-
 ---

@@ -140,19 +140,3 @@ Here is a complete, working configuration:
     ]
 }
 ```
-
-## What you get
-
-When you Heroku app is started, you should be able to access the generated "Hello, world" Crossbar.io demo application like
-
-![Crossbar.io on Heroku 2](/static/img/docs/heroku2.png)
-
-Crossbar.io renders a status page when you visit the WebSocket endpoint from a browser:
-
-![Crossbar.io on Heroku 1](/static/img/docs/heroku1.png)
-
-As you can see in above, the IP and port that Crossbar.io runs on is an *internal* IP - behind the Heroku load-balancer, on a private network (`10.x.x.x`).
-
-When looking at the WebSocket network connection from the browser dev tools, you can again see from the headers sent in the initial WebSocket opening handshake that a proxy is in place:
-
-![Crossbar.io on Heroku 3](/static/img/docs/heroku3.png)
