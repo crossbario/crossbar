@@ -1,1 +1,0 @@
-Various documentation improvements

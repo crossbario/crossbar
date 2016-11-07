@@ -1,1 +1,0 @@
-properly pass 'authextra' and 'authmethod' keys to all dynamic authenticators
