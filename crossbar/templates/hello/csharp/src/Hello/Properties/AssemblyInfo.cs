@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Hello")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Tavendo GmbH")]
+[assembly: AssemblyCompany("Crossbar.io Technologies GmbH")]
 [assembly: AssemblyProduct("Hello")]
-[assembly: AssemblyCopyright("Copyright © Tavendo GmbH 2014")]
+[assembly: AssemblyCopyright("Copyright © Crossbar.io Technologies GmbH 2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

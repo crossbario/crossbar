@@ -41,8 +41,8 @@ You need a Web frontend, but want to also package this as a hybrid mobile app? N
 
 *More information:*
 
- * [AutobahnJS](https://github.com/tavendo/AutobahnJS)
- * [AutobahnAndroid](https://github.com/tavendo/AutobahnAndroid)
+ * [AutobahnJS](https://github.com/crossbario/autobahn-js)
+ * [AutobahnAndroid](https://github.com/crossbario/autobahn-android)
  * [MDWamp (WAMP for iOS)](https://github.com/mogui/MDWamp)
 
 _____________
@@ -54,14 +54,14 @@ Since JavaScript nowadays runs great on the server, and browsers are a ubiquitou
 
 ![Crossbar.io Node](/static/img/docs/gen/crossbar_application_scenario_2.png)
 
-With the above, you are not only using the *same* language (JavaScript) to implement both front- and backend components, but you are using the *same* communication patterns and library ([AutobahnJS](https://github.com/tavendo/AutobahnJS)) as well.
+With the above, you are not only using the *same* language (JavaScript) to implement both front- and backend components, but you are using the *same* communication patterns and library ([AutobahnJS](https://github.com/crossbario/autobahn-js)) as well.
 
 In fact (depending on what dependencies your code has) you can write functions that can be freely moved between the browser or NodeJS!
 
 *More information:*
 
  * [Getting started with NodeJS](Getting started with NodeJS)
- * [AutobahnJS](https://github.com/tavendo/AutobahnJS)
+ * [AutobahnJS](https://github.com/crossbario/autobahn-js)
 
 _____________
 <br>
@@ -136,7 +136,7 @@ _____________
 
 *Read more:*
 
-* [Arduino Yun with Autobahn](http://tavendo.com/blog/post/arduino-yun-with-autobahn/)
-* [Getting started with the RaspberryPi and Autobahn](http://tavendo.com/blog/post/pypy-on-the-pi/)
+* [Arduino Yun with Autobahn](http://crossbario.com/blog/post/arduino-yun-with-autobahn/)
+* [Getting started with the RaspberryPi and Autobahn](http://crossbario.com/blog/post/pypy-on-the-pi/)
 * [Crossbar.io Architecture](Architecture)
 * [Why WAMP?](http://wamp.ws/why/)

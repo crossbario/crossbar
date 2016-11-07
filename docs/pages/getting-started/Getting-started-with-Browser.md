@@ -5,7 +5,7 @@ toc: [Documentation, Getting Started, Getting started with Browser]
 
 In this recipe we will use Crossbar.io to generate an application template for a [WAMP](http://wamp.ws/) application with a JavaScript frontend and backend - both running in the browser.
 
-The open source library [AutobahnJS](https://github.com/tavendo/AutobahnJS) is used to provide WAMP functionality.
+The open source library [AutobahnJS](https://github.com/crossbario/autobahn-js) is used to provide WAMP functionality.
 
 
 The frontend and backend components will talk with each other using all four main interactions available in WAMP:
@@ -23,7 +23,7 @@ A modern browser with [WebSocket support](http://caniuse.com/#search=websocket),
 
 ## Create an app
 
-To create a new Crossbar.io node and generate a [JavaScript](http://en.wikipedia.org/wiki/JavaScript) / [AutobahnJS](https://github.com/tavendo/AutobahnJS) based "Hello world!" example application:
+To create a new Crossbar.io node and generate a [JavaScript](http://en.wikipedia.org/wiki/JavaScript) / [AutobahnJS](https://github.com/crossbario/autobahn-js) based "Hello world!" example application:
 
     crossbar init --template hello:browser --appdir $HOME/hello
 

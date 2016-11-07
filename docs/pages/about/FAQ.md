@@ -61,7 +61,7 @@ When using Crossbar.io for an application, your application code just sends and 
 
 Your code remains yours, and you can license it in whichever way you want.
 
-If you need further assurance, you can email us at service@tavendo.de for a signed letter asserting our view on the license.
+If you need further assurance, you can email us at contact@crossbario.com for a signed letter asserting our view on the license.
 
 ### What is the license for the application templates?
 
