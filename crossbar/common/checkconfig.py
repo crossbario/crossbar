@@ -1595,6 +1595,7 @@ def check_listening_transport_universal(transport):
             'endpoint',
             'rawsocket',
             'websocket',
+            'mqtt',
             'web',
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in Universal transport configuration".format(k))
@@ -1620,6 +1621,9 @@ def check_listening_transport_universal(transport):
 
         for path in paths:
             check_listening_transport_websocket(transport['websocket'][path], with_endpoint=False)
+
+    if 'mqtt' in transport:
+        check_listening_transport_mqtt(transport['mqtt'], with_endpoint=False)
 
     if 'web' in transport:
         check_listening_transport_web(transport['web'], with_endpoint=False)

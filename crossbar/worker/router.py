@@ -90,8 +90,7 @@ from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
     Resource404, \
-    RedirectResource, \
-    ReverseProxyResource
+    RedirectResource
 
 from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
 
@@ -837,6 +836,13 @@ class RouterWorkerSession(NativeWorkerSession):
             else:
                 rawsocket_factory = None
 
+            if 'mqtt' in config:
+                mqtt_factory = WampMQTTServerFactory(
+                    self._router_session_factory, config, self._reactor)
+                mqtt_factory.noisy = False
+            else:
+                mqtt_factory = None
+
             if 'websocket' in config:
                 websocket_factory_map = {}
                 for websocket_url_first_component, websocket_config in config['websocket'].items():
@@ -847,7 +853,7 @@ class RouterWorkerSession(NativeWorkerSession):
             else:
                 websocket_factory_map = None
 
-            transport_factory = UniSocketServerFactory(web_factory, websocket_factory_map, rawsocket_factory)
+            transport_factory = UniSocketServerFactory(web_factory, websocket_factory_map, rawsocket_factory, mqtt_factory)
 
         # Unknown transport type
         #
@@ -1062,6 +1068,10 @@ class RouterWorkerSession(NativeWorkerSession):
         # Reverse proxy resource
         #
         elif path_config['type'] == 'reverseproxy':
+
+            # Import late because t.w.proxy imports the reactor
+            from twisted.web.proxy import ReverseProxyResource
+
             host = path_config['host']
             port = int(path_config.get('port', 80))
             path = path_config.get('path', '').encode('ascii', 'ignore')

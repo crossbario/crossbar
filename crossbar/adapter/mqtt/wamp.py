@@ -78,10 +78,10 @@ class WampMQTTServerProtocol(Protocol):
         return self._wamp_session.publish(event.topic_name, options=options,
                                           **payload)
 
-    def publish_qos_0(self, event):
+    def process_publish_qos_0(self, event):
         return self._publish(event, options=PublishOptions(exclude_me=False))
 
-    def publish_qos_1(self, event):
+    def process_publish_qos_1(self, event):
         return self._publish(event,
                              options=PublishOptions(acknowledge=True, exclude_me=False))
 
