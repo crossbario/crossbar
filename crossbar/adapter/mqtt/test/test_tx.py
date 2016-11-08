@@ -32,7 +32,6 @@ from __future__ import absolute_import, division
 
 import attr
 
-from functools import partial
 from binascii import unhexlify
 
 from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
@@ -178,7 +177,6 @@ class TwistedProtocolTests(TestCase):
         r.advance(0.1)
         self.assertTrue(t.disconnecting)
 
-
     def test_keepalive_canceled_on_lost_connection(self):
         """
         If a client connects with a timeout, and disconnects themselves, we
@@ -211,7 +209,6 @@ class TwistedProtocolTests(TestCase):
         self.assertEqual(len(r.calls), 0)
         self.assertTrue(timeout.cancelled)
         self.assertFalse(timeout.called)
-
 
     def test_keepalive_requires_full_packet(self):
         """
@@ -535,12 +532,12 @@ class TwistedProtocolTests(TestCase):
         """
         sessions = {}
 
-        d = Deferred()
+        d = Deferred()  # noqa
         h = BasicHandler(6)
         r = Clock()
         t = StringTransport()
         p = MQTTServerTwistedProtocol(h, r, sessions)
-        cp = MQTTClientParser()
+        cp = MQTTClientParser()  # noqa
 
         p.makeConnection(t)
 
@@ -642,7 +639,7 @@ class NonZeroConnACKTests(object):
         """
         sessions = {}
 
-        d = Deferred()
+        d = Deferred()  # noqa
         h = BasicHandler(self.connect_code)
         r = Clock()
         t = StringTransport()
@@ -712,8 +709,7 @@ class SubscribeHandlingTests(TestCase):
             Connect(client_id=u"test123",
                     flags=ConnectFlags(clean_session=True)).serialise() +
             Subscribe(packet_identifier=1234,
-                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]
-            ).serialise()
+                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
         )
 
         for x in iterbytes(data):
@@ -722,7 +718,6 @@ class SubscribeHandlingTests(TestCase):
         events = cp.data_received(t.value())
         self.assertEqual(len(events), 2)
         self.assertEqual(events[1].return_codes, [128])
-
 
     def test_subscribe_same_id(self):
         """
@@ -749,8 +744,7 @@ class SubscribeHandlingTests(TestCase):
             Connect(client_id=u"test123",
                     flags=ConnectFlags(clean_session=True)).serialise() +
             Subscribe(packet_identifier=1234,
-                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]
-            ).serialise()
+                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
         )
 
         for x in iterbytes(data):
@@ -760,7 +754,6 @@ class SubscribeHandlingTests(TestCase):
         self.assertEqual(len(events), 2)
         self.assertEqual(events[1].return_codes, [0])
         self.assertEqual(events[1].packet_identifier, 1234)
-
 
     def test_exception_in_subscribe_drops_connection(self):
         """
@@ -788,8 +781,7 @@ class SubscribeHandlingTests(TestCase):
             Connect(client_id=u"test123",
                     flags=ConnectFlags(clean_session=True)).serialise() +
             Subscribe(packet_identifier=1234,
-                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]
-            ).serialise()
+                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
         )
 
         with LogCapturer("trace") as logs:
