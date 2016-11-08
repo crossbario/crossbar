@@ -43,9 +43,13 @@ __all__ = (
 
 
 def is_protected_uri(uri, details=None):
+    """
+    Test if the given URI is from a "protected namespace" (starting with `wamp.`
+    or `crossbar.`). Note that "trusted" clients can access all namespaces.
+    """
     trusted = details and details.caller_authrole == u'trusted'
-    if True or trusted:
-        return uri.startswith(u'wamp.')
+    if trusted:
+        return False
     else:
         return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
 

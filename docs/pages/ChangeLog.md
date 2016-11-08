@@ -2,6 +2,15 @@ title: ChangeLog
 toc: [Documentation, Programming Guide, ChangeLog]
 
 
+Crossbar 16.10.1 (2016-11-08)
+=============================
+
+Bugfixes
+--------
+
+- Fix event history (#918)
+
+
 Crossbar 16.10.0 (2016-11-07)
 =============================
 
