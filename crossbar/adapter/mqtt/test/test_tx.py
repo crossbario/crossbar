@@ -1837,5 +1837,68 @@ class SendPublishTests(TestCase):
         self.assertEqual(t.value(), b'')
 
 
+    def test_does_not_schedule_if_disconnected(self):
+        """
+        If a publish is sent whilst the client is disconnected, it won't be
+        flushed.
+        """
+        h = BasicHandler()
+        sessions, r, t, p, cp = make_test_items(h)
+
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=False)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p.dataReceived(x)
+
+        # No queued messages
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+
+        # Disconnect the client
+        t.connected = False
+        t.loseConnection()
+        p.connectionLost(None)
+
+        # WAMP layer calls send_publish, with QoS 0
+        p.send_publish(u"hello", 0, b'some bytes')
+
+        # Not queued
+        self.assertIsNone(p._flush_publishes)
+
+        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
+
+        # We must NOT have a clean session
+        data = (
+            Connect(client_id=u"test123",
+                    flags=ConnectFlags(clean_session=False)).serialise()
+        )
+
+        for x in iterbytes(data):
+            p2.dataReceived(x)
+
+        # The flushing is queued, so we'll have to spin the reactor
+        self.assertEqual(p2._flush_publishes.args, (True,))
+
+        r2.advance(0.1)
+
+        # We should have two events; the ConnACK, and the Publish. The ConnACK
+        # MUST come first.
+        events = cp2.data_received(t2.value())
+        t2.clear()
+        self.assertEqual(len(events), 2)
+        self.assertIsInstance(events[0], ConnACK)
+        self.assertIsInstance(events[1], Publish)
+
+        publish = Publish(duplicate=False, qos_level=0, retain=False,
+                          topic_name=u"hello", payload=b"some bytes")
+        self.assertEqual(events[1], publish)
+
+        # It is no longer queued
+        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
+        self.assertFalse(t2.disconnecting)
+
+
 class OutOfOrderAckTests(TestCase):
     pass
