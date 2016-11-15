@@ -86,7 +86,8 @@ class Broker(object):
                                                       publisher_exclusion=True,
                                                       subscription_revocation=True,
                                                       payload_transparency=True,
-                                                      payload_encryption_cryptobox=True)
+                                                      payload_encryption_cryptobox=True,
+                                                      event_retention=True)
 
         # store for event history
         if self._router._store:
@@ -178,13 +179,19 @@ class Broker(object):
         if store_event:
             self.log.debug('Persisting event on topic "{topic}"', topic=publish.topic)
 
+        # check if the event is to be retained by inspecting the 'retain' flag
+        retain_event = False
+        if getattr(publish, "retain", False):
+            retain_event = True
+
         # go on if (otherwise there isn't anything to do anyway):
         #
         #   - there are any active subscriptions OR
         #   - the publish is to be acknowledged OR
-        #   - the event is to be persisted
+        #   - the event is to be persisted OR
+        #   - the event is to be retained
         #
-        if subscriptions or publish.acknowledge or store_event:
+        if subscriptions or publish.acknowledge or store_event or retain_event:
 
             # validate payload
             #
@@ -223,6 +230,25 @@ class Broker(object):
                     #
                     if store_event:
                         self._event_store.store_event(session._session_id, publication, publish.topic, publish.args, publish.kwargs)
+
+                    # retain event on the topic
+                    #
+                    if retain_event:
+                        observation = self._subscription_map.get_observation(publish.topic, create_if_non_existing=True)
+
+                        if not observation.extra:
+                            observation.extra = {}
+
+                        if not 'retained_events' in observation.extra:
+                            observation.extra["retained_events"] = []
+
+                        if observation.extra["retained_events"]:
+                            if not publish.eligible and not publish.exclude:
+                                observation.extra["retained_events"] = [publish]
+                            else:
+                                observation.extra["retained_events"].append(publish)
+                        else:
+                            observation.extra["retained_events"] = [publish]
 
                     # send publish acknowledge immediately when requested
                     #
@@ -384,7 +410,7 @@ class Broker(object):
             if not authorization[u'allow']:
                 # error reply since session is not authorized to subscribe
                 #
-                reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])
+                replies = [message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])]
 
             else:
                 # ok, session authorized to subscribe. now get the subscription
@@ -410,13 +436,55 @@ class Broker(object):
                         if not was_already_subscribed:
                             service_session.publish(u'wamp.subscription.on_subscribe', session._session_id, subscription.id)
 
+                # check for retained events
+                #
+                def _get_retained_event():
+
+                    if subscription.extra and 'retained_events' in subscription.extra:
+                        retained_events = list(subscription.extra['retained_events'])
+                        retained_events.reverse()
+
+                        for publish in retained_events:
+
+                            authorised = False
+
+                            if not publish.exclude and not publish.eligible:
+                                authorised = True
+                            elif session._session_id in publish.eligible and not session._session_id in publish.exclude:
+                                authorised = True
+
+                            if authorised:
+                                publication = util.id()
+
+                                if publish.payload:
+                                    msg = message.Event(subscription.id,
+                                                        publication,
+                                                        payload=publish.payload,
+                                                        retained=True,
+                                                        enc_algo=publish.enc_algo,
+                                                        enc_key=publish.enc_key,
+                                                        enc_serializer=publish.enc_serializer)
+                                else:
+                                    msg = message.Event(subscription.id,
+                                                        publication,
+                                                        args=publish.args,
+                                                        kwargs=publish.kwargs,
+                                                        retained=True)
+
+                                print(str(msg))
+                                return [msg]
+                    return []
+
+
                 # acknowledge subscribe with subscription ID
                 #
-                reply = message.Subscribed(subscribe.request, subscription.id)
+                replies = [message.Subscribed(subscribe.request, subscription.id)]
+                if subscribe.get_retained:
+                    replies.extend(_get_retained_event())
 
             # send out reply to subscribe requestor
             #
-            self._router.send(session, reply)
+            [self._router.send(session, reply) for reply in replies]
 
         def on_authorize_error(err):
             """
@@ -465,9 +533,15 @@ class Broker(object):
 
     def _unsubscribe(self, subscription, session):
 
+        # Check if we are retaining events. If we are, do not delete the topic
+        #
+        delete = True
+        if subscription.extra and 'retained_events' in subscription.extra:
+            delete = False
+
         # drop session from subscription observers
         #
-        was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
+        was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription, delete)
 
         # remove subscription from session->subscriptions map
         #
