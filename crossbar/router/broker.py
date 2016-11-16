@@ -483,7 +483,6 @@ class Broker(object):
                                                         kwargs=publish.kwargs,
                                                         retained=True)
 
-                                print(str(msg))
                                 return [msg]
                     return []
 
