@@ -224,15 +224,15 @@ class UriObservationMap(object):
         if not isinstance(uri, six.text_type):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
+        is_first_observer = False
+
         if match == u"exact":
 
             # if the exact-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_exact:
-                self._observations_exact[uri] = ExactUriObservation(uri, ordered=self._ordered, extra=extra)
+                self.create_observation(uri, match, extra)
                 is_first_observer = True
-            else:
-                is_first_observer = False
 
             # get the observation
             #
@@ -243,10 +243,8 @@ class UriObservationMap(object):
             # if the prefix-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_prefix:
-                self._observations_prefix[uri] = PrefixUriObservation(uri, ordered=self._ordered, extra=extra)
+                self.create_observation(uri, match, extra)
                 is_first_observer = True
-            else:
-                is_first_observer = False
 
             # get the observation
             #
@@ -257,10 +255,8 @@ class UriObservationMap(object):
             # if the wildcard-matching URI isn't in our map, create a new observation
             #
             if uri not in self._observations_wildcard:
-                self._observations_wildcard[uri] = WildcardUriObservation(uri, ordered=self._ordered, extra=extra)
+                self.create_observation(uri, match, extra)
                 is_first_observer = True
-            else:
-                is_first_observer = False
 
             # get the observation
             #
@@ -268,11 +264,6 @@ class UriObservationMap(object):
 
         else:
             raise Exception("invalid match strategy '{}'".format(match))
-
-        # note observation in observation ID map
-        #
-        if is_first_observer:
-            self._observation_id_to_observation[observation.id] = observation
 
         # add observer if not already in observation
         #
@@ -290,7 +281,7 @@ class UriObservationMap(object):
 
         return observation, was_already_observed, is_first_observer
 
-    def get_observation(self, uri, match=u"exact", create_if_non_existing=False):
+    def get_observation(self, uri, match=u"exact"):
         """
         Get a observation (if any) for given URI and match policy.
 
@@ -298,8 +289,6 @@ class UriObservationMap(object):
         :type uri: unicode
         :param match: The matching policy for observation to retrieve, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
         :type match: unicode
-        :param create_if_non_existing: If an observation on that URI does not exist, whether we should create a blank one.
-        :type create_if_non_existing: bool
 
         :returns: The observation (instance of one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``)
             or ``None``.
@@ -309,15 +298,7 @@ class UriObservationMap(object):
         if not isinstance(uri, six.text_type):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
-        if create_if_non_existing and match != u"exact":
-            raise ValueError("'match' must be 'exact' for create_if_non_existing")
-
         if match == u"exact":
-            if not uri in self._observations_exact and create_if_non_existing:
-                observation = ExactUriObservation(uri, ordered=self._ordered)
-                self._observations_exact[uri] = observation
-                self._observation_id_to_observation[observation.id] = observation
-
             return self._observations_exact.get(uri, None)
 
         elif match == u"prefix":
@@ -404,7 +385,35 @@ class UriObservationMap(object):
         """
         return self._observation_id_to_observation.get(id, None)
 
-    def drop_observer(self, observer, observation, delete=True):
+    def create_observation(self, uri, match=u"exact", extra=None):
+        """
+        Create an observation with no observers.
+
+        :param uri: The URI (or URI pattern) to get the observation for.
+        :type uri: unicode
+        :param match: The matching policy for observation to retrieve, one of ``u"exact"``, ``u"prefix"`` or ``u"wildcard"``.
+        :type match: unicode
+
+        :returns: The observation (instance of one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``).
+        :rtype: obj
+        """
+        if match == u"exact":
+            observation = ExactUriObservation(uri, ordered=self._ordered, extra=extra)
+            self._observations_exact[uri] = observation
+        elif match == u"prefix":
+            observation = PrefixUriObservation(uri, ordered=self._ordered, extra=extra)
+            self._observations_prefix[uri] = observation
+        elif match == u"wildcard":
+            observation = WildcardUriObservation(uri, ordered=self._ordered, extra=extra)
+            self._observations_wildcard[uri] = observation
+
+        # note observation in observation ID map
+        #
+        self._observation_id_to_observation[observation.id] = observation
+
+        return observation
+
+    def drop_observer(self, observer, observation):
         """
         Drop a observer from a observation.
 
@@ -420,8 +429,9 @@ class UriObservationMap(object):
         :returns: A tuple ``(was_observed, was_last_observer)``.
         :rtype: tuple
         """
-        if observer in observation.observers:
+        was_last_observer = False
 
+        if observer in observation.observers:
             was_observed = True
 
             # remove observer from observation
@@ -435,30 +445,42 @@ class UriObservationMap(object):
 
             # no more observers on this observation!
             #
-            if delete and not observation.observers:
-
-                if observation.match == u"exact":
-                    del self._observations_exact[observation.uri]
-
-                elif observation.match == u"prefix":
-                    del self._observations_prefix[observation.uri]
-
-                elif observation.match == u"wildcard":
-                    del self._observations_wildcard[observation.uri]
-
-                else:
-                    # should not arrive here
-                    raise Exception("logic error")
-
+            if not observation.observers:
                 was_last_observer = True
-
-                del self._observation_id_to_observation[observation.id]
-
-            else:
-                was_last_observer = False
 
         else:
             # observer wasn't on this observation
             was_observed = False
 
         return was_observed, was_last_observer
+
+
+    def delete_observation(self, observation):
+        """
+        Delete the observation from the map.
+
+        :param observation: The observation which to remove from the map. An instance
+            of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation`` previously
+            created and handed out by this observation map.
+        :type observation: obj
+
+        :rtype: None
+        """
+
+        if observation.observers:
+            return ValueError("Can't delete an observation with current observers.")
+
+        if observation.match == u"exact":
+            del self._observations_exact[observation.uri]
+
+        elif observation.match == u"prefix":
+            del self._observations_prefix[observation.uri]
+
+        elif observation.match == u"wildcard":
+            del self._observations_wildcard[observation.uri]
+
+        else:
+            # should not arrive here
+            raise Exception("logic error")
+
+        del self._observation_id_to_observation[observation.id]

@@ -50,6 +50,14 @@ from txaio import make_logger
 __all__ = ('Broker',)
 
 
+class SubscriptionExtra(object):
+
+    __slots__ = ('retained_events',)
+
+    def __init__(self, retained_events=None):
+        self.retained_events = retained_events or []
+
+
 class Broker(object):
     """
     Basic WAMP broker.
@@ -85,9 +93,9 @@ class Broker(object):
                                                       subscriber_blackwhite_listing=True,
                                                       publisher_exclusion=True,
                                                       subscription_revocation=True,
+                                                      event_retention=True,
                                                       payload_transparency=True,
-                                                      payload_encryption_cryptobox=True,
-                                                      event_retention=True)
+                                                      payload_encryption_cryptobox=True)
 
         # store for event history
         if self._router._store:
@@ -118,6 +126,13 @@ class Broker(object):
             for subscription in self._session_to_subscriptions[session]:
 
                 was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
+                was_deleted = False
+
+                # delete it if there are no subscribers and no retained events
+                #
+                if was_subscribed and was_last_subscriber and not subscription.extra.retained_events:
+                    was_deleted = True
+                    self._subscription_map.delete_observation(subscription)
 
                 # publish WAMP meta events
                 #
@@ -126,7 +141,7 @@ class Broker(object):
                     if service_session and not subscription.uri.startswith(u'wamp.'):
                         if was_subscribed:
                             service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
-                        if was_last_subscriber:
+                        if was_deleted:
                             service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
 
             del self._session_to_subscriptions[session]
@@ -181,7 +196,7 @@ class Broker(object):
 
         # check if the event is to be retained by inspecting the 'retain' flag
         retain_event = False
-        if getattr(publish, "retain", False):
+        if publish.retain:
             retain_event = True
 
         # go on if (otherwise there isn't anything to do anyway):
@@ -234,21 +249,19 @@ class Broker(object):
                     # retain event on the topic
                     #
                     if retain_event:
-                        observation = self._subscription_map.get_observation(publish.topic, create_if_non_existing=True)
+                        observation = self._subscription_map.get_observation(publish.topic)
 
-                        if not observation.extra:
-                            observation.extra = {}
+                        if not observation:
+                            # No observation, lets make a new one
+                            observation = self._subscription_map.create_observation(publish.topic, extra=SubscriptionExtra())
 
-                        if not 'retained_events' in observation.extra:
-                            observation.extra["retained_events"] = []
-
-                        if observation.extra["retained_events"]:
+                        if observation.extra.retained_events:
                             if not publish.eligible and not publish.exclude:
-                                observation.extra["retained_events"] = [publish]
+                                observation.extra.retained_events = [publish]
                             else:
-                                observation.extra["retained_events"].append(publish)
+                                observation.extra.retained_events.append(publish)
                         else:
-                            observation.extra["retained_events"] = [publish]
+                            observation.extra.retained_events = [publish]
 
                     # send publish acknowledge immediately when requested
                     #
@@ -415,7 +428,7 @@ class Broker(object):
             else:
                 # ok, session authorized to subscribe. now get the subscription
                 #
-                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(session, subscribe.topic, subscribe.match)
+                subscription, was_already_subscribed, is_first_subscriber = self._subscription_map.add_observer(session, subscribe.topic, subscribe.match, extra=SubscriptionExtra())
 
                 if not was_already_subscribed:
                     self._session_to_subscriptions[session].add(subscription)
@@ -440,12 +453,11 @@ class Broker(object):
                 #
                 def _get_retained_event():
 
-                    if subscription.extra and 'retained_events' in subscription.extra:
-                        retained_events = list(subscription.extra['retained_events'])
+                    if subscription.extra.retained_events:
+                        retained_events = list(subscription.extra.retained_events)
                         retained_events.reverse()
 
                         for publish in retained_events:
-
                             authorised = False
 
                             if not publish.exclude and not publish.eligible:
@@ -533,15 +545,14 @@ class Broker(object):
 
     def _unsubscribe(self, subscription, session):
 
-        # Check if we are retaining events. If we are, do not delete the topic
-        #
-        delete = True
-        if subscription.extra and 'retained_events' in subscription.extra:
-            delete = False
-
         # drop session from subscription observers
         #
-        was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription, delete)
+        was_subscribed, was_last_subscriber = self._subscription_map.drop_observer(session, subscription)
+        was_deleted = False
+
+        if was_subscribed and was_last_subscriber and not subscription.extra.retained_events:
+            was_deleted = True
+            self._subscription_map.delete_observation(subscription)
 
         # remove subscription from session->subscriptions map
         #
@@ -555,7 +566,7 @@ class Broker(object):
             if service_session and not subscription.uri.startswith(u'wamp.'):
                 if was_subscribed:
                     service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
-                if was_last_subscriber:
+                if was_deleted:
                     service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
 
         return was_subscribed, was_last_subscriber
