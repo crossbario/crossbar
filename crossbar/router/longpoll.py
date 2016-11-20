@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -555,8 +555,7 @@ class WampLongPollResource(Resource):
     """
     A WAMP-over-Longpoll resource for use with Twisted Web Resource trees.
 
-    This class provides an implementation of the
-    `WAMP-over-Longpoll Transport <https://github.com/tavendo/WAMP/blob/master/spec/advanced.md#long-poll-transport>`_
+    This class provides an implementation of the WAMP-over-Longpoll transport
     for WAMP.
 
     The Resource exposes the following paths (child resources).

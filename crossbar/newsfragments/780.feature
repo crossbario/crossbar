@@ -1,1 +1,0 @@
-use ``towncrier`` to write changelog/NEWS file

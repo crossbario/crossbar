@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -229,7 +229,12 @@ class RouterServiceSession(ApplicationSession):
             )
 
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
-        if registration and not is_protected_uri(registration.uri, details):
+        if registration:
+            if is_protected_uri(registration.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to remove callee for protected URI "{}"'.format(registration.uri),
+                )
 
             if callee not in registration.observers:
                 raise ApplicationError(
@@ -263,7 +268,12 @@ class RouterServiceSession(ApplicationSession):
             )
 
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
-        if subscription and not is_protected_uri(subscription.uri, details):
+        if subscription:
+            if is_protected_uri(subscription.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to remove subscriber for protected URI "{}"'.format(subscription.uri),
+                )
 
             if subscriber not in subscription.observers:
                 raise ApplicationError(
@@ -291,7 +301,13 @@ class RouterServiceSession(ApplicationSession):
         """
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
 
-        if registration and not is_protected_uri(registration.uri, details):
+        if registration:
+            if is_protected_uri(registration.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to get registration for protected URI "{}"'.format(registration.uri),
+                )
+
             registration_details = {
                 u'id': registration.id,
                 u'created': registration.created,
@@ -319,7 +335,13 @@ class RouterServiceSession(ApplicationSession):
         """
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
 
-        if subscription and is_protected_uri(subscription.uri, details):
+        if subscription:
+            if is_protected_uri(subscription.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to get subscription for protected URI "{}"'.format(subscription.uri),
+                )
+
             subscription_details = {
                 u'id': subscription.id,
                 u'created': subscription.created,
@@ -380,7 +402,7 @@ class RouterServiceSession(ApplicationSession):
 
         subscriptions_exact = []
         for subscription in subscription_map._observations_exact.values():
-            if is_protected_uri(subscription.uri, details):
+            if not is_protected_uri(subscription.uri, details):
                 subscriptions_exact.append(subscription.id)
 
         subscriptions_prefix = []
@@ -494,7 +516,7 @@ class RouterServiceSession(ApplicationSession):
 
         subscription = self._router._broker._subscription_map.get_observation(topic, match)
 
-        if subscription and is_protected_uri(subscription.uri, details):
+        if subscription and not is_protected_uri(subscription.uri, details):
             return subscription.id
         else:
             return None
@@ -512,7 +534,13 @@ class RouterServiceSession(ApplicationSession):
         """
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
 
-        if registration and not is_protected_uri(registration.uri, details):
+        if registration:
+            if is_protected_uri(registration.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to list callees for protected URI "{}"'.format(registration.uri),
+                )
+
             session_ids = []
             for callee in registration.observers:
                 session_ids.append(callee._session_id)
@@ -536,7 +564,13 @@ class RouterServiceSession(ApplicationSession):
         """
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
 
-        if subscription and is_protected_uri(subscription.uri, details):
+        if subscription:
+            if is_protected_uri(subscription.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to list subscribers for protected URI "{}"'.format(subscription.uri),
+                )
+
             session_ids = []
             for subscriber in subscription.observers:
                 session_ids.append(subscriber._session_id)
@@ -560,7 +594,12 @@ class RouterServiceSession(ApplicationSession):
         """
         registration = self._router._dealer._registration_map.get_observation_by_id(registration_id)
 
-        if registration and not is_protected_uri(registration.uri, details):
+        if registration:
+            if is_protected_uri(registration.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to count callees for protected URI "{}"'.format(registration.uri),
+                )
             return len(registration.observers)
         else:
             raise ApplicationError(
@@ -581,7 +620,13 @@ class RouterServiceSession(ApplicationSession):
         """
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
 
-        if subscription and is_protected_uri(subscription.uri, details):
+        if subscription:
+            if is_protected_uri(subscription.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to count subscribers for protected URI "{}"'.format(subscription.uri),
+                )
+
             return len(subscription.observers)
         else:
             raise ApplicationError(
@@ -612,7 +657,13 @@ class RouterServiceSession(ApplicationSession):
 
         subscription = self._router._broker._subscription_map.get_observation_by_id(subscription_id)
 
-        if subscription and is_protected_uri(subscription.uri, details):
+        if subscription:
+            if is_protected_uri(subscription.uri, details):
+                raise ApplicationError(
+                    ApplicationError.NOT_AUTHORIZED,
+                    message=u'not authorized to retrieve event history for protected URI "{}"'.format(subscription.uri),
+                )
+
             events = self._router._broker._event_store.get_events(subscription_id, limit)
             if events is None:
                 # a return value of None in above signals that event history really

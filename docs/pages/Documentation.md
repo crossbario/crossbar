@@ -5,7 +5,7 @@ toc: [Documentation]
 
 Welcome to the Crossbar.io Reference Documentation. For full table of contents, please see [here](Table of Contents).
 
-> This documentation is an open-source community effort sponsored by [Tavendo](http://tavendo.com). Should you find errors or if you have suggestions, please file a doc issue [here](https://github.com/crossbario/crossbar/issues/new).
+> This documentation is an open-source community effort sponsored by [Crossbar.io GmbH](http://crossbario.com). Should you find errors or if you have suggestions, please file a doc issue [here](https://github.com/crossbario/crossbar/issues/new).
 
 ### Getting Started
 

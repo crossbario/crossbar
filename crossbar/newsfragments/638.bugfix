@@ -1,1 +1,0 @@
-use -m when invoking subprocesses (so *.pyc files alone still work)

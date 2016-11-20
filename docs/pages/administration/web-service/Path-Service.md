@@ -12,7 +12,7 @@ To configure a Path Service, attach a dictionary element to a path in your [Web 
 attribute | description
 ---|---
 **`type`** | must be `"path"`
-**`paths`** | A dictionary for configuring services on subpaths with keys matching the regular expression `^([a-z0-9A-Z_\-]+/)$`, and with `/` in the set of keys.
+**`paths`** | A dictionary for configuring services on subpaths with keys matching the regular expression `^([a-z0-9A-Z_\-]+|/)$`, and with `/` in the set of keys.
 
 ## Example
 

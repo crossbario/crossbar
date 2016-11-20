@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -43,9 +43,13 @@ __all__ = (
 
 
 def is_protected_uri(uri, details=None):
+    """
+    Test if the given URI is from a "protected namespace" (starting with `wamp.`
+    or `crossbar.`). Note that "trusted" clients can access all namespaces.
+    """
     trusted = details and details.caller_authrole == u'trusted'
-    if True or trusted:
-        return uri.startswith(u'wamp.')
+    if trusted:
+        return False
     else:
         return uri.startswith(u'wamp.') or uri.startswith(u'crossbar.')
 

@@ -94,4 +94,4 @@ The equivalent Python procedure would be:
         yield self.register(longop, 'com.myapp.longop', RegisterOptions(details_arg='details'))
 ```
 
-You can also take a look at a full [working example](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp/basic/rpc/progress).
+You can also take a look at a full [working example](https://github.com/crossbario/autobahn-python/tree/master/examples/twisted/wamp/basic/rpc/progress).

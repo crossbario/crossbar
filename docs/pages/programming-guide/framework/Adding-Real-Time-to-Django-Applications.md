@@ -3,7 +3,7 @@ toc: [Documentation, Programming Guide, Adding Real Time to Django Applications]
 
 # Adding Real-Time to Django Applications
 
-WAMP has a [lot of potential](http://tavendo.com/blog/post/is-crossbar-the-future-of-python-web-apps/), but it's asynchronous and most current Python Web stacks are synchronous.
+WAMP has a [lot of potential](http://crossbario.com/blog/post/is-crossbar-the-future-of-python-web-apps/), but it's asynchronous and most current Python Web stacks are synchronous.
 
 Still, you may want to benefit from WAMP realtime notifications right now in your synchronous applications.
 
@@ -57,13 +57,9 @@ First steps
 
 Our goal is to have a little WAMP monitoring client that we run on each machine we wish to monitor. It will retrieve CPU, RAM and disk usage every X seconds and then publish this data using WAMP.
 
-![Django/Crossbar.io Application Architecture](/static/img/docs/django/architecture.png)
-
 The client will talk to a server with a Django Website containing a model for each monitored machine, with values to say whether we are interested in the CPU, the RAM or the disk usage, and the currently set publishing interval for the data.
 
 A web page displays all readings for all machines in real time. When we change a model in the Django admin, the page reflects the change immediately.
-
-![Django Real-time Dashboard](/static/img/docs/django/dashboard.gif)
 
 So, we will need Django
 

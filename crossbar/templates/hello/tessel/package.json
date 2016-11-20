@@ -12,7 +12,7 @@
     "crossbar.io",
     "autobahn"
   ],
-  "author": "Tavendo GmbH",
+  "author": "Crossbar.io Technologies GmbH",
   "license": "MIT",
   "dependencies": {
     "wamp-tessel": "^0.1.0"

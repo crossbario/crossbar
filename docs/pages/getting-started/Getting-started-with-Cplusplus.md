@@ -3,7 +3,7 @@ toc: [Documentation, Getting Started, Getting started with Cplusplus]
 
 # Getting started with C++
 
-In this recipe we will use Crossbar.io to generate an application template for a [WAMP](http://wamp.ws/) application written in JavaScript using [AutobahnCpp](https://github.com/tavendo/AutobahnCpp), an open-source C++ 11 WAMP implementation. The generated application includes a JavaScript frontend to run in a browser.
+In this recipe we will use Crossbar.io to generate an application template for a [WAMP](http://wamp.ws/) application written in JavaScript using [AutobahnCpp](https://github.com/crossbario/autobahn-cpp), an open-source C++ 11 WAMP implementation. The generated application includes a JavaScript frontend to run in a browser.
 
 The frontend and backend components will talk with each other using all four main interactions available in WAMP:
 
@@ -16,7 +16,7 @@ We will run the whole application with Crossbar.io serving as a WAMP router, sta
 
 ## Prerequisites
 
-This example requires a (decent) C++ 11 compiler, Boost, MsgPack and AutobahnCpp. For installation, please see [here](https://github.com/tavendo/AutobahnCpp#building).
+This example requires a (decent) C++ 11 compiler, Boost, MsgPack and AutobahnCpp. For installation, please see [here](https://github.com/crossbario/autobahn-cpp#building).
 
 ## Create an example application
 
