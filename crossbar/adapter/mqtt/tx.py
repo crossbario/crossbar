@@ -66,12 +66,10 @@ class Session(object):
     subscriptions = attr.ib(default=attr.Factory(dict))
     connected = attr.ib(default=False)
     survives = attr.ib(default=False)
-    _in_flight_packet_ids = attr.ib(default=attr.Factory(set))
-    _publishes_awaiting_ack = attr.ib(default=attr.Factory(collections.OrderedDict))
 
     def get_packet_id(self):
         x = 0
-        while x == 0 or x in self._in_flight_packet_ids:
+        while x == 0:
             x = randint(1, _SIXTEEN_BIT_MAX)
         return x
 
@@ -82,14 +80,6 @@ class Message(object):
     topic = attr.ib()
     body = attr.ib()
     qos = attr.ib()
-
-
-@attr.s
-class AwaitingACK(object):
-
-    qos = attr.ib()
-    stage = attr.ib()
-    message = attr.ib()
 
 
 class MQTTServerTwistedProtocol(Protocol):
@@ -165,20 +155,12 @@ class MQTTServerTwistedProtocol(Protocol):
                               packet_identifier=packet_id, topic_name=topic,
                               payload=body)
 
-            waiting_ack = AwaitingACK(qos=1, stage=0, message=publish)
-            self.session._publishes_awaiting_ack[packet_id] = waiting_ack
-            self.session._in_flight_packet_ids.add(packet_id)
-
         elif qos == 2:
 
             packet_id = self.session.get_packet_id()
             publish = Publish(duplicate=False, qos_level=qos, retain=False,
                               packet_identifier=packet_id, topic_name=topic,
                               payload=body)
-
-            waiting_ack = AwaitingACK(qos=2, stage=0, message=publish)
-            self.session._publishes_awaiting_ack[packet_id] = waiting_ack
-            self.session._in_flight_packet_ids.add(packet_id)
 
         else:
             self.log.warn(log_category="MQ303")
@@ -197,7 +179,7 @@ class MQTTServerTwistedProtocol(Protocol):
                        packet=packet, conn_id=self._connection_id)
         self.transport.write(packet.serialise())
 
-    def _flush_saved_messages(self, including_non_acked=False):
+    def _flush_saved_messages(self):
 
         if self._flush_publishes:
             self._flush_publishes = None
@@ -205,28 +187,6 @@ class MQTTServerTwistedProtocol(Protocol):
         # Closed connection, we don't want to send messages here
         if not self.transport.connected:
             return None
-
-        if including_non_acked:
-            for message in self.session._publishes_awaiting_ack.values():
-                if message.qos == 1:
-                    message.message.duplicate = True
-                    self._send_packet(message.message)
-                if message.qos == 2:
-                    if message.stage == 0:
-                        # Stage 0 == Publish sent
-                        # Resend Publish
-                        message.message.duplicate = True
-                        self._send_packet(message.message)
-
-                    elif message.stage == 1:
-                        # Stage 1 == PubREC got, PubREL sent
-                        # Resend PubREL
-                        pkt = PubREL(packet_identifier=message.message.packet_identifier)
-                        self._send_packet(pkt)
-
-                    # Invalid!
-                    else:
-                        pass
 
         # New, queued messages
         while self.session.queued_messages:
@@ -301,7 +261,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     if event.client_id in self._mqtt_sessions:
                         self.session = self._mqtt_sessions[event.client_id]
                         self._flush_publishes = self._reactor.callLater(
-                            0, self._flush_saved_messages, True)
+                            0, self._flush_saved_messages)
                         self._handler.existing_wamp_session(self.session)
                         # Have a session, set to 1/True as in MQTT-3.2.2-2
                         session_present = True
@@ -456,42 +416,23 @@ class MQTTServerTwistedProtocol(Protocol):
 
             elif isinstance(event, PubACK):
 
-                if event.packet_identifier in self.session._publishes_awaiting_ack:
-
-                    if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 1:
-                        self.log.warn(log_category="MQ303",
-                                      client_id=self.session.client_id)
-                        break
-
-                    # MQTT-4.3.2-1: Release the packet ID
-                    del self.session._publishes_awaiting_ack[event.packet_identifier]
-                    self.session._in_flight_packet_ids.remove(event.packet_identifier)
-
-                else:
-                    self.log.warn(
-                        log_category="MQ300", client_id=self.session.client_id,
-                        pub_id=event.packet_identifier)
+                try:
+                    self._handler.process_puback(event)
+                except:
+                    # MQTT-4.8.0-2 - If we get a transient errorm we must close
+                    # the connection.
+                    self.transport.loseConnection()
+                    returnValue(None)
 
             elif isinstance(event, PubREC):
 
-                if event.packet_identifier in self.session._publishes_awaiting_ack:
-
-                    if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 2:
-                        self.log.warn(log_category="MQ304",
-                                      client_id=self.session.client_id)
-                        break
-
-                    if not self.session._publishes_awaiting_ack[event.packet_identifier].stage == 0:
-                        self.log.warn(log_category="MQ305",
-                                      client_id=self.session.client_id)
-                        break
-
-                    self.session._publishes_awaiting_ack[event.packet_identifier].stage = 1
-
-                else:
-                    self.log.warn(
-                        log_category="MQ301", client_id=self.session.client_id,
-                        pub_id=event.packet_identifier)
+                try:
+                    self._handler.process_pubrec(event)
+                except:
+                    # MQTT-4.8.0-2 - If we get a transient errorm we must close
+                    # the connection.
+                    self.transport.loseConnection()
+                    returnValue(None)
 
                 # MQTT-4.3.3-1: MUST send back a PubREL -- even if it's not an
                 # ID we know about, apparently, according to Mosquitto and
@@ -500,33 +441,28 @@ class MQTTServerTwistedProtocol(Protocol):
                 self._send_packet(resp)
 
             elif isinstance(event, PubREL):
-                # Should check if it is valid here
+
+                try:
+                    self._handler.process_pubrel(event)
+                except:
+                    # MQTT-4.8.0-2 - If we get a transient error we must close
+                    # the connection.
+                    self.transport.loseConnection()
+                    returnValue(None)
+
                 resp = PubCOMP(packet_identifier=event.packet_identifier)
                 self._send_packet(resp)
                 continue
 
             elif isinstance(event, PubCOMP):
 
-                if event.packet_identifier in self.session._publishes_awaiting_ack:
-
-                    if not self.session._publishes_awaiting_ack[event.packet_identifier].qos == 2:
-                        self.log.warn(log_category="MQ306",
-                                      client_id=self.session.client_id)
-                        break
-
-                    if not self.session._publishes_awaiting_ack[event.packet_identifier].stage == 1:
-                        self.log.warn(log_category="MQ307",
-                                      client_id=self.session.client_id)
-                        break
-
-                    # MQTT-4.3.3-1: Release the packet ID
-                    del self.session._publishes_awaiting_ack[event.packet_identifier]
-                    self.session._in_flight_packet_ids.remove(event.packet_identifier)
-
-                else:
-                    self.log.warn(
-                        log_category="MQ302", client_id=self.session.client_id,
-                        pub_id=event.packet_identifier)
+                try:
+                    self._handler.process_pubcomp(event)
+                except:
+                    # MQTT-4.8.0-2 - If we get a transient error we must close
+                    # the connection.
+                    self.transport.loseConnection()
+                    returnValue(None)
 
             elif isinstance(event, Disconnect):
                 # TODO: get rid of some will messages

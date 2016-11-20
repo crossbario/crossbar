@@ -35,7 +35,7 @@ import attr
 from binascii import unhexlify
 
 from crossbar.adapter.mqtt.tx import (
-    MQTTServerTwistedProtocol, AwaitingACK, Session, Message)
+    MQTTServerTwistedProtocol, Session, Message)
 from crossbar.adapter.mqtt.protocol import (
     MQTTParser, MQTTClientParser, client_packet_handlers, P_CONNACK)
 from crossbar.adapter.mqtt._events import (
@@ -67,6 +67,18 @@ class BasicHandler(object):
 
     def existing_wamp_session(self, event):
         return None
+
+    def process_puback(self, event):
+        return
+
+    def process_pubrec(self, event):
+        return
+
+    def process_pubrel(self, event):
+        return
+
+    def process_pubcomp(self, event):
+        return
 
 
 def make_test_items(handler, sessions=None):
@@ -1246,12 +1258,6 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0], expected_publish)
 
-        # Server is still awaiting the client's response
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=1, stage=0, message=expected_publish))
-
         # We send the PubACK, which we don't get a response to
         puback = PubACK(packet_identifier=4567)
 
@@ -1261,53 +1267,7 @@ class SendPublishTests(TestCase):
         events = cp.data_received(t.value())
         self.assertEqual(len(events), 0)
 
-        # It is no longer queued
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
-        self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
         self.assertFalse(t.disconnecting)
-
-    def test_qos_1_unassociated_puback_warns(self):
-        """
-        On receiving a PubACK which does not reference any known existing
-        Publish the server has sent, it will drop it and raise a warning.
-
-        XXX: Spec is unclear if this is the proper behaviour!
-        """
-        got_packets = []
-
-        h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        # Connect has happened
-        events = cp.data_received(t.value())
-        t.clear()
-        self.assertFalse(t.disconnecting)
-        self.assertIsInstance(events[0], ConnACK)
-
-        # We send the PubACK, which we don't get a response to (and also
-        # doesn't refer to any Publish the client was sent)
-        puback = PubACK(packet_identifier=4567)
-
-        with LogCapturer("trace") as logs:
-            for x in iterbytes(puback.serialise()):
-                p.dataReceived(x)
-
-        events = cp.data_received(t.value())
-        self.assertEqual(len(events), 0)
-
-        # A warning is raised
-        sent_logs = logs.get_category("MQ300")
-        self.assertEqual(len(sent_logs), 1)
-        self.assertEqual(sent_logs[0]["log_level"], LogLevel.warn)
-        self.assertEqual(sent_logs[0]["pub_id"], 4567)
 
     def test_qos_2_queues_message(self):
         """
@@ -1356,12 +1316,6 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0], expected_publish)
 
-        # Server is still awaiting the client's response
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=2, stage=0, message=expected_publish))
-
         # We send the PubREC, which we should get a PubREL back with
         pubrec = PubREC(packet_identifier=4567)
 
@@ -1373,21 +1327,12 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0], PubREL(packet_identifier=4567))
 
-        # Server is still awaiting the client's response, it is not complete
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=2, stage=1, message=expected_publish))
-
         # We send the PubCOMP, which has no response
         pubcomp = PubCOMP(packet_identifier=4567)
 
         for x in iterbytes(pubcomp.serialise()):
             p.dataReceived(x)
 
-        # It is no longer queued
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
-        self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
         self.assertFalse(t.disconnecting)
 
     def test_qos_1_resent_on_disconnect(self):
@@ -1433,13 +1378,6 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(events), 2)
         self.assertEqual(events[1], expected_publish)
 
-        # Server is still awaiting the client's response, message is not queued
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=1, stage=0, message=expected_publish))
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
         # Disconnect the client
         t.connected = False
         t.loseConnection()
@@ -1457,8 +1395,6 @@ class SendPublishTests(TestCase):
             p2.dataReceived(x)
 
         # The flushing is queued, so we'll have to spin the reactor
-        self.assertEqual(p2._flush_publishes.args, (True,))
-
         r2.advance(0.1)
 
         # We should have two events; the ConnACK, and the Publish. The ConnACK
@@ -1484,10 +1420,6 @@ class SendPublishTests(TestCase):
         events = cp2.data_received(t2.value())
         self.assertEqual(len(events), 0)
 
-        # It is no longer queued
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
-        self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
         self.assertFalse(t2.disconnecting)
 
     def test_qos_2_resent_on_disconnect_pubrel(self):
@@ -1533,13 +1465,6 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(events), 2)
         self.assertEqual(events[1], expected_publish)
 
-        # Server is still awaiting the client's response, message is not queued
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=2, stage=0, message=expected_publish))
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
         # Disconnect the client
         t.connected = False
         t.loseConnection()
@@ -1557,8 +1482,6 @@ class SendPublishTests(TestCase):
             p2.dataReceived(x)
 
         # The flushing is queued, so we'll have to spin the reactor
-        self.assertEqual(p2._flush_publishes.args, (True,))
-
         r2.advance(0.1)
 
         # We should have two events; the ConnACK, and the Publish. The ConnACK
@@ -1575,14 +1498,6 @@ class SendPublishTests(TestCase):
                                  payload=b"some bytes")
         self.assertEqual(events[1], resent_publish)
 
-        # Server is still waiting for us to send the PubREC -- QoS2, Stage 0
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-        self.assertFalse(t2.disconnecting)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=2, stage=0, message=resent_publish))
-
         # We send the PubREC to this Publish
         pubrec = PubREC(packet_identifier=4567)
 
@@ -1595,14 +1510,6 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0], PubREL(packet_identifier=4567))
 
-        # Server is still waiting for us to send the PubCOMP -- QoS2, Stage 1
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-        self.assertFalse(t2.disconnecting)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=2, stage=1, message=resent_publish))
-
         # We send the PubCOMP to this Publish
         pubcomp = PubCOMP(packet_identifier=4567)
 
@@ -1613,10 +1520,6 @@ class SendPublishTests(TestCase):
         events = cp2.data_received(t2.value())
         self.assertEqual(len(events), 0)
 
-        # Not queued, not awaiting ACK
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
-        self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
         self.assertFalse(t2.disconnecting)
 
     def test_qos_2_resent_on_disconnect_pubcomp(self):
@@ -1662,14 +1565,6 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(events), 2)
         self.assertEqual(events[1], expected_publish)
 
-        # Server is waiting for us to send the PubREC -- QoS2, Stage 0
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-        self.assertFalse(t.disconnecting)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=2, stage=0, message=expected_publish))
-
         # We send the PubREC to this Publish
         pubrec = PubREC(packet_identifier=4567)
 
@@ -1681,14 +1576,6 @@ class SendPublishTests(TestCase):
         t.clear()
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0], PubREL(packet_identifier=4567))
-
-        # Server is waiting for a PubCOMP -- QoS2, Stage 1
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-        self.assertFalse(t.disconnecting)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=2, stage=1, message=expected_publish))
 
         # Disconnect the client
         t.connected = False
@@ -1707,7 +1594,6 @@ class SendPublishTests(TestCase):
             p2.dataReceived(x)
 
         # The flushing is queued, so we'll have to spin the reactor
-        self.assertEqual(p2._flush_publishes.args, (True,))
         r2.advance(0.1)
 
         # Should get a resent PubREL back
@@ -1717,13 +1603,7 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
         self.assertEqual(events[1], PubREL(packet_identifier=4567))
 
-        # Server is still waiting for us to send the PubCOMP -- QoS2, Stage 1
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 1)
-        self.assertIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
         self.assertFalse(t2.disconnecting)
-        self.assertEqual(sessions[u"test123"]._publishes_awaiting_ack[4567],
-                         AwaitingACK(qos=2, stage=1, message=expected_publish))
 
         # We send the PubCOMP to this PubREL
         pubcomp = PubCOMP(packet_identifier=4567)
@@ -1735,10 +1615,6 @@ class SendPublishTests(TestCase):
         events = cp2.data_received(t2.value())
         self.assertEqual(len(events), 0)
 
-        # Not queued, not awaiting ACK
-        self.assertEqual(len(sessions[u"test123"]._publishes_awaiting_ack), 0)
-        self.assertNotIn(4567, sessions[u"test123"]._in_flight_packet_ids)
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
         self.assertFalse(t2.disconnecting)
 
     def test_non_allowed_qos_not_queued(self):
@@ -1870,8 +1746,6 @@ class SendPublishTests(TestCase):
             p2.dataReceived(x)
 
         # The flushing is queued, so we'll have to spin the reactor
-        self.assertEqual(p2._flush_publishes.args, (True,))
-
         r2.advance(0.1)
 
         # We should have two events; the ConnACK, and the Publish. The ConnACK
@@ -1890,6 +1764,8 @@ class SendPublishTests(TestCase):
         self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
         self.assertFalse(t2.disconnecting)
 
-
-class OutOfOrderAckTests(TestCase):
-    pass
+    for x in [test_qos_1_resent_on_disconnect,
+              test_qos_2_resent_on_disconnect_pubcomp,
+              test_qos_2_resent_on_disconnect_pubrel]:
+        x.todo = ("Needs WAMP-level implementation first, and the WAMP router "
+                  "to resend ACKs/messages")

@@ -85,6 +85,18 @@ class WampMQTTServerProtocol(Protocol):
         return self._publish(event,
                              options=PublishOptions(acknowledge=True, exclude_me=False))
 
+    def process_puback(self, event):
+        return
+
+    def process_pubrec(self, event):
+        return
+
+    def process_pubrel(self, event):
+        return
+
+    def process_pubcomp(self, event):
+        return
+
     @inlineCallbacks
     def process_subscribe(self, packet):
 
