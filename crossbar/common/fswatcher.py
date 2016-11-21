@@ -33,8 +33,6 @@ from __future__ import absolute_import
 import os
 from txaio import make_logger
 
-from twisted.internet import reactor
-
 try:
     from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
@@ -83,6 +81,8 @@ if HAS_FS_WATCHER:
                         u'rel_path': os.path.relpath(evt.src_path, self._working_dir),
                         u'is_directory': evt.is_directory,
                     }
+
+                    from twisted.internet import reactor
                     reactor.callFromThread(callback, event)
 
                 self._handler.on_any_event = on_any_event

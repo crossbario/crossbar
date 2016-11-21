@@ -44,11 +44,7 @@ try:
     #
     # twisted.conch.manhole_ssh will import even without, but we _need_ SSH
     import pyasn1  # noqa
-    from twisted.cred import checkers, portal
-    from twisted.conch.manhole import ColoredManhole
-    from twisted.conch.manhole_ssh import ConchFactory, \
-        TerminalRealm, \
-        TerminalSession
+    import cryptography  # noqa
 except ImportError as e:
     _HAS_MANHOLE = False
     _MANHOLE_MISSING_REASON = str(e)
@@ -63,6 +59,8 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
 from txaio import make_logger
+
+from twisted.cred import checkers, portal
 
 from crossbar.common import checkconfig
 from crossbar.common.checkconfig import get_config_value
@@ -575,6 +573,10 @@ class NativeProcessSession(ApplicationSession):
 
             def windowChanged(self, winSize):
                 pass
+
+        from twisted.conch.manhole_ssh import (
+            ConchFactory, TerminalRealm, TerminalSession)
+        from twisted.conch.manhole import ColoredManhole
 
         rlm = TerminalRealm()
         rlm.sessionFactory = PatchedTerminalSession  # monkey patch
