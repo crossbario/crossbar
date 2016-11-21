@@ -1,0 +1,1 @@
+Crossbar's cookie authentication now sends the `authextra` block to the client.
