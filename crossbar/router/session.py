@@ -735,7 +735,7 @@ class RouterSession(BaseSession):
 
         if hasattr(self._transport, '_cbtid') and self._transport._cbtid:
             if details.authmethod != 'cookie':
-                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole, details.authmethod, self._realm)
+                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole, details.authmethod, details.authextra, self._realm)
 
         # Router/Realm service session
         #
@@ -780,7 +780,7 @@ class RouterSession(BaseSession):
                 cs = self._transport.factory._cookiestore
 
                 # set cookie to "not authenticated"
-                cs.setAuth(self._transport._cbtid, None, None, None, None)
+                cs.setAuth(self._transport._cbtid, None, None, None, None, None)
 
                 # kick all session for the same auth cookie
                 for proto in cs.getProtos(self._transport._cbtid):
