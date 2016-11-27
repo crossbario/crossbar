@@ -836,6 +836,13 @@ class RouterWorkerSession(NativeWorkerSession):
             else:
                 rawsocket_factory = None
 
+            if 'mqtt' in config:
+                mqtt_factory = WampMQTTServerFactory(
+                    self._router_session_factory, config, self._reactor)
+                mqtt_factory.noisy = False
+            else:
+                mqtt_factory = None
+
             if 'websocket' in config:
                 websocket_factory_map = {}
                 for websocket_url_first_component, websocket_config in config['websocket'].items():
@@ -846,7 +853,7 @@ class RouterWorkerSession(NativeWorkerSession):
             else:
                 websocket_factory_map = None
 
-            transport_factory = UniSocketServerFactory(web_factory, websocket_factory_map, rawsocket_factory)
+            transport_factory = UniSocketServerFactory(web_factory, websocket_factory_map, rawsocket_factory, mqtt_factory)
 
         # Unknown transport type
         #
