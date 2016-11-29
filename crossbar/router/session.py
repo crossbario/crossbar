@@ -295,6 +295,7 @@ class RouterSession(BaseSession):
         self._router_factory = router_factory
         self._router = None
         self._realm = None
+        self._testaments = {u"destroyed": [], u"detatched": []}
 
         self._goodbye_sent = False
         self._transport_is_closing = False
@@ -530,8 +531,57 @@ class RouterSession(BaseSession):
                 # to the same or a different realm without closing the transport
                 # self._transport.close()
 
-            else:
+            elif isinstance(msg, message.Call):
 
+                WAMP_SESSION_PROCEDURES = [
+                    u"wamp.session.add_testament",
+                    u"wamp.session.flush_testaments",
+                ]
+
+                if msg.procedure in WAMP_SESSION_PROCEDURES:
+
+                    try:
+                        if msg.procedure == u"wamp.session.add_testament":
+
+                            scope = (msg.kwargs or {}).get(u"scope", u"destroyed")
+                            if scope not in [u"destroyed", u"detatched"]:
+                                raise ValueError("scope must be destroyed or detatched")
+
+                            pub_id = util.id()
+                            topic, args, kwargs = msg.args
+
+                            # Get the publish options, remove some explicit keys
+                            publish_options = (msg.kwargs or {}).get(u"publish_options", {})
+                            publish_options.pop("acknowledge", None)
+                            publish_options.pop("exclude_me", None)
+
+                            pub = message.Publish(
+                                request=pub_id,
+                                topic=topic,
+                                args=args,
+                                kwargs=kwargs,
+                                **publish_options)
+
+                            self._testaments[scope].append(pub)
+
+                        elif msg.procedure == u"wamp.session.flush_testaments":
+
+                            scope = msg.kwargs.get(u"scope", u"destroyed")
+                            if scope not in [u"destroyed", u"detatched"]:
+                                raise ValueError("scope must be destroyed or detatched")
+
+                            self._testaments[scope] = []
+
+                        return_msg = message.Result(msg.request, [])
+                    except Exception as e:
+                        self._router.log.failure()
+                        return_msg = message.Error(msg.request, {"reason": e.args}, u"wamp.error.testament_error")
+
+                    self._transport.send(return_msg)
+                else:
+                    self._router.process(self, msg)
+
+            else:
                 self._router.process(self, msg)
 
     # noinspection PyUnusedLocal
@@ -760,6 +810,13 @@ class RouterSession(BaseSession):
             self._service_session.publish(u'wamp.session.on_join', self._session_details)
 
     def onLeave(self, details):
+
+        # todo: move me into detatch when session resumption happens
+        for msg in self._testaments[u"detatched"]:
+            self._router.process(self, msg)
+
+        for msg in self._testaments[u"destroyed"]:
+            self._router.process(self, msg)
 
         # dispatch session metaevent from WAMP AP
         #
