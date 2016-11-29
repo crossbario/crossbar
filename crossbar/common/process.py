@@ -567,16 +567,16 @@ class NativeProcessSession(ApplicationSession):
         #
         namespace = {'session': self}
 
+        from twisted.conch.manhole_ssh import (
+            ConchFactory, TerminalRealm, TerminalSession)
+        from twisted.conch.manhole import ColoredManhole
+
         class PatchedTerminalSession(TerminalSession):
             # get rid of
             # exceptions.AttributeError: TerminalSession instance has no attribute 'windowChanged'
 
             def windowChanged(self, winSize):
                 pass
-
-        from twisted.conch.manhole_ssh import (
-            ConchFactory, TerminalRealm, TerminalSession)
-        from twisted.conch.manhole import ColoredManhole
 
         rlm = TerminalRealm()
         rlm.sessionFactory = PatchedTerminalSession  # monkey patch
