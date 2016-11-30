@@ -52,6 +52,7 @@ class _NeedMoreData(Exception):
     We need more data before we can get the bytes length.
     """
 
+
 # State machine events
 WAITING_FOR_NEW_PACKET = 0
 COLLECTING_REST_OF_PACKET = 1

@@ -135,7 +135,7 @@ class MQTTServerTwistedProtocol(Protocol):
 
     def send_publish(self, topic, qos, body):
 
-        if not qos in [0, 1, 2]:
+        if qos not in [0, 1, 2]:
             raise ValueError("QoS must be [0, 1, 2]")
 
         self.session.queued_messages.append(Message(topic=topic, qos=qos, body=body))
