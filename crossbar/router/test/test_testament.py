@@ -151,7 +151,6 @@ class TestamentTests(unittest.TestCase):
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
 
-
         d = session.call(u"wamp.session.add_testament", u"com.test.destroyed",
                          [u'hello'], {}, scope=u"bar")
         pump.flush()
@@ -169,7 +168,6 @@ class TestamentTests(unittest.TestCase):
 
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
-
 
         d = session.call(u"wamp.session.flush_testaments", scope=u"bar")
         pump.flush()
