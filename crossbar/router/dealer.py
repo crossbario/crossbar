@@ -144,6 +144,7 @@ class Dealer(object):
                                                       progressive_call_results=True,
                                                       registration_revocation=True,
                                                       payload_transparency=True,
+                                                      testament_meta_api=True,
                                                       payload_encryption_cryptobox=True)
 
         # store for call queues
