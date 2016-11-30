@@ -10,6 +10,7 @@ env:
 
   - TOX_ENV=py27-unpinned,coverage-report
   - TOX_ENV=py27-pinned,coverage-report
+  - TOX_ENV=py27-abtrunk,coverage-report
 
   - TOX_ENV=py34-unpinned,coverage-report
   - TOX_ENV=py34-pinned,coverage-report
@@ -44,3 +45,7 @@ matrix:
     - python: 3.5
       env:
       - TOX_ENV=py35-pinned,coverage-report
+
+    - python: 3.5
+      env:
+      - TOX_ENV=py35-abtrunk,coverage-report
