@@ -454,7 +454,6 @@ class UriObservationMap(object):
 
         return was_observed, was_last_observer
 
-
     def delete_observation(self, observation):
         """
         Delete the observation from the map.

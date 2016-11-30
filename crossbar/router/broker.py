@@ -462,7 +462,7 @@ class Broker(object):
 
                             if not publish.exclude and not publish.eligible:
                                 authorised = True
-                            elif session._session_id in publish.eligible and not session._session_id in publish.exclude:
+                            elif session._session_id in publish.eligible and session._session_id not in publish.exclude:
                                 authorised = True
 
                             if authorised:
@@ -485,7 +485,6 @@ class Broker(object):
 
                                 return [msg]
                     return []
-
 
                 # acknowledge subscribe with subscription ID
                 #
