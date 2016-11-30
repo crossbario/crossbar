@@ -286,7 +286,6 @@ def test_qos2_send_wrong_confirm(host, port):
     return Result("qos2_wrong_confirm", f.success, f.reason, f.client_transcript)
 
 
-
 def test_qos1_send_wrong_confirm(host, port):
     record = [
         Frame(
