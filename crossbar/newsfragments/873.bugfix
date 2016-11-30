@@ -1,0 +1,1 @@
+When using cookie authentication, the debug logs will now mention the correct cookie name if it is not the default.

@@ -32,7 +32,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.authid",
                 "authrole": "example.authrole",
                 "authrealm": "example.authrealm",
-                "authmethod": "example.authmethod"
+                "authmethod": "example.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnotherID",
@@ -41,7 +42,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
                 "authrealm": "example.other.authrealm",
-                "authmethod": "example.other.authmethod"
+                "authmethod": "example.other.authmethod",
+                "authextra": {"a": "b"},
             },
             {
                 "id": "thisIsAnID",
@@ -50,7 +52,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
                 "authrealm": "example.second.authrealm",
-                "authmethod": "example.second.authmethod"
+                "authmethod": "example.second.authmethod",
+                "authextra": {},
             }
         ]
 
@@ -62,7 +65,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
                 "authrealm": "example.second.authrealm",
-                "authmethod": "example.second.authmethod"
+                "authmethod": "example.second.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnotherID",
@@ -71,7 +75,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
                 "authrealm": "example.other.authrealm",
-                "authmethod": "example.other.authmethod"
+                "authmethod": "example.other.authmethod",
+                "authextra": {"a": "b"},
             }
         ]
 
@@ -101,7 +106,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.authid",
                 "authrole": "example.authrole",
                 "authrealm": "example.authrealm",
-                "authmethod": "example.authmethod"
+                "authmethod": "example.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnID",
@@ -110,7 +116,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
                 "authrealm": "example.second.authrealm",
-                "authmethod": "example.second.authmethod"
+                "authmethod": "example.second.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnotherID",
@@ -119,7 +126,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
                 "authrealm": "example.other.authrealm",
-                "authmethod": "example.other.authmethod"
+                "authmethod": "example.other.authmethod",
+                "authextra": {},
             }
         ]
 
@@ -153,7 +161,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.authid",
                 "authrole": "example.authrole",
                 "authrealm": "example.authrealm",
-                "authmethod": "example.authmethod"
+                "authmethod": "example.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnotherID",
@@ -162,7 +171,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
                 "authrealm": "example.other.authrealm",
-                "authmethod": "example.other.authmethod"
+                "authmethod": "example.other.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnID",
@@ -171,7 +181,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
                 "authrealm": "example.second.authrealm",
-                "authmethod": "example.second.authmethod"
+                "authmethod": "example.second.authmethod",
+                "authextra": {},
             }
         ]
 
@@ -183,7 +194,8 @@ class TestCookieStore(unittest.TestCase):
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
                 "authrealm": "example.other.authrealm",
-                "authmethod": "example.other.authmethod"
+                "authmethod": "example.other.authmethod",
+                "authextra": {},
             },
         ]
 

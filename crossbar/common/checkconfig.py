@@ -163,6 +163,7 @@ def pprint_json(obj, log_to=None):
 def construct_yaml_str(self, node):
     return self.construct_scalar(node)
 
+
 for Klass in [Loader, SafeLoader]:
     Klass.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
@@ -184,6 +185,7 @@ def construct_ordered_mapping(self, node, deep=False):
         mapping[key] = value
     return mapping
 
+
 yaml.constructor.BaseConstructor.construct_mapping = construct_ordered_mapping
 
 
@@ -192,6 +194,7 @@ def construct_yaml_map_with_ordered_dict(self, node):
     yield data
     value = self.construct_mapping(node)
     data.update(value)
+
 
 for Klass in [Loader, SafeLoader]:
     Klass.add_constructor('tag:yaml.org,2002:map',
@@ -225,6 +228,7 @@ def represent_ordered_dict(dump, tag, mapping, flow_style=None):
         else:
             node.flow_style = best_style
     return node
+
 
 for Klass in [Dumper, SafeDumper]:
     Klass.add_representer(OrderedDict,
@@ -311,6 +315,7 @@ def get_config_value(config, item, default=None):
         return config[item]
     else:
         return default
+
 
 _CONFIG_ITEM_ID_PAT_STR = "^[a-z][a-z0-9_]{2,11}$"
 _CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
@@ -1595,6 +1600,7 @@ def check_listening_transport_universal(transport):
             'endpoint',
             'rawsocket',
             'websocket',
+            'mqtt',
             'web',
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in Universal transport configuration".format(k))
@@ -1620,6 +1626,9 @@ def check_listening_transport_universal(transport):
 
         for path in paths:
             check_listening_transport_websocket(transport['websocket'][path], with_endpoint=False)
+
+    if 'mqtt' in transport:
+        check_listening_transport_mqtt(transport['mqtt'], with_endpoint=False)
 
     if 'web' in transport:
         check_listening_transport_web(transport['web'], with_endpoint=False)

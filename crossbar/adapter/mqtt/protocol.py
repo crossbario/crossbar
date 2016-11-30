@@ -36,17 +36,13 @@ from ._events import (
     Subscribe, SubACK,
     Unsubscribe, UnsubACK,
     Publish, PubACK,
+    PubREC, PubREL, PubCOMP,
     PingREQ, PingRESP,
 )
 
 import bitstring
 
 __all__ = [
-    "Connect", "ConnACK",
-    "Subscribe", "SubACK",
-    "Unsubscribe", "UnsubACK",
-    "Publish", "PubACK",
-    "PingREQ", "PingRESP",
     "MQTTParser",
 ]
 
@@ -55,6 +51,7 @@ class _NeedMoreData(Exception):
     """
     We need more data before we can get the bytes length.
     """
+
 
 # State machine events
 WAITING_FOR_NEW_PACKET = 0
@@ -65,6 +62,9 @@ P_CONNECT = 1
 P_CONNACK = 2
 P_PUBLISH = 3
 P_PUBACK = 4
+P_PUBREC = 5
+P_PUBREL = 6
+P_PUBCOMP = 7
 P_SUBSCRIBE = 8
 P_SUBACK = 9
 P_UNSUBSCRIBE = 10
@@ -75,9 +75,13 @@ P_PINGRESP = 13
 server_packet_handlers = {
     P_CONNECT: Connect,
     P_PUBLISH: Publish,
+    P_PUBACK: PubACK,
     P_SUBSCRIBE: Subscribe,
     P_UNSUBSCRIBE: Unsubscribe,
     P_PINGREQ: PingREQ,
+    P_PUBREL: PubREL,
+    P_PUBREC: PubREC,
+    P_PUBCOMP: PubCOMP,
 }
 
 client_packet_handlers = {
@@ -87,6 +91,9 @@ client_packet_handlers = {
     P_SUBACK: SubACK,
     P_UNSUBACK: UnsubACK,
     P_PINGRESP: PingRESP,
+    P_PUBREC: PubREC,
+    P_PUBREL: PubREL,
+    P_PUBCOMP: PubCOMP,
 }
 
 
@@ -221,3 +228,8 @@ class MQTTParser(object):
                 self._packet_count += 1
             else:
                 return events
+
+
+class MQTTClientParser(MQTTParser):
+    _first_pkt = P_CONNACK
+    _packet_handlers = client_packet_handlers

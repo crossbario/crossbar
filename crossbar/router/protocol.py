@@ -243,8 +243,8 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
                         self._authprovider = u'cookie'
-                        self.log.debug("Authenticated client via cookie cbtid={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
-                                       cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
+                        self.log.debug("Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
+                                       cookiename=self.factory._cookiestore._cookie_id_field, cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
                         self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")

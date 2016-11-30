@@ -70,10 +70,23 @@ log_categories = {
     "MQ100": "Got packet from '{client_id}': {packet!r}",
     "MQ101": "Sent packet to '{client_id}': {packet!r}",
     "MQ200": "Successful connection from '{client_id}'",
+    "MQ201": "Received a QoS 0 Publish from '{client_id}'",
+    "MQ202": "Received a QoS 1 Publish from '{client_id}'",
+    "MQ203": "Received a QoS 2 Publish from '{client_id}'",
+    "MQ204": "Received a Disconnect from '{client_id}', closing connection",
+    "MQ303": "Got a non-allowed QoS value in the publish queue, dropping it.",
     "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
     "MQ401": "Protocol violation from '{client_id}', terminating connection: {error}",
-    "MQ402": "Got a packet ('{packet_id}') from '{client_id} that is invalid for a server, terminating connection",
-    "MQ500": "Error handling a Subscribe from '{client_id}', dropping connection",
+    "MQ402": "Got a packet ('{packet_id}') from '{client_id}' that is invalid for a server, terminating connection",
+    "MQ403": "Got a Publish packet from '{client_id}' that has both QoS bits set, terminating connection",
+    "MQ500": "Error handling a Connect, dropping connection",
+    "MQ501": "Error handling a Subscribe from '{client_id}', dropping connection",
+    "MQ502": "Error handling an Unsubscribe from '{client_id}', dropping connection",
+    "MQ503": "Error handling a QoS 0 Publish from '{client_id}', dropping connection",
+    "MQ504": "Error handling a QoS 1 Publish from '{client_id}', dropping connection",
+    "MQ505": "Error handling a QoS 2 Publish from '{client_id}', dropping connection",
+
+
 }
 
 
