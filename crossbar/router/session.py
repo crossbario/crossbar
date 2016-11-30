@@ -566,7 +566,7 @@ class RouterSession(BaseSession):
 
                         elif msg.procedure == u"wamp.session.flush_testaments":
 
-                            scope = msg.kwargs.get(u"scope", u"destroyed")
+                            scope = (msg.kwargs or {}).get(u"scope", u"destroyed")
                             if scope not in [u"destroyed", u"detatched"]:
                                 raise ValueError("scope must be destroyed or detatched")
 
@@ -574,8 +574,9 @@ class RouterSession(BaseSession):
 
                         return_msg = message.Result(msg.request, [])
                     except Exception as e:
-                        self._router.log.failure()
-                        return_msg = message.Error(msg.request, {"reason": e.args}, u"wamp.error.testament_error")
+                        return_msg = message.Error(
+                            msg.MESSAGE_TYPE, msg.request, u"wamp.error.testament_error",
+                            [], {"reason": e.args[0] if len(e.args) > 0 else str(e.args)})
 
                     self._transport.send(return_msg)
                 else:
