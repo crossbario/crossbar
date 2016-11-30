@@ -241,6 +241,7 @@ class PubREL(object):
 
         return cls(packet_identifier)
 
+
 @attr.s
 class PubREC(object):
     packet_identifier = attr.ib(validator=instance_of(int))

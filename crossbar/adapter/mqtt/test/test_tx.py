@@ -36,8 +36,7 @@ from binascii import unhexlify
 
 from crossbar.adapter.mqtt.tx import (
     MQTTServerTwistedProtocol, Session, Message)
-from crossbar.adapter.mqtt.protocol import (
-    MQTTParser, MQTTClientParser, client_packet_handlers, P_CONNACK)
+from crossbar.adapter.mqtt.protocol import MQTTClientParser
 from crossbar.adapter.mqtt._events import (
     Connect, ConnectFlags, ConnACK,
     SubACK, Subscribe,
@@ -476,7 +475,6 @@ class TwistedProtocolTests(TestCase):
 
         Compliance statements MQTT-3.2.2-4, MQTT-3.2.2-5
         """
-        d = Deferred()
         h = BasicHandler(6)
         sessions, r, t, p, cp = make_test_items(h)
 
@@ -1168,8 +1166,6 @@ class SendPublishTests(TestCase):
         The WAMP layer calling send_publish will queue a message up for
         sending, and send it next time it has a chance.
         """
-        got_packets = []
-
         h = BasicHandler()
         sessions, r, t, p, cp = make_test_items(h)
 
@@ -1214,8 +1210,6 @@ class SendPublishTests(TestCase):
         The WAMP layer calling send_publish will queue a message up for
         sending, and send it next time it has a chance.
         """
-        got_packets = []
-
         h = BasicHandler()
         sessions, r, t, p, cp = make_test_items(h)
 
@@ -1621,8 +1615,6 @@ class SendPublishTests(TestCase):
         """
         A non-QoS 0, 1, or 2 message will be rejected by the publish layer.
         """
-        got_packets = []
-
         h = BasicHandler()
         sessions, r, t, p, cp = make_test_items(h)
 
@@ -1662,8 +1654,6 @@ class SendPublishTests(TestCase):
         If a non-QoS 0, 1, or 2 message gets into the queue, it will be
         dropped.
         """
-        got_packets = []
-
         h = BasicHandler()
         sessions, r, t, p, cp = make_test_items(h)
 
@@ -1702,7 +1692,6 @@ class SendPublishTests(TestCase):
 
         # Nothing sent
         self.assertEqual(t.value(), b'')
-
 
     def test_does_not_schedule_if_disconnected(self):
         """

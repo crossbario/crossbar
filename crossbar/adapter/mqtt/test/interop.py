@@ -43,7 +43,6 @@ from collections import deque
 from texttable import Texttable
 
 from twisted.internet.protocol import Protocol, ClientFactory
-from twisted.logger import globalLogBeginner, textFileLogObserver
 from crossbar.adapter.mqtt.protocol import MQTTClientParser
 
 
@@ -51,6 +50,7 @@ from crossbar.adapter.mqtt.protocol import MQTTClientParser
 class Frame(object):
     send = attr.ib()
     data = attr.ib()
+
 
 class ConnectionLoss(object):
     send = False
@@ -69,8 +69,6 @@ class Result(object):
 @click.option("--host")
 @click.option("--port")
 def run(host, port):
-
-    #globalLogBeginner.beginLoggingTo([textFileLogObserver(sys.stdout)])
 
     port = int(port)
 
@@ -104,8 +102,6 @@ def run(host, port):
     if failures:
         sys.exit(len(failures))
     sys.exit(0)
-
-
 
 
 class ReplayProtocol(Protocol):
@@ -176,7 +172,6 @@ class ReplayProtocol(Protocol):
                         self._waiting_for_nothing = self.factory.reactor.callLater(2, wait)
                         return
 
-
     def connectionLost(self, reason):
         if self.factory.reactor.running:
             if self._record and isinstance(self._record[0], ConnectionLoss):
@@ -195,7 +190,6 @@ class ReplayClientFactory(ClientFactory):
     reason = attr.ib(default=None)
     protocol = ReplayProtocol
     noisy = False
-
 
     def buildProtocol(self, addr):
 
