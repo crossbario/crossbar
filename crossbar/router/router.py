@@ -84,7 +84,7 @@ class Router(object):
         :param realm: The realm this router is working for.
         :type realm: str
         :param options: Router options.
-        :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
+        :type options: Instance of :class:`crossbar.router.RouterOptions`.
         """
         self._factory = factory
         self._options = options or RouterOptions()
@@ -318,7 +318,7 @@ class RouterFactory(object):
         """
 
         :param options: Default router options.
-        :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
+        :type options: Instance of :class:`crossbar.router.RouterOptions`.
         """
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)

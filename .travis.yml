@@ -33,6 +33,10 @@ notifications:
       use_notice: true
       skip_join: true
 
+cache:
+  directories:
+    - $HOME/.cache/pip
+
 matrix:
   fast_finish: true
 

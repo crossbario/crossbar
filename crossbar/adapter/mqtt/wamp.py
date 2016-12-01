@@ -32,51 +32,134 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
+from zope.interface import implementer
+
 from functools import partial
 
+from twisted.internet.interfaces import IHandshakeListener, ISSLTransport
 from twisted.internet.protocol import Protocol, Factory
-from twisted.internet.defer import succeed, inlineCallbacks, returnValue
+from twisted.internet.defer import succeed, inlineCallbacks, returnValue, Deferred
 
 from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
+from crossbar.router.session import RouterSession
 
-from autobahn.wamp.types import PublishOptions, ComponentConfig
-from autobahn.twisted.wamp import ApplicationSession
+from autobahn import util
+from autobahn.wamp import message, role
+from autobahn.wamp.types import PublishOptions
+from autobahn.twisted.util import transport_channel_id
 
 
+class WampTransport(object):
+    _authid = None
+
+    def __init__(self, on_message, real_transport):
+        self.on_message = on_message
+        self.transport = real_transport
+
+    def send(self, msg):
+        self.on_message(msg)
+
+    def get_channel_id(self, channel_id_type=u'tls-unique'):
+        return transport_channel_id(self.transport, is_server=True, channel_id_type=channel_id_type)
+
+
+@implementer(IHandshakeListener)
 class WampMQTTServerProtocol(Protocol):
 
-    def __init__(self, reactor, mqtt_sessions):
-        self._mqtt = MQTTServerTwistedProtocol(self, reactor, mqtt_sessions)
+    def __init__(self, reactor):
+        self._mqtt = MQTTServerTwistedProtocol(self, reactor)
+        self._request_to_packetid = {}
+        self._waiting_for_connect = Deferred()
+
+    def on_message(self, inc_msg):
+
+        if isinstance(inc_msg, message.Challenge):
+            assert inc_msg.method == u"ticket"
+
+            msg = message.Authenticate(signature=self._pw_challenge)
+            del self._pw_challenge
+
+            self._wamp_session.onMessage(msg)
+
+        elif isinstance(inc_msg, message.Welcome):
+            print(inc_msg)
+            self._waiting_for_connect.callback((0, False))
+
+        elif isinstance(inc_msg, message.Abort):
+            print(inc_msg)
+            self._waiting_for_connect.callback((1, False))
 
     def connectionMade(self):
+        if not ISSLTransport.providedBy(self.transport):
+            self._when_ready()
+
+    def handshakeCompleted(self):
+        self._when_ready()
+
+    def _when_ready(self):
         self._mqtt.transport = self.transport
 
-    def new_wamp_session(self, event):
-        session_config = ComponentConfig(realm=self.factory._config['realm'],
-                                         extra=None)
-        session = ApplicationSession(session_config)
-
-        self.factory._session_factory.add(
-            session,
-            authrole=self.factory._config.get('role', u'anonymous'))
-        self._wamp_session = session
-
-        return session
-
-    def existing_wamp_session(self, session):
-        self._full_session = session
-        self._wamp_session = session.wamp_session
+        self._wamp_session = RouterSession(self.factory._wamp_session_factory._routerFactory)
+        self._wamp_transport = WampTransport(self.on_message, self.transport)
+        self._wamp_transport.factory = self.factory
+        self._wamp_session.onOpen(self._wamp_transport)
 
     def process_connect(self, packet):
+
+        roles = {
+            u"subscriber": role.RoleSubscriberFeatures(
+                payload_transparency=True),
+            u"publisher": role.RolePublisherFeatures(
+                payload_transparency=True,
+                x_acknowledged_event_delivery=True)
+        }
+
+        # Will be autoassigned
+        realm = None
+        methods = []
+
+        if ISSLTransport.providedBy(self.transport):
+            methods.append(u"tls")
+
+        if packet.username and packet.password:
+            methods.append(u"ticket")
+            msg = message.Hello(
+                realm=realm,
+                roles=roles,
+                authmethods=methods,
+                authid=packet.username)
+            self._pw_challenge = packet.password
+
+        else:
+            methods.append(u"anonymous")
+            msg = message.Hello(
+                realm=realm,
+                roles=roles,
+                authmethods=methods,
+                authid=packet.client_id)
+
+        self._wamp_session.onMessage(msg)
+
         # Should add some authorisation here?
-        return succeed(0)
+        return self._waiting_for_connect
 
     def _publish(self, event, options):
-        payload = {'mqtt_message': event.payload.decode('utf8'),
-                   'mqtt_qos': event.qos_level}
 
-        return self._wamp_session.publish(event.topic_name, options=options,
-                                          **payload)
+        request = util.id()
+        msg = message.Publish(
+            request=request,
+            topic=event.topic_name,
+            args=tuple(),
+            kwargs={'mqtt_message': event.payload.decode('utf8'),
+                    'mqtt_qos': event.qos_level},
+            **options.message_attr())
+
+        self._wamp_session.onMessage(msg)
+
+        if event.qos_level > 0:
+            self._request_to_packetid[request] = event.packet_identifier
+
+        return succeed(0)
 
     def process_publish_qos_0(self, event):
         return self._publish(event, options=PublishOptions(exclude_me=False))
@@ -164,10 +247,9 @@ class WampMQTTServerFactory(Factory):
         self._wamp_session_factory = session_factory
         self._config = config["options"]
         self._reactor = reactor
-        self._mqtt_sessions = {}
 
     def buildProtocol(self, addr):
 
-        protocol = self.protocol(self._reactor, self._mqtt_sessions)
+        protocol = self.protocol(self._reactor)
         protocol.factory = self
         return protocol

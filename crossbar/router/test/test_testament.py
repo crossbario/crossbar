@@ -53,7 +53,7 @@ class TestamentTests(unittest.TestCase):
         destroyed, the message it filed as a testament will be sent to
         subscribers of the chosen topic.
         """
-        router, server_factory = make_router()
+        router, server_factory, router_factory = make_router()
 
         class ObservingSession(ApplicationSession):
 
@@ -98,7 +98,7 @@ class TestamentTests(unittest.TestCase):
         the message it filed as a testament will not be sent, as it was
         deleted.
         """
-        router, server_factory = make_router()
+        router, server_factory, router_factory = make_router()
 
         class ObservingSession(ApplicationSession):
 
@@ -146,7 +146,7 @@ class TestamentTests(unittest.TestCase):
         """
         Only 'detatched' and 'destroyed' are valid scopes for add_testament.
         """
-        router, server_factory = make_router()
+        router, server_factory, router_factory = make_router()
 
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
@@ -164,7 +164,7 @@ class TestamentTests(unittest.TestCase):
         """
         Only 'detatched' and 'destroyed' are valid scopes for flush_testament.
         """
-        router, server_factory = make_router()
+        router, server_factory, router_factory = make_router()
 
         session, pump = connect_application_session(server_factory,
                                                     ApplicationSession)
@@ -182,7 +182,7 @@ class TestamentTests(unittest.TestCase):
         Adding a testament to one scope and flushing the other maintains the
         added testament.
         """
-        router, server_factory = make_router()
+        router, server_factory, router_factory = make_router()
 
         class ObservingSession(ApplicationSession):
 

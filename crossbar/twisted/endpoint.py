@@ -54,7 +54,7 @@ try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
     from OpenSSL import crypto
-    from OpenSSL.SSL import TLSv1_2_METHOD
+    from OpenSSL.SSL import OP_NO_SSLv3, OP_NO_TLSv1
     from twisted.internet.interfaces import ISSLTransport
 
     _HAS_TLS = True
@@ -221,12 +221,14 @@ def _create_tls_server_context(config, cbdir, log):
         acceptableCiphers=crossbar_ciphers,
 
         # TLS hardening
-        method=TLSv1_2_METHOD,
         enableSingleUseKeys=True,
         enableSessions=False,
         enableSessionTickets=False,
         fixBrokenPeers=False,
     )
+
+    # Disable SSLv3 and TLSv1 -- only do 1.1+
+    ctx._options = ctx._options | OP_NO_SSLv3 | OP_NO_TLSv1
 
     # Without a curve being set, ECDH won't be available even if listed
     # in acceptable ciphers!

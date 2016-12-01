@@ -659,7 +659,16 @@ class Connect(object):
         # Client ID
         b.append(build_string(self.client_id))
 
-        # XXX: Implement other fields
+        if self.flags.will:
+            b.append(build_string(self.will_topic))
+            b.append(build_string(self.will_message))
+
+        if self.flags.username:
+            b.append(build_string(self.username))
+
+        # Technically this should be binary data but we will only accept UTF-8
+        if self.flags.password:
+            b.append(build_string(self.password))
 
         return b"".join(b)
 

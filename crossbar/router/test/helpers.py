@@ -78,7 +78,7 @@ def make_router(realm_name=u'default'):
     # Create a new RawSocket factory
     server_factory = WampRawSocketServerFactory(session_factory, {})
 
-    return router, server_factory
+    return router, server_factory, session_factory
 
 
 def connect_application_session(server_factory, MyApplicationSession, component_config=None):
