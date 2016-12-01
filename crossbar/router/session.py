@@ -531,57 +531,6 @@ class RouterSession(BaseSession):
                 # to the same or a different realm without closing the transport
                 # self._transport.close()
 
-            elif isinstance(msg, message.Call):
-
-                WAMP_SESSION_PROCEDURES = [
-                    u"wamp.session.add_testament",
-                    u"wamp.session.flush_testaments",
-                ]
-
-                if msg.procedure in WAMP_SESSION_PROCEDURES:
-
-                    try:
-                        if msg.procedure == u"wamp.session.add_testament":
-
-                            scope = (msg.kwargs or {}).get(u"scope", u"destroyed")
-                            if scope not in [u"destroyed", u"detatched"]:
-                                raise ValueError("scope must be destroyed or detatched")
-
-                            pub_id = util.id()
-                            topic, args, kwargs = msg.args
-
-                            # Get the publish options, remove some explicit keys
-                            publish_options = (msg.kwargs or {}).get(u"publish_options", {})
-                            publish_options.pop("acknowledge", None)
-                            publish_options.pop("exclude_me", None)
-
-                            pub = message.Publish(
-                                request=pub_id,
-                                topic=topic,
-                                args=args,
-                                kwargs=kwargs,
-                                **publish_options)
-
-                            self._testaments[scope].append(pub)
-
-                        elif msg.procedure == u"wamp.session.flush_testaments":
-
-                            scope = (msg.kwargs or {}).get(u"scope", u"destroyed")
-                            if scope not in [u"destroyed", u"detatched"]:
-                                raise ValueError("scope must be destroyed or detatched")
-
-                            self._testaments[scope] = []
-
-                        return_msg = message.Result(msg.request, [])
-                    except Exception as e:
-                        return_msg = message.Error(
-                            msg.MESSAGE_TYPE, msg.request, u"wamp.error.testament_error",
-                            [], {"reason": e.args[0] if len(e.args) > 0 else str(e.args)})
-
-                    self._transport.send(return_msg)
-                else:
-                    self._router.process(self, msg)
-
             else:
                 self._router.process(self, msg)
 
