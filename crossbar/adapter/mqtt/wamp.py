@@ -56,7 +56,8 @@ class WampMQTTServerProtocol(Protocol):
                                          extra=None)
         session = ApplicationSession(session_config)
 
-        self.factory._session_factory.add(
+
+        self.factory._wamp_session_factory.add(
             session,
             authrole=self.factory._config.get('role', u'anonymous'))
         self._wamp_session = session
@@ -124,8 +125,8 @@ class WampMQTTServerProtocol(Protocol):
                 continue
             else:
                 try:
-                    if x.topic_filter in self._subscriptions:
-                        yield self._subscriptions[x.topic_filter].unsubscribe()
+                    if x.topic_filter in self._full_session.subscriptions:
+                        yield self._full_session.subscriptions[x.topic_filter].unsubscribe()
 
                     sub = yield self._wamp_session.subscribe(
                         partial(handle_publish, x.topic_filter, x.max_qos),
@@ -147,8 +148,8 @@ class WampMQTTServerProtocol(Protocol):
     def process_unsubscribe(self, packet):
 
         for topic in packet.topics:
-            if topic in self._subscriptions:
-                yield self._subscriptions.pop(topic).unsubscribe()
+            if topic in self._full_session.subscriptions:
+                yield self._full_session.subscriptions.pop(topic).unsubscribe()
 
         return
 
