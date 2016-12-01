@@ -144,6 +144,7 @@ class Dealer(object):
                                                       progressive_call_results=True,
                                                       registration_revocation=True,
                                                       payload_transparency=True,
+                                                      testament_meta_api=True,
                                                       payload_encryption_cryptobox=True)
 
         # store for call queues
@@ -573,6 +574,14 @@ class Dealer(object):
         # caller disclosure
         #
         if authorization[u'disclose']:
+            disclose = True
+        elif (call.procedure.startswith(u"wamp.") or
+              call.procedure.startswith(u"crossbar.")):
+            disclose = True
+        else:
+            disclose = False
+
+        if disclose:
             caller = session._session_id
             caller_authid = session._authid
             caller_authrole = session._authrole

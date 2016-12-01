@@ -414,7 +414,7 @@ class Node(object):
         if not self._config:
             raise Exception("No node configuration loaded")
 
-        if not cdc_mode and not self._config["controller"] and not self._config["workers"]:
+        if not cdc_mode and not self._config.get("controller", {}) and not self._config.get("workers", {}):
             self.log.warn(
                 ("You seem to have no controller config or workers, nor are "
                  "starting up in CDC mode. Check your config exists, or pass "

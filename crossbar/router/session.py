@@ -295,6 +295,7 @@ class RouterSession(BaseSession):
         self._router_factory = router_factory
         self._router = None
         self._realm = None
+        self._testaments = {u"destroyed": [], u"detatched": []}
 
         self._goodbye_sent = False
         self._transport_is_closing = False
@@ -531,7 +532,6 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-
                 self._router.process(self, msg)
 
     # noinspection PyUnusedLocal
@@ -760,6 +760,13 @@ class RouterSession(BaseSession):
             self._service_session.publish(u'wamp.session.on_join', self._session_details)
 
     def onLeave(self, details):
+
+        # todo: move me into detatch when session resumption happens
+        for msg in self._testaments[u"detatched"]:
+            self._router.process(self, msg)
+
+        for msg in self._testaments[u"destroyed"]:
+            self._router.process(self, msg)
 
         # dispatch session metaevent from WAMP AP
         #
