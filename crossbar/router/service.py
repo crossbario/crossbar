@@ -194,7 +194,27 @@ class RouterServiceSession(ApplicationSession):
         )
 
     def session_add_testament(self, topic, args, kwargs, publish_options=None, scope=u"destroyed", details=None):
+        """
+        Add a testament to the current session.
 
+        :param topic: The topic to publish the testament to.
+        :type topic: unicode
+
+        :param args: A list of arguments for the publish.
+        :type args: list or tuple
+
+        :param kwargs: A dict of keyword arguments for the publish.
+        :type kwargs: dict
+
+        :param publish_options: The publish options for the publish.
+        :type publish_options: None or dict
+
+        :param scope: The scope of the testament, either "detatched" or
+            "destroyed".
+        :type scope: unicode
+
+        :rtype: None
+        """
         session = self._router._session_id_to_session[details.caller]
 
         if scope not in [u"destroyed", u"detatched"]:
@@ -203,7 +223,7 @@ class RouterServiceSession(ApplicationSession):
         pub_id = util.id()
 
         # Get the publish options, remove some explicit keys
-        publish_options = kwargs.get(u"publish_options", {})
+        publish_options = publish_options or {}
         publish_options.pop("acknowledge", None)
         publish_options.pop("exclude_me", None)
 
@@ -219,7 +239,14 @@ class RouterServiceSession(ApplicationSession):
         return None
 
     def session_flush_testaments(self, scope=u"destroyed", details=None):
+        """
+        Flush the testaments of a given scope.
 
+        :param scope: The scope to flush, either "detatched" or "destroyed".
+        :type scope: unicode
+
+        :rtype: None
+        """
         session = self._router._session_id_to_session[details.caller]
 
         if scope not in [u"destroyed", u"detatched"]:
@@ -228,8 +255,6 @@ class RouterServiceSession(ApplicationSession):
         session._testaments[scope] = []
 
         return None
-
-
 
     @wamp.register(u'wamp.session.kill')
     def session_kill(self, session_id, reason=None, message=None, details=None):
