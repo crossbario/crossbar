@@ -138,8 +138,8 @@ class WampMQTTServerProtocol(Protocol):
                         responses.append(1)
                     else:
                         responses.append(x.max_qos)
-                except Exception:
-                    print("Failed subscribing to topic %s" % (x.topic_filter,))
+                except Exception as e:
+                    print("Failed subscribing to topic {}: {}".format(x.topic_filter, e))
                     responses.append(128)
 
         returnValue(responses)
