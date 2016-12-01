@@ -272,6 +272,14 @@ class Broker(object):
                     # publisher disclosure
                     #
                     if authorization[u'disclose']:
+                        disclose = True
+                    elif (publish.topic.startswith(u"wamp.") or
+                          publish.topic.startswith(u"crossbar.")):
+                        disclose = True
+                    else:
+                        disclose = False
+
+                    if disclose:
                         publisher = session._session_id
                         publisher_authid = session._authid
                         publisher_authrole = session._authrole

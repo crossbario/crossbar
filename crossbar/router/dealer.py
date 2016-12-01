@@ -574,6 +574,14 @@ class Dealer(object):
         # caller disclosure
         #
         if authorization[u'disclose']:
+            disclose = True
+        elif (call.procedure.startswith(u"wamp.") or
+              call.procedure.startswith(u"crossbar.")):
+            disclose = True
+        else:
+            disclose = False
+
+        if disclose:
             caller = session._session_id
             caller_authid = session._authid
             caller_authrole = session._authrole
