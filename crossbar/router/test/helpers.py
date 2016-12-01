@@ -29,9 +29,11 @@
 #####################################################################################
 
 from autobahn.twisted.wamp import WampRawSocketClientFactory, ApplicationSessionFactory
+from autobahn.wamp.types import ComponentConfig
 
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
+from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.protocol import WampRawSocketServerFactory
@@ -39,7 +41,7 @@ from crossbar.router.protocol import WampRawSocketServerFactory
 from twisted.test.iosim import connect, FakeTransport
 
 
-def make_router(realm=u'default'):
+def make_router(realm_name=u'default'):
     """
     Make a router, and return it and a RawSocket factory.
     """
@@ -47,7 +49,12 @@ def make_router(realm=u'default'):
     router_factory = RouterFactory()
 
     # start a realm
-    router_factory.start_realm(RouterRealm(None, {u'name': realm}))
+    realm = RouterRealm(None, {u'name': realm_name})
+    router = router_factory.start_realm(realm)
+
+    extra = {}
+    session_config = ComponentConfig(realm_name, extra)
+    realm.session = RouterServiceSession(session_config, router)
 
     # allow everything
     default_permissions = {
@@ -60,11 +67,13 @@ def make_router(realm=u'default'):
             u'subscribe': True
         }
     }
-    router = router_factory.get(realm)
+
+    router = router_factory.get(realm_name)
     router.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=default_permissions))
 
     # create a router session factory
     session_factory = RouterSessionFactory(router_factory)
+    session_factory.add(realm.session, authrole=u'trusted')
 
     # Create a new RawSocket factory
     server_factory = WampRawSocketServerFactory(session_factory, {})

@@ -157,8 +157,8 @@ class TestamentTests(unittest.TestCase):
 
         # Make sure it returns a failure
         failure = self.failureResultOf(d)
-        self.assertEqual(failure.value.kwargs,
-                         {"reason": "scope must be destroyed or detatched"})
+        self.assertEqual(failure.value.args,
+                         (u"scope must be destroyed or detatched",))
 
     def test_flush_testament_needs_valid_scope(self):
         """
@@ -174,8 +174,8 @@ class TestamentTests(unittest.TestCase):
 
         # Make sure it returns a failure
         failure = self.failureResultOf(d)
-        self.assertEqual(failure.value.kwargs,
-                         {"reason": "scope must be destroyed or detatched"})
+        self.assertEqual(failure.value.args,
+                         (u"scope must be destroyed or detatched",))
 
     def test_one_scope_does_not_affect_other(self):
         """
