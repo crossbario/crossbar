@@ -188,6 +188,9 @@ class Dealer(object):
             for registration in self._session_to_registrations[session]:
                 was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
 
+                if was_registered and was_last_callee:
+                    self._registration_map.delete_observation(registration)
+
                 # publish WAMP meta events
                 #
                 if self._router._realm:
@@ -361,6 +364,9 @@ class Dealer(object):
         # drop session from registration observers
         #
         was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
+
+        if was_registered and was_last_callee:
+            self._registration_map.delete_observation(registration)
 
         # remove registration from session->registrations map
         #
