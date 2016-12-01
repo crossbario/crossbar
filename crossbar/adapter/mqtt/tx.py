@@ -269,6 +269,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         wamp_session = self._handler.new_wamp_session(event)
                         self.session = Session(wamp_session=wamp_session,
                                                client_id=event.client_id)
+                        self._handler._full_session = self.session
                         # Don't have session, set to 0/False as in MQTT-3.2.2-3
                         session_present = False
 
