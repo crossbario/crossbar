@@ -487,63 +487,6 @@ for x in [1, 2, 3, 4, 5]:
 
 class SubscribeHandlingTests(TestCase):
 
-    def test_subscribe_always_gets_packet(self):
-        """
-        Subscriptions always get a ConnACK, even if none of the subscriptions
-        were successful.
-
-        Compliance statements MQTT-3.8.4-1
-        """
-        class SubHandler(BasicHandler):
-            def process_subscribe(self, event):
-                return succeed([128])
-
-        h = SubHandler()
-        r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Subscribe(packet_identifier=1234,
-                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        events = cp.data_received(t.value())
-        self.assertEqual(len(events), 2)
-        self.assertEqual(events[1].return_codes, [128])
-
-    def test_subscribe_same_id(self):
-        """
-        SubACKs have the same packet IDs as the Subscription that it is
-        replying to.
-
-        Compliance statements MQTT-3.8.4-2
-        """
-        class SubHandler(BasicHandler):
-            def process_subscribe(self, event):
-                return succeed([0])
-
-        h = SubHandler()
-        r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Subscribe(packet_identifier=1234,
-                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        events = cp.data_received(t.value())
-        self.assertEqual(len(events), 2)
-        self.assertEqual(events[1].return_codes, [0])
-        self.assertEqual(events[1].packet_identifier, 1234)
-
     def test_exception_in_subscribe_drops_connection(self):
         """
         Transient failures (like an exception from handler.process_subscribe)
