@@ -48,7 +48,8 @@ from crossbar.worker.router import RouterRealm
 
 from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
 from crossbar.adapter.mqtt._events import (
-    Connect, ConnectFlags, ConnACK, Publish, PubACK
+    Connect, ConnectFlags, ConnACK, Publish, PubACK,
+    Subscribe, SubscriptionTopicRequest, SubACK,
 )
 from crossbar._logging import LogCapturer
 from crossbar.twisted.endpoint import (create_listening_endpoint_from_config,
@@ -191,8 +192,6 @@ class MQTTAdapterTests(TestCase):
                     flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
         mqtt_pump.flush()
 
-        print(self.logs.log_text.getvalue())
-
         # We get a CONNECT
         self.assertEqual(client_protocol.data,
                          ConnACK(session_present=False, return_code=0).serialise())
@@ -274,9 +273,6 @@ class MQTTAdapterTests(TestCase):
                 if len(self_.data) == len(self_.expected):
                     self.assertEqual(self_.data, self_.expected)
                     real_reactor.stop()
-
-            def connectionLost(self, reason):
-                print(reason)
 
         @l.addCallback
         def _listening(factory):
@@ -387,9 +383,6 @@ class MQTTAdapterTests(TestCase):
                     self.assertEqual(self_.data, self_.expected)
                     real_reactor.stop()
 
-            def connectionLost(self, reason):
-                print(reason)
-
         @l.addCallback
         def _listening(factory):
             d = client_endpoint.connect(Factory.forProtocol(TestProtocol))
@@ -429,3 +422,43 @@ class MQTTAdapterTests(TestCase):
 
         # No events!
         self.assertEqual(len(session.events), 0)
+
+    def test_basic_subscribe(self):
+
+        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
+
+        session, pump = connect_application_session(
+            server_factory, ApplicationSession, component_config=ComponentConfig(realm=u"mqtt"))
+        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
+
+        client_transport.write(
+            Connect(client_id=u"testclient", username=u"test123", password=u"password",
+                    flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
+        client_transport.write(
+            Subscribe(packet_identifier=1, topic_requests=[
+                SubscriptionTopicRequest(topic_filter=u"com/test/wamp", max_qos=0)
+            ]).serialise())
+
+        mqtt_pump.flush()
+
+        self.assertEqual(
+            client_protocol.data,
+            (
+                ConnACK(session_present=False, return_code=0).serialise() +
+                SubACK(packet_identifier=1, return_codes=[0]).serialise()
+            ))
+        client_protocol.data = b""
+
+        session.publish(u"com.test.wamp", u"bar")
+        pump.flush()
+
+        reactor.advance(0.1)
+        mqtt_pump.flush()
+
+        # This needs to be replaced with the real deal, see https://github.com/crossbario/crossbar/issues/885
+        self.assertEqual(
+            client_protocol.data,
+            Publish(duplicate=False, qos_level=0, retain=False,
+                    topic_name=u"com/test/wamp",
+                    payload=b'{"args": ["bar"], "kwargs": {}}').serialise()
+        )

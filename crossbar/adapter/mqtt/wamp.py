@@ -32,13 +32,15 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
+from txaio import make_logger
+
 from zope.interface import implementer
 
-from functools import partial
+from collections import OrderedDict
 
 from twisted.internet.interfaces import IHandshakeListener, ISSLTransport
 from twisted.internet.protocol import Protocol, Factory
-from twisted.internet.defer import succeed, inlineCallbacks, returnValue, Deferred
+from twisted.internet.defer import succeed, inlineCallbacks, Deferred
 
 from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
 from crossbar.router.session import RouterSession
@@ -47,6 +49,26 @@ from autobahn import util
 from autobahn.wamp import message, role
 from autobahn.wamp.types import PublishOptions
 from autobahn.twisted.util import transport_channel_id
+
+
+def tokenise_mqtt_topic(topic):
+    """
+    Limitedly WAMP-ify and break it down into WAMP-like tokens.
+    """
+    assert len(topic) > 0
+    topic = topic.replace(u"+", u"*")
+
+    return topic.split(u"/")
+
+
+def tokenise_wamp_topic(topic):
+    """
+    Limitedly MQTT-ify and break it down into MQTT-like tokens.
+    """
+    assert len(topic) > 0
+    topic = topic.replace(u"*", u"+")
+
+    return topic.split(u".")
 
 
 class WampTransport(object):
@@ -66,12 +88,25 @@ class WampTransport(object):
 @implementer(IHandshakeListener)
 class WampMQTTServerProtocol(Protocol):
 
+    log = make_logger()
+
     def __init__(self, reactor):
         self._mqtt = MQTTServerTwistedProtocol(self, reactor)
         self._request_to_packetid = {}
         self._waiting_for_connect = Deferred()
+        self._inflight_subscriptions = {}
+        self._subrequest_to_mqtt_subrequest = {}
+        self._subrequest_callbacks = {}
+        self._topic_lookup = {}
 
     def on_message(self, inc_msg):
+
+        try:
+            self._on_message(inc_msg)
+        except:
+            self.log.failure()
+
+    def _on_message(self, inc_msg):
 
         if isinstance(inc_msg, message.Challenge):
             assert inc_msg.method == u"ticket"
@@ -82,12 +117,39 @@ class WampMQTTServerProtocol(Protocol):
             self._wamp_session.onMessage(msg)
 
         elif isinstance(inc_msg, message.Welcome):
-            print(inc_msg)
             self._waiting_for_connect.callback((0, False))
 
         elif isinstance(inc_msg, message.Abort):
-            print(inc_msg)
             self._waiting_for_connect.callback((1, False))
+
+        elif isinstance(inc_msg, message.Subscribed):
+            # Successful subscription!
+            mqtt_id = self._subrequest_to_mqtt_subrequest[inc_msg.request]
+            self._inflight_subscriptions[mqtt_id][inc_msg.request]["response"] = 0
+            self._topic_lookup[inc_msg.subscription] = self._inflight_subscriptions[mqtt_id][inc_msg.request]["topic"]
+
+            if -1 not in [x["response"] for x in self._inflight_subscriptions[mqtt_id].values()]:
+                self._subrequest_callbacks[mqtt_id].callback(None)
+
+        elif (isinstance(inc_msg, message.Error) and
+              inc_msg.request_type == message.Subscribe.MESSAGE_TYPE):
+            # Failed subscription :(
+            mqtt_id = self._subrequest_to_mqtt_subrequest[inc_msg.request]
+            self._inflight_subscriptions[mqtt_id][inc_msg.request]["response"] = 128
+
+            if -1 not in [x["response"] for x in self._inflight_subscriptions[mqtt_id].values()]:
+                self._subrequest_callbacks[mqtt_id].callback(None)
+
+        elif isinstance(inc_msg, message.Event):
+
+            topic = inc_msg.topic or self._topic_lookup[inc_msg.subscription]
+
+            # Should be real encoding...
+            body = json.dumps({"args": inc_msg.args or [],
+                               "kwargs": inc_msg.kwargs or {}},
+                              sort_keys=True, ensure_ascii=False).encode('utf8')
+
+            self._mqtt.send_publish(u"/".join(tokenise_wamp_topic(topic)), 0, body)
 
     def connectionMade(self):
         if not ISSLTransport.providedBy(self.transport):
@@ -180,51 +242,38 @@ class WampMQTTServerProtocol(Protocol):
     def process_pubcomp(self, event):
         return
 
-    @inlineCallbacks
     def process_subscribe(self, packet):
 
-        def handle_publish(topic, qos, *args, **kwargs):
-            # If there's a single kwarg which is mqtt_message, then just send
-            # that, so that CB can be 'drop in'
-            if not args and set(kwargs.keys()) == set(["mqtt_message", "mqtt_qos"]):
-                body = kwargs["mqtt_message"].encode('utf8')
+        packet_watch = OrderedDict()
+        d = Deferred()
 
-                if kwargs["mqtt_qos"] < qos:
-                    # If the QoS of the message is lower than our max QoS, use
-                    # the lower QoS. Otherwise, bracket it at our QoS.
-                    qos = kwargs["mqtt_qos"]
+        @d.addCallback
+        def _(ign):
+            self._mqtt.send_suback(packet.packet_identifier, [x["response"] for x in packet_watch.values()])
+            del self._inflight_subscriptions[packet.packet_identifier]
+            del self._subrequest_callbacks[packet.packet_identifier]
 
-            else:
-                body = json.dumps({"args": args,
-                                   "kwargs": kwargs}).encode('utf8')
-            self._mqtt.send_publish(topic, qos, body)
+        self._subrequest_callbacks[packet.packet_identifier] = d
+        self._inflight_subscriptions[packet.packet_identifier] = packet_watch
 
-        responses = []
+        for n, x in enumerate(packet.topic_requests):
+            # fixme
+            match_type = u"exact"
 
-        for x in packet.topic_requests:
-            if "$" in x.topic_filter or "#" in x.topic_filter or "+" in x.topic_filter or "*" in x.topic_filter:
-                responses.append(128)
-                continue
-            else:
-                try:
-                    if x.topic_filter in self._subscriptions:
-                        yield self._subscriptions[x.topic_filter].unsubscribe()
+            request_id = util.id()
 
-                    sub = yield self._wamp_session.subscribe(
-                        partial(handle_publish, x.topic_filter, x.max_qos),
-                        x.topic_filter)
-                    self._full_session.subscriptions[x.topic_filter] = sub
+            msg = message.Subscribe(
+                request=request_id,
+                topic=u".".join(tokenise_mqtt_topic(x.topic_filter)),
+                match=match_type)
 
-                    # We don't allow QoS 2 subscriptions
-                    if x.max_qos > 1:
-                        responses.append(1)
-                    else:
-                        responses.append(x.max_qos)
-                except Exception:
-                    print("Failed subscribing to topic %s" % (x.topic_filter,))
-                    responses.append(128)
-
-        returnValue(responses)
+            try:
+                packet_watch[request_id] = {"response": -1, "topic": x.topic_filter}
+                self._subrequest_to_mqtt_subrequest[request_id] = packet.packet_identifier
+                self._wamp_session.onMessage(msg)
+            except Exception:
+                self.log.failure()
+                packet_watch[request_id] = {"response": 128}
 
     @inlineCallbacks
     def process_unsubscribe(self, packet):

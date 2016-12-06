@@ -107,6 +107,8 @@ class MQTTServerTwistedProtocol(Protocol):
             return False
         elif disconnecting:
             return False
+        elif connected is None and not disconnected and not disconnecting:
+            return True
         elif not connected:
             return False
         else:
@@ -134,12 +136,23 @@ class MQTTServerTwistedProtocol(Protocol):
             self._timeout.cancel()
             self._timeout = None
 
+    def send_suback(self, packet_identifier, return_codes):
+
+        # MQTT-3.8.4-1 - we always need to send back this SubACK, even
+        #                if the subscriptions are unsuccessful -- their
+        #                unsuccessfulness is listed in the return codes
+        # MQTT-3.8.4-2 - the suback needs to have the same packet id
+        suback = SubACK(packet_identifier=packet_identifier,
+                        return_codes=return_codes)
+        self._send_packet(suback)
+
     def send_publish(self, topic, qos, body):
 
         if qos not in [0, 1, 2]:
             raise ValueError("QoS must be [0, 1, 2]")
 
         self.session.queued_messages.append(Message(topic=topic, qos=qos, body=body))
+
         if not self._flush_publishes and self._connected:
             self._flush_publishes = self._reactor.callLater(0, self._flush_saved_messages)
 
@@ -269,7 +282,7 @@ class MQTTServerTwistedProtocol(Protocol):
 
             elif isinstance(event, Subscribe):
                 try:
-                    return_codes = yield self._handler.process_subscribe(event)
+                    self._handler.process_subscribe(event)
                 except:
                     # MQTT-4.8.0-2 - If we get a transient error (like
                     # subscribing raising an exception), we must close the
@@ -279,13 +292,6 @@ class MQTTServerTwistedProtocol(Protocol):
                     self.transport.loseConnection()
                     returnValue(None)
 
-                # MQTT-3.8.4-1 - we always need to send back this SubACK, even
-                #                if the subscriptions are unsuccessful -- their
-                #                unsuccessfulness is listed in the return codes
-                # MQTT-3.8.4-2 - the suback needs to have the same packet id
-                suback = SubACK(packet_identifier=event.packet_identifier,
-                                return_codes=return_codes)
-                self._send_packet(suback)
                 continue
 
             elif isinstance(event, Unsubscribe):
