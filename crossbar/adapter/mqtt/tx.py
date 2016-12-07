@@ -78,6 +78,7 @@ class Message(object):
     topic = attr.ib()
     body = attr.ib()
     qos = attr.ib()
+    retained = attr.ib()
 
 
 class MQTTServerTwistedProtocol(Protocol):
@@ -146,33 +147,34 @@ class MQTTServerTwistedProtocol(Protocol):
                         return_codes=return_codes)
         self._send_packet(suback)
 
-    def send_publish(self, topic, qos, body):
+    def send_publish(self, topic, qos, body, retained):
 
         if qos not in [0, 1, 2]:
             raise ValueError("QoS must be [0, 1, 2]")
 
-        self.session.queued_messages.append(Message(topic=topic, qos=qos, body=body))
+        self.session.queued_messages.append(
+            Message(topic=topic, qos=qos, body=body, retained=retained))
 
         if not self._flush_publishes and self._connected:
             self._flush_publishes = self._reactor.callLater(0, self._flush_saved_messages)
 
-    def _send_publish(self, topic, qos, body):
+    def _send_publish(self, topic, qos, body, retained):
 
         if qos == 0:
-            publish = Publish(duplicate=False, qos_level=qos, retain=False,
+            publish = Publish(duplicate=False, qos_level=qos, retain=retained,
                               packet_identifier=None, topic_name=topic,
                               payload=body)
 
         elif qos == 1:
             packet_id = self.session.get_packet_id()
-            publish = Publish(duplicate=False, qos_level=qos, retain=False,
+            publish = Publish(duplicate=False, qos_level=qos, retain=retained,
                               packet_identifier=packet_id, topic_name=topic,
                               payload=body)
 
         elif qos == 2:
 
             packet_id = self.session.get_packet_id()
-            publish = Publish(duplicate=False, qos_level=qos, retain=False,
+            publish = Publish(duplicate=False, qos_level=qos, retain=retained,
                               packet_identifier=packet_id, topic_name=topic,
                               payload=body)
 
@@ -205,7 +207,8 @@ class MQTTServerTwistedProtocol(Protocol):
         # New, queued messages
         while self.session.queued_messages:
             message = self.session.queued_messages.popleft()
-            self._send_publish(message.topic, message.qos, message.body)
+            self._send_publish(message.topic, message.qos, message.body,
+                               message.retained)
 
     @inlineCallbacks
     def _handle(self, data):

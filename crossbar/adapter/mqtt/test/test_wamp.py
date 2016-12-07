@@ -28,6 +28,10 @@
 #
 #####################################################################################
 
+from __future__ import absolute_import, division
+
+import json
+
 from crossbar.router.test.helpers import make_router, connect_application_session
 
 from twisted.trial.unittest import TestCase
@@ -424,12 +428,14 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(len(session.events), 0)
 
     def test_basic_subscribe(self):
-
+        """
+        The MQTT client can subscribe to a WAMP topic and get messages.
+        """
         reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
+        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
 
         session, pump = connect_application_session(
             server_factory, ApplicationSession, component_config=ComponentConfig(realm=u"mqtt"))
-        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
 
         client_transport.write(
             Connect(client_id=u"testclient", username=u"test123", password=u"password",
@@ -461,4 +467,57 @@ class MQTTAdapterTests(TestCase):
             Publish(duplicate=False, qos_level=0, retain=False,
                     topic_name=u"com/test/wamp",
                     payload=b'{"args": ["bar"], "kwargs": {}}').serialise()
+        )
+
+    def test_retained(self):
+        """
+        The MQTT client can set and receive retained messages.
+        """
+        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
+        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
+
+        client_transport.write(
+            Connect(client_id=u"testclient", username=u"test123", password=u"password",
+                    flags=ConnectFlags(clean_session=False, username=True, password=True)).serialise())
+
+        client_transport.write(
+            Publish(duplicate=False, qos_level=1, retain=True,
+                    topic_name=u"com/test/wamp", packet_identifier=123,
+                    payload=b'{}').serialise())
+
+        mqtt_pump.flush()
+
+        self.assertEqual(
+            client_protocol.data,
+            (
+                ConnACK(session_present=False, return_code=0).serialise() +
+                PubACK(packet_identifier=123).serialise()
+            ))
+        client_protocol.data = b""
+
+        client_transport.write(
+            Subscribe(packet_identifier=1, topic_requests=[
+                SubscriptionTopicRequest(topic_filter=u"com/test/wamp", max_qos=0)
+            ]).serialise())
+
+        mqtt_pump.flush()
+
+        self.assertEqual(
+            client_protocol.data,
+            SubACK(packet_identifier=1, return_codes=[0]).serialise())
+        client_protocol.data = b""
+
+        reactor.advance(0.1)
+        mqtt_pump.flush()
+
+        # This needs to be replaced with the real deal, see https://github.com/crossbario/crossbar/issues/885
+        self.assertEqual(
+            client_protocol.data,
+            Publish(duplicate=False, qos_level=0, retain=True,
+                    topic_name=u"com/test/wamp",
+                    payload=json.dumps(
+                        {'args': [],
+                         'kwargs': {"mqtt_message": u"{}", "mqtt_qos": 1}},
+                         sort_keys=True)
+                    ).serialise()
         )

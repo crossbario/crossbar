@@ -976,7 +976,7 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish
-        p.send_publish(u"hello", 0, b'some bytes')
+        p.send_publish(u"hello", 0, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
@@ -1016,7 +1016,7 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish, with QoS 1
-        p.send_publish(u"hello", 1, b'some bytes')
+        p.send_publish(u"hello", 1, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
@@ -1067,7 +1067,7 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes')
+        p.send_publish(u"hello", 2, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
@@ -1123,7 +1123,7 @@ class SendPublishTests(TestCase):
             p.dataReceived(x)
 
         # WAMP layer calls send_publish, with QoS 1
-        p.send_publish(u"hello", 1, b'some bytes')
+        p.send_publish(u"hello", 1, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
@@ -1201,7 +1201,7 @@ class SendPublishTests(TestCase):
             p.dataReceived(x)
 
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes')
+        p.send_publish(u"hello", 2, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
@@ -1292,7 +1292,7 @@ class SendPublishTests(TestCase):
             p.dataReceived(x)
 
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes')
+        p.send_publish(u"hello", 2, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
@@ -1381,7 +1381,7 @@ class SendPublishTests(TestCase):
 
         # WAMP layer calls send_publish w/ invalid QoS
         with self.assertRaises(ValueError):
-            p.send_publish(u"hello", 5, b'some bytes')
+            p.send_publish(u"hello", 5, b'some bytes', False)
 
         # Nothing will be sent
         self.assertEqual(t.value(), b'')

@@ -149,7 +149,9 @@ class WampMQTTServerProtocol(Protocol):
                                "kwargs": inc_msg.kwargs or {}},
                               sort_keys=True, ensure_ascii=False).encode('utf8')
 
-            self._mqtt.send_publish(u"/".join(tokenise_wamp_topic(topic)), 0, body)
+            self._mqtt.send_publish(
+                u"/".join(tokenise_wamp_topic(topic)), 0, body,
+                retained=inc_msg.retained or False)
 
     def connectionMade(self):
         if not ISSLTransport.providedBy(self.transport):
@@ -210,7 +212,7 @@ class WampMQTTServerProtocol(Protocol):
         request = util.id()
         msg = message.Publish(
             request=request,
-            topic=event.topic_name,
+            topic=u".".join(tokenise_mqtt_topic(event.topic_name)),
             args=tuple(),
             kwargs={'mqtt_message': event.payload.decode('utf8'),
                     'mqtt_qos': event.qos_level},
@@ -224,11 +226,11 @@ class WampMQTTServerProtocol(Protocol):
         return succeed(0)
 
     def process_publish_qos_0(self, event):
-        return self._publish(event, options=PublishOptions(exclude_me=False))
+        return self._publish(event, options=PublishOptions(exclude_me=False, retain=event.retain))
 
     def process_publish_qos_1(self, event):
         return self._publish(event,
-                             options=PublishOptions(acknowledge=True, exclude_me=False))
+                             options=PublishOptions(acknowledge=True, exclude_me=False, retain=event.retain))
 
     def process_puback(self, event):
         return
@@ -265,7 +267,9 @@ class WampMQTTServerProtocol(Protocol):
             msg = message.Subscribe(
                 request=request_id,
                 topic=u".".join(tokenise_mqtt_topic(x.topic_filter)),
-                match=match_type)
+                match=match_type,
+                get_retained=True,
+            )
 
             try:
                 packet_watch[request_id] = {"response": -1, "topic": x.topic_filter}
