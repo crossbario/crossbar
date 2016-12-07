@@ -516,8 +516,7 @@ class MQTTAdapterTests(TestCase):
             Publish(duplicate=False, qos_level=0, retain=True,
                     topic_name=u"com/test/wamp",
                     payload=json.dumps(
-                        {'args': [],
-                         'kwargs': {"mqtt_message": u"{}", "mqtt_qos": 1}},
-                         sort_keys=True)
+                        {'args': [], 'kwargs': {"mqtt_message": u"{}", "mqtt_qos": 1}},
+                        sort_keys=True).encode('utf8')
                     ).serialise()
         )
