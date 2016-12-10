@@ -32,7 +32,7 @@ from __future__ import absolute_import, division
 
 import json
 
-from crossbar.router.test.helpers import make_router, connect_application_session
+from crossbar.router.test.helpers import make_router, connect_application_session, add_realm_to_router
 
 from twisted.trial.unittest import TestCase
 from twisted.internet.task import Clock, LoopingCall
@@ -54,6 +54,7 @@ from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
 from crossbar.adapter.mqtt._events import (
     Connect, ConnectFlags, ConnACK, Publish, PubACK,
     Subscribe, SubscriptionTopicRequest, SubACK,
+    Disconnect,
 )
 from crossbar._logging import LogCapturer
 from crossbar.twisted.endpoint import (create_listening_endpoint_from_config,
@@ -62,13 +63,25 @@ from crossbar.twisted.endpoint import (create_listening_endpoint_from_config,
 from txaio.tx import make_logger
 
 
+
+class ObservingSession(ApplicationSession):
+    _topic = u'test'
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        self.events = []
+        self.s = yield self.subscribe(
+            lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
+            self._topic)
+
+
 def build_mqtt_server():
 
     reactor = Clock()
-    router, server_factory, session_factory = make_router()
+    router_factory, server_factory, session_factory = make_router()
 
-    realm = RouterRealm(None, {u'name': u'mqtt'})
-    router = session_factory._routerFactory.start_realm(realm)
+    add_realm_to_router(router_factory, session_factory)
+    router = add_realm_to_router(router_factory, session_factory, u'mqtt')
 
     # allow everything
     default_permissions = {
@@ -82,7 +95,6 @@ def build_mqtt_server():
         }
     }
 
-    router.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=default_permissions))
     router.add_role(RouterRoleStaticAuth(router, 'mqttrole', default_permissions=default_permissions))
 
     class AuthenticatorSession(ApplicationSession):
@@ -178,15 +190,6 @@ class MQTTAdapterTests(TestCase):
 
         reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
 
-        class ObservingSession(ApplicationSession):
-
-            @inlineCallbacks
-            def onJoin(self, details):
-                self.events = []
-                self.s = yield self.subscribe(
-                    lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    u'test')
-
         session, pump = connect_application_session(
             server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
@@ -221,15 +224,6 @@ class MQTTAdapterTests(TestCase):
         reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
         real_reactor = selectreactor.SelectReactor()
         logger = make_logger()
-
-        class ObservingSession(ApplicationSession):
-
-            @inlineCallbacks
-            def onJoin(self, details):
-                self.events = []
-                self.s = yield self.subscribe(
-                    lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    u'test')
 
         session, pump = connect_application_session(
             server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
@@ -330,15 +324,6 @@ class MQTTAdapterTests(TestCase):
         reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
         real_reactor = selectreactor.SelectReactor()
         logger = make_logger()
-
-        class ObservingSession(ApplicationSession):
-
-            @inlineCallbacks
-            def onJoin(self, details):
-                self.events = []
-                self.s = yield self.subscribe(
-                    lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-                    u'test')
 
         session, pump = connect_application_session(
             server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
@@ -520,3 +505,40 @@ class MQTTAdapterTests(TestCase):
                         sort_keys=True).encode('utf8')
                     ).serialise()
         )
+
+    def test_lastwill(self):
+        """
+        The MQTT client can set a last will message which will be published
+        when it disconnects.
+        """
+        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
+        session, pump = connect_application_session(
+            server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
+        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
+
+        client_transport.write(
+            Connect(client_id=u"testclient", username=u"test123", password=u"password",
+                    will_topic=u"test", will_message=b"foobar",
+                    flags=ConnectFlags(clean_session=False, username=True, password=True, will=True)).serialise())
+
+
+        mqtt_pump.flush()
+
+        # We get a CONNECT
+        self.assertEqual(client_protocol.data,
+                         ConnACK(session_present=False, return_code=0).serialise())
+        client_protocol.data = b""
+
+        client_transport.write(Disconnect().serialise())
+
+        mqtt_pump.flush()
+        pump.flush()
+
+        self.assertEqual(client_transport.disconnected, True)
+
+        # This needs to be replaced with the real deal, see https://github.com/crossbario/crossbar/issues/885
+        self.assertEqual(len(session.events), 1)
+        self.assertEqual(
+            session.events,
+            [{"args": tuple(),
+              "kwargs": {"mqtt_message": u"foobar", "mqtt_qos": 0}}])

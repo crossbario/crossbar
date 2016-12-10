@@ -93,7 +93,7 @@ class WampMQTTServerProtocol(Protocol):
     def __init__(self, reactor):
         self._mqtt = MQTTServerTwistedProtocol(self, reactor)
         self._request_to_packetid = {}
-        self._waiting_for_connect = Deferred()
+        self._waiting_for_connect = None
         self._inflight_subscriptions = {}
         self._subrequest_to_mqtt_subrequest = {}
         self._subrequest_callbacks = {}
@@ -153,9 +153,25 @@ class WampMQTTServerProtocol(Protocol):
                 u"/".join(tokenise_wamp_topic(topic)), 0, body,
                 retained=inc_msg.retained or False)
 
+        elif isinstance(inc_msg, message.Goodbye):
+            if self._mqtt.transport:
+                self._mqtt.transport.loseConnection()
+                self._mqtt.transport = None
+
+
+        else:
+            print("Got a thing!")
+            print(inc_msg)
+
     def connectionMade(self):
         if not ISSLTransport.providedBy(self.transport):
             self._when_ready()
+
+    def connectionLost(self, reason):
+        if self._wamp_session:
+            msg = message.Goodbye()
+            self._wamp_session.onMessage(msg)
+            del self._wamp_session
 
     def handshakeCompleted(self):
         self._when_ready()
@@ -169,6 +185,8 @@ class WampMQTTServerProtocol(Protocol):
         self._wamp_session.onOpen(self._wamp_transport)
 
     def process_connect(self, packet):
+
+        self._waiting_for_connect = Deferred()
 
         roles = {
             u"subscriber": role.RoleSubscriberFeatures(
@@ -204,7 +222,26 @@ class WampMQTTServerProtocol(Protocol):
 
         self._wamp_session.onMessage(msg)
 
-        # Should add some authorisation here?
+        if packet.flags.will:
+
+            @self._waiting_for_connect.addCallback
+            def process_will(res):
+
+                msg = message.Call(
+                    request=util.id(),
+                    procedure=u"wamp.session.add_testament",
+                    args=[
+                        u".".join(tokenise_mqtt_topic(packet.will_topic)),
+                        tuple(),
+                        {'mqtt_message': packet.will_message.decode('utf8'),
+                         'mqtt_qos': packet.flags.will_qos},
+                        {"retain": bool(packet.flags.will_retain)}
+                    ])
+
+                self._wamp_session.onMessage(msg)
+
+                return res
+
         return self._waiting_for_connect
 
     def _publish(self, event, options):
