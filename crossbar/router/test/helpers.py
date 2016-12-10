@@ -41,12 +41,23 @@ from crossbar.router.protocol import WampRawSocketServerFactory
 from twisted.test.iosim import connect, FakeTransport
 
 
-def make_router(realm_name=u'default'):
+def make_router():
     """
     Make a router, and return it and a RawSocket factory.
     """
     # create a router factory
     router_factory = RouterFactory()
+
+    # create a router session factory
+    session_factory = RouterSessionFactory(router_factory)
+
+    # Create a new RawSocket factory
+    server_factory = WampRawSocketServerFactory(session_factory, {})
+
+    return router_factory, server_factory, session_factory
+
+
+def add_realm_to_router(router_factory, session_factory, realm_name=u'default'):
 
     # start a realm
     realm = RouterRealm(None, {u'name': realm_name})
@@ -71,13 +82,15 @@ def make_router(realm_name=u'default'):
     router = router_factory.get(realm_name)
     router.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=default_permissions))
 
-    # create a router session factory
-    session_factory = RouterSessionFactory(router_factory)
     session_factory.add(realm.session, authrole=u'trusted')
 
-    # Create a new RawSocket factory
-    server_factory = WampRawSocketServerFactory(session_factory, {})
+    return router
 
+
+def make_router_and_realm(realm_name=u'default'):
+
+    router_factory, server_factory, session_factory = make_router()
+    router = add_realm_to_router(router_factory, session_factory, realm_name)
     return router, server_factory, session_factory
 
 
