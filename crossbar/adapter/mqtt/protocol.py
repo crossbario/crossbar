@@ -38,6 +38,7 @@ from ._events import (
     Publish, PubACK,
     PubREC, PubREL, PubCOMP,
     PingREQ, PingRESP,
+    Disconnect,
 )
 
 import bitstring
@@ -71,6 +72,7 @@ P_UNSUBSCRIBE = 10
 P_UNSUBACK = 11
 P_PINGREQ = 12
 P_PINGRESP = 13
+P_DISCONNECT = 14
 
 server_packet_handlers = {
     P_CONNECT: Connect,
@@ -82,6 +84,7 @@ server_packet_handlers = {
     P_PUBREL: PubREL,
     P_PUBREC: PubREC,
     P_PUBCOMP: PubCOMP,
+    P_DISCONNECT: Disconnect,
 }
 
 client_packet_handlers = {

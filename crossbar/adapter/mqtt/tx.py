@@ -97,6 +97,10 @@ class MQTTServerTwistedProtocol(Protocol):
 
     @property
     def _connected(self):
+
+        if not self.transport:
+            return False
+
         # Omg wtf is this
         connected = getattr(self.transport, "connected", None)
         disconnected = getattr(self.transport, "disconnected", None)
@@ -445,6 +449,7 @@ class MQTTServerTwistedProtocol(Protocol):
 
                 # 3.14.4 -- we can close it if we want to
                 self.transport.loseConnection()
+                self.transport = None
                 returnValue(None)
 
             else:
