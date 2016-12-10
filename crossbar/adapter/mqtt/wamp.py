@@ -158,9 +158,8 @@ class WampMQTTServerProtocol(Protocol):
                 self._mqtt.transport.loseConnection()
                 self._mqtt.transport = None
 
-
         else:
-            print("Got a thing!")
+            print("Got something we don't understand yet:")
             print(inc_msg)
 
     def connectionMade(self):

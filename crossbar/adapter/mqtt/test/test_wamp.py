@@ -48,7 +48,6 @@ from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 
 from crossbar.router.role import RouterRoleStaticAuth
-from crossbar.worker.router import RouterRealm
 
 from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
 from crossbar.adapter.mqtt._events import (
@@ -61,7 +60,6 @@ from crossbar.twisted.endpoint import (create_listening_endpoint_from_config,
                                        create_connecting_endpoint_from_config)
 
 from txaio.tx import make_logger
-
 
 
 class ObservingSession(ApplicationSession):
@@ -519,8 +517,8 @@ class MQTTAdapterTests(TestCase):
         client_transport.write(
             Connect(client_id=u"testclient", username=u"test123", password=u"password",
                     will_topic=u"test", will_message=b"foobar",
-                    flags=ConnectFlags(clean_session=False, username=True, password=True, will=True)).serialise())
-
+                    flags=ConnectFlags(clean_session=False, username=True,
+                                       password=True, will=True)).serialise())
 
         mqtt_pump.flush()
 
