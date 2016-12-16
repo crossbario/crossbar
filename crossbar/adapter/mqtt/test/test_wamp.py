@@ -511,7 +511,7 @@ class MQTTAdapterTests(TestCase):
         The MQTT client can set a last will message which will be published
         when it disconnects.
         """
-        reactor, router, server_factory, session_factory= build_mqtt_server()
+        reactor, router, server_factory, session_factory = build_mqtt_server()
         session, pump = connect_application_session(
             server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
         client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
