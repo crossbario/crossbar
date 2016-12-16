@@ -232,6 +232,9 @@ class UniSocketTests(TestCase):
             """
             A fake MQTT factory which just echos data back.
             """
+            def connectionMade(self, *a):
+                pass
+
             def dataReceived(self, data):
                 self.transport.write(data)
 
