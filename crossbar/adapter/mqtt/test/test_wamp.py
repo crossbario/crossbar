@@ -159,12 +159,14 @@ def build_mqtt_server():
         }
     }}, reactor)
 
-    return reactor, router, server_factory, session_factory, mqtt_factory
+    server_factory._mqtt_factory = mqtt_factory
+
+    return reactor, router, server_factory, session_factory
 
 
-def connect_mqtt_server(mqtt_factory):
+def connect_mqtt_server(server_factory):
 
-    server_protocol = mqtt_factory.buildProtocol(None)
+    server_protocol = server_factory.buildProtocol(None)
     server_transport = FakeTransport(server_protocol, True)
 
     client_protocol = AccumulatingProtocol()
@@ -186,11 +188,11 @@ class MQTTAdapterTests(TestCase):
 
     def test_basic_publish(self):
 
-        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
+        reactor, router, server_factory, session_factory = build_mqtt_server()
 
         session, pump = connect_application_session(
             server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
-        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
+        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
             Connect(client_id=u"testclient", username=u"test123", password=u"password",
@@ -219,7 +221,7 @@ class MQTTAdapterTests(TestCase):
         A MQTT client can connect using mutually authenticated TLS
         authentication.
         """
-        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
+        reactor, router, server_factory, session_factory = build_mqtt_server()
         real_reactor = selectreactor.SelectReactor()
         logger = make_logger()
 
@@ -255,7 +257,7 @@ class MQTTAdapterTests(TestCase):
         }, FilePath(__file__).sibling('certs').path, real_reactor, logger)
 
         p = []
-        l = endpoint.listen(mqtt_factory)
+        l = endpoint.listen(server_factory)
 
         class TestProtocol(Protocol):
             data = b""
@@ -319,7 +321,7 @@ class MQTTAdapterTests(TestCase):
         """
         A MQTT client offering the wrong certificate won't be authenticated.
         """
-        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
+        reactor, router, server_factory, session_factory = build_mqtt_server()
         real_reactor = selectreactor.SelectReactor()
         logger = make_logger()
 
@@ -356,7 +358,7 @@ class MQTTAdapterTests(TestCase):
         }, FilePath(__file__).sibling('certs').path, real_reactor, logger)
 
         p = []
-        l = endpoint.listen(mqtt_factory)
+        l = endpoint.listen(server_factory)
 
         class TestProtocol(Protocol):
             data = b""
@@ -414,8 +416,8 @@ class MQTTAdapterTests(TestCase):
         """
         The MQTT client can subscribe to a WAMP topic and get messages.
         """
-        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
-        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
+        reactor, router, server_factory, session_factory = build_mqtt_server()
+        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         session, pump = connect_application_session(
             server_factory, ApplicationSession, component_config=ComponentConfig(realm=u"mqtt"))
@@ -456,8 +458,8 @@ class MQTTAdapterTests(TestCase):
         """
         The MQTT client can set and receive retained messages.
         """
-        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
-        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
+        reactor, router, server_factory, session_factory = build_mqtt_server()
+        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
             Connect(client_id=u"testclient", username=u"test123", password=u"password",
@@ -509,10 +511,10 @@ class MQTTAdapterTests(TestCase):
         The MQTT client can set a last will message which will be published
         when it disconnects.
         """
-        reactor, router, server_factory, session_factory, mqtt_factory = build_mqtt_server()
+        reactor, router, server_factory, session_factory= build_mqtt_server()
         session, pump = connect_application_session(
             server_factory, ObservingSession, component_config=ComponentConfig(realm=u"mqtt"))
-        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(mqtt_factory)
+        client_transport, client_protocol, mqtt_pump = connect_mqtt_server(server_factory)
 
         client_transport.write(
             Connect(client_id=u"testclient", username=u"test123", password=u"password",

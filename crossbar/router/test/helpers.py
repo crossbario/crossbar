@@ -37,6 +37,7 @@ from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.protocol import WampRawSocketServerFactory
+from crossbar.router.unisocket import UniSocketServerFactory
 
 from twisted.test.iosim import connect, FakeTransport
 
@@ -52,7 +53,10 @@ def make_router():
     session_factory = RouterSessionFactory(router_factory)
 
     # Create a new RawSocket factory
-    server_factory = WampRawSocketServerFactory(session_factory, {})
+    rawsocket_server_factory = WampRawSocketServerFactory(session_factory, {})
+
+    # Create a new UniSocket factory
+    server_factory = UniSocketServerFactory(rawsocket_factory=rawsocket_server_factory)
 
     return router_factory, server_factory, session_factory
 
