@@ -98,6 +98,7 @@ class WampMQTTServerProtocol(Protocol):
         self._subrequest_to_mqtt_subrequest = {}
         self._subrequest_callbacks = {}
         self._topic_lookup = {}
+        self._wamp_session = None
 
     def on_message(self, inc_msg):
 
@@ -162,8 +163,8 @@ class WampMQTTServerProtocol(Protocol):
             print("Got something we don't understand yet:")
             print(inc_msg)
 
-    def connectionMade(self):
-        if not ISSLTransport.providedBy(self.transport):
+    def connectionMade(self, ignore_handshake=False):
+        if ignore_handshake or not ISSLTransport.providedBy(self.transport):
             self._when_ready()
 
     def connectionLost(self, reason):
@@ -176,6 +177,9 @@ class WampMQTTServerProtocol(Protocol):
         self._when_ready()
 
     def _when_ready(self):
+        if self._wamp_session:
+            return
+
         self._mqtt.transport = self.transport
 
         self._wamp_session = RouterSession(self.factory._wamp_session_factory._routerFactory)
