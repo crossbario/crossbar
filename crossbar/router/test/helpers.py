@@ -61,10 +61,14 @@ def make_router():
     return router_factory, server_factory, session_factory
 
 
-def add_realm_to_router(router_factory, session_factory, realm_name=u'default'):
+def add_realm_to_router(router_factory, session_factory, realm_name=u'default',
+                        realm_options={}):
+
+    opts = dict(realm_options)
+    opts.update({u'name': realm_name})
 
     # start a realm
-    realm = RouterRealm(None, {u'name': realm_name})
+    realm = RouterRealm(None, opts)
     router = router_factory.start_realm(realm)
 
     extra = {}

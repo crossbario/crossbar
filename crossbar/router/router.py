@@ -76,7 +76,7 @@ class Router(object):
     The dealer class this router will use.
     """
 
-    def __init__(self, factory, realm, options=None, store=None):
+    def __init__(self, factory, realm, options=None, store=None, mqtt_payload_format=None):
         """
 
         :param factory: The router factory this router was created by.
@@ -85,6 +85,8 @@ class Router(object):
         :type realm: str
         :param options: Router options.
         :type options: Instance of :class:`crossbar.router.RouterOptions`.
+        :param mqtt_payload_format: The format that MQTT messages on this realm are in.
+        :type mqtt_payload_format: str
         """
         self._factory = factory
         self._options = options or RouterOptions()
@@ -102,6 +104,8 @@ class Router(object):
         self._broker = self.broker(self, self._options)
         self._dealer = self.dealer(self, self._options)
         self._attached = 0
+
+        self._mqtt_payload_format = mqtt_payload_format
 
         self._roles = {
             u'trusted': RouterTrustedRole(self, u'trusted')
@@ -385,9 +389,17 @@ class RouterFactory(object):
             else:
                 raise Exception('logic error')
 
+        mqtt_payload_format = "opaque"
+        if 'mqtt_payload_format' in realm.config:
+            mqtt_payload_format = realm.config['mqtt_payload_format']
+
+            if mqtt_payload_format not in ["opaque", "json", "cbor"]:
+                raise Exception("Not a valid mqtt_payload_format.")
+
         # now create a router for the realm
         #
-        router = Router(self, realm, self._options, store=store)
+        router = Router(self, realm, self._options, store=store,
+                        mqtt_payload_format=mqtt_payload_format)
         self._routers[uri] = router
         self.log.debug("Router created for realm '{uri}'", uri=uri)
 

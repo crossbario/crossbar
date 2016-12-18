@@ -79,7 +79,8 @@ def build_mqtt_server():
     router_factory, server_factory, session_factory = make_router()
 
     add_realm_to_router(router_factory, session_factory)
-    router = add_realm_to_router(router_factory, session_factory, u'mqtt')
+    router = add_realm_to_router(router_factory, session_factory, u'mqtt',
+                                 {u"mqtt_payload_format": "json"})
 
     # allow everything
     default_permissions = {
