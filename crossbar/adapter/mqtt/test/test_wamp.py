@@ -206,7 +206,7 @@ class MQTTAdapterTests(TestCase):
         client_protocol.data = b""
 
         client_transport.write(
-            Publish(duplicate=False, qos_level=0, retain=False, topic_name=u"test", payload=b"{}").serialise())
+            Publish(duplicate=False, qos_level=0, retain=False, topic_name=u"test", payload=b'{"kwargs": {"bar": "baz"}}').serialise())
         mqtt_pump.flush()
         pump.flush()
 
@@ -215,7 +215,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(
             session.events,
             [{"args": tuple(),
-              "kwargs": {"mqtt_message": u"{}", "mqtt_qos": 0}}])
+              "kwargs": {u'bar': u'baz'}}])
 
     def test_tls_auth(self):
         """
@@ -316,7 +316,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(
             session.events,
             [{"args": tuple(),
-              "kwargs": {"mqtt_message": u"{}", "mqtt_qos": 1}}])
+              "kwargs": {}}])
 
     def test_tls_auth_denied(self):
         """
@@ -447,12 +447,11 @@ class MQTTAdapterTests(TestCase):
         reactor.advance(0.1)
         mqtt_pump.flush()
 
-        # This needs to be replaced with the real deal, see https://github.com/crossbario/crossbar/issues/885
         self.assertEqual(
             client_protocol.data,
             Publish(duplicate=False, qos_level=0, retain=False,
                     topic_name=u"com/test/wamp",
-                    payload=b'{"args": ["bar"], "kwargs": {}}').serialise()
+                    payload=b'{"args": ["bar"], "kwargs": null}').serialise()
         )
 
     def test_retained(self):
@@ -502,7 +501,7 @@ class MQTTAdapterTests(TestCase):
             Publish(duplicate=False, qos_level=0, retain=True,
                     topic_name=u"com/test/wamp",
                     payload=json.dumps(
-                        {'args': [], 'kwargs': {"mqtt_message": u"{}", "mqtt_qos": 1}},
+                        {'args': [], 'kwargs': None},
                         sort_keys=True).encode('utf8')
                     ).serialise()
         )
@@ -519,7 +518,7 @@ class MQTTAdapterTests(TestCase):
 
         client_transport.write(
             Connect(client_id=u"testclient", username=u"test123", password=u"password",
-                    will_topic=u"test", will_message=b"foobar",
+                    will_topic=u"test", will_message=b'{"args": ["foobar"]}',
                     flags=ConnectFlags(clean_session=False, username=True,
                                        password=True, will=True)).serialise())
 
@@ -541,5 +540,5 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(len(session.events), 1)
         self.assertEqual(
             session.events,
-            [{"args": tuple(),
-              "kwargs": {"mqtt_message": u"foobar", "mqtt_qos": 0}}])
+            [{"args": (u"foobar",),
+              "kwargs": {}}])

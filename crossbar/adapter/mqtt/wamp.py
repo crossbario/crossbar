@@ -98,6 +98,7 @@ def mqtt_payload_transform(payload_format, payload):
                 # todo
                 pass
         except Exception as e:
+            print(e)
             # Drop the message.
             return
 
@@ -106,7 +107,7 @@ def mqtt_payload_transform(payload_format, payload):
             pass
 
         args = decoded.get("args", [])
-        kwargs = decoded.get("kwargs", {})
+        kwargs = decoded.get("kwargs")
         return args, kwargs
 
 
@@ -130,7 +131,8 @@ def wamp_payload_transform(payload_format, event):
             try:
                 payload = json.dumps({"args": event.args, "kwargs": event.kwargs},
                                      ensure_ascii=False, sort_keys=True).encode('utf8')
-            except:
+            except Exception as e:
+                print(e)
                 return None
         return payload
 
