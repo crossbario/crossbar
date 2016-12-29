@@ -648,7 +648,7 @@ class RouterSession(BaseSession):
 
                     # we ignore any details.authid the client might have announced, and use
                     # a cookie value or a random value
-                    if self._transport._cbtid:
+                    if hasattr(self._transport, "_cbtid") and self._transport._cbtid:
                         # if cookie tracking is enabled, set authid to cookie value
                         authid = self._transport._cbtid
                     else:

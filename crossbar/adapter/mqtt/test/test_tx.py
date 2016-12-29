@@ -35,7 +35,7 @@ import attr
 from binascii import unhexlify
 
 from crossbar.adapter.mqtt.tx import (
-    MQTTServerTwistedProtocol, Session, Message)
+    MQTTServerTwistedProtocol, Session)
 from crossbar.adapter.mqtt.protocol import MQTTClientParser
 from crossbar.adapter.mqtt._events import (
     Connect, ConnectFlags, ConnACK,
@@ -58,7 +58,7 @@ class BasicHandler(object):
 
     def process_connect(self, event):
         d = Deferred()
-        d.callback(self._connect_code)
+        d.callback((self._connect_code, False))
         return d
 
     def new_wamp_session(self, event):
@@ -80,18 +80,16 @@ class BasicHandler(object):
         return
 
 
-def make_test_items(handler, sessions=None):
-
-    sessions = sessions or {}
+def make_test_items(handler):
 
     r = Clock()
     t = StringTransport()
-    p = MQTTServerTwistedProtocol(handler, r, sessions)
+    p = MQTTServerTwistedProtocol(handler, r)
     cp = MQTTClientParser()
 
     p.makeConnection(t)
 
-    return sessions, r, t, p, cp
+    return r, t, p, cp
 
 
 class TwistedProtocolLoggingTests(TestCase):
@@ -105,7 +103,7 @@ class TwistedProtocolLoggingTests(TestCase):
         sent packet.
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT
@@ -132,7 +130,7 @@ class TwistedProtocolLoggingTests(TestCase):
         the received packet.
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT
@@ -160,7 +158,7 @@ class TwistedProtocolTests(TestCase):
         Compliance statement MQTT-3.1.2-24
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, with keepalive of 2
@@ -188,7 +186,7 @@ class TwistedProtocolTests(TestCase):
         will remove the timeout.
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, with keepalive of 2
@@ -217,7 +215,7 @@ class TwistedProtocolTests(TestCase):
         Compliance statement MQTT-3.1.2-24
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, with keepalive of 2
@@ -260,7 +258,7 @@ class TwistedProtocolTests(TestCase):
         reset.
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             # CONNECT, with keepalive of 2
@@ -295,155 +293,6 @@ class TwistedProtocolTests(TestCase):
         r.advance(0.1)
         self.assertFalse(t.disconnecting)
 
-    def test_only_unique(self):
-        """
-        Connected clients must have unique client IDs.
-
-        Compliance statement MQTT-3.1.3-2
-        """
-        h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
-
-        data = (
-            # CONNECT, client ID of test123
-            b"\x10\x13\x00\x04MQTT\x04\x02\x00x\x00\x07test123"
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        self.assertFalse(t.disconnecting)
-        events = cp.data_received(t.value())
-        self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'return_code': 0,
-                'session_present': False,
-            })
-
-        # New session
-        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
-
-        # Send the same connect, with the same client ID
-        for x in iterbytes(data):
-            p2.dataReceived(x)
-
-        events = cp2.data_received(t2.value())
-        self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'return_code': 2,
-                'session_present': True,
-            })
-
-    def test_allow_connects_with_same_id_if_disconnected(self):
-        """
-        If a client connects and there is an existing session which is
-        disconnected, it may connect.
-        """
-        h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        self.assertFalse(t.disconnecting)
-        events = cp.data_received(t.value())
-        self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'return_code': 0,
-                'session_present': False,
-            })
-
-        p.connectionLost(None)
-
-        # New session
-        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
-
-        # Send the same connect, with the same client ID
-        for x in iterbytes(data):
-            p2.dataReceived(x)
-
-        # Connection allowed
-        events = cp2.data_received(t2.value())
-        self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'return_code': 0,
-                'session_present': True,
-            })
-
-        # Same session
-        self.assertEqual(p.session, p2.session)
-
-    def test_clean_session_destroys_session(self):
-        """
-        Setting the clean_session flag to True when connecting means that any
-        existing session for that user ID will be destroyed.
-
-        Compliance statement MQTT-3.2.2-1
-        """
-        h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        self.assertFalse(t.disconnecting)
-        self.assertEqual(list(sessions.keys()), [u"test123"])
-        old_session = sessions[u"test123"]
-
-        # Close the connection
-        p.connectionLost(None)
-
-        # New session, clean_session=True
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
-
-        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
-
-        # Send the same connect, with the same client ID
-        for x in iterbytes(data):
-            p2.dataReceived(x)
-
-        # Connection allowed
-        events = cp2.data_received(t2.value())
-        self.assertEqual(len(events), 1)
-        self.assertEqual(
-            attr.asdict(events[0]),
-            {
-                'return_code': 0,
-                'session_present': False,
-            })
-
-        self.assertEqual(list(sessions.keys()), [u"test123"])
-        new_session = sessions[u"test123"]
-
-        # Brand new session, that won't survive
-        self.assertIsNot(old_session, new_session)
-        self.assertFalse(new_session.survives)
-
-        # We close the connection, the session is destroyed
-        p2.connectionLost(None)
-        self.assertEqual(list(sessions.keys()), [])
-
     def test_transport_paused_while_processing(self):
         """
         The transport is paused whilst the MQTT protocol is parsing/handling
@@ -452,7 +301,7 @@ class TwistedProtocolTests(TestCase):
         d = Deferred()
         h = BasicHandler()
         h.process_connect = lambda x: d
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -465,7 +314,7 @@ class TwistedProtocolTests(TestCase):
             p.dataReceived(x)
 
         self.assertEqual(t.producerState, 'paused')
-        d.callback(0)
+        d.callback((0, False))
         self.assertEqual(t.producerState, 'producing')
 
     def test_unknown_connect_code_must_lose_connection(self):
@@ -476,7 +325,7 @@ class TwistedProtocolTests(TestCase):
         Compliance statements MQTT-3.2.2-4, MQTT-3.2.2-5
         """
         h = BasicHandler(6)
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -497,7 +346,7 @@ class TwistedProtocolTests(TestCase):
         Compliance statement MQTT-4.8.0-1
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             # Invalid CONNECT
@@ -531,7 +380,7 @@ class TwistedProtocolTests(TestCase):
             lambda: protocol.server_packet_handlers.pop(protocol.P_SUBACK))
 
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -558,12 +407,12 @@ class TwistedProtocolTests(TestCase):
         Compliance statement: MQTT-3.3.1-4
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         conn = Connect(client_id=u"test123",
                        flags=ConnectFlags(clean_session=False))
         pub = Publish(duplicate=False, qos_level=3, retain=False,
-                      topic_name=u"foo", packet_identifier=2345,
+                      topic_name=u"foo", packet_identifier=1,
                       payload=b"bar")
 
         with LogCapturer("trace") as logs:
@@ -579,13 +428,13 @@ class TwistedProtocolTests(TestCase):
         """
         The packet ID generator makes IDs that fit within a 16bit uint.
         """
-        session = Session(client_id=u"test123", wamp_session=None)
-        session_id = session.get_packet_id()
-        self.assertTrue(session_id > -1)
-        self.assertTrue(session_id < 65536)
+        session = Session(client_id=u"test123")
 
-        # And it is a valid session ID...
-        SubACK(session_id, [1]).serialise()
+        # 100,000 > max 16bit, should loop
+        for x in range(100000):
+            session_id = session.get_packet_id()
+            self.assertTrue(session_id > -1)
+            self.assertTrue(session_id < 65536)
 
 
 class NonZeroConnACKTests(object):
@@ -600,7 +449,7 @@ class NonZeroConnACKTests(object):
         Compliance statement MQTT-3.2.2-4
         """
         h = BasicHandler(self.connect_code)
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -638,63 +487,6 @@ for x in [1, 2, 3, 4, 5]:
 
 class SubscribeHandlingTests(TestCase):
 
-    def test_subscribe_always_gets_packet(self):
-        """
-        Subscriptions always get a ConnACK, even if none of the subscriptions
-        were successful.
-
-        Compliance statements MQTT-3.8.4-1
-        """
-        class SubHandler(BasicHandler):
-            def process_subscribe(self, event):
-                return succeed([128])
-
-        h = SubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Subscribe(packet_identifier=1234,
-                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        events = cp.data_received(t.value())
-        self.assertEqual(len(events), 2)
-        self.assertEqual(events[1].return_codes, [128])
-
-    def test_subscribe_same_id(self):
-        """
-        SubACKs have the same packet IDs as the Subscription that it is
-        replying to.
-
-        Compliance statements MQTT-3.8.4-2
-        """
-        class SubHandler(BasicHandler):
-            def process_subscribe(self, event):
-                return succeed([0])
-
-        h = SubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Subscribe(packet_identifier=1234,
-                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        events = cp.data_received(t.value())
-        self.assertEqual(len(events), 2)
-        self.assertEqual(events[1].return_codes, [0])
-        self.assertEqual(events[1].packet_identifier, 1234)
-
     def test_exception_in_subscribe_drops_connection(self):
         """
         Transient failures (like an exception from handler.process_subscribe)
@@ -708,7 +500,7 @@ class SubscribeHandlingTests(TestCase):
                 raise Exception("boom!")
 
         h = SubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -746,10 +538,10 @@ class ConnectHandlingTests(TestCase):
         class SubHandler(BasicHandler):
             def process_connect(self_, event):
                 got_packets.append(event)
-                return succeed(0)
+                return succeed((0, False))
 
         h = SubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -776,7 +568,7 @@ class ConnectHandlingTests(TestCase):
                 raise Exception("boom!")
 
         h = SubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -815,7 +607,7 @@ class UnsubscribeHandlingTests(TestCase):
                 raise Exception("boom!")
 
         h = SubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -855,7 +647,7 @@ class UnsubscribeHandlingTests(TestCase):
                 return succeed(None)
 
         h = SubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         unsub = Unsubscribe(packet_identifier=1234,
                             topics=[u"foo"]).serialise()
@@ -895,7 +687,7 @@ class PublishHandlingTests(TestCase):
                 return succeed(None)
 
         h = PubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=0, retain=False,
                       topic_name=u"foo", packet_identifier=None,
@@ -938,7 +730,7 @@ class PublishHandlingTests(TestCase):
                 raise Exception("boom!")
 
         h = PubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -981,10 +773,10 @@ class PublishHandlingTests(TestCase):
                 return succeed(None)
 
         h = PubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=1, retain=False,
-                      topic_name=u"foo", packet_identifier=2345,
+                      topic_name=u"foo", packet_identifier=1,
                       payload=b"bar").serialise()
 
         data = (
@@ -1001,7 +793,7 @@ class PublishHandlingTests(TestCase):
 
         # ConnACK + PubACK with the same packet ID
         self.assertEqual(len(events), 2)
-        self.assertEqual(events[1], PubACK(packet_identifier=2345))
+        self.assertEqual(events[1], PubACK(packet_identifier=1))
 
         # The publish handler should have been called
         self.assertEqual(len(got_packets), 1)
@@ -1025,13 +817,13 @@ class PublishHandlingTests(TestCase):
                 raise Exception("boom!")
 
         h = PubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
                     flags=ConnectFlags(clean_session=True)).serialise() +
             Publish(duplicate=False, qos_level=1, retain=False,
-                    topic_name=u"foo", packet_identifier=2345,
+                    topic_name=u"foo", packet_identifier=1,
                     payload=b"bar").serialise()
         )
 
@@ -1069,10 +861,10 @@ class PublishHandlingTests(TestCase):
                 return succeed(None)
 
         h = PubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         pub = Publish(duplicate=False, qos_level=2, retain=False,
-                      topic_name=u"foo", packet_identifier=2345,
+                      topic_name=u"foo", packet_identifier=1,
                       payload=b"bar").serialise()
 
         data = (
@@ -1089,7 +881,7 @@ class PublishHandlingTests(TestCase):
 
         # ConnACK + PubREC with the same packet ID
         self.assertEqual(len(events), 2)
-        self.assertEqual(events[1], PubREC(packet_identifier=2345))
+        self.assertEqual(events[1], PubREC(packet_identifier=1))
 
         # The publish handler should have been called
         self.assertEqual(len(got_packets), 1)
@@ -1104,7 +896,7 @@ class PublishHandlingTests(TestCase):
         t.clear()
 
         # Now we send the PubREL
-        pubrel = PubREL(packet_identifier=2345)
+        pubrel = PubREL(packet_identifier=1)
         for x in iterbytes(pubrel.serialise()):
             p.dataReceived(x)
 
@@ -1113,7 +905,7 @@ class PublishHandlingTests(TestCase):
 
         # We should get a PubCOMP in response
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0], PubCOMP(packet_identifier=2345))
+        self.assertEqual(events[0], PubCOMP(packet_identifier=1))
 
     def test_qos_2_failure_drops_connection(self):
         """
@@ -1128,13 +920,13 @@ class PublishHandlingTests(TestCase):
                 raise Exception("boom!")
 
         h = PubHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
                     flags=ConnectFlags(clean_session=True)).serialise() +
             Publish(duplicate=False, qos_level=2, retain=False,
-                    topic_name=u"foo", packet_identifier=2345,
+                    topic_name=u"foo", packet_identifier=1,
                     payload=b"bar").serialise()
         )
 
@@ -1167,7 +959,7 @@ class SendPublishTests(TestCase):
         sending, and send it next time it has a chance.
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1177,9 +969,6 @@ class SendPublishTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
-        # No queued messages
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
         # Connect has happened
         events = cp.data_received(t.value())
         t.clear()
@@ -1187,11 +976,10 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish
-        p.send_publish(u"hello", 0, b'some bytes')
+        p.send_publish(u"hello", 0, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
 
         # Advance the clock
         r.advance(0.1)
@@ -1211,7 +999,7 @@ class SendPublishTests(TestCase):
         sending, and send it next time it has a chance.
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1221,12 +1009,6 @@ class SendPublishTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
-        # No queued messages
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
-        # Make the packet ID be deterministic
-        sessions[u"test123"].get_packet_id = lambda: 4567
-
         # Connect has happened
         events = cp.data_received(t.value())
         t.clear()
@@ -1234,18 +1016,17 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish, with QoS 1
-        p.send_publish(u"hello", 1, b'some bytes')
+        p.send_publish(u"hello", 1, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
 
         # Advance the clock
         r.advance(0.1)
 
         # We should now get the sent Publish
         expected_publish = Publish(
-            duplicate=False, qos_level=1, retain=False, packet_identifier=4567,
+            duplicate=False, qos_level=1, retain=False, packet_identifier=1,
             topic_name=u"hello", payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1253,7 +1034,7 @@ class SendPublishTests(TestCase):
         self.assertEqual(events[0], expected_publish)
 
         # We send the PubACK, which we don't get a response to
-        puback = PubACK(packet_identifier=4567)
+        puback = PubACK(packet_identifier=1)
 
         for x in iterbytes(puback.serialise()):
             p.dataReceived(x)
@@ -1269,7 +1050,7 @@ class SendPublishTests(TestCase):
         sending, and send it next time it has a chance.
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1279,12 +1060,6 @@ class SendPublishTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
-        # No queued messages
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
-        # Make the packet ID be deterministic
-        sessions[u"test123"].get_packet_id = lambda: 4567
-
         # Connect has happened
         events = cp.data_received(t.value())
         t.clear()
@@ -1292,18 +1067,17 @@ class SendPublishTests(TestCase):
         self.assertIsInstance(events[0], ConnACK)
 
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes')
+        p.send_publish(u"hello", 2, b'some bytes', False)
 
         # Nothing should have been sent yet, it is queued
         self.assertEqual(t.value(), b'')
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
 
         # Advance the clock
         r.advance(0.1)
 
         # We should now get the sent Publish
         expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=4567, topic_name=u"hello",
+                                   packet_identifier=1, topic_name=u"hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1311,7 +1085,7 @@ class SendPublishTests(TestCase):
         self.assertEqual(events[0], expected_publish)
 
         # We send the PubREC, which we should get a PubREL back with
-        pubrec = PubREC(packet_identifier=4567)
+        pubrec = PubREC(packet_identifier=1)
 
         for x in iterbytes(pubrec.serialise()):
             p.dataReceived(x)
@@ -1319,10 +1093,10 @@ class SendPublishTests(TestCase):
         events = cp.data_received(t.value())
         t.clear()
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0], PubREL(packet_identifier=4567))
+        self.assertEqual(events[0], PubREL(packet_identifier=1))
 
         # We send the PubCOMP, which has no response
-        pubcomp = PubCOMP(packet_identifier=4567)
+        pubcomp = PubCOMP(packet_identifier=1)
 
         for x in iterbytes(pubcomp.serialise()):
             p.dataReceived(x)
@@ -1338,7 +1112,7 @@ class SendPublishTests(TestCase):
         Compliance statements: MQTT-4.4.0-1, MQTT-3.3.1-1
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1348,24 +1122,15 @@ class SendPublishTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
-        # No queued messages
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
-        # Make the packet ID be deterministic
-        sessions[u"test123"].get_packet_id = lambda: 4567
-
         # WAMP layer calls send_publish, with QoS 1
-        p.send_publish(u"hello", 1, b'some bytes')
-
-        # Nothing should have been sent yet, it is queued
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
+        p.send_publish(u"hello", 1, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
 
         # We should now get the sent Publish
         expected_publish = Publish(duplicate=False, qos_level=1, retain=False,
-                                   packet_identifier=4567, topic_name=u"hello",
+                                   packet_identifier=1, topic_name=u"hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1377,7 +1142,7 @@ class SendPublishTests(TestCase):
         t.loseConnection()
         p.connectionLost(None)
 
-        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
+        r2, t2, p2, cp2 = make_test_items(h)
 
         # We must NOT have a clean session
         data = (
@@ -1401,12 +1166,12 @@ class SendPublishTests(TestCase):
 
         # The Publish packet must have DUP set to True.
         resent_publish = Publish(duplicate=True, qos_level=1, retain=False,
-                                 packet_identifier=4567, topic_name=u"hello",
+                                 packet_identifier=1, topic_name=u"hello",
                                  payload=b"some bytes")
         self.assertEqual(events[1], resent_publish)
 
         # We send the PubACK to this Publish
-        puback = PubACK(packet_identifier=4567)
+        puback = PubACK(packet_identifier=1)
 
         for x in iterbytes(puback.serialise()):
             p2.dataReceived(x)
@@ -1425,7 +1190,7 @@ class SendPublishTests(TestCase):
         Compliance statements: MQTT-4.4.0-1, MQTT-3.3.1-1
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1435,24 +1200,15 @@ class SendPublishTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
-        # No queued messages
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
-        # Make the packet ID be deterministic
-        sessions[u"test123"].get_packet_id = lambda: 4567
-
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes')
-
-        # Nothing should have been sent yet, it is queued
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
+        p.send_publish(u"hello", 2, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
 
         # We should now get the sent Publish
         expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=4567, topic_name=u"hello",
+                                   packet_identifier=1, topic_name=u"hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1464,7 +1220,7 @@ class SendPublishTests(TestCase):
         t.loseConnection()
         p.connectionLost(None)
 
-        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
+        r2, t2, p2, cp2 = make_test_items(h)
 
         # We must NOT have a clean session
         data = (
@@ -1488,12 +1244,12 @@ class SendPublishTests(TestCase):
 
         # The Publish packet must have DUP set to True.
         resent_publish = Publish(duplicate=True, qos_level=2, retain=False,
-                                 packet_identifier=4567, topic_name=u"hello",
+                                 packet_identifier=1, topic_name=u"hello",
                                  payload=b"some bytes")
         self.assertEqual(events[1], resent_publish)
 
         # We send the PubREC to this Publish
-        pubrec = PubREC(packet_identifier=4567)
+        pubrec = PubREC(packet_identifier=1)
 
         for x in iterbytes(pubrec.serialise()):
             p2.dataReceived(x)
@@ -1502,10 +1258,10 @@ class SendPublishTests(TestCase):
         events = cp2.data_received(t2.value())
         t2.clear()
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0], PubREL(packet_identifier=4567))
+        self.assertEqual(events[0], PubREL(packet_identifier=1))
 
         # We send the PubCOMP to this Publish
-        pubcomp = PubCOMP(packet_identifier=4567)
+        pubcomp = PubCOMP(packet_identifier=1)
 
         for x in iterbytes(pubcomp.serialise()):
             p2.dataReceived(x)
@@ -1525,7 +1281,7 @@ class SendPublishTests(TestCase):
         Compliance statements: MQTT-4.4.0-1, MQTT-3.3.1-1
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1535,24 +1291,15 @@ class SendPublishTests(TestCase):
         for x in iterbytes(data):
             p.dataReceived(x)
 
-        # No queued messages
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
-        # Make the packet ID be deterministic
-        sessions[u"test123"].get_packet_id = lambda: 4567
-
         # WAMP layer calls send_publish, with QoS 2
-        p.send_publish(u"hello", 2, b'some bytes')
-
-        # Nothing should have been sent yet, it is queued
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
+        p.send_publish(u"hello", 2, b'some bytes', False)
 
         # Advance the clock
         r.advance(0.1)
 
         # We should now get the sent Publish
         expected_publish = Publish(duplicate=False, qos_level=2, retain=False,
-                                   packet_identifier=4567, topic_name=u"hello",
+                                   packet_identifier=1, topic_name=u"hello",
                                    payload=b"some bytes")
         events = cp.data_received(t.value())
         t.clear()
@@ -1560,7 +1307,7 @@ class SendPublishTests(TestCase):
         self.assertEqual(events[1], expected_publish)
 
         # We send the PubREC to this Publish
-        pubrec = PubREC(packet_identifier=4567)
+        pubrec = PubREC(packet_identifier=1)
 
         for x in iterbytes(pubrec.serialise()):
             p.dataReceived(x)
@@ -1569,14 +1316,14 @@ class SendPublishTests(TestCase):
         events = cp.data_received(t.value())
         t.clear()
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0], PubREL(packet_identifier=4567))
+        self.assertEqual(events[0], PubREL(packet_identifier=1))
 
         # Disconnect the client
         t.connected = False
         t.loseConnection()
         p.connectionLost(None)
 
-        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
+        r2, t2, p2, cp2 = make_test_items(h)
 
         # We must NOT have a clean session
         data = (
@@ -1595,12 +1342,12 @@ class SendPublishTests(TestCase):
         t2.clear()
         self.assertEqual(len(events), 2)
         self.assertIsInstance(events[0], ConnACK)
-        self.assertEqual(events[1], PubREL(packet_identifier=4567))
+        self.assertEqual(events[1], PubREL(packet_identifier=1))
 
         self.assertFalse(t2.disconnecting)
 
         # We send the PubCOMP to this PubREL
-        pubcomp = PubCOMP(packet_identifier=4567)
+        pubcomp = PubCOMP(packet_identifier=1)
 
         for x in iterbytes(pubcomp.serialise()):
             p2.dataReceived(x)
@@ -1616,7 +1363,7 @@ class SendPublishTests(TestCase):
         A non-QoS 0, 1, or 2 message will be rejected by the publish layer.
         """
         h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
+        r, t, p, cp = make_test_items(h)
 
         data = (
             Connect(client_id=u"test123",
@@ -1625,9 +1372,6 @@ class SendPublishTests(TestCase):
 
         for x in iterbytes(data):
             p.dataReceived(x)
-
-        # No queued messages
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
 
         # Connect has happened
         events = cp.data_received(t.value())
@@ -1637,121 +1381,16 @@ class SendPublishTests(TestCase):
 
         # WAMP layer calls send_publish w/ invalid QoS
         with self.assertRaises(ValueError):
-            p.send_publish(u"hello", 5, b'some bytes')
+            p.send_publish(u"hello", 5, b'some bytes', False)
 
-        # Nothing will be sent or queued
+        # Nothing will be sent
         self.assertEqual(t.value(), b'')
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
 
         # Advance the clock
         r.advance(0.1)
 
         # Still nothing
         self.assertEqual(t.value(), b'')
-
-    def test_non_allowed_qos_in_queue_dropped(self):
-        """
-        If a non-QoS 0, 1, or 2 message gets into the queue, it will be
-        dropped.
-        """
-        h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        # Add a queued message
-        sessions[u"test123"].queued_messages.append(Message(
-            topic=u"foo", body=b"bar", qos=3))
-
-        # Connect has happened
-        events = cp.data_received(t.value())
-        t.clear()
-        self.assertFalse(t.disconnecting)
-        self.assertIsInstance(events[0], ConnACK)
-
-        # Nothing is sent, one is queued
-        self.assertEqual(t.value(), b'')
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 1)
-
-        with LogCapturer("trace") as logs:
-            # Flush the saved messages
-            p._flush_saved_messages()
-
-        # We got the warning
-        logs = logs.get_category("MQ303")
-        self.assertEqual(len(logs), 1)
-
-        # Nothing queued
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
-        # Nothing sent
-        self.assertEqual(t.value(), b'')
-
-    def test_does_not_schedule_if_disconnected(self):
-        """
-        If a publish is sent whilst the client is disconnected, it won't be
-        flushed.
-        """
-        h = BasicHandler()
-        sessions, r, t, p, cp = make_test_items(h)
-
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
-
-        for x in iterbytes(data):
-            p.dataReceived(x)
-
-        # No queued messages
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-
-        # Disconnect the client
-        t.connected = False
-        t.loseConnection()
-        p.connectionLost(None)
-
-        # WAMP layer calls send_publish, with QoS 0
-        p.send_publish(u"hello", 0, b'some bytes')
-
-        # Not queued
-        self.assertIsNone(p._flush_publishes)
-
-        sessions, r2, t2, p2, cp2 = make_test_items(h, sessions=sessions)
-
-        # We must NOT have a clean session
-        data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=False)).serialise()
-        )
-
-        for x in iterbytes(data):
-            p2.dataReceived(x)
-
-        # The flushing is queued, so we'll have to spin the reactor
-        r2.advance(0.1)
-
-        # We should have two events; the ConnACK, and the Publish. The ConnACK
-        # MUST come first.
-        events = cp2.data_received(t2.value())
-        t2.clear()
-        self.assertEqual(len(events), 2)
-        self.assertIsInstance(events[0], ConnACK)
-        self.assertIsInstance(events[1], Publish)
-
-        publish = Publish(duplicate=False, qos_level=0, retain=False,
-                          topic_name=u"hello", payload=b"some bytes")
-        self.assertEqual(events[1], publish)
-
-        # It is no longer queued
-        self.assertEqual(len(sessions[u"test123"].queued_messages), 0)
-        self.assertFalse(t2.disconnecting)
 
     for x in [test_qos_1_resent_on_disconnect,
               test_qos_2_resent_on_disconnect_pubcomp,

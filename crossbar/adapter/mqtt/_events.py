@@ -622,7 +622,7 @@ class Connect(object):
     keep_alive = attr.ib(validator=instance_of(int), default=0)
     will_topic = attr.ib(validator=optional(instance_of(unicode)),
                          default=None)
-    will_message = attr.ib(validator=optional(instance_of(unicode)),
+    will_message = attr.ib(validator=optional(instance_of(bytes)),
                            default=None)
     username = attr.ib(validator=optional(instance_of(unicode)),
                        default=None)
@@ -659,7 +659,19 @@ class Connect(object):
         # Client ID
         b.append(build_string(self.client_id))
 
-        # XXX: Implement other fields
+        if self.flags.will:
+            b.append(build_string(self.will_topic))
+
+            # Will message is a uint16 prefixed bytestring
+            b.append(pack('uint:16', len(self.will_message)).bytes)
+            b.append(self.will_message)
+
+        if self.flags.username:
+            b.append(build_string(self.username))
+
+        # Technically this should be binary data but we will only accept UTF-8
+        if self.flags.password:
+            b.append(build_string(self.password))
 
         return b"".join(b)
 

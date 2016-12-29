@@ -37,19 +37,38 @@ from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.protocol import WampRawSocketServerFactory
+from crossbar.router.unisocket import UniSocketServerFactory
 
 from twisted.test.iosim import connect, FakeTransport
 
 
-def make_router(realm_name=u'default'):
+def make_router():
     """
     Make a router, and return it and a RawSocket factory.
     """
     # create a router factory
     router_factory = RouterFactory()
 
+    # create a router session factory
+    session_factory = RouterSessionFactory(router_factory)
+
+    # Create a new RawSocket factory
+    rawsocket_server_factory = WampRawSocketServerFactory(session_factory, {})
+
+    # Create a new UniSocket factory
+    server_factory = UniSocketServerFactory(rawsocket_factory=rawsocket_server_factory)
+
+    return router_factory, server_factory, session_factory
+
+
+def add_realm_to_router(router_factory, session_factory, realm_name=u'default',
+                        realm_options={}):
+
+    opts = dict(realm_options)
+    opts.update({u'name': realm_name})
+
     # start a realm
-    realm = RouterRealm(None, {u'name': realm_name})
+    realm = RouterRealm(None, opts)
     router = router_factory.start_realm(realm)
 
     extra = {}
@@ -71,14 +90,16 @@ def make_router(realm_name=u'default'):
     router = router_factory.get(realm_name)
     router.add_role(RouterRoleStaticAuth(router, 'anonymous', default_permissions=default_permissions))
 
-    # create a router session factory
-    session_factory = RouterSessionFactory(router_factory)
     session_factory.add(realm.session, authrole=u'trusted')
 
-    # Create a new RawSocket factory
-    server_factory = WampRawSocketServerFactory(session_factory, {})
+    return router
 
-    return router, server_factory
+
+def make_router_and_realm(realm_name=u'default'):
+
+    router_factory, server_factory, session_factory = make_router()
+    router = add_realm_to_router(router_factory, session_factory, realm_name)
+    return router, server_factory, session_factory
 
 
 def connect_application_session(server_factory, MyApplicationSession, component_config=None):

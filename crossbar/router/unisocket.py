@@ -82,7 +82,7 @@ class UniSocketServerProtocol(Protocol):
                     self.log.debug('switching to MQTT')
                     self._proto = self._factory._mqtt_factory.buildProtocol(self._addr)
                     self._proto.transport = self.transport
-                    self._proto.connectionMade()
+                    self._proto.connectionMade(True)
                     self._proto.dataReceived(data)
             else:
                 # switch to HTTP, further subswitching to WebSocket (from Autobahn, like a WebSocketServerFactory)
