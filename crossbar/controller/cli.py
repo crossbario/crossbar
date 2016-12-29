@@ -259,7 +259,14 @@ def run_command_version(options, reactor=None, **kwargs):
 
     # JSON Serializer
     supported_serializers = ['JSON']
-    json_ver = 'stdlib'
+    from autobahn.wamp.serializer import JsonObjectSerializer
+    json_ver = JsonObjectSerializer.JSON_MODULE.__name__
+
+    # If it's just 'json' then it's the stdlib one...
+    if json_ver == 'json':
+        json_ver = 'stdlib'
+    else:
+        json_ver = (json_ver + "-%s") % pkg_resources.require(json_ver)[0].version
 
     # MsgPack Serializer
     try:
