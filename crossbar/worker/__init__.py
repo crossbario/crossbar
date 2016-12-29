@@ -92,6 +92,36 @@ def _appsession_loader(config):
             log.error(emsg)
             raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
 
+    elif config['type'] == 'function':
+        callbacks = {}
+        for name, funcref in config.get('callbacks', {}).items():
+            if '.' not in funcref:
+                raise ApplicationError(
+                    u"crossbar.error",
+                    "no '.' in callback reference '{}'".format(funcref),
+                )
+
+            try:
+                package, func = funcref.rsplit('.', 1)
+
+                module = importlib.import_module(package)
+                callbacks[name] = getattr(module, func)
+
+            except Exception:
+                emsg = "Failed to import package '{}' (for '{}')\n{}".format(
+                    package, funcref, Failure().getTraceback())
+                log.error('{msg}', msg=emsg)
+                raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
+
+        # while the "component" callback is usually an
+        # ApplicationSession class, it can be anything that takes a
+        # "config" arg (must return an ApplicationSession instance)
+        def component(config):
+            session = ApplicationSession(config)
+            for name, fn in callbacks.items():
+                session.on(name, fn)
+            return session
+
     else:
         raise ApplicationError(
             u"crossbar.error.invalid_configuration",
