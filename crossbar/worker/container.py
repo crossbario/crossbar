@@ -115,6 +115,9 @@ class ContainerWorkerSession(NativeWorkerSession):
         # map: component ID -> ContainerComponent
         self.components = {}
 
+        # "global" shared between all components
+        self.components_shared = dict()
+
         # the procedures registered
         procs = [
             'get_container_components',
@@ -186,8 +189,11 @@ class ContainerWorkerSession(NativeWorkerSession):
         #
         realm = config['realm']
         extra = config.get('extra', None)
-        component_config = ComponentConfig(realm=realm, extra=extra)
-
+        component_config = ComponentConfig(realm=realm,
+                                           extra=extra,
+                                           keyring=None,
+                                           controller=self,
+                                           shared=self.components_shared)
         try:
             create_component = _appsession_loader(config)
         except ApplicationError as e:

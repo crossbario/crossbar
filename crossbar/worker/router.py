@@ -286,6 +286,9 @@ class RouterWorkerSession(NativeWorkerSession):
         # map: component ID -> RouterComponent
         self.components = {}
 
+        # "global" shared between all components
+        self.components_shared = dict()
+
         # map: transport ID -> RouterTransport
         self.transports = {}
 
@@ -646,7 +649,11 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         realm = config['realm']
         extra = config.get('extra', None)
-        component_config = ComponentConfig(realm=realm, extra=extra)
+        component_config = ComponentConfig(realm=realm,
+                                           extra=extra,
+                                           keyring=None,
+                                           controller=self,
+                                           shared=self.components_shared)
         create_component = _appsession_loader(config)
 
         # .. and create and add an WAMP application session to
