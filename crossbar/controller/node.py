@@ -407,7 +407,7 @@ class Node(object):
             checkconfig.check_config(self._config)
             self.log.info("Node configuration loaded from built-in config.")
 
-    def _setup_node_router_roles(self):
+    def _add_global_roles(self):
         self.log.info('No extra node router roles')
 
     def _add_worker_role(self, worker_auth_role, options):
@@ -437,6 +437,9 @@ class Node(object):
 
     def _drop_worker_role(self, worker_auth_role):
         self._router_factory.drop_role(worker_auth_role)
+
+    def _extend_worker_args(self, args, options):
+        pass
 
     @inlineCallbacks
     def start(self, cdc_mode=False):
@@ -483,7 +486,7 @@ class Node(object):
         router = self._router_factory.start_realm(rlm)
 
         # setup global static roles
-        self._setup_node_router_roles()
+        self._add_global_roles()
 
         # always add a realm service session
         #

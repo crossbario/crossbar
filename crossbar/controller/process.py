@@ -427,15 +427,17 @@ class NodeControllerSession(NativeProcessSession):
         # from the same script in crossbar/worker/process.py -- we're
         # invoking via "-m" so that .pyc files, __pycache__ etc work
         # properly.
-
+        #
         args = [exe, "-u", "-m", "crossbar.worker.process"]
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--worker", str(id)])
         args.extend(["--realm", self._realm])
         args.extend(["--type", wtype])
         args.extend(["--loglevel", get_global_log_level()])
-        if 'vendor' in options and options['vendor']:
-            args.extend(["--vendor=true"])
+
+        # Node-level callback to inject worker arguments
+        #
+        self._node._extend_worker_args(args, options)
 
         # allow override worker process title from options
         #

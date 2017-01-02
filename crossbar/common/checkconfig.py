@@ -2513,7 +2513,7 @@ def check_native_worker_options(options):
         raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env', 'vendor']:
+        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env', 'expose_controller', 'expose_shared']:
             raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
 
     if 'title' in options:
@@ -2550,10 +2550,17 @@ def check_native_worker_options(options):
     if 'env' in options:
         check_process_env(options['env'])
 
-    if 'vendor' in options:
-        vendor = options['vendor']
-        if not isinstance(vendor, bool):
-            raise InvalidConfigException("'vendor' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(vendor)))
+    # this feature requires Crossbar.io Fabric extension
+    if 'expose_controller' in options:
+        expose_controller = options['expose_controller']
+        if not isinstance(expose_controller, bool):
+            raise InvalidConfigException("'expose_controller' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(expose_controller)))
+
+    # this feature requires Crossbar.io Fabric extension
+    if 'expose_shared' in options:
+        expose_shared = options['expose_shared']
+        if not isinstance(expose_shared, bool):
+            raise InvalidConfigException("'expose_shared' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(expose_shared)))
 
 
 def check_guest(guest):

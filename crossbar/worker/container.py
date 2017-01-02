@@ -112,7 +112,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         self.components = {}
 
         # "global" shared between all components
-        self.components_shared = dict()
+        self.components_shared = {'reactor': reactor}
 
     @inlineCallbacks
     def onJoin(self, details):
@@ -200,8 +200,8 @@ class ContainerWorkerSession(NativeWorkerSession):
         component_config = ComponentConfig(realm=realm,
                                            extra=extra,
                                            keyring=None,
-                                           controller=self if self.config.extra.vendor else None,
-                                           shared=self.components_shared)
+                                           controller=self if self.config.extra.expose_controller else None,
+                                           shared=self.components_shared if self.config.extra.expose_shared else None)
         try:
             create_component = _appsession_loader(config)
         except ApplicationError as e:
