@@ -465,6 +465,10 @@ class NodeControllerSession(NativeProcessSession):
             'websocket-testee': 'WebSocketTestee'
         }.get(wtype, 'Worker')
 
+        # each worker is run under its own dedicated WAMP auth role
+        #
+        worker_auth_role = u'crossbar.worker.{}'.format(id)
+
         # topic URIs used (later)
         #
         if wtype == 'router':
@@ -551,12 +555,14 @@ class NodeControllerSession(NativeProcessSession):
         def on_exit_success(_):
             self.log.info("Node worker {worker.id} ended successfully", worker=worker)
             worker.log_stats(0)
+            self._node._router_factory.drop_role(worker_auth_role)
             del self._workers[worker.id]
             return True
 
         def on_exit_error(err):
             self.log.info("Node worker {worker.id} ended with error ({err})", worker=worker, err=err)
             worker.log_stats(0)
+            self._node._router_factory.drop_role(worker_auth_role)
             del self._workers[worker.id]
             return False
 
@@ -601,7 +607,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # create a transport factory for talking WAMP to the native worker
         #
-        transport_factory = create_native_worker_client_factory(self._node._router_session_factory, worker.ready, worker.exit)
+        transport_factory = create_native_worker_client_factory(self._node._router_session_factory, worker_auth_role, worker.ready, worker.exit)
         transport_factory.noisy = False
         self._workers[id].factory = transport_factory
 
@@ -649,6 +655,28 @@ class NodeControllerSession(NativeProcessSession):
 
             worker.status = 'connected'
             worker.connected = datetime.utcnow()
+
+            worker_role_config = {
+                u"name": worker_auth_role,
+                u"permissions": [
+                    {
+                        u"uri": u"crossbar.worker.{}.".format(id),
+                        u"match": u"prefix",
+                        u"allow": {
+                            u"call": False,
+                            u"register": True,
+                            u"publish": True,
+                            u"subscribe": False
+                        },
+                        u"disclose": {
+                            u"caller": False,
+                            u"publisher": False
+                        },
+                        u"cache": True
+                    }
+                ]
+            }
+            self._node._router_factory.add_role(self._node._realm, worker_role_config)
 
         def on_connect_error(err):
 

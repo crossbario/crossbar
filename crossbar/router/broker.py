@@ -166,11 +166,11 @@ class Broker(object):
                 self._router.send(session, reply)
             return
 
-        # disallow publication to topics starting with "wamp." and "crossbar." other than for
-        # trusted sessions (that are sessions built into Crossbar.io)
+        # disallow publication to topics starting with "wamp." other than for
+        # trusted sessions (that are sessions built into Crossbar.io routing core)
         #
         if session._authrole is not None and session._authrole != u"trusted":
-            is_restricted = publish.topic.startswith(u"wamp.") or publish.topic.startswith(u"crossbar.")
+            is_restricted = publish.topic.startswith(u"wamp.")
             if is_restricted:
                 if publish.acknowledge:
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with restricted topic URI '{0}'".format(publish.topic)])

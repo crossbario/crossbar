@@ -105,18 +105,23 @@ class ContainerWorkerSession(NativeWorkerSession):
     """
     WORKER_TYPE = 'container'
 
-    @inlineCallbacks
-    def onJoin(self, details):
-        """
-        Called when worker process has joined the node's management realm.
-        """
-        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
+    def __init__(self, config=None, reactor=None):
+        NativeWorkerSession.__init__(self, config, reactor)
 
         # map: component ID -> ContainerComponent
         self.components = {}
 
         # "global" shared between all components
         self.components_shared = dict()
+
+    @inlineCallbacks
+    def onJoin(self, details):
+        """
+        Called when worker process has joined the node's management realm.
+        """
+        self.log.info('ContainerWorkerSession: {}'.format(details))
+
+        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
         # the procedures registered
         procs = [
@@ -138,7 +143,10 @@ class ContainerWorkerSession(NativeWorkerSession):
         self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
 
         # NativeWorkerSession.publish_ready()
-        yield self.publish_ready()
+        try:
+            yield self.publish_ready()
+        except:
+            self.log.failure('Failed to publish container worker ready: {log_failure.value}')
 
     def stop_container(self):
         """

@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import os
-import traceback
 import socket
 import getpass
 import pkg_resources
@@ -439,18 +438,43 @@ class Node(object):
         else:
             setproctitle.setproctitle(controller_options.get('title', 'crossbar-controller'))
 
-        # router and factory that creates router sessions
+        # local node management router
         #
         self._router_factory = RouterFactory()
         self._router_session_factory = RouterSessionFactory(self._router_factory)
-
-        # create a new router for the realm
-        #
         rlm_config = {
             'name': self._realm
         }
         rlm = RouterRealm(None, rlm_config)
         router = self._router_factory.start_realm(rlm)
+
+        # setup local roles
+        #
+        if False:
+            roles = [
+                {
+                    u"name": u"worker",
+                    u"permissions": [
+                        {
+                            u"uri": u"crossbar.worker.",
+                            u"match": u"prefix",
+                            u"allow": {
+                                u"call": False,
+                                u"register": True,
+                                u"publish": False,
+                                u"subscribe": False
+                            },
+                            u"disclose": {
+                                u"caller": False,
+                                u"publisher": False
+                            },
+                            u"cache": True
+                        }
+                    ]
+                }
+            ]
+            for config in roles:
+                self._router_factory.add_role(self._realm, config)
 
         # always add a realm service session
         #
@@ -604,7 +628,7 @@ class Node(object):
 
         except Exception:
             panic = True
-            traceback.print_exc()
+            self.log.failure('Could not startup node: {log_failure.value}')
 
         if panic:
             try:
