@@ -69,9 +69,6 @@ from crossbar.controller.management import NodeManagementBridgeSession
 from crossbar.controller.management import NodeManagementSession
 
 
-__all__ = ('Node',)
-
-
 def _read_release_pubkey():
     release_pubkey_file = 'crossbar-{}.pub'.format('-'.join(crossbar.__version__.split('.')[0:2]))
     release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'keys'), release_pubkey_file)
@@ -219,6 +216,12 @@ class Node(object):
 
     A single Crossbar.io node runs exactly one instance of this class, hence
     this class can be considered a system singleton.
+    """
+    # http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
+    BANNER = r"""     __  __  __  __  __  __      __     __
+    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
+    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
+
     """
 
     log = make_logger()
@@ -404,6 +407,37 @@ class Node(object):
             checkconfig.check_config(self._config)
             self.log.info("Node configuration loaded from built-in config.")
 
+    def _setup_node_router_roles(self):
+        self.log.info('No extra node router roles')
+
+    def _add_worker_role(self, worker_auth_role, options):
+        worker_role_config = {
+            u"name": worker_auth_role,
+            u"permissions": [
+                # the worker requires these permissions to work:
+                {
+                    # worker_auth_role: "crossbar.worker.worker-001"
+                    u"uri": worker_auth_role,
+                    u"match": u"prefix",
+                    u"allow": {
+                        u"call": False,
+                        u"register": True,
+                        u"publish": True,
+                        u"subscribe": False
+                    },
+                    u"disclose": {
+                        u"caller": False,
+                        u"publisher": False
+                    },
+                    u"cache": True
+                }
+            ]
+        }
+        self._router_factory.add_role(self._realm, worker_role_config)
+
+    def _drop_worker_role(self, worker_auth_role):
+        self._router_factory.drop_role(worker_auth_role)
+
     @inlineCallbacks
     def start(self, cdc_mode=False):
         """
@@ -448,33 +482,8 @@ class Node(object):
         rlm = RouterRealm(None, rlm_config)
         router = self._router_factory.start_realm(rlm)
 
-        # setup local roles
-        #
-        if False:
-            roles = [
-                {
-                    u"name": u"worker",
-                    u"permissions": [
-                        {
-                            u"uri": u"crossbar.worker.",
-                            u"match": u"prefix",
-                            u"allow": {
-                                u"call": False,
-                                u"register": True,
-                                u"publish": False,
-                                u"subscribe": False
-                            },
-                            u"disclose": {
-                                u"caller": False,
-                                u"publisher": False
-                            },
-                            u"cache": True
-                        }
-                    ]
-                }
-            ]
-            for config in roles:
-                self._router_factory.add_role(self._realm, config)
+        # setup global static roles
+        self._setup_node_router_roles()
 
         # always add a realm service session
         #

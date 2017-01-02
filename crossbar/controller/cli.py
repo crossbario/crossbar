@@ -59,10 +59,15 @@ from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
 
-from crossbar.controller.node import Node, _read_release_pubkey, _read_node_pubkey
+from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
+
+try:
+    from crossbarfabric.node import FabricNode as Node
+except ImportError:
+    from crossbar.controller.node import Node
 
 try:
     import psutil
@@ -90,12 +95,7 @@ except ImportError:
 
 __all__ = ('run',)
 
-# http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
-BANNER = r"""     __  __  __  __  __  __      __     __
-    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
-    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
 
-"""
 
 _PID_FILENAME = 'node.pid'
 
@@ -306,7 +306,7 @@ def run_command_version(options, reactor=None, **kwargs):
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
-    for line in BANNER.splitlines():
+    for line in Node.BANNER.splitlines():
         log.info(decorate("{:>40}".format(line)))
 
     pad = " " * 22
@@ -599,6 +599,7 @@ def run_command_start(options, reactor=None):
     # represents the running Crossbar.io node
     #
     node = Node(options.cbdir, reactor=reactor)
+    log.debug('Running Node class {node_class}', node_class='{}.{}'.format(Node.__module__, Node.__name__))
 
     # possibly generate new node key
     #
@@ -617,7 +618,7 @@ def run_command_start(options, reactor=None):
 
     # Print the banner.
     #
-    for line in BANNER.splitlines():
+    for line in Node.BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
     # bannerFormat = "{:<18} {:<24}"
