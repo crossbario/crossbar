@@ -100,6 +100,11 @@ def run():
                         default=None,
                         help='Worker process title to set (optional).')
 
+    parser.add_argument('--vendor',
+                        type=bool,
+                        default=True,
+                        help='Enable vendor mode for the work.')
+
     options = parser.parse_args()
 
     # make sure logging to something else than stdio is setup _first_

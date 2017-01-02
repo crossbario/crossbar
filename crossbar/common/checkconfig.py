@@ -2513,7 +2513,7 @@ def check_native_worker_options(options):
         raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env']:
+        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env', 'vendor']:
             raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
 
     if 'title' in options:
@@ -2549,6 +2549,11 @@ def check_native_worker_options(options):
 
     if 'env' in options:
         check_process_env(options['env'])
+
+    if 'vendor' in options:
+        vendor = options['vendor']
+        if not isinstance(vendor, bool):
+            raise InvalidConfigException("'vendor' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(vendor)))
 
 
 def check_guest(guest):

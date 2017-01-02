@@ -663,7 +663,7 @@ class RouterWorkerSession(NativeWorkerSession):
         component_config = ComponentConfig(realm=realm,
                                            extra=extra,
                                            keyring=None,
-                                           controller=self,
+                                           controller=self if self.config.extra.vendor else None,
                                            shared=self.components_shared)
         create_component = _appsession_loader(config)
 

@@ -496,6 +496,8 @@ class NodeControllerSession(NativeProcessSession):
 
         self._workers[id] = worker
 
+        is_vendor_worker = options.get('vendor', False)
+
         # create a (custom) process endpoint.
         #
         if platform.isWindows():
@@ -554,16 +556,34 @@ class NodeControllerSession(NativeProcessSession):
 
         def on_exit_success(_):
             self.log.info("Node worker {worker.id} ended successfully", worker=worker)
+
+            # clear worker log
             worker.log_stats(0)
+
+            # remove the dedicated node router authrole we dynamically
+            # added for the worker
             self._node._router_factory.drop_role(worker_auth_role)
+
+            # remove our metadata tracking for the worker
             del self._workers[worker.id]
+
+            # indicate that the worker excited successfully
             return True
 
         def on_exit_error(err):
             self.log.info("Node worker {worker.id} ended with error ({err})", worker=worker, err=err)
+
+            # clear worker log
             worker.log_stats(0)
+
+            # remove the dedicated node router authrole we dynamically
+            # added for the worker
             self._node._router_factory.drop_role(worker_auth_role)
+
+            # remove our metadata tracking for the worker
             del self._workers[worker.id]
+
+            # indicate that the worker excited with error
             return False
 
         def check_for_shutdown(was_successful):
@@ -656,9 +676,13 @@ class NodeControllerSession(NativeProcessSession):
             worker.status = 'connected'
             worker.connected = datetime.utcnow()
 
+            # dynamically add a dedicated authrole to the router
+            # for the worker we've just started
+            #
             worker_role_config = {
                 u"name": worker_auth_role,
                 u"permissions": [
+                    # the worker requires these permissions to work:
                     {
                         u"uri": u"crossbar.worker.{}.".format(id),
                         u"match": u"prefix",
@@ -676,6 +700,23 @@ class NodeControllerSession(NativeProcessSession):
                     }
                 ]
             }
+            if is_vendor_worker:
+                vendor_permissions = {
+                    u"uri": u"crossbar.",
+                    u"match": u"prefix",
+                    u"allow": {
+                        u"call": True,
+                        u"register": False,
+                        u"publish": False,
+                        u"subscribe": True
+                    },
+                    u"disclose": {
+                        u"caller": False,
+                        u"publisher": False
+                    },
+                    u"cache": True
+                }
+                worker_role_config[u"permissions"].append(vendor_permissions)
             self._node._router_factory.add_role(self._node._realm, worker_role_config)
 
         def on_connect_error(err):
