@@ -102,7 +102,7 @@ def run():
 
     parser.add_argument('--vendor',
                         type=bool,
-                        default=True,
+                        default=False,
                         help='Enable vendor mode for the work.')
 
     options = parser.parse_args()

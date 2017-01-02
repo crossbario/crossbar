@@ -434,6 +434,8 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--realm", self._realm])
         args.extend(["--type", wtype])
         args.extend(["--loglevel", get_global_log_level()])
+        if 'vendor' in options and options['vendor']:
+            args.extend(["--vendor=true"])
 
         # allow override worker process title from options
         #
