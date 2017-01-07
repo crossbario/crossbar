@@ -80,6 +80,52 @@ class NodeControllerSession(NativeProcessSession):
 
     log = make_logger()
 
+    PROCS =  [
+        'get_info',
+        'shutdown',
+        'get_workers',
+        'get_worker',
+        'get_worker_log',
+        'start_router',
+        'stop_router',
+        'start_container',
+        'stop_container',
+        'start_guest',
+        'stop_guest',
+        'start_websocket_testee',
+        'stop_websocket_testee',
+    ]
+
+    NATIVE_WORKER = {
+        'router': {
+            'class': RouterWorkerProcess,
+            'checkconfig': checkconfig.check_router_options,
+            'logname': 'Router',
+            'topics': {
+                'starting': 'crossbar.node.on_router_starting',
+                'started': 'crossbar.node.on_router_started',
+            }
+        },
+        'container': {
+            'class': ContainerWorkerProcess,
+            'checkconfig': checkconfig.check_container_options,
+            'logname': 'Container',
+            'topics': {
+                'starting': 'crossbar.node.on_container_starting',
+                'started': 'crossbar.node.on_container_started',
+            }
+        },
+        'websocket-testee': {
+            'class': WebSocketTesteeWorkerProcess,
+            'checkconfig': checkconfig.check_websocket_testee_options,
+            'logname': 'WebSocketTestee',
+            'topics': {
+                'starting': 'crossbar.node.on_websocket_testee_starting',
+                'started': 'crossbar.node.on_websocket_testee_started',
+            }
+        },
+    }
+
     def __init__(self, node):
         """
         :param node: The node singleton for this node controller session.
@@ -144,32 +190,10 @@ class NodeControllerSession(NativeProcessSession):
 
         # register node controller procedures: 'crossbar.node.<ID>.<PROCEDURE>'
         #
-        procs = [
-            'get_info',
-            'shutdown',
-
-            'get_workers',
-
-            'get_worker',
-            'get_worker_log',
-
-            'start_router',
-            'stop_router',
-
-            'start_container',
-            'stop_container',
-
-            'start_guest',
-            'stop_guest',
-
-            'start_websocket_testee',
-            'stop_websocket_testee',
-        ]
-
         dl = []
-        for proc in procs:
+        for proc in self.PROCS:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
+            self.log.info('Registering management API procedure "{proc}"', proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
@@ -193,8 +217,7 @@ class NodeControllerSession(NativeProcessSession):
             u'started': self._started,
             u'pid': self._pid,
             u'workers': len(self._workers),
-            u'directory': self.cbdir,
-            u'wamplets': self._get_wamplets()
+            u'directory': self.cbdir
         }
 
     @inlineCallbacks
@@ -232,38 +255,6 @@ class NodeControllerSession(NativeProcessSession):
         self._reactor.callLater(0, stop_reactor)
 
         returnValue(shutdown_info)
-
-    def _get_wamplets(self):
-        """
-        List installed WAMPlets.
-        """
-        res = []
-
-        for entrypoint in pkg_resources.iter_entry_points('autobahn.twisted.wamplet'):
-            try:
-                e = entrypoint.load()
-            except Exception as e:
-                pass
-            else:
-                ep = {
-                    u'dist': entrypoint.dist.key,
-                    u'version': entrypoint.dist.version,
-                    u'location': entrypoint.dist.location,
-                    u'name': entrypoint.name,
-                    u'module_name': entrypoint.module_name,
-                    u'entry_point': str(entrypoint),
-                }
-
-                if hasattr(e, '__doc__') and e.__doc__:
-                    ep[u'doc'] = e.__doc__.strip()
-                else:
-                    ep[u'doc'] = None
-
-                ep[u'meta'] = e(None)
-
-                res.append(ep)
-
-        return sorted(res)
 
     def get_workers(self, details=None):
         """
@@ -372,9 +363,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._start_native_worker('websocket-testee', id, options, details=details)
 
-    def _start_native_worker(self, wtype, id, options=None, details=None):
-
-        assert(wtype in ['router', 'container', 'websocket-testee'])
+    def _start_native_worker(self, worker_type, id, options=None, details=None):
 
         # prohibit starting a worker twice
         #
@@ -387,14 +376,13 @@ class NodeControllerSession(NativeProcessSession):
         #
         options = options or {}
         try:
-            if wtype == 'router':
-                checkconfig.check_router_options(options)
-            elif wtype == 'container':
-                checkconfig.check_container_options(options)
-            elif wtype == 'websocket-testee':
-                checkconfig.check_websocket_testee_options(options)
+            if worker_type in self.NATIVE_WORKER:
+                if self.NATIVE_WORKER[worker_type]['checkconfig']:
+                    self.NATIVE_WORKER[worker_type]['checkconfig'](options)
+                else:
+                    self.log.warn('No checkconfig for worker type "{worker_type}" implemented!', worker_type=worker_type)
             else:
-                raise Exception("logic error")
+                raise Exception('invalid worker type "{}"'.format(worker_type))
         except Exception as e:
             emsg = "Could not start native worker: invalid configuration ({})".format(e)
             self.log.error(emsg)
@@ -432,7 +420,7 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--worker", str(id)])
         args.extend(["--realm", self._realm])
-        args.extend(["--type", wtype])
+        args.extend(["--type", worker_type])
         args.extend(["--loglevel", get_global_log_level()])
 
         # Node-level callback to inject worker arguments
@@ -463,11 +451,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # log name of worker
         #
-        worker_logname = {
-            'router': 'Router',
-            'container': 'Container',
-            'websocket-testee': 'WebSocketTestee'
-        }.get(wtype, 'Worker')
+        worker_logname = self.NATIVE_WORKER[worker_type]['logname']
 
         # each worker is run under its own dedicated WAMP auth role
         #
@@ -475,29 +459,13 @@ class NodeControllerSession(NativeProcessSession):
 
         # topic URIs used (later)
         #
-        if wtype == 'router':
-            starting_topic = 'crossbar.node.on_router_starting'
-            started_topic = 'crossbar.node.on_router_started'
-        elif wtype == 'container':
-            starting_topic = 'crossbar.node.on_container_starting'
-            started_topic = 'crossbar.node.on_container_started'
-        elif wtype == 'websocket-testee':
-            starting_topic = 'crossbar.node.on_websocket_testee_starting'
-            started_topic = 'crossbar.node.on_websocket_testee_started'
-        else:
-            raise Exception("logic error")
+        starting_topic = self.NATIVE_WORKER[worker_type]['topics']['starting']
+        started_topic = self.NATIVE_WORKER[worker_type]['topics']['started']
 
         # add worker tracking instance to the worker map ..
         #
-        if wtype == 'router':
-            worker = RouterWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
-        elif wtype == 'container':
-            worker = ContainerWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
-        elif wtype == 'websocket-testee':
-            worker = WebSocketTesteeWorkerProcess(self, id, details.caller, keeplog=options.get('traceback', None))
-        else:
-            raise Exception("logic error")
-
+        WORKER = self.NATIVE_WORKER[worker_type]['class']
+        worker = WORKER(self, id, details.caller, keeplog=options.get('traceback', None))
         self._workers[id] = worker
 
         # create a (custom) process endpoint.
@@ -787,12 +755,10 @@ class NodeControllerSession(NativeProcessSession):
         return self._stop_native_worker('websocket-testee', id, kill, details=details)
 
     @inlineCallbacks
-    def _stop_native_worker(self, wtype, id, kill, details=None):
+    def _stop_native_worker(self, worker_type, id, kill, details=None):
 
-        assert(wtype in ['router', 'container', 'websocket-testee'])
-
-        if id not in self._workers or self._workers[id].TYPE != wtype:
-            emsg = "Could not stop native worker: no {} worker with ID '{}' currently running".format(wtype, id)
+        if id not in self._workers or self._workers[id].TYPE != worker_type:
+            emsg = "Could not stop native worker: no {} worker with ID '{}' currently running".format(worker_type, id)
             raise ApplicationError(u'crossbar.error.worker_not_running', emsg)
 
         worker = self._workers[id]
@@ -803,7 +769,7 @@ class NodeControllerSession(NativeProcessSession):
 
         stop_info = {
             u'id': worker.id,
-            u'type': wtype,
+            u'type': worker_type,
             u'kill': kill,
             u'who': details.caller if details else None,
             u'when': utcnow(),
@@ -820,12 +786,12 @@ class NodeControllerSession(NativeProcessSession):
         # send SIGKILL or SIGTERM to worker
         #
         if kill:
-            self.log.info("Killing {wtype} worker with ID '{id}'",
-                          wtype=wtype, id=id)
+            self.log.info("Killing {worker_type} worker with ID '{id}'",
+                          worker_type=worker_type, id=id)
             self._workers[id].proto.transport.signalProcess("KILL")
         else:
-            self.log.info("Stopping {wtype} worker with ID '{id}'",
-                          wtype=wtype, id=id)
+            self.log.info("Stopping {worker_type} worker with ID '{id}'",
+                          worker_type=worker_type, id=id)
             self._workers[id].factory.stopFactory()
             self._workers[id].proto.transport.signalProcess('TERM')
 
