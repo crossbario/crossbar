@@ -45,9 +45,9 @@ from nacl.signing import SigningKey
 from nacl.encoding import HexEncoder
 
 import twisted
-from twisted.internet.defer import inlineCallbacks, Deferred
-from twisted.internet.ssl import optionsForClientTLS
+from twisted.internet.defer import inlineCallbacks
 from twisted.python.runtime import platform
+from twisted.python.reflect import qual
 
 from txaio import make_logger
 
@@ -55,7 +55,6 @@ from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
-from autobahn.twisted.wamp import ApplicationRunner
 from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
 
 import crossbar
@@ -65,8 +64,6 @@ from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
 from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
-from crossbar.controller.management import NodeManagementBridgeSession
-from crossbar.controller.management import NodeManagementSession
 
 
 def _read_release_pubkey():
@@ -211,18 +208,25 @@ def _write_node_key(filepath, tags, msg):
 
 class Node(object):
     """
-    A Crossbar.io node is the running a controller process and one or multiple
-    worker processes.
-
-    A single Crossbar.io node runs exactly one instance of this class, hence
-    this class can be considered a system singleton.
+    Crossbar.io Community node personality.
     """
+
     # http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
     BANNER = r"""     __  __  __  __  __  __      __     __
     /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
     \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
 
-    """
+"""
+    PERSONALITY = "Crossbar.io COMMUNITY"
+
+    NODE_CONTROLLER = NodeControllerSession
+
+    ROUTER_SERVICE = RouterServiceSession
+
+    # A Crossbar.io node is the running a controller process and one or multiple
+    # worker processes.
+    # A single Crossbar.io node runs exactly one instance of this class, hence
+    # this class can be considered a system singleton.
 
     log = make_logger()
 
@@ -242,15 +246,6 @@ class Node(object):
             from twisted.internet import reactor
         self._reactor = reactor
 
-        # the node's management realm when running in managed mode (this comes from CDC!)
-        self._management_realm = None
-
-        # the node's ID when running in managed mode (this comes from CDC!)
-        self._node_id = None
-
-        # node extra when running in managed mode (this comes from CDC!)
-        self._node_extra = None
-
         # the node controller realm
         self._realm = u'crossbar'
 
@@ -264,18 +259,8 @@ class Node(object):
         # in the local node router)
         self._controller = None
 
-        # when running in managed mode, this will hold the bridge session
-        # attached to the local management router
-        self._bridge_session = None
-
-        # when running in managed mode, this will hold the uplink session to CDC
-        self._manager = None
-
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
-
-        # map from router worker IDs to
-        self._realm_templates = {}
 
         # for node elements started under specific IDs, and where
         # the node configuration does not specify an ID, use a generic
@@ -383,12 +368,12 @@ class Node(object):
     def load(self, configfile=None):
         """
         Check and load the node configuration (usually, from ".crossbar/config.json")
-        or load built-in CDC default config.
+        or load built-in empty config.
         """
         if configfile:
-            configpath = os.path.join(self._cbdir, configfile)
+            configpath = os.path.abspath(os.path.join(self._cbdir, configfile))
 
-            self.log.debug("Loading node configuration from '{configpath}' ..",
+            self.log.debug('Loading node configuration from "{configpath}" ..',
                            configpath=configpath)
 
             # the following will read the config, check the config and replace
@@ -396,8 +381,8 @@ class Node(object):
             # finally return the parsed configuration object
             self._config = checkconfig.check_config_file(configpath)
 
-            self.log.info("Node configuration loaded from '{configfile}'",
-                          configfile=configfile)
+            self.log.info('Node configuration loaded from "{configpath}"',
+                          configpath=configpath)
         else:
             self._config = {
                 u'version': 2,
@@ -405,7 +390,7 @@ class Node(object):
                 u'workers': []
             }
             checkconfig.check_config(self._config)
-            self.log.info("Node configuration loaded from built-in config.")
+            self.log.info('Node configuration loaded from built-in config.')
 
     def _add_global_roles(self):
         self.log.info('No extra node router roles')
@@ -441,25 +426,27 @@ class Node(object):
     def _extend_worker_args(self, args, options):
         pass
 
+    def _add_extra_controller_components(self, controller_options):
+        pass
+
+    def _set_shutdown_triggers(self, controller_options):
+        # allow to override node shutdown triggers
+        #
+        if 'shutdown' in controller_options:
+            self._node_shutdown_triggers = controller_options['shutdown']
+            self.log.info("Using node shutdown triggers {triggers} from configuration", triggers=self._node_shutdown_triggers)
+        else:
+            self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
+            self.log.info("Using default node shutdown triggers {triggers}", triggers=self._node_shutdown_triggers)
+
     @inlineCallbacks
-    def start(self, cdc_mode=False):
+    def start(self):
         """
         Starts this node. This will start a node controller and then spawn new worker
         processes as needed.
         """
         if not self._config:
-            raise Exception("No node configuration loaded")
-
-        if not cdc_mode and not self._config.get("controller", {}) and not self._config.get("workers", {}):
-            self.log.warn(
-                ("You seem to have no controller config or workers, nor are "
-                 "starting up in CDC mode. Check your config exists, or pass "
-                 "--cdc to `crossbar start`."))
-            try:
-                self._reactor.stop()
-            except twisted.internet.error.ReactorNotRunning:
-                pass
-            return
+            raise Exception("No node configuration set")
 
         # get controller config/options
         #
@@ -486,152 +473,41 @@ class Node(object):
         router = self._router_factory.start_realm(rlm)
 
         # setup global static roles
+        #
         self._add_global_roles()
 
         # always add a realm service session
         #
         cfg = ComponentConfig(self._realm)
-        rlm.session = RouterServiceSession(cfg, router)
+        rlm.session = self.ROUTER_SERVICE(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
+        self.log.info('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
 
-        # add a router bridge session when running in managed mode
+        # add the node controller singleton component
         #
-        if cdc_mode:
-            self._bridge_session = NodeManagementBridgeSession(cfg)
-            self._router_session_factory.add(self._bridge_session, authrole=u'trusted')
-        else:
-            self._bridge_session = None
-
-        # Node shutdown mode
-        #
-        if cdc_mode:
-            # in managed mode, a node - by default - only shuts down when explicitly asked to,
-            # or upon a fatal error in the node controller
-            self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED]
-        else:
-            # in standalone mode, a node - by default - is immediately shutting down whenever
-            # a worker exits (successfully or with error)
-            self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
-
-        # allow to override node shutdown triggers
-        #
-        if 'shutdown' in controller_options:
-            self.log.info("Overriding default node shutdown triggers with {triggers} from node config", triggers=controller_options['shutdown'])
-            self._node_shutdown_triggers = controller_options['shutdown']
-        else:
-            self.log.info("Using default node shutdown triggers {triggers}", triggers=self._node_shutdown_triggers)
-
-        # add the node controller singleton session
-        #
-        self._controller = NodeControllerSession(self)
+        self._controller = self.NODE_CONTROLLER(self)
         self._router_session_factory.add(self._controller, authrole=u'trusted')
+        self.log.info('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
 
-        # detect WAMPlets (FIXME: remove this!)
+        # add extra node controller components
         #
-        wamplets = self._controller._get_wamplets()
-        if len(wamplets) > 0:
-            self.log.info("Detected {wamplets} WAMPlets in environment:",
-                          wamplets=len(wamplets))
-            for wpl in wamplets:
-                self.log.info("WAMPlet {dist}.{name}",
-                              dist=wpl['dist'], name=wpl['name'])
-        else:
-            self.log.debug("No WAMPlets detected in enviroment.")
+        self._add_extra_controller_components(controller_options)
+
+        # setup Node shutdown triggers
+        #
+        self._set_shutdown_triggers(controller_options)
 
         panic = False
         try:
-            # startup the node from local node configuration
-            #
-            yield self._startup(self._config)
+            # startup the node personality ..
+            yield self._startup()
 
-            # connect to CDC when running in managed mode
-            #
-            if cdc_mode:
-                cdc_config = controller_config.get('cdc', {
-
-                    # CDC connecting transport
-                    u'transport': {
-                        u'type': u'websocket',
-                        u'url': u'wss://cdc.crossbario.com/ws',
-                        u'endpoint': {
-                            u'type': u'tcp',
-                            u'host': u'cdc.crossbario.com',
-                            u'port': 443,
-                            u'timeout': 5,
-                            u'tls': {
-                                u'hostname': u'cdc.crossbario.com'
-                            }
-                        }
-                    }
-                })
-
-                transport = cdc_config[u'transport']
-                hostname = None
-                if u'tls' in transport[u'endpoint']:
-                    transport[u'endpoint'][u'tls'][u'hostname']
-
-                runner = ApplicationRunner(
-                    url=transport['url'],
-                    realm=None,
-                    extra=None,
-                    ssl=optionsForClientTLS(hostname) if hostname else None,
-                )
-
-                def make(config):
-                    # extra info forwarded to CDC client session
-                    extra = {
-                        'node': self,
-                        'on_ready': Deferred(),
-                        'on_exit': Deferred(),
-                        'node_key': self._node_key,
-                    }
-
-                    @inlineCallbacks
-                    def on_ready(res):
-                        self._manager, self._management_realm, self._node_id, self._node_extra = res
-
-                        if self._bridge_session:
-                            try:
-                                yield self._bridge_session.attach_manager(self._manager, self._management_realm, self._node_id)
-                                status = yield self._manager.call(u'cdc.remote.status@1')
-                            except:
-                                self.log.failure()
-                            else:
-                                self.log.info('Connected to CDC for management realm "{realm}" (current time is {now})', realm=self._management_realm, now=status[u'now'])
-                        else:
-                            self.log.warn('Uplink CDC session established, but no bridge session setup!')
-
-                    @inlineCallbacks
-                    def on_exit(res):
-                        if self._bridge_session:
-                            try:
-                                yield self._bridge_session.detach_manager()
-                            except:
-                                self.log.failure()
-                            else:
-                                self.log.info('Disconnected from CDC for management realm "{realm}"', realm=self._management_realm)
-                        else:
-                            self.log.warn('Uplink CDC session lost, but no bridge session setup!')
-
-                        self._manager, self._management_realm, self._node_id, self._node_extra = None, None, None, None
-
-                    extra['on_ready'].addCallback(on_ready)
-                    extra['on_exit'].addCallback(on_exit)
-
-                    config = ComponentConfig(extra=extra)
-                    session = NodeManagementSession(config)
-
-                    return session
-
-                self.log.info("Connecting to CDC at '{url}' ..", url=transport[u'url'])
-                yield runner.run(make, start_reactor=False, auto_reconnect=True)
-
-            # Notify systemd that crossbar is fully up and running
-            # (this has no effect on non-systemd platforms)
+            # .. and notify systemd that we are fully up and running
             try:
                 import sdnotify
                 sdnotify.SystemdNotifier().notify("READY=1")
             except:
+                # do nothing on non-systemd platforms
                 pass
 
         except ApplicationError as e:
@@ -648,8 +524,11 @@ class Node(object):
             except twisted.internet.error.ReactorNotRunning:
                 pass
 
+    def _startup(self):
+        return self._configure_node_from_config(self._config)
+
     @inlineCallbacks
-    def _startup(self, config):
+    def _configure_node_from_config(self, config):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
@@ -916,4 +795,4 @@ class Node(object):
             else:
                 raise Exception("logic error")
 
-        self.log.info('Local node configuration applied.')
+        self.log.info('Node configuration applied successfully!')

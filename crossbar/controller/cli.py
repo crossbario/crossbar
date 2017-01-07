@@ -65,11 +65,6 @@ from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
 
 try:
-    from crossbarfabric.node import FabricNode as Node
-except ImportError:
-    from crossbar.controller.node import Node
-
-try:
     import psutil
     _HAS_PSUTIL = True
 except ImportError:
@@ -95,9 +90,33 @@ except ImportError:
 
 __all__ = ('run',)
 
-
-
 _PID_FILENAME = 'node.pid'
+
+
+def get_node_classes():
+    """
+    Get Node classes which implement node personalities.
+
+    :returns: Dict with node classes and aux info.
+    :rtype: dict
+    """
+    res = {}
+    for entrypoint in pkg_resources.iter_entry_points('crossbar.node'):
+        e = entrypoint.load()
+        ep = {
+            u'class': e,
+            u'dist': entrypoint.dist.key,
+            u'version': entrypoint.dist.version,
+        }
+        if hasattr(e, '__doc__') and e.__doc__:
+            ep[u'doc'] = e.__doc__.strip()
+        else:
+            ep[u'doc'] = None
+        res[entrypoint.name] = ep
+    return res
+
+
+node_classes = get_node_classes()
 
 
 def check_pid_exists(pid):
@@ -305,6 +324,8 @@ def run_command_version(options, reactor=None, **kwargs):
 
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
+
+    Node = node_classes[options.personality][u'class']
 
     for line in Node.BANNER.splitlines():
         log.info(decorate("{:>40}".format(line)))
@@ -598,12 +619,27 @@ def run_command_start(options, reactor=None):
 
     # represents the running Crossbar.io node
     #
+    Node = node_classes[options.personality][u'class']
     node = Node(options.cbdir, reactor=reactor)
-    log.debug('Running Node class {node_class}', node_class='{}.{}'.format(Node.__module__, Node.__name__))
 
     # possibly generate new node key
     #
     pubkey = node.maybe_generate_key(options.cbdir)
+
+    # Print the banner.
+    #
+    for line in Node.BANNER.splitlines():
+        log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
+
+    bannerFormat = "{:<12} {:<24}"
+    log.info(bannerFormat.format("Version:", click.style('{} {}'.format(node.PERSONALITY, crossbar.__version__), fg='yellow', bold=True)))
+    if pubkey:
+        log.info(bannerFormat.format("Public Key:", click.style(pubkey, fg='yellow', bold=True)))
+    log.info()
+
+    log.info('Node created with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
+
+    log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
 
     # check and load the node configuration
     #
@@ -616,20 +652,6 @@ def run_command_start(options, reactor=None):
     except:
         raise
 
-    # Print the banner.
-    #
-    for line in Node.BANNER.splitlines():
-        log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
-
-    # bannerFormat = "{:<18} {:<24}"
-    bannerFormat = "    {} {}"
-    log.info(bannerFormat.format("Crossbar.io Version:", click.style(crossbar.__version__, fg='yellow', bold=True)))
-    if pubkey:
-        log.info(bannerFormat.format("Node Public Key:", click.style(pubkey, fg='yellow', bold=True)))
-    log.info()
-
-    log.info("Running from node directory '{cbdir}'", cbdir=options.cbdir)
-
     log.info("Controller process starting ({python}-{reactor}) ..",
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
@@ -637,7 +659,7 @@ def run_command_start(options, reactor=None):
     # now actually start the node ..
     #
     def start_crossbar():
-        d = node.start(cdc_mode=options.cdc)
+        d = node.start()
 
         def on_error(err):
             log.error("{e!s}", e=err.value)
@@ -832,11 +854,6 @@ def run(prog=None, args=None, reactor=None):
 
     parser_start.set_defaults(func=run_command_start)
 
-    parser_start.add_argument('--cdc',
-                              action='store_true',
-                              default=False,
-                              help='Start node in managed mode, connecting to Crossbar.io DevOps Center (CDC).')
-
     parser_start.add_argument('--cbdir',
                               type=six.text_type,
                               default=None,
@@ -846,6 +863,12 @@ def run(prog=None, args=None, reactor=None):
                               type=six.text_type,
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+    parser_start.add_argument('--personality',
+                              type=six.text_type,
+                              default='community',
+                              choices=sorted(node_classes.keys()),
+                              help=("Node personality to run."))
 
     parser_start.add_argument('--logdir',
                               type=six.text_type,

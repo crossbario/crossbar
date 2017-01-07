@@ -2736,7 +2736,7 @@ def check_controller(controller):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'manhole', 'cdc', 'connections']:
+        if k not in ['id', 'options', 'manhole', 'connections']:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -2748,36 +2748,10 @@ def check_controller(controller):
     if 'manhole' in controller:
         check_manhole(controller['manhole'])
 
-    if 'cdc' in controller:
-        check_cdc(controller['cdc'])
-        mode = NODE_RUN_MANAGED
-    else:
-        mode = NODE_RUN_STANDALONE
-
     # connections
     #
     connections = controller.get('connections', [])
     check_connections(connections)
-
-    return mode
-
-
-def check_cdc(config):
-    """
-    Check a node CDC configuration item.
-
-    :param config: The CDC configuration to check.
-    :type config: dict
-    """
-    if not isinstance(config, Mapping):
-        raise InvalidConfigException("'config' item with CDC configuration must of type dictionary ({} encountered)\n\n{}".format(type(config), pformat(config)))
-
-    check_dict_args({
-        'transport': (False, [Mapping]),
-    }, config, "invalid 'cdc' configuration")
-
-    if 'transport' in config:
-        check_connecting_transport(config['transport'])
 
 
 def check_config(config):
@@ -2806,16 +2780,9 @@ def check_config(config):
 
     # check controller config
     #
-    mode = NODE_RUN_STANDALONE
     if 'controller' in config:
         log.debug("Checking controller item ..")
-        mode = check_controller(config['controller'])
-
-    # workers can only be configured locally in standalone mode
-    #
-    if False:
-        if mode == NODE_RUN_MANAGED and 'workers' in config:
-            raise InvalidConfigException("Workers can only be configured locally when running in 'standalone mode', not in 'managed mode' (when connecting to Crossbar.io DevOps Center)")
+        check_controller(config['controller'])
 
     # check worker configs
     #

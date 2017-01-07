@@ -337,7 +337,7 @@ class NodeControllerSession(NativeProcessSession):
         :param options: The router worker options.
         :type options: dict
         """
-        self.log.debug("NodeControllerSession.start_router({id}, options={options})",
+        self.log.debug("start_router({id}, options={options})",
                        id=id, options=options)
 
         return self._start_native_worker('router', id, options, details=details)
@@ -352,7 +352,7 @@ class NodeControllerSession(NativeProcessSession):
         :param options: The container worker options.
         :type options: dict
         """
-        self.log.debug("NodeControllerSession.start_container(id = {id}, options = {options})",
+        self.log.debug("start_container(id = {id}, options = {options})",
                        id=id, options=options)
 
         return self._start_native_worker('container', id, options, details=details)
@@ -367,7 +367,7 @@ class NodeControllerSession(NativeProcessSession):
         :param options: The worker options.
         :type options: dict
         """
-        self.log.debug("NodeControllerSession.start_websocket_testee({id}, options={options})",
+        self.log.debug("start_websocket_testee({id}, options={options})",
                        id=id, options=options)
 
         return self._start_native_worker('websocket-testee', id, options, details=details)
@@ -745,7 +745,7 @@ class NodeControllerSession(NativeProcessSession):
         :returns: Stopping information from the worker.
         :rtype: dict
         """
-        self.log.debug("NodeControllerSession.stop_router({id}, kill={kill})",
+        self.log.debug("stop_router({id}, kill={kill})",
                        id=id, kill=kill)
 
         return self._stop_native_worker('router', id, kill, details=details)
@@ -763,7 +763,7 @@ class NodeControllerSession(NativeProcessSession):
         :returns: Stopping information from the worker.
         :rtype: dict
         """
-        self.log.debug("NodeControllerSession.stop_container({id}, kill={kill})",
+        self.log.debug("stop_container({id}, kill={kill})",
                        id=id, kill=kill)
 
         return self._stop_native_worker('container', id, kill, details=details)
@@ -781,7 +781,7 @@ class NodeControllerSession(NativeProcessSession):
         :returns: Stopping information from the worker.
         :rtype: dict
         """
-        self.log.debug("NodeControllerSession.stop_websocket_testee({id}, kill={kill})",
+        self.log.debug("stop_websocket_testee({id}, kill={kill})",
                        id=id, kill=kill)
 
         return self._stop_native_worker('websocket-testee', id, kill, details=details)
@@ -1077,7 +1077,7 @@ class NodeControllerSession(NativeProcessSession):
         :param id: The ID of the guest worker to stop.
         :type id: str
         """
-        self.log.debug("NodeControllerSession.stop_guest({id}, kill={kill})",
+        self.log.debug("stop_guest({id}, kill={kill})",
                        id=id, kill=kill)
 
         if id not in self._workers or self._workers[id].worker_type != 'guest':
