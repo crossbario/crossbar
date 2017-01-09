@@ -799,6 +799,12 @@ def run(prog=None, args=None, reactor=None):
     parser_version = subparsers.add_parser('version',
                                            help='Print software versions.')
 
+    parser_version.add_argument('--personality',
+                                type=six.text_type,
+                                default='community',
+                                choices=sorted(node_classes.keys()),
+                                help=("Node personality to run."))
+
     parser_version.add_argument('--loglevel',
                                 **loglevel_args)
     parser_version.add_argument('--colour',

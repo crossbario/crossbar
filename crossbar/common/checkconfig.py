@@ -2736,7 +2736,7 @@ def check_controller(controller):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'manhole', 'connections']:
+        if k not in ['id', 'options', 'extra', 'manhole', 'connections']:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
