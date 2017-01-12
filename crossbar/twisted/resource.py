@@ -55,6 +55,18 @@ except (ImportError, SyntaxError):
     _HAS_CGI = False
 
 
+def set_cross_origin_headers(request):
+    origin = request.getHeader(b'origin')
+    if origin is None or origin == b'null':
+        origin = b'*'
+    request.setHeader(b'access-control-allow-origin', origin)
+    request.setHeader(b'access-control-allow-credentials', b'true')
+
+    headers = request.getHeader(b'access-control-request-headers')
+    if headers is not None:
+        request.setHeader(b'access-control-allow-headers', headers)
+
+
 class JsonResource(Resource):
     """
     Static Twisted Web resource that renders to a JSON document.
@@ -91,15 +103,7 @@ class JsonResource(Resource):
         # set response headers for cross-origin requests
         #
         if self._allow_cross_origin:
-            origin = request.getHeader(b'origin')
-            if origin is None or origin == b'null':
-                origin = b'*'
-            request.setHeader(b'access-control-allow-origin', origin)
-            request.setHeader(b'access-control-allow-credentials', b'true')
-
-            headers = request.getHeader(b'access-control-request-headers')
-            if headers is not None:
-                request.setHeader(b'access-control-allow-headers', headers)
+            set_cross_origin_headers(request)
 
         # set response headers to disallow caching
         #
@@ -167,12 +171,18 @@ class StaticResource(File):
 
     def __init__(self, *args, **kwargs):
         self._cache_timeout = kwargs.pop('cache_timeout', None)
+        self._allow_cross_origin = kwargs.pop('allow_cross_origin', True)
         File.__init__(self, *args, **kwargs)
 
     def render_GET(self, request):
         if self._cache_timeout is not None:
             request.setHeader(b'cache-control', u'max-age={}, public'.format(self._cache_timeout).encode('utf8'))
             request.setHeader(b'expires', http.datetimeToString(time.time() + self._cache_timeout))
+
+        # set response headers for cross-origin requests
+        #
+        if self._allow_cross_origin:
+            set_cross_origin_headers(request)
 
         return File.render_GET(self, request)
 
