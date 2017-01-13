@@ -332,7 +332,7 @@ def run_command_version(options, reactor=None, **kwargs):
 
     pad = " " * 22
 
-    log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
+    log.info(" Crossbar.io        : {ver} ({personality})", ver=decorate(crossbar.__version__), personality=Node.PERSONALITY)
     log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
     log.debug("     txaio             : {ver}", ver=decorate(txaio_ver))
