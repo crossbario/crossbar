@@ -32,7 +32,6 @@ from __future__ import absolute_import
 
 import os
 import sys
-import pkg_resources
 from datetime import datetime
 # backport of shutil.which
 import shutilwhich  # noqa
@@ -80,7 +79,7 @@ class NodeControllerSession(NativeProcessSession):
 
     log = make_logger()
 
-    PROCS =  [
+    PROCS = [
         'get_info',
         'shutdown',
         'get_workers',
