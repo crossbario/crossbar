@@ -1017,8 +1017,9 @@ class RouterWorkerSession(NativeWorkerSession):
                 static_resource_class = StaticResourceNoListing
 
             cache_timeout = static_options.get('cache_timeout', DEFAULT_CACHE_TIMEOUT)
+            allow_cross_origin = static_options.get('allow_cross_origin', True)
 
-            static_resource = static_resource_class(static_dir, cache_timeout=cache_timeout)
+            static_resource = static_resource_class(static_dir, cache_timeout=cache_timeout, allow_cross_origin=allow_cross_origin)
 
             # set extra MIME types
             #
