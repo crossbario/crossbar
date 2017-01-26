@@ -80,6 +80,6 @@ As you'll probably notice sooner or later, Crossbar.io is a work in progress. Co
 
 ## Additional Examples
 
-For historic reasons, the [Autobahn|Python repository](https://github.com/tavendo/AutobahnPython) also contains some examples for using WAMP. The most relevant to the general Crossbar.io user can be found in [this directory](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp). These are almost always for both Python and JavaScript (using Autobahn|JS).
+For historic reasons, the [Autobahn|Python repository](https://github.com/crossbario/autobahn-python) also contains some examples for using WAMP. The most relevant to the general Crossbar.io user can be found in [this directory](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp). These are almost always for both Python and JavaScript (using Autobahn|JS).
 
 Some of the instructions here still assume a basic router in Autobahn|Python which has since been removed, but in principle they should run with Crossbar.io. Chances to happen across an outdated example are higher here, however. Should you find such an example, then please file an issue (or fix it and send us a pull request).

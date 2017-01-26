@@ -31,7 +31,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.authid",
                 "authrole": "example.authrole",
-                "authmethod": "example.authmethod"
+                "authrealm": "example.authrealm",
+                "authmethod": "example.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnotherID",
@@ -39,7 +41,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
-                "authmethod": "example.other.authmethod"
+                "authrealm": "example.other.authrealm",
+                "authmethod": "example.other.authmethod",
+                "authextra": {"a": "b"},
             },
             {
                 "id": "thisIsAnID",
@@ -47,7 +51,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
-                "authmethod": "example.second.authmethod"
+                "authrealm": "example.second.authrealm",
+                "authmethod": "example.second.authmethod",
+                "authextra": {},
             }
         ]
 
@@ -58,7 +64,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
-                "authmethod": "example.second.authmethod"
+                "authrealm": "example.second.authrealm",
+                "authmethod": "example.second.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnotherID",
@@ -66,7 +74,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
-                "authmethod": "example.other.authmethod"
+                "authrealm": "example.other.authrealm",
+                "authmethod": "example.other.authmethod",
+                "authextra": {"a": "b"},
             }
         ]
 
@@ -95,7 +105,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.authid",
                 "authrole": "example.authrole",
-                "authmethod": "example.authmethod"
+                "authrealm": "example.authrealm",
+                "authmethod": "example.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnID",
@@ -103,7 +115,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
-                "authmethod": "example.second.authmethod"
+                "authrealm": "example.second.authrealm",
+                "authmethod": "example.second.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnotherID",
@@ -111,7 +125,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": 604800,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
-                "authmethod": "example.other.authmethod"
+                "authrealm": "example.other.authrealm",
+                "authmethod": "example.other.authmethod",
+                "authextra": {},
             }
         ]
 
@@ -144,7 +160,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": max_age,
                 "authid": "example.authid",
                 "authrole": "example.authrole",
-                "authmethod": "example.authmethod"
+                "authrealm": "example.authrealm",
+                "authmethod": "example.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnotherID",
@@ -152,7 +170,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": max_age,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
-                "authmethod": "example.other.authmethod"
+                "authrealm": "example.other.authrealm",
+                "authmethod": "example.other.authmethod",
+                "authextra": {},
             },
             {
                 "id": "thisIsAnID",
@@ -160,7 +180,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": max_age,
                 "authid": "example.second.authid",
                 "authrole": "example.second.authrole",
-                "authmethod": "example.second.authmethod"
+                "authrealm": "example.second.authrealm",
+                "authmethod": "example.second.authmethod",
+                "authextra": {},
             }
         ]
 
@@ -171,7 +193,9 @@ class TestCookieStore(unittest.TestCase):
                 "max_age": max_age,
                 "authid": "example.other.authid",
                 "authrole": "example.other.authrole",
-                "authmethod": "example.other.authmethod"
+                "authrealm": "example.other.authrealm",
+                "authmethod": "example.other.authmethod",
+                "authextra": {},
             },
         ]
 

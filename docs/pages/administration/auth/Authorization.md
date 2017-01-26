@@ -119,6 +119,22 @@ Besides *Static Authorization* using the URI-pattern based authorization scheme 
 
 With *Dynamic Authorization* your application will provide a WAMP procedure (with a defined signature) that Crossbar.io will then call to determine the permissions of other clients.
 
+The method must accept three arguments: `(session, uri, action)` and must return a `dict` with the following keys:
+
+ - `allow` (required) a bool indicating if the action is allowed
+ - `disclose` (optional, default `False`) a bool indicating if callee's session-id should be disclosed to callers
+ - `cache` (optional, default `False`) a bool indicating if the router can cache this answer
+
+As a shortcut and for backwards compatibility you can instead return a single `bool` which is the same as just specifying `allow` (that is, returning True is the same as returning `dict(allow=True)`.
+
+The arguments to the call are:
+
+ - `session`: a `dict` containing session details
+ - `uri`: A string, the WAMP URI of the action being authorized
+ - `action`: A string, one of `publish`, `subscribe`, `register`, or `call` indicating what is being authorized
+
+For fully-worked examples, see [crossbarexample/authorization](https://github.com/crossbario/crossbarexamples/tree/master/authorization/dynamic>).
+
 E.g. consider the following Python function
 
 ```python

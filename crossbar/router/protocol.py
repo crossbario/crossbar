@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -36,7 +36,7 @@ import crossbar
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
-from autobahn.websocket.compress import *  # noqa
+from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
 from txaio import make_logger
 
@@ -101,30 +101,9 @@ def set_websocket_options(factory, options):
     if "auto_ping_timeout" in c:
         autoPingTimeout = float(c["auto_ping_timeout"]) / 1000.
 
-    factory.setProtocolOptions(versions=versions,
-                               webStatus=c.get("enable_webstatus", True),
-                               utf8validateIncoming=c.get("validate_utf8", True),
-                               maskServerFrames=c.get("mask_server_frames", False),
-                               requireMaskedClientFrames=c.get("require_masked_client_frames", True),
-                               applyMask=c.get("apply_mask", True),
-                               maxFramePayloadSize=c.get("max_frame_size", 0),
-                               maxMessagePayloadSize=c.get("max_message_size", 0),
-                               autoFragmentSize=c.get("auto_fragment_size", 0),
-                               failByDrop=c.get("fail_by_drop", False),
-                               echoCloseCodeReason=c.get("echo_close_codereason", False),
-                               openHandshakeTimeout=openHandshakeTimeout,
-                               closeHandshakeTimeout=closeHandshakeTimeout,
-                               tcpNoDelay=c.get("tcp_nodelay", True),
-                               autoPingInterval=autoPingInterval,
-                               autoPingTimeout=autoPingTimeout,
-                               autoPingSize=c.get("auto_ping_size", None),
-                               serveFlashSocketPolicy=c.get("enable_flash_policy", None),
-                               flashSocketPolicy=c.get("flash_policy", None),
-                               allowedOrigins=c.get("allowed_origins", ["*"]))
-
     # WebSocket compression
     #
-    factory.setProtocolOptions(perMessageCompressionAccept=lambda _: None)
+    per_msg_compression = lambda _: None  # noqa
     if 'compression' in c:
 
         # permessage-deflate
@@ -152,8 +131,32 @@ def set_websocket_options(factory, options):
                                                                 noContextTakeover=noContextTakeover,
                                                                 windowBits=windowBits,
                                                                 memLevel=memLevel)
+            per_msg_compression = accept
 
-            factory.setProtocolOptions(perMessageCompressionAccept=accept)
+    factory.setProtocolOptions(
+        versions=versions,
+        webStatus=c.get("enable_webstatus", True),
+        utf8validateIncoming=c.get("validate_utf8", True),
+        maskServerFrames=c.get("mask_server_frames", False),
+        requireMaskedClientFrames=c.get("require_masked_client_frames", True),
+        applyMask=c.get("apply_mask", True),
+        maxFramePayloadSize=c.get("max_frame_size", 0),
+        maxMessagePayloadSize=c.get("max_message_size", 0),
+        autoFragmentSize=c.get("auto_fragment_size", 0),
+        failByDrop=c.get("fail_by_drop", False),
+        echoCloseCodeReason=c.get("echo_close_codereason", False),
+        openHandshakeTimeout=openHandshakeTimeout,
+        closeHandshakeTimeout=closeHandshakeTimeout,
+        tcpNoDelay=c.get("tcp_nodelay", True),
+        autoPingInterval=autoPingInterval,
+        autoPingTimeout=autoPingTimeout,
+        autoPingSize=c.get("auto_ping_size", None),
+        serveFlashSocketPolicy=c.get("enable_flash_policy", None),
+        flashSocketPolicy=c.get("flash_policy", None),
+        allowedOrigins=c.get("allowed_origins", ["*"]),
+        allowNullOrigin=bool(c.get("allow_null_origin", True)),
+        perMessageCompressionAccept=per_msg_compression,
+    )
 
 
 class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
@@ -173,11 +176,14 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             from twisted.internet import reactor
 
             def print_traffic():
-                self.log.info("Traffic {}: {} / {} in / out bytes - {} / {} in / out msgs".format(self.peer,
-                                                                                                  self.trafficStats.incomingOctetsWireLevel,
-                                                                                                  self.trafficStats.outgoingOctetsWireLevel,
-                                                                                                  self.trafficStats.incomingWebSocketMessages,
-                                                                                                  self.trafficStats.outgoingWebSocketMessages))
+                self.log.info(
+                    "Traffic {peer}: {wire_in} / {wire_out} in / out bytes - {ws_in} / {ws_out} in / out msgs",
+                    peer=self.peer,
+                    wire_in=self.trafficStats.incomingOctetsWireLevel,
+                    wire_out=self.trafficStats.outgoingOctetsWireLevel,
+                    ws_in=self.trafficStats.incomingWebSocketMessages,
+                    ws_out=self.trafficStats.outgoingWebSocketMessages,
+                )
                 reactor.callLater(1, print_traffic)
 
             print_traffic()
@@ -198,6 +204,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             #
             self._authid = None
             self._authrole = None
+            self._authrealm = None
             self._authmethod = None
             self._authprovider = None
 
@@ -224,27 +231,27 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # associated with the same cookie
                 self.factory._cookiestore.addProto(self._cbtid, self)
 
-                self.log.debug("Cookie tracking enabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking enabled on WebSocket connection {ws}", ws=self)
 
                 # if cookie-based authentication is enabled, set auth info from cookie store
                 #
                 if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
 
-                    self._authid, self._authrole, self._authmethod = self.factory._cookiestore.getAuth(self._cbtid)
+                    self._authid, self._authrole, self._authmethod, self._authrealm = self.factory._cookiestore.getAuth(self._cbtid)
 
                     if self._authid:
                         # there is a cookie set, and the cookie was previously successfully authenticated,
                         # so immediately authenticate the client using that information
                         self._authprovider = u'cookie'
-                        self.log.debug("Authenticated client via cookie cbtid={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}",
-                                       cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod)
+                        self.log.debug("Authenticated client via cookie {cookiename}={cbtid} as authid={authid}, authrole={authrole}, authmethod={authmethod}, authrealm={authrealm}",
+                                       cookiename=self.factory._cookiestore._cookie_id_field, cbtid=self._cbtid, authid=self._authid, authrole=self._authrole, authmethod=self._authmethod, authrealm=self._authrealm)
                     else:
                         # there is a cookie set, but the cookie wasn't authenticated yet using a different auth method
                         self.log.debug("Cookie-based authentication enabled, but cookie isn't authenticated yet")
                 else:
                     self.log.debug("Cookie-based authentication disabled")
             else:
-                self.log.debug("Cookie tracking disabled on WebSocket connection {}".format(self))
+                self.log.debug("Cookie tracking disabled on WebSocket connection {ws}", ws=self)
 
             # remember transport level info for later forwarding in
             # WAMP meta event "wamp.session.on_join"
@@ -329,7 +336,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
             serializers = []
             sers = set(config['serializers'])
 
-            if 'cbor' in sers:
+            if u'cbor' in sers:
                 # try CBOR WAMP serializer
                 try:
                     from autobahn.wamp.serializer import CBORSerializer
@@ -338,9 +345,9 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
-                    sers.discard('cbor')
+                    sers.discard(u'cbor')
 
-            if 'msgpack' in sers:
+            if u'msgpack' in sers:
                 # try MsgPack WAMP serializer
                 try:
                     from autobahn.wamp.serializer import MsgPackSerializer
@@ -351,7 +358,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 else:
                     sers.discard('msgpack')
 
-            if 'ubjson' in sers:
+            if u'ubjson' in sers:
                 # try UBJSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import UBJSONSerializer
@@ -360,9 +367,9 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-UBJSON serializer")
                 else:
-                    sers.discard('ubjson')
+                    sers.discard(u'ubjson')
 
-            if 'json' in sers:
+            if u'json' in sers:
                 # try JSON WAMP serializer
                 try:
                     from autobahn.wamp.serializer import JsonSerializer
@@ -371,7 +378,7 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
-                    sers.discard('json')
+                    sers.discard(u'json')
 
             if not serializers:
                 raise Exception("no valid WAMP serializers specified")
@@ -437,6 +444,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         #
         self._authid = None
         self._authrole = None
+        self._authrealm = None
         self._authmethod = None
         self._authprovider = None
 
@@ -488,7 +496,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-CBOR serializer")
                 else:
-                    sers.discard('cbor')
+                    sers.discard(u'cbor')
 
             if u'msgpack' in sers:
                 # try MsgPack WAMP serializer
@@ -500,7 +508,18 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-MsgPack serializer")
                 else:
-                    sers.discard('msgpack')
+                    sers.discard(u'msgpack')
+
+            if u'ubjson' in sers:
+                # try UBJSON WAMP serializer
+                try:
+                    from autobahn.wamp.serializer import UBJSONSerializer
+                    serializers.append(UBJSONSerializer(batched=True))
+                    serializers.append(UBJSONSerializer())
+                except ImportError:
+                    self.log.warn("Warning: could not load WAMP-UBJSON serializer")
+                else:
+                    sers.discard(u'ubjson')
 
             if u'json' in sers:
                 # try JSON WAMP serializer
@@ -510,7 +529,7 @@ class WampRawSocketServerFactory(rawsocket.WampRawSocketServerFactory):
                 except ImportError:
                     self.log.warn("Warning: could not load WAMP-JSON serializer")
                 else:
-                    sers.discard('json')
+                    sers.discard(u'json')
 
             if not serializers:
                 raise Exception("no valid WAMP serializers specified")

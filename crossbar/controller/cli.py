@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -40,14 +40,29 @@ import signal
 import sys
 import six
 
-import crossbar
-
-from txaio import make_logger
+import txaio
+txaio.use_twisted()  # noqa
+from txaio import make_logger, start_logging, set_global_log_level
 
 from twisted.python.reflect import qual
+from twisted.logger import globalLogPublisher
+
+from crossbar._logging import make_logfile_observer
+from crossbar._logging import make_stdout_observer
+from crossbar._logging import make_stderr_observer
+from crossbar._logging import LogLevel
+
+import crossbar
 
 from autobahn.twisted.choosereactor import install_reactor
+from autobahn.websocket.protocol import WebSocketProtocol
+from autobahn.websocket.utf8validator import Utf8Validator
+from autobahn.websocket.xormasker import XorMaskerNull
 
+from crossbar.controller.node import Node, _read_release_pubkey, _read_node_pubkey
+from crossbar.controller.template import Templates
+from crossbar.common.checkconfig import check_config_file, \
+    color_json, convert_config_file, upgrade_config_file, InvalidConfigException
 
 try:
     import psutil
@@ -169,9 +184,9 @@ def check_is_running(cbdir):
                                 nicecmdline = ' '.join(cmdline)
                                 if len(nicecmdline) > 76:
                                     nicecmdline = nicecmdline[:38] + ' ... ' + nicecmdline[-38:]
-                                log.info('"{}" points to PID {} which is not a crossbar process:'.format(fp, pid))
-                                log.info('  ' + nicecmdline)
-                                log.info('Verify manually and either kill {} or delete {}'.format(pid, fp))
+                                log.info('"{fp}" points to PID {pid} which is not a crossbar process:', fp=fp, pid=pid)
+                                log.info('  {cmdline}', cmdline=nicecmdline)
+                                log.info('Verify manually and either kill {pid} or delete {fp}', pid=pid, fp=fp)
                                 return None
                         return pid_data
                     else:
@@ -199,7 +214,6 @@ def run_command_version(options, reactor=None, **kwargs):
     Subcommand "crossbar version".
     """
     log = make_logger()
-    # verbose = True
 
     # Python
     py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
@@ -218,12 +232,10 @@ def run_command_version(options, reactor=None, **kwargs):
     txaio_ver = '%s' % pkg_resources.require("txaio")[0].version
 
     # Autobahn
-    from autobahn.websocket.protocol import WebSocketProtocol
     ab_ver = pkg_resources.require("autobahn")[0].version
     ab_loc = "[%s]" % qual(WebSocketProtocol)
 
     # UTF8 Validator
-    from autobahn.websocket.utf8validator import Utf8Validator
     s = qual(Utf8Validator)
     if 'wsaccel' in s:
         utf8_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
@@ -235,7 +247,6 @@ def run_command_version(options, reactor=None, **kwargs):
     utf8_loc = "[%s]" % qual(Utf8Validator)
 
     # XOR Masker
-    from autobahn.websocket.xormasker import XorMaskerNull
     s = qual(XorMaskerNull)
     if 'wsaccel' in s:
         xor_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
@@ -248,7 +259,14 @@ def run_command_version(options, reactor=None, **kwargs):
 
     # JSON Serializer
     supported_serializers = ['JSON']
-    json_ver = 'stdlib'
+    from autobahn.wamp.serializer import JsonObjectSerializer
+    json_ver = JsonObjectSerializer.JSON_MODULE.__name__
+
+    # If it's just 'json' then it's the stdlib one...
+    if json_ver == 'json':
+        json_ver = 'stdlib'
+    else:
+        json_ver = (json_ver + "-%s") % pkg_resources.require(json_ver)[0].version
 
     # MsgPack Serializer
     try:
@@ -282,6 +300,9 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         lmdb_ver = '-'
 
+    # Release Public Key
+    release_pubkey = _read_release_pubkey()
+
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
@@ -309,15 +330,35 @@ def run_command_version(options, reactor=None, **kwargs):
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
     log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
+    log.info(" Release key        : {release_pubkey}", release_pubkey=decorate(release_pubkey[u'base64']))
     log.info("")
+
+
+def run_command_keys(options, reactor=None, **kwargs):
+    """
+    Subcommand "crossbar keys".
+    """
+    log = make_logger()
+
+    # Release (public) key
+    release_pubkey = _read_release_pubkey()
+
+    # Node (public) key
+    node_pubkey = _read_node_pubkey(options.cbdir)
+
+    log.info(release_pubkey[u'qrcode'])
+    log.info('   Release key: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
+    log.info('')
+
+    log.info(node_pubkey[u'qrcode'])
+    log.info('   Node key: {node_pubkey}', node_pubkey=node_pubkey[u'hex'])
+    log.info('')
 
 
 def run_command_templates(options, **kwargs):
     """
     Subcommand "crossbar templates".
     """
-    from crossbar.controller.template import Templates
-
     templates = Templates()
     templates.help()
 
@@ -327,8 +368,6 @@ def run_command_init(options, **kwargs):
     Subcommand "crossbar init".
     """
     log = make_logger()
-
-    from crossbar.controller.template import Templates
 
     templates = Templates()
 
@@ -360,7 +399,7 @@ def run_command_init(options, **kwargs):
     log.info("Application template initialized")
 
     if get_started_hint:
-        log.info("\n{}\n".format(get_started_hint))
+        log.info("\n{hint}\n", hint=get_started_hint)
     else:
         log.info("\nTo start your node, run 'crossbar start --cbdir {cbdir}'\n",
                  cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
@@ -429,9 +468,6 @@ def _startlog(options, reactor):
     """
     Start the logging in a way that all the subcommands can use it.
     """
-    from twisted.logger import globalLogPublisher
-    from txaio import start_logging, set_global_log_level
-
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
     colour = getattr(options, "colour", "auto")
@@ -443,8 +479,6 @@ def _startlog(options, reactor):
 
     if getattr(options, "logtofile", False):
         # We want to log to a file
-        from crossbar._logging import make_logfile_observer
-
         if not options.logdir:
             logdir = options.cbdir
         else:
@@ -460,9 +494,6 @@ def _startlog(options, reactor):
         observers.append(make_logfile_observer(logfile, show_source))
     else:
         # We want to log to stdout/stderr.
-        from crossbar._logging import make_stdout_observer
-        from crossbar._logging import make_stderr_observer
-        from crossbar._logging import LogLevel
 
         if colour == "auto":
             if sys.__stdout__.isatty():
@@ -565,12 +596,27 @@ def run_command_start(options, reactor=None):
 
     log = make_logger()
 
+    # represents the running Crossbar.io node
+    #
+    node = Node(options.cbdir, reactor=reactor)
+
     # possibly generate new node key
     #
-    from crossbar.controller.node import maybe_generate_key
-    pubkey = maybe_generate_key(log, options.cbdir)
+    pubkey = node.maybe_generate_key(options.cbdir)
+
+    # check and load the node configuration
+    #
+    try:
+        node.load(options.config)
+    except InvalidConfigException as e:
+        log.error("Invalid node configuration")
+        log.error("{e!s}", e=e)
+        sys.exit(1)
+    except:
+        raise
 
     # Print the banner.
+    #
     for line in BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
@@ -583,36 +629,9 @@ def run_command_start(options, reactor=None):
 
     log.info("Running from node directory '{cbdir}'", cbdir=options.cbdir)
 
-    from twisted.python.reflect import qual
     log.info("Controller process starting ({python}-{reactor}) ..",
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
-
-    from crossbar.controller.node import Node
-    from crossbar.common.checkconfig import InvalidConfigException
-
-    # represents the running Crossbar.io node
-    #
-    node = Node(options.cbdir, reactor=reactor)
-
-    # check and load the node configuration
-    #
-    try:
-        if options.config:
-            # load node config from file
-            node.load(options.config)
-        elif options.cdc:
-            # load built-in CDC config
-            node.load()
-        else:
-            # no config file, and not running CDC mode
-            raise Exception("Neither a node config was found, nor CDC mode is active.")
-    except InvalidConfigException as e:
-        log.error("Invalid node configuration")
-        log.error("{e!s}", e=e)
-        sys.exit(1)
-    except:
-        raise
 
     # now actually start the node ..
     #
@@ -621,7 +640,7 @@ def run_command_start(options, reactor=None):
 
         def on_error(err):
             log.error("{e!s}", e=err.value)
-            log.error("Could not start node")
+            log.error("Could not start node: {err}", err=err)
             if reactor.running:
                 reactor.stop()
         d.addErrback(on_error)
@@ -653,7 +672,6 @@ def run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
-    from crossbar.common.checkconfig import check_config_file, color_json
     configfile = os.path.join(options.cbdir, options.config)
 
     verbose = False
@@ -668,7 +686,6 @@ def run_command_check(options, **kwargs):
         print("Ok, node configuration looks good!")
 
         if verbose:
-            import json
             config_content = json.dumps(
                 config,
                 skipkeys=False,
@@ -686,7 +703,6 @@ def run_command_convert(options, **kwargs):
     """
     Subcommand "crossbar convert".
     """
-    from crossbar.common.checkconfig import convert_config_file
     configfile = os.path.join(options.cbdir, options.config)
 
     print("Converting local configuration file {}".format(configfile))
@@ -704,7 +720,6 @@ def run_command_upgrade(options, **kwargs):
     """
     Subcommand "crossbar upgrade".
     """
-    from crossbar.common.checkconfig import upgrade_config_file
     configfile = os.path.join(options.cbdir, options.config)
 
     print("Upgrading local configuration file {}".format(configfile))
@@ -767,6 +782,23 @@ def run(prog=None, args=None, reactor=None):
                                 **colour_args)
 
     parser_version.set_defaults(func=run_command_version)
+
+    # "keys" command
+    #
+    parser_keys = subparsers.add_parser('keys',
+                                        help='Print Crossbar.io release and node keys.')
+
+    parser_keys.add_argument('--cbdir',
+                             type=six.text_type,
+                             default=None,
+                             help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser_keys.add_argument('--loglevel',
+                             **loglevel_args)
+    parser_keys.add_argument('--colour',
+                             **colour_args)
+
+    parser_keys.set_defaults(func=run_command_keys)
 
     # "init" command
     #
@@ -968,14 +1000,6 @@ def run(prog=None, args=None, reactor=None):
                     options.config = f
                     break
 
-            if not options.config:
-                if options.cdc:
-                    # in CDC mode, we will use a built-in default config
-                    # if not overridden from explicit config file
-                    pass
-                else:
-                    raise Exception("No config file specified, and neither CBDIR/config.json nor CBDIR/config.yaml exists")
-
     # Log directory
     #
     if hasattr(options, 'logdir'):
@@ -985,7 +1009,7 @@ def run(prog=None, args=None, reactor=None):
                 try:
                     os.mkdir(options.logdir)
                 except Exception as e:
-                    print("Could not create log directory: {}".format(e))
+                    print("Could not create log directory: {e}".format(e))
                     sys.exit(1)
 
     if not reactor:
@@ -1012,5 +1036,4 @@ def run(prog=None, args=None, reactor=None):
 
 
 if __name__ == '__main__':
-    import sys
     run(args=sys.argv[1:])

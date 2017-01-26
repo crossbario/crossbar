@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -52,6 +52,9 @@ from autobahn.wamp.interfaces import ITransportHandler
 from crossbar.twisted.endpoint import extract_peer_certificate
 from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
+
+from twisted.internet.defer import inlineCallbacks
+from twisted.python.failure import Failure
 
 try:
     from crossbar.router.auth import PendingAuthCryptosign
@@ -104,6 +107,7 @@ class RouterApplicationSession(object):
         #
         self._session._transport = self
 
+        self._session.fire('connect', self._session, self)
         self._session.onConnect()
 
     def _swallow_error(self, fail, msg):
@@ -123,8 +127,9 @@ class RouterApplicationSession(object):
         Implements :func:`autobahn.wamp.interfaces.ITransport.isOpen`
         """
 
+    @property
     def is_closed(self):
-        return False
+        return txaio.create_future(result=self)
 
     def close(self):
         """
@@ -138,7 +143,13 @@ class RouterApplicationSession(object):
             # immediate disconnect which winds up right here...so we
             # take at trip through the reactor loop.
             from twisted.internet import reactor
-            reactor.callLater(0, self._router.detach, self._session)
+
+            def detach(sess):
+                try:
+                    self._router.detach(sess)
+                except Exception:
+                    pass
+            reactor.callLater(0, detach, self._session)
 
     def abort(self):
         """
@@ -230,15 +241,36 @@ class RouterApplicationSession(object):
         # ignore messages
         #
         elif isinstance(msg, message.Goodbye):
-            # fire onClose callback and handle any exception escaping from there
-            # FIXME onClose should receive True/False (clean or unclean exit)
-            d = txaio.as_future(self._session.onClose, None)
-            # note that onClose will fire 'leave' to listeners when
-            # the session is still connected, so we don't have to do
-            # that.
-            d.addErrback(lambda fail: self._log_error(fail, "While firing onClose"))
-            d.addCallback(lambda _: self._session.fire('disconnect', self._session))
-            d.addErrback(lambda fail: self._log_error(fail, "While notifying 'disconnect'"))
+            details = types.CloseDetails(msg.reason, msg.message)
+            session = self._session
+
+            @inlineCallbacks
+            def do_goodbye():
+                try:
+                    yield session.onLeave(details)
+                except Exception:
+                    self._log_error(Failure(), "While firing onLeave")
+
+                if session._transport:
+                    session._transport.close()
+
+                try:
+                    yield session.fire('leave', session, details)
+                except Exception:
+                    self._log_error(Failure(), "While notifying 'leave'")
+
+                try:
+                    yield session.fire('disconnect', session)
+                except Exception:
+                    self._log_error(Failure(), "While notifying 'disconnect'")
+
+                if self._router._realm.session:
+                    yield self._router._realm.session.publish(
+                        u'wamp.session.on_leave',
+                        session._session_id,
+                    )
+            d = do_goodbye()
+            d.addErrback(lambda fail: self._log_error(fail, "Internal error"))
 
         else:
             # should not arrive here
@@ -263,6 +295,7 @@ class RouterSession(BaseSession):
         self._router_factory = router_factory
         self._router = None
         self._realm = None
+        self._testaments = {u"destroyed": [], u"detatched": []}
 
         self._goodbye_sent = False
         self._transport_is_closing = False
@@ -302,7 +335,7 @@ class RouterSession(BaseSession):
             # channel ID isn't implemented for LongPolL!
             channel_id = self._transport.get_channel_id()
         if channel_id:
-            self._transport._transport_info[u'channel_id'] = six.u(binascii.b2a_hex(channel_id))
+            self._transport._transport_info[u'channel_id'] = binascii.b2a_hex(channel_id).decode('ascii')
 
         self.log.debug("Client session connected - transport: {transport_info}", transport_info=self._transport._transport_info)
 
@@ -383,7 +416,9 @@ class RouterSession(BaseSession):
                     msg = None
                     if isinstance(res, types.Accept):
                         custom = {
-                            u'x_cb_node_id': self._router_factory._node_id
+                            # FIXME:
+                            # u'x_cb_node_id': self._router_factory._node_id
+                            u'x_cb_node_id': None
                         }
                         welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
@@ -409,7 +444,9 @@ class RouterSession(BaseSession):
                     msg = None
                     if isinstance(res, types.Accept):
                         custom = {
-                            u'x_cb_node_id': self._router_factory._node_id
+                            # FIXME:
+                            # u'x_cb_node_id': self._router_factory._node_id
+                            u'x_cb_node_id': None
                         }
                         welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
@@ -435,7 +472,10 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-                raise ProtocolError(u"Received {0} message, and session is not yet established".format(msg.__class__))
+                # raise ProtocolError(u"PReceived {0} message while session is not joined".format(msg.__class__))
+                # self.log.warn('Protocol state error - received {message} while session is not joined')
+                # swallow all noise like still getting PUBLISH messages from log event forwarding - maybe FIXME
+                pass
 
         else:
 
@@ -455,7 +495,10 @@ class RouterSession(BaseSession):
 
                 # We need to first detach the session from the router before
                 # erasing the session ID below ..
-                self._router.detach(self)
+                try:
+                    self._router.detach(self)
+                except Exception:
+                    self.log.failure("Internal error")
 
                 # In order to send wamp.session.on_leave properly
                 # (i.e. *with* the proper session_id) we save it
@@ -489,7 +532,6 @@ class RouterSession(BaseSession):
                 # self._transport.close()
 
             else:
-
                 self._router.process(self, msg)
 
     # noinspection PyUnusedLocal
@@ -507,7 +549,10 @@ class RouterSession(BaseSession):
             except Exception:
                 self.log.failure("Exception raised in onLeave callback")
 
-            self._router.detach(self)
+            try:
+                self._router.detach(self)
+            except Exception:
+                pass
 
             self._session_id = None
 
@@ -549,7 +594,10 @@ class RouterSession(BaseSession):
 
         # cleanup
         if self._router:
-            self._router.detach(self)
+            try:
+                self._router.detach(self)
+            except Exception:
+                pass
         self._session_id = None
         self._pending_session_id = None
         return None  # we've handled the error; don't propagate
@@ -559,6 +607,10 @@ class RouterSession(BaseSession):
         try:
             # default authentication method is "WAMP-Anonymous" if client doesn't specify otherwise
             authmethods = details.authmethods or [u'anonymous']
+
+            # if the client had a reassigned realm during authentication, restore it from the cookie
+            if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
+                realm = self._transport._authrealm
 
             # perform authentication
             if self._transport._authid is not None and (self._transport._authmethod == u'trusted' or self._transport._authprovider in authmethods):
@@ -596,7 +648,7 @@ class RouterSession(BaseSession):
 
                     # we ignore any details.authid the client might have announced, and use
                     # a cookie value or a random value
-                    if self._transport._cbtid:
+                    if hasattr(self._transport, "_cbtid") and self._transport._cbtid:
                         # if cookie tracking is enabled, set authid to cookie value
                         authid = self._transport._cbtid
                     else:
@@ -651,7 +703,7 @@ class RouterSession(BaseSession):
                     return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
         except Exception as e:
-            self.log.critical("Internal error")
+            self.log.critical("Internal error: {msg}", msg=str(e))
             return types.Deny(message=u'internal error: {}'.format(e))
 
     def onAuthenticate(self, signature, extra):
@@ -683,7 +735,7 @@ class RouterSession(BaseSession):
 
         if hasattr(self._transport, '_cbtid') and self._transport._cbtid:
             if details.authmethod != 'cookie':
-                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole, details.authmethod)
+                self._transport.factory._cookiestore.setAuth(self._transport._cbtid, details.authid, details.authrole, details.authmethod, details.authextra, self._realm)
 
         # Router/Realm service session
         #
@@ -709,6 +761,13 @@ class RouterSession(BaseSession):
 
     def onLeave(self, details):
 
+        # todo: move me into detatch when session resumption happens
+        for msg in self._testaments[u"detatched"]:
+            self._router.process(self, msg)
+
+        for msg in self._testaments[u"destroyed"]:
+            self._router.process(self, msg)
+
         # dispatch session metaevent from WAMP AP
         #
         if self._service_session and self._session_id:
@@ -728,7 +787,7 @@ class RouterSession(BaseSession):
                 cs = self._transport.factory._cookiestore
 
                 # set cookie to "not authenticated"
-                cs.setAuth(self._transport._cbtid, None, None, None)
+                cs.setAuth(self._transport._cbtid, None, None, None, None, None)
 
                 # kick all session for the same auth cookie
                 for proto in cs.getProtos(self._transport._cbtid):

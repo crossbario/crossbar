@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import treq
-
 from six.moves.urllib.parse import urljoin
 
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -43,7 +41,12 @@ from autobahn.twisted.wamp import ApplicationSession
 class RESTCallee(ApplicationSession):
 
     def __init__(self, *args, **kwargs):
-        self._webtransport = kwargs.pop("webTransport", treq)
+        self._webtransport = kwargs.pop("webTransport")
+
+        if not self._webtransport:
+            import treq
+            self._webtransport = treq
+
         super(RESTCallee, self).__init__(*args, **kwargs)
 
     @inlineCallbacks

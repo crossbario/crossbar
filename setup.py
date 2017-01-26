@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -55,7 +55,7 @@ extras_require = {
     ]
 }
 
-with open('requirements-in.txt') as f:
+with open('requirements-min.txt') as f:
     for line in f.read().splitlines():
         line = line.strip()
         if not line.startswith('#'):
@@ -88,8 +88,7 @@ setup(
     version=version,
     description='Crossbar.io - The Unified Application Router',
     long_description=long_description,
-    author='Tavendo GmbH',
-    author_email='autobahnws@googlegroups.com',
+    author='Crossbar.io Technologies GmbH',
     url='http://crossbar.io/',
     platforms=('Any'),
     license="AGPL3",

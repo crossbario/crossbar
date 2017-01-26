@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -163,6 +163,7 @@ def pprint_json(obj, log_to=None):
 def construct_yaml_str(self, node):
     return self.construct_scalar(node)
 
+
 for Klass in [Loader, SafeLoader]:
     Klass.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
@@ -184,6 +185,7 @@ def construct_ordered_mapping(self, node, deep=False):
         mapping[key] = value
     return mapping
 
+
 yaml.constructor.BaseConstructor.construct_mapping = construct_ordered_mapping
 
 
@@ -192,6 +194,7 @@ def construct_yaml_map_with_ordered_dict(self, node):
     yield data
     value = self.construct_mapping(node)
     data.update(value)
+
 
 for Klass in [Loader, SafeLoader]:
     Klass.add_constructor('tag:yaml.org,2002:map',
@@ -225,6 +228,7 @@ def represent_ordered_dict(dump, tag, mapping, flow_style=None):
         else:
             node.flow_style = best_style
     return node
+
 
 for Klass in [Dumper, SafeDumper]:
     Klass.add_representer(OrderedDict,
@@ -312,6 +316,7 @@ def get_config_value(config, item, default=None):
     else:
         return default
 
+
 _CONFIG_ITEM_ID_PAT_STR = "^[a-z][a-z0-9_]{2,11}$"
 _CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
 
@@ -358,8 +363,17 @@ def check_dict_args(spec, config, msg):
             valid_type = False
             for t in spec[k][1]:
                 if isinstance(config[k], t):
-                    valid_type = True
-                    break
+                    # We're special-casing Sequence here, because in
+                    # general if we say a Sequence is okay, we do NOT
+                    # want strings to be allowed but Python says that
+                    # "isinstance('foo', Sequence) == True"
+                    if t is Sequence:
+                        if not isinstance(config[k], (six.text_type, str)):
+                            valid_type = True
+                            break
+                    else:
+                        valid_type = True
+                        break
             if not valid_type:
                 raise InvalidConfigException("{} - invalid type {} encountered for attribute '{}', must be one of ({})".format(msg, type(config[k]).__name__, k, ', '.join([x.__name__ for x in spec[k][1]])))
 
@@ -957,6 +971,7 @@ def check_websocket_options(options):
         if k not in [
             # WebSocket options
             'allowed_origins',
+            'allow_null_origin',
             'external_port',
             'enable_hybi10',
             'enable_rfc6455',
@@ -1468,7 +1483,7 @@ def check_web_path_service(path, config, nested):
     checkers[ptype](config)
 
 
-def check_listening_transport_web(transport):
+def check_listening_transport_web(transport, with_endpoint=True):
     """
     Check a listening Web-WAMP transport configuration.
 
@@ -1485,10 +1500,13 @@ def check_listening_transport_web(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if 'endpoint' not in transport:
-        raise InvalidConfigException("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
-
-    check_listening_endpoint(transport['endpoint'])
+    if with_endpoint:
+        if 'endpoint' not in transport:
+            raise InvalidConfigException("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
+        check_listening_endpoint(transport['endpoint'])
+    else:
+        if 'endpoint' in transport:
+            raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport Web transport subitem\n\n{}".format(pformat(transport)))
 
     if 'paths' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'paths' in Web transport item\n\n{}".format(pformat(transport)))
@@ -1531,6 +1549,30 @@ _WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
 _WEB_PATH_PATH = re.compile(_WEB_PATH_PAT_STR)
 
 
+def check_listening_transport_mqtt(transport, with_endpoint=True):
+    """
+    Check a listening MQTT-WAMP transport configuration.
+
+    http://crossbar.io/docs/
+
+    :param transport: The MQTT transport configuration to check.
+    :type transport: dict
+    """
+    for k in transport:
+        if k not in ['id', 'type', 'endpoint', 'options']:
+            raise InvalidConfigException("encountered unknown attribute '{}' in MQTT transport configuration".format(k))
+
+    if 'id' in transport:
+        check_id(transport['id'])
+
+    if with_endpoint:
+        if 'endpoint' not in transport:
+            raise InvalidConfigException("missing mandatory attribute 'endpoint' in MQTT transport item\n\n{}".format(pformat(transport)))
+        check_listening_endpoint(transport['endpoint'])
+
+    # Check options...
+
+
 def check_paths(paths, nested=False):
     """
     Checks all configured paths.
@@ -1542,15 +1584,58 @@ def check_paths(paths, nested=False):
     """
     for p in paths:
         if not isinstance(p, six.text_type):
-            raise InvalidConfigException("keys in 'paths' in Web transport configuration must be strings ({} encountered)".format(type(p)))
+            raise InvalidConfigException("keys in 'paths' in Web transport / WebSocket subitems in Universal transport configuration must be strings ({} encountered)".format(type(p)))
 
         if not _WEB_PATH_PATH.match(p):
-            raise InvalidConfigException("invalid value '{}' for path in Web transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
+            raise InvalidConfigException("invalid value '{}' for path in Web transport / WebSocket subitem in Universal transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
         check_web_path_service(p, paths[p], nested)
 
 
-def check_listening_transport_websocket(transport):
+def check_listening_transport_universal(transport):
+
+    for k in transport:
+        if k not in [
+            'id',
+            'type',
+            'endpoint',
+            'rawsocket',
+            'websocket',
+            'mqtt',
+            'web',
+        ]:
+            raise InvalidConfigException("encountered unknown attribute '{}' in Universal transport configuration".format(k))
+
+    if 'id' in transport:
+        check_id(transport['id'])
+
+    if 'endpoint' not in transport:
+        raise InvalidConfigException("missing mandatory attribute 'endpoint' in Universal transport item\n\n{}".format(pformat(transport)))
+
+    check_listening_endpoint(transport['endpoint'])
+
+    if 'rawsocket' in transport:
+        check_listening_transport_rawsocket(transport['rawsocket'], with_endpoint=False)
+
+    if 'websocket' in transport:
+        paths = transport['websocket']
+
+        if not isinstance(paths, Mapping):
+            raise InvalidConfigException("'websocket' attribute in Universal transport configuration must be dictionary ({} encountered)".format(type(paths)))
+
+        check_paths(paths)
+
+        for path in paths:
+            check_listening_transport_websocket(transport['websocket'][path], with_endpoint=False)
+
+    if 'mqtt' in transport:
+        check_listening_transport_mqtt(transport['mqtt'], with_endpoint=False)
+
+    if 'web' in transport:
+        check_listening_transport_web(transport['web'], with_endpoint=False)
+
+
+def check_listening_transport_websocket(transport, with_endpoint=True):
     """
     Check a listening WebSocket-WAMP transport configuration.
 
@@ -1576,10 +1661,13 @@ def check_listening_transport_websocket(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if 'endpoint' not in transport:
-        raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
-
-    check_listening_endpoint(transport['endpoint'])
+    if with_endpoint:
+        if 'endpoint' not in transport:
+            raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
+        check_listening_endpoint(transport['endpoint'])
+    else:
+        if 'endpoint' in transport:
+            raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport WebSocket transport subitem\n\n{}".format(pformat(transport)))
 
     if 'options' in transport:
         check_websocket_options(transport['options'])
@@ -1728,7 +1816,7 @@ def check_listening_transport_flashpolicy(transport):
             check_endpoint_port(port, "Flash-policy allowed_ports")
 
 
-def check_listening_transport_rawsocket(transport):
+def check_listening_transport_rawsocket(transport, with_endpoint=True):
     """
     Check a listening RawSocket-WAMP transport configuration.
 
@@ -1753,10 +1841,13 @@ def check_listening_transport_rawsocket(transport):
     if 'id' in transport:
         check_id(transport['id'])
 
-    if 'endpoint' not in transport:
-        raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
-
-    check_listening_endpoint(transport['endpoint'])
+    if with_endpoint:
+        if 'endpoint' not in transport:
+            raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
+        check_listening_endpoint(transport['endpoint'])
+    else:
+        if 'endpoint' in transport:
+            raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport RawSocket transport subitem\n\n{}".format(pformat(transport)))
 
     if 'serializers' in transport:
         serializers = transport['serializers']
@@ -1876,6 +1967,8 @@ def check_router_transport(transport):
         'web',
         'websocket',
         'rawsocket',
+        'universal',
+        'mqtt',
         'flashpolicy',
         'websocket.testee',
         'stream.testee'
@@ -1888,8 +1981,14 @@ def check_router_transport(transport):
     elif ttype == 'rawsocket':
         check_listening_transport_rawsocket(transport)
 
+    elif ttype == 'universal':
+        check_listening_transport_universal(transport)
+
     elif ttype == 'web':
         check_listening_transport_web(transport)
+
+    elif ttype == 'mqtt':
+        check_listening_transport_mqtt(transport)
 
     elif ttype == 'flashpolicy':
         check_listening_transport_flashpolicy(transport)
@@ -1921,7 +2020,7 @@ def check_router_component(component):
         raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
-    if ctype not in ['wamplet', 'class']:
+    if ctype not in ['wamplet', 'class', 'function']:
         raise InvalidConfigException("invalid value '{}' for component type".format(ctype))
 
     if ctype == 'wamplet':
@@ -1949,6 +2048,24 @@ def check_router_component(component):
             'extra': (False, None),
         }, component, "invalid component configuration")
 
+    elif ctype == 'function':
+        check_dict_args({
+            'id': (False, [six.text_type]),
+            'type': (True, [six.text_type]),
+            'realm': (True, [six.text_type]),
+            'role': (False, [six.text_type]),
+
+            'callbacks': (False, [dict]),
+        }, component, "invalid component configuration")
+        if 'callbacks' in component:
+            valid_callbacks = ['join', 'leave', 'connect', 'disconnect']
+            for name in component['callbacks'].keys():
+                if name not in valid_callbacks:
+                    raise InvalidConfigException(
+                        "Invalid callback name '{}' (valid are: {})".format(
+                            name, valid_callbacks
+                        )
+                    )
     else:
         raise InvalidConfigException('logic error')
 
@@ -2040,7 +2157,7 @@ def check_container_components(components):
         raise InvalidConfigException("'components' items must be lists ({} encountered)".format(type(components)))
 
     for i, component in enumerate(components):
-        log.debug("Checking container component item {} ..".format(i))
+        log.debug("Checking container component item {item} ..", item=i)
         check_container_component(component)
 
 
@@ -2139,7 +2256,7 @@ def check_router_components(components):
         raise InvalidConfigException("'components' items must be lists ({} encountered)".format(type(components)))
 
     for i, component in enumerate(components):
-        log.debug("Checking router component item {} ..".format(i))
+        log.debug("Checking router component item {item} ..", item=i)
         check_router_component(component)
 
 
@@ -2190,7 +2307,7 @@ def check_connections(connections):
         raise InvalidConfigException("'connections' items must be lists ({} encountered)".format(type(connections)))
 
     for i, connection in enumerate(connections):
-        log.debug("Checking connection item {} ..".format(i))
+        log.debug("Checking connection item {item} ..", item=i)
         check_connection(connection)
 
 
@@ -2229,7 +2346,7 @@ def check_router(router):
         raise InvalidConfigException("'realms' items must be lists ({} encountered)\n\n{}".format(type(realms), pformat(router)))
 
     for i, realm in enumerate(realms):
-        log.debug("Checking realm item {} ..".format(i))
+        log.debug("Checking realm item {item} ..", item=i)
         check_router_realm(realm)
 
     # transports
@@ -2239,7 +2356,7 @@ def check_router(router):
         raise InvalidConfigException("'transports' items must be lists ({} encountered)\n\n{}".format(type(transports), pformat(router)))
 
     for i, transport in enumerate(transports):
-        log.debug("Checking transport item {} ..".format(i))
+        log.debug("Checking transport item {item} ..", item=i)
         check_router_transport(transport)
 
     # connections
@@ -2586,8 +2703,8 @@ def check_controller_options(options):
             raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
 
     if 'shutdown' in options:
-        if type(options['shutdown']) != Sequence:
-            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown_mode'])))
+        if not isinstance(options['shutdown'], Sequence):
+            raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown'])))
         for shutdown_mode in options['shutdown']:
             if shutdown_mode not in NODE_SHUTDOWN_MODES:
                 raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
@@ -2644,9 +2761,6 @@ def check_cdc(config):
         raise InvalidConfigException("'config' item with CDC configuration must of type dictionary ({} encountered)\n\n{}".format(type(config), pformat(config)))
 
     check_dict_args({
-        'enabled': (True, [bool]),
-        'secret': (False, [six.text_type]),
-        'realm': (False, [six.text_type]),
         'transport': (False, [Mapping]),
     }, config, "invalid 'cdc' configuration")
 
@@ -2698,7 +2812,7 @@ def check_config(config):
         raise InvalidConfigException("'workers' attribute in top-level configuration must be a list ({} encountered)".format(type(workers)))
 
     for i, worker in enumerate(workers):
-        log.debug("Checking worker item {} ..".format(i))
+        log.debug("Checking worker item {item} ..", item=i)
         check_worker(worker)
 
 
@@ -2747,7 +2861,7 @@ def convert_config_file(configfile):
 
     with open(configfile, 'r') as infile:
         if configext == '.yaml':
-            log.info("converting YAML configuration {} to JSON ...".format(configfile))
+            log.info("converting YAML configuration {cfg} to JSON ...", cfg=configfile)
             try:
                 config = yaml.safe_load(infile)
             except Exception as e:
@@ -2756,9 +2870,9 @@ def convert_config_file(configfile):
                 newconfig = os.path.abspath(configbase + '.json')
                 with open(newconfig, 'w') as outfile:
                     json.dump(config, outfile, ensure_ascii=False, separators=(',', ': '), indent=3, sort_keys=True)
-                    log.info("ok, JSON formatted configuration written to {}".format(newconfig))
+                    log.info("ok, JSON formatted configuration written to {cfg}", cfg=newconfig)
         elif configext == ".json":
-            log.info("converting JSON formatted configuration {} to YAML format ...".format(configfile))
+            log.info("converting JSON formatted configuration {cfg} to YAML format ...", cfg=configfile)
             try:
                 config = json.load(infile, object_pairs_hook=OrderedDict)
             except ValueError as e:
@@ -2767,7 +2881,7 @@ def convert_config_file(configfile):
                 newconfig = os.path.abspath(configbase + '.yaml')
                 with open(newconfig, 'w') as outfile:
                     yaml.safe_dump(config, outfile, default_flow_style=False)
-                    log.info("ok, YAML formatted configuration written to {}".format(newconfig))
+                    log.info("ok, YAML formatted configuration written to {cfg}", cfg=newconfig)
 
         else:
             raise InvalidConfigException("configuration file needs to be '.json' or '.yaml'.")

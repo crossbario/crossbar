@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -80,16 +80,6 @@ def run():
                         type=six.text_type,
                         help="Crossbar.io node directory (required).")
 
-    parser.add_argument('-n',
-                        '--node',
-                        type=six.text_type,
-                        help='Crossbar.io node ID (required).')
-
-    parser.add_argument('-w',
-                        '--worker',
-                        type=six.text_type,
-                        help='Crossbar.io worker ID (required).')
-
     parser.add_argument('-r',
                         '--realm',
                         type=six.text_type,
@@ -99,6 +89,11 @@ def run():
                         '--type',
                         choices=['router', 'container', 'websocket-testee'],
                         help='Worker type (required).')
+
+    parser.add_argument('-w',
+                        '--worker',
+                        type=six.text_type,
+                        help='Crossbar.io worker ID (required).')
 
     parser.add_argument('--title',
                         type=six.text_type,
@@ -261,7 +256,7 @@ def run():
             reactor.run()
 
     except Exception as e:
-        log.info("Unhandled exception: {}".format(e))
+        log.info("Unhandled exception: {e}", e=e)
         if reactor.running:
             reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
             reactor.stop()

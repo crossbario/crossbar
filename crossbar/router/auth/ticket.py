@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -94,6 +94,9 @@ class PendingAuthTicket(PendingAuth):
             if error:
                 return error
 
+            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details[u'authextra'] = details.authextra
+
             return types.Challenge(self._authmethod)
 
         else:
@@ -113,7 +116,13 @@ class PendingAuthTicket(PendingAuth):
                 return self._accept()
             else:
                 # ticket was invalid: deny client
-                self.log.debug('WAMP-Ticket (static): expected ticket "{}"" ({}), but got "{}" ({})'.format(self._signature, type(self._signature), signature, type(signature)))
+                self.log.debug(
+                    'WAMP-Ticket (static): expected ticket "{expected}"" ({expected_type}), but got "{sig}" ({sig_type})',
+                    expected=self._signature,
+                    expected_type=type(self._signature),
+                    sig=signature,
+                    sig_type=type(signature),
+                )
                 return types.Deny(message=u"ticket in static WAMP-Ticket authentication is invalid")
 
         # WAMP-Ticket "dynamic"

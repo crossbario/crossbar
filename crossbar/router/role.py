@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -35,6 +35,7 @@ import six
 from pytrie import StringTrie
 
 from autobahn.wamp.uri import convert_starred_uri
+from twisted.python.failure import Failure
 
 from txaio import make_logger
 
@@ -322,13 +323,28 @@ class RouterRoleDynamicAuth(RouterRole):
 
     def __init__(self, router, uri, authorizer):
         """
-        Ctor.
 
-        :param uri: The URI of the role.
-        :type uri: str
+        :param router: The router to which to add the role
+        :type router: instance of ``crossbar.router.router.Router``
+        :param id: The URI of the role.
+        :type id: unicode
+        :param authorizer: The dynamic authroizer configuration.
+        :type authorizer: dict
         """
         RouterRole.__init__(self, router, uri)
+
+        # the URI (identifying name) of the authorizer
+        self._uri = uri
+
+        # the dynamic authorizer configuration
+        # {
+        #     "name": "app",
+        #     "authorizer": "com.example.auth"
+        # }
         self._authorizer = authorizer
+
+        # the session from which to call the dynamic authorizer: this is
+        # the default service session on the realm
         self._session = router._realm.session
 
     def authorize(self, session, uri, action):
@@ -345,11 +361,71 @@ class RouterRoleDynamicAuth(RouterRole):
 
         :return: bool -- Flag indicating whether session is authorized or not.
         """
+        session_details = getattr(session, '_session_details', None)
+        if session_details is None:
+            # this happens for "embedded" sessions -- perhaps we
+            # should have a better way to detect this -- also
+            # session._transport should be a RouterApplicationSession
+            session_details = {
+                u'session': session._session_id,
+                u'authid': session._authid,
+                u'authrole': session._authrole,
+                u'authmethod': session._authmethod,
+                u'authprovider': session._authprovider,
+                u'transport': {
+                    u'type': u'stdio',  # or maybe "embedded"?
+                }
+            }
+
         self.log.debug(
-            "CrossbarRouterRoleDynamicAuth.authorize {myuri} {uri} {action}",
-            myuri=self.uri, uri=uri, action=action)
-        return self._session.call(self._authorizer, session._session_details,
-                                  uri, action)
+            "CrossbarRouterRoleDynamicAuth.authorize {uri} {action} {details}",
+            uri=uri, action=action, details=session_details)
+
+        d = self._session.call(self._authorizer, session_details, uri, action)
+
+        def sanity_check(authorization):
+            """
+            Ensure the return-value we got from the user-supplied method makes sense
+            """
+            if isinstance(authorization, dict):
+                for key in authorization.keys():
+                    if key not in [u'allow', u'cache', u'disclose']:
+                        return Failure(
+                            ValueError(
+                                "Authorizer returned unknown key '{key}'".format(
+                                    key=key,
+                                )
+                            )
+                        )
+                # must have "allow"
+                if u'allow' not in authorization:
+                    return Failure(
+                        ValueError(
+                            "Authorizer must have 'allow' in returned dict"
+                        )
+                    )
+                # all values must be bools
+                for key, value in authorization.items():
+                    if not isinstance(value, bool):
+                        return Failure(
+                            ValueError(
+                                "Authorizer must have bool for '{}'".format(key)
+                            )
+                        )
+                return authorization
+
+            elif isinstance(authorization, bool):
+                return authorization
+
+            return Failure(
+                ValueError(
+                    "Authorizer returned unknown type '{name}'".format(
+                        name=type(authorization).__name__,
+                    )
+                )
+            )
+        d.addCallback(sanity_check)
+        return d
 
 
 class RouterRoleLMDBAuth(RouterRole):

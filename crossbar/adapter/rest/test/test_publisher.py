@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -75,6 +75,10 @@ class PublisherTestCase(TestCase):
 
         self.assertEqual(json.loads(native_string(request.get_written_data())),
                          {"id": session._published_messages[0]["id"]})
+        # ensure we have all the format-keys AR200 asks for (can we
+        # extract these from the _log_categories string instead?)
+        self.assertIn('code', logs[0])
+        self.assertIn('reason', logs[0])
 
     @inlineCallbacks
     def test_publish_error(self):

@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -62,6 +62,9 @@ class PendingAuthCryptosign(PendingAuth):
         PendingAuth.__init__(self, session, config)
         self._verify_key = None
 
+        # https://tools.ietf.org/html/rfc5056
+        # https://tools.ietf.org/html/rfc5929
+        # https://www.ietf.org/proceedings/90/slides/slides-90-uta-0.pdf
         channel_id_hex = session._transport._transport_info.get(u'channel_id', None)
         if channel_id_hex:
             self._channel_id = binascii.a2b_hex(channel_id_hex)
@@ -98,7 +101,10 @@ class PendingAuthCryptosign(PendingAuth):
         if channel_binding is not None and channel_binding not in [u'tls-unique']:
             return types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding))
         else:
-            self.log.info("WAMP-cryptosign CHANNEL BINDING requested: {}".format(channel_binding))
+            self.log.info(
+                "WAMP-cryptosign CHANNEL BINDING requested: {binding}",
+                binding=channel_binding,
+            )
 
         # remember the realm the client requested to join (if any)
         self._realm = realm
@@ -124,7 +130,7 @@ class PendingAuthCryptosign(PendingAuth):
                     # we do a naive search, but that is ok, since "static mode" is from
                     # node configuration, and won't contain a lot principals anyway
                     for _authid, _principal in self._config.get(u'principals', {}).items():
-                        if _principal[u'pubkey'] == pubkey:
+                        if pubkey in _principal[u'authorized_keys']:
                             # (*): this is necessary to detect multiple authid's having the same pubkey
                             # in which case we couldn't reliably map the authid from the pubkey
                             if self._authid is None:
@@ -151,6 +157,7 @@ class PendingAuthCryptosign(PendingAuth):
 
                 extra = self._compute_challenge(channel_binding)
                 return types.Challenge(self._authmethod, extra)
+
             else:
                 return types.Deny(message=u'no principal with authid "{}" exists'.format(details.authid))
 
@@ -162,7 +169,7 @@ class PendingAuthCryptosign(PendingAuth):
             if error:
                 return error
 
-            self._session_details[u'authmethod'] = u'cryptosign'
+            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
             self._session_details[u'authextra'] = details.authextra
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)

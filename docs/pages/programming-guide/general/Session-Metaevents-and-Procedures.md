@@ -3,7 +3,7 @@ toc: [Documentation, Programming Guide, Session Metaevents and Procedures]
 
 # Session Meta Events and Procedures
 
-> **Session Meta Events and Procedures** is a feature from the WAMP Advanced Profile. The specification can be found [here](https://github.com/tavendo/WAMP/blob/master/spec/advanced/session-meta-api.md).
+> **Session Meta Events and Procedures** is a feature from the WAMP Advanced Profile. The specification can be found [here](https://github.com/wamp-proto/wamp-proto/blob/master/rfc/text/advanced/ap_session_meta_api.md).
 
 WAMP enables the monitoring of when sessions join a realm on the router or when they leave it via session metaevents.
 

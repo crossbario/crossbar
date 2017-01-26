@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -44,11 +44,7 @@ try:
     #
     # twisted.conch.manhole_ssh will import even without, but we _need_ SSH
     import pyasn1  # noqa
-    from twisted.cred import checkers, portal
-    from twisted.conch.manhole import ColoredManhole
-    from twisted.conch.manhole_ssh import ConchFactory, \
-        TerminalRealm, \
-        TerminalSession
+    import cryptography  # noqa
 except ImportError as e:
     _HAS_MANHOLE = False
     _MANHOLE_MISSING_REASON = str(e)
@@ -63,6 +59,8 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
 from txaio import make_logger
+
+from twisted.cred import checkers, portal
 
 from crossbar.common import checkconfig
 from crossbar.common.checkconfig import get_config_value
@@ -282,7 +280,7 @@ class NativeProcessSession(ApplicationSession):
             self.log.warn(emsg)
             raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.info("Starting {} in process.".format(config['type']))
+            self.log.info("Starting {ptype} in process.", ptype=config['type'])
 
         if config['type'] == u'postgresql.connection':
             if _HAS_POSTGRESQL:
@@ -568,6 +566,10 @@ class NativeProcessSession(ApplicationSession):
         # setup manhole namespace
         #
         namespace = {'session': self}
+
+        from twisted.conch.manhole_ssh import (
+            ConchFactory, TerminalRealm, TerminalSession)
+        from twisted.conch.manhole import ColoredManhole
 
         class PatchedTerminalSession(TerminalSession):
             # get rid of

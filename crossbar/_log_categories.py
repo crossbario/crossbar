@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -65,6 +65,28 @@ log_categories = {
     "AR464": "Request expired, too old timestamp.",
     "AR465": "Body length ({bodylen}) is different to Content-Length header ({conlen}).",
     "AR466": "Request denied based on IP address.",
+
+    # MQXXX - Adapter, MQTT Bridge
+    "MQ100": "Got packet from '{client_id}': {packet!r}",
+    "MQ101": "Sent packet to '{client_id}': {packet!r}",
+    "MQ200": "Successful connection from '{client_id}'",
+    "MQ201": "Received a QoS 0 Publish from '{client_id}'",
+    "MQ202": "Received a QoS 1 Publish from '{client_id}'",
+    "MQ203": "Received a QoS 2 Publish from '{client_id}'",
+    "MQ204": "Received a Disconnect from '{client_id}', closing connection",
+    "MQ303": "Got a non-allowed QoS value in the publish queue, dropping it.",
+    "MQ400": "MQTT client '{client_id}' timed out after recieving no full packets for {seconds}",
+    "MQ401": "Protocol violation from '{client_id}', terminating connection: {error}",
+    "MQ402": "Got a packet ('{packet_id}') from '{client_id}' that is invalid for a server, terminating connection",
+    "MQ403": "Got a Publish packet from '{client_id}' that has both QoS bits set, terminating connection",
+    "MQ500": "Error handling a Connect, dropping connection",
+    "MQ501": "Error handling a Subscribe from '{client_id}', dropping connection",
+    "MQ502": "Error handling an Unsubscribe from '{client_id}', dropping connection",
+    "MQ503": "Error handling a QoS 0 Publish from '{client_id}', dropping connection",
+    "MQ504": "Error handling a QoS 1 Publish from '{client_id}', dropping connection",
+    "MQ505": "Error handling a QoS 2 Publish from '{client_id}', dropping connection",
+
+
 }
 
 

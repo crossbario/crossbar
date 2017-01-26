@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -118,7 +118,9 @@ class CookieStore(object):
             # auth info is store here
             'authid': None,
             'authrole': None,
+            'authrealm': None,
             'authmethod': None,
+            'authextra': None,
 
             # set of WAMP transports (WebSocket connections) this
             # cookie is currently used on
@@ -144,27 +146,29 @@ class CookieStore(object):
 
     def getAuth(self, cbtid):
         """
-        Return `(authid, authrole, authmethod)` triple given cookie ID.
+        Return `(authid, authrole, authmethod, authrealm, authextra)` tuple given cookie ID.
         """
         if cbtid in self._cookies:
             c = self._cookies[cbtid]
-            cookie_auth_info = c['authid'], c['authrole'], c['authmethod']
+            cookie_auth_info = c['authid'], c['authrole'], c['authmethod'], c['authrealm'], c['authextra']
         else:
-            cookie_auth_info = None, None, None
+            cookie_auth_info = None, None, None, None, None
 
         self.log.debug("Cookie auth info for {cbtid} retrieved: {cookie_auth_info}", cbtid=cbtid, cookie_auth_info=cookie_auth_info)
 
         return cookie_auth_info
 
-    def setAuth(self, cbtid, authid, authrole, authmethod):
+    def setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm):
         """
-        Set `(authid, authrole, authmethod)` triple for given cookie ID.
+        Set `(authid, authrole, authmethod, authextra)` for given cookie ID.
         """
         if cbtid in self._cookies:
             c = self._cookies[cbtid]
             c['authid'] = authid
             c['authrole'] = authrole
+            c['authrealm'] = authrealm
             c['authmethod'] = authmethod
+            c['authextra'] = authextra
 
     def addProto(self, cbtid, proto):
         """
@@ -259,7 +263,9 @@ class CookieStoreFileBacked(CookieStore):
         self._cookie_file.write(json.dumps({
             'id': id, status: c['created'], 'max_age': c['max_age'],
             'authid': c['authid'], 'authrole': c['authrole'],
-            'authmethod': c['authmethod']
+            'authmethod': c['authmethod'],
+            'authrealm': c['authrealm'],
+            'authextra': c['authextra'],
         }) + '\n')
         self._cookie_file.flush()
         os.fsync(self._cookie_file.fileno())
@@ -286,15 +292,15 @@ class CookieStoreFileBacked(CookieStore):
 
         return cbtid, header
 
-    def setAuth(self, cbtid, authid, authrole, authmethod):
+    def setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm):
 
         if self.exists(cbtid):
 
             cookie = self._cookies[cbtid]
 
             # only set the changes and write them to the file if any of the values changed
-            if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod']:
-                CookieStore.setAuth(self, cbtid, authid, authrole, authmethod)
+            if authid != cookie['authid'] or authrole != cookie['authrole'] or authmethod != cookie['authmethod'] or authrealm != cookie['authrealm'] or authextra != cookie['authextra']:
+                CookieStore.setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm)
                 self._persist(cbtid, cookie, status='modified')
 
     def _clean_cookie_file(self):
@@ -312,7 +318,9 @@ class CookieStoreFileBacked(CookieStore):
                     'max_age': cookie['max_age'],
                     'authid': cookie['authid'],
                     'authrole': cookie['authrole'],
-                    'authmethod': cookie['authmethod']
+                    'authmethod': cookie['authmethod'],
+                    'authrealm': cookie['authrealm'],
+                    'authextra': cookie['authextra'],
                 }) + '\n'
                 cookie_file.write(cookie_record)
 

@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -76,7 +76,7 @@ class Router(object):
     The dealer class this router will use.
     """
 
-    def __init__(self, factory, realm, options=None, store=None):
+    def __init__(self, factory, realm, options=None, store=None, mqtt_payload_format=None):
         """
 
         :param factory: The router factory this router was created by.
@@ -84,7 +84,9 @@ class Router(object):
         :param realm: The realm this router is working for.
         :type realm: str
         :param options: Router options.
-        :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
+        :type options: Instance of :class:`crossbar.router.RouterOptions`.
+        :param mqtt_payload_format: The format that MQTT messages on this realm are in.
+        :type mqtt_payload_format: str
         """
         self._factory = factory
         self._options = options or RouterOptions()
@@ -102,6 +104,8 @@ class Router(object):
         self._broker = self.broker(self, self._options)
         self._dealer = self.dealer(self, self._options)
         self._attached = 0
+
+        self._mqtt_payload_format = mqtt_payload_format
 
         self._roles = {
             u'trusted': RouterTrustedRole(self, u'trusted')
@@ -271,13 +275,17 @@ class Router(object):
 
         def got_authorization(authorization):
             # backward compatibility
-            if type(authorization) == bool:
+            if isinstance(authorization, bool):
                 authorization = {
                     u'allow': authorization,
                     u'cache': False
                 }
                 if action in [u'call', u'publish']:
                     authorization[u'disclose'] = False
+
+            auto_disclose_trusted = False
+            if auto_disclose_trusted and role == u'trusted' and action in [u'call', u'publish']:
+                authorization[u'disclose'] = True
 
             self.log.debug("Authorized action '{action}' for URI '{uri}' by session {session_id} with authid '{authid}' and authrole '{authrole}' -> authorization: {authorization}",
                            session_id=session._session_id,
@@ -310,14 +318,12 @@ class RouterFactory(object):
     The router class this factory will create router instances from.
     """
 
-    def __init__(self, node_id, options=None):
+    def __init__(self, options=None):
         """
 
         :param options: Default router options.
-        :type options: Instance of :class:`autobahn.wamp.types.RouterOptions`.
+        :type options: Instance of :class:`crossbar.router.RouterOptions`.
         """
-        assert(type(node_id) == six.text_type)
-        self._node_id = node_id
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False
@@ -383,9 +389,17 @@ class RouterFactory(object):
             else:
                 raise Exception('logic error')
 
+        mqtt_payload_format = "opaque"
+        if 'mqtt_payload_format' in realm.config:
+            mqtt_payload_format = realm.config['mqtt_payload_format']
+
+            if mqtt_payload_format not in ["opaque", "json", "cbor"]:
+                raise Exception("Not a valid mqtt_payload_format.")
+
         # now create a router for the realm
         #
-        router = Router(self, realm, self._options, store=store)
+        router = Router(self, realm, self._options, store=store,
+                        mqtt_payload_format=mqtt_payload_format)
         self._routers[uri] = router
         self.log.debug("Router created for realm '{uri}'", uri=uri)
 
@@ -420,7 +434,7 @@ class RouterFactory(object):
                        realm=realm, role=role)
 
     def auto_start_realm(self, realm):
-        raise Exception("realm auto-activation not yet implemented")
+        raise Exception("realm auto-activation (realm '{}') not yet implemented".format(realm))
 
     def auto_add_role(self, realm, role):
-        raise Exception("role auto-activation not yet implemented")
+        raise Exception("role auto-activation (role '{}') not yet implemented".format(role))

@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -82,7 +82,7 @@ class WebSocketTesteeServerProtocol(WebSocketServerProtocol):
                                       cbVersion=crossbar.__version__,
                                       wsUri=self.factory.url))
         except Exception as e:
-            self.log.warn("Error rendering WebSocket status page template: {}".format(e))
+            self.log.warn("Error rendering WebSocket status page template: {e}", e=e)
 
 
 class StreamingWebSocketTesteeServerProtocol(WebSocketServerProtocol):
@@ -161,7 +161,7 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
+            self.log.info("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
@@ -174,13 +174,12 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
     def get_websocket_testee_transport(self, details=None):
         """
         """
-        self.log.debug("{}.get_websocket_testee_transport".format(self.__class__.__name__))
+        self.log.debug("{name}.get_websocket_testee_transport", name=self.__class__.__name__)
 
     def start_websocket_testee_transport(self, id, config, details=None):
         """
         """
-        self.log.debug("{}.start_websocket_testee_transport".format(self.__class__.__name__),
-                       id=id, config=config)
+        self.log.debug("{name}.start_websocket_testee_transport", name=self.__class__.__name__)
 
         # prohibit starting a transport twice
         #
@@ -199,7 +198,7 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
             self.log.error(emsg)
             raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
         else:
-            self.log.debug("Starting {}-transport on websocket-testee.".format(config['type']))
+            self.log.debug("Starting {ttype}-transport on websocket-testee.", ttype=config['type'])
 
         # WebSocket testee pseudo transport
         #
@@ -224,7 +223,7 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
         def ok(port):
             # FIXME
             # self.transports[id] = RouterTransport(id, config, transport_factory, port)
-            self.log.debug("Router transport '{}'' started and listening".format(id))
+            self.log.debug("Router transport '{tid}'' started and listening", tid=id)
             return
 
         def fail(err):
@@ -238,5 +237,5 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
     def stop_websocket_testee_transport(self, id, details=None):
         """
         """
-        self.log.debug("{}.stop_websocket_testee_transport".format(self.__class__.__name__), id=id)
+        self.log.debug("{name}.stop_websocket_testee_transport", name=self.__class__.__name__)
         raise NotImplementedError()

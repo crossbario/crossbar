@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -35,6 +35,7 @@ import sys
 import re
 import six
 import json
+from io import StringIO
 
 from json import JSONEncoder
 
@@ -47,6 +48,8 @@ from pygments import highlight, lexers, formatters
 
 from txaio import get_global_log_level, set_global_log_level
 from txaio.tx import log_levels
+
+from crossbar import _log_categories
 
 record_separator = u"\x1e"
 cb_logging_aware = u"CROSSBAR_RICH_LOGGING_ENABLE=True"
@@ -108,7 +111,7 @@ def make_stdout_observer(levels=(LogLevel.info,),
         _file = sys.__stdout__
 
     if _categories is None:
-        from crossbar._log_categories import log_categories as _categories
+        _categories = _log_categories.log_categories
 
     @provider(ILogObserver)
     def StandardOutObserver(event):
@@ -180,7 +183,7 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         _file = sys.__stderr__
 
     if _categories is None:
-        from crossbar._log_categories import log_categories as _categories
+        _categories = _log_categories.log_categories
 
     @provider(ILogObserver)
     def StandardErrorObserver(event):
@@ -383,6 +386,11 @@ class LogCapturer(object):
         self.logs = []
         self._old_log_level = get_global_log_level()
         self.desired_level = level
+        self.log_text = StringIO()
+
+        self._out_observer = make_stdout_observer(
+            levels=(LogLevel.debug, LogLevel.info, LogLevel.warn,
+                    LogLevel.error), _file=self.log_text, trace=True)
 
     def get_category(self, identifier):
         """
@@ -390,11 +398,17 @@ class LogCapturer(object):
         """
         return [x for x in self.logs if x.get("log_category") == identifier]
 
+    def _got_log(self, log):
+        self.logs.append(log)
+
+        # Render them, to make sure there are no "can't format" errors
+        self._out_observer(log)
+
     def __enter__(self):
         set_global_log_level(self.desired_level)
-        globalLogPublisher.addObserver(self.logs.append)
+        globalLogPublisher.addObserver(self._got_log)
         return self
 
     def __exit__(self, type, value, traceback):
-        globalLogPublisher.removeObserver(self.logs.append)
+        globalLogPublisher.removeObserver(self._got_log)
         set_global_log_level(self._old_log_level)

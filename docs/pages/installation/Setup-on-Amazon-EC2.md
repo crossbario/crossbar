@@ -12,8 +12,8 @@ If you want to install Crossbar.io from scratch, or run it on a different OS, se
 1. Press 'Launch Instance'
 2. Select 'Community AMIs' in the list of AMI sources on the left.
 3. Search for 'crossbar' using the search box.
-4. Select the found AMI. ![Add HTTP Endpoint](/static/img/docs/ec2_01.png)
-5. In the setup, when configuring the security group, it makes sense to add a 'Custom TCP Rule' for the 'Port Range' '8080' since the application templates that come with Crossbar are served on this port. ![Add HTTP Endpoint](/static/img/docs/ec2_02.png)
+4. Select the found AMI.
+5. In the setup, when configuring the security group, it makes sense to add a 'Custom TCP Rule' for the 'Port Range' '8080' since the application templates that come with Crossbar are served on this port.
 
 > There are AMIs for all regions, so this should work no matter where you want to run you EC2 instance.
 

@@ -25,11 +25,10 @@ def page_home():
 
 
 @app.route('/docs/<path:path>/')
-@app.route('/docs/')
 def page_docs(path = None):
    if path is None or path.strip() == "":
       title = 'Documentation'
-      path = 'Home'
+      path = 'Documentation'
    else:
       title = path.replace('-', ' ')
 

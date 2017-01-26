@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -69,7 +69,7 @@ class PublisherResource(_CommonResource):
         def on_publish_ok(pub):
             res = {'id': pub.id}
             body = dump_json(res, True).encode('utf8')
-            self._complete_request(request, 200, body, log_category="AR200")
+            self._complete_request(request, 200, body, log_category="AR200", reason="OK")
 
         def on_publish_error(err):
             self._fail_request(request, failure=err, log_category="AR456")

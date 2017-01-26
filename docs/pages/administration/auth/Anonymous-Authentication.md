@@ -5,7 +5,7 @@ toc: [Documentation, Administration, Authentication, Anonymous Authentication]
 
 Anonymous Authentication allows you to explicitly define a role which is assigned to clients which connect without credentials.
 
-You need to explicitly allow Anonymous Authentication for a particular transport  - as a default this is not allowed. Clients may explicitly request Anonymous Authentication, but this is attempted absent any explicit defined authentication scheme as well.
+By default, Anonymous Authentication is not allowed; you must exmplicitly enable it. Clients can explicitly ask for Anonymous Authentication but note that they will also attempt Anonymous Authentication if there is no authentication configuration at all.
 
 The following is part of a config which allows Anonymous Authentication for a WebSocket endpoint on a Web transport:
 
@@ -58,4 +58,4 @@ Here the authenticator function which is registered for `com.example.authenticat
 
 For a full working example of Anonymous Authentication using a dynamic authenticator, see [Crossbarexamples](https://github.com/crossbario/crossbarexamples/tree/master/authentication/anonymous/dynamic).
 
-For more on dynamica authenticators read [this documentation page](Dynamic Authenticators).
+For more on dynamic authenticators read [this documentation page](Dynamic Authenticators).

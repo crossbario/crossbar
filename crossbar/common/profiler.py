@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -35,7 +35,6 @@ import tempfile
 
 import six
 
-from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 from twisted.internet.threads import deferToThread
 
@@ -128,7 +127,7 @@ if _HAS_VMPROF:
 
             # this will run on a background thread
             def convert_profile(profile_filename):
-                self.log.info("Converting profile file {}".format(profile_filename))
+                self.log.info("Converting profile file {fname}", fname=profile_filename)
 
                 try:
                     stats = vmprof.read_profile(profile_filename, virtual_only=True, include_extra_info=True)
@@ -221,6 +220,7 @@ if _HAS_VMPROF:
 
             self.log.info("Starting profiling using {profiler} for {runtime} seconds.", profiler=self._id, runtime=runtime)
 
+            from twisted.internet import reactor
             reactor.callLater(runtime, finish_profile)
 
             return self._profile_id, self._finished

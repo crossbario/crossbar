@@ -1,9 +1,9 @@
 #####################################################################################
 #
-#  Copyright (C) Tavendo GmbH
+#  Copyright (c) Crossbar.io Technologies GmbH
 #
-#  Unless a separate license agreement exists between you and Tavendo GmbH (e.g. you
-#  have purchased a commercial license), the license terms below apply.
+#  Unless a separate license agreement exists between you and Crossbar.io GmbH (e.g.
+#  you have purchased a commercial license), the license terms below apply.
 #
 #  Should you enter into a separate license agreement after having received a copy of
 #  this software, then the terms of such license agreement replace the terms below at
@@ -32,8 +32,6 @@ from __future__ import absolute_import
 
 import os
 from txaio import make_logger
-
-from twisted.internet import reactor
 
 try:
     from watchdog.observers import Observer
@@ -83,6 +81,8 @@ if HAS_FS_WATCHER:
                         u'rel_path': os.path.relpath(evt.src_path, self._working_dir),
                         u'is_directory': evt.is_directory,
                     }
+
+                    from twisted.internet import reactor
                     reactor.callFromThread(callback, event)
 
                 self._handler.on_any_event = on_any_event

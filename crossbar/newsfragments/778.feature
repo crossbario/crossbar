@@ -1,1 +1,0 @@
-removed exact version from ``Server:`` header and added ``show_server_version`` option

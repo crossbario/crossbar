@@ -11,9 +11,9 @@ toc: [Documentation, Contributing FAQ]
 
 The basics are:
 
-* Tavendo as the project maintainer gets full rights to your contribution.
-* Tavendo assigns you back as many rights as legally possible. This means that you retain the possibility to use your contribution outside of the project.
-* If your contribution is added to the project, Tavendo agrees to distribute it under the license which applies at the time you submitted your contribution (i.e. AGPL 3.0 at the time of writing).
+* Crossbar.io Technologies as the project maintainer gets full rights to your contribution.
+* Crossbar.io Technologies assigns you back as many rights as legally possible. This means that you retain the possibility to use your contribution outside of the project.
+* If your contribution is added to the project, Crossbar.io Technologies agrees to distribute it under the license which applies at the time you submitted your contribution (i.e. AGPL 3.0 at the time of writing).
 
 This document closely follows a template established by the [Harmony project](http://harmonyagreements.org/).
 
@@ -30,7 +30,7 @@ This means that the legal relationship which is established is between you and u
 This brings two problems with it:
 
 1. In case of license violations by others, there is no central copyright holder to who can sue. You, or any user who has contributed, may do so, but it complicates things, and who can sue depends very much on the nature of the violation. For example, if somebody took part of the code and integrated it into a project with a different license, only the authors who contributed to that part could sue.
-With the assignment, Tavendo can sue on behalf of the project.
+With the assignment, Crossbar.io Technologies can sue on behalf of the project.
 
 2. License changes would in the majority of cases require that all contributors to the project, across the entire project history, give their explicit, written consent to the change.
 This makes license changes pretty much impossible. If you're interested, the case of re-licensing VLC from the GPL to the LGPL is a good [case study](http://lwn.net/Articles/525718/).

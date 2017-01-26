@@ -5,6 +5,8 @@ toc: [Documentation, Administration, Authentication, Ticket Authentication]
 
 **WAMP-Ticket Authentication** is a simple cleartext challenge scheme. A client connects to a realm under some `authid` and requests the authentication method. Crossbar will "challenge" the client, asking for a ticket. The client sends the ticket, and Crossbar.io then checks its validity.
 
+If you want cookies to be invalidated, pass `wamp.close.logout` when calling `.leave()` on your session
+
 There are two possibilities for the checking:
 
 * **static**, where the ticket is stored in the Crossbar.io configuration
