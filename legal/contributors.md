@@ -2,6 +2,7 @@ Contributors with signed CAAs
 
 * dimddev
 * eth3lbert
+* firefighterblu3
 * hawkowl
 * markope
 * meejah
@@ -9,8 +10,9 @@ Contributors with signed CAAs
 * pataelmo
 * rlamy
 * schoonc
-* SISCIA
 * si618
+* SISCIA
+* slav0nic
 * svpcom
 * taion
 * voidfuture
@@ -21,4 +23,3 @@ Entity CAAs
 
 * Quantum SI Inc
 * Recode Systems
-
