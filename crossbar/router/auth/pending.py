@@ -179,9 +179,14 @@ class PendingAuth:
         self._authenticator_session = self._router_factory.get(authenticator_realm)._realm.session
 
     def _marshal_dynamic_authenticator_error(self, err):
-        error = ApplicationError.AUTHENTICATION_FAILED
-        message = u'dynamic authenticator failed: {}'.format(err.value)
-        return types.Deny(error, message)
+        if isinstance(err.value, ApplicationError):
+            # forward the inner error URI and message (or coerce the first args item to str)
+            return types.Deny(err.value.error, u'{}'.format(err.value.args[0]))
+        else:
+            # wrap the error
+            error = ApplicationError.AUTHENTICATION_FAILED
+            message = u'dynamic authenticator failed: {}'.format(err.value)
+            return types.Deny(error, message)
 
     def _accept(self):
         return types.Accept(realm=self._realm,
