@@ -1,8 +1,8 @@
 click>=6.6
 setuptools>=28.3.0
 zope.interface>=4.3.2
-Twisted>=16.6.0
-autobahn>=0.17.0
+Twisted>=17.1.0
+autobahn>=0.17.2
 netaddr>=0.7.18
 PyTrie>=0.2
 Jinja2>=2.8
@@ -30,3 +30,5 @@ bitstring>=3.1.5
 attrs>=16.2.0
 incremental>=16.10.1
 constantly>=15.1.0
+enum34>=1.1.6
+ipaddress>=1.0.18
