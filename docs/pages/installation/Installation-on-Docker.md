@@ -7,7 +7,7 @@ toc: [Documentation, Installation, Installation on Docker]
 
 To install Docker on Ubuntu from official repositories, follow [https://docs.docker.com/engine/installation/linux/ubuntu/](this]).
 
-Once per once, do this
+Once per host, do the following to add the Docker upstream Ubuntu/Debian repository
 
 ```console
 sudo apt-get install -y --no-install-recommends \
@@ -97,6 +97,12 @@ as a mountpoint for the container volume
 
 inside.
 
+The Crossbar.io running inside the Docker container expects a Crossbar.io node application directory residing on the volume `/node`.
+
+Put differently, the Crossbar.io inside Docker will start
+
+    crossbar start --cbdir /node/.crossbar
+
 For example, in a first terminal
 
 ```console
@@ -112,4 +118,4 @@ and in a second terminal
 make client
 ```
 
-See [here](https://github.com/crossbario/crossbar-examples/tree/master/docker/disclose).
+This should give you the output as [here](https://github.com/crossbario/crossbar-examples/tree/master/docker/disclose).
