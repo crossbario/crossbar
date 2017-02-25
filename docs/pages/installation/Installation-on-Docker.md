@@ -75,7 +75,7 @@ To start a new Docker container with Crossbar.io
 sudo docker run --rm -it -p 8080:8080 --name crossbar crossbario/crossbar
 ```
 
-## Start from host node directories
+## Start with node directory from host
 
 To start Crosssbar.io in a Docker container while providing a host directory as the node directory for the Crossbar.io node running inside the Docker container, do the following:
 
@@ -119,3 +119,49 @@ make client
 ```
 
 This should give you the output as [here](https://github.com/crossbario/crossbar-examples/tree/master/docker/disclose).
+
+
+## Create new image with node directory embedded
+
+Say you have a Crossbar.io node directory with configuration, embedded backend components and static Web assets:
+
+```console
+ubuntu@ip-172-31-2-14:~/crossbar-examples/docker/disclose$ ls -la crossbar/
+total 20
+drwxrwxr-x 3 ubuntu ubuntu 4096 Feb 25 22:00 .
+drwxrwxr-x 4 ubuntu ubuntu 4096 Feb 25 22:14 ..
+-rw-rw-r-- 1 ubuntu ubuntu  151 Feb 25 21:25 backend.py
+drwxrwxr-x 2 ubuntu ubuntu 4096 Feb 25 22:00 .crossbar
+-rw-rw-r-- 1 ubuntu ubuntu 3076 Feb 25 21:04 index.html
+ubuntu@ip-172-31-2-14:~/crossbar-examples/docker/disclose$ ls -la crossbar/.crossbar/
+total 12
+drwxrwxr-x 2 ubuntu ubuntu 4096 Feb 25 22:00 .
+drwxrwxr-x 3 ubuntu ubuntu 4096 Feb 25 22:00 ..
+-rw-rw-r-- 1 ubuntu ubuntu 1571 Feb 25 21:24 config.json
+```
+
+To bundle that into a Docker image, create a new `Dockerfile`:
+
+```
+FROM crossbario/crossbar
+
+# copy over our own node directory from the host into the image
+# set user "root" before copy and change owner afterwards
+USER root
+COPY ./crossbar /mynode
+RUN chown -R crossbar:crossbar /mynode
+
+ENTRYPOINT ["crossbar", "start", "--cbdir", "/mynode/.crossbar"]
+```
+
+Then do
+
+```console
+sudo docker build -t myimage -f Dockerfile .
+```
+
+To start the image:
+
+```console
+sudo docker run --rm -it -p 8080:8080 myimage
+```
