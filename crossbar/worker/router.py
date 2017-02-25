@@ -264,12 +264,8 @@ class RouterWorkerSession(NativeWorkerSession):
     """
     WORKER_TYPE = 'router'
 
-    @inlineCallbacks
-    def onJoin(self, details):
-        """
-        Called when worker process has joined the node's management realm.
-        """
-        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
+    def __init__(self, config=None, reactor=None):
+        NativeWorkerSession.__init__(self, config, reactor)
 
         # factory for producing (per-realm) routers
         self._router_factory = RouterFactory()
@@ -286,44 +282,61 @@ class RouterWorkerSession(NativeWorkerSession):
         # map: component ID -> RouterComponent
         self.components = {}
 
+        # "global" shared between all components
+        self.components_shared = {'reactor': reactor}
+
         # map: transport ID -> RouterTransport
         self.transports = {}
 
-        # the procedures registered
-        procs = [
-            'get_router_realms',
-            'start_router_realm',
-            'stop_router_realm',
+    @inlineCallbacks
+    def onJoin(self, details):
+        """
+        Called when worker process has joined the node's management realm.
+        """
+        self.log.info('RouterWorkerSession: {}'.format(details))
 
-            'get_router_realm_roles',
-            'start_router_realm_role',
-            'stop_router_realm_role',
+        try:
+            yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
-            'get_router_realm_uplinks',
-            'start_router_realm_uplink',
-            'stop_router_realm_uplink',
+            # the procedures registered
+            procs = [
+                'get_router_realms',
+                'start_router_realm',
+                'stop_router_realm',
 
-            'get_router_components',
-            'start_router_component',
-            'stop_router_component',
+                'get_router_realm_roles',
+                'start_router_realm_role',
+                'stop_router_realm_role',
 
-            'get_router_transports',
-            'start_router_transport',
-            'stop_router_transport',
-        ]
+                'get_router_realm_uplinks',
+                'start_router_realm_uplink',
+                'stop_router_realm_uplink',
 
-        dl = []
-        for proc in procs:
-            uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
+                'get_router_components',
+                'start_router_component',
+                'stop_router_component',
 
-        regs = yield DeferredList(dl)
+                'get_router_transports',
+                'start_router_transport',
+                'stop_router_transport',
+            ]
 
-        self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+            dl = []
+            for proc in procs:
+                uri = '{}.{}'.format(self._uri_prefix, proc)
+                self.log.debug("Registering management API procedure {proc}", proc=uri)
+                dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
-        # NativeWorkerSession.publish_ready()
-        yield self.publish_ready()
+            regs = yield DeferredList(dl)
+
+            self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+
+            # NativeWorkerSession.publish_ready()
+            yield self.publish_ready()
+        except:
+            self.log.failure('Failed to initialize router worker: {log_failure.value}')
+            # FIXME
+            self.leave()
 
     def get_router_realms(self, details=None):
         """
@@ -577,18 +590,19 @@ class RouterWorkerSession(NativeWorkerSession):
         # components so that they have a chance to shutdown properly
         # -- e.g. on a ctrl-C of the router.
         leaves = []
-        for component in self.components.values():
-            if component.session.is_connected():
-                d = maybeDeferred(component.session.leave)
+        if self.components:
+            for component in self.components.values():
+                if component.session.is_connected():
+                    d = maybeDeferred(component.session.leave)
 
-                def done(_):
-                    self.log.info(
-                        "component '{id}' disconnected",
-                        id=component.id,
-                    )
-                    component.session.disconnect()
-                d.addCallback(done)
-                leaves.append(d)
+                    def done(_):
+                        self.log.info(
+                            "component '{id}' disconnected",
+                            id=component.id,
+                        )
+                        component.session.disconnect()
+                    d.addCallback(done)
+                    leaves.append(d)
         dl = DeferredList(leaves, consumeErrors=True)
         # we want our default behavior, which disconnects this
         # router-worker, effectively shutting it down .. but only
@@ -646,7 +660,11 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         realm = config['realm']
         extra = config.get('extra', None)
-        component_config = ComponentConfig(realm=realm, extra=extra)
+        component_config = ComponentConfig(realm=realm,
+                                           extra=extra,
+                                           keyring=None,
+                                           controller=self if self.config.extra.expose_controller else None,
+                                           shared=self.components_shared if self.config.extra.expose_shared else None)
         create_component = _appsession_loader(config)
 
         # .. and create and add an WAMP application session to

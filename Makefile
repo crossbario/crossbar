@@ -58,6 +58,11 @@ install_deps:
 install:
 	pip install -e .
 
+# upload to our internal deployment system
+upload: clean
+	python setup.py bdist_wheel
+	aws s3 cp dist/*.whl s3://fabric-deploy/
+
 # publish to PyPI
 publish: clean
 	python setup.py sdist bdist_wheel

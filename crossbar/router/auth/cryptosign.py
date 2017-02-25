@@ -91,7 +91,7 @@ class PendingAuthCryptosign(PendingAuth):
             self._expected_signed_message = self._challenge
 
         extra = {
-            u'challenge': binascii.b2a_hex(self._challenge)
+            u'challenge': binascii.b2a_hex(self._challenge).decode('ascii')
         }
         return extra
 
@@ -170,6 +170,8 @@ class PendingAuthCryptosign(PendingAuth):
                 return error
 
             self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details[u'authid'] = details.authid
+            self._session_details[u'authrole'] = details.authrole
             self._session_details[u'authextra'] = details.authextra
 
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
