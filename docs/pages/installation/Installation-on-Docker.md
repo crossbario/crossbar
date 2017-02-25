@@ -185,7 +185,7 @@ cd ~/crossbar-examples/docker/disclose
 sudo docker create \
     -v /home/ubuntu/crossbar-examples/docker/disclose/crossbar:/node \
     -p 8080:8080 \
-    --name cbdemo \
+    --name crossbar \
     crossbario/crossbar
 ```
 
@@ -203,14 +203,14 @@ StandardInput=null
 StandardOutput=journal
 StandardError=journal
 Environment="MYVAR1=foobar"
-ExecStart=/usr/bin/docker start -a cbdemo
-ExecStop=/usr/bin/docker stop -t 2 cbdemo
+ExecStart=/usr/bin/docker start -a crossbar
+ExecStop=/usr/bin/docker stop -t 2 crossbar
 
 [Install]
 WantedBy=default.target
 ```
 
-**Third, reload systemd and start the service**:
+**Third, reload systemd and start the service**g:
 
 ```console
 sudo systemctl daemon-reload
