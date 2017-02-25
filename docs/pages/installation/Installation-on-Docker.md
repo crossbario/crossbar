@@ -214,7 +214,46 @@ WantedBy=default.target
 
 ```console
 sudo systemctl daemon-reload
+sudo systemctl enable crossbar
 sudo systemctl start crossbar
 sudo systemctl status crossbar
 sudo journalctl -f -u crossbar
+```
+
+Above will make Crossbar.io start automatically at system boot time, and also start it immediately.
+
+In the running system, you will see this process hierarchy (`sudo systemctl status`):
+
+```console
+● ip-172-31-2-14
+    State: running
+     Jobs: 0 queued
+   Failed: 0 units
+    Since: Sat 2017-02-25 22:58:48 UTC; 1min 15s ago
+   CGroup: /
+           ├─docker
+           │ └─955d5a34ebf1a701e9efab2ed8442948b2a7c4699a434276574ae05a392f5c5d
+           │   ├─1500 crossbar-controller
+           │   └─1545 crossbar-worker [router]
+...
+```
+
+That is, Crossbar.io is actually started not directly by systemd, but by the Docker background daemon.
+
+This can also be seen in the logs, where the log lines are all prefixed by "docker":
+
+```console
+ubuntu@ip-172-31-2-14:~$ journalctl -f -u crossbar
+-- Logs begin at Sat 2017-02-25 22:58:48 UTC. --
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Router         15] Realm 'realm1' started
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Controller      1] Router 'worker-001': realm 'realm-001' (named 'realm1') started
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Router         15] role role-001 on realm realm-001 started
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Controller      1] Router 'worker-001': role 'role-001' (named 'anonymous') started on realm 'realm-001'
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Router         15] started component: backend.Backend id=3096306263440467
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Router         15] connected!
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Controller      1] Router 'worker-001': component 'component-001' started
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Router         15] Site starting on 8080
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Controller      1] Router 'worker-001': transport 'transport-001' started
+Feb 25 22:58:55 ip-172-31-2-14 docker[1406]: 2017-02-25T22:58:55+0000 [Controller      1] Node configuration applied successfully!
+...
 ```
