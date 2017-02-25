@@ -109,13 +109,20 @@ For example, in a first terminal
 cd ~
 git clone git@github.com:crossbario/crossbar-examples.git
 cd ~/crossbar-examples/docker/disclose
-make docker
+sudo docker run \
+    -v ${PWD}/crossbar:/node \
+    -p 8080:8080 \
+    --name crossbar \
+    --rm -it crossbario/crossbar
 ```
 
 and in a second terminal
 
 ```console
-make client
+sudo docker run \
+    -v ${PWD}/client:/root --link crossbar \
+    --rm -it crossbario/autobahn-python:cpy3-alpine \
+    python /root/client.py --url ws://crossbar:8080/ws --realm realm1
 ```
 
 This should give you the output as [here](https://github.com/crossbario/crossbar-examples/tree/master/docker/disclose).
@@ -164,4 +171,50 @@ To start the image:
 
 ```console
 sudo docker run --rm -it -p 8080:8080 myimage
+```
+
+
+## systemd
+
+To start a Crossbar.io Docker container via systemd, following the instructions from [here](https://docs.docker.com/engine/admin/host_integration/#/systemd), create a new systemd service unit file for Crossbar.io (`sudo vim /etc/systemd/system/crossbar.service`)
+
+**First, create a container**:
+
+```console
+cd ~/crossbar-examples/docker/disclose
+sudo docker create \
+    -v /home/ubuntu/crossbar-examples/docker/disclose/crossbar:/node \
+    -p 8080:8080 \
+    --name cbdemo \
+    crossbario/crossbar
+```
+
+**Second, create a Crossbar.io systemd service unit**:
+
+```
+[Unit]
+Description=Crossbar.io
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+Environment="MYVAR1=foobar"
+ExecStart=/usr/bin/docker start -a cbdemo
+ExecStop=/usr/bin/docker stop -t 2 cbdemo
+
+[Install]
+WantedBy=default.target
+```
+
+**Third, reload systemd and start the service**:
+
+```console
+sudo systemctl daemon-reload
+sudo systemctl start crossbar
+sudo systemctl status crossbar
+sudo journalctl -f -u crossbar
 ```
