@@ -326,9 +326,9 @@ def check_id(id):
     Check a configuration item ID.
     """
     if not isinstance(id, six.text_type):
-        raise InvalidConfigException("invalid configuration item ID '{}' - type must be string, was ".format(id, type(id)))
+        raise InvalidConfigException(u'invalid configuration item ID "{}" - type must be string, was {}'.format(id, type(id)))
     if not _CONFIG_ITEM_ID_PAT.match(id):
-        raise InvalidConfigException("invalid configuration item ID '{}' - must match regular expression {}".format(id, _CONFIG_ITEM_ID_PAT_STR))
+        raise InvalidConfigException(u'invalid configuration item ID "{}" - must match regular expression {}'.format(id, _CONFIG_ITEM_ID_PAT_STR))
 
 
 _REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
@@ -340,9 +340,9 @@ def check_realm_name(name):
     Check a realm name.
     """
     if not isinstance(name, six.text_type):
-        raise InvalidConfigException("invalid realm name '{}' - type must be string, was ".format(name, type(name)))
+        raise InvalidConfigException(u'invalid realm name "{}" - type must be string, was {}'.format(name, type(name)))
     if not _REALM_NAME_PAT.match(name):
-        raise InvalidConfigException("invalid realm name '{}' - must match regular expression {}".format(name, _REALM_NAME_PAT_STR))
+        raise InvalidConfigException(u'invalid realm name "{}" - must match regular expression {}'.format(name, _REALM_NAME_PAT_STR))
 
 
 def check_dict_args(spec, config, msg):
