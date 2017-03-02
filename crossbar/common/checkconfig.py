@@ -2513,7 +2513,7 @@ def check_native_worker_options(options):
         raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env']:
+        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env', 'expose_controller', 'expose_shared']:
             raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
 
     if 'title' in options:
@@ -2549,6 +2549,18 @@ def check_native_worker_options(options):
 
     if 'env' in options:
         check_process_env(options['env'])
+
+    # this feature requires Crossbar.io Fabric extension
+    if 'expose_controller' in options:
+        expose_controller = options['expose_controller']
+        if not isinstance(expose_controller, bool):
+            raise InvalidConfigException("'expose_controller' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(expose_controller)))
+
+    # this feature requires Crossbar.io Fabric extension
+    if 'expose_shared' in options:
+        expose_shared = options['expose_shared']
+        if not isinstance(expose_shared, bool):
+            raise InvalidConfigException("'expose_shared' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(expose_shared)))
 
 
 def check_guest(guest):
@@ -2724,7 +2736,7 @@ def check_controller(controller):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'manhole', 'cdc', 'connections']:
+        if k not in ['id', 'options', 'extra', 'manhole', 'connections']:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -2736,36 +2748,10 @@ def check_controller(controller):
     if 'manhole' in controller:
         check_manhole(controller['manhole'])
 
-    if 'cdc' in controller:
-        check_cdc(controller['cdc'])
-        mode = NODE_RUN_MANAGED
-    else:
-        mode = NODE_RUN_STANDALONE
-
     # connections
     #
     connections = controller.get('connections', [])
     check_connections(connections)
-
-    return mode
-
-
-def check_cdc(config):
-    """
-    Check a node CDC configuration item.
-
-    :param config: The CDC configuration to check.
-    :type config: dict
-    """
-    if not isinstance(config, Mapping):
-        raise InvalidConfigException("'config' item with CDC configuration must of type dictionary ({} encountered)\n\n{}".format(type(config), pformat(config)))
-
-    check_dict_args({
-        'transport': (False, [Mapping]),
-    }, config, "invalid 'cdc' configuration")
-
-    if 'transport' in config:
-        check_connecting_transport(config['transport'])
 
 
 def check_config(config):
@@ -2794,16 +2780,9 @@ def check_config(config):
 
     # check controller config
     #
-    mode = NODE_RUN_STANDALONE
     if 'controller' in config:
         log.debug("Checking controller item ..")
-        mode = check_controller(config['controller'])
-
-    # workers can only be configured locally in standalone mode
-    #
-    if False:
-        if mode == NODE_RUN_MANAGED and 'workers' in config:
-            raise InvalidConfigException("Workers can only be configured locally when running in 'standalone mode', not in 'managed mode' (when connecting to Crossbar.io DevOps Center)")
+        check_controller(config['controller'])
 
     # check worker configs
     #

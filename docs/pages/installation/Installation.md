@@ -23,6 +23,7 @@ Using the binary packages above, whether on bare metal, on virtual machines or w
 
 We provide official Docker images for Crossbar.io in different flavors. This is both a quick way getting started with Crossbar.io and a good approach going to production:
 
+* [Installation on Docker](Installation on Docker)
 * [Using Docker](Using Docker)
 
 

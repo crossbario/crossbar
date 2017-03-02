@@ -239,11 +239,11 @@ class Dealer(object):
             self._router.send(session, reply)
             return
 
-        # disallow registration of procedures starting with "wamp." and  "crossbar." other than for
-        # trusted sessions (that are sessions built into Crossbar.io)
+        # disallow registration of procedures starting with "wamp." other than for
+        # trusted sessions (that are sessions built into Crossbar.io routing core)
         #
         if session._authrole is not None and session._authrole != u"trusted":
-            is_restricted = register.procedure.startswith(u"wamp.") or register.procedure.startswith(u"crossbar.")
+            is_restricted = register.procedure.startswith(u"wamp.")
             if is_restricted:
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.INVALID_URI, [u"register for restricted procedure URI '{0}')".format(register.procedure)])
                 self._router.send(session, reply)

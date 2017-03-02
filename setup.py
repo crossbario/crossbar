@@ -95,9 +95,13 @@ setup(
     install_requires=install_requires,
     extras_require=extras_require,
     entry_points={
+        'crossbar.node': [
+            'community = crossbar.controller.node:Node'
+        ],
         'console_scripts': [
             'crossbar = crossbar.controller.cli:run'
-        ]},
+        ]
+    },
     packages=find_packages(),
     include_package_data=True,
     data_files=[('.', ['COPYRIGHT', 'LICENSE', 'LICENSE-FOR-API'])],
