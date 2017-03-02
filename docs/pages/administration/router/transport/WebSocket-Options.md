@@ -33,7 +33,6 @@ option | description
 ---|---
 **`allowed_origins`** | A list of allowed WebSocket origins - can use `*` as a wildcard character, e.g. `["https://*.tavendo.com", "http://localhost:8080"]`
 **`external_port`** | The *external* visible port this service be reachable under (i.e. when running behind a L2/L3 forwarding device) (default: **null**)
-**`enable_hixie76`** | Enable Hixie-76 version of WebSocket (an outdated, insecure version). (default: **true**)
 **`enable_hybi10`** | Enable Hybi-10 version of WebSocket (an intermediary spec). (default: **true**)
 **`enable_rfc6455`** | Enable RFC6455 version of WebSocket (the final spec). (default: **true**)
 **`enable_webstatus`** | Enable the WebSocket server's status rendering page. (default: **true**)
@@ -69,7 +68,6 @@ For example, here is a configuration for a production WebSocket service with con
    "url": "ws://myserver.com:8080",
    "options": {
       "enable_webstatus": false,
-      "enable_hixie76": false,
       "max_frame_size": 1048576,
       "max_message_size": 1048576,
       "auto_fragment_size": 65536,
