@@ -160,7 +160,10 @@ class Router(object):
     def send(self, session, msg):
         if self._check_trace(session, msg):
             self.log.info("<<TX<< {msg}", msg=msg)
-        session._transport.send(msg)
+        if session._transport:
+            session._transport.send(msg)
+        else:
+            self.log.warn('skip sending msg - transport already closed')
 
     def process(self, session, msg):
         """
