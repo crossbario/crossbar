@@ -698,7 +698,7 @@ class Node(object):
                         )
 
                     # start transports on router
-                    for transport in worker['transports']:
+                    for transport in worker.get('transports', []):
 
                         if 'id' in transport:
                             transport_id = transport.pop('id')
