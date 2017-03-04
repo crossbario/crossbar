@@ -103,7 +103,7 @@ class ContainerWorkerSession(NativeWorkerSession):
     written in Python. A container connects to an application router (creating
     a WAMP transport) and attached to a given realm on the application router.
     """
-    WORKER_TYPE = 'container'
+    WORKER_TYPE = u'container'
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
@@ -112,52 +112,59 @@ class ContainerWorkerSession(NativeWorkerSession):
         self.components = {}
 
         # "global" shared between all components
-        self.components_shared = {'reactor': reactor}
+        self.components_shared = {
+            u'reactor': reactor
+        }
 
     @inlineCallbacks
     def onJoin(self, details):
         """
         Called when worker process has joined the node's management realm.
         """
-        self.log.info('ContainerWorkerSession: {}'.format(details))
+        self.log.info('Container worker "{worker_id}" session {session_id} initializing ..', worker_id=self._worker_id, session_id=details.session)
 
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
         # the procedures registered
         procs = [
-            'get_container_components',
-            'start_container_component',
-            'stop_container_component',
-            'stop_container',
-            'restart_container_component'
+            u'stop_worker',
+            u'start_component',
+            u'stop_component',
+            u'restart_component',
+            u'get_component',
+            u'list_components',
         ]
 
         dl = []
         for proc in procs:
-            uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
+            uri = u'{}.{}'.format(self._uri_prefix, proc)
+            self.log.debug('Registering management API procedure <{proc}>', proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+        self.log.debug('Ok, registered {cnt} management API procedures', cnt=len(regs))
+
+        self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
 
         # NativeWorkerSession.publish_ready()
-        try:
-            yield self.publish_ready()
-        except:
-            self.log.failure('Failed to publish container worker ready: {log_failure.value}')
+        yield self.publish_ready()
 
-    def stop_container(self):
+    @inlineCallbacks
+    def stop_worker(self, details=None):
         """
         Stops the whole container.
         """
+        stopped_components = []
         dl = []
         for component in self.components:
             dl.append(self.stop_container_component(component.id))
-        self.disconnect()
+            stopped_components.append(component.id)
+        yield DeferredList(dl)
+        yield self.disconnect()
+        returnValue(stopped_components)
 
-    def start_container_component(self, id, config, reload_modules=False, details=None):
+    def start_component(self, id, config, reload_modules=False, details=None):
         """
         Starts a Class or WAMPlet in this component container.
 
@@ -359,69 +366,138 @@ class ContainerWorkerSession(NativeWorkerSession):
         return event
 
     @inlineCallbacks
-    def restart_container_component(self, id, reload_modules=False, details=None):
+    def restart_component(self, component_id, reload_modules=False, details=None):
         """
         Restart a component currently running within this container using the
         same configuration that was used when first starting the component.
 
-        :param id: The ID of the component to restart.
-        :type id: int
+        :param component_id: The ID of the component to restart.
+        :type component_id: str
+
         :param reload_modules: If `True`, enforce reloading of modules (user code)
                                that were modified (see: TrackingModuleReloader).
         :type reload_modules: bool
+
         :param details: Caller details.
         :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
         :returns dict -- A dict with combined info from component stopping/starting.
         """
-        if id not in self.components:
-            raise ApplicationError(u'crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
+        if component_id not in self.components:
+            raise ApplicationError(u'crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(component_id))
 
-        component = self.components[id]
+        component = self.components[component_id]
 
-        stopped = yield self.stop_container_component(id, details=details)
-        started = yield self.start_container_component(
-            id, component.config, reload_modules=reload_modules, details=details)
+        stopped = yield self.stop_container_component(component_id, details=details)
+        started = yield self.start_container_component(component_id, component.config, reload_modules=reload_modules, details=details)
 
-        returnValue({u'stopped': stopped, u'started': started})
+        del stopped[u'caller']
+        del started[u'caller']
+
+        restarted = {
+            u'stopped': stopped,
+            u'started': started,
+            u'caller': {
+                u'session': details.caller,
+                u'authid': details.caller_authid,
+                u'authrole': details.caller_authrole,
+            }
+        }
+
+        self.publish(u'{}.on_component_restarted'.format(self._uri_prefix),
+                     restarted,
+                     options=PublishOptions(exclude=details.caller))
+
+        returnValue(restarted)
 
     @inlineCallbacks
-    def stop_container_component(self, id, details=None):
+    def stop_component(self, component_id, details=None):
         """
         Stop a component currently running within this container.
 
-        :param id: The ID of the component to stop.
-        :type id: int
+        :param component_id: The ID of the component to stop.
+        :type component_id: int
+
         :param details: Caller details.
         :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
-        :returns dict -- A dict with component start information.
+        :returns: Stop information.
+        :rtype: dict
         """
-        if id not in self.components:
-            raise ApplicationError(u'crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(id))
+        self.log.debug('{klass}.stop_component({component_id}, {details})', klass=self.__class__.__name__, component_id=component_id, details=details)
 
-        component = self.components[id]
+        if component_id not in self.components:
+            raise ApplicationError(u'crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(component_id))
+
+        component = self.components[component_id]
+
         try:
             component.proto.close()
         except:
-            self.log.failure("Failed to close component '{id}': {log_failure}",
-                             id=id)
+            self.log.failure("failed to close protocol on component '{component_id}': {log_failure}", component_id=component_id)
             raise
+        else:
+            # essentially just waiting for "on_component_stop"
+            yield component._stopped
 
-        # essentially just waiting for "on_component_stop"
-        yield component._stopped
-        returnValue(component.marshal())
+        stopped = {
+            u'component_id': component_id,
+            u'uptime': (datetime.utcnow() - component.started).total_seconds(),
+            u'caller': {
+                u'session': details.caller,
+                u'authid': details.caller_authid,
+                u'authrole': details.caller_authrole,
+            }
+        }
 
-    def get_container_components(self, details=None):
+        del self.components[component_id]
+
+        self.publish(u'{}.on_component_stopped'.format(self._uri_prefix),
+                     stopped,
+                     options=PublishOptions(exclude=details.caller))
+
+        returnValue(stopped)
+
+    def get_component(self, component_id, details=None):
         """
-        Get components currently running within this container.
+        Get a component currently running within this container.
+
+        :param component_id: The ID of the component to get.
+        :type component_id: str
 
         :param details: Caller details.
         :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
-        :returns list -- List of components.
+        :returns: Component detail information.
+        :rtype: dict
         """
-        res = []
-        for c in self.components.values():
-            res.append(c.marshal())
-        return res
+        self.log.debug('{klass}.get_component({component_id}, {details})', klass=self.__class__.__name__, component_id=component_id, details=details)
+
+        if component_id not in self.components:
+            raise ApplicationError(u'crossbar.error.no_such_object', 'no component with ID {} running in this container'.format(component_id))
+
+        return self.components[component_id].marshal()
+
+    def list_components(self, ids_only=True, details=None):
+        """
+        Get components currently running within this container.
+
+        :param ids_only: If `True`, only return (sorted) list of component IDs.
+        :type ids_only: bool
+
+        :param details: Caller details.
+        :type details: instance of :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: Plain (sorted) list of component IDs, or list of components
+            sorted by component ID when `ids_only==True`.
+        :rtype: list
+        """
+        self.log.debug('{klass}.get_components({details})', klass=self.__class__.__name__, details=details)
+
+        if ids_only:
+            return sorted(self.components.keys())
+        else:
+            res = []
+            for component_id in sorted(self.components.keys()):
+                res.append(self.components[component_id].marshal())
+            return res

@@ -262,7 +262,7 @@ class RouterWorkerSession(NativeWorkerSession):
     multiple realms, run multiple transports and links, as well as host
     multiple (embedded) application components.
     """
-    WORKER_TYPE = 'router'
+    WORKER_TYPE = u'router'
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
@@ -283,7 +283,9 @@ class RouterWorkerSession(NativeWorkerSession):
         self.components = {}
 
         # "global" shared between all components
-        self.components_shared = {'reactor': reactor}
+        self.components_shared = {
+            u'reactor': reactor
+        }
 
         # map: transport ID -> RouterTransport
         self.transports = {}
@@ -293,50 +295,47 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         Called when worker process has joined the node's management realm.
         """
-        self.log.info('RouterWorkerSession: {}'.format(details))
+        self.log.info('Router worker "{worker_id}" session {session_id} initializing ..', worker_id=self._worker_id, session_id=details.session)
 
-        try:
-            yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
+        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
-            # the procedures registered
-            procs = [
-                'get_router_realms',
-                'start_router_realm',
-                'stop_router_realm',
+        # the procedures registered
+        procs = [
+            u'get_router_realms',
+            u'start_router_realm',
+            u'stop_router_realm',
 
-                'get_router_realm_roles',
-                'start_router_realm_role',
-                'stop_router_realm_role',
+            u'get_router_realm_roles',
+            u'start_router_realm_role',
+            u'stop_router_realm_role',
 
-                'get_router_realm_uplinks',
-                'start_router_realm_uplink',
-                'stop_router_realm_uplink',
+            u'get_router_realm_uplinks',
+            u'start_router_realm_uplink',
+            u'stop_router_realm_uplink',
 
-                'get_router_components',
-                'start_router_component',
-                'stop_router_component',
+            u'get_router_components',
+            u'start_router_component',
+            u'stop_router_component',
 
-                'get_router_transports',
-                'start_router_transport',
-                'stop_router_transport',
-            ]
+            u'get_router_transports',
+            u'start_router_transport',
+            u'stop_router_transport',
+        ]
 
-            dl = []
-            for proc in procs:
-                uri = '{}.{}'.format(self._uri_prefix, proc)
-                self.log.debug("Registering management API procedure {proc}", proc=uri)
-                dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
+        dl = []
+        for proc in procs:
+            uri = u'{}.{}'.format(self._uri_prefix, proc)
+            self.log.debug('Registering management API procedure <{proc}>', proc=uri)
+            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
-            regs = yield DeferredList(dl)
+        regs = yield DeferredList(dl)
 
-            self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+        self.log.debug('Ok, registered {cnt} management API procedures', cnt=len(regs))
 
-            # NativeWorkerSession.publish_ready()
-            yield self.publish_ready()
-        except:
-            self.log.failure('Failed to initialize router worker: {log_failure.value}')
-            # FIXME
-            self.leave()
+        self.log.info('Router worker "{worker_id}" session ready', worker_id=self._worker_id)
+
+        # NativeWorkerSession.publish_ready()
+        yield self.publish_ready()
 
     def get_router_realms(self, details=None):
         """

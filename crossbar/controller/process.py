@@ -490,8 +490,8 @@ class NodeControllerSession(NativeProcessSession):
         # ready handling
         #
         def on_ready_success(id):
-            self.log.info("{worker} with ID '{id}' and PID {pid} started",
-                          worker=worker_logname, id=worker.id, pid=worker.pid)
+            self.log.info('{worker_type} worker "{worker_id}" process {pid} started',
+                          worker_type=worker_logname, worker_id=worker.id, pid=worker.pid)
 
             self._node._reactor.addSystemEventTrigger(
                 'before', 'shutdown',
@@ -618,10 +618,10 @@ class NodeControllerSession(NativeProcessSession):
 
         # now actually fork the worker ..
         #
-        self.log.info("Starting {worker} with ID '{id}'...",
-                      worker=worker_logname, id=id)
-        self.log.debug("{worker} '{id}' command line is '{cmdline}'",
-                       worker=worker_logname, id=id, cmdline=' '.join(args))
+        self.log.info('{worker_logname} worker "{worker_id}" starting ..',
+                      worker_logname=worker_logname, worker_id=id)
+        self.log.debug('{worker_logname} "{worker_id}" command line is "{cmdline}"',
+                       worker_logname=worker_logname, worker_id=id, cmdline=' '.join(args))
 
         d = ep.connect(transport_factory)
 
@@ -884,8 +884,8 @@ class NodeControllerSession(NativeProcessSession):
             worker.status = 'started'
             worker.started = datetime.utcnow()
 
-            self.log.info("{worker} with ID '{id}' and PID {pid} started",
-                          worker=worker_logname, id=worker.id, pid=worker.pid)
+            self.log.info('{worker_logname} worker "{worker_id}" process {pid} started',
+                          worker_logname=worker_logname, worker_id=worker.id, pid=worker.pid)
 
             self._node._reactor.addSystemEventTrigger(
                 'before', 'shutdown',
@@ -993,10 +993,10 @@ class NodeControllerSession(NativeProcessSession):
 
         # now actually fork the worker ..
         #
-        self.log.info("Starting {worker} with ID '{id}'...",
-                      worker=worker_logname, id=id)
-        self.log.debug("{worker} '{id}' using command line '{cli}'...",
-                       worker=worker_logname, id=id, cli=' '.join(args))
+        self.log.info('{worker_logname} "{worker_id}" process starting ..',
+                      worker_logname=worker_logname, worker_id=id)
+        self.log.debug('{worker_logname} "{worker_id}" process using command line "{cli}" ..',
+                       worker_logname=worker_logname, worker_id=id, cli=' '.join(args))
 
         d = ep.connect(transport_factory)
 

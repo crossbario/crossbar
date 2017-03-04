@@ -134,8 +134,17 @@ def run():
     from autobahn.twisted.choosereactor import install_reactor
     reactor = install_reactor(options.reactor)
 
+    WORKER_TYPE_TO_TITLE = {
+        'router': 'Router',
+        'container': 'Container',
+        'websocket-testee': 'WebSocket Testee'
+    }
+
     from twisted.python.reflect import qual
-    log.info("Worker process starting ({python}-{reactor}) ..",
+    log.info('{worker_title} worker "{worker_id}" process {pid} starting on {python}-{reactor} ..',
+             worker_title=WORKER_TYPE_TO_TITLE[options.type],
+             worker_id=options.worker,
+             pid=os.getpid(),
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
@@ -149,12 +158,12 @@ def run():
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
-            WORKER_TYPE_TO_TITLE = {
+            WORKER_TYPE_TO_PROCESS_TITLE = {
                 'router': 'crossbar-worker [router]',
                 'container': 'crossbar-worker [container]',
                 'websocket-testee': 'crossbar-worker [websocket-testee]'
             }
-            setproctitle.setproctitle(WORKER_TYPE_TO_TITLE[options.type].strip())
+            setproctitle.setproctitle(WORKER_TYPE_TO_PROCESS_TITLE[options.type].strip())
 
     # node directory
     #
