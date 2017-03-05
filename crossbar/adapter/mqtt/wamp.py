@@ -134,7 +134,7 @@ def wamp_payload_transform(payload_format, event):
             except Exception as e:
                 print(e)
                 return None
-        return payload
+    return payload
 
 
 class WampTransport(object):
