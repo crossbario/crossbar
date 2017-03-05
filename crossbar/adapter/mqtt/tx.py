@@ -192,7 +192,10 @@ class MQTTServerTwistedProtocol(Protocol):
         self.log.debug(log_category="MQ400", client_id=self.session.client_id,
                        seconds=self._timeout_time,
                        conn_id=self._connection_id)
-        self.transport.loseConnection()
+        if self.transport:
+            self.transport.loseConnection()
+        else:
+            self.log.debug(log_category="MQ400")
 
     def _send_packet(self, packet):
         self.log.trace(log_category="MQ101", client_id=self.session.client_id,
