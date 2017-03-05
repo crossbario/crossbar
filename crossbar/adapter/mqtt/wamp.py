@@ -265,7 +265,7 @@ class WampMQTTServerProtocol(Protocol):
                 x_acknowledged_event_delivery=True)
         }
 
-        realm = self.factory._config.get('realm', 'public')
+        realm = self.factory._config.get('realm', u'public')
         methods = []
 
         if ISSLTransport.providedBy(self.transport):
