@@ -1571,6 +1571,11 @@ def check_listening_transport_mqtt(transport, with_endpoint=True):
         check_listening_endpoint(transport['endpoint'])
 
     # Check options...
+    options = transport.get('options', {})
+    check_dict_args({
+        'realm': (True, [six.text_type]),
+        'role': (False, [six.text_type]),
+    }, options, "invalid mqtt options")
 
 
 def check_paths(paths, nested=False):
