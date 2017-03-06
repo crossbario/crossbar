@@ -116,10 +116,21 @@ def wamp_payload_transform(payload_format, event):
     Given an Event sent by a WAMP client, transform it into a payload.
     """
     if payload_format == "opaque":
-        if event.kwargs.get(u"mqtt_message"):
+        if event.kwargs and event.kwargs.get(u"mqtt_message"):
             try:
                 payload = b64decode(event.args[0].encode('utf8'))
-            except:
+            except Exception:
+                # I think this causes an error downstream as a None
+                # payload is illegal...maybe we can do better here (or
+                # at call-site for this)
+                return None
+        else:
+            try:
+                payload = event.args[0].encode('utf8')
+            except Exception:
+                # I think this causes an error downstream as a None
+                # payload is illegal...maybe we can do better here (or
+                # at call-site for this)
                 return None
     else:
 
