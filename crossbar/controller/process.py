@@ -85,6 +85,10 @@ class NodeControllerSession(NativeProcessSession):
         'get_workers',
         'get_worker',
         'get_worker_log',
+
+        'start_worker',
+        #'stop_worker',
+
         'start_router',
         'stop_router',
         'start_container',
@@ -316,6 +320,16 @@ class NodeControllerSession(NativeProcessSession):
             raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
 
         return self._workers[id].getlog(limit)
+
+    def start_worker(self, worker_id, worker_type, worker_options=None, details=None):
+        if worker_type in [u'router', u'container', u'websocket-testee']:
+            return self._start_native_worker(worker_type, worker_id, worker_options, details=details)
+
+        elif worker_type in [u'guest']:
+            return self.start_guest(worker_id, worker_options, details=details)
+
+        else:
+            raise Exception('invalid worker type "{}"'.format(worker_type))
 
     def start_router(self, id, options=None, details=None):
         """

@@ -81,7 +81,7 @@ class ContainerComponent(object):
         self.proto = proto
         self.session = session
 
-        # internal use; see e.g. restart_container_component
+        # internal use; see e.g. restart_component
         self._stopped = Deferred()
 
     def marshal(self):
@@ -178,7 +178,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         :returns dict -- A dict with combined info from component starting.
         """
-        self.log.debug("{klass}.start_container_component({id}, {config})",
+        self.log.debug("{klass}.start_component({id}, {config})",
                        klass=self.__class__.__name__, id=id, config=config)
 
         # prohibit starting a component twice
@@ -389,7 +389,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         component = self.components[component_id]
 
         stopped = yield self.stop_container_component(component_id, details=details)
-        started = yield self.start_container_component(component_id, component.config, reload_modules=reload_modules, details=details)
+        started = yield self.start_component(component_id, component.config, reload_modules=reload_modules, details=details)
 
         del stopped[u'caller']
         del started[u'caller']

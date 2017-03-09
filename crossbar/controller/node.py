@@ -721,7 +721,7 @@ class Node(object):
                     # our node down. We remove this subscription 2
                     # seconds after we're done starting everything
                     # (see below). This is necessary as
-                    # start_container_component returns as soon as
+                    # start_component returns as soon as
                     # we've established a connection to the component
                     def component_exited(info):
                         component_id = info.get("id")
@@ -761,7 +761,7 @@ class Node(object):
                             component_id = 'component-{:03d}'.format(self._component_no)
                             self._component_no += 1
 
-                        yield self._controller.call('crossbar.worker.{}.start_container_component'.format(worker_id), component_id, component, options=call_options)
+                        yield self._controller.call('crossbar.worker.{}.start_component'.format(worker_id), component_id, component, options=call_options)
                         self.log.info("{worker}: component '{component_id}' started",
                                       worker=worker_logname, component_id=component_id)
 
