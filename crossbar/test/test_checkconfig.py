@@ -187,6 +187,59 @@ class CheckContainerTests(TestCase):
                       str(e.exception))
 
 
+class CheckEndpointTests(TestCase):
+    """
+    check_listening_endpoint and check_connecting_endpoint
+    """
+
+    def test_twisted_client_error(self):
+        config = {
+            "type": "twisted",
+            "client_string": 1000,
+        }
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_connecting_endpoint(config)
+        self.assertTrue(
+            "in Twisted endpoint must be str" in str(ctx.exception)
+        )
+
+    def test_twisted_server_error(self):
+        config = {
+            "type": "twisted",
+            "server_string": 1000,
+        }
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_listening_endpoint(config)
+        self.assertTrue(
+            "in Twisted endpoint must be str" in str(ctx.exception)
+        )
+
+    def test_twisted_server_missing_arg(self):
+        config = {
+            "type": "twisted"
+        }
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_listening_endpoint(config)
+        self.assertTrue(
+            "mandatory attribute 'server_string'" in str(ctx.exception)
+        )
+
+    def test_twisted_client_missing_arg(self):
+        config = {
+            "type": "twisted"
+        }
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_connecting_endpoint(config)
+        self.assertTrue(
+            "mandatory attribute 'client_string'" in str(ctx.exception)
+        )
+
+
+
 class CheckRealmTests(TestCase):
     """
     Tests for check_router_realm, check_router_realm_role

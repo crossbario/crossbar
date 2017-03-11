@@ -945,7 +945,7 @@ def check_connecting_endpoint_twisted(endpoint):
     if not isinstance(client_string, six.text_type):
         raise InvalidConfigException(
             "'client_string' attribute in Twisted endpoint must be "
-            "str ({} encountered)".format(type(path)))
+            "str ({} encountered)".format(type(client_string)))
     # can we make Twisted tell us if client_string parses? or just
     # save it until we actually run clientFromString()?
 
