@@ -239,7 +239,6 @@ class CheckEndpointTests(TestCase):
         )
 
 
-
 class CheckRealmTests(TestCase):
     """
     Tests for check_router_realm, check_router_realm_role
