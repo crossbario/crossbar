@@ -2120,7 +2120,7 @@ def check_container_component(component):
         raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
-    if ctype not in ['wamplet', 'class']:
+    if ctype not in ['wamplet', 'class', 'function']:
         raise InvalidConfigException("invalid value '{}' for component type".format(ctype))
 
     if ctype == 'wamplet':
@@ -2146,6 +2146,27 @@ def check_container_component(component):
             'extra': (False, None),
         }, component, "invalid component configuration")
 
+    elif ctype == 'function':
+        check_dict_args({
+            'id': (False, [six.text_type]),
+            'type': (True, [six.text_type]),
+            'realm': (True, [six.text_type]),
+            'transport': (True, [Mapping]),
+            'auth': (True, [Mapping]),
+
+            'role': (False, [six.text_type]),
+
+            'callbacks': (False, [dict]),
+        }, component, "invalid component configuration")
+        if 'callbacks' in component:
+            valid_callbacks = ['join', 'leave', 'connect', 'disconnect']
+            for name in component['callbacks'].keys():
+                if name not in valid_callbacks:
+                    raise InvalidConfigException(
+                        "Invalid callback name '{}' (valid are: {})".format(
+                            name, valid_callbacks
+                        )
+                    )
     else:
         raise InvalidConfigException('logic error')
 
