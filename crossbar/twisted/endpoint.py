@@ -46,7 +46,8 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     TCP6ClientEndpoint, \
     UNIXServerEndpoint, \
     UNIXClientEndpoint, \
-    serverFromString
+    serverFromString,   \
+    clientFromString
 from twisted.python.filepath import FilePath
 
 from crossbar.twisted.sharedport import SharedPort, SharedTLSPort
@@ -590,6 +591,9 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
         # create the endpoint
         #
         endpoint = UNIXClientEndpoint(reactor, path, timeout=timeout)
+
+    elif config['type'] == 'twisted':
+        endpoint = clientFromString(reactor, config['client_string'])
 
     else:
         raise Exception("invalid endpoint type '{}'".format(config['type']))
