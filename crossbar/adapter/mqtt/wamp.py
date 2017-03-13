@@ -119,13 +119,16 @@ def wamp_payload_transform(payload_format, event):
         if event.kwargs.get(u"mqtt_message"):
             try:
                 payload = b64decode(event.args[0].encode('utf8'))
-            except:
+            except Exception:
+                # I think this causes an error downstream as a None
+                # payload is illegal...maybe we can do better here (or
+                # at call-site for this)
                 return None
     else:
 
         # We dunno what to do with this.
         if event.payload:
-            return
+            return  # this will be None, see note above
 
         if payload_format == "json":
             try:
@@ -134,7 +137,7 @@ def wamp_payload_transform(payload_format, event):
             except Exception as e:
                 print(e)
                 return None
-        return payload
+    return payload
 
 
 class WampTransport(object):
@@ -262,8 +265,7 @@ class WampMQTTServerProtocol(Protocol):
                 x_acknowledged_event_delivery=True)
         }
 
-        # Will be autoassigned
-        realm = None
+        realm = self.factory._config.get('realm', u'public')
         methods = []
 
         if ISSLTransport.providedBy(self.transport):

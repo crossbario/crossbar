@@ -55,15 +55,9 @@ The Android WebView supports WebSocket only starting at Android 4.4, since at th
 
 Opera 12.1+ (both desktop and mobile) has full WebSocket support, and of course the newer Operas, which are based on Google's Blink engine, share its WebSocket support.
 
-Versions 11.0 - 12.0 have support for an older version (Hixie76), and this
-is deactivated by default.
-
-To activate, [follow this link](opera:config#Enable%20WebSocket) (or enter "opera:config" into the browser address bar and search for "websocket"), check the enable flag and restart the browser.
-
 ***Safari***
 
 * Safari 6.0+ has full WebSocket support.
-* Safari 5.0.1+ (desktop/mobile) has native support for an older version (Hixie76).
 
 
 ***Supporting Flash bridge***

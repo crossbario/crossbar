@@ -41,7 +41,6 @@ attribute | description
 **`display_tracebacks`** | set to `true` to enable rendering of Python tracebacks (default: **false**)
 **`hsts`** | set to `true` to enable [HTTP Strict Transport Security (HSTS)](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) (only applicable when using a TLS endpoint) (default: **false**)
 **`hsts_max_age`** | for HSTS, use this maximum age (only applicable when using a TLS endpoint). (default: **31536000**)
-**`hixie76_aware`** | set to `true` to support use of WebSocket Hixie-76 on any path services configured (default: **false**)
 
 ---
 
