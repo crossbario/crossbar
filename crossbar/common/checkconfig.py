@@ -841,6 +841,32 @@ def check_listening_endpoint_unix(endpoint):
         check_endpoint_backlog(endpoint['backlog'])
 
 
+def check_listening_endpoint_twisted(endpoint):
+    """
+    :param endpoint: The Twisted endpoint to check
+    :type endpoint: dict
+    """
+    for k in endpoint:
+        if k not in ['type', 'server_string']:
+            raise InvalidConfigException(
+                "encountered unknown attribute '{}' in listening endpoint".format(k)
+            )
+
+    if 'server_string' not in endpoint:
+        raise InvalidConfigException(
+            "missing mandatory attribute 'server_string' in Twisted"
+            " endpoint item\n\n{}".format(pformat(endpoint))
+        )
+
+    server = endpoint['server_string']
+    if not isinstance(server, six.text_type):
+        raise InvalidConfigException(
+            "'server_string' attribute in Twisted endpoint must be str"
+            " ({} encountered)".format(type(server))
+        )
+    # should/can we ask Twisted to parse it easily?
+
+
 def check_connecting_endpoint_tcp(endpoint):
     """
     Check a TCP connecting endpoint configuration.
@@ -898,6 +924,35 @@ def check_connecting_endpoint_unix(endpoint):
         check_endpoint_timeout(endpoint['timeout'])
 
 
+def check_connecting_endpoint_twisted(endpoint):
+    """
+    :param endpoint: The Twisted connecting endpoint to check.
+    :type endpoint: dict
+    """
+    for k in endpoint:
+        if k not in ['type', 'client_string', 'timeout']:
+            raise InvalidConfigException(
+                "encountered unknown attribute '{}' in connecting endpoint".format(k)
+            )
+
+    if 'client_string' not in endpoint:
+        raise InvalidConfigException(
+            "missing mandatory attribute 'client_string' in Twisted endpoint "
+            "item\n\n{}".format(pformat(endpoint))
+        )
+
+    client_string = endpoint['client_string']
+    if not isinstance(client_string, six.text_type):
+        raise InvalidConfigException(
+            "'client_string' attribute in Twisted endpoint must be "
+            "str ({} encountered)".format(type(client_string)))
+    # can we make Twisted tell us if client_string parses? or just
+    # save it until we actually run clientFromString()?
+
+    if 'timeout' in endpoint:
+        check_endpoint_timeout(endpoint['timeout'])
+
+
 def check_listening_endpoint(endpoint):
     """
     Check a listening endpoint configuration.
@@ -915,13 +970,15 @@ def check_listening_endpoint(endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix']:
+    if etype not in ['tcp', 'unix', 'twisted']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
         check_listening_endpoint_tcp(endpoint)
     elif etype == 'unix':
         check_listening_endpoint_unix(endpoint)
+    elif etype == 'twisted':
+        check_listening_endpoint_twisted(endpoint)
     else:
         raise InvalidConfigException('logic error')
 
@@ -943,13 +1000,15 @@ def check_connecting_endpoint(endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix']:
+    if etype not in ['tcp', 'unix', 'twisted']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
         check_connecting_endpoint_tcp(endpoint)
     elif etype == 'unix':
         check_connecting_endpoint_unix(endpoint)
+    elif etype == 'twisted':
+        check_connecting_endpoint_twisted(endpoint)
     else:
         raise InvalidConfigException('logic error')
 
