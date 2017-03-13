@@ -481,14 +481,14 @@ class Node(object):
         cfg = ComponentConfig(self._realm)
         rlm.session = (self.ROUTER_SERVICE)(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
-        self.log.info('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
+        self.log.debug('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
 
         # add the node controller singleton component
         #
         self._controller = self.NODE_CONTROLLER(self)
 
         self._router_session_factory.add(self._controller, authrole=u'trusted')
-        self.log.info('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
+        self.log.debug('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
 
         # add extra node controller components
         #

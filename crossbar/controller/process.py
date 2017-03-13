@@ -166,7 +166,7 @@ class NodeControllerSession(NativeProcessSession):
 
         from autobahn.wamp.types import SubscribeOptions
 
-        self.log.info("Joined realm '{realm}' on node management router", realm=details.realm)
+        self.log.debug("Joined realm '{realm}' on node management router", realm=details.realm)
 
         # When a (native) worker process has connected back to the router of
         # the node controller, the worker will publish this event
@@ -234,7 +234,7 @@ class NodeControllerSession(NativeProcessSession):
 
         self._shutdown_requested = True
 
-        self.log.warn("Shutting down node...")
+        self.log.info('Shutting down node ..')
 
         # publish management API event
         shutdown_info = {
@@ -252,6 +252,7 @@ class NodeControllerSession(NativeProcessSession):
         def stop_reactor():
             try:
                 self._reactor.stop()
+                self.log.info('Node has been shut down.')
             except ReactorNotRunning:
                 pass
 

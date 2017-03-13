@@ -116,7 +116,19 @@ def get_node_classes():
     return res
 
 
+# load all node personality classes
 node_classes = get_node_classes()
+
+# default is "community"
+node_default_personality = u'community'
+
+# however, if available, choose "fabric" as default
+if u'fabric' in node_classes:
+    node_default_personality = u'fabric'
+
+# however, if available, choose "fabricservice" as default
+if u'fabricservice' in node_classes:
+    node_default_personality = u'fabricservice'
 
 
 def check_pid_exists(pid):
@@ -652,7 +664,7 @@ def run_command_start(options, reactor=None):
     except:
         raise
 
-    log.info("Controller process starting ({python}-{reactor}) ..",
+    log.info("Controller process starting [{python}-{reactor}] ..",
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
@@ -801,7 +813,7 @@ def run(prog=None, args=None, reactor=None):
 
     parser_version.add_argument('--personality',
                                 type=six.text_type,
-                                default='community',
+                                default=node_default_personality,
                                 choices=sorted(node_classes.keys()),
                                 help=("Node personality to run."))
 
@@ -872,7 +884,7 @@ def run(prog=None, args=None, reactor=None):
 
     parser_start.add_argument('--personality',
                               type=six.text_type,
-                              default='community',
+                              default=node_default_personality,
                               choices=sorted(node_classes.keys()),
                               help=("Node personality to run."))
 
