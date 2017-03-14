@@ -255,6 +255,18 @@ class Node(object):
         # node private key autobahn.wamp.cryptosign.SigningKey
         self._node_key = None
 
+        # when running in managed mode, this will hold the uplink session to CFC
+        self._manager = None
+
+        # the node's management realm when running in managed mode (this comes from CFC!)
+        self._management_realm = None
+
+        # the node's ID when running in managed mode (this comes from CFC!)
+        self._node_id = None
+
+        # node extra when running in managed mode (this comes from CFC!)
+        self._node_extra = None
+
         # node controller session (a singleton ApplicationSession embedded
         # in the local node router)
         self._controller = None
@@ -408,6 +420,21 @@ class Node(object):
                         u"call": False,
                         u"register": True,
                         u"publish": True,
+                        u"subscribe": False
+                    },
+                    u"disclose": {
+                        u"caller": False,
+                        u"publisher": False
+                    },
+                    u"cache": True
+                },
+                {
+                    u"uri": u"crossbar.get_info",
+                    u"match": u"exact",
+                    u"allow": {
+                        u"call": True,
+                        u"register": False,
+                        u"publish": False,
                         u"subscribe": False
                     },
                     u"disclose": {
@@ -796,4 +823,4 @@ class Node(object):
             else:
                 raise Exception("logic error")
 
-        self.log.info('Node configuration applied successfully!')
+        self.log.info('Local node configuration applied successfully!')

@@ -89,8 +89,7 @@ import crossbar
 from crossbar.twisted.site import createHSTSRequestFactory
 
 from crossbar.twisted.resource import JsonResource, \
-    Resource404, \
-    RedirectResource
+    Resource404, RedirectResource, NodeInfoResource
 
 from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
 
@@ -1082,6 +1081,11 @@ class RouterWorkerSession(NativeWorkerSession):
         elif path_config['type'] == 'redirect':
             redirect_url = path_config['url'].encode('ascii', 'ignore')
             return RedirectResource(redirect_url)
+
+        # Node info resource
+        #
+        elif path_config['type'] == 'nodeinfo':
+            return NodeInfoResource(self._templates, self)
 
         # Reverse proxy resource
         #

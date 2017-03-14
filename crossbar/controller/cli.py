@@ -649,7 +649,7 @@ def run_command_start(options, reactor=None):
         log.info(bannerFormat.format("Public Key:", click.style(pubkey, fg='yellow', bold=True)))
     log.info()
 
-    log.info('Node created with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
+    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
 
     log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
 
@@ -682,12 +682,23 @@ def run_command_start(options, reactor=None):
 
     reactor.callWhenRunning(start_crossbar)
 
-    # enter event loop
+    def after_reactor_stopped():
+        # FIXME: we are indeed reaching this line, however,
+        # the log output does not work (it also doesnt work using
+        # plain old print). Dunno why.
+        log.info('Node has been shut down [after_reactor_stopped].')
+
+    reactor.addSystemEventTrigger('after', 'shutdown', after_reactor_stopped)
+
+    # now enter event loop ..
     #
     try:
         reactor.run()
     except Exception:
         log.failure("Could not start reactor - {log_failure.value}")
+
+    # this line is _never_ reached! Twisted reactor will sys.exit() before
+    # under all circumstances
 
 
 def run_command_restart(options, **kwargs):

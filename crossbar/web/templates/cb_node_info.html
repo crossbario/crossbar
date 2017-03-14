@@ -1,0 +1,61 @@
+{% extends "cb_base.html" %}
+
+{% block content %}
+
+   <table>
+
+      <tr>
+         <td style="min-width: 200px">Release</td>
+         <td style="font-weight: bold;">{{ title }}</td>
+      </tr>
+
+      <tr>
+         <td>Node Started</td>
+         <td>{{ started }}</td>
+      </tr>
+
+      <tr>
+         <td>Node Controller PID</td>
+         <td>{{ controller_pid }}</td>
+      </tr>
+
+      <tr>
+         <td>Running Workers</td>
+         <td>{{ running_workers }}</td>
+      </tr>
+
+      <tr>
+         <td>Node Public Key</td>
+         <td style="font-weight: bold; color: #0aa20a;">{{ pubkey }}</td>
+      </tr>
+
+      {% if management_realm %}
+      <tr>
+         <td>Management Realm</td>
+         <td style="font-weight: bold; color: #0aa20a;">{{ management_realm }}</td>
+      </tr>
+      {% endif %}
+
+      {% if management_node_id %}
+      <tr>
+         <td>Management Node ID</td>
+         <td style="font-weight: bold; color: #0aa20a;">{{ management_node_id }}</td>
+      </tr>
+      {% endif %}
+
+      {% if management_session_id %}
+      <tr>
+         <td>Management Session ID</td>
+         <td style="font-weight: bold; color: #0aa20a;">{{ management_session_id }}</td>
+      </tr>
+      {% endif %}
+
+   </table>
+
+   <br>
+   <center style="font-size: 12px;">
+      Served for {{ peer }} from Crossbar.io router worker with PID {{ workerPid }}.
+   </center>
+   <br>
+
+{% endblock %}

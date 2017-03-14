@@ -118,7 +118,6 @@ class JsonResource(Resource):
 
 
 class Resource404(Resource):
-
     """
     Custom error page (404).
     """
@@ -148,6 +147,41 @@ class Resource404(Resource):
     def render_HEAD(self, request):
         request.setResponseCode(NOT_FOUND)
         return b''
+
+
+class NodeInfoResource(Resource):
+    """
+    Node information page.
+    """
+
+    isLeaf = True
+
+    def __init__(self, templates, controller_session):
+        Resource.__init__(self)
+        self._page = templates.get_template('cb_node_info.html')
+        self._pid = u'{}'.format(os.getpid())
+        self._controller_session = controller_session
+
+    def _delayedRender(self, node_info, request):
+        try:
+            peer = request.transport.getPeer()
+            peer = u'{}:{}'.format(peer.host, peer.port)
+        except:
+            peer = u'?:?'
+
+        s = self._page.render(cbVersion=crossbar.__version__,
+                              workerPid=self._pid,
+                              peer=peer,
+                              **node_info)
+
+        request.write(s.encode('utf8'))
+        request.finish()
+
+    def render_GET(self, request):
+        # http://twistedmatrix.com/documents/current/web/howto/web-in-60/asynchronous-deferred.html
+        d = self._controller_session.call(u'crossbar.get_info')
+        d.addCallback(self._delayedRender, request)
+        return server.NOT_DONE_YET
 
 
 class RedirectResource(Resource):

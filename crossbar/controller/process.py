@@ -46,6 +46,7 @@ from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
+import crossbar
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
@@ -87,7 +88,7 @@ class NodeControllerSession(NativeProcessSession):
         'get_worker_log',
 
         'start_worker',
-        #'stop_worker',
+        # 'stop_worker',
 
         'start_router',
         'stop_router',
@@ -217,16 +218,28 @@ class NodeControllerSession(NativeProcessSession):
         :rtype: dict
         """
         return {
+            # eg "Crossbar.io COMMUNITY"
+            u'title': u'{} {}'.format(self._node.PERSONALITY, crossbar.__version__),
+
+            # basic information about the node
             u'started': self._started,
-            u'pid': self._pid,
-            u'workers': len(self._workers),
-            u'directory': self.cbdir
+            u'controller_pid': self._pid,
+            u'running_workers': len(self._workers),
+            u'directory': self.cbdir,
+            u'pubkey': self._node._node_key.public_key(),
+
+            # the following 3 come from CFC (and are only filled
+            # when the node personality is FABRIC!)
+            u'management_realm': self._node._management_realm,
+            u'management_node_id': self._node._node_id,
+            u'management_session_id': self._node._manager._session_id if self._node._manager else None,
+            u'management_node_extra': self._node._node_extra,
         }
 
     @inlineCallbacks
     def shutdown(self, restart=False, mode=None, details=None):
         """
-        Stop this node.
+        Explicitly stop this node.
         """
         if self._shutdown_requested:
             # we're already shutting down .. ignore ..
@@ -234,7 +247,7 @@ class NodeControllerSession(NativeProcessSession):
 
         self._shutdown_requested = True
 
-        self.log.info('Shutting down node ..')
+        self.log.info('Node shutdown requested ..')
 
         # publish management API event
         shutdown_info = {
@@ -252,7 +265,6 @@ class NodeControllerSession(NativeProcessSession):
         def stop_reactor():
             try:
                 self._reactor.stop()
-                self.log.info('Node has been shut down.')
             except ReactorNotRunning:
                 pass
 
@@ -571,7 +583,7 @@ class NodeControllerSession(NativeProcessSession):
             return False
 
         def check_for_shutdown(was_successful):
-            shutdown = False
+            shutdown = self._shutdown_requested
 
             # automatically shutdown node whenever a worker ended (successfully, or with error)
             #
@@ -594,12 +606,7 @@ class NodeControllerSession(NativeProcessSession):
             # initiate shutdown (but only if we are not already shutting down)
             #
             if shutdown:
-                if not self._shutdown_requested:
-                    self.log.info("Node shutting down ..")
-                    self.shutdown()
-                else:
-                    # ignore: shutdown already initiated ..
-                    self.log.info("Node is already shutting down.")
+                self.shutdown()
             else:
                 self.log.info(
                     "Node will continue to run (node shutdown triggers active: {triggers})",
