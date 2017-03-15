@@ -289,7 +289,7 @@ class RouterSession(BaseSession):
         """
         Constructor.
         """
-        BaseSession.__init__(self)
+        super(RouterSession, self).__init__()
         self._transport = None
 
         self._router_factory = router_factory
@@ -745,6 +745,9 @@ class RouterSession(BaseSession):
         # self._router_factory:          crossbar.router.session.CrossbarRouterFactory
         # self._router._realm:           crossbar.worker.router.RouterRealm
         # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
+
+        self._router._session_id_to_authrole[details.session] = details.authrole
+        self._router._session_id_to_authid[details.session] = details.authid
 
         self._session_details = {
             u'session': details.session,

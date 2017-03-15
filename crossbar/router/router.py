@@ -100,6 +100,8 @@ class Router(object):
 
         # map: session_id -> session
         self._session_id_to_session = {}
+        self._session_id_to_authrole = {}
+        self._session_id_to_authid = {}
 
         self._broker = self.broker(self, self._options)
         self._dealer = self.dealer(self, self._options)
@@ -137,6 +139,9 @@ class Router(object):
         """
         self._broker.detach(session)
         self._dealer.detach(session)
+
+        self._session_id_to_authid.pop(session._session_id, None)
+        self._session_id_to_authrole.pop(session._session_id, None)
 
         if session._session_id in self._session_id_to_session:
             del self._session_id_to_session[session._session_id]

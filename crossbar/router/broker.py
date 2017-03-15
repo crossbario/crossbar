@@ -153,6 +153,7 @@ class Broker(object):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
+
         # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
         if self._option_uri_strict:
@@ -347,6 +348,20 @@ class Broker(object):
                             # filter receivers for excluded sessions
                             if exclude:
                                 receivers = receivers - set(exclude)
+
+                        # remove auth-id based receivers
+                        if publish.exclude_authid:
+                            receivers = set([
+                                r for r in receivers
+                                if self._router._session_id_to_authid.get(r._session_id, -1) not in publish.exclude_authid
+                            ])
+
+                        # remove authrole based receivers
+                        if publish.exclude_authrole:
+                            receivers = set([
+                                r for r in receivers
+                                if self._router._session_id_to_authrole.get(r._session_id, -1) not in publish.exclude_authrole
+                            ])
 
                         # if receivers is non-empty, dispatch event ..
                         #
