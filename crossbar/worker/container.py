@@ -127,7 +127,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         # the procedures registered
         procs = [
-            u'stop_worker',
+            u'stop',
             u'start_component',
             u'stop_component',
             u'restart_component',
@@ -151,72 +151,91 @@ class ContainerWorkerSession(NativeWorkerSession):
         yield self.publish_ready()
 
     @inlineCallbacks
-    def stop_worker(self, details=None):
+    def stop(self, details=None):
         """
-        Stops the whole container.
+        Stops the whole container gracefully by stopping all components
+        currently running, and then stopping the container worker.
+
+        Note: This behaves more gracefully than stopping the container
+        from outside, using "stop_worker", and also returns the stopped
+        components.
+
+        :returns: List of IDs of the components stopped (if any) while shutting down.
+        :rtype: list of str
         """
-        stopped_components = []
+        stopped_component_ids = []
         dl = []
         for component in self.components:
-            dl.append(self.stop_container_component(component.id))
-            stopped_components.append(component.id)
+            dl.append(self.stop_component(component.id))
+            stopped_component_ids.append(component.id)
         yield DeferredList(dl)
+        yield self.leave()
         yield self.disconnect()
-        returnValue(stopped_components)
+        returnValue(stopped_component_ids)
 
-    def start_component(self, id, config, reload_modules=False, details=None):
+    def start_component(self, component_id, config, reload_modules=False, details=None):
         """
-        Starts a Class or WAMPlet in this component container.
+        Starts a component in this container worker.
+
+        :param component_id: The ID under which to start the component.
+        :type component_id: str
 
         :param config: Component configuration.
         :type config: dict
+
         :param reload_modules: If `True`, enforce reloading of modules (user code)
-                               that were modified (see: TrackingModuleReloader).
+           that were modified (see: TrackingModuleReloader).
         :type reload_modules: bool
+
         :param details: Caller details.
         :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
-        :returns dict -- A dict with combined info from component starting.
+        :returns: Component startup information.
+        :rtype: dict
         """
-        self.log.debug("{klass}.start_component({id}, {config})",
-                       klass=self.__class__.__name__, id=id, config=config)
+        self.log.debug(u'{klass}.start_component({component_id}, {config})',
+                       klass=self.__class__.__name__,
+                       component_id=component_id,
+                       config=config)
 
         # prohibit starting a component twice
         #
-        if id in self.components:
-            emsg = "Could not start component - a component with ID '{}'' is already running (or starting)".format(id)
-            self.log.error(emsg)
+        if component_id in self.components:
+            emsg = u'duplicate component "{}" - a component with this ID is already running (or starting)'.format(component_id)
+            self.log.debug(emsg)
             raise ApplicationError(u'crossbar.error.already_running', emsg)
 
-        # check configuration
+        # check component configuration
         #
         try:
             checkconfig.check_container_component(config)
         except Exception as e:
-            emsg = "Invalid container component configuration ({})".format(e)
-            self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            emsg = u'invalid container component configuration: {}'.format(e)
+            self.log.debug(emsg)
+            raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
         else:
-            self.log.debug("Starting {type}-component in container.",
-                           type=config['type'])
+            self.log.debug(u'starting component "{component_id}" ..', component_id=component_id)
 
-        # 1) create WAMP application component factory
+        # WAMP application component factory
         #
-        realm = config['realm']
-        extra = config.get('extra', None)
+        realm = config.get(u'realm', None)
+        extra = config.get(u'extra', None)
+        controller = self if self.config.extra.expose_controller else None
+        shared = self.components_shared if self.config.extra.expose_shared else None
         component_config = ComponentConfig(realm=realm,
                                            extra=extra,
                                            keyring=None,
-                                           controller=self if self.config.extra.expose_controller else None,
-                                           shared=self.components_shared if self.config.extra.expose_shared else None)
+                                           controller=controller,
+                                           shared=shared)
         try:
             create_component = _appsession_loader(config)
         except ApplicationError as e:
-            self.log.error("Component loading failed", log_failure=Failure())
-            if 'No module named' in str(e):
-                self.log.error("  Python module search paths:")
+            # for convenience, also log failed component loading
+            self.log.error(u'component loading failed', log_failure=Failure())
+            if u'No module named' in str(e):
+                self.log.error(u'  Python module search paths:')
                 for path in e.kwargs['pythonpath']:
-                    self.log.error("    {path}", path=path)
+                    self.log.error(u'    {path}', path=path)
             raise
 
         # force reload of modules (user code)
@@ -225,8 +244,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             self._module_tracker.reload()
 
         # WAMP application session factory
-        # ultimately, this gets called once the connection is
-        # establised, from onOpen in autobahn/wamp/websocket.py:59
+        #
         def create_session():
             try:
                 session = create_component(component_config)
@@ -239,48 +257,45 @@ class ContainerWorkerSession(NativeWorkerSession):
                     )
                     session.disconnect()
                 session._swallow_error = panic
+
                 return session
+
             except Exception:
-                self.log.failure("Component instantiation failed: {log_failure.value}")
+                self.log.failure(u'component instantiation failed: {log_failure.value}')
                 raise
 
-        # 2) create WAMP transport factory
+        # WAMP transport factory
         #
-        transport_config = config['transport']
+        transport_config = config[u'transport']
 
-        # WAMP-over-WebSocket transport
-        #
-        if transport_config['type'] == 'websocket':
+        if transport_config[u'type'] == u'websocket':
 
             # create a WAMP-over-WebSocket transport client factory
-            #
-            transport_factory = WampWebSocketClientFactory(create_session, transport_config['url'])
+            transport_factory = WampWebSocketClientFactory(create_session, transport_config[u'url'])
             transport_factory.noisy = False
 
-        # WAMP-over-RawSocket transport
-        #
-        elif transport_config['type'] == 'rawsocket':
+        elif transport_config[u'type'] == u'rawsocket':
 
             transport_factory = WampRawSocketClientFactory(create_session,
                                                            transport_config)
             transport_factory.noisy = False
 
         else:
-            # should not arrive here, since we did `check_container_component()`
-            raise Exception("logic error")
+            # should not arrive here, since we did check the config before
+            raise Exception(u'logic error')
 
-        # 3) create and connect client endpoint
+        # create and connect client endpoint
         #
-        endpoint = create_connecting_endpoint_from_config(transport_config['endpoint'],
+        endpoint = create_connecting_endpoint_from_config(transport_config[u'endpoint'],
                                                           self.config.extra.cbdir,
                                                           self._reactor,
                                                           self.log)
 
-        # now connect the client
+        # now, actually connect the client
         #
         d = endpoint.connect(transport_factory)
 
-        def success(proto):
+        def on_connect_success(proto):
             component = ContainerComponent(id, config, proto, None)
             self.components[id] = component
 
@@ -331,26 +346,33 @@ class ContainerWorkerSession(NativeWorkerSession):
                 if proto._session:
                     proto._session.onClose = partial(close_wrapper, proto._session.onClose)
             else:
-                raise Exception("logic error")
+                raise Exception(u'logic error')
 
             # publish event "on_component_start" to all but the caller
             #
-            topic = self._uri_prefix + '.container.on_component_start'
-            event = {u'id': id}
-            self.publish(topic, event, options=PublishOptions(exclude=details.caller))
-            return event
+            uri = self._uri_prefix + u'.on_component_started'
 
-        def error(err):
+            component_started = {
+                u'id': component_id,
+                u'config': config
+            }
+
+            self.publish(uri, component_started, options=PublishOptions(exclude=details.caller))
+
+            return component_started
+
+        def on_connect_error(err):
             # https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
             if isinstance(err.value, internet.error.ConnectError):
-                emsg = "Could not connect container component to router - transport establishment failed ({})".format(err.value)
-                self.log.error(emsg)
+                emsg = u'could not connect container component to router - transport establishment failed ({})'.format(err.value)
+                self.log.warn(emsg)
                 raise ApplicationError(u'crossbar.error.cannot_connect', emsg)
             else:
-                # should not arrive here (since all errors arriving here should be subclasses of ConnectError)
+                # should not arrive here (since all errors arriving here
+                # should be subclasses of ConnectError)
                 raise err
 
-        d.addCallbacks(success, error)
+        d.addCallbacks(on_connect_success, on_connect_error)
 
         return d
 
@@ -492,7 +514,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             sorted by component ID when `ids_only==True`.
         :rtype: list
         """
-        self.log.debug('{klass}.get_components({details})', klass=self.__class__.__name__, details=details)
+        self.log.debug('{klass}.list_components({details})', klass=self.__class__.__name__, details=details)
 
         if ids_only:
             return sorted(self.components.keys())
