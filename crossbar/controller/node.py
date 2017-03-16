@@ -174,7 +174,7 @@ def _machine_id():
 
         if six.PY2:
             # Only API on 2.7
-            return plistlib.readPlistFromString(plist_data)["IOPlatformSerialNumber"]
+            return plistlib.readPlistFromString(plist_data)[0]["IOPlatformSerialNumber"]
         else:
             # New, non-deprecated 3.4+ API
             return plistlib.loads(plist_data)[0]["IOPlatformSerialNumber"]
