@@ -171,17 +171,13 @@ class Broker(object):
 
         # if "eligible_authid" we only accept receivers that have the correct authid
         if publish.eligible_authid:
-            receivers = [
-                r for r in receivers
-                if self._router._session_id_to_authid.get(r._session_id, None) in publish.eligible_authid
-            ]
+            for aid in publish.eligible_authid:
+                receivers = receivers & self._router._authid_to_sessions.get(aid, set())
 
         # if "eligible_authrole" we only accept receivers that have the correct authrole
         if publish.eligible_authrole:
-            receivers = [
-                r for r in receivers
-                if self._router._session_id_to_authrole.get(r._session_id, None) in publish.eligible_authrole
-            ]
+            for ar in publish.eligible_authrole:
+                receivers = receivers & self._router._authrole_to_sessions.get(ar, set())
 
         # remove "excluded" receivers
         #
@@ -199,17 +195,14 @@ class Broker(object):
 
         # remove auth-id based receivers
         if publish.exclude_authid:
-            receivers = set([
-                r for r in receivers
-                if self._router._session_id_to_authid.get(r._session_id, None) not in publish.exclude_authid
-            ])
+            for aid in publish.exclude_authid:
+                receivers = receivers - self._router._authid_to_sessions.get(aid, set())
 
         # remove authrole based receivers
         if publish.exclude_authrole:
-            receivers = set([
-                r for r in receivers
-                if self._router._session_id_to_authrole.get(r._session_id, None) not in publish.exclude_authrole
-            ])
+            for ar in publish.exclude_authrole:
+                receivers = receivers - self._router._authrole_to_sessions.get(ar, set())
+
         return receivers
 
     def processPublish(self, session, publish):

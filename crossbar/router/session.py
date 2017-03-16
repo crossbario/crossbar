@@ -299,6 +299,7 @@ class RouterSession(BaseSession):
 
         self._goodbye_sent = False
         self._transport_is_closing = False
+        self._session_details = None
 
     def onOpen(self, transport):
         """
@@ -746,9 +747,6 @@ class RouterSession(BaseSession):
         # self._router._realm:           crossbar.worker.router.RouterRealm
         # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
-        self._router._session_id_to_authrole[details.session] = details.authrole
-        self._router._session_id_to_authid[details.session] = details.authid
-
         self._session_details = {
             u'session': details.session,
             u'authid': details.authid,
@@ -757,6 +755,7 @@ class RouterSession(BaseSession):
             u'authprovider': details.authprovider,
             u'transport': self._transport._transport_info
         }
+        self._router._session_joined(self, self._session_details)
 
         # dispatch session metaevent from WAMP AP
         #
@@ -771,6 +770,8 @@ class RouterSession(BaseSession):
 
         for msg in self._testaments[u"destroyed"]:
             self._router.process(self, msg)
+
+        self._router._session_left(self, self._session_details)
 
         # dispatch session metaevent from WAMP AP
         #
