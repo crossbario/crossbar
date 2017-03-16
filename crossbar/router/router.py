@@ -100,6 +100,10 @@ class Router(object):
 
         # map: session_id -> session
         self._session_id_to_session = {}
+        # map: authid -> set(session)
+        self._authid_to_sessions = {}
+        # map: authrole -> set(session)
+        self._authrole_to_sessions = {}
 
         self._broker = self.broker(self, self._options)
         self._dealer = self.dealer(self, self._options)
@@ -130,6 +134,27 @@ class Router(object):
         self._attached += 1
 
         return {u'broker': self._broker._role_features, u'dealer': self._dealer._role_features}
+
+    def _session_joined(self, session, details):
+        """
+        Internal helper.
+        """
+        try:
+            self._authrole_to_sessions[details['authrole']].add(session)
+        except KeyError:
+            self._authrole_to_sessions[details['authrole']] = set([session])
+
+        try:
+            self._authid_to_sessions[details['authid']].add(session)
+        except KeyError:
+            self._authid_to_sessions[details['authid']] = set([session])
+
+    def _session_left(self, session, details):
+        """
+        Internal helper.
+        """
+        self._authid_to_sessions[details['authid']].discard(session)
+        self._authrole_to_sessions[details['authrole']].discard(session)
 
     def detach(self, session):
         """

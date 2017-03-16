@@ -149,10 +149,67 @@ class Broker(object):
         else:
             raise Exception("session with ID {} not attached".format(session._session_id))
 
+    def _filter_publish_receivers(self, receivers, publish):
+        """
+        Internal helper.
+
+        Does all filtering on a candidate set of Publish receivers,
+        based on all the white/blacklist options in 'publish'.
+        """
+        # filter by "eligible" receivers
+        #
+        if publish.eligible:
+
+            # map eligible session IDs to eligible sessions
+            eligible = set()
+            for session_id in publish.eligible:
+                if session_id in self._router._session_id_to_session:
+                    eligible.add(self._router._session_id_to_session[session_id])
+
+            # filter receivers for eligible sessions
+            receivers = eligible & receivers
+
+        # if "eligible_authid" we only accept receivers that have the correct authid
+        if publish.eligible_authid:
+            for aid in publish.eligible_authid:
+                receivers = receivers & self._router._authid_to_sessions.get(aid, set())
+
+        # if "eligible_authrole" we only accept receivers that have the correct authrole
+        if publish.eligible_authrole:
+            for ar in publish.eligible_authrole:
+                receivers = receivers & self._router._authrole_to_sessions.get(ar, set())
+
+        # remove "excluded" receivers
+        #
+        if publish.exclude:
+
+            # map excluded session IDs to excluded sessions
+            exclude = set()
+            for s in publish.exclude:
+                if s in self._router._session_id_to_session:
+                    exclude.add(self._router._session_id_to_session[s])
+
+            # filter receivers for excluded sessions
+            if exclude:
+                receivers = receivers - exclude
+
+        # remove auth-id based receivers
+        if publish.exclude_authid:
+            for aid in publish.exclude_authid:
+                receivers = receivers - self._router._authid_to_sessions.get(aid, set())
+
+        # remove authrole based receivers
+        if publish.exclude_authrole:
+            for ar in publish.exclude_authrole:
+                receivers = receivers - self._router._authrole_to_sessions.get(ar, set())
+
+        return receivers
+
     def processPublish(self, session, publish):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
+
         # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
         if self._option_uri_strict:
@@ -320,33 +377,7 @@ class Broker(object):
                         # initial list of receivers are all subscribers on a subscription ..
                         #
                         receivers = subscription.observers
-
-                        # filter by "eligible" receivers
-                        #
-                        if publish.eligible:
-
-                            # map eligible session IDs to eligible sessions
-                            eligible = []
-                            for session_id in publish.eligible:
-                                if session_id in self._router._session_id_to_session:
-                                    eligible.append(self._router._session_id_to_session[session_id])
-
-                            # filter receivers for eligible sessions
-                            receivers = set(eligible) & receivers
-
-                        # remove "excluded" receivers
-                        #
-                        if publish.exclude:
-
-                            # map excluded session IDs to excluded sessions
-                            exclude = []
-                            for s in publish.exclude:
-                                if s in self._router._session_id_to_session:
-                                    exclude.append(self._router._session_id_to_session[s])
-
-                            # filter receivers for excluded sessions
-                            if exclude:
-                                receivers = receivers - set(exclude)
+                        receivers = self._filter_publish_receivers(receivers, publish)
 
                         # if receivers is non-empty, dispatch event ..
                         #
