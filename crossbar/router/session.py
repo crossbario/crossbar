@@ -289,7 +289,7 @@ class RouterSession(BaseSession):
         """
         Constructor.
         """
-        BaseSession.__init__(self)
+        super(RouterSession, self).__init__()
         self._transport = None
 
         self._router_factory = router_factory
@@ -299,6 +299,7 @@ class RouterSession(BaseSession):
 
         self._goodbye_sent = False
         self._transport_is_closing = False
+        self._session_details = None
 
     def onOpen(self, transport):
         """
@@ -754,6 +755,7 @@ class RouterSession(BaseSession):
             u'authprovider': details.authprovider,
             u'transport': self._transport._transport_info
         }
+        self._router._session_joined(self, self._session_details)
 
         # dispatch session metaevent from WAMP AP
         #
@@ -768,6 +770,8 @@ class RouterSession(BaseSession):
 
         for msg in self._testaments[u"destroyed"]:
             self._router.process(self, msg)
+
+        self._router._session_left(self, self._session_details)
 
         # dispatch session metaevent from WAMP AP
         #
