@@ -381,13 +381,22 @@ class Broker(object):
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic)
-                            for receiver in receivers:
-                                if (me_also or receiver != session) and receiver != self._event_store:
-                                    # the receiving subscriber session
-                                    # might have no transport, or no
-                                    # longer be joined
-                                    if receiver._session_id and receiver._transport:
-                                        self._router.send(receiver, msg)
+
+                            d = txaio.create_future(result=list(receivers))
+                            batch_size = 100  # this probably wants to be configurable
+
+                            def _notify_some(receivers):
+                                for receiver in receivers[:batch_size]:
+                                    if (me_also or receiver != session) and receiver != self._event_store:
+                                        # the receiving subscriber session
+                                        # might have no transport, or no
+                                        # longer be joined
+                                        if receiver._session_id and receiver._transport:
+                                            self._router.send(receiver, msg)
+                                receivers = receivers[batch_size:]
+                                return txaio.call_later(0, _notify_some, receivers)
+                            txaio.add_callbacks(d, _notify_some, None)
+                            return d
 
             def on_authorize_error(err):
                 """
