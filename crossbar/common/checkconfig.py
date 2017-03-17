@@ -2248,12 +2248,33 @@ def check_container_components(components):
 
 def check_router_realm(realm):
     """
-    Checks the configuration for a router realm entry, which can be *either* a dynamic authorizer or static permissions.
+    Checks the configuration for a router realm entry, which can be
+    *either* a dynamic authorizer or static permissions.
     """
     # router/router.py and router/role.py
 
     for role in realm.get('roles', []):
         check_router_realm_role(role)
+
+    options = realm.get('options', {})
+    if not isinstance(options, Mapping):
+        raise InvalidConfigException(
+            "Realm 'options' must be a dict"
+        )
+    for arg, val in options.items():
+        if arg not in ['event_dispatching_chunk_size', 'uri_check']:
+            raise InvalidConfigException(
+                "Unknown realm option '{}'".format(arg)
+            )
+    if 'event_dispatching_chunk_size' in options:
+        try:
+            edcs = int(options['event_dispatching_chunk_size'])
+            if edcs <= 0:
+                raise ValueError("too small")
+        except ValueError:
+            raise InvalidConfigException(
+                "Realm option 'event_dispatching_chunk_size' must be a positive int"
+            )
 
 
 def check_router_realm_role(role):
@@ -2421,7 +2442,7 @@ def check_router(router):
         check_manhole(router['manhole'])
 
     if 'options' in router:
-        check_native_worker_options(router['options'])
+        check_router_options(router['options'])
 
     # realms
     #
@@ -2598,8 +2619,12 @@ def check_native_worker_options(options):
         raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity', 'env', 'expose_controller', 'expose_shared']:
-            raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in worker configuration".format(k))
+        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity',
+                     'env', 'expose_controller', 'expose_shared']:
+            raise InvalidConfigException(
+                "encountered unknown attribute '{}' in 'options' in worker"
+                " configuration".format(k)
+            )
 
     if 'title' in options:
         title = options['title']
