@@ -171,13 +171,17 @@ class Broker(object):
 
         # if "eligible_authid" we only accept receivers that have the correct authid
         if publish.eligible_authid:
+            eligible = set()
             for aid in publish.eligible_authid:
-                receivers = receivers & self._router._authid_to_sessions.get(aid, set())
+                eligible.update(self._router._authid_to_sessions.get(aid, set()))
+            receivers = receivers & eligible
 
         # if "eligible_authrole" we only accept receivers that have the correct authrole
         if publish.eligible_authrole:
+            eligible = set()
             for ar in publish.eligible_authrole:
-                receivers = receivers & self._router._authrole_to_sessions.get(ar, set())
+                eligible.update(self._router._authrole_to_sessions.get(ar, set()))
+            receivers = receivers & eligible
 
         # remove "excluded" receivers
         #
