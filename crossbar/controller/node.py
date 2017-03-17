@@ -448,7 +448,7 @@ class Node(object):
         self._router_factory.add_role(self._realm, worker_role_config)
 
     def _drop_worker_role(self, worker_auth_role):
-        self._router_factory.drop_role(worker_auth_role)
+        self._router_factory.drop_role(self._realm, worker_auth_role)
 
     def _extend_worker_args(self, args, options):
         pass

@@ -32,6 +32,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import signal
 from datetime import datetime
 # backport of shutil.which
 import shutilwhich  # noqa
@@ -203,6 +204,14 @@ class NodeControllerSession(NativeProcessSession):
         regs = yield DeferredList(dl)
 
         self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+
+        # we need to catch SIGINT here to properly shutdown the
+        # node explicitly (a Twisted system trigger wouldn't allow us to distinguish
+        # different reasons/origins of exiting ..)
+        def signal_handler(signal, frame):
+            # the following will shutdown the Twisted reactor in the end
+            self.shutdown()
+        signal.signal(signal.SIGINT, signal_handler)
 
         self._started = utcnow()
 
@@ -583,6 +592,8 @@ class NodeControllerSession(NativeProcessSession):
             return False
 
         def check_for_shutdown(was_successful):
+            self.log.info('Checking for node shutdown: worker_exit_success={worker_exit_success}, shutdown_requested={shutdown_requested}, node_shutdown_triggers={node_shutdown_triggers}', worker_exit_success=was_successful, shutdown_requested=self._shutdown_requested, node_shutdown_triggers=self._node._node_shutdown_triggers)
+
             shutdown = self._shutdown_requested
 
             # automatically shutdown node whenever a worker ended (successfully, or with error)
@@ -608,10 +619,7 @@ class NodeControllerSession(NativeProcessSession):
             if shutdown:
                 self.shutdown()
             else:
-                self.log.info(
-                    "Node will continue to run (node shutdown triggers active: {triggers})",
-                    triggers=self._node._node_shutdown_triggers,
-                )
+                self.log.info('Node will continue to run!')
 
         d_on_exit = worker.exit.addCallbacks(on_exit_success, on_exit_error)
         d_on_exit.addBoth(check_for_shutdown)
