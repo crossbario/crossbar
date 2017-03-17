@@ -3,9 +3,11 @@ toc: [Documentation, Programming Guide, Subscriber Black and Whitelisting]
 
 # Subscriber Black- and Whitelisting
 
-> **Subscriber Black-/Whitelisting** is a feature from the WAMP Advanced Profile. The specification can be found [here](https://github.com/tavendo/WAMP/blob/master/spec/advanced/subscriber-blackwhite-listing.md). Crossbar.io currently only implements black-/whitelisting based on WAMP `sessionid`. Support for black-/whitelisting based on `authid` and `authrole` is scheduled for version 0.12.0.
+> **Subscriber Black-/Whitelisting** is a feature from the WAMP Advanced Profile. The specification can be found [here](https://github.com/tavendo/WAMP/blob/master/spec/advanced/subscriber-blackwhite-listing.md).
 
-As per default, whenever there is a publication to a topic, a PubSub event is dispatched to all (authorized) subscribers to that topic other than the publisher itself. **Subscriber Black- and Whitelisting** allows to restrict the set of subscribers who receive events for a particular publication.
+There is a [complete white- and black- listing example](https://github.com/crossbario/crossbar-examples/tree/master/exclude_subscribers) with Python and JavaScript clients available.
+
+As per default, whenever there is a publication to a topic, a PubSub event is dispatched to all (authorized) subscribers to that topic other than the publisher itself. **Subscriber Black- and White- listing** restricts the set of subscribers who receive events for a particular publication. There are three ways to do blacklisting: `exclude`, `exclude_authid` and `exclude_authrole`; and three ways to do whitelisting: `eligible`, `eligible_authid`, and `eligible_authrole`.
 
 ## Use Cases
 
@@ -13,41 +15,20 @@ For a frontend with state synchronized across devices, a device on which an upda
 
 ## Subscriber Blacklisting
 
-With **Subscriber Blacklisting**, a set of subscribers can be excluded from receiving an event based on the publication. This is done via a list of session IDs which are passed as part of the publication options.
+If you have a list of sessions to exclude from a publication, you should pass a list of session-id's to `exclude`; if any of those sessions are subscribers, they will not receive this publish.
 
-For example, for a component written in JavaScript and using Autobahn|JS, the following publish would not lead to a dispatch to sessions `27837283` and `8888373` if these are currently subscribed to the topic `com.myapp.topic1`
-
-```javascript
-session.publish("com.myapp.topic1",
-    ["news!"],
-    {
-        newsbody: "this is new"
-    },
-    {
-        exclude: [27837283, 8888373]
-    }
-);
-```
+You can also exclude sessions with `exclude_authid` or `exclude_authrole`. These options take a string or list of strings representing sessions to remove from the receivers. Thus any subscribers with the corresponding `authid` (or `authrole`) will not receive this publish.
 
 ---
 
 ## Subscriber Whitelisting
 
-With **Subscriber Whitelisting**, dispatching of an event based on a publication can be restricted to a set of sessions. This is done via a list of session IDs which are passed as part of the publication options.
+Whitelisting is the inverse of blacklisting: you specify the set of subscribers who may receive the publish instead of saying who may not.
 
-For example, for a component written in JavaScript and using Autobahn|JS, the following publish would lead to a dispatch to sessions `4783838` and `2347777` only if these are currently subscribed to the topic `com.myapp.topic1`
+If you have a list of sessions who could receive a publication, you should pass a list of session-id's to the `eligible` option; only these sessions will possibly be able to receive the publish. This is a *filtering* operation, so they won't all **necessarily** receive the publish -- they still need to subscribe, for example.
 
-```javascript
-session.publish("com.myapp.topic1",
-    ["news!"],
-    {
-        newsbody: "this is new 2"
-    },
-    {
-        eligible: [4783838, 2347777]
-    }
-);
-```
+You can also filter by `eligible_authid` or `eligible_authrole`. These options both take either a single string or a list of strings representing an assigned `authid` or `authrole` and work similarly. Of all the subscribers, only those without the correct `authid` (or `authrole`) will get the publish.
+
 
 ---
 
