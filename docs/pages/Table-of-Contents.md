@@ -79,6 +79,7 @@ toc: [Documentation, Table of Contents]
                * [HTTP Bridge Caller](HTTP Bridge Caller)
                * [HTTP Bridge Callee](HTTP Bridge Callee)
                * [HTTP Bridge Webhook](HTTP Bridge Webhook)
+            * [MQTT Broker](MQTT Broker)
             * [Authentication](Authentication)
                * [Anonymous Authentication](Anonymous Authentication)
                * [Challenge-Response Authentication](Challenge-Response Authentication)
