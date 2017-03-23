@@ -416,13 +416,26 @@ class Broker(object):
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic)
-                            for receiver in receivers:
-                                if (me_also or receiver != session) and receiver != self._event_store:
-                                    # the receiving subscriber session
-                                    # might have no transport, or no
-                                    # longer be joined
-                                    if receiver._session_id and receiver._transport:
-                                        self._router.send(receiver, msg)
+
+                            # a Deferred that fires when all chunks are done
+                            all_d = txaio.create_future()
+                            chunk_size = self._options.event_dispatching_chunk_size
+
+                            def _notify_some(receivers):
+                                for receiver in receivers[:chunk_size]:
+                                    if (me_also or receiver != session) and receiver != self._event_store:
+                                        # the receiving subscriber session
+                                        # might have no transport, or no
+                                        # longer be joined
+                                        if receiver._session_id and receiver._transport:
+                                            self._router.send(receiver, msg)
+                                receivers = receivers[chunk_size:]
+                                if len(receivers) > 0:
+                                    return txaio.call_later(0, _notify_some, receivers)
+                                else:
+                                    txaio.resolve(all_d, None)
+                            _notify_some(list(receivers))
+                            return all_d
 
             def on_authorize_error(err):
                 """

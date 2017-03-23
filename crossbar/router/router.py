@@ -426,7 +426,15 @@ class RouterFactory(object):
 
         # now create a router for the realm
         #
-        router = Router(self, realm, self._options, store=store,
+        options = RouterOptions(
+            uri_check=self._options.uri_check,
+            event_dispatching_chunk_size=self._options.event_dispatching_chunk_size,
+        )
+        for arg in ['uri_check', 'event_dispatching_chunk_size']:
+            if arg in realm.config.get('options', {}):
+                setattr(options, arg, realm.config['options'][arg])
+
+        router = Router(self, realm, options, store=store,
                         mqtt_payload_format=mqtt_payload_format)
         self._routers[uri] = router
         self.log.debug("Router created for realm '{uri}'", uri=uri)
