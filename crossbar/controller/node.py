@@ -600,17 +600,17 @@ class Node(object):
 
                 # setup native worker generic stuff
                 if 'pythonpath' in worker_options:
-                    added_paths = yield self._controller.call('crossbar.worker.{}.add_pythonpath'.format(worker_id), worker_options['pythonpath'], options=call_options)
+                    added_paths = yield self._controller.call(u'crossbar.worker.{}.add_pythonpath'.format(worker_id), worker_options['pythonpath'], options=call_options)
                     self.log.debug("{worker}: PYTHONPATH extended for {paths}",
                                    worker=worker_logname, paths=added_paths)
 
                 if 'cpu_affinity' in worker_options:
-                    new_affinity = yield self._controller.call('crossbar.worker.{}.set_cpu_affinity'.format(worker_id), worker_options['cpu_affinity'], options=call_options)
+                    new_affinity = yield self._controller.call(u'crossbar.worker.{}.set_cpu_affinity'.format(worker_id), worker_options['cpu_affinity'], options=call_options)
                     self.log.debug("{worker}: CPU affinity set to {affinity}",
                                    worker=worker_logname, affinity=new_affinity)
 
                 if 'manhole' in worker:
-                    yield self._controller.call('crossbar.worker.{}.start_manhole'.format(worker_id), worker['manhole'], options=call_options)
+                    yield self._controller.call(u'crossbar.worker.{}.start_manhole'.format(worker_id), worker['manhole'], options=call_options)
                     self.log.debug("{worker}: manhole started",
                                    worker=worker_logname)
 
@@ -627,7 +627,7 @@ class Node(object):
                             realm_id = 'realm-{:03d}'.format(self._realm_no)
                             self._realm_no += 1
 
-                        yield self._controller.call('crossbar.worker.{}.start_router_realm'.format(worker_id), realm_id, realm, options=call_options)
+                        yield self._controller.call(u'crossbar.worker.{}.start_router_realm'.format(worker_id), realm_id, realm, options=call_options)
                         self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
                                       worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
 
@@ -639,7 +639,7 @@ class Node(object):
                                 role_id = 'role-{:03d}'.format(self._role_no)
                                 self._role_no += 1
 
-                            yield self._controller.call('crossbar.worker.{}.start_router_realm_role'.format(worker_id), realm_id, role_id, role, options=call_options)
+                            yield self._controller.call(u'crossbar.worker.{}.start_router_realm_role'.format(worker_id), realm_id, role_id, role, options=call_options)
                             self.log.info(
                                 "{logname}: role '{role}' (named '{role_name}') started on realm '{realm}'",
                                 logname=worker_logname,
@@ -656,7 +656,7 @@ class Node(object):
                                 uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
                                 self._uplink_no += 1
 
-                            yield self._controller.call('crossbar.worker.{}.start_router_realm_uplink'.format(worker_id), realm_id, uplink_id, uplink, options=call_options)
+                            yield self._controller.call(u'crossbar.worker.{}.start_router_realm_uplink'.format(worker_id), realm_id, uplink_id, uplink, options=call_options)
                             self.log.info(
                                 "{logname}: uplink '{uplink}' started on realm '{realm}'",
                                 logname=worker_logname,
@@ -674,7 +674,7 @@ class Node(object):
                             connection_id = 'connection-{:03d}'.format(self._connection_no)
                             self._connection_no += 1
 
-                        yield self._controller.call('crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=call_options)
+                        yield self._controller.call(u'crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=call_options)
                         self.log.info(
                             "{logname}: connection '{connection}' started",
                             logname=worker_logname,
@@ -690,7 +690,7 @@ class Node(object):
                             component_id = 'component-{:03d}'.format(self._component_no)
                             self._component_no += 1
 
-                        yield self._controller.call('crossbar.worker.{}.start_router_component'.format(worker_id), component_id, component, options=call_options)
+                        yield self._controller.call(u'crossbar.worker.{}.start_router_component'.format(worker_id), component_id, component, options=call_options)
                         self.log.info(
                             "{logname}: component '{component}' started",
                             logname=worker_logname,
@@ -706,7 +706,7 @@ class Node(object):
                             transport_id = 'transport-{:03d}'.format(self._transport_no)
                             self._transport_no += 1
 
-                        yield self._controller.call('crossbar.worker.{}.start_router_transport'.format(worker_id), transport_id, transport, options=call_options)
+                        yield self._controller.call(u'crossbar.worker.{}.start_router_transport'.format(worker_id), transport_id, transport, options=call_options)
                         self.log.info(
                             "{logname}: transport '{tid}' started",
                             logname=worker_logname,
@@ -744,7 +744,7 @@ class Node(object):
                             connection_id = 'connection-{:03d}'.format(self._connection_no)
                             self._connection_no += 1
 
-                        yield self._controller.call('crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=call_options)
+                        yield self._controller.call(u'crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=call_options)
                         self.log.info(
                             "{logname}: connection '{connection}' started",
                             logname=worker_logname,
@@ -761,7 +761,7 @@ class Node(object):
                             component_id = 'component-{:03d}'.format(self._component_no)
                             self._component_no += 1
 
-                        yield self._controller.call('crossbar.worker.{}.start_container_component'.format(worker_id), component_id, component, options=call_options)
+                        yield self._controller.call(u'crossbar.worker.{}.start_container_component'.format(worker_id), component_id, component, options=call_options)
                         self.log.info("{worker}: component '{component_id}' started",
                                       worker=worker_logname, component_id=component_id)
 
@@ -776,7 +776,7 @@ class Node(object):
                     transport_id = 'transport-{:03d}'.format(self._transport_no)
                     self._transport_no = 1
 
-                    yield self._controller.call('crossbar.worker.{}.start_websocket_testee_transport'.format(worker_id), transport_id, transport, options=call_options)
+                    yield self._controller.call(u'crossbar.worker.{}.start_websocket_testee_transport'.format(worker_id), transport_id, transport, options=call_options)
                     self.log.info(
                         "{logname}: transport '{tid}' started",
                         logname=worker_logname,

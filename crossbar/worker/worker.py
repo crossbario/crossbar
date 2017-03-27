@@ -73,7 +73,7 @@ class NativeWorkerSession(NativeProcessSession):
         Called when the worker has connected to the node's management router.
         """
         self._worker_id = self.config.extra.worker
-        self._uri_prefix = 'crossbar.worker.{}'.format(self._worker_id)
+        self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
 
         NativeProcessSession.onConnect(self, False)
 
@@ -121,7 +121,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         dl = []
         for proc in procs:
-            uri = '{}.{}'.format(self._uri_prefix, proc)
+            uri = u'{}.{}'.format(self._uri_prefix, proc)
             self.log.debug("Registering management API procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
@@ -506,7 +506,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         # publish event "on_pythonpath_add" to all but the caller
         #
-        topic = '{}.on_pythonpath_add'.format(self._uri_prefix)
+        topic = u'{}.on_pythonpath_add'.format(self._uri_prefix)
         res = {
             u'paths': sys.path,
             u'paths_added': paths_added,
