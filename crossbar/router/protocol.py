@@ -260,8 +260,23 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 u'type': 'websocket',
                 u'protocol': protocol,
                 u'peer': self.peer,
+
+                # all HTTP headers as received by the WebSocket client
                 u'http_headers_received': request.headers,
+
+                # only customer user headers (such as cookie)
                 u'http_headers_sent': headers,
+
+                # all HTTP response lines sent (verbatim, in order as sent)
+                # this will get filled in onOpen() from the HTTP response
+                # data that will be stored by AutobahnPython at the WebSocket
+                # protocol level (WebSocketServerProtocol)
+                u'http_response_lines': None,
+
+                # WebSocket extensions in use .. will be filled in onOpen() - see below
+                u'websocket_extensions_in_use': None,
+
+                # Crossbar.io tracking ID (for cookie tracking)
                 u'cbtid': self._cbtid
             }
 
@@ -272,6 +287,20 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
         except Exception:
             traceback.print_exc()
+
+    def onOpen(self):
+        # this is little bit silly, we parse the complete response data into lines again
+        http_response_lines = []
+        for line in self.http_response_data.split('\r\n'):
+            line = line.strip()
+            if line:
+                http_response_lines.append(line)
+        self._transport_info[u'http_response_lines'] = http_response_lines
+
+        # note the WebSocket extensions negotiated
+        self._transport_info[u'websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
+
+        return super(WampWebSocketServerProtocol, self).onOpen()
 
     def sendServerStatus(self, redirectUrl=None, redirectAfter=0):
         """
