@@ -107,8 +107,8 @@ class NodeControllerSession(NativeProcessSession):
             'checkconfig': checkconfig.check_router_options,
             'logname': 'Router',
             'topics': {
-                'starting': 'crossbar.node.on_router_starting',
-                'started': 'crossbar.node.on_router_started',
+                'starting': u'crossbar.node.on_router_starting',
+                'started': u'crossbar.node.on_router_started',
             }
         },
         'container': {
@@ -116,8 +116,8 @@ class NodeControllerSession(NativeProcessSession):
             'checkconfig': checkconfig.check_container_options,
             'logname': 'Container',
             'topics': {
-                'starting': 'crossbar.node.on_container_starting',
-                'started': 'crossbar.node.on_container_started',
+                'starting': u'crossbar.node.on_container_starting',
+                'started': u'crossbar.node.on_container_started',
             }
         },
         'websocket-testee': {
@@ -125,8 +125,8 @@ class NodeControllerSession(NativeProcessSession):
             'checkconfig': checkconfig.check_websocket_testee_options,
             'logname': 'WebSocketTestee',
             'topics': {
-                'starting': 'crossbar.node.on_websocket_testee_starting',
-                'started': 'crossbar.node.on_websocket_testee_started',
+                'starting': u'crossbar.node.on_websocket_testee_starting',
+                'started': u'crossbar.node.on_websocket_testee_started',
             }
         },
     }
@@ -197,8 +197,8 @@ class NodeControllerSession(NativeProcessSession):
         #
         dl = []
         for proc in self.PROCS:
-            uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug('Registering management API procedure "{proc}"', proc=uri)
+            uri = u'{}.{}'.format(self._uri_prefix, proc)
+            self.log.info('Registering management API procedure "{proc}"', proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
