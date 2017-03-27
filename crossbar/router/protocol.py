@@ -271,7 +271,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 # this will get filled in onOpen() from the HTTP response
                 # data that will be stored by AutobahnPython at the WebSocket
                 # protocol level (WebSocketServerProtocol)
-                u'http_response_lines': None,
+                # u'http_response_lines': None,
 
                 # WebSocket extensions in use .. will be filled in onOpen() - see below
                 u'websocket_extensions_in_use': None,
@@ -289,13 +289,14 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             traceback.print_exc()
 
     def onOpen(self):
-        # this is little bit silly, we parse the complete response data into lines again
-        http_response_lines = []
-        for line in self.http_response_data.split('\r\n'):
-            line = line.strip()
-            if line:
-                http_response_lines.append(line)
-        self._transport_info[u'http_response_lines'] = http_response_lines
+        if False:
+            # this is little bit silly, we parse the complete response data into lines again
+            http_response_lines = []
+            for line in self.http_response_data.split('\r\n'):
+                line = line.strip()
+                if line:
+                    http_response_lines.append(line)
+            self._transport_info[u'http_response_lines'] = http_response_lines
 
         # note the WebSocket extensions negotiated
         self._transport_info[u'websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
@@ -486,9 +487,13 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         #
         self._transport_info = {
             u'type': 'rawsocket',
-            u'protocol': None,  # FIXME
+            u'protocol': None,
             u'peer': self.peer
         }
+
+    def _on_handshake_complete(self):
+        self._transport_info[u'protocol'] = u'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
+        return rawsocket.WampRawSocketServerProtocol._on_handshake_complete(self)
 
     def lengthLimitExceeded(self, length):
         self.log.error("failing RawSocket connection - message length exceeded: message was {len} bytes, but current maximum is {maxlen} bytes",
