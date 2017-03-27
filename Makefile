@@ -56,6 +56,10 @@ install_deps:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
 
 install:
+	pip install -r requirements.txt
+	pip install .
+
+install_dev:
 	pip install -e .
 
 # upload to our internal deployment system

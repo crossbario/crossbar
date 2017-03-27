@@ -55,7 +55,14 @@ extras_require = {
     ]
 }
 
-with open('requirements-min.txt') as f:
+
+# minimum, open-ended requirements
+reqs = 'requirements-min.txt'
+
+# pinned & hashed requirements
+#reqs = 'requirements.txt'
+
+with open(reqs) as f:
     for line in f.read().splitlines():
         line = line.strip()
         if not line.startswith('#'):
