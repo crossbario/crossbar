@@ -2742,42 +2742,86 @@ if (typeof window !== "undefined") {
 ///////////////////////////////////////////////////////////////////////////////
 
 var log = require('./log.js');
-var msgpack = require('msgpack-lite');
+
+
+// generate a WAMP ID: this might be serializer specific, as
+// we need to enforce encoding into an integer, not float
+// eg we need to do some extra stuff for msgpack (json and
+// cbor are fine "as is")
+function newid () {
+   return Math.floor(Math.random() * 9007199254740992);
+}
+
 
 function JSONSerializer(replacer, reviver) {
    this.replacer = replacer;
    this.reviver = reviver;
    this.SERIALIZER_ID = 'json';
    this.BINARY = false;
+
+   // JSON encoder does not need anything special here
+   this.newid = newid;
 }
 
 JSONSerializer.prototype.serialize = function (obj) {
-   return JSON.stringify(obj, this.replacer);
+   try {
+      var payload = JSON.stringify(obj, this.replacer);
+      return payload;
+   } catch (e) {
+      log.warn('JSON encoding error', e);
+      throw e;
+   }
 };
 
 JSONSerializer.prototype.unserialize = function (payload) {
-   return JSON.parse(payload, this.reviver);
+   try {
+      var obj = JSON.parse(payload, this.reviver);
+      return obj;
+   } catch (e) {
+      log.warn('JSON decoding error', e);
+      throw e;
+   }
 };
 
 exports.JSONSerializer = JSONSerializer;
 
 
+// https://github.com/kawanet/msgpack-lite/
+// https://github.com/kawanet/int64-buffer
 var msgpack = require('msgpack-lite');
+
+// this is needed for correct msgpack serialization of WAMP session IDs
+var Uint64BE = require('int64-buffer').Uint64BE;
 
 function MsgpackSerializer() {
    this.SERIALIZER_ID = 'msgpack';
    this.BINARY = true;
    this.codec = msgpack.createCodec();
+
+   // msgpack: Uint64BE ensures that ID is encoded as int instead of double
+   this.newid = function () { return new Uint64BE(newid()); };
 }
 
 MsgpackSerializer.prototype.serialize = function (obj) {
-   return msgpack.encode(obj, {codec: this.codec});
+   try {
+      var payload = msgpack.encode(obj, {codec: this.codec});
+      return payload;
+   } catch (e) {
+      log.warn('MessagePack encoding error', e);
+      throw e;
+   }
 };
 
 MsgpackSerializer.prototype.unserialize = function (payload) {
-   // need to encapsulate ArrayBuffer into Uint8Array for msgpack decoding
-   // https://github.com/kawanet/msgpack-lite/issues/44
-   return msgpack.decode(new Uint8Array(payload), {codec: this.codec});
+   try {
+      // need to encapsulate ArrayBuffer into Uint8Array for msgpack decoding
+      // https://github.com/kawanet/msgpack-lite/issues/44
+      var obj = msgpack.decode(new Uint8Array(payload), {codec: this.codec});
+      return obj;
+   } catch (e) {
+      log.warn('MessagePack decoding error', e);
+      throw e;
+   }
 };
 
 /**
@@ -2806,32 +2850,38 @@ exports.MsgpackSerializer = MsgpackSerializer;
 // http://hildjj.github.io/node-cbor/
 var cbor = require('cbor');
 
-function CborSerializer() {
+function CBORSerializer() {
    this.SERIALIZER_ID = 'cbor';
    this.BINARY = true;
+
+   // CBOR encoder does not need anything special here
+   this.newid = newid;
 }
 
-CborSerializer.prototype.serialize = function (obj) {
+CBORSerializer.prototype.serialize = function (obj) {
    try {
-      return cbor.encode(obj);
+      var payload = cbor.encode(obj);
+      return payload;
    } catch (e) {
       log.warn('CBOR encoding error', e);
       throw e;
    }
 };
 
-CborSerializer.prototype.unserialize = function (payload) {
+CBORSerializer.prototype.unserialize = function (payload) {
    try {
-      return cbor.decodeAllSync(payload);
+      //var obj = cbor.decodeAllSync(payload)[0];
+      var obj = cbor.decodeFirstSync(payload);
+      return obj;
    } catch (e) {
       log.warn('CBOR decoding error', e);
       throw e;
    }
 };
 
-exports.CborSerializer = CborSerializer;
+exports.CBORSerializer = CBORSerializer;
 
-},{"./log.js":6,"cbor":22,"msgpack-lite":70}],16:[function(require,module,exports){
+},{"./log.js":6,"cbor":22,"int64-buffer":68,"msgpack-lite":70}],16:[function(require,module,exports){
 (function (global){
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -2854,9 +2904,6 @@ var when_fn = require("when/function");
 
 var log = require('./log.js');
 var util = require('./util.js');
-
-// this is needed for correct msgpack serialization of WAMP session IDs
-var Uint64BE = require('int64-buffer').Uint64BE;
 
 // IE fallback (http://afuchs.tumblr.com/post/23550124774/date-now-in-ie8)
 Date.now = Date.now || function() { return +new Date; };
@@ -2902,14 +2949,6 @@ var WAMP_FEATURES = {
       }
    }
 };
-
-
-// generate a WAMP ID
-//
-function newid () {
-   // msgpack: Uint64BE ensures that ID is encoded as int instead of double
-   return new Uint64BE(Math.floor(Math.random() * 9007199254740992));
-}
 
 
 var Invocation = function (procedure,
@@ -3120,7 +3159,7 @@ var Session = function (socket, defer, onchallenge) {
 
 
    self._protocol_violation = function (reason) {
-      log.debug("failing transport due to protocol violation: " + reason);
+      log.warn("failing transport due to protocol violation: " + reason);
       self._socket.close(1002, "protocol violation: " + reason);
    };
 
@@ -4048,7 +4087,7 @@ Session.prototype.call = function (procedure, args, kwargs, options) {
    // create and remember new CALL request
    //
    var d = self._defer();
-   var request = newid();
+   var request = self._socket.serializer.newid();
    self._call_reqs[request] = [d, options];
 
    // construct CALL message
@@ -4100,7 +4139,7 @@ Session.prototype.publish = function (topic, args, kwargs, options) {
    // create and remember new PUBLISH request
    //
    var d = null;
-   var request = newid();
+   var request = self._socket.serializer.newid();
    if (options.acknowledge) {
       d = self._defer();
       self._publish_reqs[request] = [d, options];
@@ -4148,7 +4187,7 @@ Session.prototype.subscribe = function (topic, handler, options) {
 
    // create an remember new SUBSCRIBE request
    //
-   var request = newid();
+   var request = self._socket.serializer.newid();
    var d = self._defer();
    self._subscribe_reqs[request] = [d, topic, handler, options];
 
@@ -4189,7 +4228,7 @@ Session.prototype.register = function (procedure, endpoint, options) {
 
    // create an remember new REGISTER request
    //
-   var request = newid();
+   var request = self._socket.serializer.newid();
    var d = self._defer();
    self._register_reqs[request] = [d, procedure, endpoint, options];
 
@@ -4253,7 +4292,7 @@ Session.prototype.unsubscribe = function (subscription) {
 
       // create and remember new UNSUBSCRIBE request
       //
-      var request = newid();
+      var request = self._socket.serializer.newid();
       self._unsubscribe_reqs[request] = [d, subscription.id];
 
       // construct UNSUBSCRIBE message
@@ -4290,7 +4329,7 @@ Session.prototype.unregister = function (registration) {
 
    // create and remember new UNREGISTER request
    //
-   var request = newid();
+   var request = self._socket.serializer.newid();
    var d = self._defer();
    self._unregister_reqs[request] = [d, registration];
 
@@ -4360,7 +4399,7 @@ exports.Registration = Registration;
 exports.Publication = Publication;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./log.js":6,"./util.js":20,"int64-buffer":68,"when":123,"when/function":99}],17:[function(require,module,exports){
+},{"./log.js":6,"./util.js":20,"when":123,"when/function":99}],17:[function(require,module,exports){
 ///////////////////////////////////////////////////////////////////////////////
 //
 //  AutobahnJS - http://autobahn.ws, http://wamp.ws
@@ -4374,10 +4413,11 @@ exports.Publication = Publication;
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-var util = require('../util.js');
-var log = require('../log.js');
 
 var when = require('when');
+var util = require('../util.js');
+var log = require('../log.js');
+var serializer = require('../serializer.js');
 
 
 function Factory (options) {
@@ -4404,6 +4444,7 @@ Factory.prototype.create = function () {
 
    // these will get defined further below
    transport.protocol = undefined;
+   transport.serializer = new serializer.JSONSerializer();
    transport.send = undefined;
    transport.close = undefined;
 
@@ -4510,7 +4551,7 @@ Factory.prototype.create = function () {
 
                   function (payload) {
 
-                     if (payload) {                     
+                     if (payload) {
 
                         var msg = JSON.parse(payload);
 
@@ -4563,10 +4604,9 @@ Factory.prototype.create = function () {
 };
 
 
-
 exports.Factory = Factory;
 
-},{"../log.js":6,"../util.js":20,"when":123}],18:[function(require,module,exports){
+},{"../log.js":6,"../serializer.js":15,"../util.js":20,"when":123}],18:[function(require,module,exports){
 (function (global,Buffer){
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -4584,6 +4624,7 @@ exports.Factory = Factory;
 
 var util = require('../util.js');
 var log = require('../log.js');
+var serializer = require('../serializer.js');
 
 var EventEmitter = require('events').EventEmitter;
 
@@ -4615,6 +4656,7 @@ Factory.prototype.create = function () {
 
    // these will get defined further below
    transport.protocol = undefined;
+   transport.serializer = new serializer.JSONSerializer();
    transport.send = undefined;
    transport.close = undefined;
 
@@ -5264,7 +5306,7 @@ exports.Factory = Factory;
 exports.Protocol = Protocol;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"../log.js":6,"../util.js":20,"buffer":129,"events":131,"net":125}],19:[function(require,module,exports){
+},{"../log.js":6,"../serializer.js":15,"../util.js":20,"buffer":129,"events":131,"net":125}],19:[function(require,module,exports){
 (function (global){
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -5283,6 +5325,7 @@ exports.Protocol = Protocol;
 var util = require('../util.js');
 var log = require('../log.js');
 var serializer = require('../serializer.js');
+
 
 function Factory (options) {
    var self = this;
@@ -5494,7 +5537,6 @@ Factory.prototype.create = function () {
 
    return transport;
 };
-
 
 
 exports.Factory = Factory;
@@ -23250,7 +23292,7 @@ module.exports={
     "cbor": ">= 3.0.0",
     "tweetnacl": ">= 0.14.3",
     "when": ">= 3.7.7",
-    "ws": "< 2.0.0"
+    "ws": ">= 1.1.4"
   },
   "optionalDependencies": {
     "bufferutil": ">= 1.2.1",
