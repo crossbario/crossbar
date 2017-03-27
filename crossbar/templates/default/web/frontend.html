@@ -3,10 +3,12 @@
    <body>
       <h1>Hello WAMP/Browser - Frontend</h1>
       <p>Open JavaScript console to watch output.</p>
-      <script>AUTOBAHN_DEBUG = true;</script>
-      <script src="autobahn.min.js"></script>
+      <script>AUTOBAHN_DEBUG = false;</script>
+      <script src="js/autobahn.min.js"></script>
 
       <script>
+         console.log("Runnning on AutobahnJS ", autobahn.version);
+
          // the URL of the WAMP Router (Crossbar.io)
          //
          var wsuri;
@@ -36,7 +38,7 @@
          //
          connection.onopen = function (session, details) {
 
-            console.log("Connected");
+            console.log("Connected: ", details);
 
             // SUBSCRIBE to a topic and receive events
             //
@@ -54,13 +56,13 @@
             );
 
 
-            // PUBLISH an event every second
+            // PUBLISH an event every 2 seconds .. forever
             //
             t1 = setInterval(function () {
 
                session.publish('com.example.onhello', ['Hello from JavaScript (browser)']);
                console.log("published to topic 'com.example.onhello'");
-            }, 1000);
+            }, 2000);
 
 
             // REGISTER a procedure for remote calling
@@ -81,7 +83,7 @@
             );
 
 
-            // CALL a remote procedure every second
+            // CALL a remote procedure every 2 seconds .. forever
             //
             var x = 0;
 
@@ -97,7 +99,7 @@
                );
 
                x += 3;
-            }, 1000);
+            }, 2000);
          };
 
 

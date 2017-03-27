@@ -149,12 +149,16 @@ class Router(object):
         except KeyError:
             self._authid_to_sessions[details['authid']] = set([session])
 
+        self.log.info('>>>>> app session JOINED >>>>> "{realm}" >>>>>:\ndetails={details}', realm=self.realm, details=details)
+
     def _session_left(self, session, details):
         """
         Internal helper.
         """
         self._authid_to_sessions[details['authid']].discard(session)
         self._authrole_to_sessions[details['authrole']].discard(session)
+
+        self.log.info('<<<<<< app session LEFT <<<<<< "{realm}" <<<<<<:\ndetails={details}', realm=self.realm, details=details)
 
     def detach(self, session):
         """

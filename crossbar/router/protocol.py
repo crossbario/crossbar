@@ -114,23 +114,23 @@ def set_websocket_options(factory, options):
 
             params = c['compression']['deflate']
 
-            requestNoContextTakeover = params.get('request_no_context_takeover', False)
-            requestMaxWindowBits = params.get('request_max_window_bits', 0)
-            noContextTakeover = params.get('no_context_takeover', None)
-            windowBits = params.get('max_window_bits', None)
-            memLevel = params.get('memory_level', None)
+            request_no_context_takeover = params.get('request_no_context_takeover', False)
+            request_max_window_bits = params.get('request_max_window_bits', 0)
+            no_context_takeover = params.get('no_context_takeover', None)
+            window_bits = params.get('max_window_bits', None)
+            mem_level = params.get('memory_level', None)
 
             def accept(offers):
                 for offer in offers:
                     if isinstance(offer, PerMessageDeflateOffer):
-                        if (requestMaxWindowBits == 0 or offer.acceptMaxWindowBits) and \
-                           (not requestNoContextTakeover or offer.acceptNoContextTakeover):
+                        if (request_max_window_bits == 0 or offer.accept_max_window_bits) and \
+                           (not request_no_context_takeover or offer.accept_no_context_takeover):
                             return PerMessageDeflateOfferAccept(offer,
-                                                                requestMaxWindowBits=requestMaxWindowBits,
-                                                                requestNoContextTakeover=requestNoContextTakeover,
-                                                                noContextTakeover=noContextTakeover,
-                                                                windowBits=windowBits,
-                                                                memLevel=memLevel)
+                                                                request_max_window_bits=request_max_window_bits,
+                                                                request_no_context_takeover=request_no_context_takeover,
+                                                                no_context_takeover=no_context_takeover,
+                                                                window_bits=window_bits,
+                                                                mem_level=mem_level)
             per_msg_compression = accept
 
     factory.setProtocolOptions(
