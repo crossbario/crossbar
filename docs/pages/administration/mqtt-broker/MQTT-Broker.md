@@ -46,4 +46,4 @@ parameter | description
 
 ## Example
 
-There is a basic example for usage of the MQTT broker, and for trying things out in the [crossbarexamples repo](https://github.com/crossbario/crossbar-examples/mqtt).
+There is a basic example for usage of the MQTT broker, and for trying things out as part of the [autobahn-python examples](https://github.com/crossbario/autobahn-python/tree/master/examples/twisted/wamp/mqtt).
