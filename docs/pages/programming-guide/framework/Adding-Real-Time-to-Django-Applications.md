@@ -129,8 +129,10 @@ The monitoring front end is just a single page. Since this article is framework 
         Here I'm assuming we are using a browser with Websocket support.
         It's possible to fall back to flash or long poll, but that
         would require additional dependencies.
+
+        library can be found at https://github.com/crossbario/autobahn-js-built
     -->
-    <script src="https://autobahn.s3.amazonaws.com/autobahnjs/latest/autobahn.min.jgz"
+    <script src="autobahn.min.jgz"
            type="text/javascript"></script>
 
 
