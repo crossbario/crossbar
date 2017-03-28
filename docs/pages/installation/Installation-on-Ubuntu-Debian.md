@@ -109,6 +109,10 @@ Finally, start working in the virtual environment:
     cd ~/python-venv/
     . bin/activate
 
+Debian ships a very old pip so you must upgrade it in the virtualenv before proceeding:
+
+    pip install --upgrade pip setuptools
+
 Continue with the step [Installing Crossbar.io](#installing-crossbar.io).
 
 
