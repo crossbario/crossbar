@@ -164,7 +164,8 @@ For testing the database component, you can use the following AutobahnJS based W
 <!DOCTYPE html>
 <html>
    <body>
-      <script src="https://autobahn.s3.amazonaws.com/autobahnjs/latest/autobahn.min.jgz">
+      <!-- library can be found at https://github.com/crossbario/autobahn-js-built -->
+      <script src="autobahn.min.jgz">
       </script>
       <script>
          var connection = new autobahn.Connection({
