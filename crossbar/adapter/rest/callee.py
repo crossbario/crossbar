@@ -41,7 +41,7 @@ from autobahn.twisted.wamp import ApplicationSession
 class RESTCallee(ApplicationSession):
 
     def __init__(self, *args, **kwargs):
-        self._webtransport = kwargs.pop("webTransport")
+        self._webtransport = kwargs.pop("webTransport", None)
 
         if not self._webtransport:
             import treq
