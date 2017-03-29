@@ -43,10 +43,10 @@ freeze: clean
 	pip install -U virtualenv
 	virtualenv vers
 	vers/bin/pip install -r requirements-min.txt
-	vers/bin/pip freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-latest.txt
+	vers/bin/pip freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-pinned.txt
 	vers/bin/pip install hashin
 	rm requirements.txt
-	cat requirements-latest.txt | xargs vers/bin/hashin > requirements.txt
+	cat requirements-pinned.txt | xargs vers/bin/hashin > requirements.txt
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
