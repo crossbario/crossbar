@@ -149,7 +149,9 @@ class Router(object):
         except KeyError:
             self._authid_to_sessions[details['authid']] = set([session])
 
-        self.log.info('>>>>> app session JOINED >>>>> "{realm}" >>>>>:\ndetails={details}', realm=self.realm, details=details)
+        # log session details, but skip Crossbar.io internal sessions
+        if self.realm != u'crossbar':
+            self.log.info('>>>>> session {session_id} JOINED "{realm}" >>>>>\n\n{details}\n', session_id=details[u'session'], realm=self.realm, details=details)
 
     def _session_left(self, session, details):
         """
@@ -158,7 +160,9 @@ class Router(object):
         self._authid_to_sessions[details['authid']].discard(session)
         self._authrole_to_sessions[details['authrole']].discard(session)
 
-        self.log.info('<<<<<< app session LEFT <<<<<< "{realm}" <<<<<<:\ndetails={details}', realm=self.realm, details=details)
+        # log session details, but skip Crossbar.io internal sessions
+        if self.realm != u'crossbar':
+            self.log.info('<<<<<< session {session_id} LEFT "{realm}" <<<<<<\n\n{details}\n', session_id=details[u'session'], realm=self.realm, details=details)
 
     def detach(self, session):
         """

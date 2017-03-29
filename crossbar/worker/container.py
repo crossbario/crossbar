@@ -61,12 +61,12 @@ class ContainerComponent(object):
     This class is for _internal_ use within ContainerWorkerSession.
     """
 
-    def __init__(self, id, config, proto, session):
+    def __init__(self, component_id, config, proto, session):
         """
         Ctor.
 
-        :param id: The ID of the component within the container.
-        :type id: int
+        :param component_id: The ID of the component within the container.
+        :type component_id: int
         :param config: The component configuration the component was created from.
         :type config: dict
         :param proto: The transport protocol instance the component runs for talking
@@ -76,7 +76,7 @@ class ContainerComponent(object):
         :type session: Instance derived of ApplicationSession.
         """
         self.started = datetime.utcnow()
-        self.id = id
+        self.id = component_id
         self.config = config
         self.proto = proto
         self.session = session
@@ -150,7 +150,6 @@ class ContainerWorkerSession(NativeWorkerSession):
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
 
-    @inlineCallbacks
     def stop(self, details=None):
         """
         Stops the whole container gracefully by stopping all components
@@ -168,10 +167,8 @@ class ContainerWorkerSession(NativeWorkerSession):
         for component in self.components:
             dl.append(self.stop_component(component.id))
             stopped_component_ids.append(component.id)
-        yield DeferredList(dl)
-        yield self.leave()
-        yield self.disconnect()
-        returnValue(stopped_component_ids)
+        self.disconnect()
+        return stopped_component_ids
 
     def start_component(self, component_id, config, reload_modules=False, details=None):
         """
@@ -296,8 +293,8 @@ class ContainerWorkerSession(NativeWorkerSession):
         d = endpoint.connect(transport_factory)
 
         def on_connect_success(proto):
-            component = ContainerComponent(id, config, proto, None)
-            self.components[id] = component
+            component = ContainerComponent(component_id, config, proto, None)
+            self.components[component_id] = component
 
             # FIXME: this is a total hack.
             #
@@ -327,8 +324,10 @@ class ContainerWorkerSession(NativeWorkerSession):
                 component._stopped.callback(component.marshal())
 
                 if not self.components:
-                    self.log.info("Container is hosting no more components: shutting down.")
-                    self.stop_container()
+                    self.log.info("Container is hosting no more components: stopping container ...")
+                    self.stop()
+                else:
+                    self.log.info("Container is still hosting {component_count} components", component_count=len(self.components))
 
                 return r
 
