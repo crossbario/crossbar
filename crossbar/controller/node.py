@@ -255,6 +255,18 @@ class Node(object):
         # node private key autobahn.wamp.cryptosign.SigningKey
         self._node_key = None
 
+        # when running in managed mode, this will hold the uplink session to CFC
+        self._manager = None
+
+        # the node's management realm when running in managed mode (this comes from CFC!)
+        self._management_realm = None
+
+        # the node's ID when running in managed mode (this comes from CFC!)
+        self._node_id = None
+
+        # node extra when running in managed mode (this comes from CFC!)
+        self._node_extra = None
+
         # node controller session (a singleton ApplicationSession embedded
         # in the local node router)
         self._controller = None
@@ -415,13 +427,28 @@ class Node(object):
                         u"publisher": False
                     },
                     u"cache": True
+                },
+                {
+                    u"uri": u"crossbar.get_info",
+                    u"match": u"exact",
+                    u"allow": {
+                        u"call": True,
+                        u"register": False,
+                        u"publish": False,
+                        u"subscribe": False
+                    },
+                    u"disclose": {
+                        u"caller": False,
+                        u"publisher": False
+                    },
+                    u"cache": True
                 }
             ]
         }
         self._router_factory.add_role(self._realm, worker_role_config)
 
     def _drop_worker_role(self, worker_auth_role):
-        self._router_factory.drop_role(worker_auth_role)
+        self._router_factory.drop_role(self._realm, worker_auth_role)
 
     def _extend_worker_args(self, args, options):
         pass
@@ -481,14 +508,14 @@ class Node(object):
         cfg = ComponentConfig(self._realm)
         rlm.session = (self.ROUTER_SERVICE)(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
-        self.log.info('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
+        self.log.debug('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
 
         # add the node controller singleton component
         #
         self._controller = self.NODE_CONTROLLER(self)
 
         self._router_session_factory.add(self._controller, authrole=u'trusted')
-        self.log.info('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
+        self.log.debug('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
 
         # add extra node controller components
         #
@@ -698,7 +725,7 @@ class Node(object):
                         )
 
                     # start transports on router
-                    for transport in worker['transports']:
+                    for transport in worker.get('transports', []):
 
                         if 'id' in transport:
                             transport_id = transport.pop('id')
@@ -721,7 +748,7 @@ class Node(object):
                     # our node down. We remove this subscription 2
                     # seconds after we're done starting everything
                     # (see below). This is necessary as
-                    # start_container_component returns as soon as
+                    # start_component returns as soon as
                     # we've established a connection to the component
                     def component_exited(info):
                         component_id = info.get("id")
@@ -761,7 +788,7 @@ class Node(object):
                             component_id = 'component-{:03d}'.format(self._component_no)
                             self._component_no += 1
 
-                        yield self._controller.call(u'crossbar.worker.{}.start_container_component'.format(worker_id), component_id, component, options=call_options)
+                        yield self._controller.call(u'crossbar.worker.{}.start_component'.format(worker_id), component_id, component, options=call_options)
                         self.log.info("{worker}: component '{component_id}' started",
                                       worker=worker_logname, component_id=component_id)
 
@@ -796,4 +823,4 @@ class Node(object):
             else:
                 raise Exception("logic error")
 
-        self.log.info('Node configuration applied successfully!')
+        self.log.info('Local node configuration applied successfully!')

@@ -149,12 +149,20 @@ class Router(object):
         except KeyError:
             self._authid_to_sessions[details['authid']] = set([session])
 
+        # log session details, but skip Crossbar.io internal sessions
+        if self.realm != u'crossbar':
+            self.log.info('>>>>> session {session_id} JOINED "{realm}" >>>>>\n\n{details}\n', session_id=details[u'session'], realm=self.realm, details=details)
+
     def _session_left(self, session, details):
         """
         Internal helper.
         """
         self._authid_to_sessions[details['authid']].discard(session)
         self._authrole_to_sessions[details['authrole']].discard(session)
+
+        # log session details, but skip Crossbar.io internal sessions
+        if self.realm != u'crossbar':
+            self.log.info('<<<<<< session {session_id} LEFT "{realm}" <<<<<<\n\n{details}\n', session_id=details[u'session'], realm=self.realm, details=details)
 
     def detach(self, session):
         """
@@ -185,7 +193,10 @@ class Router(object):
     def send(self, session, msg):
         if self._check_trace(session, msg):
             self.log.info("<<TX<< {msg}", msg=msg)
-        session._transport.send(msg)
+        if session._transport:
+            session._transport.send(msg)
+        else:
+            self.log.warn('skip sending msg - transport already closed')
 
     def process(self, session, msg):
         """
@@ -439,11 +450,11 @@ class RouterFactory(object):
         return router
 
     def stop_realm(self, realm):
-        self.log.debug("CrossbarRouterFactory.stop_realm(realm = {realm})",
+        self.log.debug('CrossbarRouterFactory.stop_realm(realm="{realm}")',
                        realm=realm)
 
     def add_role(self, realm, config):
-        self.log.debug("CrossbarRouterFactory.add_role(realm = {realm}, config = {config})",
+        self.log.debug('CrossbarRouterFactory.add_role(realm="{realm}", config={config})',
                        realm=realm, config=config)
 
         assert(type(realm) == six.text_type)
@@ -463,8 +474,30 @@ class RouterFactory(object):
         router.add_role(role)
 
     def drop_role(self, realm, role):
-        self.log.debug("CrossbarRouterFactory.drop_role(realm = {realm}, role = {role})",
+        """
+        Drop a role.
+
+        :param realm: The name of the realm to drop.
+        :type realm: str
+        :param role: The URI of the role (on the realm) to drop.
+        :type role: str
+        """
+        self.log.debug('CrossbarRouterFactory.drop_role(realm="{realm}", role={role})',
                        realm=realm, role=role)
+
+        assert(type(realm) == six.text_type)
+        assert(type(role) == six.text_type)
+
+        if realm not in self._routers:
+            raise Exception('no router started for realm "{}"'.format(realm))
+
+        router = self._routers[realm]
+
+        if role not in router._roles:
+            raise Exception('no role "{}" started on router for realm "{}"'.format(role, realm))
+
+        role = router._roles[role]
+        router.drop_role(role)
 
     def auto_start_realm(self, realm):
         raise Exception("realm auto-activation (realm '{}') not yet implemented".format(realm))

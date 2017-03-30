@@ -46,16 +46,24 @@ with open('crossbar/__init__.py') as f:
     else:
         raise RuntimeError('could not read package version')
 
-# read requirements from requirements.txt
+# we read requirements from requirements*.txt files down below
 install_requires = []
 extras_require = {
-    'dev': [
-        'towncrier',
-        'tox',
-    ]
+    'dev': []
 }
 
-with open('requirements-min.txt') as f:
+
+# minimum, open-ended requirements
+# reqs = 'requirements-min.txt'
+
+# pinned requirements
+reqs = 'requirements-pinned.txt'
+
+# pinned & hashed requirements: we cannot use that here sadly,
+# as setuptools doesn't understand hashes ..
+# reqs = 'requirements.txt'
+
+with open(reqs) as f:
     for line in f.read().splitlines():
         line = line.strip()
         if not line.startswith('#'):
@@ -119,6 +127,7 @@ setup(
                  "Programming Language :: Python :: 3.3",
                  "Programming Language :: Python :: 3.4",
                  "Programming Language :: Python :: 3.5",
+                 "Programming Language :: Python :: 3.6",
                  "Programming Language :: Python :: Implementation :: CPython",
                  "Programming Language :: Python :: Implementation :: PyPy",
                  "Topic :: Internet",

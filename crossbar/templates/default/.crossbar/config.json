@@ -49,7 +49,7 @@
                         "paths": {
                             "/": {
                                 "type": "static",
-                                "directory": ".."
+                                "directory": "../web"
                             }
                         }
                     }

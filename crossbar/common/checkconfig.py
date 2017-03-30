@@ -326,9 +326,9 @@ def check_id(id):
     Check a configuration item ID.
     """
     if not isinstance(id, six.text_type):
-        raise InvalidConfigException("invalid configuration item ID '{}' - type must be string, was ".format(id, type(id)))
+        raise InvalidConfigException(u'invalid configuration item ID "{}" - type must be string, was {}'.format(id, type(id)))
     if not _CONFIG_ITEM_ID_PAT.match(id):
-        raise InvalidConfigException("invalid configuration item ID '{}' - must match regular expression {}".format(id, _CONFIG_ITEM_ID_PAT_STR))
+        raise InvalidConfigException(u'invalid configuration item ID "{}" - must match regular expression {}'.format(id, _CONFIG_ITEM_ID_PAT_STR))
 
 
 _REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
@@ -340,9 +340,9 @@ def check_realm_name(name):
     Check a realm name.
     """
     if not isinstance(name, six.text_type):
-        raise InvalidConfigException("invalid realm name '{}' - type must be string, was ".format(name, type(name)))
+        raise InvalidConfigException(u'invalid realm name "{}" - type must be string, was {}'.format(name, type(name)))
     if not _REALM_NAME_PAT.match(name):
-        raise InvalidConfigException("invalid realm name '{}' - must match regular expression {}".format(name, _REALM_NAME_PAT_STR))
+        raise InvalidConfigException(u'invalid realm name "{}" - must match regular expression {}'.format(name, _REALM_NAME_PAT_STR))
 
 
 def check_dict_args(spec, config, msg):
@@ -1203,6 +1203,18 @@ def check_web_path_service_redirect(config):
     }, config, "Web transport 'redirect' path service")
 
 
+def check_web_path_service_nodeinfo(config):
+    """
+    Check a "nodeinfo" path service on Web transport.
+
+    :param config: The path service configuration.
+    :type config: dict
+    """
+    check_dict_args({
+        'type': (True, [six.text_type]),
+    }, config, "Web transport 'nodeinfo' path service")
+
+
 def check_web_path_service_reverseproxy(config):
     """
     Check a "reverseproxy" path service on Web transport.
@@ -1515,10 +1527,10 @@ def check_web_path_service(path, config, nested):
 
     ptype = config['type']
     if path == '/' and not nested:
-        if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook']:
+        if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook', 'nodeinfo']:
             raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload']:
+        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo']:
             raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -1528,6 +1540,7 @@ def check_web_path_service(path, config, nested):
         'websocket': check_web_path_service_websocket,
         'longpoll': check_web_path_service_longpoll,
         'redirect': check_web_path_service_redirect,
+        'nodeinfo': check_web_path_service_nodeinfo,
         'reverseproxy': check_web_path_service_reverseproxy,
         'json': check_web_path_service_json,
         'cgi': check_web_path_service_cgi,
@@ -2811,7 +2824,6 @@ def check_controller_options(options):
     :param options: The options to check.
     :type options: dict
     """
-
     if not isinstance(options, Mapping):
         raise InvalidConfigException("'options' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(options)))
 
@@ -2832,6 +2844,25 @@ def check_controller_options(options):
                 raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
 
 
+def check_controller_fabric(fabric):
+    """
+    Check controller Fabric configuration override (which essentially is only
+    for debugging purposes or for people running Crossbar.io Fabric Service on-premise)
+
+    :param fabric: The Fabric configuration to check.
+    :type fabric: dict
+    """
+    if not isinstance(fabric, Mapping):
+        raise InvalidConfigException("'fabric' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(fabric)))
+
+    for k in fabric:
+        if k not in ['transport']:
+            raise InvalidConfigException("encountered unknown attribute '{}' in 'fabric' in controller configuration".format(k))
+
+    if 'transport' in fabric:
+        check_connecting_transport(fabric['transport'])
+
+
 def check_controller(controller):
     """
     Check a node controller configuration item.
@@ -2846,7 +2877,7 @@ def check_controller(controller):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'extra', 'manhole', 'connections']:
+        if k not in ['id', 'options', 'extra', 'manhole', 'connections', 'fabric']:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
@@ -2854,6 +2885,9 @@ def check_controller(controller):
 
     if 'options' in controller:
         check_controller_options(controller['options'])
+
+    if 'fabric' in controller:
+        check_controller_fabric(controller['fabric'])
 
     if 'manhole' in controller:
         check_manhole(controller['manhole'])

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+   <body>
+      <h1>Hello WAMP/Browser - backend</h1>
+      <p>Open JavaScript console to watch output.</p>
+      <script>AUTOBAHN_DEBUG = false;</script>
+      <script src="js/autobahn.min.js"></script>
+
+      <script>
+         console.log("Runnning on AutobahnJS ", autobahn.version);
+
+         // the URL of the WAMP Router (Crossbar.io)
+         //
+         var wsuri;
+         if (document.location.origin == "file://") {
+            wsuri = "ws://127.0.0.1:8080/ws";
+
+         } else {
+            wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+                        document.location.host + "/ws";
+         }
+
+
+         // the WAMP connection to the Router
+         //
+         var connection = new autobahn.Connection({
+            url: wsuri,
+            realm: "realm1"
+         });
+
+
+         // timers
+         //
+         var t1, t2;
+
+
+         // fired when connection is established and session attached
+         //
+         connection.onopen = function (session, details) {
+
+            console.log("Connected: ", details);
+
+            // SUBSCRIBE to a topic and receive events
+            //
+            function onhello (args) {
+               var msg = args[0];
+               console.log("event for 'onhello' received: " + msg);
+            }
+            session.subscribe('com.example.onhello', onhello).then(
+               function (sub) {
+                  console.log("subscribed to topic 'onhello'");
+               },
+               function (err) {
+                  console.log("failed to subscribed: " + err);
+               }
+            );
+
+
+            // REGISTER a procedure for remote calling
+            //
+            function add2 (args) {
+               var x = args[0];
+               var y = args[1];
+               console.log("add2() called with " + x + " and " + y);
+               return x + y;
+            }
+            session.register('com.example.add2', add2).then(
+               function (reg) {
+                  console.log("procedure add2() registered");
+               },
+               function (err) {
+                  console.log("failed to register procedure: " + err);
+               }
+            );
+
+
+            // PUBLISH and CALL every 2 seconds .. forever
+            //
+            var counter = 0;
+            setInterval(function () {
+
+               // PUBLISH an event
+               //
+               session.publish('com.example.oncounter', [counter]);
+               console.log("published to 'oncounter' with counter " + counter);
+
+               // CALL a remote procedure
+               //
+               session.call('com.example.mul2', [counter, 3]).then(
+                  function (res) {
+                     console.log("mul2() called with result: " + res);
+                  },
+                  function (err) {
+                     if (err.error !== 'wamp.error.no_such_procedure') {
+                        console.log('call of mul2() failed: ' + err);
+                     }
+                  }
+               );
+
+               counter += 1;
+            }, 2000);
+         };
+
+
+         // fired when connection was lost (or could not be established)
+         //
+         connection.onclose = function (reason, details) {
+            console.log("Connection lost: " + reason);
+            if (t1) {
+               clearInterval(t1);
+               t1 = null;
+            }
+            if (t2) {
+               clearInterval(t2);
+               t2 = null;
+            }
+         }
+
+
+         // now actually open the connection
+         //
+         connection.open();
+
+      </script>
+   </body>
+</html>

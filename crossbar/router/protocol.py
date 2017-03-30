@@ -114,23 +114,23 @@ def set_websocket_options(factory, options):
 
             params = c['compression']['deflate']
 
-            requestNoContextTakeover = params.get('request_no_context_takeover', False)
-            requestMaxWindowBits = params.get('request_max_window_bits', 0)
-            noContextTakeover = params.get('no_context_takeover', None)
-            windowBits = params.get('max_window_bits', None)
-            memLevel = params.get('memory_level', None)
+            request_no_context_takeover = params.get('request_no_context_takeover', False)
+            request_max_window_bits = params.get('request_max_window_bits', 0)
+            no_context_takeover = params.get('no_context_takeover', None)
+            window_bits = params.get('max_window_bits', None)
+            mem_level = params.get('memory_level', None)
 
             def accept(offers):
                 for offer in offers:
                     if isinstance(offer, PerMessageDeflateOffer):
-                        if (requestMaxWindowBits == 0 or offer.acceptMaxWindowBits) and \
-                           (not requestNoContextTakeover or offer.acceptNoContextTakeover):
+                        if (request_max_window_bits == 0 or offer.accept_max_window_bits) and \
+                           (not request_no_context_takeover or offer.accept_no_context_takeover):
                             return PerMessageDeflateOfferAccept(offer,
-                                                                requestMaxWindowBits=requestMaxWindowBits,
-                                                                requestNoContextTakeover=requestNoContextTakeover,
-                                                                noContextTakeover=noContextTakeover,
-                                                                windowBits=windowBits,
-                                                                memLevel=memLevel)
+                                                                request_max_window_bits=request_max_window_bits,
+                                                                request_no_context_takeover=request_no_context_takeover,
+                                                                no_context_takeover=no_context_takeover,
+                                                                window_bits=window_bits,
+                                                                mem_level=mem_level)
             per_msg_compression = accept
 
     factory.setProtocolOptions(
@@ -260,8 +260,23 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 u'type': 'websocket',
                 u'protocol': protocol,
                 u'peer': self.peer,
+
+                # all HTTP headers as received by the WebSocket client
                 u'http_headers_received': request.headers,
+
+                # only customer user headers (such as cookie)
                 u'http_headers_sent': headers,
+
+                # all HTTP response lines sent (verbatim, in order as sent)
+                # this will get filled in onOpen() from the HTTP response
+                # data that will be stored by AutobahnPython at the WebSocket
+                # protocol level (WebSocketServerProtocol)
+                # u'http_response_lines': None,
+
+                # WebSocket extensions in use .. will be filled in onOpen() - see below
+                u'websocket_extensions_in_use': None,
+
+                # Crossbar.io tracking ID (for cookie tracking)
                 u'cbtid': self._cbtid
             }
 
@@ -272,6 +287,21 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
 
         except Exception:
             traceback.print_exc()
+
+    def onOpen(self):
+        if False:
+            # this is little bit silly, we parse the complete response data into lines again
+            http_response_lines = []
+            for line in self.http_response_data.split('\r\n'):
+                line = line.strip()
+                if line:
+                    http_response_lines.append(line)
+            self._transport_info[u'http_response_lines'] = http_response_lines
+
+        # note the WebSocket extensions negotiated
+        self._transport_info[u'websocket_extensions_in_use'] = [e.__json__() for e in self.websocket_extensions_in_use]
+
+        return super(WampWebSocketServerProtocol, self).onOpen()
 
     def sendServerStatus(self, redirectUrl=None, redirectAfter=0):
         """
@@ -457,9 +487,13 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         #
         self._transport_info = {
             u'type': 'rawsocket',
-            u'protocol': None,  # FIXME
+            u'protocol': None,
             u'peer': self.peer
         }
+
+    def _on_handshake_complete(self):
+        self._transport_info[u'protocol'] = u'wamp.2.{}'.format(self._serializer.SERIALIZER_ID)
+        return rawsocket.WampRawSocketServerProtocol._on_handshake_complete(self)
 
     def lengthLimitExceeded(self, length):
         self.log.error("failing RawSocket connection - message length exceeded: message was {len} bytes, but current maximum is {maxlen} bytes",

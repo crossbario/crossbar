@@ -32,6 +32,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import signal
 from datetime import datetime
 # backport of shutil.which
 import shutilwhich  # noqa
@@ -46,6 +47,7 @@ from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 
+import crossbar
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
@@ -85,6 +87,10 @@ class NodeControllerSession(NativeProcessSession):
         'get_workers',
         'get_worker',
         'get_worker_log',
+
+        'start_worker',
+        # 'stop_worker',
+
         'start_router',
         'stop_router',
         'start_container',
@@ -162,7 +168,7 @@ class NodeControllerSession(NativeProcessSession):
 
         from autobahn.wamp.types import SubscribeOptions
 
-        self.log.info("Joined realm '{realm}' on node management router", realm=details.realm)
+        self.log.debug("Joined realm '{realm}' on node management router", realm=details.realm)
 
         # When a (native) worker process has connected back to the router of
         # the node controller, the worker will publish this event
@@ -192,12 +198,20 @@ class NodeControllerSession(NativeProcessSession):
         dl = []
         for proc in self.PROCS:
             uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.info('Registering management API procedure "{proc}"', proc=uri)
+            self.log.debug('Registering management API procedure "{proc}"', proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
         self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+
+        # we need to catch SIGINT here to properly shutdown the
+        # node explicitly (a Twisted system trigger wouldn't allow us to distinguish
+        # different reasons/origins of exiting ..)
+        def signal_handler(signal, frame):
+            # the following will shutdown the Twisted reactor in the end
+            self.shutdown()
+        signal.signal(signal.SIGINT, signal_handler)
 
         self._started = utcnow()
 
@@ -213,16 +227,28 @@ class NodeControllerSession(NativeProcessSession):
         :rtype: dict
         """
         return {
+            # eg "Crossbar.io COMMUNITY"
+            u'title': u'{} {}'.format(self._node.PERSONALITY, crossbar.__version__),
+
+            # basic information about the node
             u'started': self._started,
-            u'pid': self._pid,
-            u'workers': len(self._workers),
-            u'directory': self.cbdir
+            u'controller_pid': self._pid,
+            u'running_workers': len(self._workers),
+            u'directory': self.cbdir,
+            u'pubkey': self._node._node_key.public_key(),
+
+            # the following 3 come from CFC (and are only filled
+            # when the node personality is FABRIC!)
+            u'management_realm': self._node._management_realm,
+            u'management_node_id': self._node._node_id,
+            u'management_session_id': self._node._manager._session_id if self._node._manager else None,
+            u'management_node_extra': self._node._node_extra,
         }
 
     @inlineCallbacks
     def shutdown(self, restart=False, mode=None, details=None):
         """
-        Stop this node.
+        Explicitly stop this node.
         """
         if self._shutdown_requested:
             # we're already shutting down .. ignore ..
@@ -230,7 +256,7 @@ class NodeControllerSession(NativeProcessSession):
 
         self._shutdown_requested = True
 
-        self.log.warn("Shutting down node...")
+        self.log.info('Node shutdown requested ..')
 
         # publish management API event
         shutdown_info = {
@@ -316,6 +342,16 @@ class NodeControllerSession(NativeProcessSession):
             raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
 
         return self._workers[id].getlog(limit)
+
+    def start_worker(self, worker_id, worker_type, worker_options=None, details=None):
+        if worker_type in [u'router', u'container', u'websocket-testee']:
+            return self._start_native_worker(worker_type, worker_id, worker_options, details=details)
+
+        elif worker_type in [u'guest']:
+            return self.start_guest(worker_id, worker_options, details=details)
+
+        else:
+            raise Exception('invalid worker type "{}"'.format(worker_type))
 
     def start_router(self, id, options=None, details=None):
         """
@@ -490,8 +526,8 @@ class NodeControllerSession(NativeProcessSession):
         # ready handling
         #
         def on_ready_success(id):
-            self.log.info("{worker} with ID '{id}' and PID {pid} started",
-                          worker=worker_logname, id=worker.id, pid=worker.pid)
+            self.log.info('{worker_type} worker "{worker_id}" process {pid} started',
+                          worker_type=worker_logname, worker_id=worker.id, pid=worker.pid)
 
             self._node._reactor.addSystemEventTrigger(
                 'before', 'shutdown',
@@ -556,7 +592,9 @@ class NodeControllerSession(NativeProcessSession):
             return False
 
         def check_for_shutdown(was_successful):
-            shutdown = False
+            self.log.info('Checking for node shutdown: worker_exit_success={worker_exit_success}, shutdown_requested={shutdown_requested}, node_shutdown_triggers={node_shutdown_triggers}', worker_exit_success=was_successful, shutdown_requested=self._shutdown_requested, node_shutdown_triggers=self._node._node_shutdown_triggers)
+
+            shutdown = self._shutdown_requested
 
             # automatically shutdown node whenever a worker ended (successfully, or with error)
             #
@@ -579,17 +617,9 @@ class NodeControllerSession(NativeProcessSession):
             # initiate shutdown (but only if we are not already shutting down)
             #
             if shutdown:
-                if not self._shutdown_requested:
-                    self.log.info("Node shutting down ..")
-                    self.shutdown()
-                else:
-                    # ignore: shutdown already initiated ..
-                    self.log.info("Node is already shutting down.")
+                self.shutdown()
             else:
-                self.log.info(
-                    "Node will continue to run (node shutdown triggers active: {triggers})",
-                    triggers=self._node._node_shutdown_triggers,
-                )
+                self.log.info('Node will continue to run!')
 
         d_on_exit = worker.exit.addCallbacks(on_exit_success, on_exit_error)
         d_on_exit.addBoth(check_for_shutdown)
@@ -618,10 +648,10 @@ class NodeControllerSession(NativeProcessSession):
 
         # now actually fork the worker ..
         #
-        self.log.info("Starting {worker} with ID '{id}'...",
-                      worker=worker_logname, id=id)
-        self.log.debug("{worker} '{id}' command line is '{cmdline}'",
-                       worker=worker_logname, id=id, cmdline=' '.join(args))
+        self.log.info('{worker_logname} worker "{worker_id}" starting ..',
+                      worker_logname=worker_logname, worker_id=id)
+        self.log.debug('{worker_logname} "{worker_id}" command line is "{cmdline}"',
+                       worker_logname=worker_logname, worker_id=id, cmdline=' '.join(args))
 
         d = ep.connect(transport_factory)
 
@@ -884,8 +914,8 @@ class NodeControllerSession(NativeProcessSession):
             worker.status = 'started'
             worker.started = datetime.utcnow()
 
-            self.log.info("{worker} with ID '{id}' and PID {pid} started",
-                          worker=worker_logname, id=worker.id, pid=worker.pid)
+            self.log.info('{worker_logname} worker "{worker_id}" process {pid} started',
+                          worker_logname=worker_logname, worker_id=worker.id, pid=worker.pid)
 
             self._node._reactor.addSystemEventTrigger(
                 'before', 'shutdown',
@@ -993,10 +1023,10 @@ class NodeControllerSession(NativeProcessSession):
 
         # now actually fork the worker ..
         #
-        self.log.info("Starting {worker} with ID '{id}'...",
-                      worker=worker_logname, id=id)
-        self.log.debug("{worker} '{id}' using command line '{cli}'...",
-                       worker=worker_logname, id=id, cli=' '.join(args))
+        self.log.info('{worker_logname} "{worker_id}" process starting ..',
+                      worker_logname=worker_logname, worker_id=id)
+        self.log.debug('{worker_logname} "{worker_id}" process using command line "{cli}" ..',
+                       worker_logname=worker_logname, worker_id=id, cli=' '.join(args))
 
         d = ep.connect(transport_factory)
 

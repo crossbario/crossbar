@@ -43,19 +43,22 @@ freeze: clean
 	pip install -U virtualenv
 	virtualenv vers
 	vers/bin/pip install -r requirements-min.txt
-	vers/bin/pip freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-latest.txt
+	vers/bin/pip freeze --all | grep -v -e "wheel" -e "pip" -e "distribute" > requirements-pinned.txt
 	vers/bin/pip install hashin
 	rm requirements.txt
-	cat requirements-latest.txt | xargs vers/bin/hashin > requirements.txt
+	cat requirements-pinned.txt | xargs vers/bin/hashin > requirements.txt
 
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
 
-# install dependencies exactly
-install_deps:
-	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
-
+# install using pinned/hashed dependencies, as we do for packaging
 install:
+	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
+	pip install .
+
+# install for development, using pinned dependencies, and including dev-only dependencies
+install_dev:
+	pip install -r requirements-dev.txt
 	pip install -e .
 
 # upload to our internal deployment system
@@ -101,3 +104,37 @@ pylint:
 
 find_classes:
 	find crossbar -name "*.py" -exec grep -Hi "^class" {} \; | grep -iv test
+
+# sudo apt install gource ffmpeg
+gource:
+	gource \
+	--path . \
+	--seconds-per-day 0.15 \
+	--title "crossbar" \
+	-1280x720 \
+	--file-idle-time 0 \
+	--auto-skip-seconds 0.75 \
+	--multi-sampling \
+	--stop-at-end \
+	--highlight-users \
+	--hide filenames,mouse,progress \
+	--max-files 0 \
+	--background-colour 000000 \
+	--disable-bloom \
+	--font-size 24 \
+	--output-ppm-stream - \
+	--output-framerate 30 \
+	-o - \
+	| ffmpeg \
+	-y \
+	-r 60 \
+	-f image2pipe \
+	-vcodec ppm \
+	-i - \
+	-vcodec libx264 \
+	-preset ultrafast \
+	-pix_fmt yuv420p \
+	-crf 1 \
+	-threads 0 \
+	-bf 0 \
+	crossbar.mp4

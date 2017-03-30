@@ -135,7 +135,7 @@ def create_native_worker_client_factory(router_session_factory, authrole, on_rea
 
     # we need to increase the opening handshake timeout in particular, since starting up a worker
     # on PyPy will take a little (due to JITting)
-    factory.setProtocolOptions(failByDrop=False, openHandshakeTimeout=60, closeHandshakeTimeout=5)
+    factory.setProtocolOptions(failByDrop=False, openHandshakeTimeout=90, closeHandshakeTimeout=5)
 
     # on_ready is resolved in crossbar/controller/process.py:on_worker_ready around 175
     # after crossbar.node.<ID>.on_worker_ready is published to (in the controller session)

@@ -116,7 +116,19 @@ def get_node_classes():
     return res
 
 
+# load all node personality classes
 node_classes = get_node_classes()
+
+# default is "community"
+node_default_personality = u'community'
+
+# however, if available, choose "fabric" as default
+if u'fabric' in node_classes:
+    node_default_personality = u'fabric'
+
+# however, if available, choose "fabricservice" as default
+if u'fabricservice' in node_classes:
+    node_default_personality = u'fabricservice'
 
 
 def check_pid_exists(pid):
@@ -319,6 +331,27 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         lmdb_ver = '-'
 
+    # crossbarfabric (only Crossbar.io FABRIC)
+    try:
+        import crossbarfabric  # noqa
+        crossbarfabric_ver = '%s' % pkg_resources.require('crossbarfabric')[0].version
+    except ImportError:
+        crossbarfabric_ver = '-'
+
+    # crossbarfabricservice (only Crossbar.io FABRIC CENTER)
+    try:
+        import crossbarfabricservice  # noqa
+        crossbarfabricservice_ver = '%s' % pkg_resources.require('crossbarfabricservice')[0].version
+    except ImportError:
+        crossbarfabricservice_ver = '-'
+
+    # txaio-etcd (only Crossbar.io FABRIC CENTER)
+    try:
+        import txaioetcd  # noqa
+        txaioetcd_ver = '%s' % pkg_resources.require('txaioetcd')[0].version
+    except ImportError:
+        txaioetcd_ver = '-'
+
     # Release Public Key
     release_pubkey = _read_release_pubkey()
 
@@ -335,20 +368,25 @@ def run_command_version(options, reactor=None, **kwargs):
     log.info(" Crossbar.io        : {ver} ({personality})", ver=decorate(crossbar.__version__), personality=Node.PERSONALITY)
     log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
-    log.debug("     txaio             : {ver}", ver=decorate(txaio_ver))
-    log.debug("     UTF8 Validator    : {ver}", ver=decorate(utf8_ver))
+    log.debug("     txaio          : {ver}", ver=decorate(txaio_ver))
+    log.debug("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(utf8_loc))
-    log.debug("     XOR Masker        : {ver}", ver=decorate(xor_ver))
+    log.debug("     XOR Masker     : {ver}", ver=decorate(xor_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
-    log.debug("     JSON Codec        : {ver}", ver=decorate(json_ver))
-    log.debug("     MessagePack Codec : {ver}", ver=decorate(msgpack_ver))
-    log.debug("     CBOR Codec        : {ver}", ver=decorate(cbor_ver))
-    log.debug("     UBJSON Codec      : {ver}", ver=decorate(ubjson_ver))
+    log.debug("     JSON Codec     : {ver}", ver=decorate(json_ver))
+    log.debug("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
+    log.debug("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
+    log.debug("     UBJSON Codec   : {ver}", ver=decorate(ubjson_ver))
     log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
+    if options.personality in (u'fabric', u'fabricservice'):
+        log.info(" Crossbar.io Fabric : {ver}", ver=decorate(crossbarfabric_ver))
+    if options.personality == u'fabricservice':
+        log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabricservice_ver))
+        log.debug("   txaioetcd        : {ver}", ver=decorate(txaioetcd_ver))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
     log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
     log.info(" Release key        : {release_pubkey}", release_pubkey=decorate(release_pubkey[u'base64']))
@@ -637,7 +675,7 @@ def run_command_start(options, reactor=None):
         log.info(bannerFormat.format("Public Key:", click.style(pubkey, fg='yellow', bold=True)))
     log.info()
 
-    log.info('Node created with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
+    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
 
     log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
 
@@ -652,7 +690,7 @@ def run_command_start(options, reactor=None):
     except:
         raise
 
-    log.info("Controller process starting ({python}-{reactor}) ..",
+    log.info("Controller process starting [{python}-{reactor}] ..",
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
@@ -670,12 +708,23 @@ def run_command_start(options, reactor=None):
 
     reactor.callWhenRunning(start_crossbar)
 
-    # enter event loop
+    def after_reactor_stopped():
+        # FIXME: we are indeed reaching this line, however,
+        # the log output does not work (it also doesnt work using
+        # plain old print). Dunno why.
+        log.info('Node has been shut down [after_reactor_stopped].')
+
+    reactor.addSystemEventTrigger('after', 'shutdown', after_reactor_stopped)
+
+    # now enter event loop ..
     #
     try:
         reactor.run()
     except Exception:
         log.failure("Could not start reactor - {log_failure.value}")
+
+    # this line is _never_ reached! Twisted reactor will sys.exit() before
+    # under all circumstances
 
 
 def run_command_restart(options, **kwargs):
@@ -801,7 +850,7 @@ def run(prog=None, args=None, reactor=None):
 
     parser_version.add_argument('--personality',
                                 type=six.text_type,
-                                default='community',
+                                default=node_default_personality,
                                 choices=sorted(node_classes.keys()),
                                 help=("Node personality to run."))
 
@@ -872,7 +921,7 @@ def run(prog=None, args=None, reactor=None):
 
     parser_start.add_argument('--personality',
                               type=six.text_type,
-                              default='community',
+                              default=node_default_personality,
                               choices=sorted(node_classes.keys()),
                               help=("Node personality to run."))
 
