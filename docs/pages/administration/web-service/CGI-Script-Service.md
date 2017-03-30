@@ -84,6 +84,6 @@ Then start Crossbar.io
 
     crossbar start
 
-and open the page **[http://localhost:8080/myscripts/foo](http://localhost:8080/myscripts/foo)** in your browser. You should see a hello from the Python CGI script.
+and open the page `http://localhost:8080/myscripts/foo` in your browser. You should see a hello from the Python CGI script.
 
 ---

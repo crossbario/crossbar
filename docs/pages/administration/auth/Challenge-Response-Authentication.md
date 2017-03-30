@@ -5,7 +5,7 @@ toc: [Documentation, Administration, Authentication, Challenge Response Authenti
 
 ## Introduction
 
-Crossbar.io supports authenticating WAMP sessions using different mechanisms. One of those is [WAMP-Challenge-Response-Authentication](https://github.com/tavendo/WAMP/blob/master/spec/advanced.md#wamp-challenge-response-authentication), or WAMP-CRA in short.
+Crossbar.io supports authenticating WAMP sessions using different mechanisms. One of those is WAMP-Challenge-Response-Authentication ([see the WAMP spec](http://wamp-proto.org/spec/)), or WAMP-CRA in short.
 
 WAMP-CRA is a [challenge-response authentication](http://en.wikipedia.org/wiki/Challenge%E2%80%93response_authentication) mechanism using a secret shared between the client and server side:
 
