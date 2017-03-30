@@ -27,7 +27,6 @@ option         | description
 **`id`**       | The ID of the node (default: **hostname** of machine)
 **`options`**  | Controller process options - see below (default: **`{}`**).
 **`manager`**  | Uplink Crossbar.io management application (**upcoming**).
-**`manhole`**  | [Manhole](Manhole) into the controller.
 
 The available `options` are:
 
