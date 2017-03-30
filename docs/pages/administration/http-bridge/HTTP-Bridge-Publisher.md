@@ -255,7 +255,8 @@ The **HMAC[SHA256]** is computed w.r.t. the `secret`, and over the concatenation
 key | timestamp | seq | nonce | body
 ```
 
-The `body` is the JSON serialized event. You can look at working code [here](https://github.com/crossbario/crossbarconnect/blob/master/python/lib/crossbarconnect/client.py#L197).
+The `body` is the JSON serialized event.
+
 
 ## PHP - Symfony Publisher Bundle
 

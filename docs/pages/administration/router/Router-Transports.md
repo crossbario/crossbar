@@ -23,7 +23,7 @@ All of above is running over [Transport Endpoints](Transport Endpoints), so you 
 
 ## Background
 
-[WAMP](http://wamp.ws/) runs over any transport with the following characteristics (see the [spec](https://github.com/tavendo/WAMP/blob/master/spec/basic.md#transports)):
+[WAMP](http://wamp.ws/) runs over any transport with the following characteristics (see the [spec](http://wamp-proto.org/spec/)):
 
 1. message-based
 2. reliable
@@ -32,7 +32,7 @@ All of above is running over [Transport Endpoints](Transport Endpoints), so you 
 
 Over which WAMP transport an application component is connected to a router does not matter. It's completely transparent from the application component point of view.
 
-The [WAMP spec](https://github.com/wamp-proto/wamp-proto/blob/master/rfc/draft-oberstet-hybi-tavendo-wamp.html) currently defines these transports:
+The [WAMP spec](http://wamp-proto.org/spec/) currently defines these transports:
 
 * [WAMP-over-WebSocket Transport]
 * [WAMP-over-RawSocket Transport]

@@ -164,7 +164,7 @@ We provide help for creation and handling of TLS certificates on the [TLS Certif
 * [Sample configuration](https://github.com/crossbario/crossbarexamples/tree/master/encryption/tls)
 * [Python example for using TLS with Crossbar.io](https://github.com/crossbario/crossbarexamples/tree/master/wss/python)
 * [TLS Client Cert Authentication examples](https://github.com/crossbario/crossbarexamples/tree/master/authentication/tls)
-* [Crossbar.io demo instance production configuration](https://github.com/crossbario/crossbarexamples/blob/master/demos/_demo_launcher/.crossbar/config_prod_cdc.json) - an example of recommended strongly secure settings
+* [Crossbar.io demo instance production configuration](https://github.com/crossbario/crossbarexamples/blob/master/demos/_demo_launcher/.crossbar/config.json) - an example of recommended strongly secure settings
 
 
 
