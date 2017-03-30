@@ -88,7 +88,6 @@ parameter | description
 **`id`** | Optional container ID (default: `"container<N>"`)
 **`type`** | Must be `"container"`.
 **`options`** | Please see [Native Worker Options](Native Worker Options).
-**`manhole`** | Please see [Manhole](Manhole).
 **`components`** | A list of components. Please see below.
 **`connections`** | Not yet implemented.
 

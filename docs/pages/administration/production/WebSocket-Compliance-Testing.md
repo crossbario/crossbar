@@ -13,8 +13,6 @@ Protocol compliance is very important for two reasons:
 
 You don't want an evil client disturb or break your servers, or fail to serve clients because of interoperability issues.
 
-**Check out the compliance reports for Crossbar.io [here](http://crossbar.io/download/reports/20140319/index.html).**
-
 ## Testing yourself
 
 Install the testsuite:

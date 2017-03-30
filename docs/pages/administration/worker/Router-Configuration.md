@@ -25,10 +25,7 @@ A *Router* is configured as a *Worker*, more precisely a *Native Worker*, proces
          ],
          "components": [
             // app components running side-by-side with this router
-         ],
-         "manhole": {
-            // debugging access
-         }
+         ]
       }
    ]
 }
@@ -45,10 +42,6 @@ For configuration of `realms`, `transports` and `components`, have a look here
 * [[Router Transports]]
 * [[Router Components]]
 
-For the configuration of `manhole`, see
-
-* [[Manhole]]
-
 
 ## Configuration
 
@@ -57,7 +50,6 @@ parameter | description
 **`id`** | Optional router ID (default: `"router<N>"`)
 **`type`** | Must be `"router"`.
 **`options`** | Please see [Native Worker Options](Native Worker Options).
-**`manhole`** | Please see [Manhole](Manhole).
 **`realms`** | Please see [Router Realms](Router Realms).
 **`transports`** | Please see [Router Transports](Router Transports).
 **`components`** | A list of components. Please see below.

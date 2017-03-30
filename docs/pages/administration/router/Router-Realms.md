@@ -65,10 +65,7 @@ Realms are created on a *Router* as part of the *Router* configuration`:
          ],
          "components": [
             // app components running side-by-side with this router
-         ],
-         "manhole": {
-            // log live into running router via SSH (for debugging)
-         }
+         ]
       }
    ]
 }
