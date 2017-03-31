@@ -10,7 +10,7 @@ This recipe will guide you through installing Crossbar.io on the Pi. After this,
 
 ## Install Rasbian
 
-The recipe was tested with a complete fresh install of everything, beginning from the operating system. We will use [Raspbian]() as the operating system on the Pi. If you already have Raspbian running, you can skip this step.
+The recipe was tested with a complete fresh install of everything, beginning from the operating system. We will use [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) as the operating system on the Pi. If you already have Raspbian running, you can skip this step.
 
 To install Raspbian on your Pi, follow the [NOOBS installation guide](http://www.raspberrypi.org/help/noobs-setup/).
 

@@ -13,6 +13,5 @@ The following are language specific guides for application developers working wi
 * Advanced Topics
   - [Database Programming with PostgreSQL](Database Programming with PostgreSQL)
   - [Session Meta Events and Procedures](Session Metaevents and Procedures)
-  - [Using Schemas](Using Schemas)
   - [[AngularJS Application Components]]
 * [Starting and Stopping Crossbar.io](Starting and Stopping Crossbario)

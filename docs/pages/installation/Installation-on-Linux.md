@@ -5,9 +5,9 @@ toc: [Documentation, Installation, Installation on Linux]
 
 Crossbar.io provides official binary packages for several Linux distributions.
 
-> [Installation on Ubuntu](Installation on Ubuntu)
+> [Installation on Ubuntu](Installation on Ubuntu Debian)
 
-> [Installation on CentOS/RHEL](Installation on CentOS)
+> [Installation on CentOS/RHEL](Installation on CentOS and RedHat)
 
 If you can't use either of these options, these instructions will walk you through installing Crossbar.io from sources on any generic Linux.
 

@@ -5,7 +5,7 @@ toc: [Documentation, Installation, Installation on Docker]
 
 ## Install Docker
 
-To install Docker on Ubuntu from official repositories, follow [https://docs.docker.com/engine/installation/linux/ubuntu/](this]).
+To install Docker on Ubuntu from official repositories, follow [[https://docs.docker.com/engine/installation/linux/ubuntu/]].
 
 Once per host, do the following to add the Docker upstream Ubuntu/Debian repository
 

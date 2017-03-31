@@ -110,7 +110,6 @@ toc: [Documentation, Table of Contents]
    * [WAMP Features](WAMP Features)
       - Session
          + [Session Meta Events and Procedures](Session Metaevents and Procedures)
-         + [Using Schemas](Using Schemas)
       - [Publish & Subscribe (PubSub)](PubSub)
          + [How Subscriptions Work](How Subscriptions Work)
          + [Basic Subscriptions](Basic Subscriptions)
@@ -120,7 +119,7 @@ toc: [Documentation, Table of Contents]
          + [Pattern-Based Subscriptions](Pattern Based Subscriptions)
          + [Subscription Meta Events and Procedures](Subscription Meta Events and Procedures)
          + [Event History](Event History)
-      - Remote Procedure Calls (RPC)
+      - [Remote Procedure Calls](RPC)
          + [How Registrations Work](How Registrations Work)
          + [Basic Registrations](Basic Registrations)
          + [Caller Identification](Caller Identification)

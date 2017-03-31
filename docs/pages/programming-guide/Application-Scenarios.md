@@ -23,7 +23,7 @@ Application components can freely talk to each other, completely unaware of the 
 
 *More information:*
 
- * [Choose your Weapon](Choose your Weapon) - Getting started with Crossbar.io in different languages.
+ * [[Getting Started]] with Crossbar.io in different languages.
 
 _____________
 
@@ -125,5 +125,5 @@ _____________
 
 * [Arduino Yun with Autobahn](http://crossbario.com/blog/post/arduino-yun-with-autobahn/)
 * [Getting started with the RaspberryPi and Autobahn](http://crossbario.com/blog/post/pypy-on-the-pi/)
-* [Crossbar.io Architecture](Architecture)
+* [Crossbar.io Architecture](/about/Architecture)
 * [Why WAMP?](http://wamp.ws/why/)

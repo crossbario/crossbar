@@ -11,7 +11,7 @@ To use these Web services, configure a Crossbar.io [Router Worker](Router-Config
 * [Static Web Service](Static-Web-Service)
 * [File Upload Service](File-Upload-Service)
 * [WebSocket Service](WebSocket-Service)
-* [Long-poll Service](Long-poll-Service)
+* [Long-poll Service](Long-Poll-Service)
 * [Web Redirection Service](Web-Redirection-Service)
 * [Reverse Proxy Service](Reverse-Proxy-Service)
 * [JSON Value Service](JSON-Value-Service)

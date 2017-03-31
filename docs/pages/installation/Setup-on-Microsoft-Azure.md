@@ -56,4 +56,4 @@ var connection = new autobahn.Connection({
 
 ## Start developing
 
-We provide [getting started guides](Choose your Weapon) for various languages. WAMP client libraries may be available for languages not covered there. Check the [WAMP implementations list](http://wamp.ws/implementations) for the most current overview of supported languages.
+We provide [getting started guides](Getting Started) for various languages. WAMP client libraries may be available for languages not covered there. Check the [WAMP implementations list](http://wamp.ws/implementations) for the most current overview of supported languages.
