@@ -764,14 +764,18 @@ class RouterSession(BaseSession):
 
     def onLeave(self, details):
 
-        # todo: move me into detatch when session resumption happens
-        for msg in self._testaments[u"detatched"]:
-            self._router.process(self, msg)
+        # _router can be None when, e.g., authentication fails hard
+        # (e.g. the client aborts the connection during auth challenge
+        # because they hit a syntax error)
+        if self._router is not None:
+            # todo: move me into detatch when session resumption happens
+            for msg in self._testaments[u"detatched"]:
+                self._router.process(self, msg)
 
-        for msg in self._testaments[u"destroyed"]:
-            self._router.process(self, msg)
+            for msg in self._testaments[u"destroyed"]:
+                self._router.process(self, msg)
 
-        self._router._session_left(self, self._session_details)
+            self._router._session_left(self, self._session_details)
 
         # dispatch session metaevent from WAMP AP
         #
