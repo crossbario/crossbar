@@ -73,7 +73,7 @@ requests
 pip install requests
 ```
 
-and [psutil](pythonhosted.org/psutil/)
+and [psutil](http://pythonhosted.org/psutil/)
 
 "psutil" is the Python lib which will enable us to retrieve all the values for the RAM, the disk and the CPU. It uses C extensions, so you'll need a compiler and Python headers. Under Ubuntu, you'll need to do:
 
@@ -99,7 +99,7 @@ Then you can
 pip install psutil
 ```
 
-At last, we will need to [install Crossbar.io](http://crossbar.io/docs/Local-Installation/). The basic install can be done by doing
+At last, we will need to [install Crossbar.io](/docs/Installation/). The basic install can be done by doing
 
 ```sh
 pip install crossbar

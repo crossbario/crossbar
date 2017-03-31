@@ -1,5 +1,5 @@
 title: Long-poll Service
-toc: [Documentation, Administration, Web Services, Long-poll Service]
+toc: [Documentation, Administration, Web Services, Long-Poll Service]
 
 # Long-poll Service
 

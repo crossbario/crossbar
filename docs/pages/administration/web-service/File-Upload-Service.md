@@ -5,6 +5,8 @@ toc: [Documentation, Administration, Web Services, File Upload Service]
 
 The **File Upload Service** allows uploading of files to a directory on the Crossbar.io node via (chunked) HTTP/POSTs.
 
+> The file upload service has some issues, and may be removed in a future release. Use at your own risk!
+
 Modern browsers [support](http://caniuse.com/#feat=fileapi) the [HTML5 File API](http://www.w3.org/TR/FileAPI/) which allows users to select files from their local system to be uploaded by the browser. This service can handle big files (GBs) and when combined with [Resumable.js](http://www.resumablejs.com/) features:
 
 * upload one or multiple files
@@ -13,7 +15,7 @@ Modern browsers [support](http://caniuse.com/#feat=fileapi) the [HTML5 File API]
 * resuming uploads
 * progress indication via WAMP PubSub events
 
-> The *File Uploader* feature is available starting with Crossbar.io **0.11.0**.
+
 
 
 ## Configuration
@@ -78,7 +80,7 @@ In the example above the file name is passsed to the backend in a POST multipart
 To trigger post processing of files on the server one solution would be to create a WAMP client on the server (e.g. a python component using autobahn-python) which subscribes to the upload topic specified under the form field name given in `on_progress`. This component then checks the progress payload for the key/value `status="finished"` and can also extract custom additional data sent along from the client in the propertie with name given by `finish_extra`. Upon reception of this event the component can fire off post processing of the file.
 
 Another solution would be to use the python library [watchdog](https://pypi.python.org/pypi/watchdog) to watch on the upload folder. As long as the specified upload-temp folder and the upload folder reside on the same file system, the crossbar file uploader handles files such that all files are _moved_ into the upload folder which constitutes an atomic file system operation. Thereby no incompletely copied or downloaded files can be picked up by watchdog.
- 
+
 ---
 
 ## Resumable Uploads

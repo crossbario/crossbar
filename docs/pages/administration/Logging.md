@@ -38,4 +38,4 @@ You may combine the ``--loglevel`` switches with ``--logtofile``, but not ``--lo
 
 ## Adding logging to your components
 
-If you want to integrate with Crossbar.io's logging system, see [Logging in Crossbar.io](Logging in Crossbar.io).
+If you want to integrate with Crossbar.io's logging system, see [Logging in Crossbar.io](Logging in Crossbario).
