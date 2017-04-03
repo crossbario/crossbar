@@ -7,7 +7,9 @@ toc: [Documentation, Programming Guide, Subscriber Black and Whitelisting]
 
 There is a [complete white- and black- listing example](https://github.com/crossbario/crossbar-examples/tree/master/exclude_subscribers) with Python and JavaScript clients available.
 
-As per default, whenever there is a publication to a topic, a PubSub event is dispatched to all (authorized) subscribers to that topic other than the publisher itself. **Subscriber Black- and White- listing** restricts the set of subscribers who receive events for a particular publication. There are three ways to do blacklisting: `exclude`, `exclude_authid` and `exclude_authrole`; and three ways to do whitelisting: `eligible`, `eligible_authid`, and `eligible_authrole`.
+As per default, whenever there is a publication to a topic, a PubSub event is dispatched to all (authorized) subscribers to that topic other than the publisher itself. **Subscriber Black- and White- listing** restricts the set of subscribers who receive events for a particular publication.
+
+There are three ways to do blacklisting: `exclude` (using a list of session IDs to exclude), `exclude_authid` (using a list of authentication IDs to exclude) and `exclude_authrole` (using a list of authentication roles to exclude); and three corresponding ways to do whitelisting: `eligible`, `eligible_authid`, and `eligible_authrole`.
 
 ## Use Cases
 
