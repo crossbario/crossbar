@@ -133,7 +133,7 @@ The arguments to the call are:
  - `uri`: A string, the WAMP URI of the action being authorized
  - `action`: A string, one of `publish`, `subscribe`, `register`, or `call` indicating what is being authorized
 
-For fully-worked examples, see [crossbarexample/authorization](https://github.com/crossbario/crossbarexamples/tree/master/authorization/dynamic>).
+For fully working examples, see [crossbarexample/authorization](https://github.com/crossbario/crossbar-examples/tree/master/authorization/dynamic.
 
 E.g. consider the following Python function
 
