@@ -5,61 +5,7 @@ toc: [Documentation, Installation, Installation on Docker]
 
 ## Install Docker
 
-To install Docker on Ubuntu from official repositories, follow [[https://docs.docker.com/engine/installation/linux/ubuntu/]].
-
-Once per host, do the following to add the Docker upstream Ubuntu/Debian repository
-
-```console
-sudo apt-get install -y --no-install-recommends \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    make \
-    software-properties-common
-```
-
-and this
-
-```console
-curl -fsSL https://apt.dockerproject.org/gpg | sudo apt-key add -
-
-sudo add-apt-repository \
-       "deb https://apt.dockerproject.org/repo/ \
-       ubuntu-$(lsb_release -cs) \
-       main"
-```
-
-Then, to install Docker
-
-```console
-sudo apt-get update
-sudo apt-get -y install docker-engine
-```
-
-This should give you
-
-```console
-ubuntu@ip-172-31-2-14:~$ which docker
-/usr/bin/docker
-ubuntu@ip-172-31-2-14:~$ sudo docker version
-Client:
- Version:      1.13.1
- API version:  1.26
- Go version:   go1.7.5
- Git commit:   092cba3
- Built:        Wed Feb  8 06:50:14 2017
- OS/Arch:      linux/amd64
-
-Server:
- Version:      1.13.1
- API version:  1.26 (minimum version 1.12)
- Go version:   go1.7.5
- Git commit:   092cba3
- Built:        Wed Feb  8 06:50:14 2017
- OS/Arch:      linux/amd64
- Experimental: false
-ubuntu@ip-172-31-2-14:~$
-```
+To install Docker follow the instructions at the [Docker Web site](https://docs.docker.com/engine/installation/) for your OS. For instructions below, we assume a Linux system.
 
 ## Pull the Crossbar.io Docker image
 
@@ -75,9 +21,36 @@ To start a new Docker container with Crossbar.io
 sudo docker run --rm -it -p 8080:8080 --name crossbar crossbario/crossbar
 ```
 
+If things are working, this logs the startup of Crossbar.io within the container, e.g. (first few lines only listed here)
+
+```console
+2017-04-06T14:19:31+0000 [Controller      1] New node key pair generated!
+2017-04-06T14:19:31+0000 [Controller      1] File permissions on node private key fixed!
+2017-04-06T14:19:31+0000 [Controller      1]      __  __  __  __  __  __      __     __
+2017-04-06T14:19:31+0000 [Controller      1]     /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
+2017-04-06T14:19:31+0000 [Controller      1]     \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
+2017-04-06T14:19:31+0000 [Controller      1]                                         
+2017-04-06T14:19:31+0000 [Controller      1] Version:     Crossbar.io COMMUNITY 17.3.1
+```
+
+If you navigate a browser to `http://localhost:8080` you should also see a Crossbar.io status page.
+
+This uses the default configuration file stored in the Docker container.
+
+To use you own configuration and data (e.g. for workers, to be served as Web content), you can either
+
+* start with a node directory from your host system, or
+* create a new image with the node directory embedded.
+
+Usually the former will be used during development and the latter for deployments.
+
 ## Start with node directory from host
 
-To start Crosssbar.io in a Docker container while providing a host directory as the node directory for the Crossbar.io node running inside the Docker container, do the following:
+With this method, you provide a directory to use as the node directory on starting the Docker container.
+
+Crossbar.io then uses this as the location to look for its configuration, for worker code or for Web content to serve.
+
+E.g. when you do the following
 
 ```console
 sudo docker run \
@@ -87,7 +60,7 @@ sudo docker run \
         --rm -it crossbario/crossbar
 ```
 
-Above will start Crossbar.io using the host directory
+Crossbar.io will start using the host directory
 
     {PWD}/crossbar
 
@@ -103,30 +76,7 @@ Put differently, the Crossbar.io inside Docker will start
 
     crossbar start --cbdir /node/.crossbar
 
-For example, in a first terminal
-
-```console
-cd ~
-git clone git@github.com:crossbario/crossbar-examples.git
-cd ~/crossbar-examples/docker/disclose
-sudo docker run \
-    -v ${PWD}/crossbar:/node \
-    -p 8080:8080 \
-    --name crossbar \
-    --rm -it crossbario/crossbar
-```
-
-and in a second terminal
-
-```console
-sudo docker run \
-    -v ${PWD}/client:/root --link crossbar \
-    --rm -it crossbario/autobahn-python:cpy3-alpine \
-    python /root/client.py --url ws://crossbar:8080/ws --realm realm1
-```
-
-This should give you the output as [here](https://github.com/crossbario/crossbar-examples/tree/master/docker/disclose).
-
+For an example of this in action, see e.g. the [Docker Publisher and Caller Disclosure example](https://github.com/crossbario/crossbar-examples/tree/master/docker/disclose).
 
 ## Create new image with node directory embedded
 
