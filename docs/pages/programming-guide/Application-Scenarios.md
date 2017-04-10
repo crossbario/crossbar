@@ -107,7 +107,7 @@ The Web server built into Crossbar.io has some more features which are useful so
 
 *More information:*
 
-* [Crossbar.io Web services](Web-Transports-and-Services#path-services)
+* [Crossbar.io Web services](Web Services)
 
 _____________
 <br>
