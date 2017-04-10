@@ -49,3 +49,10 @@ The following introduces different areas of WAMP application programming with Cr
 - [Adding Real-Time to Django Applications](Adding Real Time to Django Applications)
 - [[AngularJS Application Components]]
 - [Database Programming with PostgreSQL](Database Programming with PostgreSQL)
+
+### Specific Languages
+
+Details of programming depend on the [specific WAMP library](/about/Supported-Languages/) you are using. You may find more information in the documentation for the respective libraries, e.g.
+
+- [Programming with Autobahn|Python](http://autobahn.readthedocs.io/en/latest/wamp/programming.html)
+- [Programming with Autobahn|JavaScript](https://github.com/crossbario/autobahn-js/blob/master/doc/programming.md)

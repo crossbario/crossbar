@@ -7,7 +7,7 @@ toc: [Documentation, Installation, Installation on Ubuntu Snappy]
 
 **Crossbar.io publishes an official binary package for Ubuntu Snappy.**
 
-> Note: Ubuntu Snappy is a specialised version of regular Ubuntu. If you are using regular Ubuntu, please read [Installation on Ubuntu](Installation on Ubuntu Debian) for installation instructions.
+> Note: Ubuntu Snappy is a specialised version of regular Ubuntu. If you are using regular Ubuntu, please read [Installation on Ubuntu and Debian](Installation on Ubuntu and Debian) for installation instructions.
 
 
 ## Installing
