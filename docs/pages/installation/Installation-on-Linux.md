@@ -5,7 +5,7 @@ toc: [Documentation, Installation, Installation on Linux]
 
 Crossbar.io provides official binary packages for several Linux distributions.
 
-> [Installation on Ubuntu](Installation on Ubuntu Debian)
+> [Installation on Ubuntu](Installation on Ubuntu and Debian)
 
 > [Installation on CentOS/RHEL](Installation on CentOS and RedHat)
 
