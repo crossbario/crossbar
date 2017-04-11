@@ -1625,7 +1625,7 @@ def check_listening_transport_mqtt(transport, with_endpoint=True):
     """
     Check a listening MQTT-WAMP transport configuration.
 
-    http://crossbar.io/docs/
+    http://crossbar.io/docs/MQTT-Broker/
 
     :param transport: The MQTT transport configuration to check.
     :type transport: dict
@@ -1642,12 +1642,18 @@ def check_listening_transport_mqtt(transport, with_endpoint=True):
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in MQTT transport item\n\n{}".format(pformat(transport)))
         check_listening_endpoint(transport['endpoint'])
 
-    # Check options...
+    # Check MQTT options...
     options = transport.get('options', {})
     check_dict_args({
         'realm': (True, [six.text_type]),
         'role': (False, [six.text_type]),
-    }, options, "invalid mqtt options")
+        'payload_format': (False, [six.text_type]),
+    }, options, "invalid MQTT options")
+
+    if 'payload_format' in options:
+        _VALID_MQTT_PAYLOAD_FORMATS = [u'passthrough', u'json', u'cbor', u'msgpack', u'ubjson']
+        if options[u'payload_format'] not in _VALID_MQTT_PAYLOAD_FORMATS:
+            raise InvalidConfigException('invalid MQTT payload format "{}" - must be one of {}'.format(options['payload_format'], _VALID_MQTT_PAYLOAD_FORMATS))
 
 
 def check_paths(paths, nested=False):

@@ -269,19 +269,6 @@ class Broker(object):
         #
         if subscriptions or publish.acknowledge or store_event or retain_event:
 
-            # If it's a MQTT publish, we need to adjust the arguments.
-            if getattr(publish, "_mqtt_publish", False):
-                from crossbar.adapter.mqtt.wamp import mqtt_payload_transform
-                tfd = mqtt_payload_transform(self._router._mqtt_payload_format,
-                                             publish.payload)
-
-                if not tfd:
-                    # If we have no message to give, drop it entirely
-                    return
-                else:
-                    publish.payload = None
-                    publish.args, publish.kwargs = tfd
-
             # validate payload
             #
             if publish.payload is None:
