@@ -47,7 +47,7 @@ from crossbar.router.session import RouterSession
 
 from autobahn import util
 from autobahn.wamp import message, role
-from autobahn.twisted.util import transport_channel_id
+from autobahn.twisted.util import transport_channel_id, peer2str
 from autobahn.websocket.utf8validator import Utf8Validator
 
 _validator = Utf8Validator()
@@ -111,9 +111,14 @@ def wamp_payload_transform(payload_format, event):
 class WampTransport(object):
     _authid = None
 
-    def __init__(self, on_message, real_transport):
+    def __init__(self, factory, on_message, real_transport):
+        self.factory = factory
         self.on_message = on_message
         self.transport = real_transport
+        self._transport_info = {
+            u'type': u'mqtt',
+            u'peer': peer2str(self.transport.getPeer()),
+        }
 
     def send(self, msg):
         self.on_message(msg)
@@ -187,14 +192,17 @@ class WampMQTTServerProtocol(Protocol):
             if payload_format == u'passthrough':
                 if inc_msg.enc_algo == u'mqtt':
                     payload = inc_msg.payload
+                else:
+                    self.log.warn('MQTT passthrough mode active, but EVENT was not encoded!')
             else:
                 payload = wamp_payload_transform(payload_format, inc_msg)
 
-            topic = inc_msg.topic or self._topic_lookup[inc_msg.subscription]
+            if payload:
+                topic = inc_msg.topic or self._topic_lookup[inc_msg.subscription]
 
-            self._mqtt.send_publish(
-                u"/".join(tokenise_wamp_topic(topic)), 0, payload,
-                retained=inc_msg.retained or False)
+                self._mqtt.send_publish(
+                    u"/".join(tokenise_wamp_topic(topic)), 0, payload,
+                    retained=inc_msg.retained or False)
 
         elif isinstance(inc_msg, message.Goodbye):
             if self._mqtt.transport:
@@ -225,9 +233,7 @@ class WampMQTTServerProtocol(Protocol):
         self._mqtt.transport = self.transport
 
         self._wamp_session = RouterSession(self.factory._wamp_session_factory._routerFactory)
-        self._wamp_session._is_mqtt = True
-        self._wamp_transport = WampTransport(self.on_message, self.transport)
-        self._wamp_transport.factory = self.factory
+        self._wamp_transport = WampTransport(self.factory, self.on_message, self.transport)
         self._wamp_session.onOpen(self._wamp_transport)
 
     def process_connect(self, packet):
