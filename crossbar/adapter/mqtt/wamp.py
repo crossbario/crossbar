@@ -410,25 +410,34 @@ class WampMQTTServerFactory(Factory):
     @inlineCallbacks
     def transform_wamp(self, topic, msg):
         payload_format = self._get_payload_format(topic)
-        payload_format_type = payload_format[u'type']
         mapped_topic = u'/'.join(topic.split(u'.'))
 
-        if payload_format_type == u'passthrough':
-            payload = msg.payload
+        # check for cached transformed payload
+        cache_key = u'_mqtt_{}_{}'.format(id(self), topic)
+        payload = msg._serialized.get(cache_key, None)
 
-        elif payload_format_type == u'native':
-            serializer = payload_format.get(u'serializer', None)
-            payload = self._transform_wamp_native(serializer, msg)
-
-        elif payload_format_type == u'dynamic':
-            encoder = payload_format.get(u'encoder', None)
-            codec_realm = payload_format.get(u'realm', self._realm)
-            payload = yield self._transform_wamp_dynamic(encoder, codec_realm, mapped_topic, topic, msg)
-
+        if payload:
+            self.log.debug('using cached payload for {cache_key} in message {msg_id}!', msg_id=id(msg), cache_key=cache_key)
         else:
-            raise Exception('payload format {} not implemented'.format(payload_format))
+            payload_format_type = payload_format[u'type']
 
-        self.log.info('transform_wamp({topic}, {msg}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, payload={payload}', topic=topic, msg=msg, payload_format=payload_format, mapped_topic=mapped_topic, payload=payload)
+            if payload_format_type == u'passthrough':
+                payload = msg.payload
+
+            elif payload_format_type == u'native':
+                serializer = payload_format.get(u'serializer', None)
+                payload = self._transform_wamp_native(serializer, msg)
+
+            elif payload_format_type == u'dynamic':
+                    encoder = payload_format.get(u'encoder', None)
+                    codec_realm = payload_format.get(u'realm', self._realm)
+                    payload = yield self._transform_wamp_dynamic(encoder, codec_realm, mapped_topic, topic, msg)
+            else:
+                raise Exception('payload format {} not implemented'.format(payload_format))
+
+            msg._serialized[cache_key] = payload
+
+        self.log.debug('transform_wamp({topic}, {msg}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, payload={payload}', topic=topic, msg=msg, payload_format=payload_format, mapped_topic=mapped_topic, payload=payload)
         returnValue((payload_format, mapped_topic, payload))
 
     @inlineCallbacks
@@ -479,7 +488,7 @@ class WampMQTTServerFactory(Factory):
         else:
             raise Exception('payload format {} not implemented'.format(payload_format))
 
-        self.log.info('transform_mqtt({topic}, {payload}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, options={options}', topic=topic, payload=payload, payload_format=payload_format, mapped_topic=mapped_topic, options=options)
+        self.log.debug('transform_mqtt({topic}, {payload}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, options={options}', topic=topic, payload=payload, payload_format=payload_format, mapped_topic=mapped_topic, options=options)
         returnValue((payload_format, mapped_topic, options))
 
     @inlineCallbacks
