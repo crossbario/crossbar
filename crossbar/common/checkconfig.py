@@ -1647,13 +1647,36 @@ def check_listening_transport_mqtt(transport, with_endpoint=True):
     check_dict_args({
         'realm': (True, [six.text_type]),
         'role': (False, [six.text_type]),
-        'payload_format': (False, [six.text_type]),
+        'payload_mapping': (False, [Mapping]),
     }, options, "invalid MQTT options")
 
-    if 'payload_format' in options:
-        _VALID_MQTT_PAYLOAD_FORMATS = [u'passthrough', u'json', u'cbor', u'msgpack', u'ubjson']
-        if options[u'payload_format'] not in _VALID_MQTT_PAYLOAD_FORMATS:
-            raise InvalidConfigException('invalid MQTT payload format "{}" - must be one of {}'.format(options['payload_format'], _VALID_MQTT_PAYLOAD_FORMATS))
+    check_realm_name(options['realm'])
+
+    if 'payload_mapping' in options:
+        for k, v in options['payload_mapping'].items():
+            if type(k) != six.text_type:
+                raise InvalidConfigException('invalid MQTT payload mapping key {}'.format(type(k)))
+            if not isinstance(v, Mapping):
+                raise InvalidConfigException('invalid MQTT payload mapping value {}'.format(type(v)))
+            if 'type' not in v:
+                raise InvalidConfigException('missing "type" in MQTT payload mapping {}'.format(v))
+            if v['type'] not in [u'passthrough', u'native', u'dynamic']:
+                raise InvalidConfigException('invalid "type" in MQTT payload mapping: {}'.format(v['type']))
+            if v['type'] == u'passthrough':
+                pass
+            elif v['type'] == u'native':
+                serializer = v.get(u'serializer', None)
+                if serializer not in [u'cbor', u'json', u'msgpack', u'ubjson']:
+                    raise InvalidConfigException('invalid serializer "{}" in MQTT payload mapping'.format(serializer))
+            elif v['type'] == u'dynamic':
+                encoder = v.get(u'encoder', None)
+                if type(encoder) != six.text_type:
+                    raise InvalidConfigException('invalid encoder "{}" in MQTT payload mapping'.format(encoder))
+                decoder = v.get(u'decoder', None)
+                if type(decoder) != six.text_type:
+                    raise InvalidConfigException('invalid decoder "{}" in MQTT payload mapping'.format(decoder))
+            else:
+                raise Exception('logic error')
 
 
 def check_paths(paths, nested=False):

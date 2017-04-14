@@ -34,6 +34,7 @@ import json
 import cbor
 
 from txaio import make_logger
+from pytrie import StringTrie
 
 from zope.interface import implementer
 
@@ -191,7 +192,7 @@ class WampMQTTServerProtocol(Protocol):
 
         self._mqtt.transport = self.transport
 
-        self._wamp_session = RouterSession(self.factory._wamp_session_factory._routerFactory)
+        self._wamp_session = RouterSession(self.factory._router_session_factory._routerFactory)
         self._wamp_transport = WampTransport(self.factory, self.on_message, self.transport)
         self._wamp_session.onOpen(self._wamp_transport)
 
@@ -368,11 +369,15 @@ class WampMQTTServerFactory(Factory):
 
     protocol = WampMQTTServerProtocol
 
-    def __init__(self, session_factory, config, reactor):
-        self._wamp_session_factory = session_factory
+    def __init__(self, router_session_factory, config, reactor):
+        self._router_session_factory = router_session_factory
+        self._router_factory = router_session_factory._routerFactory
         self._options = config.get(u'options', {})
-        self._payload_format = self._options.get(u'payload_format', {})
+        self._realm = self._options.get(u'realm', None)
         self._reactor = reactor
+        self._payload_mapping = StringTrie()
+        for topic, pmap in self._options.get(u'payload_mapping', {}).items():
+            self._set_payload_format(topic, pmap)
 
     def buildProtocol(self, addr):
         protocol = self.protocol(self._reactor)
@@ -388,37 +393,48 @@ class WampMQTTServerFactory(Factory):
         :returns: Payload format metadata.
         :rtype: dict
         """
-        payload_format = {
-            u'type': u'native',
-            u'serializer': u'cbor'
-        }
-        return payload_format
+        try:
+            pmap = self._payload_mapping.longest_prefix_value(topic)
+        except KeyError:
+            return None
+        else:
+            return pmap
+
+    def _set_payload_format(self, topic, pmap=None):
+        if pmap is None:
+            if topic in self._payload_mapping:
+                del self._payload_mapping[topic]
+        else:
+            self._payload_mapping[topic] = pmap
 
     @inlineCallbacks
     def transform_wamp(self, topic, msg):
         payload_format = self._get_payload_format(topic)
+        payload_format_type = payload_format[u'type']
         mapped_topic = u'/'.join(topic.split(u'.'))
 
-        if payload_format[u'type'] == u'passthrough':
+        if payload_format_type == u'passthrough':
             payload = msg.payload
 
-        elif payload_format[u'type'] == u'native':
+        elif payload_format_type == u'native':
             serializer = payload_format.get(u'serializer', None)
             payload = self._transform_wamp_native(serializer, msg)
 
-        elif payload_format == u'dynamic':
+        elif payload_format_type == u'dynamic':
             encoder = payload_format.get(u'encoder', None)
-            payload = yield self._transform_wamp_dynamic(encoder, mapped_topic, topic, msg)
+            codec_realm = payload_format.get(u'realm', self._realm)
+            payload = yield self._transform_wamp_dynamic(encoder, codec_realm, mapped_topic, topic, msg)
 
         else:
             raise Exception('payload format {} not implemented'.format(payload_format))
 
-        self.log.debug('transform_wamp({topic}, {msg}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, payload={payload}', topic=topic, msg=msg, payload_format=payload_format, mapped_topic=mapped_topic, payload=payload)
+        self.log.info('transform_wamp({topic}, {msg}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, payload={payload}', topic=topic, msg=msg, payload_format=payload_format, mapped_topic=mapped_topic, payload=payload)
         returnValue((payload_format, mapped_topic, payload))
 
     @inlineCallbacks
-    def _transform_wamp_dynamic(self, encoder, mapped_topic, topic, msg):
-        payload = yield self._service_session.call(encoder, mapped_topic, topic, msg.args, msg.kwargs)
+    def _transform_wamp_dynamic(self, encoder, codec_realm, mapped_topic, topic, msg):
+        codec_session = self._router_factory.get(codec_realm)._realm.session
+        payload = yield codec_session.call(encoder, mapped_topic, topic, msg.args, msg.kwargs)
         returnValue(payload)
 
     def _transform_wamp_native(self, serializer, msg):
@@ -457,17 +473,19 @@ class WampMQTTServerFactory(Factory):
 
         elif payload_format[u'type'] == u'dynamic':
             decoder = payload_format.get(u'decoder', None)
-            options = yield self._transform_mqtt_dynamic(decoder, mapped_topic, topic, payload)
+            codec_realm = payload_format.get(u'realm', self._realm)
+            options = yield self._transform_mqtt_dynamic(decoder, codec_realm, mapped_topic, topic, payload)
 
         else:
             raise Exception('payload format {} not implemented'.format(payload_format))
 
-        self.log.debug('transform_mqtt({topic}, {payload}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, options={options}', topic=topic, payload=payload, payload_format=payload_format, mapped_topic=mapped_topic, options=options)
+        self.log.info('transform_mqtt({topic}, {payload}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, options={options}', topic=topic, payload=payload, payload_format=payload_format, mapped_topic=mapped_topic, options=options)
         returnValue((payload_format, mapped_topic, options))
 
     @inlineCallbacks
-    def _transform_mqtt_dynamic(self, decoder, mapped_topic, topic, payload):
-        options = yield self._service_session.call(decoder, mapped_topic, topic, payload)
+    def _transform_mqtt_dynamic(self, decoder, codec_realm, mapped_topic, topic, payload):
+        codec_session = self._router_factory.get(codec_realm)._realm.session
+        options = yield codec_session.call(decoder, mapped_topic, topic, payload)
         returnValue(options)
 
     def _transform_mqtt_native(self, serializer, payload):
