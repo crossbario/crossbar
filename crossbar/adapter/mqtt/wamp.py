@@ -409,16 +409,16 @@ class WampMQTTServerFactory(Factory):
 
     @inlineCallbacks
     def transform_wamp(self, topic, msg):
-        payload_format = self._get_payload_format(topic)
-        mapped_topic = u'/'.join(topic.split(u'.'))
-
         # check for cached transformed payload
-        cache_key = u'_mqtt_{}_{}'.format(id(self), topic)
-        payload = msg._serialized.get(cache_key, None)
+        cache_key = u'_{}_{}'.format(self.__class__.__name__, id(self))
+        cached = msg._serialized.get(cache_key, None)
 
-        if payload:
+        if cached:
+            payload_format, mapped_topic, payload = cached
             self.log.debug('using cached payload for {cache_key} in message {msg_id}!', msg_id=id(msg), cache_key=cache_key)
         else:
+            payload_format = self._get_payload_format(topic)
+            mapped_topic = u'/'.join(topic.split(u'.'))
             payload_format_type = payload_format[u'type']
 
             if payload_format_type == u'passthrough':
@@ -435,7 +435,7 @@ class WampMQTTServerFactory(Factory):
             else:
                 raise Exception('payload format {} not implemented'.format(payload_format))
 
-            msg._serialized[cache_key] = payload
+            msg._serialized[cache_key] = (payload_format, mapped_topic, payload)
 
         self.log.debug('transform_wamp({topic}, {msg}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, payload={payload}', topic=topic, msg=msg, payload_format=payload_format, mapped_topic=mapped_topic, payload=payload)
         returnValue((payload_format, mapped_topic, payload))
