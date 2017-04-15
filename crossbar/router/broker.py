@@ -213,7 +213,6 @@ class Broker(object):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
-
         # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
         if self._option_uri_strict:
@@ -356,9 +355,13 @@ class Broker(object):
                     else:
                         me_also = True
 
+                    all_dl = []
+
                     # iterate over all subscriptions ..
                     #
                     for subscription in subscriptions:
+
+                        self.log.debug('dispatching for subscription={subscription}', subscription=subscription)
 
                         # persist event history, but check if it is persisted on the individual subscription!
                         #
@@ -404,25 +407,45 @@ class Broker(object):
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic)
 
-                            # a Deferred that fires when all chunks are done
-                            all_d = txaio.create_future()
                             chunk_size = self._options.event_dispatching_chunk_size
 
-                            def _notify_some(receivers):
-                                for receiver in receivers[:chunk_size]:
+                            if chunk_size:
+                                self.log.debug('chunked dispatching to {receivers_size} with chunk_size={chunk_size}', receivers_size=len(receivers), chunk_size=chunk_size)
+
+                                # a Deferred that fires when all chunks are done
+                                all_d = txaio.create_future()
+                                all_dl.append(all_d)
+
+                                def _notify_some(receivers):
+                                    for receiver in receivers[:chunk_size]:
+                                        if (me_also or receiver != session) and receiver != self._event_store:
+                                            # the receiving subscriber session
+                                            # might have no transport, or no
+                                            # longer be joined
+                                            if receiver._session_id and receiver._transport:
+                                                self._router.send(receiver, msg)
+                                    receivers = receivers[chunk_size:]
+                                    if len(receivers) > 0:
+                                        # still more to do ..
+                                        return txaio.call_later(0, _notify_some, receivers)
+                                    else:
+                                        # all done! resolve all_d, which represents all receivers
+                                        # to a single subscription matching the event
+                                        txaio.resolve(all_d, None)
+
+                                _notify_some(list(receivers))
+                            else:
+                                self.log.debug('unchunked dispatching to {receivers_size} receivers', receivers_size=len(receivers))
+
+                                for receiver in receivers:
                                     if (me_also or receiver != session) and receiver != self._event_store:
                                         # the receiving subscriber session
                                         # might have no transport, or no
                                         # longer be joined
                                         if receiver._session_id and receiver._transport:
                                             self._router.send(receiver, msg)
-                                receivers = receivers[chunk_size:]
-                                if len(receivers) > 0:
-                                    return txaio.call_later(0, _notify_some, receivers)
-                                else:
-                                    txaio.resolve(all_d, None)
-                            _notify_some(list(receivers))
-                            return all_d
+
+                    return txaio.gather(all_dl)
 
             def on_authorize_error(err):
                 """
