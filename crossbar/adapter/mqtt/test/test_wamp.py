@@ -473,7 +473,7 @@ class MQTTAdapterTests(TestCase):
             client_protocol.data,
             Publish(duplicate=False, qos_level=0, retain=False,
                     topic_name=u"com/test/wamp",
-                    payload=b'{"args": ["bar"]}').serialise()
+                    payload=b'{"args":["bar"]}').serialise()
         )
 
     def test_retained(self):
@@ -542,7 +542,7 @@ class MQTTAdapterTests(TestCase):
 
         client_transport.write(
             Connect(client_id=u"testclient", username=u"test123", password=u"password",
-                    will_topic=u"test", will_message=b'{"args": ["foobar"]}',
+                    will_topic=u"test", will_message=b'{"args":["foobar"]}',
                     flags=ConnectFlags(clean_session=False, username=True,
                                        password=True, will=True)).serialise())
 

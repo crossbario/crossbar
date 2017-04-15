@@ -30,9 +30,6 @@
 
 from __future__ import absolute_import, division, print_function
 
-import json
-import cbor
-
 from txaio import make_logger
 from pytrie import StringTrie
 
@@ -49,6 +46,7 @@ from crossbar.router.session import RouterSession
 
 from autobahn import util
 from autobahn.wamp import message, role
+from autobahn.wamp.serializer import JsonObjectSerializer, MsgPackObjectSerializer, CBORObjectSerializer, UBJSONObjectSerializer
 from autobahn.twisted.util import transport_channel_id, peer2str
 from autobahn.websocket.utf8validator import Utf8Validator
 
@@ -371,6 +369,13 @@ class WampMQTTServerFactory(Factory):
 
     protocol = WampMQTTServerProtocol
 
+    serializers = {
+        u'json': JsonObjectSerializer(),
+        u'msgpack': MsgPackObjectSerializer(),
+        u'cbor': CBORObjectSerializer(),
+        u'ubjson': UBJSONObjectSerializer(),
+    }
+
     def __init__(self, router_session_factory, config, reactor):
         self._router_session_factory = router_session_factory
         self._router_factory = router_session_factory._routerFactory
@@ -461,12 +466,12 @@ class WampMQTTServerFactory(Factory):
             attr = getattr(msg, opt, None)
             if attr is not None:
                 obj[opt] = attr
-        if serializer == u'cbor':
-            payload = cbor.dumps(obj)
-        elif serializer == u'json':
-            payload = json.dumps(obj, ensure_ascii=False).encode('utf8')
+
+        if serializer in self.serializers:
+            payload = self.serializers[serializer].serialize(obj)
         else:
             raise Exception('MQTT native mode payload transform: invalid serializer {}'.format(serializer))
+
         return payload
 
     @inlineCallbacks
@@ -509,16 +514,12 @@ class WampMQTTServerFactory(Factory):
         that is :class:`autobahn.wamp.message.Publish`.
         """
         options = {}
-        if serializer == u'json':
-            if _validator.validate(payload)[0]:
-                obj = json.loads(payload, encoding='utf8')
-            else:
-                # invalid UTF-8: drop the event
-                raise Exception('invalid UTF8 in JSON encoded MQTT payload')
-
-        elif serializer == u'cbor':
-            obj = cbor.loads(payload)
-
+        if serializer in self.serializers:
+            if serializer == u'json':
+                if not _validator.validate(payload)[0]:
+                    # invalid UTF-8: drop the event
+                    raise Exception('invalid UTF8 in JSON encoded MQTT payload')
+            obj = self.serializers[serializer].unserialize(payload)[0]
         else:
             raise Exception('"{}" serializer for encoded MQTT payload not implemented'.format(serializer))
 
