@@ -104,7 +104,7 @@ class AppSessionLoaderTests(TestCase):
              "or.AppSession'"),
             str(e.exception.args[0]))
         self.assertIn(
-            ("ImportError"),
+            ("ModuleNotFoundError"),
             str(e.exception.args[0]))
 
     def test_class_syntaxerror(self):

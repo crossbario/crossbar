@@ -61,6 +61,9 @@ from crossbar.twisted.endpoint import (create_listening_endpoint_from_config,
 
 from txaio.tx import make_logger
 
+# import txaio
+# txaio.start_logging(level='info')
+
 
 class ObservingSession(ApplicationSession):
     _topic = u'test'
@@ -68,9 +71,14 @@ class ObservingSession(ApplicationSession):
     @inlineCallbacks
     def onJoin(self, details):
         self.events = []
-        self.s = yield self.subscribe(
-            lambda *a, **kw: self.events.append({'args': a, 'kwargs': kw}),
-            self._topic)
+
+        def on_event(*a, **kw):
+            evt = {'args': a, 'kwargs': kw}
+            self.events.append(evt)
+            print(evt)
+            self.log.info('event on {topic}: {evt}', topic=self._topic, evt=evt)
+
+        self.s = yield self.subscribe(on_event, self._topic)
 
 
 def build_mqtt_server():
@@ -465,7 +473,7 @@ class MQTTAdapterTests(TestCase):
             client_protocol.data,
             Publish(duplicate=False, qos_level=0, retain=False,
                     topic_name=u"com/test/wamp",
-                    payload=b'{"args": ["bar"], "kwargs": null}').serialise()
+                    payload=b'{"args": ["bar"]}').serialise()
         )
 
     def test_retained(self):
@@ -515,7 +523,7 @@ class MQTTAdapterTests(TestCase):
             Publish(duplicate=False, qos_level=0, retain=True,
                     topic_name=u"com/test/wamp",
                     payload=json.dumps(
-                        {'args': [], 'kwargs': None},
+                        {},
                         sort_keys=True).encode('utf8')
                     ).serialise()
         )
@@ -554,5 +562,4 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(len(session.events), 1)
         self.assertEqual(
             session.events,
-            [{"args": (u"foobar",),
-              "kwargs": {}}])
+            [{"args": [u"foobar"]}])
