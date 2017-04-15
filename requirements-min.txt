@@ -2,6 +2,7 @@ click>=6.6
 setuptools>=28.3.0
 zope.interface>=4.3.2
 Twisted>=17.1.0
+txaio>=2.7.0
 autobahn>=0.18.2
 netaddr>=0.7.18
 PyTrie>=0.2

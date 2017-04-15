@@ -238,6 +238,7 @@ class WampMQTTServerProtocol(Protocol):
 
             if packet.flags.will:
 
+                @inlineCallbacks
                 @self._waiting_for_connect.addCallback
                 def process_will(res):
 
@@ -257,7 +258,7 @@ class WampMQTTServerProtocol(Protocol):
 
                     self._wamp_session.onMessage(msg)
 
-                    return res
+                    returnValue(res)
 
             return self._waiting_for_connect
         except:
