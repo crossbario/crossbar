@@ -26,12 +26,6 @@ Welcome to the Crossbar.io Reference Documentation.
 * [Application Templates](Application Templates)
 * [Examples](Examples)
 
-### DevOps Center
-
-* **[Getting Started with CDC](CDC Getting Started)**
-* [CDC Authentication](CDC Authentication)
-* [CDC API Reference](CDC API Reference)
-
 ### More
 
 * [Compatibility Policy](Compatibility-Policy)
