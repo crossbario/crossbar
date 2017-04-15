@@ -119,7 +119,7 @@ class WampMQTTServerProtocol(Protocol):
 
     @inlineCallbacks
     def _on_message(self, inc_msg):
-        self.log.info('WampMQTTServerProtocol._on_message(inc_msg={inc_msg})', inc_msg=inc_msg)
+        self.log.debug('WampMQTTServerProtocol._on_message(inc_msg={inc_msg})', inc_msg=inc_msg)
 
         if isinstance(inc_msg, message.Challenge):
             assert inc_msg.method == u"ticket"
@@ -199,7 +199,7 @@ class WampMQTTServerProtocol(Protocol):
     def process_connect(self, packet):
 
         try:
-            self.log.info('WampMQTTServerProtocol.process_connect(packet={packet})', packet=packet)
+            self.log.debug('WampMQTTServerProtocol.process_connect(packet={packet})', packet=packet)
 
             self._waiting_for_connect = Deferred()
 
@@ -241,22 +241,18 @@ class WampMQTTServerProtocol(Protocol):
                 @self._waiting_for_connect.addCallback
                 def process_will(res):
 
-                    # akw = mqtt_payload_transform(self._wamp_session._router._mqtt_payload_format, packet.will_message)
-                    akw = None
+                    payload_format, mapped_topic, options = yield self.factory.transform_mqtt(packet.will_topic, packet.will_message)
 
-                    if not akw:
-                        # Drop it I guess :(
-                        return res
-
-                    args, kwargs = akw
+                    request = util.id()
 
                     msg = message.Call(
-                        request=util.id(),
+                        request=request,
                         procedure=u"wamp.session.add_testament",
                         args=[
-                            u".".join(tokenise_mqtt_topic(packet.will_topic)),
-                            args, kwargs,
-                            {"retain": bool(packet.flags.will_retain)}
+                            mapped_topic,
+                            options.get('args', None),
+                            options.get('kwargs', None),
+                            {'retain': bool(packet.flags.will_retain)}
                         ])
 
                     self._wamp_session.onMessage(msg)
@@ -442,7 +438,7 @@ class WampMQTTServerFactory(Factory):
 
             msg._serialized[cache_key] = (payload_format, mapped_topic, payload)
 
-        self.log.info('transform_wamp({topic}, {msg}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, payload={payload}', topic=topic, msg=msg, payload_format=payload_format, mapped_topic=mapped_topic, payload=payload)
+        self.log.debug('transform_wamp({topic}, {msg}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, payload={payload}', topic=topic, msg=msg, payload_format=payload_format, mapped_topic=mapped_topic, payload=payload)
         returnValue((payload_format, mapped_topic, payload))
 
     @inlineCallbacks
@@ -474,6 +470,7 @@ class WampMQTTServerFactory(Factory):
 
     @inlineCallbacks
     def transform_mqtt(self, topic, payload):
+        topic = topic or u''
         payload_format = self._get_payload_format(topic)
         mapped_topic = u'.'.join(topic.split(u'/'))
 
@@ -495,7 +492,7 @@ class WampMQTTServerFactory(Factory):
         else:
             raise Exception('payload format {} not implemented'.format(payload_format))
 
-        self.log.info('transform_mqtt({topic}, {payload}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, options={options}', topic=topic, payload=payload, payload_format=payload_format, mapped_topic=mapped_topic, options=options)
+        self.log.debug('transform_mqtt({topic}, {payload}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, options={options}', topic=topic, payload=payload, payload_format=payload_format, mapped_topic=mapped_topic, options=options)
         returnValue((payload_format, mapped_topic, options))
 
     @inlineCallbacks
