@@ -49,7 +49,7 @@ class MessageForwarder(ApplicationSession):
     log = make_logger()
 
     def __init__(self, *args, **kwargs):
-        self._webtransport = kwargs.pop("webTransport")
+        self._webtransport = kwargs.pop("webTransport", None)
 
         if not self._webtransport:
             import treq
