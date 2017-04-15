@@ -74,6 +74,10 @@ publish: clean
 test: flake8
 	trial crossbar
 
+test_mqtt:
+#	trial crossbar.adapter.mqtt.test.test_wamp
+	trial crossbar.adapter.mqtt.test.test_wamp.MQTTAdapterTests.test_basic_publish
+
 full_test: clean flake8
 	trial crossbar
 

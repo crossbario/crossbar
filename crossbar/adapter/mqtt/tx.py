@@ -345,6 +345,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         # MQTT-4.8.0-2 - If we get a transient error (like
                         # publishing raising an exception), we must close the
                         # connection.
+                        self.log.failure()
                         self.log.failure(log_category="MQ504",
                                          client_id=self.session.client_id)
                         self.transport.loseConnection()

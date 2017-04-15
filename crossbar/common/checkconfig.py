@@ -1625,7 +1625,7 @@ def check_listening_transport_mqtt(transport, with_endpoint=True):
     """
     Check a listening MQTT-WAMP transport configuration.
 
-    http://crossbar.io/docs/
+    http://crossbar.io/docs/MQTT-Broker/
 
     :param transport: The MQTT transport configuration to check.
     :type transport: dict
@@ -1642,12 +1642,41 @@ def check_listening_transport_mqtt(transport, with_endpoint=True):
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in MQTT transport item\n\n{}".format(pformat(transport)))
         check_listening_endpoint(transport['endpoint'])
 
-    # Check options...
+    # Check MQTT options...
     options = transport.get('options', {})
     check_dict_args({
         'realm': (True, [six.text_type]),
         'role': (False, [six.text_type]),
-    }, options, "invalid mqtt options")
+        'payload_mapping': (False, [Mapping]),
+    }, options, "invalid MQTT options")
+
+    check_realm_name(options['realm'])
+
+    if 'payload_mapping' in options:
+        for k, v in options['payload_mapping'].items():
+            if type(k) != six.text_type:
+                raise InvalidConfigException('invalid MQTT payload mapping key {}'.format(type(k)))
+            if not isinstance(v, Mapping):
+                raise InvalidConfigException('invalid MQTT payload mapping value {}'.format(type(v)))
+            if 'type' not in v:
+                raise InvalidConfigException('missing "type" in MQTT payload mapping {}'.format(v))
+            if v['type'] not in [u'passthrough', u'native', u'dynamic']:
+                raise InvalidConfigException('invalid "type" in MQTT payload mapping: {}'.format(v['type']))
+            if v['type'] == u'passthrough':
+                pass
+            elif v['type'] == u'native':
+                serializer = v.get(u'serializer', None)
+                if serializer not in [u'cbor', u'json', u'msgpack', u'ubjson']:
+                    raise InvalidConfigException('invalid serializer "{}" in MQTT payload mapping'.format(serializer))
+            elif v['type'] == u'dynamic':
+                encoder = v.get(u'encoder', None)
+                if type(encoder) != six.text_type:
+                    raise InvalidConfigException('invalid encoder "{}" in MQTT payload mapping'.format(encoder))
+                decoder = v.get(u'decoder', None)
+                if type(decoder) != six.text_type:
+                    raise InvalidConfigException('invalid decoder "{}" in MQTT payload mapping'.format(decoder))
+            else:
+                raise Exception('logic error')
 
 
 def check_paths(paths, nested=False):

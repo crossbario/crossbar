@@ -854,7 +854,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             if 'mqtt' in config:
                 mqtt_factory = WampMQTTServerFactory(
-                    self._router_session_factory, config, self._reactor)
+                    self._router_session_factory, config['mqtt'], self._reactor)
                 mqtt_factory.noisy = False
             else:
                 mqtt_factory = None
