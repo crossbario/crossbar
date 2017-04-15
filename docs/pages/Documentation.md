@@ -3,30 +3,27 @@ toc: [Documentation]
 
 # Crossbar.io Documentation
 
-Welcome to the Crossbar.io Reference Documentation.
+Welcome to the [Crossbar.io Reference Documentation](Table of Contents).
 
-[Table of contents](Table of Contents).
+## Introduction
 
-> This documentation is an open-source community effort sponsored by [Crossbar.io GmbH](http://crossbario.com). Should you find errors or if you have suggestions, please file a doc issue [here](https://github.com/crossbario/crossbar/issues/new).
-
-### Getting Started
-
+* [Features](Features)
 * **[Quick Start](Quick Start)**
 * [Getting Started](Getting Started)
 
-### Administrators
+## Administrators
 
 * [Quick Reference](Quick Reference)
 * [Installation](Installation)
 * [Administration](Administration)
 
-### Programmers
+## Programmers
 
 * [Programming Guide](Programming Guide)
 * [Application Templates](Application Templates)
 * [Examples](Examples)
 
-### More
+## More
 
 * [Compatibility Policy](Compatibility-Policy)
 * [Crossbar.io Code License](Crossbar-License)
@@ -34,3 +31,5 @@ Welcome to the Crossbar.io Reference Documentation.
 * [Contributing to the Project](https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md)
 * [Contributing FAQ](Contributing FAQ)
 * [FAQ](FAQ)
+
+> This documentation is an open-source community effort sponsored by [Crossbar.io GmbH](http://crossbario.com). Should you find errors or if you have suggestions, please file a doc issue [here](https://github.com/crossbario/crossbar/issues/new).
