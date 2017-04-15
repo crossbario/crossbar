@@ -79,8 +79,10 @@ def build_mqtt_server():
     router_factory, server_factory, session_factory = make_router()
 
     add_realm_to_router(router_factory, session_factory)
-    router = add_realm_to_router(router_factory, session_factory, u'mqtt',
-                                 {u"mqtt_payload_format": "json"})
+    router = add_realm_to_router(router_factory,
+                                 session_factory,
+                                 realm_name=u'mqtt',
+                                 realm_options={})
 
     # allow everything
     default_permissions = {
@@ -94,7 +96,7 @@ def build_mqtt_server():
         }
     }
 
-    router.add_role(RouterRoleStaticAuth(router, 'mqttrole', default_permissions=default_permissions))
+    router.add_role(RouterRoleStaticAuth(router, u'mqttrole', default_permissions=default_permissions))
 
     class AuthenticatorSession(ApplicationSession):
 
@@ -145,20 +147,32 @@ def build_mqtt_server():
     authsession = AuthenticatorSession(config)
     session_factory.add(authsession, authrole=u"trusted")
 
-    mqtt_factory = WampMQTTServerFactory(session_factory, {"options": {
-        "auth": {
-            "ticket": {
-                "type": "dynamic",
-                "authenticator": u"com.example.auth",
-                "authenticator-realm": u"default",
+    options = {
+        u"options": {
+            u"realm": u"mqtt",
+            u"role": u"mqttrole",
+            u"payload_mapping": {
+                u"": {
+                    u"type": u"native",
+                    u"serializer": u"json"
+                }
             },
-            "tls": {
-                "type": "dynamic",
-                "authenticator": u"com.example.tls",
-                "authenticator-realm": u"default",
+            u"auth": {
+                u"ticket": {
+                    u"type": u"dynamic",
+                    u"authenticator": u"com.example.auth",
+                    u"authenticator-realm": u"default",
+                },
+                u"tls": {
+                    u"type": u"dynamic",
+                    u"authenticator": u"com.example.tls",
+                    u"authenticator-realm": u"default",
+                }
             }
         }
-    }}, reactor)
+    }
+
+    mqtt_factory = WampMQTTServerFactory(session_factory, options, reactor)
 
     server_factory._mqtt_factory = mqtt_factory
 
