@@ -46,11 +46,39 @@ from crossbar.router.session import RouterSession
 
 from autobahn import util
 from autobahn.wamp import message, role
+from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_LOOSE_LAST_EMPTY, _URI_PAT_LOOSE_EMPTY
 from autobahn.wamp.serializer import JsonObjectSerializer, MsgPackObjectSerializer, CBORObjectSerializer, UBJSONObjectSerializer
 from autobahn.twisted.util import transport_channel_id, peer2str
 from autobahn.websocket.utf8validator import Utf8Validator
 
 _validator = Utf8Validator()
+
+
+def _mqtt_sub_topic_to_wamp(topic):
+    """
+    Convert a MQTT topic as used in MQTT Subscribe (and hence ptoentially containing
+    special characters "+" and "#") to a WAMP URI and a match policy.
+    """
+    if u'+' in topic:
+        _match = u'wildcard'
+        _topic = topic.replace(u'+', u'')
+
+    elif topic[-1] == u'#':
+        _match = u'prefix'
+        _topic = topic[:-1]
+
+    else:
+        _match = u'exact'
+        _topic = topic[:]
+
+    _topic = u'.'.join(_topic.split(u'/'))
+
+    if (_match == u'exact' and not _URI_PAT_LOOSE_NON_EMPTY.match(_topic)) or \
+       (_match == u'prefix' and not _URI_PAT_LOOSE_LAST_EMPTY.match(_topic)) or \
+       (_match == u'wildcard' and not _URI_PAT_LOOSE_EMPTY.match(_topic)):
+            raise Exception('invalid WAMP URI "{}" (match="{}") after conversion from MQTT topic "{}"'.format(_topic, _match, topic))
+
+    return _topic, _match
 
 
 def tokenise_mqtt_topic(topic):
@@ -330,15 +358,17 @@ class WampMQTTServerProtocol(Protocol):
         self._inflight_subscriptions[packet.packet_identifier] = packet_watch
 
         for n, x in enumerate(packet.topic_requests):
-            # fixme
-            match_type = u"exact"
+
+            topic, match = _mqtt_sub_topic_to_wamp(x.topic_filter)
+
+            self.log.info('process_subscribe -> topic={topic}, match={match}', topic=topic, match=match)
 
             request_id = util.id()
 
             msg = message.Subscribe(
                 request=request_id,
-                topic=u".".join(tokenise_mqtt_topic(x.topic_filter)),
-                match=match_type,
+                topic=topic,
+                match=match,
                 get_retained=True,
             )
 
