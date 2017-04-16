@@ -3,6 +3,8 @@ toc: [Documentation, Administration, MQTT Broker, MQTT Broker]
 
 # MQTT Broker and Bridge
 
+> *WARNING: this feature is still in beta and configuration and functionality can change*
+
 Crossbar.io is a multi-protocol router with support for MQTT Version 3.1.1.
 
 You can use Crossbar.io both as a **standalone MQTT broker**, and to integrate MQTT clients with a WAMP based system.
@@ -48,26 +50,28 @@ Crossbar.io can run MQTT transports either as a *dedicated MQTT transport* or as
 
 To configure a *dedicated MQTT transport** in Crossbar.io, add a transport configuration item like below:
 
-```
-"transports": [
-    {
-        "id": "mqtt-001",
-        "type": "mqtt",
-        "endpoint": {
-            "type": "tcp",
-            "port": 1883
-        },
-        "options": {
-            "realm": "realm1",
-            "role": "anonymous",
-            "payload_mapping": {
-                "": {
-                    "type": "passthrough"
+```json
+{
+    "transports": [
+        {
+            "id": "mqtt-001",
+            "type": "mqtt",
+            "endpoint": {
+                "type": "tcp",
+                "port": 1883
+            },
+            "options": {
+                "realm": "realm1",
+                "role": "anonymous",
+                "payload_mapping": {
+                    "": {
+                        "type": "passthrough"
+                    }
                 }
             }
         }
-    }
-]
+    ]
+}
 ```
 
 parameter | description
@@ -140,42 +144,66 @@ The MQTT transport can also be configured as part of a **universal transport**, 
 
 ### Passthrough Payload Format
 
+**[Complete Example](https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/passthrough)**
+
 Crossbar.io can be configured to forward MQTT without touching in **passthrough mode**, which can be set on WAMP URI prefixes:
 
 ```json
-"payload_mapping": {
-    "": {
-        "type": "passthrough"
+{
+    "realm": "realm1",
+    "role": "anonymous",
+    "payload_mapping": {
+        "": {
+            "type": "passthrough"
+        }
     }
 }
 ```
+
+In **passthrough-mode**, MQTT payloads are transmitted in *payload transparency mode* on the wire, which means, Crossbar.io will not touch the (arbitrary binary) MQTT payload at all.
 
 
 ### Native Payload Format
 
+**[Complete Example](https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/native)**
+
 Crossbar.io can be configured to transform MQTT payload using a specified serializer in **native mode**, which can be set on WAMP URI prefixes:
 
 ```json
-"payload_mapping": {
-    "": {
-        "type": "native",
-        "serializer": "cbor"
+{
+    "realm": "realm1",
+    "role": "anonymous",
+    "payload_mapping": {
+        "": {
+            "type": "native",
+            "serializer": "cbor"
+        }
     }
 }
 ```
+
+In **native mode**, MQTT payloads are converted between WAMP structured application payload and MQTT binary payload using a statically configured serializer such as JSON, CBOR, MessagePack or UBJSON.
 
 
 ### Dynamic Payload Format
 
+**[Complete Example](https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/dynamic)**
+
 Crossbar.io can be configured to transform MQTT payload by calling user supplied payload codec procedures in **dynamic mode**, which can be set on WAMP URI prefixes:
 
 ```json
-"payload_mapping": {
-    "": {
-        "type": "dynamic",
-        "realm": "codec",
-        "encoder": "com.example.mqtt.encode",
-        "decoder": "com.example.mqtt.decode"
+{
+    "realm": "realm1",
+    "role": "anonymous",
+    "payload_mapping": {
+        "": {
+            "type": "dynamic",
+            "realm": "codec",
+            "encoder": "com.example.mqtt.encode",
+            "decoder": "com.example.mqtt.decode"
+        }
     }
 }
 ```
+
+In **dynamic**, MQTT payloads are converted between arbitrary binary and WAMP structured application payload by calling into a user provided *payload transformer function*, which can be implemented in any WAMP supported language.
