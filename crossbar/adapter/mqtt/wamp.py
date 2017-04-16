@@ -81,24 +81,23 @@ def _mqtt_sub_topic_to_wamp(topic):
     return _topic, _match
 
 
-def tokenise_mqtt_topic(topic):
+def _mqtt_topic_to_wamp(topic):
     """
-    Limitedly WAMP-ify and break it down into WAMP-like tokens.
+    Convert a MQTT topic as used in MQTT Publish to a WAMP URI.
     """
-    assert len(topic) > 0
-    topic = topic.replace(u"+", u"*")
+    _topic = u'.'.join(topic.split(u'/'))
 
-    return topic.split(u"/")
+    if not _URI_PAT_LOOSE_NON_EMPTY.match(_topic):
+        raise Exception('invalid WAMP URI "{}" after conversion from MQTT topic "{}"'.format(_topic, topic))
+
+    return _topic
 
 
-def tokenise_wamp_topic(topic):
+def _wamp_topic_to_mqtt(topic):
     """
-    Limitedly MQTT-ify and break it down into MQTT-like tokens.
+    Convert a WAMP URI as used in WAMP Publish to a MQTT topic.
     """
-    assert len(topic) > 0
-    topic = topic.replace(u"*", u"+")
-
-    return topic.split(u".")
+    return u'/'.join(topic.split(u'.'))
 
 
 class WampTransport(object):
@@ -454,8 +453,12 @@ class WampMQTTServerFactory(Factory):
             payload_format, mapped_topic, payload = cached
             self.log.debug('using cached payload for {cache_key} in message {msg_id}!', msg_id=id(msg), cache_key=cache_key)
         else:
+            # convert WAMP URI to MQTT topic
+            mapped_topic = _wamp_topic_to_mqtt(topic)
+
+            # for WAMP->MQTT, the payload mapping is determined from the
+            # WAMP URI (not the transformed MQTT topic)
             payload_format = self._get_payload_format(topic)
-            mapped_topic = u'/'.join(topic.split(u'.'))
             payload_format_type = payload_format[u'type']
 
             if payload_format_type == u'passthrough':
@@ -506,21 +509,25 @@ class WampMQTTServerFactory(Factory):
 
     @inlineCallbacks
     def transform_mqtt(self, topic, payload):
-        topic = topic or u''
-        payload_format = self._get_payload_format(topic)
-        mapped_topic = u'.'.join(topic.split(u'/'))
+        # transform MQTT topic to WAMP URI
+        mapped_topic = _mqtt_topic_to_wamp(topic)
 
-        if payload_format[u'type'] == u'passthrough':
+        # for MQTT->WAMP, the payload mapping is determined from the
+        # transformed WAMP URI (not the original MQTT topic)
+        payload_format = self._get_payload_format(mapped_topic)
+        payload_format_type = payload_format[u'type']
+
+        if payload_format_type == u'passthrough':
             options = {
                 u'payload': payload,
                 u'enc_algo': u'mqtt'
             }
 
-        elif payload_format[u'type'] == u'native':
+        elif payload_format_type == u'native':
             serializer = payload_format.get(u'serializer', None)
             options = self._transform_mqtt_native(serializer, payload)
 
-        elif payload_format[u'type'] == u'dynamic':
+        elif payload_format_type == u'dynamic':
             decoder = payload_format.get(u'decoder', None)
             codec_realm = payload_format.get(u'realm', self._realm)
             options = yield self._transform_mqtt_dynamic(decoder, codec_realm, mapped_topic, topic, payload)
