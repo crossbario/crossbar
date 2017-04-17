@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import, division, print_function
 
+import six
 from txaio import make_logger
 from pytrie import StringTrie
 
@@ -54,16 +55,37 @@ from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
 
 
-def _mqtt_sub_topic_to_wamp(topic):
+def _mqtt_topicfilter_to_wamp(topic):
     """
     Convert a MQTT topic as used in MQTT Subscribe (and hence ptoentially containing
     special characters "+" and "#") to a WAMP URI and a match policy.
     """
+    if type(topic) != six.text_type:
+        raise TypeError('invalid type "{}" for MQTT topic filter'.format(type(topic)))
+
     if u'+' in topic:
+        # check topic filter containing single-level wildcard character
+
+        # this is a restriction following from WAMP! we cannot have both
+        # wildcard and prefix matching combined.
+        if u'#' in topic:
+            raise TypeError('MQTT topic filter "{}" contains both single-level and multi-level wildcards, and this cannot be mapped to WAMP'.format(topic))
+
+        for c in topic.split(u'/'):
+            if c != u'+' and u'+' in c:
+                raise TypeError('invalid MQTT filter "{}": single-level wildcard characters must stand on their own in components'.format(topic))
+
         _match = u'wildcard'
         _topic = topic.replace(u'+', u'')
 
-    elif topic[-1] == u'#':
+    elif u'#' in topic:
+        # check topic filter containing multi-level wildcard character
+        # there can be only one occurence, and it must be at the end
+        if topic.find('#') != len(topic) - 1:
+            raise TypeError('invalid MQTT topic filter "{}": # multi-level wildcard character must only appear as last character'.format(topic))
+        if len(topic) > 1:
+            if topic[-2] != u'/':
+                raise TypeError('invalid MQTT topic filter "{}": # multi-level wildcard character must either appear solely, or be preceded by a / topic separator character'.format(topic))
         _match = u'prefix'
         _topic = topic[:-1]
 
@@ -71,24 +93,40 @@ def _mqtt_sub_topic_to_wamp(topic):
         _match = u'exact'
         _topic = topic[:]
 
-    _topic = u'.'.join(_topic.split(u'/'))
+    # MQTT spec 4.7.1.1: "The use of the topic level separator is significant when either
+    # of the two wildcard characters is encountered in the Topic Filters specified by subscribing Clients."
+    #
+    # FIXME: However, we still cannot leave the "/" character untouched and uninterpreted
+    # when no "+" or "#" was encountered
+    if True or _match != u'exact':
+        # replace MQTT level separator "/" with WAMP level separator "."
+        _topic = u'.'.join(_topic.split(u'/'))
 
     if (_match == u'exact' and not _URI_PAT_LOOSE_NON_EMPTY.match(_topic)) or \
        (_match == u'prefix' and not _URI_PAT_LOOSE_LAST_EMPTY.match(_topic)) or \
        (_match == u'wildcard' and not _URI_PAT_LOOSE_EMPTY.match(_topic)):
-            raise Exception('invalid WAMP URI "{}" (match="{}") after conversion from MQTT topic "{}"'.format(_topic, _match, topic))
+            raise TypeError('invalid WAMP URI "{}" (match="{}") after conversion from MQTT topic filter "{}"'.format(_topic, _match, topic))
 
     return _topic, _match
 
 
-def _mqtt_topic_to_wamp(topic):
+def _mqtt_topicname_to_wamp(topic):
     """
     Convert a MQTT topic as used in MQTT Publish to a WAMP URI.
     """
-    _topic = u'.'.join(topic.split(u'/'))
+    if type(topic) != six.text_type:
+        raise TypeError('invalid type "{}" for MQTT topic name'.format(type(topic)))
+
+    if u'#' in topic or u'+' in topic:
+        raise TypeError('invalid MQTT topic name "{}" - contains wildcard characters'.format(topic))
+
+    if u'/' in topic:
+        _topic = u'.'.join(topic.split(u'/'))
+    else:
+        _topic = topic
 
     if not _URI_PAT_LOOSE_NON_EMPTY.match(_topic):
-        raise Exception('invalid WAMP URI "{}" after conversion from MQTT topic "{}"'.format(_topic, topic))
+        raise TypeError('invalid WAMP URI "{}" after conversion from MQTT topic name "{}"'.format(_topic, topic))
 
     return _topic
 
@@ -358,7 +396,7 @@ class WampMQTTServerProtocol(Protocol):
 
         for n, x in enumerate(packet.topic_requests):
 
-            topic, match = _mqtt_sub_topic_to_wamp(x.topic_filter)
+            topic, match = _mqtt_topicfilter_to_wamp(x.topic_filter)
 
             self.log.info('process_subscribe -> topic={topic}, match={match}', topic=topic, match=match)
 
@@ -510,7 +548,7 @@ class WampMQTTServerFactory(Factory):
     @inlineCallbacks
     def transform_mqtt(self, topic, payload):
         # transform MQTT topic to WAMP URI
-        mapped_topic = _mqtt_topic_to_wamp(topic)
+        mapped_topic = _mqtt_topicname_to_wamp(topic)
 
         # for MQTT->WAMP, the payload mapping is determined from the
         # transformed WAMP URI (not the original MQTT topic)
