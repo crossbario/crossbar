@@ -757,7 +757,7 @@ class Node(object):
                             self._reactor.stop()
                         except twisted.internet.error.ReactorNotRunning:
                             pass
-                    topic = 'crossbar.worker.{}.container.on_component_stop'.format(worker_id)
+                    topic = u'crossbar.worker.{}.container.on_component_stop'.format(worker_id)
                     component_stop_sub = yield self._controller.subscribe(component_exited, topic)
 
                     # start connections (such as PostgreSQL database connection pools)
