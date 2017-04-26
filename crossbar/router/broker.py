@@ -85,7 +85,7 @@ class Broker(object):
 
     log = make_logger()
 
-    def __init__(self, router, options=None):
+    def __init__(self, router, reactor, options=None):
         """
 
         :param router: The router this dealer is part of.
@@ -95,6 +95,7 @@ class Broker(object):
         """
         self._router = router
         self._options = options or RouterOptions()
+        self._reactor = reactor
 
         # subscription map managed by this broker
         self._subscription_map = UriObservationMap()
