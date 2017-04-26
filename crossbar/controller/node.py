@@ -202,8 +202,9 @@ def _write_node_key(filepath, tags, msg):
     with open(filepath, 'w') as f:
         f.write(msg)
         for (tag, value) in tags.items():
-            if value:
-                f.write(u'{}: {}\n'.format(tag, value))
+            if value is None:
+                value = 'unknown'
+            f.write(u'{}: {}\n'.format(tag, value))
 
 
 class Node(object):
