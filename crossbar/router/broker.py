@@ -157,13 +157,15 @@ class Broker(object):
 
                 # publish WAMP meta events
                 #
-                if self._router._realm:
-                    service_session = self._router._realm.session
-                    if service_session and not subscription.uri.startswith(u'wamp.'):
+                if self._router._realm and self._router._realm.session:
+
+                    def _publish():
+                        service_session = self._router._realm.session
                         if was_subscribed:
                             service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
                         if was_deleted:
                             service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
+                    self._reactor.callLater(0, _publish)
 
             del self._session_to_subscriptions[session]
 
@@ -548,9 +550,10 @@ class Broker(object):
 
                 # publish WAMP meta events
                 #
-                if self._router._realm:
-                    service_session = self._router._realm.session
-                    if service_session and not subscription.uri.startswith(u'wamp.'):
+                if self._router._realm and self._router._realm.session:
+
+                    def _publish():
+                        service_session = self._router._realm.session
                         if is_first_subscriber:
                             subscription_details = {
                                 u'id': subscription.id,
@@ -561,6 +564,7 @@ class Broker(object):
                             service_session.publish(u'wamp.subscription.on_create', session._session_id, subscription_details)
                         if not was_already_subscribed:
                             service_session.publish(u'wamp.subscription.on_subscribe', session._session_id, subscription.id)
+                    self._reactor.callLater(0, _publish)
 
                 # check for retained events
                 #
@@ -678,13 +682,15 @@ class Broker(object):
 
         # publish WAMP meta events
         #
-        if self._router._realm:
-            service_session = self._router._realm.session
-            if service_session and not subscription.uri.startswith(u'wamp.'):
+        if self._router._realm and self._router._realm.session:
+
+            def _publish():
+                service_session = self._router._realm.session
                 if was_subscribed:
                     service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
                 if was_deleted:
                     service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
+            self._reactor.callLater(0, _publish)
 
         return was_subscribed, was_last_subscriber
 
