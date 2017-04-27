@@ -213,6 +213,12 @@ def _create_tls_server_context(config, cbdir, log):
 
     # create a TLS context factory
     # see: https://twistedmatrix.com/documents/current/api/twisted.internet.ssl.CertificateOptions.html
+    # XXX can we get CertificateOptions to do this for us?
+    from twisted.web import http
+    protocols = [b'http/1.1']
+    if http.H2_ENABLED:
+        protocols = [b'h2', b'http/1.1']
+
     ctx = CertificateOptions(
         privateKey=key,
         certificate=cert,
@@ -221,6 +227,7 @@ def _create_tls_server_context(config, cbdir, log):
         caCerts=ca_certs,
         dhParameters=dh_params,
         acceptableCiphers=crossbar_ciphers,
+        acceptableProtocols=protocols,
 
         # TLS hardening
         enableSingleUseKeys=True,
