@@ -1013,6 +1013,24 @@ def check_connecting_endpoint(endpoint):
         raise InvalidConfigException('logic error')
 
 
+def _check_milliseconds(name, value):
+    try:
+        value = int(value)
+    except ValueError:
+        raise InvalidConfigException(
+            "'{}' should be an integer (in milliseconds)".format(name)
+        )
+    if value < 0:
+        raise InvalidConfigException(
+            "'{}' must be positive integer".format(name)
+        )
+    if value != 0 and value < 1000:
+        raise InvalidConfigException(
+            "'{}' is in milliseconds; {} is too small".format(name, value)
+        )
+    return True
+
+
 def check_websocket_options(options):
     """
     Check WebSocket / WAMP-WebSocket protocol options.
@@ -1058,7 +1076,15 @@ def check_websocket_options(options):
         ]:
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket options".format(k))
 
-    # FIXME: do the actual checking of above!
+    millisecond_intervals = [
+        'open_handshake_timeout',
+        'close_handshake_timeout',
+        'auto_ping_interval',
+        'auto_ping_timeout',
+    ]
+    for k in millisecond_intervals:
+        if k in options:
+            _check_milliseconds(k, options[k])
 
     if 'compression' in options:
         check_websocket_compression(options['compression'])
