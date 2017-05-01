@@ -107,7 +107,8 @@ class _CommonResource(Resource):
 
         self.log.debug(code=code, **kwargs)
 
-        body = dump_json({"error": log_categories[kwargs['log_category']],
+        error_str = log_categories[kwargs['log_category']].format(**kwargs)
+        body = dump_json({"error": error_str,
                           "args": [], "kwargs": {}}, True).encode('utf8')
         request.setResponseCode(code)
         return body
