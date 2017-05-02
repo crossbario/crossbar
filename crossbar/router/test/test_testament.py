@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+import six
+
 from twisted.trial import unittest
 from twisted.internet.defer import inlineCallbacks
 
@@ -74,8 +76,8 @@ class TestamentTests(unittest.TestCase):
                          [u'hello'], {})
         pump.flush()
 
-        # Make sure it returns None
-        self.assertEqual(self.successResultOf(d), None)
+        # Make sure it returns a publication ID
+        self.assertIsInstance(self.successResultOf(d), six.integer_types)
 
         # No testament sent yet
         pump.flush()
@@ -119,8 +121,8 @@ class TestamentTests(unittest.TestCase):
                          [u'hello'], {})
         pump.flush()
 
-        # Make sure it returns None
-        self.assertEqual(self.successResultOf(d), None)
+        # Make sure it returns an integer (the testament event publication ID)
+        self.assertIsInstance(self.successResultOf(d), six.integer_types)
 
         # No testament sent yet
         pump.flush()
@@ -131,8 +133,8 @@ class TestamentTests(unittest.TestCase):
         d = session.call(u"wamp.session.flush_testaments")
         pump.flush()
 
-        # Make sure it returns None
-        self.assertEqual(self.successResultOf(d), None)
+        # Make sure it returns flushed count 1
+        self.assertEqual(self.successResultOf(d), 1)
 
         # Then leave...
         session.leave()
@@ -203,13 +205,13 @@ class TestamentTests(unittest.TestCase):
         d = session.call(u"wamp.session.add_testament", u"com.test.dc",
                          [u'destroyed'], {}, scope=u"destroyed")
         pump.flush()
-        self.assertEqual(self.successResultOf(d), None)
+        self.assertIsInstance(self.successResultOf(d), six.integer_types)
 
         # Add a detatched testament
         d = session.call(u"wamp.session.add_testament", u"com.test.dc",
                          [u'detatched'], {}, scope=u"detatched")
         pump.flush()
-        self.assertEqual(self.successResultOf(d), None)
+        self.assertIsInstance(self.successResultOf(d), six.integer_types)
 
         # No testament sent yet
         pump.flush()
@@ -220,8 +222,8 @@ class TestamentTests(unittest.TestCase):
         d = session.call(u"wamp.session.flush_testaments", scope=u"destroyed")
         pump.flush()
 
-        # Make sure it returns None
-        self.assertEqual(self.successResultOf(d), None)
+        # Make sure it returns number of flushed testaments
+        self.assertEqual(self.successResultOf(d), 1)
 
         # Then leave...
         session.leave()
