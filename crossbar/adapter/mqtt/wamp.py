@@ -40,7 +40,7 @@ from collections import OrderedDict
 
 from twisted.internet.interfaces import IHandshakeListener, ISSLTransport
 from twisted.internet.protocol import Protocol, Factory
-from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
+from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, succeed
 
 from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
 from crossbar.router.session import RouterSession
@@ -260,72 +260,126 @@ class WampMQTTServerProtocol(Protocol):
         self._wamp_session._transport_config = self.factory._options
 
     def process_connect(self, packet):
+        """
+        Process the initial Connect message from the MQTT client.
 
-        try:
-            self.log.debug('WampMQTTServerProtocol.process_connect(packet={packet})', packet=packet)
+        This should return a pair `(accept_conn, session_present)`, where
+        `accept_conn` is a return code:
 
-            self._waiting_for_connect = Deferred()
+        0: connection accepted
+        1-5: connection refused (see MQTT spec 3.2.2.3)
+        """
 
-            roles = {
-                u"subscriber": role.RoleSubscriberFeatures(
-                    payload_transparency=True),
-                u"publisher": role.RolePublisherFeatures(
-                    payload_transparency=True,
-                    x_acknowledged_event_delivery=True)
+        # Connect(client_id='paho/4E23D8C09DD9C6CF2C',
+        #         flags=ConnectFlags(username=False,
+        #                            password=False,
+        #                            will=False,
+        #                            will_retain=False,
+        #                            will_qos=0,
+        #                            clean_session=True,
+        #                            reserved=False),
+        #         keep_alive=60,
+        #         will_topic=None,
+        #         will_message=None,
+        #         username=None,
+        #         password=None)
+        self.log.info('WampMQTTServerProtocol.process_connect(packet={packet})', packet=packet)
+
+        # we don't support session resumption: https://github.com/crossbario/crossbar/issues/892
+        if not packet.flags.clean_session:
+            self.log.warn('denying MQTT connect from {peer}, as the clients wants to resume a session (which we do not support)', peer=peer2str(self.transport.getPeer()))
+            return succeed((1, False))
+
+        # we won't support QoS 2: https://github.com/crossbario/crossbar/issues/1046
+        if packet.flags.will and packet.flags.will_qos not in [0, 1]:
+            self.log.warn('denying MQTT connect from {peer}, as the clients wants to provide a "last will" event with QoS {will_qos} (and we only support QoS 0/1 here)', peer=peer2str(self.transport.getPeer()), will_qos=packet.flags.will_qos)
+            return succeed((1, False))
+
+        # this will be resolved when the MQTT connect handshake is completed
+        self._waiting_for_connect = Deferred()
+
+        roles = {
+            u"subscriber": role.RoleSubscriberFeatures(
+                payload_transparency=True,
+                pattern_based_subscription=True),
+            u"publisher": role.RolePublisherFeatures(
+                payload_transparency=True,
+                x_acknowledged_event_delivery=True)
+        }
+
+        realm = self.factory._options.get(u'realm', None)
+
+        authmethods = []
+        authextra = {
+            u'mqtt': {
+                u'client_id': packet.client_id,
+                u'will': bool(packet.flags.will),
+                u'will_topic': packet.will_topic
             }
+        }
 
-            realm = self.factory._options.get('realm', None)
-            methods = []
+        if ISSLTransport.providedBy(self.transport):
+            authmethods.append(u"tls")
 
-            if ISSLTransport.providedBy(self.transport):
-                methods.append(u"tls")
+        if packet.username and packet.password:
+            authmethods.append(u"ticket")
+            msg = message.Hello(
+                realm=realm,
+                roles=roles,
+                authmethods=authmethods,
+                authid=packet.username,
+                authextra=authextra)
+            self._pw_challenge = packet.password
 
-            if packet.username and packet.password:
-                methods.append(u"ticket")
-                msg = message.Hello(
-                    realm=realm,
-                    roles=roles,
-                    authmethods=methods,
-                    authid=packet.username)
-                self._pw_challenge = packet.password
+        else:
+            authmethods.append(u"anonymous")
+            msg = message.Hello(
+                realm=realm,
+                roles=roles,
+                authmethods=authmethods,
+                authid=packet.client_id,
+                authextra=authextra)
 
-            else:
-                methods.append(u"anonymous")
-                msg = message.Hello(
-                    realm=realm,
-                    roles=roles,
-                    authmethods=methods,
-                    authid=packet.client_id)
+        self._wamp_session.onMessage(msg)
 
-            self._wamp_session.onMessage(msg)
+        if packet.flags.will:
 
-            if packet.flags.will:
+            # it's unclear from the MQTT spec whether a) the publication of the last will
+            # is to happen in-band during "connect", and if it fails, deny the connection,
+            # or b) the last will publication happens _after_ "connect", and the connection
+            # succeeds regardless whether the last will publication succeeds or not.
+            #
+            # we opt for b) here!
+            #
+            @inlineCallbacks
+            @self._waiting_for_connect.addCallback
+            def process_will(res):
 
-                @inlineCallbacks
-                @self._waiting_for_connect.addCallback
-                def process_will(res):
+                self.log.info()
 
-                    payload_format, mapped_topic, options = yield self.factory.transform_mqtt(packet.will_topic, packet.will_message)
+                payload_format, mapped_topic, options = yield self.factory.transform_mqtt(packet.will_topic, packet.will_message)
 
-                    request = util.id()
+                request = util.id()
 
-                    msg = message.Call(
-                        request=request,
-                        procedure=u"wamp.session.add_testament",
-                        args=[
-                            mapped_topic,
-                            options.get('args', None),
-                            options.get('kwargs', None),
-                            {'retain': bool(packet.flags.will_retain)}
-                        ])
+                msg = message.Call(
+                    request=request,
+                    procedure=u"wamp.session.add_testament",
+                    args=[
+                        mapped_topic,
+                        options.get('args', None),
+                        options.get('kwargs', None),
+                        {
+                            # specifiy "retain" for when the testament (last will)
+                            # will be auto-published by the broker later
+                            u'retain': bool(packet.flags.will_retain)
+                        }
+                    ])
 
-                    self._wamp_session.onMessage(msg)
+                self._wamp_session.onMessage(msg)
 
-                    returnValue(res)
+                returnValue(res)
 
-            return self._waiting_for_connect
-        except:
-            self.log.failure()
+        return self._waiting_for_connect
 
     @inlineCallbacks
     def _publish(self, event, acknowledge=None):

@@ -53,6 +53,7 @@ from txaio import make_logger
 
 from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
+from autobahn.wamp.request import Registration
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
@@ -567,7 +568,8 @@ class Node(object):
         call_options = CallOptions()
 
         # fake call details we use to call into the local node management API
-        call_details = CallDetails(caller=0)
+        fake_registration = Registration(None, None, None, None)
+        call_details = CallDetails(fake_registration, caller=0)
 
         # get contoller configuration subpart
         controller = config.get('controller', {})
