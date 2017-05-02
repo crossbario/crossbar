@@ -2,7 +2,7 @@
 
 :+1::tada: First off, thanks for taking the time to contribute! :tada::+1:
 
-Contributing to Crossbar.io is totally welcome! We love open source and community collaboration. All of Crossbar.io development is fully open here on GitHub and there are no private, closed areas that exclude you and the Crossbar.io community.
+Contributing to Crossbar.io is welcome! We love open source and community collaboration. All of Crossbar.io development is fully open here on GitHub and there are no private, closed areas that exclude you and the Crossbar.io community.
 
 The guidelines here give some tips on how to best contribute. Please try to follow these. It's short, quick and easy. This will ensure a smooth process. Thanks again for contributing!
 
@@ -58,18 +58,16 @@ Questions are best asked here:
 
 ## Contributing Code
 
+We use the Fork & Pull Model. This means that you fork the repo, make changes to your fork, and then make a pull request here on the main repo.
+
+> This [article on GitHub](https://help.github.com/articles/using-pull-requests) gives more detailed information on how the process works.
+
 1. All development happens on GitHub and we use the usual fork the repository, branch-per-issue, [pull request](https://help.github.com/articles/using-pull-requests) and merge workflow, also known as [GitHub Flow](https://guides.github.com/introduction/flow/).
 2. A necessary **requirement** is that an issue needs to exist first. That is, a PR is always for a specific issue. The branch should be name like this: `<descriptive_name>_issue<NNN>`.
 3. Another prerequisite (for merging code) is that you have [signed and sent us a contributor agreement](#send-us-a-contributor-assignment-agreement). This only needs to be done once, but we cannot merge code until we have received a CAA.
 4. Further, we have a CI system in place running the whole set of unit tests for Crossbar.io on various platforms. The CI system will be triggered automatically when you do a PR. A necessary condition for a PR to be merged that all of our tests run green.
 5. An issue branch from a PR must be rebased to the **master** branch before merging. We don't have a policy (currently) regarding squashing - that is, you can leave your commits or squash them, but rebasing is necessary.
 6. If your branch doesn't run green on our CI, or your branch becomes stale, because other things were merged in between, you are responsible for fixing thing on your branch first.
-
-### Fork us on GitHub
-
-We use the Fork & Pull Model. This means that you fork the repo, make changes to your fork, and then make a pull request here on the main repo.
-
-> This [article on GitHub](https://help.github.com/articles/using-pull-requests) gives more detailed information on how the process works.
 
 ### Send us a Contributor Assignment Agreement
 
