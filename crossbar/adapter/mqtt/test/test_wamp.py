@@ -209,7 +209,7 @@ class MQTTAdapterTests(TestCase):
         self.logs.__enter__()
         self.addCleanup(lambda: self.logs.__exit__(None, None, None))
 
-    def test_basic_publish(self):
+    def _test_basic_publish(self):
 
         reactor, router, server_factory, session_factory = build_mqtt_server()
 
