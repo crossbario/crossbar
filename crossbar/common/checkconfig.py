@@ -1594,6 +1594,19 @@ def check_listening_transport_web(transport, with_endpoint=True):
         if not isinstance(options, Mapping):
             raise InvalidConfigException("'options' in Web transport must be dictionary ({} encountered)".format(type(options)))
 
+        valid_options = [
+            'access_log',
+            'display_tracebacks',
+            'hsts',
+            'hsts_max_age',
+            'client_timeout',
+        ]
+        for k in options.keys():
+            if k not in valid_options:
+                raise InvalidConfigException(
+                    "'{}' unknown in Web transport 'options'".format(k)
+                )
+
         if 'access_log' in options:
             access_log = options['access_log']
             if not isinstance(access_log, bool):
@@ -1615,6 +1628,23 @@ def check_listening_transport_web(transport, with_endpoint=True):
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
             if hsts_max_age < 0:
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
+
+        if 'client_timeout' in options:
+            timeout = options['client_timeout']
+            if timeout is None:
+                pass
+            elif type(timeout) not in six.integer_types:
+                raise InvalidConfigException(
+                    "'client_time' attribute in 'options' in Web transport must be integer ({} encountered)".format(
+                        type(timeout)
+                    )
+                )
+            elif timeout < 1 or timeout > 60 * 60 * 24:
+                raise InvalidConfigException(
+                    "unreasonable value for 'client_timeout' in Web transport 'options': {}".format(
+                        timeout
+                    )
+                )
 
 
 _WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"

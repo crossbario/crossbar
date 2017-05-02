@@ -1073,7 +1073,7 @@ def run(prog=None, args=None, reactor=None):
     if hasattr(options, 'config'):
         # if not explicit config filename is given, try to auto-detect .
         if not options.config:
-            for f in ['config.json', 'config.yaml']:
+            for f in ['config.yaml', 'config.json']:
                 fn = os.path.join(options.cbdir, f)
                 if os.path.isfile(fn) and os.access(fn, os.R_OK):
                     options.config = f

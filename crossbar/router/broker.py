@@ -368,6 +368,17 @@ class Broker(object):
                         if not observation:
                             # No observation, lets make a new one
                             observation = self._subscription_map.create_observation(publish.topic, extra=SubscriptionExtra())
+                        else:
+                            # this can happen if event-history is
+                            # enabled on the topic: the event-store
+                            # creates an observation before any client
+                            # could possible hit the code above
+                            if observation.extra is None:
+                                observation.extra = SubscriptionExtra()
+                            elif not isinstance(observation.extra, SubscriptionExtra):
+                                raise Exception(
+                                    "incorrect 'extra' for '{}'".format(publish.topic)
+                                )
 
                         if observation.extra.retained_events:
                             if not publish.eligible and not publish.exclude:
