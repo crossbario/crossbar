@@ -46,7 +46,7 @@ You can have Crossbar.io be started from OS level startup facilities (like Linux
 
 # Startup and Shutdown Behavior
 
-When running from a configuration file (as opposed to connecting to a management uplink), Crossbar will start all components (whether in their own Container or running inside a Router) exactly once. When such a component shuts down or disconnects, it is gone. Individual components can exit cleanly, or with errors. When all components in a container shut down, the container itself shuts down (with error, if any component errored). Once all containers have exited, Crossbar itself will shutdown and exit and will produce a 0 (clean) exit-code only if **all** components exited cleanly.
+When running from a configuration file (as opposed to connecting to a management uplink), Crossbar will start all components (whether in their own Container or running inside a Router) exactly once. When such a component shuts down or disconnects, it is gone. Individual components can exit cleanly, or with errors. When all components in a container shut down, the container itself shuts down (with error, if any component errored). A "worker" refers to any container or router process.
 
 This table summarizes the cases:
 
@@ -56,3 +56,21 @@ This table summarizes the cases:
 | container      |  fail                 | if last, shutdown container with error
 | router         |  clean                | nothing
 | router         |  fail                 | shutdown router with error
+
+
+The behavior of the crossbar process iteself is dependent upon configuration options. The default is `shutdown_on_worker_exit`.
+
+ - `shutdown_on_worker_exit`: if any worker exits, crossbar itself will shutdown
+ - `shutdown_on_worker_exit_with_error`: if any worker exits with an error, crossbar itself will shutdown
+ - `shutdown_on_last_worker_exit`: when *all* workers exit, crossbar itself will shutdown
+ - `shutdown_on_shutdown_requested`: only exit if requested to via the management API
+
+In the configuration, this option is specified inside the `controller`, like this:
+
+```javascript
+    "controller": {
+        "options": {
+            "shutdown": "shutdown_on_worker_exit_with_error"
+        }
+    }
+```
