@@ -4,8 +4,8 @@ zope.interface>=4.3.2
 Twisted>=17.1.0
 h2<3.0.0
 priority>=1.3.0
-txaio>=2.7.0
-autobahn>=0.18.2
+txaio>=2.7.1
+autobahn>=17.5.1
 netaddr>=0.7.18
 PyTrie>=0.2
 Jinja2>=2.8
