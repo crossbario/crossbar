@@ -3,107 +3,162 @@ toc: [Documentation, Getting Started, Quick Start]
 
 # Quick Start
 
-This quick start describes how to install Crossbar.io, test the installation and create and run a sample application.
+This guide shows you how to start the Crossbar.io router and some basic application components using Docker containers.
+
+We consider this the quickest way for you to get the necessary components for developing WAMP applications using Crossbar.io up and running, and to get a feel for how things work.
+
+The Docker containers are kept in sync with the latest Crossbar.io and Autobahn (our WAMP client libraries) releases.
+
+> Docker is **not necessary** to run Crossbar.io, or to develop WAMP applications. We cover alternative ways of getting there in this documentation, and we provide links for these at the end of this guide.
+
+## A basic WAMP Application
+
+We provide four types of Docker containers:
+
+* Crossbar.io router
+* Autobahn|Python
+* Autobahn|JS
+* Autobahn|CPP
+
+The Autobahn containers each run a WAMP component with identical functionality, and the Crossbar.io router serves this component for running in the browser.
+
+The component is there to illustrate how to connect to Crossbar.io as well as the interactions which WAMP provides.
+
+Specifically, each component:
+
+* **Subscribes** to a topic (`com.example.oncounter`)
+* **Publishes** to the same topic
+* **Registers** a procedure ('com.example.add2')
+* **Calls** this procedure
+
+These interactions already work with a single component. The component receives events based on its own publishes and calls the procedure on itself.
+
+When running multiple components:
+
+* Each component receives events based on the pulishes of all components (including itself).
+* Procedures on components are called round-robin-style, i.e. the router has an ordered list of registrations and calls these sequentially.
+
+You can mix components of different languages, and run as many components as you want.
+
+Check the log output in the terminals to see what is happening and how things change when you spin up or shut down containers
+
+> Our example uses the Docker images we publish. These are available in a wide range of flavors (base system size, processor architecture). For an overview of available images, as well as for a look what happens inside these, see the [crossbar-docker GitHub repo](https://github.com/crossbario/crossbar-docker).
+
+- **Windows: this is a problem. Crossbar.io should run on windows, but we do not test on there. may we suggest you install a Linux in a VM (e.g. virtualbox) and test using this?**
+
+> The Docker containers as well as the Autobahn libaries are liberally licensed, so you can use them and modify them in your own projects as you like (including commercial ones). Crossbar.io is under the AGPL, which is unproblematic when you use it as-is (again: including in commercial projects).
 
 
-## Install Crossbar.io
+## How to start
 
->There is an [overview of more specific installation instructions](Installation) for specific Systems and Environments
+> An alternative for running Crossbar.io without Docker is [installation into a Python virtualenv](http://asciinema.org/a/e9jpon411vb7w82c7fpikha6d
+). <-- ____add link to our install instructions for this, fix them in the course of this___
 
-You will need [Python](http://python.org) 2/3 or [PyPy](http://pypy.org/) 2 and [pip](https://pip.pypa.io/).
+You need Docker installed ([Docker installation instructions](https://docs.docker.com/engine/installation/)).
 
-To install Crossbar.io with **required** dependencies:
-
-    pip install crossbar
-
-To install Crossbar.io with **all optional** parts as well:
-
-    pip install crossbar[all]
-
-
-## Test the Installation
-
-When successful, the installation will have created a `crossbar` command line tool:
+Our make files require that Docker can be run as non-root user - which can be done like so
 
 ```console
-(python279_1)oberstet@thinkpad-t430s:~$ which crossbar
-/home/oberstet/python279_1/bin/crossbar
-(python279_1)oberstet@thinkpad-t430s:~$ ls -la `which crossbar`
--rwxrwxr-x 1 oberstet oberstet 331 Aug 17 21:09 /home/oberstet/python279_1/bin/crossbar
+sudo usermod -aG docker <username>
 ```
 
-> The path to the `crossbar` executable will depend on your environment.
+where `username` is the name of the user you're logged in as.
 
-You can then verify the install by running `crossbar version`, which lists the software versions of important Crossbar.io components:
+Clone the [Crossbar.io Starter Template Repository](https://github.com/crossbario/crossbar-starter):
 
 ```console
-(python279_1)oberstet@thinkpad-t430s:~$ crossbar version
-     __  __  __  __  __  __      __     __
-    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
-    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
-
-Crossbar.io        : 0.11.0
-  Autobahn         : 0.10.5.post2
-    UTF8 Validator : wsaccel-0.6.2
-    XOR Masker     : wsaccel-0.6.2
-    JSON Codec     : ujson-1.33
-    MsgPack Codec  : msgpack-python-0.4.6
-  Twisted          : 15.3.0-EPollReactor
-  Python           : 2.7.9/CPython
-OS                 : Linux-3.13.0-61-generic-x86_64-with-debian-jessie-sid
-Machine            : x86_64
+git clone https://github.com/crossbario/crossbar-starter.git
 ```
 
-## Create an Application
+On first start of each container type, the Docker image is pulled. This is cached so that subsequent starts are fast. (Updates to an image are automatically pulled.)
 
-The Crossbar.io command line tool `crossbar` can generate complete, ready-to-run application templates to get you started quickly.
+### Crossbar.io
 
-To create a *Hello world!* application with a HTML5/JavaScript frontend and *Python backend*:
+The Crossbar.io container is required in order for any of the other containers to work properly.
 
-    crossbar init --template hello:python --appdir hello
+Then start a new Crossbar.io node from the starter template in a container:
 
-or to create the application with a *NodeJS backend*:
+```console
+cd crossbar-starter/crossbar
+make start
+```
+This should give you output like this:
 
-    crossbar init --template hello:nodejs --appdir hello
+[![asciicast](https://asciinema.org/a/6ufqm00z2xmdb3xdnrrzf4es7.png)](https://asciinema.org/a/6ufqm00z2xmdb3xdnrrzf4es7)
 
-> You will need to install AutobahnJS for Node by doing `npm install -g autobahn` and have `NODE_PATH` set so Node finds it.
+Now open you browser at [http://localhost:8080](http://localhost:8080).
 
-To get a list of available templates:
+This displays a WAMP component running in the browser. Open as many pages as you like, try this across different browsers and devices. Check out the log output (toggle developer tools using `F12`in most browsers) how this changes with multiple components running.
 
-    crossbar templates
 
-When initializing an application template, a directory will be created with a couple of files prefilled. E.g. the Python variant of the application template will create the following files:
+### Autobahn|JS
 
-```text
-./.crossbar/config.json
-./hello/hello.py
-./hello/web/autobahn.min.js
-./hello/web/index.html
-./hello/__init__.py
-./MANIFEST.in
-./README.md
-./setup.py
+To start an Autobahn|JS component running on NodeJS and connecting to the Crossbar.io node we started with the Crossbar docker container:
+
+```console
+cd crossbar-starter/autobahn-js
+make start
 ```
 
-Here, `./.crossbar/config.json` is a configuration file for a Crossbar.io node while the other files are for the application itself.
+This should give you output like this:
 
-For further information about getting started with specific languages, see the [overview on this page](Getting Started).
+[![asciicast](https://asciinema.org/a/5bd3oco61umd4to8qxfixzbh4.png)](https://asciinema.org/a/5bd3oco61umd4to8qxfixzbh4)
+
+> This uses the latest [autobahn-js](https://hub.docker.com/r/crossbario/autobahn-js/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-js/x86_64/Dockerfile.alpine).     
+You can start the container on ARM (v7) and ARM64 with `make start_armhf` and `start_aarch64` respectively.
+
+### Autobahn|Python
+
+Here is how to start an Autobahn|Python component connecting to the Crossbar.io node we started with the Crossbar docker container:
+
+```console
+cd crossbar-starter/autobahn-python
+make start
+```
+
+This should give you output like this:
+
+[![asciicast](https://asciinema.org/a/a4d35xf82ylibi0jqwfje56b0.png)](https://asciinema.org/a/a4d35xf82ylibi0jqwfje56b0)
+
+> This uses the latest [autobahn-python](https://hub.docker.com/r/crossbario/autobahn-python/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-python/x86_64/Dockerfile.cpy3-alpine).     
+You can start the container on ARM (v7) and ARM64 with `make start_armhf` and `start_aarch64` respectively.     
+
+> Autobahn|Python components can be written using either Python 2.7 or >=3.5. They can use  the Twisted framework or, for Python >=3.5, the integrates asyncio. There are images to cover all of these variations. The default image is for Python 3 and supports both variants, but only the code using Twisted is run (you can change this in `app/run`).
 
 
-## Run the Application
+### Autobahn|CPP
 
-To start the Crossbar.io node switch to the application directory
+Here is how to start an Autobahn|CPP component connecting to the Crossbar.io node of above:
 
-    cd hello
-    crossbar start
+```console
+cd crossbar-starter/autobahn-cpp
+make build
+make start
+```
 
-Then open [`http://localhost:8080/`](http://localhost:8080/) in your browser. Make sure to open the JavaScript console as well to see logging output.
+This should give you output like this:
 
-What you should see logged is a message such as "Hello from Python" or "Hello from NodeJS", indicating that the JavaScript code running in the browser just successfully called a remote procedure in another WAMP application component implemented in Python or NodeJS.
+[![asciicast](https://asciinema.org/a/aqpejunlkxbk8o4iuaz1lm9x8.png)](https://asciinema.org/a/aqpejunlkxbk8o4iuaz1lm9x8)
 
-You can find the backend code in `./hello/hello.py` (for the Python variant) and the frontend code in `./hello/web/index.html`.
+> This uses the latest [autobahn-python](https://hub.docker.com/r/crossbario/autobahn-cpp/) Docker image for x86 architecture, which is build from [this Docker file](https://github.com/crossbario/crossbar-docker/blob/master/autobahn-cpp/x86_64/Dockerfile.gcc).     
+You can start the container on ARM (v7) and ARM64 with `make build_armhf` & `make and start_aarch64` & `make start_armhf` `start_aarch64` respectively.
 
 
-## What now?
+### Modifying Things
 
-Go to [Command Line](Command Line) to learn about the Crossbar.io command line tool or  learn how to [get started with your language of choice](Getting Started).
+The containers as-is are there to demonstrate principles.
+
+To develop your own applications, you need to modify the code they run as well as the Crossbar.io config.
+
+The application components are in the `app` directory of each of the subdiretories (and, in the `crossbar` directory, in the `web` directory).
+
+The Crossbar.io configuration file is in the `.crossbar` subdirectory.
+
+We have documentation for more advanved topics such as a [workflow across multiple devices]() and [creating docker images from your components]().
+
+## Further reading
+
+* [local installation of Crossbar.io]()
+* [basic concepts of WAMP and Crossbar.io]()
+* [the documentation table of contents]()
+* ***ADD ME***
