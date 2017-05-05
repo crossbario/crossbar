@@ -5,17 +5,8 @@ toc: [Documentation, Table of Contents]
 
 ## Getting Started
 
-* [Quick Start](Quick Start)
 * [Getting Started](Getting Started)
-   * [Getting started with JavaScript in the Browser](Getting started with Browser)
-   * [Getting started with JavaScript in NodeJS](Getting started with NodeJS)
-   * [Getting started with CSharp](Getting started with CSharp)
-   * [Getting started with Cplusplus](Getting started with Cplusplus)
-   * [Getting started with Erlang](Getting started with Erlang)
-   * [Getting started with Java](Getting started with Java)
-   * [Getting started with PHP](Getting started with PHP)
-   * [Getting started with Python](Getting started with Python)
-
+   
 ## Administrators
 
 * [Quick Reference](Quick Reference)
@@ -107,6 +98,12 @@ toc: [Documentation, Table of Contents]
 
 * [Application Scenarios](Application Scenarios)
 * [Programming Guide](Programming Guide)
+   * General
+   [URI Format](URI Format)
+      - [Logging in Crossbar.io](Logging in Crossbario)
+      - [Error Handling](Error Handling)
+      - [Session Meta Events and Procedures](Session Metaevents and Procedures)
+      - [Development with External Devices](Development-with-External-Devices)
    * [WAMP Features](WAMP Features)
       - Session
          + [Session Meta Events and Procedures](Session Metaevents and Procedures)

@@ -11,7 +11,6 @@ Welcome to the Crossbar.io Reference Documentation.
 
 ### Getting Started
 
-* **[Quick Start](Quick Start)**
 * [Getting Started](Getting Started)
 
 ### Administrators
@@ -23,14 +22,7 @@ Welcome to the Crossbar.io Reference Documentation.
 ### Programmers
 
 * [Programming Guide](Programming Guide)
-* [Application Templates](Application Templates)
 * [Examples](Examples)
-
-### DevOps Center
-
-* **[Getting Started with CDC](CDC Getting Started)**
-* [CDC Authentication](CDC Authentication)
-* [CDC API Reference](CDC API Reference)
 
 ### More
 
