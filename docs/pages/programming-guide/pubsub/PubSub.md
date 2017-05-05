@@ -12,4 +12,5 @@ See the following pages
 * [[Publisher Exclusion]]
 * [[Subscriber Black and Whitelisting]]
 * [[Event History]]
+* [[Retained Events]]
 * [[Subscription Meta Events and Procedures]]

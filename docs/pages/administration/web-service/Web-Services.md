@@ -18,6 +18,7 @@ To use these Web services, configure a Crossbar.io [Router Worker](Router-Config
 * [CGI Script Service](CGI-Script-Service)
 * [WSGI Host Service](WSGI-Host-Service)
 * [Resource Service](Resource-Service)
+* [Node Info Service](Node-Info-Service)
 
 The following features of the [HTTP Bridge](HTTP Bridge) are also run as Web services on a Web transport of a router:
 

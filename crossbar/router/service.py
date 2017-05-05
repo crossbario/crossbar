@@ -198,7 +198,7 @@ class RouterServiceSession(ApplicationSession):
         Add a testament to the current session.
 
         :param topic: The topic to publish the testament to.
-        :type topic: unicode
+        :type topic: str
 
         :param args: A list of arguments for the publish.
         :type args: list or tuple
@@ -211,9 +211,10 @@ class RouterServiceSession(ApplicationSession):
 
         :param scope: The scope of the testament, either "detatched" or
             "destroyed".
-        :type scope: unicode
+        :type scope: str
 
-        :rtype: None
+        :returns: The publication ID.
+        :rtype: int
         """
         session = self._router._session_id_to_session[details.caller]
 
@@ -236,25 +237,28 @@ class RouterServiceSession(ApplicationSession):
 
         session._testaments[scope].append(pub)
 
-        return None
+        return pub_id
 
     def session_flush_testaments(self, scope=u"destroyed", details=None):
         """
         Flush the testaments of a given scope.
 
         :param scope: The scope to flush, either "detatched" or "destroyed".
-        :type scope: unicode
+        :type scope: str
 
-        :rtype: None
+        :returns: Number of flushed testament events.
+        :rtype: int
         """
         session = self._router._session_id_to_session[details.caller]
 
         if scope not in [u"destroyed", u"detatched"]:
             raise ApplicationError(u"wamp.error.testament_error", u"scope must be destroyed or detatched")
 
+        flushed = len(session._testaments[scope])
+
         session._testaments[scope] = []
 
-        return None
+        return flushed
 
     @wamp.register(u'wamp.session.kill')
     def session_kill(self, session_id, reason=None, message=None, details=None):
@@ -264,7 +268,7 @@ class RouterServiceSession(ApplicationSession):
         :param session_id: The WAMP session ID of the session to kill.
         :type session_id: int
         :param reason: A reason URI provided to the killed session.
-        :type reason: unicode or None
+        :type reason: str or None
         """
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
@@ -498,7 +502,7 @@ class RouterServiceSession(ApplicationSession):
         This essentially models what a dealer does for dispatching an incoming call.
 
         :param procedure: The procedure to match.
-        :type procedure: unicode
+        :type procedure: str
 
         :returns: The best matching registration or ``None``.
         :rtype: obj or None
@@ -518,7 +522,7 @@ class RouterServiceSession(ApplicationSession):
         This essentially models what a broker does for dispatching an incoming publication.
 
         :param topic: The topic to match.
-        :type topic: unicode
+        :type topic: str
 
         :returns: All matching subscriptions or ``None``.
         :rtype: obj or None
@@ -545,7 +549,7 @@ class RouterServiceSession(ApplicationSession):
         This essentially models what a dealer does when registering for a procedure.
 
         :param procedure: The procedure to lookup the registration for.
-        :type procedure: unicode
+        :type procedure: str
         :param options: Same options as when registering a procedure.
         :type options: dict or None
 
@@ -570,7 +574,7 @@ class RouterServiceSession(ApplicationSession):
         This essentially models what a broker does when subscribing for a topic.
 
         :param topic: The topic to lookup the subscription for.
-        :type topic: unicode
+        :type topic: str
         :param options: Same options as when subscribing to a topic.
         :type options: dict or None
 
@@ -751,7 +755,7 @@ class RouterServiceSession(ApplicationSession):
         Describe a given URI or all URIs.
 
         :param uri: The URI to describe or ``None`` to retrieve all declarations.
-        :type uri: unicode
+        :type uri: str
 
         :returns: A list of WAMP schema declarations.
         :rtype: list
@@ -763,7 +767,7 @@ class RouterServiceSession(ApplicationSession):
         Declare metadata for a given URI.
 
         :param uri: The URI for which to declare metadata.
-        :type uri: unicode
+        :type uri: str
         :param schema: The WAMP schema declaration for
            the URI or `None` to remove any declarations for the URI.
         :type schema: dict

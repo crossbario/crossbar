@@ -195,7 +195,7 @@ class MQTTServerTwistedProtocol(Protocol):
         if self.transport:
             self.transport.loseConnection()
         else:
-            self.log.debug(log_category="MQ400")
+            self.log.debug(log_category="MQ404")
 
     def _send_packet(self, packet):
         self.log.trace(log_category="MQ101", client_id=self.session.client_id,
@@ -297,6 +297,7 @@ class MQTTServerTwistedProtocol(Protocol):
                     # MQTT-4.8.0-2 - If we get a transient error (like
                     # subscribing raising an exception), we must close the
                     # connection.
+                    self.log.failure()
                     self.log.failure(
                         log_category="MQ501", client_id=self.session.client_id)
                     self.transport.loseConnection()
@@ -345,6 +346,7 @@ class MQTTServerTwistedProtocol(Protocol):
                         # MQTT-4.8.0-2 - If we get a transient error (like
                         # publishing raising an exception), we must close the
                         # connection.
+                        self.log.failure()
                         self.log.failure(log_category="MQ504",
                                          client_id=self.session.client_id)
                         self.transport.loseConnection()

@@ -36,7 +36,7 @@ It is possible to actively retrieve information about subscriptions via the foll
 
 You can retrieve subscription IDs via the following three procedures:
 
-* `wamp.subscription.list`: Returns an object with three lists of the subscription IDs for all current subscriptions for exatc matching, prefix matching and wildcard matching.
+* `wamp.subscription.list`: Returns an object with three lists of the subscription IDs for all current subscriptions for exact matching, prefix matching and wildcard matching.
 * `wamp.subscription.lookup`: Returns the subscription ID for an existing subscription to the provided topic URI, or null if no such subscription exists. The matching policy to apply is set as an option, with exact matching applied if this is omitted.
 * `wamp.subscription.match`: Returns a list of IDs of subscriptions which match the URI, irrespetive of what matching policy this match is based, i.e. a list of the IDs of all subscriptions which would presently receive a publication to the URI.
 

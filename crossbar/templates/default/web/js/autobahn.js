@@ -2971,7 +2971,8 @@ var Event = function (publication,
                       topic,
                       publisher,
                       publisher_authid,
-                      publisher_authrole) {
+                      publisher_authrole,
+                      retained) {
 
    var self = this;
 
@@ -2980,6 +2981,7 @@ var Event = function (publication,
    self.publisher = publisher;
    self.publisher_authid = publisher_authid;
    self.publisher_authrole = publisher_authrole;
+   self.retained = retained;
 };
 
 
@@ -3385,12 +3387,14 @@ var Session = function (socket, defer, onchallenge) {
                             details.topic || (subs[0] && subs[0].topic),
                             details.publisher,
                             details.publisher_authid,
-                            details.publisher_authrole
+                            details.publisher_authrole,
+                            details.retained || false
                       );
 
          for (var i = 0; i < subs.length; ++i) {
+            var sub = subs[i];
             try {
-               subs[i].handler(args, kwargs, ed);
+               sub.handler(args, kwargs, ed, sub);
             } catch (e) {
                log.debug("Exception raised in event handler", e);
             }
@@ -23275,7 +23279,7 @@ define(function (require) {
 },{"./lib/Promise":100,"./lib/TimeoutError":102,"./lib/apply":103,"./lib/decorators/array":104,"./lib/decorators/flow":105,"./lib/decorators/fold":106,"./lib/decorators/inspect":107,"./lib/decorators/iterate":108,"./lib/decorators/progress":109,"./lib/decorators/timed":110,"./lib/decorators/unhandledRejection":111,"./lib/decorators/with":112}],124:[function(require,module,exports){
 module.exports={
   "name": "autobahn",
-  "version": "0.12.0",
+  "version": "17.5.1",
   "description": "An implementation of The Web Application Messaging Protocol (WAMP).",
   "main": "index.js",
   "scripts": {
@@ -23286,7 +23290,6 @@ module.exports={
   },
   "dependencies": {
     "crypto-js": ">= 3.1.8",
-    "google-closure-compiler": "^20170218.0.0",
     "int64-buffer": ">= 0.1.9",
     "msgpack-lite": ">= 0.1.26",
     "cbor": ">= 3.0.0",
@@ -23300,8 +23303,9 @@ module.exports={
   },
   "devDependencies": {
     "browserify": ">= 13.1.1",
-    "nodeunit": ">= 0.10.2",
-    "deep-equal": ">= 1.0.1"
+    "deep-equal": ">= 1.0.1",
+    "google-closure-compiler": "^20170218.0.0",
+    "nodeunit": ">= 0.10.2"
   },
   "browser": {
     "ws": false,

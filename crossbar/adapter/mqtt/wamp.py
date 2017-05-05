@@ -30,14 +30,9 @@
 
 from __future__ import absolute_import, division, print_function
 
-try:
-    import ujson as json
-except ImportError:
-    import json
-
-from base64 import b64encode, b64decode
-
+import six
 from txaio import make_logger
+from pytrie import StringTrie
 
 from zope.interface import implementer
 
@@ -45,107 +40,116 @@ from collections import OrderedDict
 
 from twisted.internet.interfaces import IHandshakeListener, ISSLTransport
 from twisted.internet.protocol import Protocol, Factory
-from twisted.internet.defer import succeed, inlineCallbacks, Deferred
+from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, succeed
 
 from crossbar.adapter.mqtt.tx import MQTTServerTwistedProtocol
 from crossbar.router.session import RouterSession
 
 from autobahn import util
 from autobahn.wamp import message, role
-from autobahn.wamp.types import PublishOptions
-from autobahn.twisted.util import transport_channel_id
+from autobahn.wamp.message import _URI_PAT_LOOSE_NON_EMPTY, _URI_PAT_LOOSE_LAST_EMPTY, _URI_PAT_LOOSE_EMPTY
+from autobahn.wamp.serializer import JsonObjectSerializer, MsgPackObjectSerializer, CBORObjectSerializer, UBJSONObjectSerializer
+from autobahn.twisted.util import transport_channel_id, peer2str
 from autobahn.websocket.utf8validator import Utf8Validator
 
 _validator = Utf8Validator()
 
 
-def tokenise_mqtt_topic(topic):
+def _mqtt_topicfilter_to_wamp(topic):
     """
-    Limitedly WAMP-ify and break it down into WAMP-like tokens.
+    Convert a MQTT topic as used in MQTT Subscribe (and hence ptoentially containing
+    special characters "+" and "#") to a WAMP URI and a match policy.
     """
-    assert len(topic) > 0
-    topic = topic.replace(u"+", u"*")
+    if type(topic) != six.text_type:
+        raise TypeError('invalid type "{}" for MQTT topic filter'.format(type(topic)))
 
-    return topic.split(u"/")
+    if u'+' in topic:
+        # check topic filter containing single-level wildcard character
 
+        # this is a restriction following from WAMP! we cannot have both
+        # wildcard and prefix matching combined.
+        if u'#' in topic:
+            raise TypeError('MQTT topic filter "{}" contains both single-level and multi-level wildcards, and this cannot be mapped to WAMP'.format(topic))
 
-def tokenise_wamp_topic(topic):
-    """
-    Limitedly MQTT-ify and break it down into MQTT-like tokens.
-    """
-    assert len(topic) > 0
-    topic = topic.replace(u"*", u"+")
+        for c in topic.split(u'/'):
+            if c != u'+' and u'+' in c:
+                raise TypeError('invalid MQTT filter "{}": single-level wildcard characters must stand on their own in components'.format(topic))
 
-    return topic.split(u".")
+        _match = u'wildcard'
+        _topic = topic.replace(u'+', u'')
 
+    elif u'#' in topic:
+        # check topic filter containing multi-level wildcard character
+        # there can be only one occurence, and it must be at the end
+        if topic.find('#') != len(topic) - 1:
+            raise TypeError('invalid MQTT topic filter "{}": # multi-level wildcard character must only appear as last character'.format(topic))
+        if len(topic) > 1:
+            if topic[-2] != u'/':
+                raise TypeError('invalid MQTT topic filter "{}": # multi-level wildcard character must either appear solely, or be preceded by a / topic separator character'.format(topic))
+        _match = u'prefix'
+        _topic = topic[:-1]
 
-def mqtt_payload_transform(payload_format, payload):
-    """
-    Transform a Publish sent by the MQTT layer into one that is serialised according to the router config.
-    """
-    if payload_format == "opaque":
-        # Base64 the payload in args.
-        return (b64encode(payload).decode('utf8'),), {u"mqtt_message": True}
     else:
-        try:
-            if payload_format == "json":
-                if _validator.validate(payload)[0]:
-                    decoded = json.loads(payload.decode('utf8', 'strict'))
-                else:
-                    # Invalid UTF-8. Drop the message.
-                    return
-            elif payload_format == "cbor":
-                # todo
-                pass
-        except Exception as e:
-            print(e)
-            # Drop the message.
-            return
+        _match = u'exact'
+        _topic = topic[:]
 
-        if "args" not in decoded and "kwargs" not in decoded:
-            # Empty message? Is this valid?
-            pass
+    # MQTT spec 4.7.1.1: "The use of the topic level separator is significant when either
+    # of the two wildcard characters is encountered in the Topic Filters specified by subscribing Clients."
+    #
+    # FIXME: However, we still cannot leave the "/" character untouched and uninterpreted
+    # when no "+" or "#" was encountered
+    if True or _match != u'exact':
+        # replace MQTT level separator "/" with WAMP level separator "."
+        _topic = u'.'.join(_topic.split(u'/'))
 
-        args = decoded.get("args", [])
-        kwargs = decoded.get("kwargs")
-        return args, kwargs
+    if (_match == u'exact' and not _URI_PAT_LOOSE_NON_EMPTY.match(_topic)) or \
+       (_match == u'prefix' and not _URI_PAT_LOOSE_LAST_EMPTY.match(_topic)) or \
+       (_match == u'wildcard' and not _URI_PAT_LOOSE_EMPTY.match(_topic)):
+            raise TypeError('invalid WAMP URI "{}" (match="{}") after conversion from MQTT topic filter "{}"'.format(_topic, _match, topic))
+
+    return _topic, _match
 
 
-def wamp_payload_transform(payload_format, event):
+def _mqtt_topicname_to_wamp(topic):
     """
-    Given an Event sent by a WAMP client, transform it into a payload.
+    Convert a MQTT topic as used in MQTT Publish to a WAMP URI.
     """
-    if payload_format == "opaque":
-        if event.kwargs.get(u"mqtt_message"):
-            try:
-                payload = b64decode(event.args[0].encode('utf8'))
-            except Exception:
-                # I think this causes an error downstream as a None
-                # payload is illegal...maybe we can do better here (or
-                # at call-site for this)
-                return None
+    if type(topic) != six.text_type:
+        raise TypeError('invalid type "{}" for MQTT topic name'.format(type(topic)))
+
+    if u'#' in topic or u'+' in topic:
+        raise TypeError('invalid MQTT topic name "{}" - contains wildcard characters'.format(topic))
+
+    if u'/' in topic:
+        _topic = u'.'.join(topic.split(u'/'))
     else:
+        _topic = topic
 
-        # We dunno what to do with this.
-        if event.payload:
-            return  # this will be None, see note above
+    if not _URI_PAT_LOOSE_NON_EMPTY.match(_topic):
+        raise TypeError('invalid WAMP URI "{}" after conversion from MQTT topic name "{}"'.format(_topic, topic))
 
-        if payload_format == "json":
-            try:
-                payload = json.dumps({"args": event.args, "kwargs": event.kwargs},
-                                     ensure_ascii=False, sort_keys=True).encode('utf8')
-            except Exception as e:
-                print(e)
-                return None
-    return payload
+    return _topic
+
+
+def _wamp_topic_to_mqtt(topic):
+    """
+    Convert a WAMP URI as used in WAMP Publish to a MQTT topic.
+    """
+    return u'/'.join(topic.split(u'.'))
 
 
 class WampTransport(object):
     _authid = None
 
-    def __init__(self, on_message, real_transport):
+    def __init__(self, factory, on_message, real_transport):
+        self.factory = factory
         self.on_message = on_message
         self.transport = real_transport
+        real_transport._transport_config = {u'foo': 32}
+        self._transport_info = {
+            u'type': u'mqtt',
+            u'peer': peer2str(self.transport.getPeer()),
+        }
 
     def send(self, msg):
         self.on_message(msg)
@@ -176,7 +180,9 @@ class WampMQTTServerProtocol(Protocol):
         except:
             self.log.failure()
 
+    @inlineCallbacks
     def _on_message(self, inc_msg):
+        self.log.debug('WampMQTTServerProtocol._on_message(inc_msg={inc_msg})', inc_msg=inc_msg)
 
         if isinstance(inc_msg, message.Challenge):
             assert inc_msg.method == u"ticket"
@@ -213,11 +219,13 @@ class WampMQTTServerProtocol(Protocol):
         elif isinstance(inc_msg, message.Event):
 
             topic = inc_msg.topic or self._topic_lookup[inc_msg.subscription]
-            body = wamp_payload_transform(self._wamp_session._router._mqtt_payload_format, inc_msg)
 
-            self._mqtt.send_publish(
-                u"/".join(tokenise_wamp_topic(topic)), 0, body,
-                retained=inc_msg.retained or False)
+            try:
+                payload_format, mapped_topic, payload = yield self.factory.transform_wamp(topic, inc_msg)
+            except:
+                self.log.failure()
+            else:
+                self._mqtt.send_publish(mapped_topic, 0, payload, retained=inc_msg.retained or False)
 
         elif isinstance(inc_msg, message.Goodbye):
             if self._mqtt.transport:
@@ -225,8 +233,7 @@ class WampMQTTServerProtocol(Protocol):
                 self._mqtt.transport = None
 
         else:
-            print("Got something we don't understand yet:")
-            print(inc_msg)
+            self.log.warn('cannot process unimplemented message: {inc_msg}', inc_msg=inc_msg)
 
     def connectionMade(self, ignore_handshake=False):
         if ignore_handshake or not ISSLTransport.providedBy(self.transport):
@@ -247,100 +254,173 @@ class WampMQTTServerProtocol(Protocol):
 
         self._mqtt.transport = self.transport
 
-        self._wamp_session = RouterSession(self.factory._wamp_session_factory._routerFactory)
-        self._wamp_session._is_mqtt = True
-        self._wamp_transport = WampTransport(self.on_message, self.transport)
-        self._wamp_transport.factory = self.factory
+        self._wamp_session = RouterSession(self.factory._router_session_factory._routerFactory)
+        self._wamp_transport = WampTransport(self.factory, self.on_message, self.transport)
         self._wamp_session.onOpen(self._wamp_transport)
+        self._wamp_session._transport_config = self.factory._options
 
     def process_connect(self, packet):
+        """
+        Process the initial Connect message from the MQTT client.
 
+        This should return a pair `(accept_conn, session_present)`, where
+        `accept_conn` is a return code:
+
+        0: connection accepted
+        1-5: connection refused (see MQTT spec 3.2.2.3)
+        """
+
+        # Connect(client_id='paho/4E23D8C09DD9C6CF2C',
+        #         flags=ConnectFlags(username=False,
+        #                            password=False,
+        #                            will=False,
+        #                            will_retain=False,
+        #                            will_qos=0,
+        #                            clean_session=True,
+        #                            reserved=False),
+        #         keep_alive=60,
+        #         will_topic=None,
+        #         will_message=None,
+        #         username=None,
+        #         password=None)
+        self.log.info('WampMQTTServerProtocol.process_connect(packet={packet})', packet=packet)
+
+        # we don't support session resumption: https://github.com/crossbario/crossbar/issues/892
+        if not packet.flags.clean_session:
+            self.log.warn('denying MQTT connect from {peer}, as the clients wants to resume a session (which we do not support)', peer=peer2str(self.transport.getPeer()))
+            return succeed((1, False))
+
+        # we won't support QoS 2: https://github.com/crossbario/crossbar/issues/1046
+        if packet.flags.will and packet.flags.will_qos not in [0, 1]:
+            self.log.warn('denying MQTT connect from {peer}, as the clients wants to provide a "last will" event with QoS {will_qos} (and we only support QoS 0/1 here)', peer=peer2str(self.transport.getPeer()), will_qos=packet.flags.will_qos)
+            return succeed((1, False))
+
+        # this will be resolved when the MQTT connect handshake is completed
         self._waiting_for_connect = Deferred()
 
         roles = {
             u"subscriber": role.RoleSubscriberFeatures(
-                payload_transparency=True),
+                payload_transparency=True,
+                pattern_based_subscription=True),
             u"publisher": role.RolePublisherFeatures(
                 payload_transparency=True,
                 x_acknowledged_event_delivery=True)
         }
 
-        realm = self.factory._config.get('realm', u'public')
-        methods = []
+        realm = self.factory._options.get(u'realm', None)
+
+        authmethods = []
+        authextra = {
+            u'mqtt': {
+                u'client_id': packet.client_id,
+                u'will': bool(packet.flags.will),
+                u'will_topic': packet.will_topic
+            }
+        }
 
         if ISSLTransport.providedBy(self.transport):
-            methods.append(u"tls")
+            authmethods.append(u"tls")
 
         if packet.username and packet.password:
-            methods.append(u"ticket")
+            authmethods.append(u"ticket")
             msg = message.Hello(
                 realm=realm,
                 roles=roles,
-                authmethods=methods,
-                authid=packet.username)
+                authmethods=authmethods,
+                authid=packet.username,
+                authextra=authextra)
             self._pw_challenge = packet.password
 
         else:
-            methods.append(u"anonymous")
+            authmethods.append(u"anonymous")
             msg = message.Hello(
                 realm=realm,
                 roles=roles,
-                authmethods=methods,
-                authid=packet.client_id)
+                authmethods=authmethods,
+                authid=packet.client_id,
+                authextra=authextra)
 
         self._wamp_session.onMessage(msg)
 
         if packet.flags.will:
 
+            # it's unclear from the MQTT spec whether a) the publication of the last will
+            # is to happen in-band during "connect", and if it fails, deny the connection,
+            # or b) the last will publication happens _after_ "connect", and the connection
+            # succeeds regardless whether the last will publication succeeds or not.
+            #
+            # we opt for b) here!
+            #
+            @inlineCallbacks
             @self._waiting_for_connect.addCallback
             def process_will(res):
 
-                akw = mqtt_payload_transform(self._wamp_session._router._mqtt_payload_format, packet.will_message)
+                self.log.info()
 
-                if not akw:
-                    # Drop it I guess :(
-                    return res
+                payload_format, mapped_topic, options = yield self.factory.transform_mqtt(packet.will_topic, packet.will_message)
 
-                args, kwargs = akw
+                request = util.id()
 
                 msg = message.Call(
-                    request=util.id(),
+                    request=request,
                     procedure=u"wamp.session.add_testament",
                     args=[
-                        u".".join(tokenise_mqtt_topic(packet.will_topic)),
-                        args, kwargs,
-                        {"retain": bool(packet.flags.will_retain)}
+                        mapped_topic,
+                        options.get('args', None),
+                        options.get('kwargs', None),
+                        {
+                            # specifiy "retain" for when the testament (last will)
+                            # will be auto-published by the broker later
+                            u'retain': bool(packet.flags.will_retain)
+                        }
                     ])
 
                 self._wamp_session.onMessage(msg)
 
-                return res
+                returnValue(res)
 
         return self._waiting_for_connect
 
-    def _publish(self, event, options):
+    @inlineCallbacks
+    def _publish(self, event, acknowledge=None):
+        """
+        Given a MQTT event, create a WAMP Publish message and
+        forward that on the forwarding WAMP session.
+        """
+        try:
+            payload_format, mapped_topic, options = yield self.factory.transform_mqtt(event.topic_name, event.payload)
+        except:
+            self.log.failure()
+            return
 
         request = util.id()
+
         msg = message.Publish(
             request=request,
-            topic=u".".join(tokenise_mqtt_topic(event.topic_name)),
-            payload=event.payload,
-            **options.message_attr())
-        msg._mqtt_publish = True
+            topic=mapped_topic,
+            exclude_me=False,
+            acknowledge=acknowledge,
+            retain=event.retain,
+            **options)
 
         self._wamp_session.onMessage(msg)
 
         if event.qos_level > 0:
             self._request_to_packetid[request] = event.packet_identifier
 
-        return succeed(0)
+        returnValue(0)
 
     def process_publish_qos_0(self, event):
-        return self._publish(event, options=PublishOptions(exclude_me=False, retain=event.retain))
+        try:
+            return self._publish(event)
+        except:
+            self.log.failure()
 
     def process_publish_qos_1(self, event):
-        return self._publish(event,
-                             options=PublishOptions(acknowledge=True, exclude_me=False, retain=event.retain))
+        try:
+            return self._publish(event, acknowledge=True)
+        except:
+            self.log.failure()
 
     def process_puback(self, event):
         return
@@ -369,15 +449,17 @@ class WampMQTTServerProtocol(Protocol):
         self._inflight_subscriptions[packet.packet_identifier] = packet_watch
 
         for n, x in enumerate(packet.topic_requests):
-            # fixme
-            match_type = u"exact"
+
+            topic, match = _mqtt_topicfilter_to_wamp(x.topic_filter)
+
+            self.log.info('process_subscribe -> topic={topic}, match={match}', topic=topic, match=match)
 
             request_id = util.id()
 
             msg = message.Subscribe(
                 request=request_id,
-                topic=u".".join(tokenise_mqtt_topic(x.topic_filter)),
-                match=match_type,
+                topic=topic,
+                match=match,
                 get_retained=True,
             )
 
@@ -385,7 +467,7 @@ class WampMQTTServerProtocol(Protocol):
                 packet_watch[request_id] = {"response": -1, "topic": x.topic_filter}
                 self._subrequest_to_mqtt_subrequest[request_id] = packet.packet_identifier
                 self._wamp_session.onMessage(msg)
-            except Exception:
+            except:
                 self.log.failure()
                 packet_watch[request_id] = {"response": 128}
 
@@ -404,15 +486,184 @@ class WampMQTTServerProtocol(Protocol):
 
 class WampMQTTServerFactory(Factory):
 
+    log = make_logger()
+
     protocol = WampMQTTServerProtocol
 
-    def __init__(self, session_factory, config, reactor):
-        self._wamp_session_factory = session_factory
-        self._config = config["options"]
+    serializers = {
+        u'json': JsonObjectSerializer(),
+        u'msgpack': MsgPackObjectSerializer(),
+        u'cbor': CBORObjectSerializer(),
+        u'ubjson': UBJSONObjectSerializer(),
+    }
+
+    def __init__(self, router_session_factory, config, reactor):
+        self._router_session_factory = router_session_factory
+        self._router_factory = router_session_factory._routerFactory
+        self._options = config.get(u'options', {})
+        self._realm = self._options.get(u'realm', None)
         self._reactor = reactor
+        self._payload_mapping = StringTrie()
+        for topic, pmap in self._options.get(u'payload_mapping', {}).items():
+            self._set_payload_format(topic, pmap)
 
     def buildProtocol(self, addr):
-
         protocol = self.protocol(self._reactor)
         protocol.factory = self
         return protocol
+
+    def _get_payload_format(self, topic):
+        """
+        Map a WAMP topic URI to MQTT payload format.
+        :param topic: WAMP URI.
+        :type topic: str
+
+        :returns: Payload format metadata.
+        :rtype: dict
+        """
+        try:
+            pmap = self._payload_mapping.longest_prefix_value(topic)
+        except KeyError:
+            return None
+        else:
+            return pmap
+
+    def _set_payload_format(self, topic, pmap=None):
+        if pmap is None:
+            if topic in self._payload_mapping:
+                del self._payload_mapping[topic]
+        else:
+            self._payload_mapping[topic] = pmap
+
+    @inlineCallbacks
+    def transform_wamp(self, topic, msg):
+        # check for cached transformed payload
+        cache_key = u'_{}_{}'.format(self.__class__.__name__, id(self))
+        cached = msg._serialized.get(cache_key, None)
+
+        if cached:
+            payload_format, mapped_topic, payload = cached
+            self.log.debug('using cached payload for {cache_key} in message {msg_id}!', msg_id=id(msg), cache_key=cache_key)
+        else:
+            # convert WAMP URI to MQTT topic
+            mapped_topic = _wamp_topic_to_mqtt(topic)
+
+            # for WAMP->MQTT, the payload mapping is determined from the
+            # WAMP URI (not the transformed MQTT topic)
+            payload_format = self._get_payload_format(topic)
+            payload_format_type = payload_format[u'type']
+
+            if payload_format_type == u'passthrough':
+                payload = msg.payload
+
+            elif payload_format_type == u'native':
+                serializer = payload_format.get(u'serializer', None)
+                payload = self._transform_wamp_native(serializer, msg)
+
+            elif payload_format_type == u'dynamic':
+                    encoder = payload_format.get(u'encoder', None)
+                    codec_realm = payload_format.get(u'realm', self._realm)
+                    payload = yield self._transform_wamp_dynamic(encoder, codec_realm, mapped_topic, topic, msg)
+            else:
+                raise Exception('payload format {} not implemented'.format(payload_format))
+
+            msg._serialized[cache_key] = (payload_format, mapped_topic, payload)
+
+        self.log.debug('transform_wamp({topic}, {msg}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, payload={payload}', topic=topic, msg=msg, payload_format=payload_format, mapped_topic=mapped_topic, payload=payload)
+        returnValue((payload_format, mapped_topic, payload))
+
+    @inlineCallbacks
+    def _transform_wamp_dynamic(self, encoder, codec_realm, mapped_topic, topic, msg):
+        codec_session = self._router_factory.get(codec_realm)._realm.session
+        payload = yield codec_session.call(encoder, mapped_topic, topic, msg.args, msg.kwargs)
+        returnValue(payload)
+
+    def _transform_wamp_native(self, serializer, msg):
+        obj = {}
+        for opt in [u'args',
+                    u'kwargs',
+                    u'exclude',
+                    u'exclude_authid',
+                    u'exclude_authrole',
+                    u'eligible',
+                    u'eligible_authid',
+                    u'eligible_authrole']:
+            attr = getattr(msg, opt, None)
+            if attr is not None:
+                obj[opt] = attr
+
+        if serializer in self.serializers:
+            payload = self.serializers[serializer].serialize(obj)
+        else:
+            raise Exception('MQTT native mode payload transform: invalid serializer {}'.format(serializer))
+
+        return payload
+
+    @inlineCallbacks
+    def transform_mqtt(self, topic, payload):
+        # transform MQTT topic to WAMP URI
+        mapped_topic = _mqtt_topicname_to_wamp(topic)
+
+        # for MQTT->WAMP, the payload mapping is determined from the
+        # transformed WAMP URI (not the original MQTT topic)
+        payload_format = self._get_payload_format(mapped_topic)
+        payload_format_type = payload_format[u'type']
+
+        if payload_format_type == u'passthrough':
+            options = {
+                u'payload': payload,
+                u'enc_algo': u'mqtt'
+            }
+
+        elif payload_format_type == u'native':
+            serializer = payload_format.get(u'serializer', None)
+            options = self._transform_mqtt_native(serializer, payload)
+
+        elif payload_format_type == u'dynamic':
+            decoder = payload_format.get(u'decoder', None)
+            codec_realm = payload_format.get(u'realm', self._realm)
+            options = yield self._transform_mqtt_dynamic(decoder, codec_realm, mapped_topic, topic, payload)
+
+        else:
+            raise Exception('payload format {} not implemented'.format(payload_format))
+
+        self.log.debug('transform_mqtt({topic}, {payload}) -> payload_format={payload_format}, mapped_topic={mapped_topic}, options={options}', topic=topic, payload=payload, payload_format=payload_format, mapped_topic=mapped_topic, options=options)
+        returnValue((payload_format, mapped_topic, options))
+
+    @inlineCallbacks
+    def _transform_mqtt_dynamic(self, decoder, codec_realm, mapped_topic, topic, payload):
+        codec_session = self._router_factory.get(codec_realm)._realm.session
+        options = yield codec_session.call(decoder, mapped_topic, topic, payload)
+        returnValue(options)
+
+    def _transform_mqtt_native(self, serializer, payload):
+        """
+        Transform MQTT binary payload from a MQTT Publish to keyword dict
+        suitable for the constructor of a WAMP Publish message,
+        that is :class:`autobahn.wamp.message.Publish`.
+        """
+        options = {}
+        if serializer in self.serializers:
+            if serializer == u'json':
+                if not _validator.validate(payload)[0]:
+                    # invalid UTF-8: drop the event
+                    raise Exception('invalid UTF8 in JSON encoded MQTT payload')
+            obj = self.serializers[serializer].unserialize(payload)[0]
+        else:
+            raise Exception('"{}" serializer for encoded MQTT payload not implemented'.format(serializer))
+
+        if type(obj) != dict:
+            raise Exception('invalid type {} for "{}" encoded MQTT payload'.format(type(obj), serializer))
+
+        for opt in [u'args',
+                    u'kwargs',
+                    u'exclude',
+                    u'exclude_authid',
+                    u'exclude_authrole',
+                    u'eligible',
+                    u'eligible_authid',
+                    u'eligible_authrole']:
+            if opt in obj:
+                options[opt] = obj[opt]
+
+        return options

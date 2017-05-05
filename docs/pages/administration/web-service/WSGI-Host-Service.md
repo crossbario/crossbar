@@ -20,6 +20,8 @@ To configure a WSGI Web service, attach a dictionary element to a path in your [
 
 ## Example
 
+**See [here](https://github.com/crossbario/crossbar-examples/tree/master/wsgi) for a complete example.**
+
 Here is a minimal example using Flask. The overall files involved are:
 
 ```text
@@ -90,3 +92,5 @@ Add a **Web Transport** with a **WSGI Host Service** on a subpath within your no
    ]
 }
 ```
+
+---

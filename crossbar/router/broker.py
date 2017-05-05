@@ -50,6 +50,26 @@ from txaio import make_logger
 __all__ = ('Broker',)
 
 
+class RetainedEvent(object):
+
+    __slots__ = (
+        'publish',
+        'publisher',
+        'publisher_authid',
+        'publisher_authrole',
+    )
+
+    def __init__(self,
+                 publish,
+                 publisher=None,
+                 publisher_authid=None,
+                 publisher_authrole=None):
+        self.publish = publish
+        self.publisher = publisher
+        self.publisher_authid = publisher_authid
+        self.publisher_authrole = publisher_authrole
+
+
 class SubscriptionExtra(object):
 
     __slots__ = ('retained_events',)
@@ -213,7 +233,6 @@ class Broker(object):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
-
         # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
         if self._option_uri_strict:
@@ -269,19 +288,6 @@ class Broker(object):
         #
         if subscriptions or publish.acknowledge or store_event or retain_event:
 
-            # If it's a MQTT publish, we need to adjust the arguments.
-            if getattr(publish, "_mqtt_publish", False):
-                from crossbar.adapter.mqtt.wamp import mqtt_payload_transform
-                tfd = mqtt_payload_transform(self._router._mqtt_payload_format,
-                                             publish.payload)
-
-                if not tfd:
-                    # If we have no message to give, drop it entirely
-                    return
-                else:
-                    publish.payload = None
-                    publish.args, publish.kwargs = tfd
-
             # validate payload
             #
             if publish.payload is None:
@@ -313,29 +319,6 @@ class Broker(object):
                     # new ID for the publication
                     #
                     publication = util.id()
-
-                    # persist event (this is done only once, regardless of the number of subscriptions
-                    # the event matches on)
-                    #
-                    if store_event:
-                        self._event_store.store_event(session._session_id, publication, publish.topic, publish.args, publish.kwargs)
-
-                    # retain event on the topic
-                    #
-                    if retain_event:
-                        observation = self._subscription_map.get_observation(publish.topic)
-
-                        if not observation:
-                            # No observation, lets make a new one
-                            observation = self._subscription_map.create_observation(publish.topic, extra=SubscriptionExtra())
-
-                        if observation.extra.retained_events:
-                            if not publish.eligible and not publish.exclude:
-                                observation.extra.retained_events = [publish]
-                            else:
-                                observation.extra.retained_events.append(publish)
-                        else:
-                            observation.extra.retained_events = [publish]
 
                     # send publish acknowledge immediately when requested
                     #
@@ -369,9 +352,49 @@ class Broker(object):
                     else:
                         me_also = True
 
+                    # persist event (this is done only once, regardless of the number of subscriptions
+                    # the event matches on)
+                    #
+                    if store_event:
+                        self._event_store.store_event(session._session_id, publication, publish.topic, publish.args, publish.kwargs)
+
+                    # retain event on the topic
+                    #
+                    if retain_event:
+                        retained_event = RetainedEvent(publish, publisher, publisher_authid, publisher_authrole)
+
+                        observation = self._subscription_map.get_observation(publish.topic)
+
+                        if not observation:
+                            # No observation, lets make a new one
+                            observation = self._subscription_map.create_observation(publish.topic, extra=SubscriptionExtra())
+                        else:
+                            # this can happen if event-history is
+                            # enabled on the topic: the event-store
+                            # creates an observation before any client
+                            # could possible hit the code above
+                            if observation.extra is None:
+                                observation.extra = SubscriptionExtra()
+                            elif not isinstance(observation.extra, SubscriptionExtra):
+                                raise Exception(
+                                    "incorrect 'extra' for '{}'".format(publish.topic)
+                                )
+
+                        if observation.extra.retained_events:
+                            if not publish.eligible and not publish.exclude:
+                                observation.extra.retained_events = [retained_event]
+                            else:
+                                observation.extra.retained_events.append(retained_event)
+                        else:
+                            observation.extra.retained_events = [retained_event]
+
+                    all_dl = []
+
                     # iterate over all subscriptions ..
                     #
                     for subscription in subscriptions:
+
+                        self.log.debug('dispatching for subscription={subscription}', subscription=subscription)
 
                         # persist event history, but check if it is persisted on the individual subscription!
                         #
@@ -417,25 +440,45 @@ class Broker(object):
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic)
 
-                            # a Deferred that fires when all chunks are done
-                            all_d = txaio.create_future()
                             chunk_size = self._options.event_dispatching_chunk_size
 
-                            def _notify_some(receivers):
-                                for receiver in receivers[:chunk_size]:
+                            if chunk_size:
+                                self.log.debug('chunked dispatching to {receivers_size} with chunk_size={chunk_size}', receivers_size=len(receivers), chunk_size=chunk_size)
+
+                                # a Deferred that fires when all chunks are done
+                                all_d = txaio.create_future()
+                                all_dl.append(all_d)
+
+                                def _notify_some(receivers):
+                                    for receiver in receivers[:chunk_size]:
+                                        if (me_also or receiver != session) and receiver != self._event_store:
+                                            # the receiving subscriber session
+                                            # might have no transport, or no
+                                            # longer be joined
+                                            if receiver._session_id and receiver._transport:
+                                                self._router.send(receiver, msg)
+                                    receivers = receivers[chunk_size:]
+                                    if len(receivers) > 0:
+                                        # still more to do ..
+                                        return txaio.call_later(0, _notify_some, receivers)
+                                    else:
+                                        # all done! resolve all_d, which represents all receivers
+                                        # to a single subscription matching the event
+                                        txaio.resolve(all_d, None)
+
+                                _notify_some(list(receivers))
+                            else:
+                                self.log.debug('unchunked dispatching to {receivers_size} receivers', receivers_size=len(receivers))
+
+                                for receiver in receivers:
                                     if (me_also or receiver != session) and receiver != self._event_store:
                                         # the receiving subscriber session
                                         # might have no transport, or no
                                         # longer be joined
                                         if receiver._session_id and receiver._transport:
                                             self._router.send(receiver, msg)
-                                receivers = receivers[chunk_size:]
-                                if len(receivers) > 0:
-                                    return txaio.call_later(0, _notify_some, receivers)
-                                else:
-                                    txaio.resolve(all_d, None)
-                            _notify_some(list(receivers))
-                            return all_d
+
+                    return txaio.gather(all_dl)
 
             def on_authorize_error(err):
                 """
@@ -526,30 +569,36 @@ class Broker(object):
                         retained_events = list(subscription.extra.retained_events)
                         retained_events.reverse()
 
-                        for publish in retained_events:
-                            authorised = False
+                        for retained_event in retained_events:
+                            authorized = False
 
-                            if not publish.exclude and not publish.eligible:
-                                authorised = True
-                            elif session._session_id in publish.eligible and session._session_id not in publish.exclude:
-                                authorised = True
+                            if not retained_event.publish.exclude and not retained_event.publish.eligible:
+                                authorized = True
+                            elif session._session_id in retained_event.publish.eligible and session._session_id not in retained_event.publish.exclude:
+                                authorized = True
 
-                            if authorised:
+                            if authorized:
                                 publication = util.id()
 
-                                if publish.payload:
+                                if retained_event.publish.payload:
                                     msg = message.Event(subscription.id,
                                                         publication,
-                                                        payload=publish.payload,
-                                                        retained=True,
-                                                        enc_algo=publish.enc_algo,
-                                                        enc_key=publish.enc_key,
-                                                        enc_serializer=publish.enc_serializer)
+                                                        payload=retained_event.publish.payload,
+                                                        enc_algo=retained_event.publish.enc_algo,
+                                                        enc_key=retained_event.publish.enc_key,
+                                                        enc_serializer=retained_event.publish.enc_serializer,
+                                                        publisher=retained_event.publisher,
+                                                        publisher_authid=retained_event.publisher_authid,
+                                                        publisher_authrole=retained_event.publisher_authrole,
+                                                        retained=True)
                                 else:
                                     msg = message.Event(subscription.id,
                                                         publication,
-                                                        args=publish.args,
-                                                        kwargs=publish.kwargs,
+                                                        args=retained_event.publish.args,
+                                                        kwargs=retained_event.publish.kwargs,
+                                                        publisher=retained_event.publisher,
+                                                        publisher_authid=retained_event.publisher_authid,
+                                                        publisher_authrole=retained_event.publisher_authrole,
                                                         retained=True)
 
                                 return [msg]

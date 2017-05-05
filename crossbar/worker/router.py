@@ -82,6 +82,7 @@ from crossbar.twisted.resource import WampLongPollResource, \
     SchemaDocResource
 
 from twisted.web.server import Site
+from twisted.web.http import HTTPChannel, _GenericHTTPChannelProtocol
 
 import twisted
 import crossbar
@@ -108,6 +109,8 @@ from crossbar.twisted.resource import _HAS_CGI
 
 from crossbar.adapter.rest import PublisherResource, CallerResource
 from crossbar.adapter.rest import WebhookResource
+
+from txaio import make_logger
 
 if _HAS_CGI:
     from crossbar.twisted.resource import CgiDirectory
@@ -253,6 +256,27 @@ class RouterRealmUplink(object):
         self.id = id
         self.config = config
         self.session = None
+
+
+class _LessNoisyHTTPChannel(HTTPChannel):
+    """
+    Internal helper.
+
+    This is basically exactly what Twisted does, except without using
+    "log.msg" so we can put it at debug log-level instead
+    """
+    log = make_logger()
+
+    def timeoutConnection(self):
+        self.log.debug(
+            "Timing out client: {peer}",
+            peer=self.transport.getPeer(),
+        )
+        if self.abortTimeout is not None:
+            self._abortingCall = self.callLater(
+                self.abortTimeout, self.forceAbortClient
+            )
+        self.loseConnection()
 
 
 class RouterWorkerSession(NativeWorkerSession):
@@ -854,7 +878,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
             if 'mqtt' in config:
                 mqtt_factory = WampMQTTServerFactory(
-                    self._router_session_factory, config, self._reactor)
+                    self._router_session_factory, config['mqtt'], self._reactor)
                 mqtt_factory.noisy = False
             else:
                 mqtt_factory = None
@@ -913,8 +937,18 @@ class RouterWorkerSession(NativeWorkerSession):
         self._add_paths(root, config.get('paths', {}))
 
         # create the actual transport factory
-        transport_factory = Site(root)
+        transport_factory = Site(
+            root,
+            timeout=options.get('client_timeout', None),
+        )
         transport_factory.noisy = False
+
+        # we override this factory so that we can inject
+        # _LessNoisyHTTPChannel to avoid info-level logging on timing
+        # out web clients (which happens all the time).
+        def channel_protocol_factory():
+            return _GenericHTTPChannelProtocol(_LessNoisyHTTPChannel())
+        transport_factory.protocol = channel_protocol_factory
 
         # Web access logging
         if not options.get('access_log', False):

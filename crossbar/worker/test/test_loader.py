@@ -103,9 +103,9 @@ class AppSessionLoaderTests(TestCase):
             ("Failed to import class 'crossbar.worker.test.examples.importerr"
              "or.AppSession'"),
             str(e.exception.args[0]))
-        self.assertIn(
-            ("ImportError"),
-            str(e.exception.args[0]))
+
+        s = str(e.exception.args[0])
+        self.assertTrue('ImportError' in s or 'ModuleNotFoundError' in s)
 
     def test_class_syntaxerror(self):
         """

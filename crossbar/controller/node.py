@@ -53,6 +53,7 @@ from txaio import make_logger
 
 from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
+from autobahn.wamp.request import Registration
 from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
@@ -202,8 +203,9 @@ def _write_node_key(filepath, tags, msg):
     with open(filepath, 'w') as f:
         f.write(msg)
         for (tag, value) in tags.items():
-            if value:
-                f.write(u'{}: {}\n'.format(tag, value))
+            if value is None:
+                value = 'unknown'
+            f.write(u'{}: {}\n'.format(tag, value))
 
 
 class Node(object):
@@ -566,7 +568,8 @@ class Node(object):
         call_options = CallOptions()
 
         # fake call details we use to call into the local node management API
-        call_details = CallDetails(caller=0)
+        fake_registration = Registration(None, None, None, None)
+        call_details = CallDetails(fake_registration, caller=0)
 
         # get contoller configuration subpart
         controller = config.get('controller', {})
@@ -757,7 +760,7 @@ class Node(object):
                             self._reactor.stop()
                         except twisted.internet.error.ReactorNotRunning:
                             pass
-                    topic = 'crossbar.worker.{}.container.on_component_stop'.format(worker_id)
+                    topic = u'crossbar.worker.{}.container.on_component_stop'.format(worker_id)
                     component_stop_sub = yield self._controller.subscribe(component_exited, topic)
 
                     # start connections (such as PostgreSQL database connection pools)
