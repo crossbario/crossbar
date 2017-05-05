@@ -7,8 +7,6 @@ Welcome to the [Crossbar.io Reference Documentation](Table of Contents).
 
 ## Introduction
 
-* [Features](Features)
-* **[Quick Start](Quick Start)**
 * [Getting Started](Getting Started)
 
 ## Administrators
@@ -20,7 +18,6 @@ Welcome to the [Crossbar.io Reference Documentation](Table of Contents).
 ## Programmers
 
 * [Programming Guide](Programming Guide)
-* [Application Templates](Application Templates)
 * [Examples](Examples)
 
 ## More

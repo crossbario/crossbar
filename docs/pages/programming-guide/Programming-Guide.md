@@ -22,6 +22,7 @@ The following introduces different areas of WAMP application programming with Cr
 - [Logging in Crossbar.io](Logging in Crossbario)
 - [Error Handling](Error Handling)
 - [Session Meta Events and Procedures](Session Metaevents and Procedures)
+- [Development with External Devices](Development-with-External-Devices)
 
 ### Publish and Subscribe
 
