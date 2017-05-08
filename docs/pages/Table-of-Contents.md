@@ -6,26 +6,18 @@ toc: [Documentation, Table of Contents]
 ## Getting Started
 
 * [Getting Started](Getting Started)
-   
+
 ## Administrators
 
-* [Quick Reference](Quick Reference)
+* [Basic Concepts](Basic Concepts)
 * [Installation](Installation)
-   * Binary Packages
-      * [Installation on Ubuntu and Debian](Installation on Ubuntu and Debian)
-      * [Installation on CentOS and RedHat](Installation on CentOS and RedHat)
-      * [Installation on FreeBSD](Installation on FreeBSD)
    * Docker Images
       * [Using Docker](Using Docker)
    * Other Platforms
       * [Installation on (generic) Linux](Installation on Linux)
       * [Installation on Mac OS X](Installation on Mac OS X)
       * [Installation on Windows](Installation on Windows)
-   * Devices
-      * [Installation on RaspberryPi](Installation on RaspberryPi)
-      * [Installation on Ubuntu Snappy](Installation on Ubuntu Snappy)
    * Setup on IaaS and PaaS Providers
-      * [Setup on Microsoft Azure](Setup-on-Microsoft-Azure)
       * [Setup on Amazon EC2](Setup-on-Amazon-EC2)
       * [Setup on Heroku](Setup-on-Heroku)
       * [Setup on OpenShift](Setup-on-OpenShift)
