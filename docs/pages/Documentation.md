@@ -11,7 +11,7 @@ Welcome to the [Crossbar.io Reference Documentation](Table of Contents).
 
 ## Administrators
 
-* [Quick Reference](Quick Reference)
+* [Basic Concepts](Basic Concepts)
 * [Installation](Installation)
 * [Administration](Administration)
 

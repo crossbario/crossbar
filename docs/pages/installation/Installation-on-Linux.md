@@ -3,13 +3,9 @@ toc: [Documentation, Installation, Installation on Linux]
 
 # Installation on Linux
 
-Crossbar.io provides official binary packages for several Linux distributions.
+We provide Docker containers for Crossbar.io, which we suggest as the easiest way of getting started.
 
-> [Installation on Ubuntu](Installation on Ubuntu and Debian)
-
-> [Installation on CentOS/RHEL](Installation on CentOS and RedHat)
-
-If you can't use either of these options, these instructions will walk you through installing Crossbar.io from sources on any generic Linux.
+If you don't want to use this option, then here's how to install Crossbar.io from sources on any generic Linux.
 
 This is a reliable, quick way of installation that does not require superuser rights, can install to any location (such as your home directory) and does not depend on system Python packages.
 
@@ -41,35 +37,40 @@ Then install the prerequisites:
 
 Now continue to build for:
 
- 1. [CPython](#cpython) or
- 2. [PyPy](#pypy)
+ 1. [CPython](#install-for-cpython) or
+ 2. [PyPy](#install-for-pypy)
 
+> Crossbar.io can be run using regular Python (CPython) or PyPy, a Just-in-Time-Compiler for Python. The latter speeds up the Python code, so that Crossbar.io is more performant (lower latencies, higher possible throughput). On the downside, Crossbar. io running on PyPy requires more memory, takes longer to start up, and the speed increases require some period of operation (the JIT-compiler needs some data about actual program execution to work with).
 
-## CPython
+> The instructions here are for Python 2.7, but Crossbar.io runs on Python >=3.5 as well. PyPy support for Python 3.5 may be incomplete, so for PyPy and for the time being, it's best to use Python 2.7.
+
+## Install for CPython
 
 After the [prepare-step](#prepare), build Python from vanilla sources and install it to your home directory:
 
     cd $HOME
-    wget https://www.python.org/ftp/python/2.7.11/Python-2.7.11.tar.xz
-    tar xvf Python-2.7.11.tar.xz
-    cd Python-2.7.11
-    ./configure --prefix=$HOME/python2711
+    wget https://www.python.org/ftp/python/2.7.13/Python-2.7.13.tar.xz
+    tar xvf Python-2.7.13.tar.xz
+    cd Python-2.7.13
+    ./configure --prefix=$HOME/python2713
     make
     make install
 
+()
+
 Install [Pip](https://pypi.python.org/pypi/pip) and make sure it is the latest version:
 
-    ~/python2711/bin/python -m ensurepip
-    ~/python2711/bin/python -m pip install -U pip
+    ~/python2713/bin/python -m ensurepip
+    ~/python2713/bin/python -m pip install -U pip
 
 Install Crossbar and its dependencies from [PyPI](https://pypi.python.org/pypi/crossbar):
 
-    ~/python2711/bin/pip install crossbar
+    ~/python2713/bin/pip install crossbar
 
 Check the Crossbar installation:
 
 ```console
-$ ~/python2711/bin/crossbar version
+$ ~/python2713/bin/crossbar version
      __  __  __  __  __  __      __     __
     /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
     \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
@@ -87,10 +88,10 @@ $ ~/python2711/bin/crossbar version
 If everything went fine, add the following to your `$HOME/.profile`:
 
 ```shell
-export PATH=${HOME}/python2711/bin:${PATH}
+export PATH=${HOME}/python2713/bin:${PATH}
 ```
 
-## PyPy
+## Install for PyPy
 
 After the [prepare-step](#prepare), install PyPy to your home directory:
 
@@ -131,13 +132,16 @@ If everything went fine, add the following to your `$HOME/.profile`:
 export PATH=${HOME}/pypy-5.1.1-linux64/bin:${PATH}
 ```
 
-## Updating from the Repository
+## Updating to newest release
 
-Once you've installed Crossbar.io, you can **update to the newest release version** at any time by doing
+Once you've installed Crossbar.io, you can update to the newest release version at any time by doing
 
     pip install -U crossbar
 
-If you want to **update to the most current development version** (e.g. for testing), you can do so from the git repository.
+
+## Updating to current develepment version
+
+If you want to update to the most current development version (e.g. for testing), you can do so from the git repository.
 
 ### Cloning the repo
 
@@ -166,6 +170,6 @@ Unless you've just cloned the repository, you need to update it before installin
 Then you can update your Crossbar.io installation by doing
 
     cd crossbar
-    pip install --upgrade -e .[all]
+    pip install --upgrade -e .
 
 > On Windows, this will most likely require installing the [Microsoft Visual C++ Compiler for Python 2.7](http://www.microsoft.com/en-us/download/details.aspx?id=44266).

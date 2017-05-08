@@ -28,7 +28,7 @@ Specifically, each component:
 
 * **Subscribes** to a topic (`com.example.oncounter`)
 * **Publishes** to the same topic
-* **Registers** a procedure ('com.example.add2')
+* **Registers** a procedure (`com.example.add2`)
 * **Calls** this procedure
 
 These interactions already work with a single component. The component receives events based on its own publishes and calls the procedure on itself.
@@ -44,15 +44,12 @@ Check the log output in the terminals to see what is happening and how things ch
 
 > Our example uses the Docker images we publish. These are available in a wide range of flavors (base system size, processor architecture). For an overview of available images, as well as for a look what happens inside these, see the [crossbar-docker GitHub repo](https://github.com/crossbario/crossbar-docker).
 
-- **Windows: this is a problem. Crossbar.io should run on windows, but we do not test on there. may we suggest you install a Linux in a VM (e.g. virtualbox) and test using this?**
-
 > The Docker containers as well as the Autobahn libaries are liberally licensed, so you can use them and modify them in your own projects as you like (including commercial ones). Crossbar.io is under the AGPL, which is unproblematic when you use it as-is (again: including in commercial projects).
 
 
 ## How to start
 
-> An alternative for running Crossbar.io without Docker is [installation into a Python virtualenv](http://asciinema.org/a/e9jpon411vb7w82c7fpikha6d
-). <-- ____add link to our install instructions for this, fix them in the course of this___
+> An alternative for running Crossbar.io without Docker is **installation into a Python virtualenv**, see [our instructions](). <-- ____add link to our install instructions for this, fix them in the course of this___
 
 You need Docker installed ([Docker installation instructions](https://docs.docker.com/engine/installation/)).
 
@@ -156,8 +153,9 @@ The Crossbar.io configuration file is in the `.crossbar` subdirectory.
 
 ## Further Materials
 
-* [local installation of Crossbar.io](/docs/Installation)
+* [installation of Crossbar.io](/docs/Installation)
 * [basic concepts of WAMP and Crossbar.io](/docs/Basic-Concepts)
 * [development involving external devices](/docs/Development-with-External-Devices)
+* [creating Docker images from your components](/docs/Creating-Docker-Images)
 * [an overview of available WAMP client libraries](/about/Supported-Languages/)
 * [the full documentation](/docs/Table-of-Contents/)
