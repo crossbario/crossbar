@@ -3,6 +3,34 @@ toc: [Documentation, Installation, Installation FAQ]
 
 # Installation FAQ
 
+## Python runtime
+
+### What is PyPy?
+
+[Python](https://www.python.org/) is a programming language that has multiple *implementations*. The original and default implementation is usually called *CPython*, since it is written in C.
+
+Other implementations include:
+
+* [PyPy](http://pypy.org/)
+* [Jython](http://www.jython.org/)
+* [IronPython](http://ironpython.net/)
+
+Now, PyPy is a Python implementation specifically geared towards *high performance*.
+
+Different from CPython, PyPy is not an interpreter, but compiling Python bytecode to native machine code - transparently and on the fly. It is a [JIT compiler](http://en.wikipedia.org/wiki/Just-in-time_compilation).
+
+Also, PyPy [has](http://morepypy.blogspot.de/2013/10/incremental-garbage-collector-in-pypy.html) a powerful and *incremental garbage collector*. A [garbage collector](http://en.wikipedia.org/wiki/Garbage_collection_%28computer_science%29) is responsible for managing memory in a dynamic language such as Python.
+
+### Should I run on CPython or PyPy?
+
+Short answer: Using CPython is easier and quicker. If you don't need the highest possible performance, stick with CPython.
+
+Running on PyPy will give you a *lot* more performance than CPython though. Of course there are some downsides as well:
+
+* longer startup time compared to CPython (since the JIT compiler will need to do more initial work)
+* it takes some time (seconds to minutes) until Crossbar.io reaches maximum performance (since the JIT compiler needs to warm up on the code hot-paths)
+* it might have higher memory consumption than CPython
+
 ## How large is Crossbar.io?
 
 **Short answer**
