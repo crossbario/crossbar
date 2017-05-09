@@ -96,38 +96,10 @@ Additionally, before we can accept your first contribution, you need to sign a C
 
 This is needed in order for the Crossbar.io project to have all necessary rights to the code, e.g. to be able to switch licenses in the future.
 
-## Python runtime
-
-### What is PyPy?
-
-[Python](https://www.python.org/) is a programming language that has multiple *implementations*. The original and default implementation is usually called *CPython*, since it is written in C.
-
-Other implementations include:
-
-* [PyPy](http://pypy.org/)
-* [Jython](http://www.jython.org/)
-* [IronPython](http://ironpython.net/)
-
-Now, PyPy is a Python implementation specifically geared towards *high performance*.
-
-Different from CPython, PyPy is not an interpreter, but compiling Python bytecode to native machine code - transparently and on the fly. It is a [JIT compiler](http://en.wikipedia.org/wiki/Just-in-time_compilation).
-
-Also, PyPy [has](http://morepypy.blogspot.de/2013/10/incremental-garbage-collector-in-pypy.html) a powerful and *incremental garbage collector*. A [garbage collector](http://en.wikipedia.org/wiki/Garbage_collection_%28computer_science%29) is responsible for managing memory in a dynamic language such as Python.
-
-### Should I run on CPython or PyPy?
-
-Short answer: Using CPython is easier and quicker. If you don't need the highest possible performance, stick with CPython.
-
-Running on PyPy will give you a *lot* more performance than CPython though. Of course there are some downsides as well:
-
-* longer startup time compared to CPython (since the JIT compiler will need to do more initial work)
-* it takes some time (seconds to minutes) until Crossbar.io reaches maximum performance (since the JIT compiler needs to warm up on the code hot-paths)
-* it might have higher memory consumption than CPython
-
 ## Integration
 
 ### Can I integrate a non-WAMP application into my WAMP application?
 
 It is possible to have a WAMP component which communicates with your non-WAMP application (component) and does WAMP messaging based on this. How complex this is depends on the specifics of the use case, e.g. the protocol.
 
-We do provide components for communicating with other applications over HTTP/POST requests. For details see [the documentation](HTTP-Bridge).
+We do provide components for communicating with other applications over HTTP/POST requests- see [the documentation](HTTP-Bridge), as well as integration for MQTT clients via a [full MQTT broker]()http://crossbar.io/docs/MQTT-Broker/.
