@@ -49,7 +49,7 @@ Check the log output in the terminals to see what is happening and how things ch
 
 ## How to start
 
-> An alternative for running Crossbar.io without Docker is **installation into a Python virtualenv**, see [our instructions](). <-- ____add link to our install instructions for this, fix them in the course of this___
+> An alternative for running Crossbar.io without Docker is **installation into a dedicated Python**, see [our instructions](/docs/Installation/). 
 
 You need Docker installed ([Docker installation instructions](https://docs.docker.com/engine/installation/)).
 

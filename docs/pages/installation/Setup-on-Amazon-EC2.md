@@ -5,7 +5,7 @@ toc: [Documentation, Installation, Setup on Amazon EC2]
 
 We provide a **Crossbar.io on Amazon EC2 Virtual Machine Image** as a Community AMI to make setup on [Amazon EC2](http://aws.amazon.com/ec2/) as simple as possible. The image has Crossbar.io running on [Ubuntu Server 14.04 LTS](https://insights.ubuntu.com/2014/04/17/whats-new-in-ubuntu-server-14-04-lts/).
 
-If you want to install Crossbar.io from scratch, or run it on a different OS, see the [instructions for installation](Home#Installation).
+If you want to install Crossbar.io from scratch, or run it on a different OS, see the [instructions for installation](/docs/Installation).
 
 ## Create an Instance
 

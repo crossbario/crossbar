@@ -3,7 +3,9 @@ toc: [Documentation]
 
 # Crossbar.io Documentation
 
-Welcome to the [Crossbar.io Reference Documentation](Table of Contents).
+Welcome to the Crossbar.io Reference Documentation.
+
+* [Table of Contents](Table of Contents).
 
 ## Introduction
 
