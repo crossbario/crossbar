@@ -552,8 +552,11 @@ class RouterSession(BaseSession):
 
             try:
                 self._router.detach(self)
-            except Exception:
-                pass
+            except Exception as e:
+                self.log.error(
+                    "Failed to detach session '{}': {}".format(self._session_id, e)
+                )
+                self.log.debug("{tb}".format(tb=Failure().getTraceback()))
 
             self._session_id = None
 

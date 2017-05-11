@@ -183,7 +183,10 @@ class Dealer(object):
                     [u"callee disconnected from in-flight request"],
                 )
                 # send this directly to the caller's session
-                invoke.caller._transport.send(reply)
+                # (it is possible the caller was disconnected and thus
+                # _transport is None before we get here though)
+                if invoke.caller._transport:
+                    invoke.caller._transport.send(reply)
 
             for registration in self._session_to_registrations[session]:
                 was_registered, was_last_callee = self._registration_map.drop_observer(session, registration)
