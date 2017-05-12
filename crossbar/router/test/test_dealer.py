@@ -133,3 +133,20 @@ class TestDealer(unittest.TestCase):
 
         self.assertEqual(42, msg.request)
         self.assertEqual(u'wamp.error.canceled', msg.error)
+
+    def test_outstanding_invoke_but_caller_gone(self):
+
+        session = mock.Mock()
+        outstanding = mock.Mock()
+        outstanding.call.request = 1
+
+        dealer = self.router._dealer #Dealer(self.router)
+        dealer.attach(session)
+
+        dealer._callee_to_invocations[session] = [outstanding]
+        # pretend we've disconnected already
+        outstanding.caller._transport = None
+
+        dealer.detach(session)
+
+        self.assertEqual([], outstanding.mock_calls)
