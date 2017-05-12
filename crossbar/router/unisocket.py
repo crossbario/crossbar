@@ -37,6 +37,9 @@ import txaio
 txaio.use_twisted()  # noqa
 
 from twisted.internet.protocol import Factory, Protocol
+from twisted.internet.interfaces import IProtocolNegotiationFactory
+from zope.interface import implementer
+
 
 __all__ = (
     'UniSocketServerProtocol',
@@ -165,6 +168,7 @@ class UniSocketServerProtocol(Protocol):
             self._proto.connectionLost(reason)
 
 
+@implementer(IProtocolNegotiationFactory)
 class UniSocketServerFactory(Factory):
     """
     """
@@ -182,3 +186,12 @@ class UniSocketServerFactory(Factory):
     def buildProtocol(self, addr):
         proto = UniSocketServerProtocol(self, addr)
         return proto
+
+    # IProtocolNegotiationFactory
+    def acceptableProtocols(self):
+        """
+        Protocols this server can speak.
+        """
+        if self._web_factory:
+            return self._web_factory.acceptableProtocols()
+        return None
