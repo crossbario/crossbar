@@ -140,7 +140,7 @@ class TestDealer(unittest.TestCase):
         outstanding = mock.Mock()
         outstanding.call.request = 1
 
-        dealer = self.router._dealer #Dealer(self.router)
+        dealer = self.router._dealer
         dealer.attach(session)
 
         dealer._callee_to_invocations[session] = [outstanding]
