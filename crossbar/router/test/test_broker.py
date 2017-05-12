@@ -46,7 +46,7 @@ from crossbar.router.session import RouterSessionFactory, RouterSession
 from crossbar.router.broker import Broker
 from crossbar.router.role import RouterRoleStaticAuth
 
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 
 
 class TestBrokerPublish(unittest.TestCase):
@@ -340,7 +340,7 @@ class TestBrokerPublish(unittest.TestCase):
         session0 = TestSession()
         session1 = TestSession()
         router = mock.MagicMock()
-        broker = Broker(router)
+        broker = Broker(router, reactor)
 
         # let's just "cheat" our way a little to the right state by
         # injecting our subscription "directly" (e.g. instead of
