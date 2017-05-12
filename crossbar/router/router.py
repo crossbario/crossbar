@@ -147,7 +147,12 @@ class Router(object):
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != u'crossbar':
-            self.log.info('>>>>> session {session_id} JOINED "{realm}" >>>>>\n\n{details}\n', session_id=details[u'session'], realm=self.realm, details=details)
+            self.log.info(
+                'session "{session_id}" joined realm "{realm}"',
+                session_id=details[u'session'],
+                realm=self.realm,
+            )
+            self.log.debug('{details}', details=details)
 
     def _session_left(self, session, details):
         """
@@ -158,7 +163,12 @@ class Router(object):
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != u'crossbar':
-            self.log.info('<<<<<< session {session_id} LEFT "{realm}" <<<<<<\n\n{details}\n', session_id=details[u'session'], realm=self.realm, details=details)
+            self.log.info(
+                'session "{session_id}" left realm "{realm}"',
+                session_id=details[u'session'],
+                realm=self.realm,
+            )
+            self.log.debug('{details}', details=details)
 
     def detach(self, session):
         """
