@@ -19,7 +19,17 @@ Resources
 Bounties
 --------
 
--  |Bounty 45173769| Crossbar.io - Register option to kick existing registration
+Crossbar.io - Register option to kick existing registration
+...........................................................
+
+|Bounty 45173769|
+
+
+Crossbar.io - Kerberos/AD authentication
+........................................
+
+|Bounty 44253224|
+
 
 
 .. |Version| image:: https://img.shields.io/pypi/v/crossbar.svg
@@ -40,3 +50,5 @@ Bounties
 .. |Bounty 45173769| image:: https://api.bountysource.com/badge/issue?issue_id=45173769
    :target: https://www.bountysource.com/issues/45173769-register-option-to-kick-existing-registration
 
+.. |Bounty 44253224| image:: https://api.bountysource.com/badge/issue?issue_id=44253224
+   :target: https://www.bountysource.com/issues/44253224-kerberos-authentication
