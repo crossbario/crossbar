@@ -22,3 +22,8 @@ Resources
    :target: https://travis-ci.org/crossbario/crossbar
 .. |Coverage| image:: https://img.shields.io/codecov/c/github/crossbario/crossbar/master.svg
    :target: https://codecov.io/github/crossbario/crossbar
+
+Bounties
+--------
+
+* [![Bountysource](https://api.bountysource.com/badge/issue?issue_id=45173769)](https://www.bountysource.com/issues/45173769-register-option-to-kick-existing-registration?utm_source=45173769&utm_medium=shield&utm_campaign=ISSUE_BADGE) - Register option to kick existing registration (Crossbar.io)
