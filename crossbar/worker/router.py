@@ -860,13 +860,19 @@ class RouterWorkerSession(NativeWorkerSession):
         #
         elif config['type'] == 'web':
 
-            transport_factory = self._create_web_factory(config)
+            transport_factory = self._create_web_factory(
+                config,
+                is_secure=u'tls' in config[u'endpoint'],
+            )
 
         # Universal transport
         #
         elif config['type'] == 'universal':
             if 'web' in config:
-                web_factory = self._create_web_factory(config['web'])
+                web_factory = self._create_web_factory(
+                    config['web'],
+                    is_secure=(u'tls' in config['endpoint']),
+                )
             else:
                 web_factory = None
 
@@ -922,7 +928,7 @@ class RouterWorkerSession(NativeWorkerSession):
         d.addCallbacks(ok, fail)
         return d
 
-    def _create_web_factory(self, config):
+    def _create_web_factory(self, config, is_secure):
 
         options = config.get('options', {})
 
@@ -959,7 +965,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # HSTS
         if options.get('hsts', False):
-            if 'tls' in config['endpoint']:
+            if is_secure:
                 hsts_max_age = int(options.get('hsts_max_age', 31536000))
                 transport_factory.requestFactory = createHSTSRequestFactory(transport_factory.requestFactory, hsts_max_age)
             else:
