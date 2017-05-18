@@ -19,7 +19,7 @@ Resources
 Bounties
 --------
 
--  |Crossbar.io: Register option to kick existing registration|
+-  Crossbar.io: Register option to kick existing registration |Bounty 45173769|
 
 
 .. |Version| image:: https://img.shields.io/pypi/v/crossbar.svg
