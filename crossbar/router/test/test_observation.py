@@ -138,6 +138,27 @@ class TestUriObservationMap(unittest.TestCase):
         _, _, is_first_observer = obs_map.add_observer(obs2, uri1)
         self.assertFalse(is_first_observer)
 
+    def test_delete_observer(self):
+        obs_map = UriObservationMap()
+
+        uri = u"com.example.uri1"
+        obs1 = FakeObserver()
+        obs2 = FakeObserver()
+
+        ob1, uri1, _ = obs_map.add_observer(obs1, uri)
+        ob2, uri2, _ = obs_map.add_observer(obs2, uri)
+
+        self.assertTrue(ob1 is ob2)
+        obs_map.drop_observer(obs1, ob1)
+
+        # error if we delete because there's still one observer
+        with self.assertRaises(ValueError):
+            obs_map.delete_observation(ob2)
+
+        # drop last observer and delete
+        obs_map.drop_observer(obs2, ob1)
+        obs_map.delete_observation(ob2)
+
     def test_match_observations_match_exact(self):
         """
         When a observer observes an URI (match exact), the observer
