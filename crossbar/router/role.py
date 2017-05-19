@@ -169,7 +169,7 @@ class RouterRole(object):
         self.uri = uri
         self.allow_by_default = allow_by_default
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorize a session connected under this role to perform the given
         action on the given URI.
@@ -194,10 +194,10 @@ class RouterTrustedRole(RouterRole):
     service session run internally run by a router.
     """
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         self.log.debug(
-            "CrossbarRouterTrustedRole.authorize {myuri} {uri} {action}",
-            myuri=self.uri, uri=uri, action=action)
+            "CrossbarRouterTrustedRole.authorize {myuri} {uri} {action} {options}",
+            myuri=self.uri, uri=uri, action=action, options=options)
         return True
 
 
@@ -249,7 +249,7 @@ class RouterRoleStaticAuth(RouterRole):
             perms = RouterPermissions.from_dict(obj)
             self._permissions[perms.uri] = perms
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorize a session connected under this role to perform the given
         action on the given URI.
@@ -347,7 +347,7 @@ class RouterRoleDynamicAuth(RouterRole):
         # the default service session on the realm
         self._session = router._realm.session
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorize a session connected under this role to perform the given
         action on the given URI.
@@ -381,7 +381,7 @@ class RouterRoleDynamicAuth(RouterRole):
             "CrossbarRouterRoleDynamicAuth.authorize {uri} {action} {details}",
             uri=uri, action=action, details=session_details)
 
-        d = self._session.call(self._authorizer, session_details, uri, action)
+        d = self._session.call(self._authorizer, session_details, uri, action, options)
 
         def sanity_check(authorization):
             """
@@ -442,7 +442,7 @@ class RouterRoleLMDBAuth(RouterRole):
         RouterRole.__init__(self, router, uri)
         self._store = store
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorize a session connected under this role to perform the given
         action on the given URI.

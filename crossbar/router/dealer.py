@@ -275,7 +275,7 @@ class Dealer(object):
 
         # authorize REGISTER action
         #
-        d = self._router.authorize(session, register.procedure, u'register')
+        d = self._router.authorize(session, register.procedure, u'register', options=register.marshal_options())
 
         def on_authorize_success(authorization):
             if not authorization[u'allow']:
@@ -436,7 +436,7 @@ class Dealer(object):
 
             # authorize CALL action
             #
-            d = self._router.authorize(session, call.procedure, u'call')
+            d = self._router.authorize(session, call.procedure, u'call', options=call.marshal_options())
 
             def on_authorize_success(authorization):
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
