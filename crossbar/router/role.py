@@ -35,6 +35,7 @@ import six
 from pytrie import StringTrie
 
 from autobahn.wamp.uri import convert_starred_uri
+from autobahn.wamp.exception import ApplicationError
 from twisted.python.failure import Failure
 
 from txaio import make_logger
@@ -382,6 +383,21 @@ class RouterRoleDynamicAuth(RouterRole):
             uri=uri, action=action, details=session_details)
 
         d = self._session.call(self._authorizer, session_details, uri, action, options)
+
+        # we could do backwards-compatibility for clients that didn't
+        # yet add the 5th "options" argument to their authorizers like
+        # so:
+        def maybe_call_old_way(result):
+            if isinstance(result, Failure):
+                if isinstance(result.value, ApplicationError):
+                    if 'takes exactly 4 arguments' in str(result.value):
+                        self.log.warn(
+                            "legacy authorizer '{auth}'; should take 5 arguments. Calling with 4.",
+                            auth=self._authorizer,
+                        )
+                        return self._session.call(self._authorizer, session_details, uri, action)
+            return result
+        d.addBoth(maybe_call_old_way)
 
         def sanity_check(authorization):
             """
