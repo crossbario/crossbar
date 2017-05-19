@@ -266,15 +266,34 @@ class Dealer(object):
             # on a the given registration
             #
             if registration.extra.invoke == message.Register.INVOKE_SINGLE:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, [u"register for already registered procedure '{0}'".format(register.procedure)])
+                reply = message.Error(
+                    message.Register.MESSAGE_TYPE,
+                    register.request,
+                    ApplicationError.PROCEDURE_ALREADY_EXISTS,
+                    [u"register for already registered procedure '{0}'".format(register.procedure)]
+                )
                 self._router.send(session, reply)
                 return
 
-            # there is an existing registration, and that has an invokation strategy different from the one
-            # requested by the new callee
+            # there is an existing registration, and that has an
+            # invokation strategy different from the one requested
+            # by the new callee
             #
             if registration.extra.invoke != register.invoke:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, [u"register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra.invoke, register.invoke)])
+                reply = message.Error(
+                    message.Register.MESSAGE_TYPE,
+                    register.request,
+                    ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT,
+                    [
+                        u"register for already registered procedure '{0}' "
+                        u"with conflicting invocation policy (has {1} and "
+                        u"{2} was requested)".format(
+                            register.procedure,
+                            registration.extra.invoke,
+                            register.invoke
+                        )
+                    ]
+                )
                 self._router.send(session, reply)
                 return
 
