@@ -301,7 +301,7 @@ class Broker(object):
 
             # authorize PUBLISH action
             #
-            d = self._router.authorize(session, publish.topic, u'publish')
+            d = self._router.authorize(session, publish.topic, u'publish', options=publish.marshal_options())
 
             def on_authorize_success(authorization):
 
@@ -529,7 +529,7 @@ class Broker(object):
 
         # authorize SUBSCRIBE action
         #
-        d = self._router.authorize(session, subscribe.topic, u'subscribe')
+        d = self._router.authorize(session, subscribe.topic, u'subscribe', options=subscribe.marshal_options())
 
         def on_authorize_success(authorization):
             if not authorization[u'allow']:
