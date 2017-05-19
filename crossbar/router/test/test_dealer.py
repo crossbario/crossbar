@@ -308,3 +308,40 @@ class TestDealer(unittest.TestCase):
             ))
 
         self.failUnlessRaises(ProtocolError, attempt_bad_cancel)
+
+    def test_force_reregister_kick(self):
+        """
+        Kick an existing registration with force_reregister=True
+        """
+
+        session = mock.Mock()
+        session._realm = u'realm1'
+        self.router.authorize = mock.Mock(
+            return_value=defer.succeed({u'allow': True, u'disclose': True})
+        )
+        rap = RouterApplicationSession(session, self.router_factory)
+
+        rap.send(message.Hello(u"realm1", {u'caller': role.RoleCallerFeatures()}))
+        rap.send(message.Register(1, u'foo'))
+
+        reg_id = session.mock_calls[-1][1][0].registration
+
+        # re-set the authorize, as the Deferred from above is already
+        # used-up and it gets called again to authorize the Call
+        self.router.authorize = mock.Mock(
+            return_value=defer.succeed({u'allow': True, u'disclose': True})
+        )
+
+        # re-register the same procedure
+        rap.send(message.Register(2, u'foo', force_reregister=True))
+
+        # the first procedure with 'reg_id' as the Registration ID
+        # should have gotten kicked out
+        unregs = [
+            call[1][0] for call in session.mock_calls
+            if call[0] == 'onMessage' and isinstance(call[1][0], message.Unregistered)
+        ]
+        self.assertEqual(1, len(unregs))
+        unreg = unregs[0]
+        self.assertEqual(0, unreg.request)
+        self.assertEqual(reg_id, unreg.registration)
