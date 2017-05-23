@@ -46,6 +46,7 @@ log_categories = {
     "AR202": "REST bridge call succeeded.",
     "AR203": "REST bridge signature valid.",
     "AR400": "Malformed request to the REST bridge.",
+    "AR401": "Request denied based on failed authentication.",
     "AR405": "Method not accepted by the REST bridge. ({method} not allowed, only {allowed})",
     "AR413": "Request too long. ({length} is longer than accepted {accepted})",
     "AR450": "Non-accepted request encoding, must be UTF-8.",

@@ -1483,9 +1483,21 @@ def check_web_path_service_caller(config):
     check_dict_args({
         'type': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
-        'role': (True, [six.text_type]),
+        'role': (False, [six.text_type]),
+        'auth': (False, [Mapping]),
         'options': (False, [Mapping]),
     }, config, "Web transport 'caller' path service")
+
+    if 'auth' in config:
+        check_transport_auth(config['auth'])
+
+    # TODO: check auth and role are not defined at the same time
+
+    if 'auth' not in config and 'role' not in config:
+        raise Exception('Must specify auth or role.')
+
+    if 'auth' in config and 'role' in config:
+        raise Exception('Cannot specify both auth and role.')
 
     if 'options' in config:
         check_dict_args({

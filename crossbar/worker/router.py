@@ -707,7 +707,7 @@ def _create_resource(reactor, path_config, templates, log, cbdir, _router_sessio
 
         # now create the publisher Twisted Web resource
         #
-        return PublisherResource(path_config.get('options', {}), publisher_session)
+        return PublisherResource(path_config.get('options', {}), publisher_session, auth_config=path_config.get('auth', {}))
 
     # Webhook resource (part of REST-bridge)
     #
