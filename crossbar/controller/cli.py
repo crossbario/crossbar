@@ -126,9 +126,9 @@ node_default_personality = u'community'
 if u'fabric' in node_classes:
     node_default_personality = u'fabric'
 
-# however, if available, choose "fabricservice" as default
-if u'fabricservice' in node_classes:
-    node_default_personality = u'fabricservice'
+# however, if available, choose "fabriccenter" as default
+if u'fabriccenter' in node_classes:
+    node_default_personality = u'fabriccenter'
 
 
 def check_pid_exists(pid):
@@ -338,12 +338,12 @@ def run_command_version(options, reactor=None, **kwargs):
     except ImportError:
         crossbarfabric_ver = '-'
 
-    # crossbarfabricservice (only Crossbar.io FABRIC CENTER)
+    # crossbarfabriccenter (only Crossbar.io FABRIC CENTER)
     try:
-        import crossbarfabricservice  # noqa
-        crossbarfabricservice_ver = '%s' % pkg_resources.require('crossbarfabricservice')[0].version
+        import crossbarfabriccenter  # noqa
+        crossbarfabriccenter_ver = '%s' % pkg_resources.require('crossbarfabriccenter')[0].version
     except ImportError:
-        crossbarfabricservice_ver = '-'
+        crossbarfabriccenter_ver = '-'
 
     # txaio-etcd (only Crossbar.io FABRIC CENTER)
     try:
@@ -382,10 +382,10 @@ def run_command_version(options, reactor=None, **kwargs):
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
-    if options.personality in (u'fabric', u'fabricservice'):
+    if options.personality in (u'fabric', u'fabriccenter'):
         log.info(" Crossbar.io Fabric : {ver}", ver=decorate(crossbarfabric_ver))
-    if options.personality == u'fabricservice':
-        log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabricservice_ver))
+    if options.personality == u'fabriccenter':
+        log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabriccenter_ver))
         log.debug("   txaioetcd        : {ver}", ver=decorate(txaioetcd_ver))
     log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
     log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
