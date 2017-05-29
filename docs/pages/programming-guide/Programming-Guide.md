@@ -13,13 +13,13 @@ The following introduces different areas of WAMP application programming with Cr
 
 ### Usage
 
-- [Starting and Stopping Crossbar.io](Starting and Stopping Crossbario)
+- [Starting and Stopping Crossbar.io](Starting and Stopping Crossbar.io)
 - [Configuring Crossbar.io's Logging](Configuring Crossbario Logging)
 
 ### General
 
 - [URI Format](URI Format)
-- [Logging in Crossbar.io](Logging in Crossbario)
+- [Logging in Crossbar.io](Logging in Crossbar.io)
 - [Error Handling](Error Handling)
 - [Session Meta Events and Procedures](Session Metaevents and Procedures)
 - [Development with External Devices](Development-with-External-Devices)
