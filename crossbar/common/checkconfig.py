@@ -2418,10 +2418,6 @@ def check_router_realm_role(role):
 
             if role_uri.endswith('*'):
                 role_uri = role_uri[:-1]
-            if not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
-                raise InvalidConfigException(
-                    "invalid role URI '{}' in role permissions".format(role['uri']),
-                )
 
             check_dict_args({
                 'uri': (True, [six.text_type]),
@@ -2434,6 +2430,12 @@ def check_router_realm_role(role):
             if 'match' in role:
                 if role['match'] not in [u'exact', u'prefix', u'wildcard']:
                     raise InvalidConfigException("invalid value '{}' for 'match' attribute in role permissions".format(role['match']))
+
+            if not _URI_PAT_STRICT_LAST_EMPTY.match(role_uri):
+                if role.get('match', None) != 'wildcard':
+                    raise InvalidConfigException(
+                        "invalid role URI '{}' in role permissions".format(role['uri']),
+                    )
 
             if 'allow' in role:
                 check_dict_args({

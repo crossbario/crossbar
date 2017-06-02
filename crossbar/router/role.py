@@ -34,7 +34,7 @@ import six
 
 from pytrie import StringTrie
 
-from autobahn.wamp.uri import convert_starred_uri
+from autobahn.wamp.uri import convert_starred_uri, Pattern
 from twisted.python.failure import Failure
 
 from txaio import make_logger
@@ -244,10 +244,18 @@ class RouterRoleStaticAuth(RouterRole):
 
         # Trie of explicitly configured permissions
         self._permissions = StringTrie()
+        self._wild_permissions = StringTrie()
 
+        # for "wildcard" URIs, there will be a ".." in them somewhere,
+        # and so we want to match on the biggest prefix
+        # (i.e. everything to the left of the first "..")
         for obj in permissions or []:
             perms = RouterPermissions.from_dict(obj)
-            self._permissions[perms.uri] = perms
+            if '..' in perms.uri:
+                trunc = perms.uri[:perms.uri.index('..')]
+                self._wild_permissions[trunc] = perms
+            else:
+                self._permissions[perms.uri] = perms
 
     def authorize(self, session, uri, action):
         """
@@ -267,22 +275,37 @@ class RouterRoleStaticAuth(RouterRole):
             "CrossbarRouterRoleStaticAuth.authorize {myuri} {uri} {action}",
             myuri=self.uri, uri=uri, action=action)
 
+        # first, we try and match against any wildcard-URIs
         try:
-            # longest prefix match of the URI to be authorized against our Trie
-            # of configured URIs for permissions
-            permissions = self._permissions.longest_prefix_value(uri)
-
-            # if there is a _prefix_ matching URI, check that this is actually the
-            # match policy on the permission (otherwise, apply default permissions)!
-            if permissions.match != u'prefix' and uri != permissions.uri:
-                permissions = self._default
-
+            wildperm = self._wild_permissions.longest_prefix_value(uri)
         except KeyError:
-            # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-            if u'' in self._permissions:
-                permissions = self._permissions[u'']
-            else:
-                permissions = self._default
+            wildperm = None
+
+        # if we found any prefix-matching wildcard URIs then we have
+        # to see if they *actually* match the URI we got
+        permissions = None
+        if wildperm:
+            try:
+                if Pattern(wildperm.uri, Pattern.URI_TARGET_ENDPOINT).match(uri):
+                    permissions = wildperm
+            except Exception:
+                pass  # match() raises exception on no match
+
+        if permissions is None:
+            # no wildcard permissions matched; try the rest
+            try:
+                # longest prefix match of the URI to be authorized against our Trie
+                # of configured URIs for permissions
+                permissions = self._permissions.longest_prefix_value(uri)
+
+                # if there is a _prefix_ matching URI, check that this is actually the
+                # match policy on the permission (otherwise, apply default permissions)!
+                if permissions.match != u'prefix' and uri != permissions.uri:
+                    permissions = self._default
+
+            except KeyError as e:
+                # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
+                permissions = self._permissions.get(u'', self._default)
 
         if action == u'publish':
             return {
