@@ -285,7 +285,7 @@ class RouterRoleStaticAuth(RouterRole):
             if permissions.match != u'prefix' and uri != permissions.uri:
                 permissions = self._default
 
-        except KeyError as e:
+        except KeyError:
             # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
             permissions = self._permissions.get(u'', self._default)
 

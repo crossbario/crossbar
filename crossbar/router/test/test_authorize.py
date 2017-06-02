@@ -329,6 +329,7 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
                 authorization = role.authorize(None, uri, action)
                 self.assertEqual(authorization[u'allow'], allow)
 
+
 class TestRouterRoleStaticAuthWild(unittest.TestCase):
 
     def setUp(self):
