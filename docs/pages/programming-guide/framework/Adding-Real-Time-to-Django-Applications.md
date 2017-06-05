@@ -3,7 +3,7 @@ toc: [Documentation, Programming Guide, Adding Real Time to Django Applications]
 
 # Adding Real-Time to Django Applications
 
-WAMP has a [lot of potential](http://crossbario.com/blog/post/is-crossbar-the-future-of-python-web-apps/), but it's asynchronous and most current Python Web stacks are synchronous.
+WAMP has a [lot of potential](http://crossbario.com/blog/Is-Crossbar-the-future-of-Web-apps/), but it's asynchronous and most current Python Web stacks are synchronous.
 
 Still, you may want to benefit from WAMP realtime notifications right now in your synchronous applications.
 
