@@ -3,11 +3,6 @@ toc: [Documentation, Basic Concepts]
 
 # Basic Concepts
 
-title: 'Basic Concepts'
-toc: ['About', 'Basic Concepts']
-
-# Basic Concepts
-
 In this section we explain the basics of the use of Crossbar.io: basic WAMP concepts, the structure of a Crossbar.io node and the basics of configuring it. This should give you the understanding required to navigate the reference documentation to find out more about specifc aspects.
 
 **It is strongly recommended that you read this section in its entirety before starting your use of Crossbar.io. Investing the time here will make getting started a lot easier and save you time down the road!**
