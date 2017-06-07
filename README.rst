@@ -16,21 +16,6 @@ Resources
 -  Ask a question on `StackOverflow <http://stackoverflow.com/questions/ask?tags=crossbar,wamp>`__
 -  Read our `Legal Notes <https://github.com/crossbario/crossbar/blob/master/legal/README.md>`__
 
-Bounties
---------
-
-Crossbar.io - Register option to kick existing registration
-...........................................................
-
-|Bounty 45173769|
-
-
-Crossbar.io - Kerberos/AD authentication
-........................................
-
-|Bounty 44253224|
-
-
 
 .. |Version| image:: https://img.shields.io/pypi/v/crossbar.svg
    :target: https://pypi.python.org/pypi/crossbar
