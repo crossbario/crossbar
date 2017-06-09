@@ -286,7 +286,7 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
         uris = [u'com.example.1', u'myuri', u'']
         for uri in uris:
             for action in actions:
-                authorization = role.authorize(None, uri, action)
+                authorization = role.authorize(None, uri, action, {})
                 self.assertFalse(authorization[u'allow'])
 
     def test_ruleset_1(self):
@@ -306,7 +306,7 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
         uris = [(u'com.example.1', True), (u'myuri', False), (u'', False)]
         for uri, allow in uris:
             for action in actions:
-                authorization = role.authorize(None, uri, action)
+                authorization = role.authorize(None, uri, action, {})
                 self.assertEqual(authorization[u'allow'], allow)
 
     def test_ruleset_2(self):
@@ -326,5 +326,5 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
         uris = [(u'com.example.1', True), (u'myuri', True), (u'', True)]
         for uri, allow in uris:
             for action in actions:
-                authorization = role.authorize(None, uri, action)
+                authorization = role.authorize(None, uri, action, {})
                 self.assertEqual(authorization[u'allow'], allow)

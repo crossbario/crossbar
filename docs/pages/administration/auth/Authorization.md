@@ -119,7 +119,7 @@ Besides *Static Authorization* using the URI-pattern based authorization scheme 
 
 With *Dynamic Authorization* your application will provide a WAMP procedure (with a defined signature) that Crossbar.io will then call to determine the permissions of other clients.
 
-The method must accept three arguments: `(session, uri, action)` and must return a `dict` with the following keys:
+The method must accept three arguments: `(session, uri, action, options)` and must return a `dict` with the following keys:
 
  - `allow` (required) a bool indicating if the action is allowed
  - `disclose` (optional, default `False`) a bool indicating if callee's session-id should be disclosed to callers
@@ -132,21 +132,24 @@ The arguments to the call are:
  - `session`: a `dict` containing session details
  - `uri`: A string, the WAMP URI of the action being authorized
  - `action`: A string, one of `publish`, `subscribe`, `register`, or `call` indicating what is being authorized
+ - `options`: A `dict` containing any options give to the original procedure (e.g. `{"match": "prefix"}`)
 
 For fully working examples, see [crossbarexample/authorization](https://github.com/crossbario/crossbar-examples/tree/master/authorization/dynamic.
+
+**NOTE** that in version 17.5.1 and earler, authorizers did not take the `options` argument; these will still work but involve an extra round-trip to detect the error so you should upgrade existing authorizers to take the new option.
 
 E.g. consider the following Python function
 
 ```python
 @wamp.register('com.example.authorize')
-def custom_authorize(session, uri, action):
-   ## your custom authorization logic to determine whether client
-   ## session should be allowed to perform action on uri
+def custom_authorize(session, uri, action, options):
+   # your custom authorization logic to determine whether client
+   # session should be allowed to perform action on uri
    if ...
-      ## allow action
+      # allow action
       return True
    else:
-      ## deny action
+      # deny action
       return False
 ```
 
@@ -216,13 +219,14 @@ class MyAuthorizer(ApplicationSession):
     def onJoin(self, details):
        print("MyAuthorizer.onJoin({})".format(details))
        try:
-           yield self.register(self.authorize, 'com.example.auth')
+           yield self.register(self.authorize, 'com.example.authorize')
            print("MyAuthorizer: authorizer registered")
        except Exception as e:
            print("MyAuthorizer: failed to register authorizer procedure ({})".format(e))
+           raise
 
-    def authorize(self, session, uri, action):
-       print("MyAuthorizer.authorize({}, {}, {})".format(session, uri, action))
+    def authorize(self, session, uri, action, options):
+       print("MyAuthorizer.authorize({}, {}, {}, {})".format(session, uri, action, options))
        return True
 ```
 
