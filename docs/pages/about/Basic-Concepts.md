@@ -229,4 +229,4 @@ This creates two transport:
 
 ## Installation
 
-We recommend getting started using Docker (see [Getting Started][Getting Started]), but Crossbar.io runs across a wide range of devices, some of which we provide [installation instructions](/docs/Installation) for.
+We recommend getting started using Docker (see [Getting Started](Getting Started)), but Crossbar.io runs across a wide range of devices, some of which we provide [installation instructions](/docs/Installation) for.
