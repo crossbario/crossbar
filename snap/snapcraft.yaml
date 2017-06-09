@@ -1,0 +1,28 @@
+name: crossbar
+version: '17.5.1'
+summary: Crossbar.io - Polyglot application router.
+description: |
+  Crossbar.io is a networking platform for distributed and microservice
+  applications. It is feature rich, scalable, robust and secure. Let
+  Crossbar.io take care of the hard parts of messaging so you can focus
+  on your app's features.
+
+grade: devel
+confinement: strict
+
+apps:
+  crossbar:
+    command: bin/crossbar
+    plugs: [home, network, network-bind]
+
+parts:
+  crossbar:
+    plugin: python
+    source: https://github.com/crossbario/crossbar.git
+    python-packages:
+      - cffi>=1.1.0
+    build-packages:
+      - gcc
+      - libffi-dev
+      - libssl-dev
+      - make
