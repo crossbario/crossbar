@@ -34,7 +34,7 @@ import six
 
 from pytrie import StringTrie
 
-from autobahn.wamp.uri import convert_starred_uri
+from autobahn.wamp.uri import convert_starred_uri, Pattern
 from twisted.python.failure import Failure
 
 from txaio import make_logger
@@ -244,10 +244,18 @@ class RouterRoleStaticAuth(RouterRole):
 
         # Trie of explicitly configured permissions
         self._permissions = StringTrie()
+        self._wild_permissions = StringTrie()
 
+        # for "wildcard" URIs, there will be a ".." in them somewhere,
+        # and so we want to match on the biggest prefix
+        # (i.e. everything to the left of the first "..")
         for obj in permissions or []:
             perms = RouterPermissions.from_dict(obj)
-            self._permissions[perms.uri] = perms
+            if '..' in perms.uri:
+                trunc = perms.uri[:perms.uri.index('..')]
+                self._wild_permissions[trunc] = perms
+            else:
+                self._permissions[perms.uri] = perms
 
     def authorize(self, session, uri, action):
         """
@@ -279,10 +287,22 @@ class RouterRoleStaticAuth(RouterRole):
 
         except KeyError:
             # workaround because of https://bitbucket.org/gsakkis/pytrie/issues/4/string-keys-of-zero-length-are-not
-            if u'' in self._permissions:
-                permissions = self._permissions[u'']
-            else:
-                permissions = self._default
+            permissions = self._permissions.get(u'', self._default)
+
+        # if we found a non-"exact" match, there might be a better one in the wildcards
+        if permissions.match != u'exact':
+            try:
+                wildperm = self._wild_permissions.longest_prefix_value(uri)
+                Pattern(wildperm.uri, Pattern.URI_TARGET_ENDPOINT).match(uri)
+            except (KeyError, Exception):
+                # match() raises Exception on no match
+                wildperm = None
+
+            if wildperm is not None:
+                permissions = wildperm
+
+        # we now have some permissions, either from matching something
+        # or via self._default
 
         if action == u'publish':
             return {

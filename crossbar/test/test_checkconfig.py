@@ -239,6 +239,19 @@ class CheckEndpointTests(TestCase):
         )
 
 
+class CheckWebsocketTests(TestCase):
+
+    def test_tiny_timeout_auto_ping(self):
+        options = dict(auto_ping_timeout=12)
+
+        with self.assertRaises(checkconfig.InvalidConfigException) as ctx:
+            checkconfig.check_websocket_options(options)
+
+        self.assertTrue(
+            "'auto_ping_timeout' is in milliseconds" in str(ctx.exception)
+        )
+
+
 class CheckRealmTests(TestCase):
     """
     Tests for check_router_realm, check_router_realm_role

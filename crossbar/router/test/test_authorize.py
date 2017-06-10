@@ -328,3 +328,82 @@ class TestRouterRoleStaticAuth(unittest.TestCase):
             for action in actions:
                 authorization = role.authorize(None, uri, action)
                 self.assertEqual(authorization[u'allow'], allow)
+
+
+class TestRouterRoleStaticAuthWild(unittest.TestCase):
+
+    def setUp(self):
+        permissions = [
+            {
+                u'uri': u'com..private',
+                u'match': 'wildcard',
+                u'allow': {
+                    u'call': True,
+                    u'register': False,
+                    u'publish': False,
+                    u'subscribe': False,
+                }
+            },
+            {
+                u'uri': u'com.something_specific.private',
+                u'match': 'exact',
+                u'allow': {
+                    u'call': False,
+                    u'register': True,
+                    u'publish': False,
+                    u'subscribe': False
+                }
+            },
+            {
+                u'uri': u'com.',
+                u'match': 'prefix',
+                u'allow': {
+                    u'call': False,
+                    u'register': False,
+                    u'publish': True,
+                    u'subscribe': False
+                }
+            }
+        ]
+        self.role = RouterRoleStaticAuth(None, u'testrole', permissions)
+
+    def test_exact_before_wildcard(self):
+        # exact matches should always be preferred over wildcards
+        self.assertEqual(
+            False,
+            self.role.authorize(None, u'com.something_specific.private', 'call')[u'allow']
+        )
+        self.assertEqual(
+            True,
+            self.role.authorize(None, u'com.something_specific.private', 'register')[u'allow']
+        )
+
+    def test_wildcard_before_prefix(self):
+        # wildcards should be preferred over prefix
+        self.assertEqual(
+            True,
+            self.role.authorize(None, u'com.foo.private', 'call')[u'allow']
+        )
+        self.assertEqual(
+            False,
+            self.role.authorize(None, u'com.foo.private', 'register')[u'allow']
+        )
+        self.assertEqual(
+            False,
+            self.role.authorize(None, u'com.foo.private', 'publish')[u'allow']
+        )
+
+    def test_prefix(self):
+        # wildcards should be preferred over prefix
+        self.assertEqual(
+            False,
+            self.role.authorize(None, u'com.whatever', 'call')[u'allow']
+        )
+        self.assertEqual(
+            False,
+            self.role.authorize(None, u'com.whatever', 'register')[u'allow']
+        )
+        self.assertEqual(
+            True,
+            self.role.authorize(None, u'com.whatever', 'publish')[u'allow']
+        )
