@@ -103,7 +103,7 @@ class Router(object):
         # map: authrole -> set(session)
         self._authrole_to_sessions = {}
 
-        self._broker = self.broker(self, self._options)
+        self._broker = self.broker(self, factory._reactor, self._options)
         self._dealer = self.dealer(self, self._options)
         self._attached = 0
 
@@ -369,6 +369,9 @@ class RouterFactory(object):
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False
+        # XXX this should get passed in from .. somewhere
+        from twisted.internet import reactor
+        self._reactor = reactor
 
     def get(self, realm):
         """
