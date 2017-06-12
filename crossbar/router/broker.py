@@ -164,6 +164,8 @@ class Broker(object):
                             options = types.PublishOptions()
                         else:
                             options = types.PublishOptions(
+                                # we exclude the client session from the set of receivers
+                                # for the WAMP session meta events (race conditions!)
                                 exclude=[session._session_id],
                             )
                         service_session = self._router._realm.session
@@ -181,6 +183,7 @@ class Broker(object):
                                 subscription.id,
                                 options=options,
                             )
+                    # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish)
 
             del self._session_to_subscriptions[session]
@@ -571,6 +574,8 @@ class Broker(object):
                     def _publish():
                         service_session = self._router._realm.session
                         options = types.PublishOptions(
+                            # we exclude the client session from the set of receivers
+                            # for the WAMP session meta events (race conditions!)
                             exclude=[session._session_id],
                         )
                         if is_first_subscriber:
@@ -593,6 +598,7 @@ class Broker(object):
                                 subscription.id,
                                 options=options,
                             )
+                    # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish)
 
                 # check for retained events
@@ -719,6 +725,8 @@ class Broker(object):
                     options = types.PublishOptions()
                 else:
                     options = types.PublishOptions(
+                        # we exclude the client session from the set of receivers
+                        # for the WAMP session meta events (race conditions!)
                         exclude=[session._session_id],
                     )
                 if was_subscribed:
@@ -735,6 +743,7 @@ class Broker(object):
                         subscription.id,
                         options=options,
                     )
+            # we postpone actual sending of meta events until we return to this client session
             self._reactor.callLater(0, _publish)
 
         return was_subscribed, was_last_subscriber
