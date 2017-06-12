@@ -293,7 +293,7 @@ class Router(object):
         else:
             return False
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorizes a session for an action on an URI.
 
@@ -309,7 +309,7 @@ class Router(object):
         if role in self._roles:
             # the authorizer procedure of the role which we will call ..
             authorize = self._roles[role].authorize
-            d = txaio.as_future(authorize, session, uri, action)
+            d = txaio.as_future(authorize, session, uri, action, options)
         else:
             # normally, the role should exist on the router (and hence we should not arrive
             # here), but the role might have been dynamically removed - and anyway, safety first!
