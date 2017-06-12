@@ -371,39 +371,39 @@ class TestRouterRoleStaticAuthWild(unittest.TestCase):
         # exact matches should always be preferred over wildcards
         self.assertEqual(
             False,
-            self.role.authorize(None, u'com.something_specific.private', 'call')[u'allow']
+            self.role.authorize(None, u'com.something_specific.private', 'call', {})[u'allow']
         )
         self.assertEqual(
             True,
-            self.role.authorize(None, u'com.something_specific.private', 'register')[u'allow']
+            self.role.authorize(None, u'com.something_specific.private', 'register', {})[u'allow']
         )
 
     def test_wildcard_before_prefix(self):
         # wildcards should be preferred over prefix
         self.assertEqual(
             True,
-            self.role.authorize(None, u'com.foo.private', 'call')[u'allow']
+            self.role.authorize(None, u'com.foo.private', 'call', {})[u'allow']
         )
         self.assertEqual(
             False,
-            self.role.authorize(None, u'com.foo.private', 'register')[u'allow']
+            self.role.authorize(None, u'com.foo.private', 'register', {})[u'allow']
         )
         self.assertEqual(
             False,
-            self.role.authorize(None, u'com.foo.private', 'publish')[u'allow']
+            self.role.authorize(None, u'com.foo.private', 'publish', {})[u'allow']
         )
 
     def test_prefix(self):
         # wildcards should be preferred over prefix
         self.assertEqual(
             False,
-            self.role.authorize(None, u'com.whatever', 'call')[u'allow']
+            self.role.authorize(None, u'com.whatever', 'call', {})[u'allow']
         )
         self.assertEqual(
             False,
-            self.role.authorize(None, u'com.whatever', 'register')[u'allow']
+            self.role.authorize(None, u'com.whatever', 'register', {})[u'allow']
         )
         self.assertEqual(
             True,
-            self.role.authorize(None, u'com.whatever', 'publish')[u'allow']
+            self.role.authorize(None, u'com.whatever', 'publish', {})[u'allow']
         )
