@@ -150,3 +150,60 @@ class TestDealer(unittest.TestCase):
         dealer.detach(session)
 
         self.assertEqual([], outstanding.mock_calls)
+
+    def test_call_cancel(self):
+        last_message = {'1': []}
+
+        def session_send(msg):
+            last_message['1'] = msg
+
+        session = mock.Mock()
+        session._transport.send = session_send
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = last_message['1']
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg = last_message['1']
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        dealer.processCancel(session, message.Cancel(
+            2
+        ))
+
+        # should receive an INTERRUPT from the dealer now
+        interrupt_msg = last_message['1']
+        self.assertIsInstance(interrupt_msg, message.Interrupt)
+        self.assertEqual(interrupt_msg.request, invocation_msg.request)
+
+        dealer.processInvocationError(session, message.Error(
+            message.Invocation.MESSAGE_TYPE,
+            invocation_msg.request,
+            u'wamp.error.canceled'
+        ))
+
+        call_error_msg = last_message['1']
+        self.assertIsInstance(call_error_msg, message.Error)
+        self.assertEqual(message.Call.MESSAGE_TYPE, call_error_msg.request_type)
+        self.assertEqual(u'wamp.error.canceled', call_error_msg.error)

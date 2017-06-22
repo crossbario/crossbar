@@ -59,7 +59,7 @@ class InvocationRequest(object):
     Holding information for an individual invocation.
     """
 
-    __slots__ = ('id', 'registration', 'caller', 'call', 'callee')
+    __slots__ = ('id', 'registration', 'caller', 'call', 'callee', 'canceled')
 
     def __init__(self, id, registration, caller, call, callee):
         self.id = id
@@ -67,6 +67,7 @@ class InvocationRequest(object):
         self.caller = caller
         self.call = call
         self.callee = callee
+        self.canceled = False
 
 
 class RegistrationExtra(object):
@@ -128,6 +129,9 @@ class Dealer(object):
         # BEWARE: this map must be kept up-to-date along with the
         # _invocations map below! Use the helper methods
         # _add_invoke_request and _remove_invoke_request
+
+        # map: call -> in-flight invocations
+        self._invocations_by_call = {}
 
         # pending callee invocation requests
         self._invocations = {}
@@ -637,6 +641,7 @@ class Dealer(object):
         """
         invoke_request = InvocationRequest(invocation_request_id, registration, session, call, callee)
         self._invocations[invocation_request_id] = invoke_request
+        self._invocations_by_call[call.request] = invoke_request
         invokes = self._callee_to_invocations.get(callee, [])
         invokes.append(invoke_request)
         self._callee_to_invocations[callee] = invokes
@@ -652,15 +657,34 @@ class Dealer(object):
         if not invokes:
             del self._callee_to_invocations[invocation_request.callee]
         del self._invocations[invocation_request.id]
+        del self._invocations_by_call[invocation_request.call.request]
 
     # noinspection PyUnusedLocal
     def processCancel(self, session, cancel):
+        # type: (object, message.Cancel) -> None
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
         """
-        assert(session in self._session_to_registrations)
+        if cancel.request in self._invocations_by_call:
+            invocation_request = self._invocations_by_call[cancel.request]
 
-        raise Exception("not implemented")
+            # for those that repeatedly push elevator buttons
+            if invocation_request.canceled:
+                return
+
+            invocation_request.canceled = True
+
+            # TODO: should check to see if canceling is supported by everyone
+            self._router.send(invocation_request.callee, message.Interrupt(
+                invocation_request.id,
+                cancel.mode
+            ))
+
+            return
+
+        # not sure what to do here, it is possible that messages crossed and the invocation
+        # is no longer valid by time we get this message - should probably just ignore
+        # cancels because we have no way to tell the caller about an issue
 
     def processYield(self, session, yield_):
         """
