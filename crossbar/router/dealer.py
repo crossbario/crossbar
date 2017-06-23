@@ -149,7 +149,8 @@ class Dealer(object):
                                                       registration_revocation=True,
                                                       payload_transparency=True,
                                                       testament_meta_api=True,
-                                                      payload_encryption_cryptobox=True)
+                                                      payload_encryption_cryptobox=True,
+                                                      call_canceling=True)
 
         # store for call queues
         if self._router._store:
@@ -661,7 +662,7 @@ class Dealer(object):
 
     # noinspection PyUnusedLocal
     def processCancel(self, session, cancel):
-        # type: (object, message.Cancel) -> None
+        # type: (session.RouterSession, message.Cancel) -> None
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
         """
@@ -674,17 +675,13 @@ class Dealer(object):
 
             invocation_request.canceled = True
 
-            # TODO: should check to see if canceling is supported by everyone
-            self._router.send(invocation_request.callee, message.Interrupt(
-                invocation_request.id,
-                cancel.mode
-            ))
+            if 'callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].call_canceling:
+                self._router.send(invocation_request.callee, message.Interrupt(
+                    invocation_request.id,
+                    cancel.mode
+                ))
 
             return
-
-        # not sure what to do here, it is possible that messages crossed and the invocation
-        # is no longer valid by time we get this message - should probably just ignore
-        # cancels because we have no way to tell the caller about an issue
 
     def processYield(self, session, yield_):
         """
