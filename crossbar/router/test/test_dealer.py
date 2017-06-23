@@ -36,6 +36,7 @@ import mock
 
 from autobahn.wamp import message
 from autobahn.wamp import role
+from autobahn.wamp.exception import ProtocolError
 
 from crossbar.worker.router import RouterRealm
 from crossbar.router.router import RouterFactory
@@ -257,3 +258,53 @@ class TestDealer(unittest.TestCase):
         # should NOT receive an INTERRUPT from the dealer now
         interrupt_msg = last_message['1']
         self.assertIsNone(interrupt_msg)
+
+    def test_call_cancel_nonowned_call(self):
+        last_message = {'1': []}
+
+        def session_send(msg):
+            last_message['1'] = msg
+
+        session = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = last_message['1']
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg = last_message['1']
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        bad_session = mock.Mock()
+        bad_session._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
+
+        dealer.attach(bad_session)
+
+        def attempt_bad_cancel():
+            dealer.processCancel(bad_session, message.Cancel(
+                2
+            ))
+
+        self.failUnlessRaises(ProtocolError, attempt_bad_cancel)

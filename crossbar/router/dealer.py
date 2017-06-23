@@ -669,6 +669,9 @@ class Dealer(object):
         if cancel.request in self._invocations_by_call:
             invocation_request = self._invocations_by_call[cancel.request]
 
+            if invocation_request.caller is not session:
+                raise ProtocolError(u"Dealer.processCancel(): CANCEL received for non-owned call request ID {0}".format(cancel.request))
+
             # for those that repeatedly push elevator buttons
             if invocation_request.canceled:
                 return
