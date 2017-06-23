@@ -255,21 +255,47 @@ class Dealer(object):
         # get existing registration for procedure / matching strategy - if any
         #
         registration = self._registration_map.get_observation(register.procedure, register.match)
-        if registration:
 
-            # there is an existing registration, and that has an invocation strategy that only allows a single callee
+        # XXX actually, shouldn't we do *all* processing only after
+        # authorization? otherwise we're leaking the fact that a
+        # procedure exists here at all...
+
+        # if force_reregister was enabled, we only do any actual
+        # kicking of existing registrations *after* authorization
+        if registration and not register.force_reregister:
+            # there is an existing registration, and that has an
+            # invocation strategy that only allows a single callee
             # on a the given registration
             #
             if registration.extra.invoke == message.Register.INVOKE_SINGLE:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, [u"register for already registered procedure '{0}'".format(register.procedure)])
+                reply = message.Error(
+                    message.Register.MESSAGE_TYPE,
+                    register.request,
+                    ApplicationError.PROCEDURE_ALREADY_EXISTS,
+                    [u"register for already registered procedure '{0}'".format(register.procedure)]
+                )
                 self._router.send(session, reply)
                 return
 
-            # there is an existing registration, and that has an invokation strategy different from the one
-            # requested by the new callee
+            # there is an existing registration, and that has an
+            # invokation strategy different from the one requested
+            # by the new callee
             #
             if registration.extra.invoke != register.invoke:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, [u"register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra.invoke, register.invoke)])
+                reply = message.Error(
+                    message.Register.MESSAGE_TYPE,
+                    register.request,
+                    ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT,
+                    [
+                        u"register for already registered procedure '{0}' "
+                        u"with conflicting invocation policy (has {1} and "
+                        u"{2} was requested)".format(
+                            register.procedure,
+                            registration.extra.invoke,
+                            register.invoke
+                        )
+                    ]
+                )
                 self._router.send(session, reply)
                 return
 
@@ -284,6 +310,18 @@ class Dealer(object):
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to register procedure '{0}'".format(register.procedure)])
 
             else:
+                registration = self._registration_map.get_observation(register.procedure, register.match)
+                if register.force_reregister and registration:
+                    for obs in registration.observers:
+                        self._registration_map.drop_observer(obs, registration)
+                        kicked = message.Unregistered(
+                            0,
+                            registration=registration.id,
+                            reason=u"wamp.error.unregistered",
+                        )
+                        self._router.send(obs, kicked)
+                    self._registration_map.delete_observation(registration)
+
                 # ok, session authorized to register. now get the registration
                 #
                 registration_extra = RegistrationExtra(register.invoke)
