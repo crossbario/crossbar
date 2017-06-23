@@ -159,6 +159,7 @@ class TestDealer(unittest.TestCase):
 
         session = mock.Mock()
         session._transport.send = session_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
 
         dealer = self.router._dealer
         dealer.attach(session)
@@ -207,3 +208,52 @@ class TestDealer(unittest.TestCase):
         self.assertIsInstance(call_error_msg, message.Error)
         self.assertEqual(message.Call.MESSAGE_TYPE, call_error_msg.request_type)
         self.assertEqual(u'wamp.error.canceled', call_error_msg.error)
+
+    def test_call_cancel_without_callee_support(self):
+        last_message = {'1': []}
+
+        def session_send(msg):
+            last_message['1'] = msg
+
+        session = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures()}
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = last_message['1']
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg = last_message['1']
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        dealer.processCancel(session, message.Cancel(
+            2
+        ))
+
+        # set message to None to make sure that we get nothing back
+        last_message['1'] = None
+
+        # should NOT receive an INTERRUPT from the dealer now
+        interrupt_msg = last_message['1']
+        self.assertIsNone(interrupt_msg)
