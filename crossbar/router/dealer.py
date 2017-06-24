@@ -130,6 +130,9 @@ class Dealer(object):
         # _invocations map below! Use the helper methods
         # _add_invoke_request and _remove_invoke_request
 
+        # map: session -> in-flight invocations
+        self._caller_to_invocations = {}
+
         # map: call -> in-flight invocations
         self._invocations_by_call = {}
 
@@ -171,6 +174,32 @@ class Dealer(object):
         """
         Implements :func:`crossbar.router.interfaces.IDealer.detach`
         """
+        # if the caller on an in-flight invocation goes away
+        # INTERRUPT the callee if supported
+        if session in self._caller_to_invocations:
+            outstanding = self._caller_to_invocations.get(session, [])
+            for invoke in outstanding:  # type: InvocationRequest
+                if invoke.callee is invoke.caller:  # if the calling itself - no need to notify
+                    continue
+                callee = invoke.callee
+                if 'callee' not in callee._session_roles \
+                        or not callee._session_roles['callee'] \
+                        or not callee._session_roles['callee'].call_canceling:
+                    self.log.debug(
+                        "INTERRUPT not supported on in-flight INVOKE with id={request} on"
+                        " session {session} (caller went away)",
+                        request=invoke.id,
+                        session=session._session_id,
+                    )
+                    continue
+                self.log.debug(
+                    "INTERRUPTing in-flight INVOKE with id={request} on"
+                    " session {session} (caller went away)",
+                    request=invoke.id,
+                    session=session._session_id,
+                )
+                self._router.send(invoke.callee, message.Interrupt(invoke.id))
+
         if session in self._session_to_registrations:
             # send out Errors for any in-flight calls we have
             outstanding = self._callee_to_invocations.get(session, [])
@@ -684,6 +713,12 @@ class Dealer(object):
         invokes = self._callee_to_invocations.get(callee, [])
         invokes.append(invoke_request)
         self._callee_to_invocations[callee] = invokes
+
+        # map to keep track of the invocations by each caller
+        invokes = self._caller_to_invocations.get(session, [])
+        invokes.append(invoke_request)
+        self._caller_to_invocations[session] = invokes
+
         return invoke_request
 
     def _remove_invoke_request(self, invocation_request):
@@ -695,6 +730,12 @@ class Dealer(object):
         invokes.remove(invocation_request)
         if not invokes:
             del self._callee_to_invocations[invocation_request.callee]
+
+        invokes = self._caller_to_invocations[invocation_request.caller]
+        invokes.remove(invocation_request)
+        if not invokes:
+            del self._caller_to_invocations[invocation_request.caller]
+
         del self._invocations[invocation_request.id]
         del self._invocations_by_call[invocation_request.call.request]
 
