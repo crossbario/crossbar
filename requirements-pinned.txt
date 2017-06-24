@@ -1,7 +1,7 @@
 argh==0.26.2
 asn1crypto==0.22.0
 attrs==17.2.0
-autobahn==17.6.1
+autobahn==17.6.2
 Automat==0.6.0
 bitstring==3.1.5
 cbor==1.0.0
@@ -15,7 +15,7 @@ enum34==1.1.6
 h2==2.6.2
 hpack==3.0.0
 hyperframe==5.1.0
-hyperlink==17.1.1
+hyperlink==17.2.1
 idna==2.5
 incremental==17.5.0
 ipaddress==1.0.18
@@ -37,7 +37,7 @@ pyOpenSSL==17.0.0
 PyQRCode==1.2.1
 PyTrie==0.3
 PyYAML==3.12
-requests==2.17.3
+requests==2.18.1
 sdnotify==0.3.1
 service-identity==17.0.0
 setproctitle==1.1.10
@@ -51,4 +51,4 @@ txaio==2.8.0
 u-msgpack-python==2.4.1
 urllib3==1.21.1
 watchdog==0.8.3
-zope.interface==4.4.1
+zope.interface==4.4.2
