@@ -736,6 +736,11 @@ class Dealer(object):
             #
             invocation_request = self._invocations[yield_.request]
 
+            # check to make sure this session is the one that is supposed to be yielding
+            if invocation_request.callee is not session:
+                raise ProtocolError(
+                    u"Dealer.onYield(): YIELD received for non-owned request ID {0}".format(yield_.request))
+
             is_valid = True
             if yield_.payload is None:
                 # validate normal args/kwargs payload
