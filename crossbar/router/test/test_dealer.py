@@ -345,3 +345,41 @@ class TestDealer(unittest.TestCase):
         unreg = unregs[0]
         self.assertEqual(0, unreg.request)
         self.assertEqual(reg_id, unreg.registration)
+
+    def test_yield_on_unowned_invocation(self):
+        sessionMessages = {'1': None}
+
+        def session1send(msg):
+            sessionMessages['1'] = msg
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        session1 = mock.Mock()
+        session1._transport.send = session1send
+        session2 = mock.Mock()
+
+        dealer = self.router._dealer
+        dealer.attach(session1)
+        dealer.attach(session2)
+
+        register = message.Register(1, u'com.example.some.call', u'exact', message.Register.INVOKE_SINGLE, 1)
+        dealer.processRegister(session1, register)
+        registered = sessionMessages['1']
+        self.assertIsInstance(registered, message.Registered)
+
+        call = message.Call(2, u'com.example.some.call', [], {})
+        dealer.processCall(session1, call)
+        invocation = sessionMessages['1']
+        self.assertIsInstance(invocation, message.Invocation)
+
+        yieldMsg = message.Yield(invocation.request, [u'hello'], {})
+
+        # this yield is happening on a different session than the one that
+        # just received the invocation
+        def yield_from_wrong_session():
+            dealer.processYield(session2, yieldMsg)
+
+        self.failUnlessRaises(ProtocolError, yield_from_wrong_session)
