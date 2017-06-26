@@ -467,7 +467,7 @@ class UriObservationMap(object):
         """
 
         if observation.observers:
-            return ValueError("Can't delete an observation with current observers.")
+            raise ValueError("Can't delete an observation with current observers.")
 
         if observation.match == u"exact":
             del self._observations_exact[observation.uri]

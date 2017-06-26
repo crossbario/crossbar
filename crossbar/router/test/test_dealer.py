@@ -36,6 +36,7 @@ import mock
 
 from autobahn.wamp import message
 from autobahn.wamp import role
+from autobahn.wamp.exception import ProtocolError
 
 from crossbar.worker.router import RouterRealm
 from crossbar.router.router import RouterFactory
@@ -150,3 +151,332 @@ class TestDealer(unittest.TestCase):
         dealer.detach(session)
 
         self.assertEqual([], outstanding.mock_calls)
+
+    def test_call_cancel(self):
+        last_message = {'1': []}
+
+        def session_send(msg):
+            last_message['1'] = msg
+
+        session = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = last_message['1']
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg = last_message['1']
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        dealer.processCancel(session, message.Cancel(
+            2
+        ))
+
+        # should receive an INTERRUPT from the dealer now
+        interrupt_msg = last_message['1']
+        self.assertIsInstance(interrupt_msg, message.Interrupt)
+        self.assertEqual(interrupt_msg.request, invocation_msg.request)
+
+        dealer.processInvocationError(session, message.Error(
+            message.Invocation.MESSAGE_TYPE,
+            invocation_msg.request,
+            u'wamp.error.canceled'
+        ))
+
+        call_error_msg = last_message['1']
+        self.assertIsInstance(call_error_msg, message.Error)
+        self.assertEqual(message.Call.MESSAGE_TYPE, call_error_msg.request_type)
+        self.assertEqual(u'wamp.error.canceled', call_error_msg.error)
+
+    def test_call_cancel_without_callee_support(self):
+        last_message = {'1': []}
+
+        def session_send(msg):
+            last_message['1'] = msg
+
+        session = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures()}
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = last_message['1']
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg = last_message['1']
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        dealer.processCancel(session, message.Cancel(
+            2
+        ))
+
+        # set message to None to make sure that we get nothing back
+        last_message['1'] = None
+
+        # should NOT receive an INTERRUPT from the dealer now
+        interrupt_msg = last_message['1']
+        self.assertIsNone(interrupt_msg)
+
+    def test_call_cancel_nonowned_call(self):
+        last_message = {'1': []}
+
+        def session_send(msg):
+            last_message['1'] = msg
+
+        session = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = last_message['1']
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg = last_message['1']
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        bad_session = mock.Mock()
+        bad_session._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
+
+        dealer.attach(bad_session)
+
+        def attempt_bad_cancel():
+            dealer.processCancel(bad_session, message.Cancel(
+                2
+            ))
+
+        self.failUnlessRaises(ProtocolError, attempt_bad_cancel)
+
+    def test_force_reregister_kick(self):
+        """
+        Kick an existing registration with force_reregister=True
+        """
+
+        session = mock.Mock()
+        session._realm = u'realm1'
+        self.router.authorize = mock.Mock(
+            return_value=defer.succeed({u'allow': True, u'disclose': True})
+        )
+        rap = RouterApplicationSession(session, self.router_factory)
+
+        rap.send(message.Hello(u"realm1", {u'caller': role.RoleCallerFeatures()}))
+        rap.send(message.Register(1, u'foo'))
+
+        reg_id = session.mock_calls[-1][1][0].registration
+
+        # re-set the authorize, as the Deferred from above is already
+        # used-up and it gets called again to authorize the Call
+        self.router.authorize = mock.Mock(
+            return_value=defer.succeed({u'allow': True, u'disclose': True})
+        )
+
+        # re-register the same procedure
+        rap.send(message.Register(2, u'foo', force_reregister=True))
+
+        # the first procedure with 'reg_id' as the Registration ID
+        # should have gotten kicked out
+        unregs = [
+            call[1][0] for call in session.mock_calls
+            if call[0] == 'onMessage' and isinstance(call[1][0], message.Unregistered)
+        ]
+        self.assertEqual(1, len(unregs))
+        unreg = unregs[0]
+        self.assertEqual(0, unreg.request)
+        self.assertEqual(reg_id, unreg.registration)
+
+    def test_yield_on_unowned_invocation(self):
+        sessionMessages = {'1': None}
+
+        def session1send(msg):
+            sessionMessages['1'] = msg
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        session1 = mock.Mock()
+        session1._transport.send = session1send
+        session2 = mock.Mock()
+
+        dealer = self.router._dealer
+        dealer.attach(session1)
+        dealer.attach(session2)
+
+        register = message.Register(1, u'com.example.some.call', u'exact', message.Register.INVOKE_SINGLE, 1)
+        dealer.processRegister(session1, register)
+        registered = sessionMessages['1']
+        self.assertIsInstance(registered, message.Registered)
+
+        call = message.Call(2, u'com.example.some.call', [], {})
+        dealer.processCall(session1, call)
+        invocation = sessionMessages['1']
+        self.assertIsInstance(invocation, message.Invocation)
+
+        yieldMsg = message.Yield(invocation.request, [u'hello'], {})
+
+        # this yield is happening on a different session than the one that
+        # just received the invocation
+        def yield_from_wrong_session():
+            dealer.processYield(session2, yieldMsg)
+
+        self.failUnlessRaises(ProtocolError, yield_from_wrong_session)
+
+    def test_caller_detach_interrupt_cancel_supported(self):
+        last_message = {'1': []}
+
+        def session_send(msg):
+            last_message['1'] = msg
+
+        session = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
+
+        caller_session = mock.Mock()
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+        dealer.attach(caller_session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = last_message['1']
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(caller_session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg = last_message['1']
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        dealer.detach(caller_session)
+
+        # should receive an INTERRUPT from the dealer now
+        interrupt_msg = last_message['1']
+        self.assertIsInstance(interrupt_msg, message.Interrupt)
+        self.assertEqual(interrupt_msg.request, invocation_msg.request)
+
+    def test_caller_detach_interrupt_cancel_not_supported(self):
+        last_message = {'1': []}
+
+        def session_send(msg):
+            last_message['1'] = msg
+
+        session = mock.Mock()
+        session._transport.send = session_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures()}
+
+        caller_session = mock.Mock()
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+        dealer.attach(caller_session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            1
+        ))
+
+        registered_msg = last_message['1']
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        dealer.processCall(caller_session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg = last_message['1']
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        dealer.detach(caller_session)
+
+        # reset recorded message to make sure we don't receive anything
+        last_message['1'] = None
+
+        # should NOT receive an INTERRUPT from the dealer now because we don't support cancellation
+        self.assertIsNone(last_message['1'])

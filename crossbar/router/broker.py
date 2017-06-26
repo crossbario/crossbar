@@ -34,7 +34,7 @@ import txaio
 
 from autobahn import util
 from autobahn.wamp import role
-from autobahn.wamp import message
+from autobahn.wamp import message, types
 from autobahn.wamp.exception import ApplicationError
 
 from autobahn.wamp.message import \
@@ -85,7 +85,7 @@ class Broker(object):
 
     log = make_logger()
 
-    def __init__(self, router, options=None):
+    def __init__(self, router, reactor, options=None):
         """
 
         :param router: The router this dealer is part of.
@@ -95,6 +95,7 @@ class Broker(object):
         """
         self._router = router
         self._options = options or RouterOptions()
+        self._reactor = reactor
 
         # subscription map managed by this broker
         self._subscription_map = UriObservationMap()
@@ -156,13 +157,34 @@ class Broker(object):
 
                 # publish WAMP meta events
                 #
-                if self._router._realm:
-                    service_session = self._router._realm.session
-                    if service_session and not subscription.uri.startswith(u'wamp.'):
+                if self._router._realm and self._router._realm.session:
+
+                    def _publish():
+                        if session._session_id is None:
+                            options = types.PublishOptions()
+                        else:
+                            options = types.PublishOptions(
+                                # we exclude the client session from the set of receivers
+                                # for the WAMP session meta events (race conditions!)
+                                exclude=[session._session_id],
+                            )
+                        service_session = self._router._realm.session
                         if was_subscribed:
-                            service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
+                            service_session.publish(
+                                u'wamp.subscription.on_unsubscribe',
+                                session._session_id,
+                                subscription.id,
+                                options=options,
+                            )
                         if was_deleted:
-                            service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
+                            service_session.publish(
+                                u'wamp.subscription.on_delete',
+                                session._session_id,
+                                subscription.id,
+                                options=options,
+                            )
+                    # we postpone actual sending of meta events until we return to this client session
+                    self._reactor.callLater(0, _publish)
 
             del self._session_to_subscriptions[session]
 
@@ -301,7 +323,7 @@ class Broker(object):
 
             # authorize PUBLISH action
             #
-            d = self._router.authorize(session, publish.topic, u'publish')
+            d = self._router.authorize(session, publish.topic, u'publish', options=publish.marshal_options())
 
             def on_authorize_success(authorization):
 
@@ -529,7 +551,7 @@ class Broker(object):
 
         # authorize SUBSCRIBE action
         #
-        d = self._router.authorize(session, subscribe.topic, u'subscribe')
+        d = self._router.authorize(session, subscribe.topic, u'subscribe', options=subscribe.marshal_options())
 
         def on_authorize_success(authorization):
             if not authorization[u'allow']:
@@ -547,9 +569,15 @@ class Broker(object):
 
                 # publish WAMP meta events
                 #
-                if self._router._realm:
-                    service_session = self._router._realm.session
-                    if service_session and not subscription.uri.startswith(u'wamp.'):
+                if self._router._realm and self._router._realm.session:
+
+                    def _publish():
+                        service_session = self._router._realm.session
+                        options = types.PublishOptions(
+                            # we exclude the client session from the set of receivers
+                            # for the WAMP session meta events (race conditions!)
+                            exclude=[session._session_id],
+                        )
                         if is_first_subscriber:
                             subscription_details = {
                                 u'id': subscription.id,
@@ -557,9 +585,21 @@ class Broker(object):
                                 u'uri': subscription.uri,
                                 u'match': subscription.match,
                             }
-                            service_session.publish(u'wamp.subscription.on_create', session._session_id, subscription_details)
+                            service_session.publish(
+                                u'wamp.subscription.on_create',
+                                session._session_id,
+                                subscription_details,
+                                options=options,
+                            )
                         if not was_already_subscribed:
-                            service_session.publish(u'wamp.subscription.on_subscribe', session._session_id, subscription.id)
+                            service_session.publish(
+                                u'wamp.subscription.on_subscribe',
+                                session._session_id,
+                                subscription.id,
+                                options=options,
+                            )
+                    # we postpone actual sending of meta events until we return to this client session
+                    self._reactor.callLater(0, _publish)
 
                 # check for retained events
                 #
@@ -677,13 +717,34 @@ class Broker(object):
 
         # publish WAMP meta events
         #
-        if self._router._realm:
-            service_session = self._router._realm.session
-            if service_session and not subscription.uri.startswith(u'wamp.'):
+        if self._router._realm and self._router._realm.session:
+
+            def _publish():
+                service_session = self._router._realm.session
+                if session._session_id is None:
+                    options = types.PublishOptions()
+                else:
+                    options = types.PublishOptions(
+                        # we exclude the client session from the set of receivers
+                        # for the WAMP session meta events (race conditions!)
+                        exclude=[session._session_id],
+                    )
                 if was_subscribed:
-                    service_session.publish(u'wamp.subscription.on_unsubscribe', session._session_id, subscription.id)
+                    service_session.publish(
+                        u'wamp.subscription.on_unsubscribe',
+                        session._session_id,
+                        subscription.id,
+                        options=options,
+                    )
                 if was_deleted:
-                    service_session.publish(u'wamp.subscription.on_delete', session._session_id, subscription.id)
+                    service_session.publish(
+                        u'wamp.subscription.on_delete',
+                        session._session_id,
+                        subscription.id,
+                        options=options,
+                    )
+            # we postpone actual sending of meta events until we return to this client session
+            self._reactor.callLater(0, _publish)
 
         return was_subscribed, was_last_subscriber
 

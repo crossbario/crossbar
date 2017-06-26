@@ -33,6 +33,6 @@ from __future__ import absolute_import
 import txaio
 txaio.use_twisted()
 
-__version__ = '17.6.1'
+__version__ = '17.6.1-2'
 
 __all__ = ('__version__',)

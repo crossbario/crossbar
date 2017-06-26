@@ -35,6 +35,7 @@ import six
 from pytrie import StringTrie
 
 from autobahn.wamp.uri import convert_starred_uri, Pattern
+from autobahn.wamp.exception import ApplicationError
 from twisted.python.failure import Failure
 
 from txaio import make_logger
@@ -169,7 +170,7 @@ class RouterRole(object):
         self.uri = uri
         self.allow_by_default = allow_by_default
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorize a session connected under this role to perform the given
         action on the given URI.
@@ -194,10 +195,10 @@ class RouterTrustedRole(RouterRole):
     service session run internally run by a router.
     """
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         self.log.debug(
-            "CrossbarRouterTrustedRole.authorize {myuri} {uri} {action}",
-            myuri=self.uri, uri=uri, action=action)
+            "CrossbarRouterTrustedRole.authorize {myuri} {uri} {action} {options}",
+            myuri=self.uri, uri=uri, action=action, options=options)
         return True
 
 
@@ -257,7 +258,7 @@ class RouterRoleStaticAuth(RouterRole):
             else:
                 self._permissions[perms.uri] = perms
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorize a session connected under this role to perform the given
         action on the given URI.
@@ -367,7 +368,7 @@ class RouterRoleDynamicAuth(RouterRole):
         # the default service session on the realm
         self._session = router._realm.session
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorize a session connected under this role to perform the given
         action on the given URI.
@@ -401,7 +402,22 @@ class RouterRoleDynamicAuth(RouterRole):
             "CrossbarRouterRoleDynamicAuth.authorize {uri} {action} {details}",
             uri=uri, action=action, details=session_details)
 
-        d = self._session.call(self._authorizer, session_details, uri, action)
+        d = self._session.call(self._authorizer, session_details, uri, action, options)
+
+        # we could do backwards-compatibility for clients that didn't
+        # yet add the 5th "options" argument to their authorizers like
+        # so:
+        def maybe_call_old_way(result):
+            if isinstance(result, Failure):
+                if isinstance(result.value, ApplicationError):
+                    if 'takes exactly 4 arguments' in str(result.value):
+                        self.log.warn(
+                            "legacy authorizer '{auth}'; should take 5 arguments. Calling with 4.",
+                            auth=self._authorizer,
+                        )
+                        return self._session.call(self._authorizer, session_details, uri, action)
+            return result
+        d.addBoth(maybe_call_old_way)
 
         def sanity_check(authorization):
             """
@@ -462,7 +478,7 @@ class RouterRoleLMDBAuth(RouterRole):
         RouterRole.__init__(self, router, uri)
         self._store = store
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorize a session connected under this role to perform the given
         action on the given URI.

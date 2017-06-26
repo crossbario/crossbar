@@ -53,7 +53,7 @@ log_categories = {
     "AR452": "Non-accepted content type. (must be one of '{accepted}', not '{given}')",
     "AR453": "Request body was invalid JSON.",
     "AR454": "Request body was valid JSON, but not well formed (must be a dict).",
-    "AR455": "Request body was valid JSON, but not well formed (missing key -- '{key}).",
+    "AR455": "Request body was valid JSON, but not well formed (missing key '{key}').",
     "AR456": "REST bridge publish failed.",
     "AR457": "REST bridge webhook request failed.",
     "AR458": "REST bridge call failed: {exc}",

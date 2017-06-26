@@ -103,7 +103,7 @@ class Router(object):
         # map: authrole -> set(session)
         self._authrole_to_sessions = {}
 
-        self._broker = self.broker(self, self._options)
+        self._broker = self.broker(self, factory._reactor, self._options)
         self._dealer = self.dealer(self, self._options)
         self._attached = 0
 
@@ -293,7 +293,7 @@ class Router(object):
         else:
             return False
 
-    def authorize(self, session, uri, action):
+    def authorize(self, session, uri, action, options):
         """
         Authorizes a session for an action on an URI.
 
@@ -309,7 +309,7 @@ class Router(object):
         if role in self._roles:
             # the authorizer procedure of the role which we will call ..
             authorize = self._roles[role].authorize
-            d = txaio.as_future(authorize, session, uri, action)
+            d = txaio.as_future(authorize, session, uri, action, options)
         else:
             # normally, the role should exist on the router (and hence we should not arrive
             # here), but the role might have been dynamically removed - and anyway, safety first!
@@ -369,6 +369,9 @@ class RouterFactory(object):
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False
+        # XXX this should get passed in from .. somewhere
+        from twisted.internet import reactor
+        self._reactor = reactor
 
     def get(self, realm):
         """

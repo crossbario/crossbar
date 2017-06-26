@@ -59,7 +59,7 @@ class InvocationRequest(object):
     Holding information for an individual invocation.
     """
 
-    __slots__ = ('id', 'registration', 'caller', 'call', 'callee')
+    __slots__ = ('id', 'registration', 'caller', 'call', 'callee', 'canceled')
 
     def __init__(self, id, registration, caller, call, callee):
         self.id = id
@@ -67,6 +67,7 @@ class InvocationRequest(object):
         self.caller = caller
         self.call = call
         self.callee = callee
+        self.canceled = False
 
 
 class RegistrationExtra(object):
@@ -129,6 +130,12 @@ class Dealer(object):
         # _invocations map below! Use the helper methods
         # _add_invoke_request and _remove_invoke_request
 
+        # map: session -> in-flight invocations
+        self._caller_to_invocations = {}
+
+        # map: call -> in-flight invocations
+        self._invocations_by_call = {}
+
         # pending callee invocation requests
         self._invocations = {}
 
@@ -145,7 +152,8 @@ class Dealer(object):
                                                       registration_revocation=True,
                                                       payload_transparency=True,
                                                       testament_meta_api=True,
-                                                      payload_encryption_cryptobox=True)
+                                                      payload_encryption_cryptobox=True,
+                                                      call_canceling=True)
 
         # store for call queues
         if self._router._store:
@@ -166,6 +174,32 @@ class Dealer(object):
         """
         Implements :func:`crossbar.router.interfaces.IDealer.detach`
         """
+        # if the caller on an in-flight invocation goes away
+        # INTERRUPT the callee if supported
+        if session in self._caller_to_invocations:
+            outstanding = self._caller_to_invocations.get(session, [])
+            for invoke in outstanding:  # type: InvocationRequest
+                if invoke.callee is invoke.caller:  # if the calling itself - no need to notify
+                    continue
+                callee = invoke.callee
+                if 'callee' not in callee._session_roles \
+                        or not callee._session_roles['callee'] \
+                        or not callee._session_roles['callee'].call_canceling:
+                    self.log.debug(
+                        "INTERRUPT not supported on in-flight INVOKE with id={request} on"
+                        " session {session} (caller went away)",
+                        request=invoke.id,
+                        session=session._session_id,
+                    )
+                    continue
+                self.log.debug(
+                    "INTERRUPTing in-flight INVOKE with id={request} on"
+                    " session {session} (caller went away)",
+                    request=invoke.id,
+                    session=session._session_id,
+                )
+                self._router.send(invoke.callee, message.Interrupt(invoke.id))
+
         if session in self._session_to_registrations:
             # send out Errors for any in-flight calls we have
             outstanding = self._callee_to_invocations.get(session, [])
@@ -255,27 +289,53 @@ class Dealer(object):
         # get existing registration for procedure / matching strategy - if any
         #
         registration = self._registration_map.get_observation(register.procedure, register.match)
-        if registration:
 
-            # there is an existing registration, and that has an invocation strategy that only allows a single callee
+        # XXX actually, shouldn't we do *all* processing only after
+        # authorization? otherwise we're leaking the fact that a
+        # procedure exists here at all...
+
+        # if force_reregister was enabled, we only do any actual
+        # kicking of existing registrations *after* authorization
+        if registration and not register.force_reregister:
+            # there is an existing registration, and that has an
+            # invocation strategy that only allows a single callee
             # on a the given registration
             #
             if registration.extra.invoke == message.Register.INVOKE_SINGLE:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_ALREADY_EXISTS, [u"register for already registered procedure '{0}'".format(register.procedure)])
+                reply = message.Error(
+                    message.Register.MESSAGE_TYPE,
+                    register.request,
+                    ApplicationError.PROCEDURE_ALREADY_EXISTS,
+                    [u"register for already registered procedure '{0}'".format(register.procedure)]
+                )
                 self._router.send(session, reply)
                 return
 
-            # there is an existing registration, and that has an invokation strategy different from the one
-            # requested by the new callee
+            # there is an existing registration, and that has an
+            # invokation strategy different from the one requested
+            # by the new callee
             #
             if registration.extra.invoke != register.invoke:
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT, [u"register for already registered procedure '{0}' with conflicting invocation policy (has {1} and {2} was requested)".format(register.procedure, registration.extra.invoke, register.invoke)])
+                reply = message.Error(
+                    message.Register.MESSAGE_TYPE,
+                    register.request,
+                    ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT,
+                    [
+                        u"register for already registered procedure '{0}' "
+                        u"with conflicting invocation policy (has {1} and "
+                        u"{2} was requested)".format(
+                            register.procedure,
+                            registration.extra.invoke,
+                            register.invoke
+                        )
+                    ]
+                )
                 self._router.send(session, reply)
                 return
 
         # authorize REGISTER action
         #
-        d = self._router.authorize(session, register.procedure, u'register')
+        d = self._router.authorize(session, register.procedure, u'register', options=register.marshal_options())
 
         def on_authorize_success(authorization):
             if not authorization[u'allow']:
@@ -284,6 +344,18 @@ class Dealer(object):
                 reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to register procedure '{0}'".format(register.procedure)])
 
             else:
+                registration = self._registration_map.get_observation(register.procedure, register.match)
+                if register.force_reregister and registration:
+                    for obs in registration.observers:
+                        self._registration_map.drop_observer(obs, registration)
+                        kicked = message.Unregistered(
+                            0,
+                            registration=registration.id,
+                            reason=u"wamp.error.unregistered",
+                        )
+                        self._router.send(obs, kicked)
+                    self._registration_map.delete_observation(registration)
+
                 # ok, session authorized to register. now get the registration
                 #
                 registration_extra = RegistrationExtra(register.invoke)
@@ -436,7 +508,7 @@ class Dealer(object):
 
             # authorize CALL action
             #
-            d = self._router.authorize(session, call.procedure, u'call')
+            d = self._router.authorize(session, call.procedure, u'call', options=call.marshal_options())
 
             def on_authorize_success(authorization):
                 # the call to authorize the action _itself_ succeeded. now go on depending on whether
@@ -637,9 +709,16 @@ class Dealer(object):
         """
         invoke_request = InvocationRequest(invocation_request_id, registration, session, call, callee)
         self._invocations[invocation_request_id] = invoke_request
+        self._invocations_by_call[call.request] = invoke_request
         invokes = self._callee_to_invocations.get(callee, [])
         invokes.append(invoke_request)
         self._callee_to_invocations[callee] = invokes
+
+        # map to keep track of the invocations by each caller
+        invokes = self._caller_to_invocations.get(session, [])
+        invokes.append(invoke_request)
+        self._caller_to_invocations[session] = invokes
+
         return invoke_request
 
     def _remove_invoke_request(self, invocation_request):
@@ -651,16 +730,40 @@ class Dealer(object):
         invokes.remove(invocation_request)
         if not invokes:
             del self._callee_to_invocations[invocation_request.callee]
+
+        invokes = self._caller_to_invocations[invocation_request.caller]
+        invokes.remove(invocation_request)
+        if not invokes:
+            del self._caller_to_invocations[invocation_request.caller]
+
         del self._invocations[invocation_request.id]
+        del self._invocations_by_call[invocation_request.call.request]
 
     # noinspection PyUnusedLocal
     def processCancel(self, session, cancel):
+        # type: (session.RouterSession, message.Cancel) -> None
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
         """
-        assert(session in self._session_to_registrations)
+        if cancel.request in self._invocations_by_call:
+            invocation_request = self._invocations_by_call[cancel.request]
 
-        raise Exception("not implemented")
+            if invocation_request.caller is not session:
+                raise ProtocolError(u"Dealer.processCancel(): CANCEL received for non-owned call request ID {0}".format(cancel.request))
+
+            # for those that repeatedly push elevator buttons
+            if invocation_request.canceled:
+                return
+
+            invocation_request.canceled = True
+
+            if 'callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].call_canceling:
+                self._router.send(invocation_request.callee, message.Interrupt(
+                    invocation_request.id,
+                    cancel.mode
+                ))
+
+            return
 
     def processYield(self, session, yield_):
         """
@@ -673,6 +776,11 @@ class Dealer(object):
             # get the invocation request tracked for the caller
             #
             invocation_request = self._invocations[yield_.request]
+
+            # check to make sure this session is the one that is supposed to be yielding
+            if invocation_request.callee is not session:
+                raise ProtocolError(
+                    u"Dealer.onYield(): YIELD received for non-owned request ID {0}".format(yield_.request))
 
             is_valid = True
             if yield_.payload is None:

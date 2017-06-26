@@ -181,5 +181,5 @@ class PublisherTestCase(TestCase):
         self.assertEqual(errors[0]["code"], 400)
 
         self.assertEqual(json.loads(native_string(request.get_written_data())),
-                         {"error": log_categories["AR455"],
+                         {"error": log_categories["AR455"].format(key="topic"),
                           "args": [], "kwargs": {}})
