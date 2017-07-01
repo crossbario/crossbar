@@ -8,7 +8,7 @@ description: |
   on your app's features.
 
 grade: devel
-confinement: strict
+confinement: classic
 
 apps:
   crossbar:
