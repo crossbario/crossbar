@@ -842,6 +842,12 @@ class Dealer(object):
             #
             invocation_request = self._invocations[error.request]
 
+            # if concurrency is enabled on this, an error counts as
+            # "an answer" so we decrement.
+            callee_extra = invocation_request.registration.observers_extra.get(session, None)
+            if callee_extra:
+                callee_extra.concurrency_current -= 1
+
             if error.payload is None:
                 # validate normal args/kwargs payload
                 try:
