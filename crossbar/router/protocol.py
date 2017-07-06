@@ -206,6 +206,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
             self._authrole = None
             self._authrealm = None
             self._authmethod = None
+            self._authextra = None
             self._authprovider = None
 
             # cookie tracking and cookie-based authentication
@@ -237,7 +238,7 @@ class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
                 #
                 if 'auth' in self.factory._config and 'cookie' in self.factory._config['auth']:
 
-                    self._authid, self._authrole, self._authmethod, self._authrealm, authextra = self.factory._cookiestore.getAuth(self._cbtid)
+                    self._authid, self._authrole, self._authmethod, self._authrealm, self._authextra = self.factory._cookiestore.getAuth(self._cbtid)
 
                     if self._authid:
                         # there is a cookie set, and the cookie was previously successfully authenticated,
@@ -477,6 +478,7 @@ class WampRawSocketServerProtocol(rawsocket.WampRawSocketServerProtocol):
         self._authrealm = None
         self._authmethod = None
         self._authprovider = None
+        self._authextra = None
 
         # cookie tracking ID
         #
