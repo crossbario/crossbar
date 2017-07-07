@@ -480,3 +480,96 @@ class TestDealer(unittest.TestCase):
 
         # should NOT receive an INTERRUPT from the dealer now because we don't support cancellation
         self.assertIsNone(last_message['1'])
+
+    def test_concurrency_with_error(self):
+        """
+        register a concurrency=2 method, called with errors
+        """
+        callee_messages = []
+        caller_messages = []
+
+        def callee_send(msg):
+            callee_messages.append(msg)
+
+        session = mock.Mock()
+        session._transport.send = callee_send
+        session._session_roles = {'callee': role.RoleCalleeFeatures()}
+
+        def caller_send(msg):
+            caller_messages.append(msg)
+
+        caller_session = mock.Mock()
+        caller_session._transport.send = caller_send
+
+        dealer = self.router._dealer
+        dealer.attach(session)
+        dealer.attach(caller_session)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        # we register out procedure, with concurrency=1
+
+        dealer.processRegister(session, message.Register(
+            request=1,
+            procedure=u'com.example.my.proc',
+            match=u'exact',
+            invoke=message.Register.INVOKE_SINGLE,
+            concurrency=1
+        ))
+
+        registered_msg = callee_messages[-1]
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        # we have registered our procedure that has concurrency=1
+        # and now we call it
+
+        dealer.processCall(caller_session, message.Call(
+            2,
+            u'com.example.my.proc',
+            []
+        ))
+
+        # we pretend that the call caused an error of some sort
+        invocation_msg = callee_messages[-1]
+        self.assertIsInstance(invocation_msg, message.Invocation)
+        dealer.processInvocationError(
+            session, message.Error(
+                message.Call.MESSAGE_TYPE,
+                invocation_msg.request,
+                u"wamp.error.foo",
+            )
+        )
+
+        self.assertEqual(1, len(caller_messages))
+        self.assertEqual(
+            u"wamp.error.foo",
+            caller_messages[-1].error,
+        )
+
+        # now we call it again, which should work because the
+        # previously-outstanding call was resolved with an error
+        # (before bug 1105 being fixed this wouldn't work properly)
+
+        dealer.processCall(caller_session, message.Call(
+            3,
+            u'com.example.my.proc',
+            ['foo']
+        ))
+        invocation_msg = callee_messages[-1]
+        self.assertIsInstance(invocation_msg, message.Invocation)
+
+        self.assertEqual(1, len(caller_messages), "got an extra unexpected message")
+
+        dealer.processYield(
+            session, message.Yield(
+                invocation_msg.request,
+                args=['a result'],
+            )
+        )
+
+        result_msg = caller_messages[-1]
+        self.assertIsInstance(result_msg, message.Result)
+        self.assertEqual(result_msg.args, ['a result'])
