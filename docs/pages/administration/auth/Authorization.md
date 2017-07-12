@@ -5,13 +5,13 @@ toc: [Documentation, Administration, Authorization]
 
 This chapter is about WAMP **authorization** concepts and configuration with Crossbar.io.
 
+**Authentication** with Crossbar.io determines if a WAMP *Client* is allowed to connect and which identity it is assigned, while **authorization** determines which permissions a *Client* is granted for specific actions based on its identity.
+
 See also:
 
  * [Authentication](Authentication)
 
 ## Introduction
-
-**Authentication** with Crossbar.io determines if a WAMP *Client* is allowed to connect and which identity it is assigned, while **authorization** determines which permissions a *Client* is granted for specific actions based on its identity.
 
 Authorization is URI-based and separate for the four main interactions
 

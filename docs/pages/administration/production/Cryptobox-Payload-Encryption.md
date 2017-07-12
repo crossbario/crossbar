@@ -21,7 +21,7 @@ Both the sender of a message and its recipient(s) have a key pair, which is set 
 
 > Note: Key distribution is presently outside of the scope of Cryptobox.
 
-Crpytobox relies on **payload transparency**: The entire encrypted payload is transmitted as a new, additional argument in the WAMP message. 
+Crpytobox relies on **payload transparency**: The entire encrypted payload is transmitted as a new, additional argument in the WAMP message.
 
 ## Disadvantages
 
@@ -31,9 +31,9 @@ This does not render client traffic fully opaque to the router. By necessity, th
 
 Since the payload is encrypted, the router can no longer access the content.
 
-This presently prevents the use of different serializations between the sender of a message and Crossbar.io and Crossbar.io and the recipient(s).
+This prevents the use of different serializations between the sender of a message and Crossbar.io and Crossbar.io and the recipient(s).
 
-It will further prevent payload validation (which is on the roadmap).
+It will further prevent payload validation (which is a feature on the roadmap).
 
 As is always the case, security and convenience are a trade off.
 
