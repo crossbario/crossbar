@@ -867,6 +867,31 @@ def check_listening_endpoint_twisted(endpoint):
     # should/can we ask Twisted to parse it easily?
 
 
+def check_listening_endpoint_onion(endpoint):
+    """
+    :param endpoint: The onion endpoint
+    :type endpoint: dict
+    """
+    for k in endpoint:
+        if k not in ['type', 'port', 'private_key_file', 'tor_control_endpoint']:
+            raise InvalidConfigException(
+                "encountered unknown attribute '{}' in onion endpoint".format(k)
+            )
+
+    check_dict_args(
+        {
+            u"type": (True, [six.text_type]),
+            u"port": (True, [int, long]),
+            u"private_key_file": (True, [six.text_type]),
+            u"tor_control_endpoint": (True, [Mapping])
+        },
+        endpoint,
+        "onion endpoint config",
+    )
+
+    check_connecting_endpoint(endpoint[u"tor_control_endpoint"])
+
+
 def check_connecting_endpoint_tcp(endpoint):
     """
     Check a TCP connecting endpoint configuration.
@@ -953,6 +978,33 @@ def check_connecting_endpoint_twisted(endpoint):
         check_endpoint_timeout(endpoint['timeout'])
 
 
+def check_connecting_endpoint_tor(endpoint):
+    """
+    :param endpoint: The Tor connecting endpoint to check.
+    :type endpoint: dict
+    """
+    for k in endpoint:
+        if k not in ['type', 'host', 'port', 'tor_socks_port', 'tls']:
+            raise InvalidConfigException(
+                "encountered unknown attribute '{}' in connecting endpoint".format(k)
+            )
+
+    if 'host' not in endpoint:
+        raise InvalidConfigException("missing mandatory attribute 'host' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+
+    if 'port' not in endpoint:
+        raise InvalidConfigException("missing mandatory attribute 'port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+
+    if 'tor_socks_port' not in endpoint:
+        raise InvalidConfigException("missing mandatory attribute 'tor_socks_port' in connecting endpoint item\n\n{}".format(pformat(endpoint)))
+
+    check_endpoint_port(endpoint['port'])
+    check_endpoint_port(endpoint['tor_socks_port'])
+
+    if 'tls' in endpoint:
+        check_connecting_endpoint_tls(endpoint['tls'])
+
+
 def check_listening_endpoint(endpoint):
     """
     Check a listening endpoint configuration.
@@ -970,7 +1022,7 @@ def check_listening_endpoint(endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix', 'twisted']:
+    if etype not in ['tcp', 'unix', 'twisted', 'onion']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
@@ -979,6 +1031,8 @@ def check_listening_endpoint(endpoint):
         check_listening_endpoint_unix(endpoint)
     elif etype == 'twisted':
         check_listening_endpoint_twisted(endpoint)
+    elif etype == 'onion':
+        check_listening_endpoint_onion(endpoint)
     else:
         raise InvalidConfigException('logic error')
 
@@ -1000,7 +1054,7 @@ def check_connecting_endpoint(endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix', 'twisted']:
+    if etype not in ['tcp', 'unix', 'twisted', 'tor']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
@@ -1009,6 +1063,8 @@ def check_connecting_endpoint(endpoint):
         check_connecting_endpoint_unix(endpoint)
     elif etype == 'twisted':
         check_connecting_endpoint_twisted(endpoint)
+    elif etype == 'tor':
+        check_connecting_endpoint_tor(endpoint)
     else:
         raise InvalidConfigException('logic error')
 
