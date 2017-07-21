@@ -15,10 +15,9 @@ Additionally, the curve used was generated outside of the NIST standards process
 
 And, last but not least, high-quality and performant implementations of the curve are available with the [NaCl libraries](https://nacl.cr.yp.to/).
 
-
-> Note: Cryptosign is currently only available when using Autobahn|Python as a client library.
+> Note: Cryptosign is currently available when using Autobahn|Python and Autobahn|JS. Other WAMP client libraries may have implemented it, so check with the respective documentation.
 
 > Note: Cryptosign is currently still under active development, so some features may be missing or not be stable yet.
 
 
-We provide examples of using Cryptosign for [static configuration](https://github.com/crossbario/crossbarexamples/tree/master/authentication/cryptosign/static).
+We provide examples of using Cryptosign for [static configuration](https://github.com/crossbario/crossbarexamples/tree/master/authentication/cryptosign/).
