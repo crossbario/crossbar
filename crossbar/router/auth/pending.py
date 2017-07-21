@@ -130,8 +130,8 @@ class PendingAuth:
             self._authrole = self._config[u'default-role']
 
         # allow forwarding of application-specific "welcome data"
-        if u'authextra' in principal:
-            self._authextra = principal[u'authextra']
+        if u'extra' in principal:
+            self._authextra = principal[u'extra']
 
         # a realm must have been assigned by now, otherwise bail out!
         if not self._realm:

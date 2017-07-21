@@ -52,29 +52,29 @@ class TestDynamicAuth(unittest.TestCase):
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
-            self.assertEqual("foo.auth_a_doodle", method)
-            self.assertEqual("realm", realm)
-            self.assertEqual(details["authmethod"], "cryptosign")
-            self.assertEqual(details["authextra"], {"foo": "bar"})
+            self.assertEqual(u"foo.auth_a_doodle", method)
+            self.assertEqual(u"realm", realm)
+            self.assertEqual(details[u"authmethod"], u"cryptosign")
+            self.assertEqual(details[u"authextra"], {u"foo": u"bar"})
             return defer.succeed({
-                "pubkey": 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-                "role": "some_role",
-                "extra": {
-                    "what": "authenticator-supplied authextra",
+                u"pubkey": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                u"role": u"some_role",
+                u"extra": {
+                    u"what": u"authenticator-supplied authextra",
                 }
             })
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
         session._router_factory = {
-            "realm": realm,
+            u"realm": realm,
         }
         config = {
-            "type": "dynamic",
-            "authenticator": "foo.auth_a_doodle",
+            u"type": u"dynamic",
+            u"authenticator": u"foo.auth_a_doodle",
         }
         extra = {
-            "foo": "bar",
+            u"foo": u"bar",
         }
         details = Mock()
         details.authextra = extra
@@ -84,8 +84,9 @@ class TestDynamicAuth(unittest.TestCase):
 
         val = reply.result
         self.assertTrue(isinstance(val, types.Challenge))
-        self.assertEqual("cryptosign", val.method)
-        self.assertTrue("challenge" in val.extra)
+        self.assertEqual(u"cryptosign", val.method)
+        self.assertTrue(u"challenge" in val.extra)
+        self.assertEqual(auth._authextra, {u"what": u"authenticator-supplied authextra"})
 
     def test_authextra_wampcra(self):
         """
@@ -96,33 +97,33 @@ class TestDynamicAuth(unittest.TestCase):
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
-            self.assertEqual("foo.auth_a_doodle", method)
-            self.assertEqual("realm", realm)
-            self.assertEqual(details["authmethod"], "wampcra")
-            self.assertEqual(details["authextra"], {"foo": "bar"})
+            self.assertEqual(u"foo.auth_a_doodle", method)
+            self.assertEqual(u"realm", realm)
+            self.assertEqual(details[u"authmethod"], u"wampcra")
+            self.assertEqual(details[u"authextra"], {u"foo": u"bar"})
             return defer.succeed({
-                "secret": 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-                "role": "some_role",
-                "extra": {
-                    "what": "authenticator-supplied authextra",
+                u"secret": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                u"role": u"some_role",
+                u"extra": {
+                    u"what": u"authenticator-supplied authextra",
                 }
             })
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
-        session._pending_session_id = 'pending session id'
+        session._pending_session_id = u'pending session id'
         session._router_factory = {
-            "realm": realm,
+            u"realm": realm,
         }
         config = {
-            "type": "dynamic",
-            "authenticator": "foo.auth_a_doodle",
+            u"type": u"dynamic",
+            u"authenticator": u"foo.auth_a_doodle",
         }
         extra = {
-            "foo": "bar",
+            u"foo": u"bar",
         }
         details = Mock()
-        details.authid = 'alice'
+        details.authid = u'alice'
         details.authextra = extra
 
         auth = wampcra.PendingAuthWampCra(session, config)
@@ -130,8 +131,9 @@ class TestDynamicAuth(unittest.TestCase):
 
         val = reply.result
         self.assertTrue(isinstance(val, types.Challenge))
-        self.assertEqual("wampcra", val.method)
-        self.assertTrue("challenge" in val.extra)
+        self.assertEqual(u"wampcra", val.method)
+        self.assertTrue(u"challenge" in val.extra)
+        self.assertEqual(auth._authextra, {u"what": u"authenticator-supplied authextra"})
 
     def test_authextra_tls(self):
         """
@@ -142,30 +144,30 @@ class TestDynamicAuth(unittest.TestCase):
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
-            self.assertEqual("foo.auth_a_doodle", method)
-            self.assertEqual("realm", realm)
-            self.assertEqual(details["authmethod"], "tls")
-            self.assertEqual(details["authextra"], {"foo": "bar"})
+            self.assertEqual(u"foo.auth_a_doodle", method)
+            self.assertEqual(u"realm", realm)
+            self.assertEqual(details[u"authmethod"], u"tls")
+            self.assertEqual(details[u"authextra"], {u"foo": u"bar"})
             return defer.succeed({
-                "secret": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-                "role": u"some_role",
-                "extra": {
-                    "what": "authenticator-supplied authextra",
+                u"secret": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                u"role": u"some_role",
+                u"extra": {
+                    u"what": u"authenticator-supplied authextra",
                 }
             })
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
-        session._pending_session_id = 'pending session id'
+        session._pending_session_id = u'pending session id'
         session._router_factory = {
-            "realm": realm,
+            u"realm": realm,
         }
         config = {
-            "type": "dynamic",
-            "authenticator": "foo.auth_a_doodle",
+            u"type": u"dynamic",
+            u"authenticator": u"foo.auth_a_doodle",
         }
         extra = {
-            "foo": "bar",
+            u"foo": u"bar",
         }
         details = Mock()
         details.authid = u'alice'
@@ -176,8 +178,8 @@ class TestDynamicAuth(unittest.TestCase):
 
         val = reply.result
         self.assertTrue(isinstance(val, types.Accept))
-        self.assertEqual(val.authmethod, "tls")
-        self.assertEqual(val.authextra, {"what": "authenticator-supplied authextra"})
+        self.assertEqual(val.authmethod, u"tls")
+        self.assertEqual(val.authextra, {u"what": u"authenticator-supplied authextra"})
 
     def test_authextra_anonymous(self):
         """
@@ -188,30 +190,30 @@ class TestDynamicAuth(unittest.TestCase):
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
-            self.assertEqual("foo.auth_a_doodle", method)
-            self.assertEqual("realm", realm)
-            self.assertEqual(details["authmethod"], "anonymous")
-            self.assertEqual(details["authextra"], {"foo": "bar"})
+            self.assertEqual(u"foo.auth_a_doodle", method)
+            self.assertEqual(u"realm", realm)
+            self.assertEqual(details[u"authmethod"], u"anonymous")
+            self.assertEqual(details[u"authextra"], {u"foo": u"bar"})
             return defer.succeed({
-                "secret": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-                "role": u"some_role",
-                "extra": {
-                    "what": "authenticator-supplied authextra",
+                u"secret": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                u"role": u"some_role",
+                u"extra": {
+                    u"what": u"authenticator-supplied authextra",
                 }
             })
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
-        session._pending_session_id = 'pending session id'
+        session._pending_session_id = u'pending session id'
         session._router_factory = {
-            "realm": realm,
+            u"realm": realm,
         }
         config = {
-            "type": "dynamic",
-            "authenticator": "foo.auth_a_doodle",
+            u"type": u"dynamic",
+            u"authenticator": u"foo.auth_a_doodle",
         }
         extra = {
-            "foo": "bar",
+            u"foo": u"bar",
         }
         details = Mock()
         details.authid = u'alice'
@@ -222,8 +224,8 @@ class TestDynamicAuth(unittest.TestCase):
 
         val = reply.result
         self.assertTrue(isinstance(val, types.Accept))
-        self.assertEqual(val.authmethod, "anonymous")
-        self.assertEqual(val.authextra, {"what": "authenticator-supplied authextra"})
+        self.assertEqual(val.authmethod, u"anonymous")
+        self.assertEqual(val.authextra, {u"what": u"authenticator-supplied authextra"})
 
     def test_authextra_ticket(self):
         """
@@ -234,30 +236,30 @@ class TestDynamicAuth(unittest.TestCase):
 
         def fake_call(method, *args, **kw):
             realm, authid, details = args
-            self.assertEqual("foo.auth_a_doodle", method)
-            self.assertEqual("realm", realm)
-            self.assertEqual(details["authmethod"], "ticket")
-            self.assertEqual(details["authextra"], {"foo": "bar"})
+            self.assertEqual(u"foo.auth_a_doodle", method)
+            self.assertEqual(u"realm", realm)
+            self.assertEqual(details[u"authmethod"], u"ticket")
+            self.assertEqual(details[u"authextra"], {u"foo": u"bar"})
             return defer.succeed({
-                "secret": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-                "role": u"some_role",
-                "extra": {
-                    "what": "authenticator-supplied authextra",
+                u"secret": u'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+                u"role": u"some_role",
+                u"extra": {
+                    u"what": u"authenticator-supplied authextra",
                 }
             })
         session.call = Mock(side_effect=fake_call)
         realm = Mock()
         realm._realm.session = session
-        session._pending_session_id = 'pending session id'
+        session._pending_session_id = u'pending session id'
         session._router_factory = {
-            "realm": realm,
+            u"realm": realm,
         }
         config = {
-            "type": "dynamic",
-            "authenticator": "foo.auth_a_doodle",
+            u"type": u"dynamic",
+            u"authenticator": u"foo.auth_a_doodle",
         }
         extra = {
-            "foo": "bar",
+            u"foo": u"bar",
         }
         details = Mock()
         details.authid = u'alice'
@@ -267,13 +269,13 @@ class TestDynamicAuth(unittest.TestCase):
         val = auth.hello(u"realm", details)
 
         self.assertTrue(isinstance(val, types.Challenge))
-        self.assertEqual("ticket", val.method)
+        self.assertEqual(u"ticket", val.method)
         self.assertEqual({}, val.extra)
 
-        d = auth.authenticate("fake signature")
+        d = auth.authenticate(u"fake signature")
         self.assertTrue(isinstance(d.result, types.Accept))
         acc = d.result
-        self.assertEqual(acc.authextra, {"what": "authenticator-supplied authextra"})
+        self.assertEqual(acc.authextra, {u"what": u"authenticator-supplied authextra"})
         self.assertEqual(acc.authid, u'alice')
 
 
