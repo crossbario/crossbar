@@ -210,6 +210,81 @@ class TestDealer(unittest.TestCase):
         self.assertEqual(message.Call.MESSAGE_TYPE, call_error_msg.request_type)
         self.assertEqual(u'wamp.error.canceled', call_error_msg.error)
 
+    def test_call_cancel_two_sessions(self):
+        """
+        this has 2 different session using the same ID (42) for their Call
+        requests to confirm we deal with the fact that these IDs are
+        only unique per-session properly
+        """
+        messages = []
+
+        def session_send(msg):
+            messages.append(msg)
+
+        session0 = mock.Mock()
+        session0._transport.send = session_send
+        session0._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
+
+        session1 = mock.Mock()
+        session1._transport.send = session_send
+        session1._session_roles = {'callee': role.RoleCalleeFeatures(call_canceling=True)}
+
+        dealer = self.router._dealer
+        dealer.attach(session0)
+        dealer.attach(session1)
+
+        def authorize(*args, **kwargs):
+            return defer.succeed({u'allow': True, u'disclose': False})
+
+        self.router.authorize = mock.Mock(side_effect=authorize)
+
+        dealer.processRegister(session0, message.Register(
+            1,
+            u'com.example.my.proc',
+            u'exact',
+            message.Register.INVOKE_SINGLE,
+            2
+        ))
+
+        registered_msg = messages[-1]
+        self.assertIsInstance(registered_msg, message.Registered)
+
+        # two calls outstanding to the endpoint, both happen to use
+        # the same ID (42) which is legal
+        dealer.processCall(session0, message.Call(
+            42,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg0 = messages[-1]
+        self.assertIsInstance(invocation_msg0, message.Invocation)
+        dealer.processCall(session1, message.Call(
+            42,
+            u'com.example.my.proc',
+            []
+        ))
+
+        invocation_msg1 = messages[-1]
+        self.assertIsInstance(invocation_msg1, message.Invocation)
+
+        # now, cancel the first session's call
+        dealer.processCancel(session0, message.Cancel(
+            42
+        ))
+
+        # should receive an INTERRUPT from the dealer now (for the
+        # correct session only)
+        interrupt_msg0 = messages[-1]
+        self.assertIsInstance(interrupt_msg0, message.Interrupt)
+        self.assertEqual(interrupt_msg0.request, invocation_msg0.request)
+
+        dealer.processInvocationError(session0, message.Error(
+            message.Invocation.MESSAGE_TYPE,
+            invocation_msg0.request,
+            u'wamp.error.canceled'
+        ))
+
     def test_call_cancel_without_callee_support(self):
         last_message = {'1': []}
 
