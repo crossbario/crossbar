@@ -3,6 +3,14 @@ toc: [Documentation, Administration, Authentication]
 
 # Authentication
 
+**Authentication** with Crossbar.io determines if a WAMP *Client* is allowed to connect and which identity it is assigned, while **authorization** determines which permissions a *Client* is granted for specific actions based on its identity.
+
+See also:
+
+ * [Authorization](Authorization)
+
+## Introduction
+
 Authentication is about *identifying* WAMP clients to Crossbar.io. A WAMP session connected to a **realm** is authenticated under an **authid** and **authrole**.
 
 The **authrole** is then used for the static *authorization* of actions (publish, subscribe, call, register) for the client. (Dynamic authorization may base the authorization on more factors.)
@@ -20,6 +28,8 @@ These can be classed according to whether
 
 * they use transport or session level mechanisms
 * they are based on a shared secret or on public key cryptography
+
+and allow both static and dynamic authentication (i.e. credentials stored in the Crossbar.io config or using an authentication component which contains custom rules).
 
 ## Session vs Transport Level
 

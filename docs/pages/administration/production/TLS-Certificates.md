@@ -9,7 +9,7 @@ For configuring TLS in Crossbar.io in principle, see [Secure WebSocket and HTTPS
 
 ## Using Self-signed Certificates
 
-For production use, the use of self-signed certificates is *not recommended*. However, for testing, development, Intranet or controlled deployments, you can of course.
+For production use, the use of self-signed certificates is *not recommended*. However, for testing, development, Intranet or controlled deployments, they are OK.
 
 The following provides a recipe for creating a new server key and self-signed certificate for use with Crossbar.io.
 
@@ -50,7 +50,7 @@ Finally, create a new self-signed certificate (valid for 1 year) from the CSR cr
 
 For production use, you will usually deploy certificates issues by commercial CAs, since only for those, browsers will have the CA certificates preinstalled, and hence users won't be bothered with invalid certificate dialogs.
 
-> If you are looking for a free certificate, we recommend [StartSSL](http://www.startssl.com/).
+> If you are looking for a free certificate, we recommend [Let's Encrypt](https://letsencrypt.org/) - see the specific instructions further below.
 
 Remove the passphrase protection from the private key with the OpenSSL (should there be any):
 
