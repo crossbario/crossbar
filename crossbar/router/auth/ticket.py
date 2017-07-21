@@ -73,6 +73,7 @@ class PendingAuthTicket(PendingAuth):
             if self._authid in self._config.get(u'principals', {}):
 
                 principal = self._config[u'principals'][self._authid]
+                principal[u'authextra'] = details.authextra
 
                 error = self._assign_principal(principal)
                 if error:

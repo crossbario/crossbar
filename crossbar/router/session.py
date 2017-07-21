@@ -382,6 +382,7 @@ class RouterSession(BaseSession):
                 self._authrole = authrole
                 self._authmethod = authmethod
                 self._authprovider = authprovider
+                self._authextra = authextra
 
                 roles = self._router.attach(self)
 
@@ -611,10 +612,13 @@ class RouterSession(BaseSession):
         try:
             # default authentication method is "WAMP-Anonymous" if client doesn't specify otherwise
             authmethods = details.authmethods or [u'anonymous']
+            authextra = None
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
+                assert u'cookie' in authmethods
                 realm = self._transport._authrealm
+                authextra = self._transport._authextra
 
             # perform authentication
             if self._transport._authid is not None and (self._transport._authmethod == u'trusted' or self._transport._authprovider in authmethods):
@@ -630,7 +634,7 @@ class RouterSession(BaseSession):
                                         authrole=self._transport._authrole,
                                         authmethod=self._transport._authmethod,
                                         authprovider=self._transport._authprovider,
-                                        authextra=None)
+                                        authextra=authextra)
                 else:
                     return types.Deny(ApplicationError.NO_SUCH_ROLE, message="session was previously authenticated (via transport), but role '{}' no longer exists on realm '{}'".format(self._transport._authrole, realm))
 
@@ -755,6 +759,7 @@ class RouterSession(BaseSession):
             u'authid': details.authid,
             u'authrole': details.authrole,
             u'authmethod': details.authmethod,
+            u'authextra': details.authextra,
             u'authprovider': details.authprovider,
             u'transport': self._transport._transport_info
         }

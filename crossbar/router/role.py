@@ -393,6 +393,7 @@ class RouterRoleDynamicAuth(RouterRole):
                 u'authrole': session._authrole,
                 u'authmethod': session._authmethod,
                 u'authprovider': session._authprovider,
+                u'authextra': session._authextra,
                 u'transport': {
                     u'type': u'stdio',  # or maybe "embedded"?
                 }
