@@ -133,7 +133,9 @@ class Dealer(object):
         # map: session -> in-flight invocations
         self._caller_to_invocations = {}
 
-        # map: call -> in-flight invocations
+        # careful here: the 'request' IDs are unique per-session
+        # (only) so we map from (session_id, call) tuples to in-flight invocations
+        # map: (session_id, call) -> in-flight invocations
         self._invocations_by_call = {}
 
         # pending callee invocation requests
@@ -709,7 +711,7 @@ class Dealer(object):
         """
         invoke_request = InvocationRequest(invocation_request_id, registration, session, call, callee)
         self._invocations[invocation_request_id] = invoke_request
-        self._invocations_by_call[call.request] = invoke_request
+        self._invocations_by_call[session._session_id, call.request] = invoke_request
         invokes = self._callee_to_invocations.get(callee, [])
         invokes.append(invoke_request)
         self._callee_to_invocations[callee] = invokes
@@ -737,7 +739,12 @@ class Dealer(object):
             del self._caller_to_invocations[invocation_request.caller]
 
         del self._invocations[invocation_request.id]
-        del self._invocations_by_call[invocation_request.call.request]
+
+        # the session_id will be None if the caller session has
+        # already vanished
+        caller_id = invocation_request.caller._session_id
+        if caller_id is not None:
+            del self._invocations_by_call[caller_id, invocation_request.call.request]
 
     # noinspection PyUnusedLocal
     def processCancel(self, session, cancel):
@@ -745,11 +752,8 @@ class Dealer(object):
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
         """
-        if cancel.request in self._invocations_by_call:
-            invocation_request = self._invocations_by_call[cancel.request]
-
-            if invocation_request.caller is not session:
-                raise ProtocolError(u"Dealer.processCancel(): CANCEL received for non-owned call request ID {0}".format(cancel.request))
+        if (session._session_id, cancel.request) in self._invocations_by_call:
+            invocation_request = self._invocations_by_call[session._session_id, cancel.request]
 
             # for those that repeatedly push elevator buttons
             if invocation_request.canceled:
