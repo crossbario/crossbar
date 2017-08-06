@@ -4,6 +4,7 @@ colorama>=0.3.3
 mock>=1.3.0
 wheel>=0.26.0
 hashin>=0.4.1
+txtorcon>=0.19.3
 
 # docs
 flask
