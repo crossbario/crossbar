@@ -12,6 +12,7 @@ An Endpoint describes the network connection over which data is transmitted. End
 * [TCP Listening Endpoints](#tcp-listening-endpoints)
 * [TLS Listening Endpoints](#tls-listening-endpoints)
 * [Unix Domain Listening Endpoints](#unix-domain-listening-endpoints)
+* [Universal Listening Endpoints(#universal-listening-endpoints)
 * [Tor Onion Service Endpoints](#tor-onion-service-endpoints)
 
 **Connecting Endpoints**:
@@ -168,6 +169,32 @@ Option | Description
 
 ---
 
+### Universal Listening Endpoints
+
+So-called "universal" endpoints use some simple tricks to allow a single socket to listen for WebSocket, "norlam" HTTP **OR** Raw socket requests. This examines the first byte of the request for the magic Raw Socket byte; if it doesn't find that, it reads enough HTTP headers to determine if it's a WebSocket request or not.
+
+This allows you to have a single listening socket that responds to any of the requests. We also use this to serve up a "user-readable" page if someone points their Web browser at a WebSocket endpoint.
+
+The configuration for these is a simple combination of all of the possible configurations inside a dict keyed by their name. It looks like this:
+
+```json
+    "type": "universal",
+    "endpoint": {
+        "type": "tcp",
+        "port": 8080
+    },
+    "rawsocket": {
+    },
+    "websocket": {
+    },
+    "web": {
+    }
+```
+
+The valid configuration inside each of `rawsocket`, `websocket`, or `web` keys correspond to the same items found in the respective "individual" configurations. We won't repeat that here. There is a good example [in the Autobahn Python repository](https://github.com/crossbario/autobahn-python/blob/master/examples/router/.crossbar/config.json#L93).
+
+
+---
 
 ## Tor Services
 
