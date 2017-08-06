@@ -33,7 +33,7 @@ from __future__ import absolute_import, division
 import six
 import os
 from os import environ
-from os.path import join, abspath
+from os.path import join, abspath, isabs, exists
 
 from twisted.internet import defer
 from twisted.internet._sslverify import OpenSSLCertificateAuthorities
@@ -48,7 +48,11 @@ from twisted.internet.endpoints import TCP4ServerEndpoint, \
     UNIXClientEndpoint, \
     serverFromString,   \
     clientFromString
+from twisted.internet.interfaces import IStreamServerEndpoint
 from twisted.python.filepath import FilePath
+from zope.interface import implementer
+
+import txtorcon
 
 from crossbar.twisted.sharedport import SharedPort, SharedTLSPort
 
@@ -314,6 +318,12 @@ def _create_tls_client_context(config, cbdir, log):
     return ctx
 
 
+def _ensure_absolute(fname, cbdir):
+    if isabs(fname):
+        return fname
+    return abspath(join(cbdir, fname))
+
+
 def create_listening_endpoint_from_config(config, cbdir, reactor, log):
     """
     Create a Twisted stream server endpoint from a Crossbar.io transport configuration.
@@ -420,6 +430,59 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
     # twisted endpoint-string
     elif config['type'] == 'twisted':
         endpoint = serverFromString(reactor, config['server_string'])
+
+    # tor endpoint
+    elif config['type'] == 'onion':  # or "tor"? r "tor_onion"?
+        port = config['port']
+        private_key_fname = _ensure_absolute(config[u'private_key_file'], cbdir)
+        tor_control_ep = create_connecting_endpoint_from_config(
+            config[u'tor_control_endpoint'], cbdir, reactor, log
+        )
+
+        try:
+            with open(private_key_fname, 'r') as f:
+                private_key = f.read().strip()
+        except (IOError, OSError):
+            private_key = None
+
+        @implementer(IStreamServerEndpoint)
+        class _EphemeralOnion(object):
+
+            @defer.inlineCallbacks
+            def listen(self, proto_factory):
+                # we don't care which local TCP port we listen on, but
+                # we do need to know it
+                local_ep = TCP4ServerEndpoint(reactor, 0, interface=u"127.0.0.1")
+                target_port = yield local_ep.listen(proto_factory)
+                tor = yield txtorcon.connect(
+                    reactor,
+                    tor_control_ep,
+                )
+
+                # create and add the service
+                hs = txtorcon.EphemeralHiddenService(
+                    ports=["{} 127.0.0.1:{}".format(port, target_port.getHost().port)],
+                    key_blob_or_type=private_key if private_key else "NEW:BEST",
+                )
+                log.info("Uploading descriptors can take more than 30s")
+                yield hs.add_to_tor(tor.protocol)
+
+                # if it's new, store our private key
+                # XXX better "if private_key is None"?
+                if not exists(private_key_fname):
+                    with open(private_key_fname, 'w') as f:
+                        f.write(hs.private_key)
+                    log.info("Wrote private key to '{fname}'", fname=private_key_fname)
+
+                addr = txtorcon.TorOnionAddress(hs.hostname, port)
+                log.info(
+                    "Listening on Tor onion service {addr.onion_uri}:{addr.onion_port}"
+                    " with local port {local_port}",
+                    addr=addr,
+                    local_port=target_port.getHost().port,
+                )
+                defer.returnValue(addr)
+        endpoint = _EphemeralOnion()
 
     else:
         raise Exception("invalid endpoint type '{}'".format(config['type']))
@@ -592,6 +655,24 @@ def create_connecting_endpoint_from_config(config, cbdir, reactor, log):
 
     elif config['type'] == 'twisted':
         endpoint = clientFromString(reactor, config['client_string'])
+
+    elif config['type'] == 'tor':
+        host = config['host']
+        port = config['port']
+        socks_port = config['tor_socks_port']
+        tls = config.get('tls', False)
+        if not tls and not host.endswith(u'.onion'):
+            log.warn("Non-TLS connection traversing Tor network; end-to-end encryption advised")
+
+        socks_endpoint = TCP4ClientEndpoint(
+            reactor, "127.0.0.1", socks_port,
+        )
+        endpoint = txtorcon.TorClientEndpoint(
+            host, port,
+            socks_endpoint=socks_endpoint,
+            reactor=reactor,
+            use_tls=tls,
+        )
 
     else:
         raise Exception("invalid endpoint type '{}'".format(config['type']))
