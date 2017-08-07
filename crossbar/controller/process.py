@@ -34,9 +34,13 @@ import os
 import sys
 import signal
 from datetime import datetime
-# backport of shutil.which
-import shutilwhich  # noqa
-import shutil
+
+try:
+    # try Python 3.3+ native module
+    from shutil import which
+except ImportError:
+    # import backport of shutil.which
+    from shutilwhich import which  # noqa
 
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
@@ -869,7 +873,7 @@ class NodeControllerSession(NativeProcessSession):
         else:
             # try to detect the fully qualified path for the guest
             # executable by doing a "which" on the configured executable name
-            exe = shutil.which(config['executable'])
+            exe = which(config['executable'])
             if exe is not None and check_executable(exe):
                 self.log.info("Using guest worker executable '{exe}' (executable path detected from environment)",
                               exe=exe)
