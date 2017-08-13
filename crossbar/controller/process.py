@@ -264,6 +264,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # publish management API event
         shutdown_info = {
+            u'node_id': self._node._node_id,
             u'restart': restart,
             u'mode': mode,
             u'who': details.caller if details else None,
