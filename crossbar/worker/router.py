@@ -292,7 +292,7 @@ class RouterWorkerSession(NativeWorkerSession):
         NativeWorkerSession.__init__(self, config, reactor)
 
         # factory for producing (per-realm) routers
-        self._router_factory = RouterFactory()
+        self._router_factory = RouterFactory(self)
 
         # factory for producing router sessions
         self._router_session_factory = RouterSessionFactory(self._router_factory)
@@ -354,7 +354,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         regs = yield DeferredList(dl)
 
-        self.log.debug('Ok, registered {cnt} management API procedures', cnt=len(regs))
+        self.log.info('Ok, registered {cnt} management API procedures', cnt=len(regs))
 
         self.log.info('Router worker "{worker_id}" session ready', worker_id=self._worker_id)
 

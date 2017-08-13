@@ -360,12 +360,13 @@ class RouterFactory(object):
     The router class this factory will create router instances from.
     """
 
-    def __init__(self, options=None):
+    def __init__(self, worker, options=None):
         """
 
         :param options: Default router options.
         :type options: Instance of :class:`crossbar.router.RouterOptions`.
         """
+        self._worker = worker
         self._routers = {}
         self._options = options or RouterOptions(uri_check=RouterOptions.URI_CHECK_LOOSE)
         self._auto_create_realms = False
