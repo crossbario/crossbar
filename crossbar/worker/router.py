@@ -286,6 +286,7 @@ class RouterWorkerSession(NativeWorkerSession):
     multiple (embedded) application components.
     """
     WORKER_TYPE = u'router'
+    PROCS = []
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
@@ -323,7 +324,7 @@ class RouterWorkerSession(NativeWorkerSession):
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
         # the procedures registered
-        procs = [
+        self.PROCS.extend([
             u'get_router_realms',
             u'start_router_realm',
             u'stop_router_realm',
@@ -343,12 +344,12 @@ class RouterWorkerSession(NativeWorkerSession):
             u'get_router_transports',
             u'start_router_transport',
             u'stop_router_transport',
-        ]
+        ])
 
         dl = []
-        for proc in procs:
+        for proc in self.PROCS:
             uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug('Registering management API procedure <{proc}>', proc=uri)
+            self.log.info('Registering management API procedure <{proc}>', proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
