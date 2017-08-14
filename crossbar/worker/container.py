@@ -34,14 +34,14 @@ from functools import partial
 from datetime import datetime
 
 from twisted import internet
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.defer import returnValue
 from twisted.python.failure import Failure
 
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
-from autobahn.wamp.types import RegisterOptions
+from autobahn import wamp
 
 from crossbar.common import checkconfig
 from crossbar.worker import _appsession_loader
@@ -104,7 +104,7 @@ class ContainerWorkerSession(NativeWorkerSession):
     a WAMP transport) and attached to a given realm on the application router.
     """
     WORKER_TYPE = u'container'
-    PROCS = []
+    WORKER_TITLE = u'Container'
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
@@ -126,31 +126,12 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
-        # the procedures registered
-        self.PROCS = [
-            u'stop',
-            u'start_component',
-            u'stop_component',
-            u'restart_component',
-            u'get_component',
-            u'list_components',
-        ]
-
-        dl = []
-        for proc in self.PROCS:
-            uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.info('Registering management API procedure <{proc}>', proc=uri)
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
-
-        regs = yield DeferredList(dl)
-
-        self.log.info('Ok, registered {cnt} management API procedures', cnt=len(regs))
-
         self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
 
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
 
+    @wamp.register(None)
     def stop(self, details=None):
         """
         Stops the whole container gracefully by stopping all components
@@ -171,6 +152,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         self.disconnect()
         return stopped_component_ids
 
+    @wamp.register(None)
     def start_component(self, component_id, config, reload_modules=False, details=None):
         """
         Starts a component in this container worker.
@@ -387,6 +369,7 @@ class ContainerWorkerSession(NativeWorkerSession):
             self.publish(topic, event)
         return event
 
+    @wamp.register(None)
     @inlineCallbacks
     def restart_component(self, component_id, reload_modules=False, details=None):
         """
@@ -432,6 +415,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         returnValue(restarted)
 
+    @wamp.register(None)
     @inlineCallbacks
     def stop_component(self, component_id, details=None):
         """
@@ -480,6 +464,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         returnValue(stopped)
 
+    @wamp.register(None)
     def get_component(self, component_id, details=None):
         """
         Get a component currently running within this container.
@@ -500,6 +485,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         return self.components[component_id].marshal()
 
+    @wamp.register(None)
     def list_components(self, ids_only=True, details=None):
         """
         Get components currently running within this container.

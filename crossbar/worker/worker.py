@@ -37,11 +37,12 @@ import jinja2
 import signal
 
 from twisted.internet.error import ReactorNotRunning
-from twisted.internet.defer import DeferredList, inlineCallbacks
+from twisted.internet.defer import inlineCallbacks
 
 from autobahn.util import utcnow
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, RegisterOptions
+from autobahn.wamp.types import PublishOptions
+from autobahn import wamp
 
 from txaio import make_logger
 
@@ -99,35 +100,7 @@ class NativeWorkerSession(NativeProcessSession):
         Called when worker process has joined the node's management realm.
         """
         yield NativeProcessSession.onJoin(self, details)
-
-        procs = [
-            # orderly shutdown worker "from inside"
-            'shutdown',
-
-            # CPU affinity for this worker process
-            'get_cpu_count',
-            'get_cpu_affinity',
-            'set_cpu_affinity',
-
-            # PYTHONPATH used for this worker
-            'get_pythonpath',
-            'add_pythonpath',
-
-            # profiling control
-            'get_profilers',
-            'start_profiler',
-            'get_profile',
-        ]
-
-        dl = []
-        for proc in procs:
-            uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
-
-        regs = yield DeferredList(dl)
-
-        self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+        # above upcall registers all our "@wamp.register(None)" methods
 
         # setup SIGTERM handler to orderly shutdown the worker
         def shutdown(sig, frame):
@@ -170,6 +143,7 @@ class NativeWorkerSession(NativeProcessSession):
         self.log.debug("Worker '{worker}' running as PID {pid}",
                        worker=self.config.extra.worker, pid=os.getpid())
 
+    @wamp.register(None)
     @inlineCallbacks
     def shutdown(self, details=None):
         """
@@ -202,6 +176,7 @@ class NativeWorkerSession(NativeProcessSession):
         #
         self._reactor.callLater(0, self.leave)
 
+    @wamp.register(None)
     def get_profilers(self, details=None):
         """
         Registered under: ``crossbar.worker.<worker_id>.get_profilers``
@@ -215,6 +190,7 @@ class NativeWorkerSession(NativeProcessSession):
         """
         return [p.marshal() for p in PROFILERS.items()]
 
+    @wamp.register(None)
     def start_profiler(self, profiler, runtime=10, async=True, details=None):
         """
         Registered under: ``crossbar.worker.<worker_id>.start_profiler``
@@ -311,6 +287,7 @@ class NativeWorkerSession(NativeProcessSession):
             # actually finished - and return the complete profile
             return profile_finished
 
+    @wamp.register(None)
     def get_profile(self, profile_id, details=None):
         """
         Get a profile previously produced by a profiler run.
@@ -326,6 +303,7 @@ class NativeWorkerSession(NativeProcessSession):
         else:
             raise ApplicationError(u'crossbar.error.no_such_object', 'no profile with ID {} saved'.format(profile_id))
 
+    @wamp.register(None)
     def get_cpu_count(self, logical=True):
         """
         Returns the CPU core count on the machine this process is running on.
@@ -355,6 +333,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         return psutil.cpu_count(logical=logical)
 
+    @wamp.register(None)
     def get_cpu_affinity(self, details=None):
         """
         Get CPU affinity of this process.
@@ -390,6 +369,7 @@ class NativeWorkerSession(NativeProcessSession):
         else:
             return current_affinity
 
+    @wamp.register(None)
     def set_cpu_affinity(self, cpus, details=None):
         """
         Set CPU affinity of this process.
@@ -445,6 +425,7 @@ class NativeWorkerSession(NativeProcessSession):
             #
             return new_affinity
 
+    @wamp.register(None)
     def get_pythonpath(self, details=None):
         """
         Returns the current Python module search paths.
@@ -458,6 +439,7 @@ class NativeWorkerSession(NativeProcessSession):
         self.log.debug("{klass}.get_pythonpath", klass=self.__class__.__name__)
         return sys.path
 
+    @wamp.register(None)
     def add_pythonpath(self, paths, prepend=True, details=None):
         """
         Add paths to Python module search paths.

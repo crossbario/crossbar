@@ -72,6 +72,23 @@ def run():
     import platform
     import signal
 
+    # make sure logging to something else than stdio is setup _first_
+    #
+    from crossbar._logging import make_JSON_observer, cb_logging_aware
+    from txaio import make_logger, start_logging
+    from twisted.logger import globalLogPublisher
+    from twisted.python.reflect import qual
+
+    log = make_logger()
+
+    # Print a magic phrase that tells the capturing logger that it supports
+    # Crossbar's rich logging
+    print(cb_logging_aware, file=sys.__stderr__)
+    sys.__stderr__.flush()
+
+    flo = make_JSON_observer(sys.__stderr__)
+    globalLogPublisher.addObserver(flo)
+
     # Ignore SIGINT so we get consistent behavior on control-C versus
     # sending SIGINT to the controller process. When the controller is
     # shutting down, it sends TERM to all its children but ctrl-C
@@ -84,6 +101,30 @@ def run():
     def ignore(sig, frame):
         log.debug("Ignoring SIGINT in worker.")
     signal.signal(signal.SIGINT, ignore)
+
+    from crossbar.worker.router import RouterWorkerSession
+    from crossbar.worker.container import ContainerWorkerSession
+    from crossbar.worker.testee import WebSocketTesteeWorkerSession
+
+    # default worker type classes
+    WORKER_TYPE_TO_CLASS = {
+        u'router': RouterWorkerSession,
+        u'container': ContainerWorkerSession,
+        u'websocket-testee': WebSocketTesteeWorkerSession
+    }
+
+    # get new worker type classes, or worker type class overrides from the
+    # plugin system (we need this early, to add --type choices to CLI)
+    worker_classes = get_worker_classes()
+    for ep, worker_class in worker_classes.items():
+        klass = worker_class['class']
+        worker_type = klass.WORKER_TYPE
+        WORKER_TYPE_TO_CLASS[worker_type] = klass
+        log.info(
+            "Worker type '{worker_type}' with '{worker_class}'",
+            worker_type=worker_type,
+            worker_class=qual(klass),
+        )
 
     # create the top-level parser
     #
@@ -112,7 +153,7 @@ def run():
 
     parser.add_argument('-t',
                         '--type',
-                        choices=['router', 'container', 'websocket-testee'],
+                        choices=WORKER_TYPE_TO_CLASS.keys(),
                         help='Worker type (required).')
 
     parser.add_argument('-w',
@@ -137,21 +178,7 @@ def run():
 
     options = parser.parse_args()
 
-    # make sure logging to something else than stdio is setup _first_
-    #
-    from crossbar._logging import make_JSON_observer, cb_logging_aware
-    from txaio import make_logger, start_logging
-    from twisted.logger import globalLogPublisher
-
-    log = make_logger()
-
-    # Print a magic phrase that tells the capturing logger that it supports
-    # Crossbar's rich logging
-    print(cb_logging_aware, file=sys.__stderr__)
-    sys.__stderr__.flush()
-
-    flo = make_JSON_observer(sys.__stderr__)
-    globalLogPublisher.addObserver(flo)
+    # actually begin logging
     start_logging(None, options.loglevel)
 
     # we use an Autobahn utility to import the "best" available Twisted reactor
@@ -159,19 +186,14 @@ def run():
     from autobahn.twisted.choosereactor import install_reactor
     reactor = install_reactor(options.reactor)
 
-    WORKER_TYPE_TO_TITLE = {
-        'router': 'Router',
-        'container': 'Container',
-        'websocket-testee': 'WebSocket Testee'
-    }
-
-    from twisted.python.reflect import qual
-    log.info('{worker_title} worker "{worker_id}" process {pid} starting on {python}-{reactor} ..',
-             worker_title=WORKER_TYPE_TO_TITLE[options.type],
-             worker_id=options.worker,
-             pid=os.getpid(),
-             python=platform.python_implementation(),
-             reactor=qual(reactor.__class__).split('.')[-1])
+    log.info(
+        '{worker_title} worker "{worker_id}" process {pid} starting on {python}-{reactor} ..',
+        worker_title=WORKER_TYPE_TO_CLASS[options.type].WORKER_TITLE,
+        worker_id=options.worker,
+        pid=os.getpid(),
+        python=platform.python_implementation(),
+        reactor=qual(reactor.__class__).split('.')[-1],
+    )
 
     # set process title if requested to
     #
@@ -183,12 +205,7 @@ def run():
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
-            WORKER_TYPE_TO_PROCESS_TITLE = {
-                'router': 'crossbar-worker [router]',
-                'container': 'crossbar-worker [container]',
-                'websocket-testee': 'crossbar-worker [websocket-testee]'
-            }
-            setproctitle.setproctitle(WORKER_TYPE_TO_PROCESS_TITLE[options.type].strip())
+            setproctitle.setproctitle('crossbar-worker [{}]'.format(options.type))
 
     # node directory
     #
@@ -196,25 +213,19 @@ def run():
     os.chdir(options.cbdir)
     # log.msg("Starting from node directory {}".format(options.cbdir))
 
-    from crossbar.worker.router import RouterWorkerSession
-    from crossbar.worker.container import ContainerWorkerSession
-    from crossbar.worker.testee import WebSocketTesteeWorkerSession
-
-    # default worker type classes
-    WORKER_TYPE_TO_CLASS = {
-        u'router': RouterWorkerSession,
-        u'container': ContainerWorkerSession,
-        u'websocket-testee': WebSocketTesteeWorkerSession
-    }
-
-    # get new worker type classes, or worker type class overrides from the
-    # plugin system
-    worker_classes = get_worker_classes()
-    for ep, worker_class in worker_classes.items():
-        klass = worker_class['class']
-        worker_type = klass.WORKER_TYPE
-        WORKER_TYPE_TO_CLASS[worker_type] = klass
-        log.info('Worker type {worker_type} configured with class {worker_class}', worker_type=worker_type, worker_class=klass)
+    # set process title if requested to
+    #
+    try:
+        import setproctitle
+    except ImportError:
+        log.debug("Could not set worker process title (setproctitle not installed)")
+    else:
+        if options.title:
+            setproctitle.setproctitle(options.title)
+        else:
+            setproctitle.setproctitle(
+                'crossbar-worker [{}]'.format(options.type)
+            )
 
     from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol

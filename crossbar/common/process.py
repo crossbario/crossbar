@@ -34,8 +34,9 @@ import gc
 
 from datetime import datetime
 
-from twisted.internet.defer import DeferredList, inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
+from twisted.python.failure import Failure
 
 
 try:
@@ -57,6 +58,7 @@ from autobahn.util import utcnow, utcstr, rtime
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
+from autobahn import wamp
 
 from txaio import make_logger
 
@@ -218,35 +220,20 @@ class NativeProcessSession(ApplicationSession):
         """
         Called when process has joined the node's management realm.
         """
-        procs = [
-            'start_manhole',
-            'stop_manhole',
-            'get_manhole',
 
-            'start_connection',
-            'stop_connection',
-            'get_connections',
+        regs = yield self.register(
+            self,
+            prefix=u'{}.'.format(self._uri_prefix),
+            options=RegisterOptions(details_arg='details'),
+        )
 
-            'trigger_gc',
-
-            'utcnow',
-            'started',
-            'uptime',
-
-            'get_process_info',
-            'get_process_stats',
-            'set_process_stats_monitoring'
-        ]
-
-        dl = []
-        for proc in procs:
-            uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering procedure '{uri}'", uri=uri)
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
-
-        regs = yield DeferredList(dl)
-
-        self.log.debug("Registered {len_reg} procedures", len_reg=len(regs))
+        self.log.info("Registered {len_reg} procedures", len_reg=len(regs))
+        for reg in regs:
+            if isinstance(reg, Failure):
+                self.log.error("Failed to register: {f}", f=reg, log_failure=reg)
+            else:
+                self.log.info('  {proc}', proc=reg.procedure)
+        returnValue(regs)
 
     @inlineCallbacks
     def start_connection(self, id, config, details=None):
@@ -357,6 +344,7 @@ class NativeProcessSession(ApplicationSession):
             res.append(c.marshal())
         return res
 
+    @wamp.register(None)
     def get_process_info(self, details=None):
         """
         Get process information (open files, sockets, ...).
@@ -372,6 +360,7 @@ class NativeProcessSession(ApplicationSession):
             emsg = "Could not retrieve process statistics: required packages not installed"
             raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
+    @wamp.register(None)
     def get_process_stats(self, details=None):
         """
         Get process statistics (CPU, memory, I/O).
@@ -386,6 +375,7 @@ class NativeProcessSession(ApplicationSession):
             emsg = "Could not retrieve process statistics: required packages not installed"
             raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
+    @wamp.register(None)
     def set_process_stats_monitoring(self, interval, details=None):
         """
         Enable/disable periodic publication of process statistics.
@@ -425,6 +415,7 @@ class NativeProcessSession(ApplicationSession):
             emsg = "Cannot setup process statistics monitor: required packages not installed"
             raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
+    @wamp.register(None)
     def trigger_gc(self, details=None):
         """
         Manually trigger a garbage collection in this native process.
@@ -483,6 +474,7 @@ class NativeProcessSession(ApplicationSession):
 
         return duration
 
+    @wamp.register(None)
     @inlineCallbacks
     def start_manhole(self, config, details=None):
         """
@@ -621,6 +613,7 @@ class NativeProcessSession(ApplicationSession):
 
         returnValue(started_info)
 
+    @wamp.register(None)
     @inlineCallbacks
     def stop_manhole(self, details=None):
         """
@@ -676,6 +669,7 @@ class NativeProcessSession(ApplicationSession):
 
         returnValue(stopped_info)
 
+    @wamp.register(None)
     def get_manhole(self, details=None):
         """
         Get current manhole service information.
@@ -694,6 +688,7 @@ class NativeProcessSession(ApplicationSession):
         else:
             return self._manhole_service.marshal()
 
+    @wamp.register(None)
     def utcnow(self, details=None):
         """
         Return current time as determined from within this process.
@@ -712,6 +707,7 @@ class NativeProcessSession(ApplicationSession):
 
         return utcnow()
 
+    @wamp.register(None)
     def started(self, details=None):
         """
         Return start time of this process.
@@ -730,6 +726,7 @@ class NativeProcessSession(ApplicationSession):
 
         return utcstr(self._started)
 
+    @wamp.register(None)
     def uptime(self, details=None):
         """
         Return uptime of this process.
