@@ -155,24 +155,6 @@ def run():
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
-    # set process title if requested to
-    #
-    try:
-        import setproctitle
-    except ImportError:
-        log.debug("Could not set worker process title (setproctitle not installed)")
-    else:
-        if options.title:
-            setproctitle.setproctitle(options.title)
-        else:
-            WORKER_TYPE_TO_PROCESS_TITLE = {
-                'router': 'crossbar-worker [router]',
-                'container': 'crossbar-worker [container]',
-                'websocket-testee': 'crossbar-worker [websocket-testee]',
-                'custom': 'crossbar-worker [custom]',
-            }
-            setproctitle.setproctitle(WORKER_TYPE_TO_PROCESS_TITLE[options.type].strip())
-
     # node directory
     #
     options.cbdir = os.path.abspath(options.cbdir)
@@ -199,6 +181,28 @@ def run():
             'container': ContainerWorkerSession,
             'websocket-testee': WebSocketTesteeWorkerSession
         }[options.type]
+
+    # set process title if requested to
+    #
+    try:
+        import setproctitle
+    except ImportError:
+        log.debug("Could not set worker process title (setproctitle not installed)")
+    else:
+        if options.title:
+            setproctitle.setproctitle(options.title)
+        else:
+            if options.type == u'custom':
+                proc_title = 'crossbar-worker [{}]'.format(
+                    getattr(worker_class, 'proctitle', 'custom')
+                )
+            else:
+                proc_title = {
+                    'router': 'crossbar-worker [router]',
+                    'container': 'crossbar-worker [container]',
+                    'websocket-testee': 'crossbar-worker [websocket-testee]'
+                }[options.type]
+            setproctitle.setproctitle(proc_title)
 
     from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol
