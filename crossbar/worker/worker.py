@@ -101,19 +101,7 @@ class NativeWorkerSession(NativeProcessSession):
         Called when worker process has joined the node's management realm.
         """
         yield NativeProcessSession.onJoin(self, details)
-
-        regs = yield self.register(
-            self,
-            prefix=u'{}.'.format(self._uri_prefix),
-            options=RegisterOptions(details_arg='details'),
-        )
-
-        self.log.info("Registered {cnt} management API procedures", cnt=len(regs))
-        for reg in regs:
-            if isinstance(reg, Failure):
-                self.log.error("Failed to register: {f}", f=reg)
-                self.log.failure()
-            self.log.info('  {proc}', proc=reg.procedure)
+        # above upcall registers all our "@wamp.register(None)" methods
 
         # setup SIGTERM handler to orderly shutdown the worker
         def shutdown(sig, frame):

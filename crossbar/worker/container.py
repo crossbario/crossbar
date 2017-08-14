@@ -105,6 +105,7 @@ class ContainerWorkerSession(NativeWorkerSession):
     a WAMP transport) and attached to a given realm on the application router.
     """
     WORKER_TYPE = u'container'
+    WORKER_TITLE = u'Container'
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)

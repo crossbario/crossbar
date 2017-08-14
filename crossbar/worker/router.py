@@ -846,6 +846,7 @@ class RouterWorkerSession(NativeWorkerSession):
     multiple (embedded) application components.
     """
     WORKER_TYPE = u'router'
+    WORKER_TITLE = u'Router'
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
