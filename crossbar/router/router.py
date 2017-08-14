@@ -81,8 +81,10 @@ class Router(object):
 
         :param factory: The router factory this router was created by.
         :type factory: Object that implements :class:`autobahn.wamp.interfaces.IRouterFactory`..
+
         :param realm: The realm this router is working for.
         :type realm: str
+
         :param options: Router options.
         :type options: Instance of :class:`crossbar.router.RouterOptions`.
         """
@@ -199,8 +201,12 @@ class Router(object):
     def send(self, session, msg):
         if self._check_trace(session, msg):
             self.log.info("<<TX<< {msg}", msg=msg)
+
         if session._transport:
             session._transport.send(msg)
+
+            if self._factory._worker and hasattr(self._factory._worker, '_maybe_trace_tx_msg'):
+                self._factory._worker._maybe_trace_tx_msg(session, msg)
         else:
             self.log.warn('skip sending msg - transport already closed')
 
@@ -210,6 +216,9 @@ class Router(object):
         """
         if self._check_trace(session, msg):
             self.log.info(">>RX>> {msg}", msg=msg)
+
+        if self._factory._worker and hasattr(self._factory._worker, '_maybe_trace_rx_msg'):
+            self._factory._worker._maybe_trace_rx_msg(session, msg)
 
         # Broker
         #
