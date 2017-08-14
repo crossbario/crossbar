@@ -60,7 +60,7 @@ class TestBrokerPublish(unittest.TestCase):
         """
 
         # create a router factory
-        self.router_factory = RouterFactory()
+        self.router_factory = RouterFactory(None)
 
         # start a realm
         self.realm = RouterRealm(None, {u'name': u'realm1'})

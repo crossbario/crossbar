@@ -881,14 +881,14 @@ def check_listening_endpoint_onion(endpoint):
     check_dict_args(
         {
             u"type": (True, [six.text_type]),
-            u"port": (True, [int, long]),
+            u"port": (True, six.integer_types),
             u"private_key_file": (True, [six.text_type]),
             u"tor_control_endpoint": (True, [Mapping])
         },
         endpoint,
         "onion endpoint config",
     )
-
+    check_endpoint_port(u"port")
     check_connecting_endpoint(endpoint[u"tor_control_endpoint"])
 
 

@@ -32,9 +32,34 @@ from __future__ import absolute_import, print_function
 
 import six
 
+import pkg_resources
+
 from twisted.internet.error import ReactorNotRunning
 
 __all__ = ('run',)
+
+
+def get_worker_classes():
+    """
+    Get Worker classes which implement worker types.
+
+    :returns: Dict with worker classes and aux info.
+    :rtype: dict
+    """
+    res = {}
+    for entrypoint in pkg_resources.iter_entry_points('crossbar.worker'):
+        e = entrypoint.load()
+        ep = {
+            u'class': e,
+            u'dist': entrypoint.dist.key,
+            u'version': entrypoint.dist.version,
+        }
+        if hasattr(e, '__doc__') and e.__doc__:
+            ep[u'doc'] = e.__doc__.strip()
+        else:
+            ep[u'doc'] = None
+        res[entrypoint.name] = ep
+    return res
 
 
 def run():
@@ -175,11 +200,21 @@ def run():
     from crossbar.worker.container import ContainerWorkerSession
     from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
+    # default worker type classes
     WORKER_TYPE_TO_CLASS = {
-        'router': RouterWorkerSession,
-        'container': ContainerWorkerSession,
-        'websocket-testee': WebSocketTesteeWorkerSession
+        u'router': RouterWorkerSession,
+        u'container': ContainerWorkerSession,
+        u'websocket-testee': WebSocketTesteeWorkerSession
     }
+
+    # get new worker type classes, or worker type class overrides from the
+    # plugin system
+    worker_classes = get_worker_classes()
+    for ep, worker_class in worker_classes.items():
+        klass = worker_class['class']
+        worker_type = klass.WORKER_TYPE
+        WORKER_TYPE_TO_CLASS[worker_type] = klass
+        log.info('Worker type {worker_type} configured with class {worker_class}', worker_type=worker_type, worker_class=klass)
 
     from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol

@@ -104,6 +104,7 @@ class ContainerWorkerSession(NativeWorkerSession):
     a WAMP transport) and attached to a given realm on the application router.
     """
     WORKER_TYPE = u'container'
+    PROCS = []
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
@@ -126,7 +127,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
         # the procedures registered
-        procs = [
+        self.PROCS = [
             u'stop',
             u'start_component',
             u'stop_component',
@@ -136,14 +137,14 @@ class ContainerWorkerSession(NativeWorkerSession):
         ]
 
         dl = []
-        for proc in procs:
+        for proc in self.PROCS:
             uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug('Registering management API procedure <{proc}>', proc=uri)
+            self.log.info('Registering management API procedure <{proc}>', proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        self.log.debug('Ok, registered {cnt} management API procedures', cnt=len(regs))
+        self.log.info('Ok, registered {cnt} management API procedures', cnt=len(regs))
 
         self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
 
