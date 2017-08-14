@@ -31,6 +31,7 @@
 from __future__ import absolute_import, print_function
 
 import six
+import importlib
 
 from twisted.internet.error import ReactorNotRunning
 
@@ -87,8 +88,13 @@ def run():
 
     parser.add_argument('-t',
                         '--type',
-                        choices=['router', 'container', 'websocket-testee'],
+                        choices=['router', 'container', 'websocket-testee', 'custom'],
                         help='Worker type (required).')
+
+    parser.add_argument('-k',
+                        '--klass',
+                        help='Custom worker class name (use with --type=custom)',
+                        default=None)
 
     parser.add_argument('-w',
                         '--worker',
@@ -137,7 +143,8 @@ def run():
     WORKER_TYPE_TO_TITLE = {
         'router': 'Router',
         'container': 'Container',
-        'websocket-testee': 'WebSocket Testee'
+        'websocket-testee': 'WebSocket Testee',
+        'custom': 'Custom',  # FIXME could use class name?
     }
 
     from twisted.python.reflect import qual
@@ -147,23 +154,6 @@ def run():
              pid=os.getpid(),
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
-
-    # set process title if requested to
-    #
-    try:
-        import setproctitle
-    except ImportError:
-        log.debug("Could not set worker process title (setproctitle not installed)")
-    else:
-        if options.title:
-            setproctitle.setproctitle(options.title)
-        else:
-            WORKER_TYPE_TO_PROCESS_TITLE = {
-                'router': 'crossbar-worker [router]',
-                'container': 'crossbar-worker [container]',
-                'websocket-testee': 'crossbar-worker [websocket-testee]'
-            }
-            setproctitle.setproctitle(WORKER_TYPE_TO_PROCESS_TITLE[options.type].strip())
 
     # node directory
     #
@@ -175,11 +165,44 @@ def run():
     from crossbar.worker.container import ContainerWorkerSession
     from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
-    WORKER_TYPE_TO_CLASS = {
-        'router': RouterWorkerSession,
-        'container': ContainerWorkerSession,
-        'websocket-testee': WebSocketTesteeWorkerSession
-    }
+    if options.type == u'custom':
+        if not options.klass:
+            print("Must specify --klass when using --type=custom")
+            sys.exit(1)
+
+        klassname = options.klass
+        c = klassname.split('.')
+        module_name, klass_name = '.'.join(c[:-1]), c[-1]
+        module = importlib.import_module(module_name)
+        worker_class = getattr(module, klass_name)
+    else:
+        worker_class = {
+            'router': RouterWorkerSession,
+            'container': ContainerWorkerSession,
+            'websocket-testee': WebSocketTesteeWorkerSession
+        }[options.type]
+
+    # set process title if requested to
+    #
+    try:
+        import setproctitle
+    except ImportError:
+        log.debug("Could not set worker process title (setproctitle not installed)")
+    else:
+        if options.title:
+            setproctitle.setproctitle(options.title)
+        else:
+            if options.type == u'custom':
+                proc_title = 'crossbar-worker [{}]'.format(
+                    getattr(worker_class, 'proctitle', 'custom')
+                )
+            else:
+                proc_title = {
+                    'router': 'crossbar-worker [router]',
+                    'container': 'crossbar-worker [container]',
+                    'websocket-testee': 'crossbar-worker [websocket-testee]'
+                }[options.type]
+            setproctitle.setproctitle(proc_title)
 
     from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol
@@ -234,7 +257,11 @@ def run():
 
         session_config = ComponentConfig(realm=options.realm, extra=options)
         session_factory = ApplicationSessionFactory(session_config)
-        session_factory.session = WORKER_TYPE_TO_CLASS[options.type]
+        session_factory.session = worker_class
+
+# XXX note to self: probably have to make a --type=custom with
+# --class=whatever so Fabric can easily re-use all this code to start
+# its own custom-class workers?
 
         # create a WAMP-over-WebSocket transport server factory
         #

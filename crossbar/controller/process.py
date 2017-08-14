@@ -461,6 +461,13 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--realm", self._realm])
         args.extend(["--type", worker_type])
         args.extend(["--loglevel", get_global_log_level()])
+        if worker_type == 'custom':
+            klass = self.NATIVE_WORKER[worker_type]['process_class']
+            if isinstance(klass, type):
+                klassname = '{}.{}'.format(klass.__module__, klass.__name__)
+            else:
+                klassname = u"{}".format(klass)
+            args.extend(["--klass", klassname])
 
         # Node-level callback to inject worker arguments
         #
