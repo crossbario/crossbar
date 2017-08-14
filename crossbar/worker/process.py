@@ -216,6 +216,28 @@ def run():
         WORKER_TYPE_TO_CLASS[worker_type] = klass
         log.info('Worker type {worker_type} configured with class {worker_class}', worker_type=worker_type, worker_class=klass)
 
+    # set process title if requested to
+    #
+    try:
+        import setproctitle
+    except ImportError:
+        log.debug("Could not set worker process title (setproctitle not installed)")
+    else:
+        if options.title:
+            setproctitle.setproctitle(options.title)
+        else:
+            if options.type == u'custom':
+                proc_title = 'crossbar-worker [{}]'.format(
+                    getattr(worker_class, 'proctitle', 'custom')
+                )
+            else:
+                proc_title = {
+                    'router': 'crossbar-worker [router]',
+                    'container': 'crossbar-worker [container]',
+                    'websocket-testee': 'crossbar-worker [websocket-testee]'
+                }[options.type]
+            setproctitle.setproctitle(proc_title)
+
     from twisted.internet.error import ConnectionDone
     from autobahn.twisted.websocket import WampWebSocketServerProtocol
 
