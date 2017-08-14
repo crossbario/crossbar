@@ -47,6 +47,7 @@ from twisted.python.threadpool import ThreadPool
 from autobahn.util import utcstr
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
+from autobahn import wamp
 
 from crossbar.twisted.resource import StaticResource, StaticResourceNoListing
 
@@ -845,7 +846,6 @@ class RouterWorkerSession(NativeWorkerSession):
     multiple (embedded) application components.
     """
     WORKER_TYPE = u'router'
-    PROCS = []
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
@@ -882,6 +882,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
+<<<<<<< 0eb1782c0a07fbbcbf369b3fa91c37952bd2c203
         # the procedures registered
         self.PROCS.extend([
             u'get_router_realms',
@@ -915,11 +916,14 @@ class RouterWorkerSession(NativeWorkerSession):
 
         self.log.info('Ok, registered {cnt} local management procedures', cnt=len(regs))
 
+=======
+>>>>>>> Re-factor to use @wamp.register decorator
         self.log.info('Router worker "{worker_id}" session ready', worker_id=self._worker_id)
 
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
 
+    @wamp.register(None)
     def get_router_realms(self, details=None):
         """
         Get realms currently running on this router worker.
@@ -931,6 +935,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         return sorted(self.realms.keys())
 
+    @wamp.register(None)
     @inlineCallbacks
     def start_router_realm(self, realm_id, config, enable_trace=False, details=None):
         """
@@ -989,6 +994,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         self.publish(u'{}.on_realm_started'.format(self._uri_prefix), realm_id)
 
+    @wamp.register(None)
     def stop_router_realm(self, realm_id, close_sessions=False, details=None):
         """
         Stop a realm currently running on this router worker.
@@ -1006,6 +1012,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # FIXME
         raise NotImplementedError()
 
+    @wamp.register(None)
     def get_router_realm_roles(self, id, details=None):
         """
         Get roles currently running on a realm running on this router worker.
@@ -1023,6 +1030,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         return self.realms[id].roles.values()
 
+    @wamp.register(None)
     def start_router_realm_role(self, realm_id, role_id, role_config, details=None):
         """
         Start a role on a realm running on this router worker.
@@ -1056,6 +1064,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         self.log.info('role {role_id} on realm {realm_id} started', realm_id=realm_id, role_id=role_id, role_config=role_config)
 
+    @wamp.register(None)
     def stop_router_realm_role(self, id, role_id, details=None):
         """
         Stop a role currently running on a realm running on this router worker.
@@ -1075,6 +1084,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         del self.realms[id].roles[role_id]
 
+    @wamp.register(None)
     def get_router_realm_uplinks(self, id, details=None):
         """
         Get uplinks currently running on a realm running on this router worker.
@@ -1092,6 +1102,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         return self.realms[id].uplinks.values()
 
+    @wamp.register(None)
     @inlineCallbacks
     def start_router_realm_uplink(self, realm_id, uplink_id, uplink_config, details=None):
         """
@@ -1136,6 +1147,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         self.log.info("Realm is connected to Crossbar.io uplink router")
 
+    @wamp.register(None)
     def stop_router_realm_uplink(self, id, uplink_id, details=None):
         """
         Stop an uplink currently running on a realm running on this router worker.
@@ -1149,6 +1161,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
         raise NotImplementedError()
 
+    @wamp.register(None)
     def get_router_components(self, details=None):
         """
         Get app components currently running in this router worker.
@@ -1191,6 +1204,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # *after* the components got a chance to shutdown.
         dl.addBoth(lambda _: super(RouterWorkerSession, self).onLeave(details))
 
+    @wamp.register(None)
     def start_router_component(self, id, config, details=None):
         """
         Start an app component in this router worker.
@@ -1308,6 +1322,7 @@ class RouterWorkerSession(NativeWorkerSession):
             name=class_name(session),
         )
 
+    @wamp.register(None)
     def stop_router_component(self, id, details=None):
         """
         Stop an app component currently running in this router worker.
@@ -1329,6 +1344,7 @@ class RouterWorkerSession(NativeWorkerSession):
         else:
             raise ApplicationError(u"crossbar.error.no_such_object", "No component {}".format(id))
 
+    @wamp.register(None)
     def get_router_transports(self, details=None):
         """
         Get transports currently running in this router worker.
@@ -1347,6 +1363,7 @@ class RouterWorkerSession(NativeWorkerSession):
             })
         return res
 
+    @wamp.register(None)
     def start_router_transport(self, id, config, details=None):
         """
         Start a transport on this router worker.
@@ -1384,6 +1401,7 @@ class RouterWorkerSession(NativeWorkerSession):
         d.addCallbacks(ok, fail)
         return d
 
+    @wamp.register(None)
     def stop_router_transport(self, id, details=None):
         """
         Stop a transport currently running in this router worker.
