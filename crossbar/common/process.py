@@ -34,7 +34,7 @@ import gc
 
 from datetime import datetime
 
-from twisted.internet.defer import DeferredList, inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
 
 

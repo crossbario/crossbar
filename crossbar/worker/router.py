@@ -279,6 +279,565 @@ class _LessNoisyHTTPChannel(HTTPChannel):
         self.loseConnection()
 
 
+def create_transport_from_config(reactor, name, config, cbdir, log, node,
+                                 _router_session_factory=None,
+                                 _web_templates=None):
+    """
+    :return: a Deferred that fires with a new RouterTransport instance
+        (or error) representing the given transport using config for
+        settings. Raises ApplicationError if the configuration is wrong.
+    """
+
+    # check configuration
+    #
+    try:
+        checkconfig.check_router_transport(config)
+    except Exception as e:
+        emsg = "Invalid router transport configuration: {}".format(e)
+        log.error(emsg)
+        raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+    else:
+        log.debug("Starting {ttype}-transport on router.", ttype=config['type'])
+
+    # standalone WAMP-RawSocket transport
+    #
+    if config['type'] == 'rawsocket':
+
+        transport_factory = WampRawSocketServerFactory(_router_session_factory, config)
+        transport_factory.noisy = False
+
+    # standalone WAMP-WebSocket transport
+    #
+    elif config['type'] == 'websocket':
+
+        if _web_templates is None:
+            raise ApplicationError(
+                "Transport with type='websocket.testee' requires templates"
+            )
+        transport_factory = WampWebSocketServerFactory(_router_session_factory, cbdir, config, _web_templates)
+        transport_factory.noisy = False
+
+    # Flash-policy file server pseudo transport
+    #
+    elif config['type'] == 'flashpolicy':
+
+        transport_factory = FlashPolicyFactory(config.get('allowed_domain', None), config.get('allowed_ports', None))
+
+    # WebSocket testee pseudo transport
+    #
+    elif config['type'] == 'websocket.testee':
+
+        if _web_templates is None:
+            raise ApplicationError(
+                "Transport with type='websocket.testee' requires templates"
+            )
+        transport_factory = WebSocketTesteeServerFactory(config, _web_templates)
+
+    # Stream testee pseudo transport
+    #
+    elif config['type'] == 'stream.testee':
+
+        transport_factory = StreamTesteeServerFactory()
+
+    # MQTT legacy adapter transport
+    #
+    elif config['type'] == 'mqtt':
+
+        transport_factory = WampMQTTServerFactory(
+            _router_session_factory, config, reactor)
+        transport_factory.noisy = False
+
+    # Twisted Web based transport
+    #
+    elif config['type'] == 'web':
+
+        if _web_templates is None:
+            raise ApplicationError(
+                u"Transport with type='web' requires templates"
+            )
+        transport_factory = _create_web_factory(
+            reactor,
+            config,
+            u'tls' in config[u'endpoint'],
+            _web_templates,
+            log,
+            cbdir,
+            _router_session_factory,
+            node,
+        )
+
+    # Universal transport
+    #
+    elif config['type'] == 'universal':
+        if 'web' in config:
+            if _web_templates is None:
+                raise ApplicationError(
+                    u"Universal transport with type='web' requires templates"
+                )
+            web_factory = _create_web_factory(
+                reactor,
+                config['web'],
+                u'tls' in config['endpoint'],
+                _web_templates,
+                log,
+                cbdir,
+                _router_session_factory,
+                node,
+            )
+        else:
+            web_factory = None
+
+        if 'rawsocket' in config:
+            rawsocket_factory = WampRawSocketServerFactory(_router_session_factory, config['rawsocket'])
+            rawsocket_factory.noisy = False
+        else:
+            rawsocket_factory = None
+
+        if 'mqtt' in config:
+            mqtt_factory = WampMQTTServerFactory(
+                _router_session_factory, config['mqtt'], reactor)
+            mqtt_factory.noisy = False
+        else:
+            mqtt_factory = None
+
+        if 'websocket' in config:
+            if _web_templates is None:
+                raise ApplicationError(
+                    "Transport with type='websocket.testee' requires templates"
+                )
+            websocket_factory_map = {}
+            for websocket_url_first_component, websocket_config in config['websocket'].items():
+                websocket_transport_factory = WampWebSocketServerFactory(_router_session_factory, cbdir, websocket_config, _web_templates)
+                websocket_transport_factory.noisy = False
+                websocket_factory_map[websocket_url_first_component] = websocket_transport_factory
+                log.debug('hooked up websocket factory on request URI {request_uri}', request_uri=websocket_url_first_component)
+        else:
+            websocket_factory_map = None
+
+        transport_factory = UniSocketServerFactory(web_factory, websocket_factory_map, rawsocket_factory, mqtt_factory)
+
+    # Unknown transport type
+    #
+    else:
+        # should not arrive here, since we did check_transport() in the beginning
+        raise Exception("logic error")
+
+    # create transport endpoint / listening port from transport factory
+    #
+    d = create_listening_port_from_config(
+        config['endpoint'],
+        cbdir,
+        transport_factory,
+        reactor,
+        log,
+    )
+
+    def is_listening(port):
+        return RouterTransport(id, config, transport_factory, port)
+    d.addCallback(is_listening)
+    return d
+
+
+def _create_web_factory(reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node):
+    assert templates is not None
+
+    options = config.get('options', {})
+
+    # create Twisted Web root resource
+    if '/' in config['paths']:
+        root_config = config['paths']['/']
+        root = _create_resource(reactor, root_config, templates, log, cbdir, _router_session_factory, node, nested=False)
+    else:
+        root = Resource404(templates, b'')
+
+    # create Twisted Web resources on all non-root paths configured
+    _add_paths(reactor, root, config.get('paths', {}), templates, log, cbdir, _router_session_factory, node)
+
+    # create the actual transport factory
+    transport_factory = Site(
+        root,
+        timeout=options.get('client_timeout', None),
+    )
+    transport_factory.noisy = False
+
+    # we override this factory so that we can inject
+    # _LessNoisyHTTPChannel to avoid info-level logging on timing
+    # out web clients (which happens all the time).
+    def channel_protocol_factory():
+        return _GenericHTTPChannelProtocol(_LessNoisyHTTPChannel())
+    transport_factory.protocol = channel_protocol_factory
+
+    # Web access logging
+    if not options.get('access_log', False):
+        transport_factory.log = lambda _: None
+
+    # Traceback rendering
+    transport_factory.displayTracebacks = options.get('display_tracebacks', False)
+
+    # HSTS
+    if options.get('hsts', False):
+        if is_secure:
+            hsts_max_age = int(options.get('hsts_max_age', 31536000))
+            transport_factory.requestFactory = createHSTSRequestFactory(transport_factory.requestFactory, hsts_max_age)
+        else:
+            log.warn("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
+
+    return transport_factory
+
+
+def _add_paths(reactor, resource, paths, templates, log, cbdir, _router_session_factory, node):
+    """
+    Add all configured non-root paths under a resource.
+
+    :param resource: The parent resource under which to add paths.
+    :type resource: Resource
+    :param paths: The path configurations.
+    :type paths: dict
+    """
+    for path in sorted(paths):
+
+        if isinstance(path, six.text_type):
+            webPath = path.encode('utf8')
+        else:
+            webPath = path
+
+        if path != b"/":
+            resource.putChild(
+                webPath,
+                _create_resource(reactor, paths[path], templates, log, cbdir, _router_session_factory, node)
+            )
+
+
+def _create_resource(reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True):
+    """
+    Creates child resource to be added to the parent.
+
+    :param path_config: Configuration for the new child resource.
+    :type path_config: dict
+
+    :returns: Resource -- the new child resource
+    """
+    assert templates is not None
+
+    # WAMP-WebSocket resource
+    #
+    if path_config['type'] == 'websocket':
+
+        ws_factory = WampWebSocketServerFactory(_router_session_factory, cbdir, path_config, templates)
+
+        # FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
+        ws_factory.startFactory()
+
+        return WebSocketResource(ws_factory)
+
+    # Static file hierarchy resource
+    #
+    elif path_config['type'] == 'static':
+
+        static_options = path_config.get('options', {})
+
+        if 'directory' in path_config:
+
+            static_dir = os.path.abspath(os.path.join(cbdir, path_config['directory']))
+
+        elif 'package' in path_config:
+
+            if 'resource' not in path_config:
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "missing resource")
+
+            try:
+                mod = importlib.import_module(path_config['package'])
+            except ImportError as e:
+                emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
+                log.error(emsg)
+                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+            else:
+                try:
+                    static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
+                except Exception as e:
+                    emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
+                    log.error(emsg)
+                    raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+
+        else:
+
+            raise ApplicationError(u"crossbar.error.invalid_configuration", "missing web spec")
+
+        static_dir = static_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+
+        # create resource for file system hierarchy
+        #
+        if static_options.get('enable_directory_listing', False):
+            static_resource_class = StaticResource
+        else:
+            static_resource_class = StaticResourceNoListing
+
+        cache_timeout = static_options.get('cache_timeout', DEFAULT_CACHE_TIMEOUT)
+        allow_cross_origin = static_options.get('allow_cross_origin', True)
+
+        static_resource = static_resource_class(static_dir, cache_timeout=cache_timeout, allow_cross_origin=allow_cross_origin)
+
+        # set extra MIME types
+        #
+        static_resource.contentTypes.update(EXTRA_MIME_TYPES)
+        if 'mime_types' in static_options:
+            static_resource.contentTypes.update(static_options['mime_types'])
+        patchFileContentTypes(static_resource)
+
+        # render 404 page on any concrete path not found
+        #
+        static_resource.childNotFound = Resource404(templates, static_dir)
+
+        return static_resource
+
+    # WSGI resource
+    #
+    elif path_config['type'] == 'wsgi':
+
+        if not _HAS_WSGI:
+            raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI unsupported")
+
+        if 'module' not in path_config:
+            raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app module")
+
+        if 'object' not in path_config:
+            raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app object")
+
+        # import WSGI app module and object
+        mod_name = path_config['module']
+        try:
+            mod = importlib.import_module(mod_name)
+        except ImportError as e:
+            raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
+        else:
+            obj_name = path_config['object']
+            if obj_name not in mod.__dict__:
+                raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
+            else:
+                app = getattr(mod, obj_name)
+
+        # Create a threadpool for running the WSGI requests in
+        pool = ThreadPool(maxthreads=path_config.get("maxthreads", 20),
+                          minthreads=path_config.get("minthreads", 0),
+                          name="crossbar_wsgi_threadpool")
+        reactor.addSystemEventTrigger('before', 'shutdown', pool.stop)
+        pool.start()
+
+        # Create a Twisted Web WSGI resource from the user's WSGI application object
+        try:
+            wsgi_resource = WSGIResource(reactor, pool, app)
+
+            if not nested:
+                wsgi_resource = WSGIRootResource(wsgi_resource, {})
+        except Exception as e:
+            raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
+        else:
+            return wsgi_resource
+
+    # Redirecting resource
+    #
+    elif path_config['type'] == 'redirect':
+        redirect_url = path_config['url'].encode('ascii', 'ignore')
+        return RedirectResource(redirect_url)
+
+    # Node info resource
+    #
+    elif path_config['type'] == 'nodeinfo':
+        return NodeInfoResource(templates, node)
+
+    # Reverse proxy resource
+    #
+    elif path_config['type'] == 'reverseproxy':
+
+        # Import late because t.w.proxy imports the reactor
+        from twisted.web.proxy import ReverseProxyResource
+
+        host = path_config['host']
+        port = int(path_config.get('port', 80))
+        path = path_config.get('path', '').encode('ascii', 'ignore')
+        return ReverseProxyResource(host, port, path)
+
+    # JSON value resource
+    #
+    elif path_config['type'] == 'json':
+        value = path_config['value']
+
+        return JsonResource(value)
+
+    # CGI script resource
+    #
+    elif path_config['type'] == 'cgi':
+
+        cgi_processor = path_config['processor']
+        cgi_directory = os.path.abspath(os.path.join(cbdir, path_config['directory']))
+        cgi_directory = cgi_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+
+        return CgiDirectory(cgi_directory, cgi_processor, Resource404(templates, cgi_directory))
+
+    # WAMP-Longpoll transport resource
+    #
+    elif path_config['type'] == 'longpoll':
+
+        path_options = path_config.get('options', {})
+
+        lp_resource = WampLongPollResource(_router_session_factory,
+                                           timeout=path_options.get('request_timeout', 10),
+                                           killAfter=path_options.get('session_timeout', 30),
+                                           queueLimitBytes=path_options.get('queue_limit_bytes', 128 * 1024),
+                                           queueLimitMessages=path_options.get('queue_limit_messages', 100),
+                                           debug_transport_id=path_options.get('debug_transport_id', None)
+                                           )
+        lp_resource._templates = templates
+
+        return lp_resource
+
+    # Publisher resource (part of REST-bridge)
+    #
+    elif path_config['type'] == 'publisher':
+
+        # create a vanilla session: the publisher will use this to inject events
+        #
+        publisher_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+        publisher_session = ApplicationSession(publisher_session_config)
+
+        # add the publisher session to the router
+        #
+        _router_session_factory.add(publisher_session, authrole=path_config.get('role', 'anonymous'))
+
+        # now create the publisher Twisted Web resource
+        #
+        return PublisherResource(path_config.get('options', {}), publisher_session)
+
+    # Webhook resource (part of REST-bridge)
+    #
+    elif path_config['type'] == 'webhook':
+
+        # create a vanilla session: the webhook will use this to inject events
+        #
+        webhook_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+        webhook_session = ApplicationSession(webhook_session_config)
+
+        # add the webhook session to the router
+        #
+        _router_session_factory.add(webhook_session, authrole=path_config.get('role', 'anonymous'))
+
+        # now create the webhook Twisted Web resource
+        #
+        return WebhookResource(path_config.get('options', {}), webhook_session)
+
+    # Caller resource (part of REST-bridge)
+    #
+    elif path_config['type'] == 'caller':
+
+        # create a vanilla session: the caller will use this to inject calls
+        #
+        caller_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+        caller_session = ApplicationSession(caller_session_config)
+
+        # add the calling session to the router
+        #
+        _router_session_factory.add(caller_session, authrole=path_config.get('role', 'anonymous'))
+
+        # now create the caller Twisted Web resource
+        #
+        return CallerResource(path_config.get('options', {}), caller_session)
+
+    # File Upload resource
+    #
+    elif path_config['type'] == 'upload':
+
+        upload_directory = os.path.abspath(os.path.join(cbdir, path_config['directory']))
+        upload_directory = upload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+        if not os.path.isdir(upload_directory):
+            emsg = "configured upload directory '{}' in file upload resource isn't a directory".format(upload_directory)
+            log.error(emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+
+        if 'temp_directory' in path_config:
+            temp_directory = os.path.abspath(os.path.join(cbdir, path_config['temp_directory']))
+            temp_directory = temp_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
+        else:
+            temp_directory = os.path.abspath(tempfile.gettempdir())
+            temp_directory = os.path.join(temp_directory, 'crossbar-uploads')
+            if not os.path.exists(temp_directory):
+                os.makedirs(temp_directory)
+
+        if not os.path.isdir(temp_directory):
+            emsg = "configured temp directory '{}' in file upload resource isn't a directory".format(temp_directory)
+            log.error(emsg)
+            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
+
+        # file upload progress and finish events are published via this session
+        #
+        upload_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
+        upload_session = ApplicationSession(upload_session_config)
+
+        _router_session_factory.add(upload_session, authrole=path_config.get('role', 'anonymous'))
+
+        log.info("File upload resource started. Uploads to {upl} using temp folder {tmp}.", upl=upload_directory, tmp=temp_directory)
+
+        return FileUploadResource(upload_directory, temp_directory, path_config['form_fields'], upload_session, path_config.get('options', {}))
+
+    # Generic Twisted Web resource
+    #
+    elif path_config['type'] == 'resource':
+
+        try:
+            klassname = path_config['classname']
+
+            log.debug("Starting class '{name}'", name=klassname)
+
+            c = klassname.split('.')
+            module_name, klass_name = '.'.join(c[:-1]), c[-1]
+            module = importlib.import_module(module_name)
+            make = getattr(module, klass_name)
+
+            return make(path_config.get('extra', {}))
+
+        except Exception as e:
+            emsg = "Failed to import class '{}' - {}".format(klassname, e)
+            log.error(emsg)
+            log.error("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
+            raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
+
+    # Schema Docs resource
+    #
+    elif path_config['type'] == 'schemadoc':
+
+        realm = path_config['realm']
+
+        if realm not in node.realm_to_id:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with URI '{}' configured".format(realm))
+
+        realm_id = node.realm_to_id[realm]
+
+        realm_schemas = node.realms[realm_id].session._schemas
+
+        return SchemaDocResource(templates, realm, realm_schemas)
+
+    # Nested subpath resource
+    #
+    elif path_config['type'] == 'path':
+
+        nested_paths = path_config.get('paths', {})
+
+        if '/' in nested_paths:
+            nested_resource = _create_resource(reactor, nested_paths['/'], templates, cbdir)
+        else:
+            nested_resource = Resource404(templates, b'')
+
+        # nest subpaths under the current entry
+        #
+        _add_paths(reactor, nested_resource, nested_paths, templates, log, cbdir, _router_session_factory, node)
+
+        return nested_resource
+
+    else:
+        raise ApplicationError(u"crossbar.error.invalid_configuration",
+                               "invalid Web path type '{}' in {} config".format(path_config['type'],
+                                                                                'nested' if nested else 'root'))
+
+
 class RouterWorkerSession(NativeWorkerSession):
     """
     A native Crossbar.io worker that runs a WAMP router which can manage
@@ -806,118 +1365,14 @@ class RouterWorkerSession(NativeWorkerSession):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.already_running', emsg)
 
-        # check configuration
-        #
-        try:
-            checkconfig.check_router_transport(config)
-        except Exception as e:
-            emsg = "Invalid router transport configuration: {}".format(e)
-            self.log.error(emsg)
-            raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-        else:
-            self.log.debug("Starting {ttype}-transport on router.", ttype=config['type'])
+        d = create_transport_from_config(
+            self._reactor, id, config, self.config.extra.cbdir, self.log, self,
+            _router_session_factory=self._router_session_factory,
+            _web_templates=self._templates,
+        )
 
-        # standalone WAMP-RawSocket transport
-        #
-        if config['type'] == 'rawsocket':
-
-            transport_factory = WampRawSocketServerFactory(self._router_session_factory, config)
-            transport_factory.noisy = False
-
-        # standalone WAMP-WebSocket transport
-        #
-        elif config['type'] == 'websocket':
-
-            transport_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, config, self._templates)
-            transport_factory.noisy = False
-
-        # Flash-policy file server pseudo transport
-        #
-        elif config['type'] == 'flashpolicy':
-
-            transport_factory = FlashPolicyFactory(config.get('allowed_domain', None), config.get('allowed_ports', None))
-
-        # WebSocket testee pseudo transport
-        #
-        elif config['type'] == 'websocket.testee':
-
-            transport_factory = WebSocketTesteeServerFactory(config, self._templates)
-
-        # Stream testee pseudo transport
-        #
-        elif config['type'] == 'stream.testee':
-
-            transport_factory = StreamTesteeServerFactory()
-
-        # MQTT legacy adapter transport
-        #
-        elif config['type'] == 'mqtt':
-
-            transport_factory = WampMQTTServerFactory(
-                self._router_session_factory, config, self._reactor)
-            transport_factory.noisy = False
-
-        # Twisted Web based transport
-        #
-        elif config['type'] == 'web':
-
-            transport_factory = self._create_web_factory(
-                config,
-                is_secure=u'tls' in config[u'endpoint'],
-            )
-
-        # Universal transport
-        #
-        elif config['type'] == 'universal':
-            if 'web' in config:
-                web_factory = self._create_web_factory(
-                    config['web'],
-                    is_secure=(u'tls' in config['endpoint']),
-                )
-            else:
-                web_factory = None
-
-            if 'rawsocket' in config:
-                rawsocket_factory = WampRawSocketServerFactory(self._router_session_factory, config['rawsocket'])
-                rawsocket_factory.noisy = False
-            else:
-                rawsocket_factory = None
-
-            if 'mqtt' in config:
-                mqtt_factory = WampMQTTServerFactory(
-                    self._router_session_factory, config['mqtt'], self._reactor)
-                mqtt_factory.noisy = False
-            else:
-                mqtt_factory = None
-
-            if 'websocket' in config:
-                websocket_factory_map = {}
-                for websocket_url_first_component, websocket_config in config['websocket'].items():
-                    websocket_transport_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, websocket_config, self._templates)
-                    websocket_transport_factory.noisy = False
-                    websocket_factory_map[websocket_url_first_component] = websocket_transport_factory
-                    self.log.debug('hooked up websocket factory on request URI {request_uri}', request_uri=websocket_url_first_component)
-            else:
-                websocket_factory_map = None
-
-            transport_factory = UniSocketServerFactory(web_factory, websocket_factory_map, rawsocket_factory, mqtt_factory)
-
-        # Unknown transport type
-        #
-        else:
-            # should not arrive here, since we did check_transport() in the beginning
-            raise Exception("logic error")
-
-        # create transport endpoint / listening port from transport factory
-        #
-        d = create_listening_port_from_config(config['endpoint'],
-                                              self.config.extra.cbdir,
-                                              transport_factory,
-                                              self._reactor,
-                                              self.log)
-
-        def ok(port):
-            self.transports[id] = RouterTransport(id, config, transport_factory, port)
+        def ok(router_transport):
+            self.transports[id] = router_transport
             self.log.debug("Router transport '{id}'' started and listening", id=id)
             return
 
@@ -928,397 +1383,6 @@ class RouterWorkerSession(NativeWorkerSession):
 
         d.addCallbacks(ok, fail)
         return d
-
-    def _create_web_factory(self, config, is_secure):
-
-        options = config.get('options', {})
-
-        # create Twisted Web root resource
-        if '/' in config['paths']:
-            root_config = config['paths']['/']
-            root = self._create_resource(root_config, nested=False)
-        else:
-            root = Resource404(self._templates, b'')
-
-        # create Twisted Web resources on all non-root paths configured
-        self._add_paths(root, config.get('paths', {}))
-
-        # create the actual transport factory
-        transport_factory = Site(
-            root,
-            timeout=options.get('client_timeout', None),
-        )
-        transport_factory.noisy = False
-
-        # we override this factory so that we can inject
-        # _LessNoisyHTTPChannel to avoid info-level logging on timing
-        # out web clients (which happens all the time).
-        def channel_protocol_factory():
-            return _GenericHTTPChannelProtocol(_LessNoisyHTTPChannel())
-        transport_factory.protocol = channel_protocol_factory
-
-        # Web access logging
-        if not options.get('access_log', False):
-            transport_factory.log = lambda _: None
-
-        # Traceback rendering
-        transport_factory.displayTracebacks = options.get('display_tracebacks', False)
-
-        # HSTS
-        if options.get('hsts', False):
-            if is_secure:
-                hsts_max_age = int(options.get('hsts_max_age', 31536000))
-                transport_factory.requestFactory = createHSTSRequestFactory(transport_factory.requestFactory, hsts_max_age)
-            else:
-                self.log.warn("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
-
-        return transport_factory
-
-    def _add_paths(self, resource, paths):
-        """
-        Add all configured non-root paths under a resource.
-
-        :param resource: The parent resource under which to add paths.
-        :type resource: Resource
-        :param paths: The path configurations.
-        :type paths: dict
-        """
-        for path in sorted(paths):
-
-            if isinstance(path, six.text_type):
-                webPath = path.encode('utf8')
-            else:
-                webPath = path
-
-            if path != b"/":
-                resource.putChild(webPath, self._create_resource(paths[path]))
-
-    def _create_resource(self, path_config, nested=True):
-        """
-        Creates child resource to be added to the parent.
-
-        :param path_config: Configuration for the new child resource.
-        :type path_config: dict
-
-        :returns: Resource -- the new child resource
-        """
-        # WAMP-WebSocket resource
-        #
-        if path_config['type'] == 'websocket':
-
-            ws_factory = WampWebSocketServerFactory(self._router_session_factory, self.config.extra.cbdir, path_config, self._templates)
-
-            # FIXME: Site.start/stopFactory should start/stop factories wrapped as Resources
-            ws_factory.startFactory()
-
-            return WebSocketResource(ws_factory)
-
-        # Static file hierarchy resource
-        #
-        elif path_config['type'] == 'static':
-
-            static_options = path_config.get('options', {})
-
-            if 'directory' in path_config:
-
-                static_dir = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
-
-            elif 'package' in path_config:
-
-                if 'resource' not in path_config:
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", "missing resource")
-
-                try:
-                    mod = importlib.import_module(path_config['package'])
-                except ImportError as e:
-                    emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
-                    self.log.error(emsg)
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-                else:
-                    try:
-                        static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
-                    except Exception as e:
-                        emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
-                        self.log.error(emsg)
-                        raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-
-            else:
-
-                raise ApplicationError(u"crossbar.error.invalid_configuration", "missing web spec")
-
-            static_dir = static_dir.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-
-            # create resource for file system hierarchy
-            #
-            if static_options.get('enable_directory_listing', False):
-                static_resource_class = StaticResource
-            else:
-                static_resource_class = StaticResourceNoListing
-
-            cache_timeout = static_options.get('cache_timeout', DEFAULT_CACHE_TIMEOUT)
-            allow_cross_origin = static_options.get('allow_cross_origin', True)
-
-            static_resource = static_resource_class(static_dir, cache_timeout=cache_timeout, allow_cross_origin=allow_cross_origin)
-
-            # set extra MIME types
-            #
-            static_resource.contentTypes.update(EXTRA_MIME_TYPES)
-            if 'mime_types' in static_options:
-                static_resource.contentTypes.update(static_options['mime_types'])
-            patchFileContentTypes(static_resource)
-
-            # render 404 page on any concrete path not found
-            #
-            static_resource.childNotFound = Resource404(self._templates, static_dir)
-
-            return static_resource
-
-        # WSGI resource
-        #
-        elif path_config['type'] == 'wsgi':
-
-            if not _HAS_WSGI:
-                raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI unsupported")
-
-            if 'module' not in path_config:
-                raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app module")
-
-            if 'object' not in path_config:
-                raise ApplicationError(u"crossbar.error.invalid_configuration", "missing WSGI app object")
-
-            # import WSGI app module and object
-            mod_name = path_config['module']
-            try:
-                mod = importlib.import_module(mod_name)
-            except ImportError as e:
-                raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app module '{}' import failed: {} - Python search path was {}".format(mod_name, e, sys.path))
-            else:
-                obj_name = path_config['object']
-                if obj_name not in mod.__dict__:
-                    raise ApplicationError(u"crossbar.error.invalid_configuration", "WSGI app object '{}' not in module '{}'".format(obj_name, mod_name))
-                else:
-                    app = getattr(mod, obj_name)
-
-            # Create a threadpool for running the WSGI requests in
-            pool = ThreadPool(maxthreads=path_config.get("maxthreads", 20),
-                              minthreads=path_config.get("minthreads", 0),
-                              name="crossbar_wsgi_threadpool")
-            self._reactor.addSystemEventTrigger('before', 'shutdown', pool.stop)
-            pool.start()
-
-            # Create a Twisted Web WSGI resource from the user's WSGI application object
-            try:
-                wsgi_resource = WSGIResource(self._reactor, pool, app)
-
-                if not nested:
-                    wsgi_resource = WSGIRootResource(wsgi_resource, {})
-            except Exception as e:
-                raise ApplicationError(u"crossbar.error.invalid_configuration", "could not instantiate WSGI resource: {}".format(e))
-            else:
-                return wsgi_resource
-
-        # Redirecting resource
-        #
-        elif path_config['type'] == 'redirect':
-            redirect_url = path_config['url'].encode('ascii', 'ignore')
-            return RedirectResource(redirect_url)
-
-        # Node info resource
-        #
-        elif path_config['type'] == 'nodeinfo':
-            return NodeInfoResource(self._templates, self)
-
-        # Reverse proxy resource
-        #
-        elif path_config['type'] == 'reverseproxy':
-
-            # Import late because t.w.proxy imports the reactor
-            from twisted.web.proxy import ReverseProxyResource
-
-            host = path_config['host']
-            port = int(path_config.get('port', 80))
-            path = path_config.get('path', '').encode('ascii', 'ignore')
-            return ReverseProxyResource(host, port, path)
-
-        # JSON value resource
-        #
-        elif path_config['type'] == 'json':
-            value = path_config['value']
-
-            return JsonResource(value)
-
-        # CGI script resource
-        #
-        elif path_config['type'] == 'cgi':
-
-            cgi_processor = path_config['processor']
-            cgi_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
-            cgi_directory = cgi_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-
-            return CgiDirectory(cgi_directory, cgi_processor, Resource404(self._templates, cgi_directory))
-
-        # WAMP-Longpoll transport resource
-        #
-        elif path_config['type'] == 'longpoll':
-
-            path_options = path_config.get('options', {})
-
-            lp_resource = WampLongPollResource(self._router_session_factory,
-                                               timeout=path_options.get('request_timeout', 10),
-                                               killAfter=path_options.get('session_timeout', 30),
-                                               queueLimitBytes=path_options.get('queue_limit_bytes', 128 * 1024),
-                                               queueLimitMessages=path_options.get('queue_limit_messages', 100),
-                                               debug_transport_id=path_options.get('debug_transport_id', None)
-                                               )
-            lp_resource._templates = self._templates
-
-            return lp_resource
-
-        # Publisher resource (part of REST-bridge)
-        #
-        elif path_config['type'] == 'publisher':
-
-            # create a vanilla session: the publisher will use this to inject events
-            #
-            publisher_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
-            publisher_session = ApplicationSession(publisher_session_config)
-
-            # add the publisher session to the router
-            #
-            self._router_session_factory.add(publisher_session, authrole=path_config.get('role', 'anonymous'))
-
-            # now create the publisher Twisted Web resource
-            #
-            return PublisherResource(path_config.get('options', {}), publisher_session)
-
-        # Webhook resource (part of REST-bridge)
-        #
-        elif path_config['type'] == 'webhook':
-
-            # create a vanilla session: the webhook will use this to inject events
-            #
-            webhook_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
-            webhook_session = ApplicationSession(webhook_session_config)
-
-            # add the webhook session to the router
-            #
-            self._router_session_factory.add(webhook_session, authrole=path_config.get('role', 'anonymous'))
-
-            # now create the webhook Twisted Web resource
-            #
-            return WebhookResource(path_config.get('options', {}), webhook_session)
-
-        # Caller resource (part of REST-bridge)
-        #
-        elif path_config['type'] == 'caller':
-
-            # create a vanilla session: the caller will use this to inject calls
-            #
-            caller_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
-            caller_session = ApplicationSession(caller_session_config)
-
-            # add the calling session to the router
-            #
-            self._router_session_factory.add(caller_session, authrole=path_config.get('role', 'anonymous'))
-
-            # now create the caller Twisted Web resource
-            #
-            return CallerResource(path_config.get('options', {}), caller_session)
-
-        # File Upload resource
-        #
-        elif path_config['type'] == 'upload':
-
-            upload_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['directory']))
-            upload_directory = upload_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-            if not os.path.isdir(upload_directory):
-                emsg = "configured upload directory '{}' in file upload resource isn't a directory".format(upload_directory)
-                self.log.error(emsg)
-                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-
-            if 'temp_directory' in path_config:
-                temp_directory = os.path.abspath(os.path.join(self.config.extra.cbdir, path_config['temp_directory']))
-                temp_directory = temp_directory.encode('ascii', 'ignore')  # http://stackoverflow.com/a/20433918/884770
-            else:
-                temp_directory = os.path.abspath(tempfile.gettempdir())
-                temp_directory = os.path.join(temp_directory, 'crossbar-uploads')
-                if not os.path.exists(temp_directory):
-                    os.makedirs(temp_directory)
-
-            if not os.path.isdir(temp_directory):
-                emsg = "configured temp directory '{}' in file upload resource isn't a directory".format(temp_directory)
-                self.log.error(emsg)
-                raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
-
-            # file upload progress and finish events are published via this session
-            #
-            upload_session_config = ComponentConfig(realm=path_config['realm'], extra=None)
-            upload_session = ApplicationSession(upload_session_config)
-
-            self._router_session_factory.add(upload_session, authrole=path_config.get('role', 'anonymous'))
-
-            self.log.info("File upload resource started. Uploads to {upl} using temp folder {tmp}.", upl=upload_directory, tmp=temp_directory)
-
-            return FileUploadResource(upload_directory, temp_directory, path_config['form_fields'], upload_session, path_config.get('options', {}))
-
-        # Generic Twisted Web resource
-        #
-        elif path_config['type'] == 'resource':
-
-            try:
-                klassname = path_config['classname']
-
-                self.log.debug("Starting class '{name}'", name=klassname)
-
-                c = klassname.split('.')
-                module_name, klass_name = '.'.join(c[:-1]), c[-1]
-                module = importlib.import_module(module_name)
-                make = getattr(module, klass_name)
-
-                return make(path_config.get('extra', {}))
-
-            except Exception as e:
-                emsg = "Failed to import class '{}' - {}".format(klassname, e)
-                self.log.error(emsg)
-                self.log.error("PYTHONPATH: {pythonpath}", pythonpath=sys.path)
-                raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
-
-        # Schema Docs resource
-        #
-        elif path_config['type'] == 'schemadoc':
-
-            realm = path_config['realm']
-
-            if realm not in self.realm_to_id:
-                raise ApplicationError(u"crossbar.error.no_such_object", "No realm with URI '{}' configured".format(realm))
-
-            realm_id = self.realm_to_id[realm]
-
-            realm_schemas = self.realms[realm_id].session._schemas
-
-            return SchemaDocResource(self._templates, realm, realm_schemas)
-
-        # Nested subpath resource
-        #
-        elif path_config['type'] == 'path':
-
-            nested_paths = path_config.get('paths', {})
-
-            if '/' in nested_paths:
-                nested_resource = self._create_resource(nested_paths['/'])
-            else:
-                nested_resource = Resource404(self._templates, b'')
-
-            # nest subpaths under the current entry
-            #
-            self._add_paths(nested_resource, nested_paths)
-
-            return nested_resource
-
-        else:
-            raise ApplicationError(u"crossbar.error.invalid_configuration",
-                                   "invalid Web path type '{}' in {} config".format(path_config['type'],
-                                                                                    'nested' if nested else 'root'))
 
     def stop_router_transport(self, id, details=None):
         """
