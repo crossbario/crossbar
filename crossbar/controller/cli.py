@@ -1061,12 +1061,23 @@ def run(prog=None, args=None, reactor=None):
                 options.cbdir = '.crossbar'
             else:
                 options.cbdir = '.'
+
         options.cbdir = os.path.abspath(options.cbdir)
 
         # convenience: if --cbdir points to a config file, take
         # the config file's base dirname as node directory
         if os.path.isfile(options.cbdir):
             options.cbdir = os.path.dirname(options.cbdir)
+
+        # convenience: auto-create directory if not existing
+        if not os.path.isdir(options.cbdir):
+            try:
+                os.mkdir(options.cbdir)
+            except Exception as e:
+                print("Could not create node directory: {e}".format(e))
+                sys.exit(1)
+            else:
+                print("Auto-created node directory {}".format(options.cbdir))
 
     # Crossbar.io node configuration file
     #
@@ -1090,6 +1101,8 @@ def run(prog=None, args=None, reactor=None):
                 except Exception as e:
                     print("Could not create log directory: {e}".format(e))
                     sys.exit(1)
+                else:
+                    print("Auto-created log directory {}".format(options.logdir))
 
     if not reactor:
         # try and get the log verboseness we want -- not all commands have a
