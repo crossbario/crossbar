@@ -144,6 +144,7 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
     A native Crossbar.io worker that runs a WebSocket testee.
     """
     WORKER_TYPE = 'websocket-testee'
+    WORKER_TITLE = u'WebSocket Testee'
 
     @inlineCallbacks
     def onJoin(self, details):

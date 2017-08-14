@@ -50,6 +50,7 @@ from twisted.python.runtime import platform
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
+from autobahn import wamp
 
 import crossbar
 from crossbar.common import checkconfig
@@ -85,25 +86,6 @@ class NodeControllerSession(NativeProcessSession):
 
     log = make_logger()
 
-    PROCS = [
-        'get_info',
-        'shutdown',
-        'get_workers',
-        'get_worker',
-        'get_worker_log',
-
-        'start_worker',
-        # 'stop_worker',
-
-        'start_router',
-        'stop_router',
-        'start_container',
-        'stop_container',
-        'start_guest',
-        'stop_guest',
-        'start_websocket_testee',
-        'stop_websocket_testee',
-    ]
 
     NATIVE_WORKER = {
         'router': {
@@ -196,18 +178,7 @@ class NodeControllerSession(NativeProcessSession):
         self.subscribe(on_worker_ready, u'crossbar.worker..on_worker_ready', SubscribeOptions(match=u'wildcard'))
 
         yield NativeProcessSession.onJoin(self, details)
-
-        # register node controller procedures: 'crossbar.node.<ID>.<PROCEDURE>'
-        #
-        dl = []
-        for proc in self.PROCS:
-            uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug('Registering local management procedure "{proc}"', proc=uri)
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
-
-        regs = yield DeferredList(dl)
-
-        self.log.debug("Registered {cnt} local management procedures", cnt=len(regs))
+        # above upcall registers procedures we have marked with @wamp.register(None)
 
         # we need to catch SIGINT here to properly shutdown the
         # node explicitly (a Twisted system trigger wouldn't allow us to distinguish
@@ -223,6 +194,7 @@ class NodeControllerSession(NativeProcessSession):
 
         self.log.debug("Node controller ready")
 
+    @wamp.register(None)
     def get_info(self, details=None):
         """
         Return basic information about this node.
@@ -249,6 +221,7 @@ class NodeControllerSession(NativeProcessSession):
             u'management_node_extra': self._node._node_extra,
         }
 
+    @wamp.register(None)
     @inlineCallbacks
     def shutdown(self, restart=False, mode=None, details=None):
         """
@@ -286,6 +259,7 @@ class NodeControllerSession(NativeProcessSession):
 
         returnValue(shutdown_info)
 
+    @wamp.register(None)
     def get_workers(self, details=None):
         """
         Returns the list of workers currently running on this node.
@@ -310,6 +284,7 @@ class NodeControllerSession(NativeProcessSession):
             )
         return res
 
+    @wamp.register(None)
     def get_worker(self, id, details=None):
         if id not in self._workers:
             emsg = "No worker with ID '{}'".format(id)
@@ -331,6 +306,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return worker_info
 
+    @wamp.register(None)
     def get_worker_log(self, id, limit=100, details=None):
         """
         Get buffered log for a worker.
@@ -348,6 +324,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._workers[id].getlog(limit)
 
+    @wamp.register(None)
     def start_worker(self, worker_id, worker_type, worker_options=None, details=None):
         if worker_type in [u'router', u'container', u'websocket-testee']:
             return self._start_native_worker(worker_type, worker_id, worker_options, details=details)
@@ -358,6 +335,7 @@ class NodeControllerSession(NativeProcessSession):
         else:
             raise Exception('invalid worker type "{}"'.format(worker_type))
 
+    @wamp.register(None)
     def start_router(self, id, options=None, details=None):
         """
         Start a new router worker: a Crossbar.io native worker process
@@ -373,6 +351,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._start_native_worker('router', id, options, details=details)
 
+    @wamp.register(None)
     def start_container(self, id, options=None, details=None):
         """
         Start a new container worker: a Crossbar.io native worker process
@@ -388,6 +367,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._start_native_worker('container', id, options, details=details)
 
+    @wamp.register(None)
     def start_websocket_testee(self, id, options=None, details=None):
         """
         Start a new websocket-testee worker: a Crossbar.io native worker process
@@ -734,6 +714,7 @@ class NodeControllerSession(NativeProcessSession):
         except ProcessExitedAlready:
             pass  # ignore; it's already dead
 
+    @wamp.register(None)
     def stop_router(self, id, kill=False, details=None):
         """
         Stops a currently running router worker.
@@ -752,6 +733,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._stop_native_worker('router', id, kill, details=details)
 
+    @wamp.register(None)
     def stop_container(self, id, kill=False, details=None):
         """
         Stops a currently running container worker.
@@ -770,6 +752,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._stop_native_worker('container', id, kill, details=details)
 
+    @wamp.register(None)
     def stop_websocket_testee(self, id, kill=False, details=None):
         """
         Stops a currently running websocket-testee worker.
@@ -831,6 +814,7 @@ class NodeControllerSession(NativeProcessSession):
 
         returnValue(stop_info)
 
+    @wamp.register(None)
     def start_guest(self, id, config, details=None):
         """
         Start a new guest process on this node.
@@ -1070,6 +1054,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return worker.ready
 
+    @wamp.register(None)
     def stop_guest(self, id, kill=False, details=None):
         """
         Stops a currently running guest worker.

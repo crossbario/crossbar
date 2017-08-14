@@ -846,6 +846,7 @@ class RouterWorkerSession(NativeWorkerSession):
     multiple (embedded) application components.
     """
     WORKER_TYPE = u'router'
+    WORKER_TITLE = u'Router'
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
@@ -882,42 +883,6 @@ class RouterWorkerSession(NativeWorkerSession):
 
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
-<<<<<<< 0eb1782c0a07fbbcbf369b3fa91c37952bd2c203
-        # the procedures registered
-        self.PROCS.extend([
-            u'get_router_realms',
-            u'start_router_realm',
-            u'stop_router_realm',
-
-            u'get_router_realm_roles',
-            u'start_router_realm_role',
-            u'stop_router_realm_role',
-
-            u'get_router_realm_uplinks',
-            u'start_router_realm_uplink',
-            u'stop_router_realm_uplink',
-
-            u'get_router_components',
-            u'start_router_component',
-            u'stop_router_component',
-
-            u'get_router_transports',
-            u'start_router_transport',
-            u'stop_router_transport',
-        ])
-
-        dl = []
-        for proc in self.PROCS:
-            uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug('Registering local management procedure <{proc}>', proc=uri)
-            dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
-
-        regs = yield DeferredList(dl)
-
-        self.log.info('Ok, registered {cnt} local management procedures', cnt=len(regs))
-
-=======
->>>>>>> Re-factor to use @wamp.register decorator
         self.log.info('Router worker "{worker_id}" session ready', worker_id=self._worker_id)
 
         # NativeWorkerSession.publish_ready()
