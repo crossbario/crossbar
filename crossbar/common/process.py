@@ -235,8 +235,6 @@ class NativeProcessSession(ApplicationSession):
                 self.log.info('  {proc}', proc=reg.procedure)
         returnValue(regs)
 
-
-
     @inlineCallbacks
     def start_connection(self, id, config, details=None):
         """

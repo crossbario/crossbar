@@ -34,14 +34,13 @@ from functools import partial
 from datetime import datetime
 
 from twisted import internet
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.defer import returnValue
 from twisted.python.failure import Failure
 
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
-from autobahn.wamp.types import RegisterOptions
 from autobahn import wamp
 
 from crossbar.common import checkconfig

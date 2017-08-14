@@ -68,7 +68,7 @@ from crossbar.worker.testee import WebSocketTesteeServerFactory, \
 
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
-from autobahn.wamp.types import RegisterOptions, PublishOptions
+from autobahn.wamp.types import PublishOptions
 
 try:
     from twisted.web.wsgi import WSGIResource
