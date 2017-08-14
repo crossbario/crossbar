@@ -37,12 +37,11 @@ import jinja2
 import signal
 
 from twisted.internet.error import ReactorNotRunning
-from twisted.internet.defer import DeferredList, inlineCallbacks
-from twisted.python.failure import Failure
+from twisted.internet.defer import inlineCallbacks
 
 from autobahn.util import utcnow
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, RegisterOptions
+from autobahn.wamp.types import PublishOptions
 from autobahn import wamp
 
 from txaio import make_logger

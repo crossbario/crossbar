@@ -30,12 +30,11 @@
 
 from __future__ import absolute_import
 
-from twisted.internet.defer import inlineCallbacks, DeferredList
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet import protocol
 
 from autobahn.twisted.websocket import WebSocketServerFactory, \
     WebSocketServerProtocol
-from autobahn.wamp.types import RegisterOptions
 from autobahn.wamp.exception import ApplicationError
 from autobahn import wamp
 

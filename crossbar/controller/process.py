@@ -43,13 +43,13 @@ except ImportError:
     from shutilwhich import which  # noqa
 
 from twisted.internet.error import ReactorNotRunning
-from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, returnValue
+from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import ProcessExitedAlready
 from twisted.python.runtime import platform
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp.types import PublishOptions, RegisterOptions
+from autobahn.wamp.types import PublishOptions
 from autobahn import wamp
 
 import crossbar
@@ -85,7 +85,6 @@ class NodeControllerSession(NativeProcessSession):
     """
 
     log = make_logger()
-
 
     NATIVE_WORKER = {
         'router': {
