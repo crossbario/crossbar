@@ -139,12 +139,12 @@ class ContainerWorkerSession(NativeWorkerSession):
         dl = []
         for proc in self.PROCS:
             uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.info('Registering management API procedure <{proc}>', proc=uri)
+            self.log.debug('Registering local management procedure <{proc}>', proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        self.log.info('Ok, registered {cnt} management API procedures', cnt=len(regs))
+        self.log.info('Ok, registered {cnt} local management procedures', cnt=len(regs))
 
         self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
 

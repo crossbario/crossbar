@@ -122,12 +122,12 @@ class NativeWorkerSession(NativeProcessSession):
         dl = []
         for proc in procs:
             uri = u'{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
+            self.log.debug("Registering management procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+        self.log.debug("Registered {cnt} local management procedures", cnt=len(regs))
 
         # setup SIGTERM handler to orderly shutdown the worker
         def shutdown(sig, frame):

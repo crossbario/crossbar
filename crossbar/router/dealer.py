@@ -869,7 +869,7 @@ class Dealer(object):
             invocation_request = self._invocations[error.request]
 
             # correlate the received invocation error to the original call
-            yield_.correlation = invocation_request.call.correlation
+            error.correlation = invocation_request.call.correlation
 
             # if concurrency is enabled on this, an error counts as
             # "an answer" so we decrement.

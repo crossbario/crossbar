@@ -161,12 +161,12 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
         dl = []
         for proc in procs:
             uri = '{}.{}'.format(self._uri_prefix, proc)
-            self.log.debug("Registering management API procedure {proc}", proc=uri)
+            self.log.debug("Registering local management procedure {proc}", proc=uri)
             dl.append(self.register(getattr(self, proc), uri, options=RegisterOptions(details_arg='details')))
 
         regs = yield DeferredList(dl)
 
-        self.log.debug("Registered {cnt} management API procedures", cnt=len(regs))
+        self.log.debug("Registered {cnt} local management procedures", cnt=len(regs))
 
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
