@@ -1,7 +1,7 @@
 argh==0.26.2
 asn1crypto==0.22.0
 attrs==17.2.0
-autobahn==17.7.1
+autobahn==17.8.1
 Automat==0.6.0
 bitstring==3.1.5
 cbor==1.0.0
@@ -37,7 +37,7 @@ pyOpenSSL==17.2.0
 PyQRCode==1.2.1
 PyTrie==0.3
 PyYAML==3.12
-requests==2.18.3
+requests==2.18.4
 sdnotify==0.3.2
 service-identity==17.0.0
 setproctitle==1.1.10

@@ -90,6 +90,7 @@ class Broker(object):
 
         :param router: The router this dealer is part of.
         :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
+
         :param options: Router options.
         :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
         """
@@ -265,6 +266,7 @@ class Broker(object):
         if not uri_is_valid:
             if publish.acknowledge:
                 reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with invalid topic URI '{0}' (URI strict checking {1})".format(publish.topic, self._option_uri_strict)])
+                reply.correlation = publish.correlation
                 self._router.send(session, reply)
             return
 
@@ -276,6 +278,7 @@ class Broker(object):
             if is_restricted:
                 if publish.acknowledge:
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with restricted topic URI '{0}'".format(publish.topic)])
+                    reply.correlation = publish.correlation
                     self._router.send(session, reply)
                 return
 
@@ -318,6 +321,7 @@ class Broker(object):
                 except Exception as e:
                     if publish.acknowledge:
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [u"publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
+                        reply.correlation = publish.correlation
                         self._router.send(session, reply)
                     return
 
@@ -334,6 +338,7 @@ class Broker(object):
 
                     if publish.acknowledge:
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, [u"session not authorized to publish to topic '{0}'".format(publish.topic)])
+                        reply.correlation = publish.correlation
                         self._router.send(session, reply)
 
                 else:
@@ -346,6 +351,7 @@ class Broker(object):
                     #
                     if publish.acknowledge:
                         reply = message.Published(publish.request, publication)
+                        reply.correlation = publish.correlation
                         self._router.send(session, reply)
 
                     # publisher disclosure
@@ -462,6 +468,10 @@ class Broker(object):
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic)
 
+                            # if the publish message had a correlation ID, this will also be the
+                            # correlation ID of the event message sent out
+                            msg.correlation = publish.correlation
+
                             chunk_size = self._options.event_dispatching_chunk_size
 
                             if chunk_size:
@@ -516,6 +526,7 @@ class Broker(object):
                         ApplicationError.AUTHORIZATION_FAILED,
                         [u"failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)]
                     )
+                    reply.correlation = publish.correlation
                     self._router.send(session, reply)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -546,6 +557,7 @@ class Broker(object):
 
         if not uri_is_valid:
             reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, [u"subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
+            reply.correlation = subscribe.correlation
             self._router.send(session, reply)
             return
 
@@ -558,6 +570,7 @@ class Broker(object):
                 # error reply since session is not authorized to subscribe
                 #
                 replies = [message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])]
+                replies[0].correlation = subscribe.correlation
 
             else:
                 # ok, session authorized to subscribe. now get the subscription
@@ -641,12 +654,15 @@ class Broker(object):
                                                         publisher_authrole=retained_event.publisher_authrole,
                                                         retained=True)
 
+                                msg.correlation = subscribe.correlation
+
                                 return [msg]
                     return []
 
                 # acknowledge subscribe with subscription ID
                 #
                 replies = [message.Subscribed(subscribe.request, subscription.id)]
+                replies[0].correlation = subscribe.correlation
                 if subscribe.get_retained:
                     replies.extend(_get_retained_event())
 
@@ -668,6 +684,7 @@ class Broker(object):
                 ApplicationError.AUTHORIZATION_FAILED,
                 [u"failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)]
             )
+            reply.correlation = subscribe.correlation
             self._router.send(session, reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -696,6 +713,8 @@ class Broker(object):
             # subscription doesn't even exist on this broker
             #
             reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
+
+        reply.correlation = unsubscribe.correlation
 
         self._router.send(session, reply)
 
