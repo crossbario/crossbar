@@ -89,7 +89,11 @@ class RouterServiceSession(ApplicationSession):
         # the service session can expose its API on multiple sessions
         # by default, it exposes its API only on itself, and that means, on the
         # router-realm the user started
-        self._expose_on_sessions = [(self, None)]
+        self._expose_on_sessions = []
+
+        enable_meta_api = self.config.extra.get('enable_meta_api', True) if self.config.extra else True
+        if enable_meta_api:
+            self._expose_on_sessions.append((self, None))
 
         # optionally, when this option is set, the service session exposes its API
         # additionally on the management session to the local node router (and from there, to CFC)
@@ -120,7 +124,8 @@ class RouterServiceSession(ApplicationSession):
 
         # to keep the interface of ApplicationSession.publish, we only return the first
         # publish return (that is the return from publishing to the user router-realm)
-        return dl[0]
+        if len(dl) > 0:
+            return dl[0]
 
     @inlineCallbacks
     def onJoin(self, details):

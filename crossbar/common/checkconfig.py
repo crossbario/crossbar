@@ -2428,7 +2428,7 @@ def check_router_realm(realm):
             "Realm 'options' must be a dict"
         )
     for arg, val in options.items():
-        if arg not in ['event_dispatching_chunk_size', 'uri_check', 'bridge_meta_api']:
+        if arg not in ['event_dispatching_chunk_size', 'uri_check', 'enable_meta_api', 'bridge_meta_api']:
             raise InvalidConfigException(
                 "Unknown realm option '{}'".format(arg)
             )
@@ -2441,6 +2441,10 @@ def check_router_realm(realm):
             raise InvalidConfigException(
                 "Realm option 'event_dispatching_chunk_size' must be a positive int"
             )
+
+    if 'enable_meta_api' in options:
+        if type(options['enable_meta_api']) != bool:
+            raise InvalidConfigException("Invalid type {} for enable_meta_api in realm options".format(type(options['enable_meta_api'])))
 
     if 'bridge_meta_api' in options:
         if type(options['bridge_meta_api']) != bool:

@@ -935,10 +935,13 @@ class RouterWorkerSession(NativeWorkerSession):
         # router/realm wide options
         options = config.get('options', {})
 
+        enable_meta_api = options.get('enable_meta_api', True)
+
         # expose router/realm service API additionally on local node management router
         bridge_meta_api = options.get('bridge_meta_api', False)
         if bridge_meta_api:
-            bridge_meta_api_prefix = u'crossbar.worker.worker-001.realm.realm-001.'
+            # FIXME
+            bridge_meta_api_prefix = u'crossbar.worker.{worker_id}.realm.{realm_id}.root.'.format(worker_id=self._worker_id, realm_id=realm_id)
         else:
             bridge_meta_api_prefix = None
 
@@ -963,6 +966,7 @@ class RouterWorkerSession(NativeWorkerSession):
             # if True, forward the WAMP meta API (implemented by RouterServiceSession)
             # that is normally only exposed on the app router/realm _additionally_
             # to the local node management router.
+            'enable_meta_api': enable_meta_api,
             'bridge_meta_api': bridge_meta_api,
             'bridge_meta_api_prefix': bridge_meta_api_prefix,
 
