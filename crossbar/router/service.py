@@ -30,10 +30,9 @@
 
 from __future__ import absolute_import
 
-from twisted.internet.defer import inlineCallbacks, DeferredList
+from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
-from autobahn import wamp
 from autobahn import wamp, util
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
