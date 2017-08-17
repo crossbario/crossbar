@@ -32,6 +32,7 @@ from __future__ import absolute_import
 
 from twisted.internet.defer import inlineCallbacks, DeferredList
 
+from autobahn import wamp
 from autobahn import wamp, util
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
@@ -87,41 +88,22 @@ class RouterServiceSession(ApplicationSession):
             details=details,
         )
 
-        if True:
-            procs = [
-                (u'wamp.session.list', self.session_list),
-                (u'wamp.session.count', self.session_count),
-                (u'wamp.session.get', self.session_get),
-                (u'wamp.session.kill', self.session_kill),
-                (u'wamp.session.add_testament', self.session_add_testament),
-                (u'wamp.session.flush_testaments', self.session_flush_testaments),
-                (u'wamp.registration.remove_callee', self.registration_remove_callee),
-                (u'wamp.subscription.remove_subscriber', self.subscription_remove_subscriber),
-                (u'wamp.registration.get', self.registration_get),
-                (u'wamp.subscription.get', self.subscription_get),
-                (u'wamp.registration.list', self.registration_list),
-                (u'wamp.subscription.list', self.subscription_list),
-                (u'wamp.registration.match', self.registration_match),
-                (u'wamp.subscription.match', self.subscription_match),
-                (u'wamp.registration.lookup', self.registration_lookup),
-                (u'wamp.subscription.lookup', self.subscription_lookup),
-                (u'wamp.registration.list_callees', self.registration_list_callees),
-                (u'wamp.subscription.list_subscribers', self.subscription_list_subscribers),
-                (u'wamp.registration.count_callees', self.registration_count_callees),
-                (u'wamp.subscription.count_subscribers', self.subscription_count_subscribers),
-                (u'wamp.subscription.get_events', self.subscription_get_events),
-            ]
-            dl = []
-            for uri, proc in procs:
-                dl.append(self.register(proc, uri, options=RegisterOptions(details_arg='details')))
-            regs = yield DeferredList(dl)
+        on_ready = self.config.extra.get('onready', None) if self.config.extra else None
+        try:
+            regs = yield self.register(self, options=RegisterOptions(details_arg='details'))
+            for reg in regs:
+                self.log.info('Registered WAMP meta procedure <{proc}>', proc=reg.procedure)
+        except Exception as e:
+            self.log.failure()
+            if on_ready:
+                on_ready.errback(e)
+                self.leave()
         else:
-            regs = yield self.register(self)
-
-        self.log.debug('Registered {regs} procedures', regs=regs)
-
-        if self.config.extra and 'onready' in self.config.extra:
-            self.config.extra['onready'].callback(self)
+            if on_ready:
+                on_ready.callback(self)
+                self.log.info('RouterServiceSession ready [configured on_ready fired]')
+            else:
+                self.log.info('RouterServiceSession ready [no on_ready configured]')
 
     def onUserError(self, failure, msg):
         # ApplicationError's are raised explicitly and by purpose to signal
@@ -193,6 +175,7 @@ class RouterServiceSession(ApplicationSession):
             u'no session with ID {} exists on this router'.format(session_id),
         )
 
+    @wamp.register(u'wamp.session.add_testament')
     def session_add_testament(self, topic, args, kwargs, publish_options=None, scope=u"destroyed", details=None):
         """
         Add a testament to the current session.
@@ -239,6 +222,7 @@ class RouterServiceSession(ApplicationSession):
 
         return pub_id
 
+    @wamp.register(u'wamp.session.flush_testaments')
     def session_flush_testaments(self, scope=u"destroyed", details=None):
         """
         Flush the testaments of a given scope.
