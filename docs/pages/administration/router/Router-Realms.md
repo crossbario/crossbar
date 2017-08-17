@@ -75,6 +75,45 @@ In the above example configuration, the *Router* starts up with a single *Realm*
 
 Authorization is configured on a per-realm basis. Authorization is role-based. Above, clients connecting as anonymous have full permissions for all URIs. (This makes sense for starting out development of a WAMP application.)
 
+
+## Realm Options
+
+Crossbar.io allows to tune its routing core on a per-realm basis using *realm options*.
+
+For example, consider this part of a node configuration for a realm:
+
+```javascript
+{
+   // realm name
+   "name": "realm1",
+
+   "options": {
+      // if true (default), enable WAMP meta API
+      "enable_meta_api": true,
+
+      // if true, bridge the WAMP meta API also to the node management side
+      "bridge_meta_api": false,
+
+      // dispatch this many events before reentering the event loop
+      "event_dispatching_chunk_size": 100,
+
+      // checking policy for URIs (can be "strict" or "loose")
+      "uri_check": "strict"
+   },
+
+   "roles": [
+      // role definitions ...
+   ]
+}
+```
+
+The realm options change the default behavior of Crossbar.io for the whole realm. Other realms in the same router worker are unaffected though.
+
+The options are provided at startup time of the realm within the router worker, and are unchanged during the lifetime of that realm.
+
+Changing an option requires to restart the respective realm. However, the router worker within the realm is started, does not need to be restarted itself. Restarting a realm is a quick and cheap operation.
+
+
 *Read more:*
 
 * [[Router Configuration]]

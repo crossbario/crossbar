@@ -30,13 +30,15 @@
 
 from __future__ import absolute_import
 
-from twisted.internet.defer import inlineCallbacks, DeferredList
+from twisted.internet.defer import inlineCallbacks
+from twisted.python.failure import Failure
 
 from autobahn import wamp, util
 from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.types import RegisterOptions
+from autobahn.wamp.request import Registration
 
 from crossbar.router.observation import is_protected_uri
 
@@ -52,6 +54,8 @@ def is_restricted_session(session):
 class RouterServiceSession(ApplicationSession):
 
     """
+    User router-realm service session, and WAMP meta API implementation.
+
     Router service session which is used internally by a router to
     issue WAMP calls or publish events, and which provides WAMP meta API
     procedures.
@@ -72,6 +76,7 @@ class RouterServiceSession(ApplicationSession):
         """
         ApplicationSession.__init__(self, config)
         self._router = router
+
         self._schemas = {}
         if schemas:
             self._schemas.update(schemas)
@@ -80,6 +85,47 @@ class RouterServiceSession(ApplicationSession):
                 entries=len(self._schemas),
             )
 
+        # the service session can expose its API on multiple sessions
+        # by default, it exposes its API only on itself, and that means, on the
+        # router-realm the user started
+        self._expose_on_sessions = []
+
+        enable_meta_api = self.config.extra.get('enable_meta_api', True) if self.config.extra else True
+        if enable_meta_api:
+            self._expose_on_sessions.append((self, None))
+
+        # optionally, when this option is set, the service session exposes its API
+        # additionally on the management session to the local node router (and from there, to CFC)
+        bridge_meta_api = self.config.extra.get('bridge_meta_api', False) if self.config.extra else False
+        if bridge_meta_api:
+
+            management_session = self.config.extra.get('management_session', None) if self.config.extra else None
+            if management_session is None:
+                raise Exception('logic error: missing management_session in extra')
+
+            bridge_meta_api_prefix = self.config.extra.get('bridge_meta_api_prefix', None) if self.config.extra else None
+            if bridge_meta_api_prefix is None:
+                raise Exception('logic error: missing bridge_meta_api_prefix in extra')
+
+            self._expose_on_sessions.append((management_session, bridge_meta_api_prefix))
+
+    def publish(self, topic, *args, **kwargs):
+        # WAMP meta events published over the service session are published on the
+        # service session itself (the first in the list of sessions to expose), and potentially
+        # more sessions - namely the management session on the local node router
+        dl = []
+        for session, prefix in self._expose_on_sessions:
+            if prefix:
+                _topic = u'{}{}'.format(prefix, topic)
+            else:
+                _topic = topic
+            dl.append(ApplicationSession.publish(session, _topic, *args, **kwargs))
+
+        # to keep the interface of ApplicationSession.publish, we only return the first
+        # publish return (that is the return from publishing to the user router-realm)
+        if len(dl) > 0:
+            return dl[0]
+
     @inlineCallbacks
     def onJoin(self, details):
         self.log.debug(
@@ -87,41 +133,34 @@ class RouterServiceSession(ApplicationSession):
             details=details,
         )
 
-        if True:
-            procs = [
-                (u'wamp.session.list', self.session_list),
-                (u'wamp.session.count', self.session_count),
-                (u'wamp.session.get', self.session_get),
-                (u'wamp.session.kill', self.session_kill),
-                (u'wamp.session.add_testament', self.session_add_testament),
-                (u'wamp.session.flush_testaments', self.session_flush_testaments),
-                (u'wamp.registration.remove_callee', self.registration_remove_callee),
-                (u'wamp.subscription.remove_subscriber', self.subscription_remove_subscriber),
-                (u'wamp.registration.get', self.registration_get),
-                (u'wamp.subscription.get', self.subscription_get),
-                (u'wamp.registration.list', self.registration_list),
-                (u'wamp.subscription.list', self.subscription_list),
-                (u'wamp.registration.match', self.registration_match),
-                (u'wamp.subscription.match', self.subscription_match),
-                (u'wamp.registration.lookup', self.registration_lookup),
-                (u'wamp.subscription.lookup', self.subscription_lookup),
-                (u'wamp.registration.list_callees', self.registration_list_callees),
-                (u'wamp.subscription.list_subscribers', self.subscription_list_subscribers),
-                (u'wamp.registration.count_callees', self.registration_count_callees),
-                (u'wamp.subscription.count_subscribers', self.subscription_count_subscribers),
-                (u'wamp.subscription.get_events', self.subscription_get_events),
-            ]
-            dl = []
-            for uri, proc in procs:
-                dl.append(self.register(proc, uri, options=RegisterOptions(details_arg='details')))
-            regs = yield DeferredList(dl)
+        # register our API on all configured sessions and then fire onready
+        #
+        on_ready = self.config.extra.get('onready', None) if self.config.extra else None
+        try:
+            for session, prefix in self._expose_on_sessions:
+                regs = yield session.register(self, options=RegisterOptions(details_arg='details'), prefix=prefix)
+                for reg in regs:
+                    if isinstance(reg, Registration):
+                        self.log.info('Registered WAMP meta procedure <{proc}> on realm "{realm}"', proc=reg.procedure, realm=session._realm)
+                    elif isinstance(reg, Failure):
+                        err = reg.value
+                        if isinstance(err, ApplicationError):
+                            self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error} ("{message}")', realm=session._realm, error=err.error, message=err.error_message())
+                        else:
+                            self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}', realm=session._realm, error=str(err))
+                    else:
+                        self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}', realm=session._realm, error=str(reg))
+        except Exception as e:
+            self.log.failure()
+            if on_ready:
+                on_ready.errback(e)
+            self.leave()
         else:
-            regs = yield self.register(self)
-
-        self.log.debug('Registered {regs} procedures', regs=regs)
-
-        if self.config.extra and 'onready' in self.config.extra:
-            self.config.extra['onready'].callback(self)
+            if on_ready:
+                on_ready.callback(self)
+                self.log.info('RouterServiceSession ready [configured on_ready fired]')
+            else:
+                self.log.info('RouterServiceSession ready [no on_ready configured]')
 
     def onUserError(self, failure, msg):
         # ApplicationError's are raised explicitly and by purpose to signal
@@ -193,6 +232,7 @@ class RouterServiceSession(ApplicationSession):
             u'no session with ID {} exists on this router'.format(session_id),
         )
 
+    @wamp.register(u'wamp.session.add_testament')
     def session_add_testament(self, topic, args, kwargs, publish_options=None, scope=u"destroyed", details=None):
         """
         Add a testament to the current session.
@@ -239,6 +279,7 @@ class RouterServiceSession(ApplicationSession):
 
         return pub_id
 
+    @wamp.register(u'wamp.session.flush_testaments')
     def session_flush_testaments(self, scope=u"destroyed", details=None):
         """
         Flush the testaments of a given scope.
