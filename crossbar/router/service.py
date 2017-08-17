@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 from twisted.internet.defer import inlineCallbacks, DeferredList
+from twisted.python.failure import Failure
 
 from autobahn import wamp
 from autobahn import wamp, util
@@ -38,6 +39,7 @@ from autobahn.wamp import message
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.types import RegisterOptions
+from autobahn.wamp.request import Registration
 
 from crossbar.router.observation import is_protected_uri
 
@@ -53,6 +55,8 @@ def is_restricted_session(session):
 class RouterServiceSession(ApplicationSession):
 
     """
+    User router-realm service session, and WAMP meta API implementation.
+
     Router service session which is used internally by a router to
     issue WAMP calls or publish events, and which provides WAMP meta API
     procedures.
@@ -73,6 +77,7 @@ class RouterServiceSession(ApplicationSession):
         """
         ApplicationSession.__init__(self, config)
         self._router = router
+
         self._schemas = {}
         if schemas:
             self._schemas.update(schemas)
@@ -81,6 +86,42 @@ class RouterServiceSession(ApplicationSession):
                 entries=len(self._schemas),
             )
 
+        # the service session can expose its API on multiple sessions
+        # by default, it exposes its API only on itself, and that means, on the
+        # router-realm the user started
+        self._expose_on_sessions = [(self, None)]
+
+        # optionally, when this option is set, the service session exposes its API
+        # additionally on the management session to the local node router (and from there, to CFC)
+        bridge_meta_api = self.config.extra.get('bridge_meta_api', False) if self.config.extra else False
+        if bridge_meta_api:
+
+            management_session = self.config.extra.get('management_session', None) if self.config.extra else None
+            if management_session is None:
+                raise Exception('logic error: missing management_session in extra')
+
+            bridge_meta_api_prefix = self.config.extra.get('bridge_meta_api_prefix', None) if self.config.extra else None
+            if bridge_meta_api_prefix is None:
+                raise Exception('logic error: missing bridge_meta_api_prefix in extra')
+
+            self._expose_on_sessions.append((management_session, bridge_meta_api_prefix))
+
+    def publish(self, topic, *args, **kwargs):
+        # WAMP meta events published over the service session are published on the
+        # service session itself (the first in the list of sessions to expose), and potentially
+        # more sessions - namely the management session on the local node router
+        dl = []
+        for session, prefix in self._expose_on_sessions:
+            if prefix:
+                _topic = u'{}{}'.format(prefix, topic)
+            else:
+                _topic = topic
+            dl.append(ApplicationSession.publish(session, _topic, *args, **kwargs))
+
+        # to keep the interface of ApplicationSession.publish, we only return the first
+        # publish return (that is the return from publishing to the user router-realm)
+        return dl[0]
+
     @inlineCallbacks
     def onJoin(self, details):
         self.log.debug(
@@ -88,16 +129,28 @@ class RouterServiceSession(ApplicationSession):
             details=details,
         )
 
+        # register our API on all configured sessions and then fire onready
+        #
         on_ready = self.config.extra.get('onready', None) if self.config.extra else None
         try:
-            regs = yield self.register(self, options=RegisterOptions(details_arg='details'))
-            for reg in regs:
-                self.log.info('Registered WAMP meta procedure <{proc}>', proc=reg.procedure)
+            for session, prefix in self._expose_on_sessions:
+                regs = yield session.register(self, options=RegisterOptions(details_arg='details'), prefix=prefix)
+                for reg in regs:
+                    if isinstance(reg, Registration):
+                        self.log.info('Registered WAMP meta procedure <{proc}> on realm "{realm}"', proc=reg.procedure, realm=session._realm)
+                    elif isinstance(reg, Failure):
+                        err = reg.value
+                        if isinstance(err, ApplicationError):
+                            self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error} ("{message}")', realm=session._realm, error=err.error, message=err.error_message())
+                        else:
+                            self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}', realm=session._realm, error=str(err))
+                    else:
+                        self.log.warn('Failed to register WAMP meta procedure on realm "{realm}": {error}', realm=session._realm, error=str(reg))
         except Exception as e:
             self.log.failure()
             if on_ready:
                 on_ready.errback(e)
-                self.leave()
+            self.leave()
         else:
             if on_ready:
                 on_ready.callback(self)

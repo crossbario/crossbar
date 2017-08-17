@@ -932,6 +932,16 @@ class RouterWorkerSession(NativeWorkerSession):
         # URI of the realm to start
         realm = config['name']
 
+        # router/realm wide options
+        options = config.get('options', {})
+
+        # expose router/realm service API additionally on local node management router
+        bridge_meta_api = options.get('bridge_meta_api', False)
+        if bridge_meta_api:
+            bridge_meta_api_prefix = u'crossbar.worker.worker-001.realm.realm-001.'
+        else:
+            bridge_meta_api_prefix = None
+
         # track realm
         rlm = RouterRealm(realm_id, config)
         self.realms[realm_id] = rlm
@@ -947,7 +957,18 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # add a router/realm service session
         extra = {
-            'onready': Deferred()
+            # the RouterServiceSession will fire this when it is ready
+            'onready': Deferred(),
+
+            # if True, forward the WAMP meta API (implemented by RouterServiceSession)
+            # that is normally only exposed on the app router/realm _additionally_
+            # to the local node management router.
+            'bridge_meta_api': bridge_meta_api,
+            'bridge_meta_api_prefix': bridge_meta_api_prefix,
+
+            # the management session on the local node management router to which
+            # the WAMP meta API is exposed to additionally, when the bridge_meta_api option is set
+            'management_session': self,
         }
         cfg = ComponentConfig(realm, extra)
         rlm.session = RouterServiceSession(cfg, router)
