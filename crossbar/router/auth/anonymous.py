@@ -71,7 +71,7 @@ class PendingAuthAnonymous(PendingAuth):
 
             principal = {
                 u'authid': self._authid,
-                u'role': u'anonymous',
+                u'role': details.authrole or self._config.get(u'role', None),
                 u'extra': details.authextra
             }
 
