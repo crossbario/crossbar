@@ -58,7 +58,7 @@ class PendingAuthAnonymous(PendingAuth):
         # remember the authid the client wants to identify as (if any)
         self._authid = details.authid or util.generate_serial_number()
 
-        self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+        self._session_details[u'authmethod'] = u'anonymous'
         self._session_details[u'authextra'] = details.authextra
 
         # WAMP-anonymous "static"
@@ -71,7 +71,7 @@ class PendingAuthAnonymous(PendingAuth):
 
             principal = {
                 u'authid': self._authid,
-                u'role': details.authrole or self._config.get(u'role', None),
+                u'role': details.authrole or self._config.get(u'role', u'anonymous'),
                 u'extra': details.authextra
             }
 
