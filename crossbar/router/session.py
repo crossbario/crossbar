@@ -612,7 +612,9 @@ class RouterSession(BaseSession):
         try:
             # default authentication method is "WAMP-Anonymous" if client doesn't specify otherwise
             authmethods = details.authmethods or [u'anonymous']
-            authextra = None
+            authextra = details.authextra
+
+            self.log.info('onHello: {authextra}', authextra=authextra)
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
@@ -648,6 +650,8 @@ class RouterSession(BaseSession):
                     if u'anonymous' not in authmethods:
                         return types.Deny(ApplicationError.NO_AUTH_METHOD, message=u'cannot authenticate using any of the offered authmethods {}'.format(authmethods))
 
+                    authmethod = u'anonymous'
+
                     if not realm:
                         return types.Deny(ApplicationError.NO_SUCH_REALM, message=u'no realm requested')
 
@@ -663,12 +667,9 @@ class RouterSession(BaseSession):
                         # if no cookie tracking, generate a random value for authid
                         authid = util.generate_serial_number()
 
-                    return types.Accept(realm=realm,
-                                        authid=authid,
-                                        authrole=u'anonymous',
-                                        authmethod=u'anonymous',
-                                        authprovider=u'static',
-                                        authextra=None)
+                    PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
+                    self._pending_auth = PendingAuthKlass(self, {u'type': u'static', u'authrole': u'anonymous'})
+                    return self._pending_auth.hello(realm, details)
 
                 else:
                     # iterate over authentication methods announced by client ..
