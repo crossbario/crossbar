@@ -266,22 +266,7 @@ class NodeControllerSession(NativeProcessSession):
         :returns: List of worker processes.
         :rtype: list of dicts
         """
-        now = datetime.utcnow()
-        res = []
-        for worker in sorted(self._workers.values(), key=lambda w: w.created):
-            res.append(
-                {
-                    u'id': worker.id,
-                    u'pid': worker.pid,
-                    u'type': worker.TYPE,
-                    u'status': worker.status,
-                    u'created': utcstr(worker.created),
-                    u'started': utcstr(worker.started),
-                    u'startup_time': (worker.started - worker.created).total_seconds() if worker.started else None,
-                    u'uptime': (now - worker.started).total_seconds() if worker.started else None,
-                }
-            )
-        return res
+        return sorted(self._workers.keys())
 
     @wamp.register(None)
     def get_worker(self, id, details=None):

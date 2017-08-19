@@ -485,16 +485,18 @@ class RouterServiceSession(ApplicationSession):
                 if is_restricted_session(session):
                     session = None
 
-            if not session or session_id not in s2r:
+            if not session or session not in s2r:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_SESSION,
                     u'no session with ID {} exists on this router'.format(session_id),
                 )
 
+            _regs = s2r[session]
+
             regs = {
-                u'exact': [reg.id for reg in s2r if reg.match == u'exact'],
-                u'prefix': [reg.id for reg in s2r if reg.match == u'prefix'],
-                u'wildcard': [reg.id for reg in s2r if reg.match == u'wildcard'],
+                u'exact': [reg.id for reg in _regs if reg.match == u'exact'],
+                u'prefix': [reg.id for reg in _regs if reg.match == u'prefix'],
+                u'wildcard': [reg.id for reg in _regs if reg.match == u'wildcard'],
             }
             return regs
 
@@ -544,16 +546,18 @@ class RouterServiceSession(ApplicationSession):
                 if is_restricted_session(session):
                     session = None
 
-            if not session or session_id not in s2s:
+            if not session or session not in s2s:
                 raise ApplicationError(
                     ApplicationError.NO_SUCH_SESSION,
                     u'no session with ID {} exists on this router'.format(session_id),
                 )
 
+            _subs = s2s[session]
+
             subs = {
-                u'exact': [sub.id for sub in s2s if sub.match == u'exact'],
-                u'prefix': [sub.id for sub in s2s if sub.match == u'prefix'],
-                u'wildcard': [sub.id for sub in s2s if sub.match == u'wildcard'],
+                u'exact': [sub.id for sub in _subs if sub.match == u'exact'],
+                u'prefix': [sub.id for sub in _subs if sub.match == u'prefix'],
+                u'wildcard': [sub.id for sub in _subs if sub.match == u'wildcard'],
             }
             return subs
 
