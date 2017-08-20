@@ -38,12 +38,16 @@ cache:
     - $HOME/.cache/pip
 
 matrix:
+  # https://docs.travis-ci.com/user/customizing-the-build/#Rows-that-are-Allowed-to-Fail
   allow_failures:
+      # allow non-abtrunk jobs to fail (eg when we introduce new features in AB that we want in CB)
       - env:
         - TOX_ENV=py27-unpinned,coverage-report
         - TOX_ENV=TOX_ENV=py27-pinned,coverage-report
         - TOX_ENV=py34-unpinned,coverage-report
         - TOX_ENV=py34-pinned,coverage-report
+        - TOX_ENV=py35-unpinned,coverage-report
+        - TOX_ENV=py35-pinned,coverage-report
 
   fast_finish: true
 

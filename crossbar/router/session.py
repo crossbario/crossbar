@@ -668,7 +668,7 @@ class RouterSession(BaseSession):
                         authid = util.generate_serial_number()
 
                     PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
-                    self._pending_auth = PendingAuthKlass(self, {u'type': u'static', u'authrole': u'anonymous'})
+                    self._pending_auth = PendingAuthKlass(self, {u'type': u'static', u'authrole': u'anonymous', u'authid': authid})
                     return self._pending_auth.hello(realm, details)
 
                 else:
