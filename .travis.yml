@@ -1,6 +1,6 @@
 language: python
 python:
-  - "3.6"
+  - 3
 sudo: false
 install:
   - pip install -U pip setuptools wheel
@@ -20,6 +20,7 @@ after_success:
 notifications:
    irc:
       channels:
+         - "irc.freenode.org#autobahn"
          - "irc.freenode.org#crossbar"
       use_notice: true
       skip_join: true
@@ -30,9 +31,12 @@ matrix:
   # https://docs.travis-ci.com/user/customizing-the-build/#Rows-that-are-Allowed-to-Fail
   allow_failures:
       # allow non-abtrunk jobs to fail (eg when we introduce new features in AB that we want in CB)
-      - env:
-        - TOX_ENV=py27-unpinned,coverage-report
-        - TOX_ENV=py27-pinned,coverage-report
-        - TOX_ENV=py36-unpinned,coverage-report
-        - TOX_ENV=py36-pinned,coverage-report
+      - python: 3
+        env: TOX_ENV=py27-unpinned,coverage-report
+      - python: 3
+        env: TOX_ENV=py27-pinned,coverage-report
+      - python: 3
+        env: TOX_ENV=py36-unpinned,coverage-report
+      - python: 3
+        env: TOX_ENV=py36-pinned,coverage-report
   fast_finish: true
