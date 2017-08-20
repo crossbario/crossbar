@@ -33,8 +33,7 @@ from __future__ import absolute_import, division
 import txaio
 
 from autobahn import util
-from autobahn.wamp import role
-from autobahn.wamp import message, types
+from autobahn.wamp import role, message, types
 from autobahn.wamp.exception import ApplicationError
 
 from autobahn.wamp.message import \
@@ -162,12 +161,15 @@ class Broker(object):
 
                     def _publish():
                         if session._session_id is None:
-                            options = types.PublishOptions()
+                            options = types.PublishOptions(
+                                correlation=None
+                            )
                         else:
                             options = types.PublishOptions(
                                 # we exclude the client session from the set of receivers
                                 # for the WAMP session meta events (race conditions!)
                                 exclude=[session._session_id],
+                                correlation=None
                             )
                         service_session = self._router._realm.session
                         if was_subscribed:
@@ -590,6 +592,7 @@ class Broker(object):
                             # we exclude the client session from the set of receivers
                             # for the WAMP session meta events (race conditions!)
                             exclude=[session._session_id],
+                            correlation=subscribe.correlation
                         )
                         if is_first_subscriber:
                             subscription_details = {
@@ -701,7 +704,7 @@ class Broker(object):
 
             if session in subscription.observers:
 
-                was_subscribed, was_last_subscriber = self._unsubscribe(subscription, session)
+                was_subscribed, was_last_subscriber = self._unsubscribe(subscription, session, unsubscribe)
 
                 reply = message.Unsubscribed(unsubscribe.request)
             else:
@@ -718,7 +721,7 @@ class Broker(object):
 
         self._router.send(session, reply)
 
-    def _unsubscribe(self, subscription, session):
+    def _unsubscribe(self, subscription, session, unsubscribe=None):
 
         # drop session from subscription observers
         #
@@ -741,12 +744,15 @@ class Broker(object):
             def _publish():
                 service_session = self._router._realm.session
                 if session._session_id is None:
-                    options = types.PublishOptions()
+                    options = types.PublishOptions(
+                        correlation=unsubscribe.correlation if unsubscribe else None
+                    )
                 else:
                     options = types.PublishOptions(
                         # we exclude the client session from the set of receivers
                         # for the WAMP session meta events (race conditions!)
                         exclude=[session._session_id],
+                        correlation=unsubscribe.correlation if unsubscribe else None
                     )
                 if was_subscribed:
                     service_session.publish(

@@ -34,8 +34,7 @@ import random
 import txaio
 
 from autobahn import util
-from autobahn.wamp import role
-from autobahn.wamp import message
+from autobahn.wamp import role, message, types
 from autobahn.wamp.exception import ProtocolError, ApplicationError
 
 from autobahn.wamp.message import \
@@ -235,10 +234,13 @@ class Dealer(object):
                 if self._router._realm:
                     service_session = self._router._realm.session
                     if service_session and not registration.uri.startswith(u'wamp.'):
+                        options = types.PublishOptions(
+                            correlation=None
+                        )
                         if was_registered:
-                            service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id, options=options)
                         if was_last_callee:
-                            service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id, options=options)
 
             del self._session_to_registrations[session]
 
@@ -377,6 +379,9 @@ class Dealer(object):
                 if self._router._realm:
                     service_session = self._router._realm.session
                     if service_session and not registration.uri.startswith(u'wamp.'):
+                        options = types.PublishOptions(
+                            correlation=register.correlation
+                        )
                         if is_first_callee:
                             registration_details = {
                                 u'id': registration.id,
@@ -385,9 +390,9 @@ class Dealer(object):
                                 u'match': registration.match,
                                 u'invoke': registration.extra.invoke,
                             }
-                            service_session.publish(u'wamp.registration.on_create', session._session_id, registration_details)
+                            service_session.publish(u'wamp.registration.on_create', session._session_id, registration_details, options=options)
                         if not was_already_registered:
-                            service_session.publish(u'wamp.registration.on_register', session._session_id, registration.id)
+                            service_session.publish(u'wamp.registration.on_register', session._session_id, registration.id, options=options)
 
                 # acknowledge register with registration ID
                 #
@@ -463,10 +468,13 @@ class Dealer(object):
         if self._router._realm:
             service_session = self._router._realm.session
             if service_session and not registration.uri.startswith(u'wamp.'):
+                options = types.PublishOptions(
+                    correlation=None
+                )
                 if was_registered:
-                    service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id)
+                    service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id, options=options)
                 if was_last_callee:
-                    service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id)
+                    service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id, options=options)
 
         return was_registered, was_last_callee
 

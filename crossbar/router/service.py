@@ -467,7 +467,7 @@ class RouterServiceSession(ApplicationSession):
             )
 
     @wamp.register(u'wamp.registration.list')
-    def registration_list(self, details=None):
+    def registration_list(self, session_id=None, details=None):
         """
         List current registrations.
 
@@ -475,33 +475,60 @@ class RouterServiceSession(ApplicationSession):
             and 'wildcard', with a list of registration IDs for each.
         :rtype: dict
         """
-        registration_map = self._router._dealer._registration_map
+        if session_id:
 
-        registrations_exact = []
-        for registration in registration_map._observations_exact.values():
-            if not is_protected_uri(registration.uri, details):
-                registrations_exact.append(registration.id)
+            s2r = self._router._dealer._session_to_registrations
+            session = None
 
-        registrations_prefix = []
-        for registration in registration_map._observations_prefix.values():
-            if not is_protected_uri(registration.uri, details):
-                registrations_prefix.append(registration.id)
+            if session_id in self._router._session_id_to_session:
+                session = self._router._session_id_to_session[session_id]
+                if is_restricted_session(session):
+                    session = None
 
-        registrations_wildcard = []
-        for registration in registration_map._observations_wildcard.values():
-            if not is_protected_uri(registration.uri, details):
-                registrations_wildcard.append(registration.id)
+            if not session or session not in s2r:
+                raise ApplicationError(
+                    ApplicationError.NO_SUCH_SESSION,
+                    u'no session with ID {} exists on this router'.format(session_id),
+                )
 
-        regs = {
-            u'exact': registrations_exact,
-            u'prefix': registrations_prefix,
-            u'wildcard': registrations_wildcard,
-        }
+            _regs = s2r[session]
 
-        return regs
+            regs = {
+                u'exact': [reg.id for reg in _regs if reg.match == u'exact'],
+                u'prefix': [reg.id for reg in _regs if reg.match == u'prefix'],
+                u'wildcard': [reg.id for reg in _regs if reg.match == u'wildcard'],
+            }
+            return regs
+
+        else:
+
+            registration_map = self._router._dealer._registration_map
+
+            registrations_exact = []
+            for registration in registration_map._observations_exact.values():
+                if not is_protected_uri(registration.uri, details):
+                    registrations_exact.append(registration.id)
+
+            registrations_prefix = []
+            for registration in registration_map._observations_prefix.values():
+                if not is_protected_uri(registration.uri, details):
+                    registrations_prefix.append(registration.id)
+
+            registrations_wildcard = []
+            for registration in registration_map._observations_wildcard.values():
+                if not is_protected_uri(registration.uri, details):
+                    registrations_wildcard.append(registration.id)
+
+            regs = {
+                u'exact': registrations_exact,
+                u'prefix': registrations_prefix,
+                u'wildcard': registrations_wildcard,
+            }
+
+            return regs
 
     @wamp.register(u'wamp.subscription.list')
-    def subscription_list(self, details=None):
+    def subscription_list(self, session_id=None, details=None):
         """
         List current subscriptions.
 
@@ -509,31 +536,58 @@ class RouterServiceSession(ApplicationSession):
             and 'wildcard', with a list of subscription IDs for each.
         :rtype: dict
         """
-        subscription_map = self._router._broker._subscription_map
+        if session_id:
 
-        subscriptions_exact = []
-        for subscription in subscription_map._observations_exact.values():
-            if not is_protected_uri(subscription.uri, details):
-                subscriptions_exact.append(subscription.id)
+            s2s = self._router._broker._session_to_subscriptions
+            session = None
 
-        subscriptions_prefix = []
-        for subscription in subscription_map._observations_prefix.values():
-            if not is_protected_uri(subscription.uri, details):
-                subscriptions_prefix.append(subscription.id)
+            if session_id in self._router._session_id_to_session:
+                session = self._router._session_id_to_session[session_id]
+                if is_restricted_session(session):
+                    session = None
 
-        subscriptions_wildcard = []
-        # FIXME
-        # for subscription in subscription_map._observations_wildcard.values():
-        #     if not is_protected_uri(subscription.uri, details):
-        #         subscriptions_wildcard.append(subscription.id)
+            if not session or session not in s2s:
+                raise ApplicationError(
+                    ApplicationError.NO_SUCH_SESSION,
+                    u'no session with ID {} exists on this router'.format(session_id),
+                )
 
-        subs = {
-            u'exact': subscriptions_exact,
-            u'prefix': subscriptions_prefix,
-            u'wildcard': subscriptions_wildcard,
-        }
+            _subs = s2s[session]
 
-        return subs
+            subs = {
+                u'exact': [sub.id for sub in _subs if sub.match == u'exact'],
+                u'prefix': [sub.id for sub in _subs if sub.match == u'prefix'],
+                u'wildcard': [sub.id for sub in _subs if sub.match == u'wildcard'],
+            }
+            return subs
+
+        else:
+
+            subscription_map = self._router._broker._subscription_map
+
+            subscriptions_exact = []
+            for subscription in subscription_map._observations_exact.values():
+                if not is_protected_uri(subscription.uri, details):
+                    subscriptions_exact.append(subscription.id)
+
+            subscriptions_prefix = []
+            for subscription in subscription_map._observations_prefix.values():
+                if not is_protected_uri(subscription.uri, details):
+                    subscriptions_prefix.append(subscription.id)
+
+            subscriptions_wildcard = []
+            # FIXME
+            # for subscription in subscription_map._observations_wildcard.values():
+            #     if not is_protected_uri(subscription.uri, details):
+            #         subscriptions_wildcard.append(subscription.id)
+
+            subs = {
+                u'exact': subscriptions_exact,
+                u'prefix': subscriptions_prefix,
+                u'wildcard': subscriptions_wildcard,
+            }
+
+            return subs
 
     @wamp.register(u'wamp.registration.match')
     def registration_match(self, procedure, details=None):

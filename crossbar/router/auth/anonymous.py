@@ -56,18 +56,24 @@ class PendingAuthAnonymous(PendingAuth):
         self._realm = realm
 
         # remember the authid the client wants to identify as (if any)
-        self._authid = details.authid
+        self._authid = details.authid or util.generate_serial_number()
 
-        # WAMP-Ticket "static"
+        self._session_details[u'authmethod'] = u'anonymous'
+        self._session_details[u'authextra'] = details.authextra
+
+        # WAMP-anonymous "static"
         if self._config[u'type'] == u'static':
 
             self._authprovider = u'static'
-            self._authid = util.generate_serial_number()
 
             # FIXME: if cookie tracking is enabled, set authid to cookie value
             # self._authid = self._transport._cbtid
 
-            principal = self._config
+            principal = {
+                u'authid': self._authid,
+                u'role': details.authrole or self._config.get(u'role', u'anonymous'),
+                u'extra': details.authextra
+            }
 
             error = self._assign_principal(principal)
             if error:
@@ -79,14 +85,11 @@ class PendingAuthAnonymous(PendingAuth):
         elif self._config[u'type'] == u'dynamic':
 
             self._authprovider = u'dynamic'
-            self._authid = util.generate_serial_number()
 
             error = self._init_dynamic_authenticator()
             if error:
                 return error
 
-            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
-            self._session_details[u'authextra'] = details.authextra
             d = self._authenticator_session.call(self._authenticator, self._realm, self._authid, self._session_details)
 
             def on_authenticate_ok(principal):

@@ -1,55 +1,42 @@
 language: python
+python:
+  - 3.6
 sudo: false
-
 install:
   - pip install -U pip setuptools wheel
-  - pip install tox codecov
-
+  - pip install -U tox codecov
 env:
   - TOX_ENV=flake8
-
   - TOX_ENV=py27-unpinned,coverage-report
   - TOX_ENV=py27-pinned,coverage-report
   - TOX_ENV=py27-abtrunk,coverage-report
-
-  - TOX_ENV=py34-unpinned,coverage-report
-  - TOX_ENV=py34-pinned,coverage-report
-
-  # Travis needs to update it's PyPy
-  #- TOX_ENV=pypy-twtrunk-abtrunk
-  #- TOX_ENV=pypy-twcurrent-abtrunk
-  #- TOX_ENV=pypy-twcurrent-abcurrent
-
+  - TOX_ENV=py36-unpinned,coverage-report
+  - TOX_ENV=py36-pinned,coverage-report
+  - TOX_ENV=py36-abtrunk,coverage-report
 script:
   - tox -c tox.ini -e $TOX_ENV
-
 after_success:
   - codecov
-
 notifications:
    irc:
       channels:
+         - "irc.freenode.org#autobahn"
          - "irc.freenode.org#crossbar"
       use_notice: true
       skip_join: true
-
 cache:
   directories:
     - $HOME/.cache/pip
-
 matrix:
+  # https://docs.travis-ci.com/user/customizing-the-build/#Rows-that-are-Allowed-to-Fail
+  allow_failures:
+      # allow non-abtrunk jobs to fail (eg when we introduce new features in AB that we want in CB)
+      - python: 3.6
+        env: TOX_ENV=py27-unpinned,coverage-report
+      - python: 3.6
+        env: TOX_ENV=py27-pinned,coverage-report
+      - python: 3.6
+        env: TOX_ENV=py36-unpinned,coverage-report
+      - python: 3.6
+        env: TOX_ENV=py36-pinned,coverage-report
   fast_finish: true
-
-  # https://github.com/travis-ci/travis-ci/issues/4794#issuecomment-143758799
-  include:
-    - python: 3.5
-      env:
-      - TOX_ENV=py35-unpinned,coverage-report
-
-    - python: 3.5
-      env:
-      - TOX_ENV=py35-pinned,coverage-report
-
-    - python: 3.5
-      env:
-      - TOX_ENV=py35-abtrunk,coverage-report
