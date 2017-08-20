@@ -38,6 +38,13 @@ cache:
     - $HOME/.cache/pip
 
 matrix:
+  allow_failures:
+      - env:
+        - TOX_ENV=py27-unpinned,coverage-report
+        - TOX_ENV=TOX_ENV=py27-pinned,coverage-report
+        - TOX_ENV=py34-unpinned,coverage-report
+        - TOX_ENV=py34-pinned,coverage-report
+
   fast_finish: true
 
   # https://github.com/travis-ci/travis-ci/issues/4794#issuecomment-143758799
