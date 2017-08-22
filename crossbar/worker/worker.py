@@ -185,13 +185,14 @@ class NativeWorkerSession(NativeProcessSession):
 
         :param details: WAMP call details (auto-filled by WAMP).
         :type details: obj
+
         :returns: A list of profilers.
         :rtype: list of unicode
         """
         return [p.marshal() for p in PROFILERS.items()]
 
     @wamp.register(None)
-    def start_profiler(self, profiler, runtime=10, async=True, details=None):
+    def start_profiler(self, profiler=u'vmprof', runtime=10, async=True, details=None):
         """
         Registered under: ``crossbar.worker.<worker_id>.start_profiler``
 
@@ -199,13 +200,17 @@ class NativeWorkerSession(NativeProcessSession):
         queried later.
 
         :param profiler: The profiler to start, e.g. ``vmprof``.
-        :type profiler: unicode
+        :type profiler: str
+
         :param runtime: Profiling duration in seconds.
         :type runtime: float
+
         :param async: Flag to turn on/off asynchronous mode.
         :type async: bool
+
         :param details: WAMP call details (auto-filled by WAMP).
         :type details: obj
+
         :returns: If running in synchronous mode, the profiling result. Else
             a profile ID is returned which later can be used to retrieve the profile.
         :rtype: dict or int
@@ -229,15 +234,17 @@ class NativeWorkerSession(NativeProcessSession):
         else:
             publish_options = PublishOptions(exclude=details.caller)
 
+        profile_started = {
+            u'id': profile_id,
+            u'who': details.caller,
+            u'profiler': profiler,
+            u'runtime': runtime,
+            u'async': async,
+        }
+
         self.publish(
             on_profile_started,
-            {
-                u'id': profile_id,
-                u'who': details.caller,
-                u'profiler': profiler,
-                u'runtime': runtime,
-                u'async': async,
-            },
+            profile_started,
             options=publish_options
         )
 
@@ -281,7 +288,7 @@ class NativeWorkerSession(NativeProcessSession):
         if async:
             # if running in async mode, immediately return the ID under
             # which the profile can be retrieved later (when it is finished)
-            return profile_id
+            return profile_started
         else:
             # if running in sync mode, return only when the profiling was
             # actually finished - and return the complete profile
@@ -434,7 +441,7 @@ class NativeWorkerSession(NativeProcessSession):
         ``crossbar.worker.<worker_id>.get_pythonpath``.
 
         :returns: The current module search paths.
-        :rtype: list of unicode
+        :rtype: list of str
         """
         self.log.debug("{klass}.get_pythonpath", klass=self.__class__.__name__)
         return sys.path

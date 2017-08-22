@@ -291,22 +291,24 @@ class NodeControllerSession(NativeProcessSession):
         return worker_info
 
     @wamp.register(None)
-    def get_worker_log(self, id, limit=100, details=None):
+    def get_worker_log(self, worker_id, limit=100, details=None):
         """
         Get buffered log for a worker.
 
-        :param limit: Optionally, limit the amount of log entries returned
-           to the last N entries.
-        :type limit: None or int
+        :param worker_id: The worker ID to get log output for.
+        :type worker_id: str
 
-        :return: Buffered log for worker.
+        :param limit: Limit the amount of log entries returned to the last N entries.
+        :type limit: int
+
+        :returns: Buffered log for worker.
         :rtype: list
         """
-        if id not in self._workers:
-            emsg = "No worker with ID '{}'".format(id)
+        if worker_id not in self._workers:
+            emsg = "No worker with ID '{}'".format(worker_id)
             raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
 
-        return self._workers[id].getlog(limit)
+        return self._workers[worker_id].getlog(limit)
 
     @wamp.register(None)
     def start_worker(self, worker_id, worker_type, worker_options=None, details=None):
