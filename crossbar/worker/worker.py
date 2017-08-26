@@ -49,10 +49,6 @@ from txaio import make_logger
 from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcessSession
 from crossbar.common.profiler import PROFILERS
-from crossbar.common.processinfo import _HAS_PSUTIL
-
-if _HAS_PSUTIL:
-    import psutil
 
 __all__ = ('NativeWorkerSession',)
 

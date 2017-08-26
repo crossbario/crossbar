@@ -222,7 +222,7 @@ class RouterServiceSession(ApplicationSession):
         :returns: WAMP session details.
         :rtype: dict or None
         """
-        self.log.info('wamp.session.get("{session_id}")', session_id=session_id)
+        self.log.debug('wamp.session.get("{session_id}")', session_id=session_id)
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
             if not is_restricted_session(session):
