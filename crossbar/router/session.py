@@ -614,7 +614,7 @@ class RouterSession(BaseSession):
             authmethods = details.authmethods or [u'anonymous']
             authextra = details.authextra
 
-            self.log.info('onHello: {authextra}', authextra=authextra)
+            self.log.debug('onHello: {authextra}', authextra=authextra)
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:

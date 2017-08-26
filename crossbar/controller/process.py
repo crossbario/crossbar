@@ -194,7 +194,7 @@ class NodeControllerSession(NativeProcessSession):
         self.log.debug("Node controller ready")
 
     @wamp.register(None)
-    def get_info(self, details=None):
+    def get_status(self, details=None):
         """
         Return basic information about this node.
 
@@ -269,13 +269,22 @@ class NodeControllerSession(NativeProcessSession):
         return sorted(self._workers.keys())
 
     @wamp.register(None)
-    def get_worker(self, id, details=None):
-        if id not in self._workers:
-            emsg = "No worker with ID '{}'".format(id)
+    def get_worker(self, worker_id, include_stats=False, details=None):
+        """
+        Return detailed information about worker.
+
+        :param worker_id: ID of worker to get information for.
+        :type worker_id: str
+
+        :param include_stats: If true, include worker run-time statistics.
+        :type include_stats: bool
+        """
+        if worker_id not in self._workers:
+            emsg = "No worker with ID '{}'".format(worker_id)
             raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
 
         now = datetime.utcnow()
-        worker = self._workers[id]
+        worker = self._workers[worker_id]
 
         worker_info = {
             u'id': worker.id,
@@ -287,6 +296,12 @@ class NodeControllerSession(NativeProcessSession):
             u'startup_time': (worker.started - worker.created).total_seconds() if worker.started else None,
             u'uptime': (now - worker.started).total_seconds() if worker.started else None,
         }
+
+        if include_stats:
+            stats = {
+                u'controller_traffic': worker.get_stats()
+            }
+            worker_info[u'stats'] = stats
 
         return worker_info
 
@@ -516,7 +531,8 @@ class NodeControllerSession(NativeProcessSession):
             }
 
             # FIXME: make start of stats printer dependent on log level ..
-            worker.log_stats(5.)
+            if False:
+                worker.log_stats(5.)
 
             self.publish(started_topic, started_info, options=PublishOptions(exclude=details.caller))
 

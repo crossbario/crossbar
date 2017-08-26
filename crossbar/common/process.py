@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import
 
+import os
 import gc
 
 from datetime import datetime
@@ -70,6 +71,7 @@ from crossbar.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
+    import psutil
     from crossbar.common.processinfo import ProcessInfo
     # from crossbar.common.processinfo import SystemInfo
 
@@ -232,8 +234,91 @@ class NativeProcessSession(ApplicationSession):
             if isinstance(reg, Failure):
                 self.log.error("Failed to register: {f}", f=reg, log_failure=reg)
             else:
-                self.log.info('  {proc}', proc=reg.procedure)
+                self.log.debug('  {proc}', proc=reg.procedure)
         returnValue(regs)
+
+    @wamp.register(None)
+    def get_cpu_count(self, logical=True, details=None):
+        """
+        Returns the CPU core count on the machine this process is running on.
+
+        :param logical: If enabled (default), include logical CPU cores ("Hyperthreading"),
+            else only count physical CPU cores.
+        :type logical: bool
+
+        :returns: The number of CPU cores.
+        :rtype: int
+        """
+        if not _HAS_PSUTIL:
+            emsg = "unable to get CPU count: required package 'psutil' is not installed"
+            self.log.warn(emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+
+        return psutil.cpu_count(logical=logical)
+
+    @wamp.register(None)
+    def get_cpu_affinity(self, details=None):
+        """
+        Get CPU affinity of this process.
+
+        :returns: List of CPU IDs the process affinity is set to.
+        :rtype: list of int
+        """
+        if not _HAS_PSUTIL:
+            emsg = "unable to get CPU affinity: required package 'psutil' is not installed"
+            self.log.warn(emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+
+        try:
+            p = psutil.Process(os.getpid())
+            current_affinity = p.cpu_affinity()
+        except Exception as e:
+            emsg = "Could not get CPU affinity: {}".format(e)
+            self.log.failure(emsg)
+            raise ApplicationError(u"crossbar.error.runtime_error", emsg)
+        else:
+            return current_affinity
+
+    @wamp.register(None)
+    def set_cpu_affinity(self, cpus, details=None):
+        """
+        Set CPU affinity of this process.
+
+        :param cpus: List of CPU IDs to set process affinity to. Each CPU ID must be
+            from the list `[0 .. N_CPUs]`, where N_CPUs can be retrieved via
+            ``crossbar.worker.<worker_id>.get_cpu_count``.
+        :type cpus: list of int
+
+        :returns: List of CPU IDs the process affinity is set to.
+        :rtype: list of int
+        """
+        if not _HAS_PSUTIL:
+            emsg = "Unable to set CPU affinity: required package 'psutil' is not installed"
+            self.log.warn(emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+
+        try:
+            p = psutil.Process(os.getpid())
+            p.cpu_affinity(cpus)
+            new_affinity = p.cpu_affinity()
+        except Exception as e:
+            emsg = "Could not set CPU affinity: {}".format(e)
+            self.log.failure(emsg)
+            raise ApplicationError(u"crossbar.error.runtime_error", emsg)
+        else:
+
+            # publish info to all but the caller ..
+            #
+            cpu_affinity_set_topic = u'{}.on_cpu_affinity_set'.format(self._uri_prefix)
+            cpu_affinity_set_info = {
+                u'affinity': new_affinity,
+                u'who': details.caller
+            }
+            self.publish(cpu_affinity_set_topic, cpu_affinity_set_info, options=PublishOptions(exclude=details.caller))
+
+            # .. and return info directly to caller
+            #
+            return new_affinity
 
     @inlineCallbacks
     def start_connection(self, id, config, details=None):

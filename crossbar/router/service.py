@@ -141,7 +141,7 @@ class RouterServiceSession(ApplicationSession):
                 regs = yield session.register(self, options=RegisterOptions(details_arg='details'), prefix=prefix)
                 for reg in regs:
                     if isinstance(reg, Registration):
-                        self.log.info('Registered WAMP meta procedure <{proc}> on realm "{realm}"', proc=reg.procedure, realm=session._realm)
+                        self.log.debug('Registered WAMP meta procedure <{proc}> on realm "{realm}"', proc=reg.procedure, realm=session._realm)
                     elif isinstance(reg, Failure):
                         err = reg.value
                         if isinstance(err, ApplicationError):
