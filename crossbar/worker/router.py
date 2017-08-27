@@ -1028,7 +1028,7 @@ class RouterWorkerSession(NativeWorkerSession):
         self.publish(u'{}.on_realm_started'.format(self._uri_prefix), realm_id)
 
     @wamp.register(None)
-    def stop_router_realm(self, realm_id, close_sessions=False, details=None):
+    def stop_router_realm(self, realm_id, details=None):
         """
         Stop a realm currently running on this router worker.
 
@@ -1037,14 +1037,27 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param id: ID of the realm to stop.
         :type id: str
-
-        :param close_sessions: If `True`, close all session currently attached.
-        :type close_sessions: bool
         """
-        self.log.debug("{name}.stop_router_realm", name=self.__class__.__name__)
+        self.log.info("{name}.stop_router_realm", name=self.__class__.__name__)
 
-        # FIXME
-        raise NotImplementedError()
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        rlm = self.realms[realm_id]
+        realm_name = rlm.config['name']
+
+        detached_sessions = self._router_factory.stop_realm(realm_name)
+
+        del self.realms[realm_id]
+        del self.realm_to_id[realm_name]
+
+        realm_stopped = {
+            u'id': realm_id,
+            u'name': realm_name,
+            u'detached_sessions': sorted(detached_sessions)
+        }
+
+        return realm_stopped
 
     @wamp.register(None)
     def get_router_realm_roles(self, id, details=None):

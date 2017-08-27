@@ -306,6 +306,42 @@ class NodeControllerSession(NativeProcessSession):
         return worker_info
 
     @wamp.register(None)
+    def stop_worker(self, worker_id, kill=False, details=None):
+        """
+        Stop a running worker.
+
+        :param worker_id: ID of worker to stop.
+        :type worker_id: str
+
+        :param kill: If `True`, kill the process. Otherwise, gracefully
+                     shut down the worker.
+        :type kill: bool
+
+        :returns: Stopping information from the worker.
+        :rtype: dict
+        """
+        if worker_id not in self._workers:
+            emsg = "No worker with ID '{}'".format(worker_id)
+            raise ApplicationError(u'crossbar.error.no_such_worker', emsg)
+
+        worker = self._workers[worker_id]
+
+        if worker.TYPE == u'router':
+            return self.stop_router(worker_id, kill=kill)
+
+        elif worker.TYPE == u'container':
+            return self.stop_container(worker_id, kill=kill)
+
+        elif worker.TYPE == u'websocket_testee':
+            return self.stop_websocket_testee(worker_id, kill=kill)
+
+        elif worker.TYPE == u'guest':
+            return self.stop_guest(worker_id, kill=kill)
+
+        else:
+            raise Exception('logic error')
+
+    @wamp.register(None)
     def get_worker_log(self, worker_id, limit=100, details=None):
         """
         Get buffered log for a worker.

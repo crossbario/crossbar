@@ -172,7 +172,20 @@ class Router(object):
             )
             self.log.debug('{details}', details=details)
 
-    def detach(self, session):
+    def detach(self, session=None):
+        detached_session_ids = []
+        if session is None:
+            # detach all sessions from router
+            for session in list(self._session_id_to_session.values()):
+                self._detach(session)
+                detached_session_ids.append(session._session_id)
+        else:
+            # detach single session from router
+            self._detach(session)
+            detached_session_ids.append(session._session_id)
+        return detached_session_ids
+
+    def _detach(self, session):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.detach`
         """
@@ -188,6 +201,8 @@ class Router(object):
         self._attached -= 1
         if not self._attached:
             self._factory.onLastDetach(self)
+
+        return session._session_id
 
     def _check_trace(self, session, msg):
         if not self._trace_traffic:
@@ -464,6 +479,16 @@ class RouterFactory(object):
     def stop_realm(self, realm):
         self.log.debug('CrossbarRouterFactory.stop_realm(realm="{realm}")',
                        realm=realm)
+
+        assert(type(realm) == six.text_type)
+
+        if realm not in self._routers:
+            raise Exception('no router started for realm "{}"'.format(realm))
+
+        router = self._routers[realm]
+        detached_sessions = router.detach()
+
+        return detached_sessions
 
     def add_role(self, realm, config):
         self.log.debug('CrossbarRouterFactory.add_role(realm="{realm}", config={config})',
