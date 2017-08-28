@@ -704,7 +704,7 @@ class NodeControllerSession(NativeProcessSession):
     def _stop_native_worker(self, worker_id, kill, details=None):
 
         if worker_id not in self._workers or not isinstance(self._workers[worker_id], NativeWorkerProcess):
-            emsg = "Could not stop native worker: no {} worker with ID '{}' currently running".format(worker_type, worker_id)
+            emsg = "Could not stop native worker: no native worker with ID '{}' currently running".format(worker_id)
             raise ApplicationError(u'crossbar.error.worker_not_running', emsg)
 
         worker = self._workers[worker_id]
@@ -715,7 +715,7 @@ class NodeControllerSession(NativeProcessSession):
 
         stop_info = {
             u'id': worker.id,
-            u'type': worker_type,
+            u'type': worker.TYPE,
             u'kill': kill,
             u'who': details.caller if details else None,
             u'when': utcnow(),
@@ -733,11 +733,11 @@ class NodeControllerSession(NativeProcessSession):
         #
         if kill:
             self.log.info("Killing {worker_type} worker with ID '{worker_id}'",
-                          worker_type=worker_type, worker_id=worker_id)
+                          worker_type=worker.TYPE, worker_id=worker_id)
             self._workers[worker_id].proto.transport.signalProcess("KILL")
         else:
             self.log.info("Stopping {worker_type} worker with ID '{worker_id}'",
-                          worker_type=worker_type, worker_id=worker_id)
+                          worker_type=worker.TYPE, worker_id=worker_id)
             self._workers[worker_id].factory.stopFactory()
             self._workers[worker_id].proto.transport.signalProcess('TERM')
 

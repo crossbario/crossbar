@@ -53,8 +53,7 @@ from txaio import make_logger
 
 from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
-from autobahn.wamp.request import Registration
-from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
+from autobahn.wamp.types import CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
 
@@ -567,10 +566,6 @@ class Node(object):
         # call options we use to call into the local node management API
         call_options = CallOptions()
 
-        # fake call details we use to call into the local node management API
-        fake_registration = Registration(None, None, None, None)
-        call_details = CallDetails(fake_registration, caller=0)
-
         # get contoller configuration subpart
         controller = config.get('controller', {})
 
@@ -614,7 +609,7 @@ class Node(object):
             worker_options = worker.get('options', {})
 
             # now actually start the worker ..
-            worker_started = yield self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=call_options)
+            yield self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=call_options)
 
             # native worker processes setup: router, container, websocket-testee
             if worker_type in ['router', 'container', 'websocket-testee']:
