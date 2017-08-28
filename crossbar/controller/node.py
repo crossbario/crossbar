@@ -576,7 +576,8 @@ class Node(object):
 
         # start Manhole in node controller
         if 'manhole' in controller:
-            yield self._controller.start_manhole(controller['manhole'], details=call_details)
+            yield self._controller.call(u'crossbar.start_manhole', controller['manhole'], options=call_options)
+            self.log.debug("controller: manhole started")
 
         # startup all workers
         workers = config.get('workers', [])
@@ -612,21 +613,11 @@ class Node(object):
             # any worker specific options
             worker_options = worker.get('options', {})
 
-            # native worker processes: router, container, websocket-testee
+            # now actually start the worker ..
+            worker_started = yield self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=call_options)
+
+            # native worker processes setup: router, container, websocket-testee
             if worker_type in ['router', 'container', 'websocket-testee']:
-
-                # start a new native worker process ..
-                if worker_type == 'router':
-                    yield self._controller.start_router(worker_id, worker_options, details=call_details)
-
-                elif worker_type == 'container':
-                    yield self._controller.start_container(worker_id, worker_options, details=call_details)
-
-                elif worker_type == 'websocket-testee':
-                    yield self._controller.start_websocket_testee(worker_id, worker_options, details=call_details)
-
-                else:
-                    raise Exception("logic error")
 
                 # setup native worker generic stuff
                 if 'pythonpath' in worker_options:
@@ -815,15 +806,5 @@ class Node(object):
 
                 else:
                     raise Exception("logic error")
-
-            elif worker_type == 'guest':
-
-                # start guest worker
-                #
-                yield self._controller.start_guest(worker_id, worker, details=call_details)
-                self.log.info("{worker}: started", worker=worker_logname)
-
-            else:
-                raise Exception("logic error")
 
         self.log.info('Local node configuration applied successfully!')
