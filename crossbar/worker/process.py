@@ -48,16 +48,18 @@ def get_worker_classes():
     """
     res = {}
     for entrypoint in pkg_resources.iter_entry_points('crossbar.worker'):
-        e = entrypoint.load()
+        klassname = str(entrypoint).split('=')[1].strip()
+        klass = entrypoint.load()
         ep = {
-            u'class': e,
+            u'name': entrypoint.name,
             u'dist': entrypoint.dist.key,
             u'version': entrypoint.dist.version,
+            u'class': klass,
+            u'classname': klassname,
+            u'doc': None
         }
-        if hasattr(e, '__doc__') and e.__doc__:
-            ep[u'doc'] = e.__doc__.strip()
-        else:
-            ep[u'doc'] = None
+        if hasattr(klass, '__doc__') and klass.__doc__:
+            ep[u'doc'] = klass.__doc__.strip()
         res[entrypoint.name] = ep
     return res
 

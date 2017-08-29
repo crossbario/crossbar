@@ -615,16 +615,25 @@ class Node(object):
             if worker_type in ['router', 'container', 'websocket-testee']:
 
                 # setup native worker generic stuff
-                if 'pythonpath' in worker_options:
-                    added_paths = yield self._controller.call(u'crossbar.worker.{}.add_pythonpath'.format(worker_id), worker_options['pythonpath'], options=call_options)
-                    self.log.debug("{worker}: PYTHONPATH extended for {paths}",
-                                   worker=worker_logname, paths=added_paths)
 
-                if 'cpu_affinity' in worker_options:
-                    new_affinity = yield self._controller.call(u'crossbar.worker.{}.set_cpu_affinity'.format(worker_id), worker_options['cpu_affinity'], options=call_options)
-                    self.log.debug("{worker}: CPU affinity set to {affinity}",
-                                   worker=worker_logname, affinity=new_affinity)
+                # expanding PYTHONPATH of the newly started worker is now done
+                # directly in NodeControllerSession._start_native_worker
+                if False:
+                    if 'pythonpath' in worker_options:
+                        added_paths = yield self._controller.call(u'crossbar.worker.{}.add_pythonpath'.format(worker_id), worker_options['pythonpath'], options=call_options)
+                        self.log.warn("{worker}: PYTHONPATH extended for {paths}",
+                                      worker=worker_logname, paths=added_paths)
 
+                # FIXME: as the CPU affinity is in the worker options, this _also_ (see above fix)
+                # should be done directly in NodeControllerSession._start_native_worker
+                if True:
+                    if 'cpu_affinity' in worker_options:
+                        new_affinity = yield self._controller.call(u'crossbar.worker.{}.set_cpu_affinity'.format(worker_id), worker_options['cpu_affinity'], options=call_options)
+                        self.log.debug("{worker}: CPU affinity set to {affinity}",
+                                       worker=worker_logname, affinity=new_affinity)
+
+                # this is fine to start after the worker has been started, as manhole is
+                # CB developer/support feature anyways (like a vendor diagnostics port)
                 if 'manhole' in worker:
                     yield self._controller.call(u'crossbar.worker.{}.start_manhole'.format(worker_id), worker['manhole'], options=call_options)
                     self.log.debug("{worker}: manhole started",

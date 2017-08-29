@@ -414,6 +414,13 @@ class NodeControllerSession(NativeProcessSession):
         else:
             exe = sys.executable
 
+        # allow override default Python module search paths from options
+        #
+        if 'pythonpath' in options:
+            pythonpaths_to_add = [os.path.abspath(os.path.join(self._node._cbdir, p)) for p in options.get('pythonpath', [])]
+        else:
+            pythonpaths_to_add = []
+
         # assemble command line for forking the worker
         #
         # all native workers (routers and containers for now) start
@@ -452,7 +459,7 @@ class NodeControllerSession(NativeProcessSession):
         # We need to use the same PYTHONPATH we were started with, so we can
         # find the Crossbar we're working with -- it may not be the same as the
         # one on the default path
-        worker_env["PYTHONPATH"] = os.pathsep.join(sys.path)
+        worker_env["PYTHONPATH"] = os.pathsep.join(pythonpaths_to_add + sys.path)
 
         # log name of worker
         #
