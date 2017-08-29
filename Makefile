@@ -60,6 +60,7 @@ install:
 install_dev:
 	pip install -r requirements-dev.txt
 	pip install -e .
+	python -c "import crossbar; print('\ncrossbar-{} installed'.format(crossbar.__version__))"
 
 # upload to our internal deployment system
 upload: clean

@@ -219,6 +219,14 @@ class RouterRealm(object):
         self.roles = {}
         self.uplinks = {}
 
+    def marshal(self):
+        return {
+            u'id': self.id,
+            u'config': self.config,
+            u'created': self.created,
+            u'roles': self.roles,
+        }
+
 
 class RouterRealmRole(object):
 
@@ -888,6 +896,30 @@ class RouterWorkerSession(NativeWorkerSession):
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
 
+    def onLeave(self, details):
+        # when this router is shutting down, we disconnect all our
+        # components so that they have a chance to shutdown properly
+        # -- e.g. on a ctrl-C of the router.
+        leaves = []
+        if self.components:
+            for component in self.components.values():
+                if component.session.is_connected():
+                    d = maybeDeferred(component.session.leave)
+
+                    def done(_):
+                        self.log.info(
+                            "component '{id}' disconnected",
+                            id=component.id,
+                        )
+                        component.session.disconnect()
+                    d.addCallback(done)
+                    leaves.append(d)
+        dl = DeferredList(leaves, consumeErrors=True)
+        # we want our default behavior, which disconnects this
+        # router-worker, effectively shutting it down .. but only
+        # *after* the components got a chance to shutdown.
+        dl.addBoth(lambda _: super(RouterWorkerSession, self).onLeave(details))
+
     @wamp.register(None)
     def get_router_realms(self, details=None):
         """
@@ -901,15 +933,31 @@ class RouterWorkerSession(NativeWorkerSession):
         return sorted(self.realms.keys())
 
     @wamp.register(None)
+    def get_router_realm(self, realm_id, details=None):
+        """
+        Return realm detail information.
+
+        :returns: realm information object
+        :rtype: dict
+        """
+        self.log.debug("{name}.get_router_realm(realm_id={realm_id})", name=self.__class__.__name__, realm_id=realm_id)
+
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        return self.realms[realm_id].marshal()
+
+    @wamp.register(None)
     @inlineCallbacks
-    def start_router_realm(self, realm_id, config, enable_trace=False, details=None):
+    def start_router_realm(self, realm_id, realm_config, details=None):
         """
         Starts a realm on this router worker.
 
-        :param id: The ID of the realm to start.
-        :type id: str
-        :param config: The realm configuration.
-        :type config: dict
+        :param realm_id: The ID of the realm to start.
+        :type realm_id: str
+
+        :param realm_config: The realm configuration.
+        :type realm_config: dict
         """
         self.log.debug("{name}.start_router_realm", name=self.__class__.__name__)
 
@@ -923,17 +971,17 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            checkconfig.check_router_realm(config)
+            checkconfig.check_router_realm(realm_config)
         except Exception as e:
             emsg = "Invalid router realm configuration: {}".format(e)
             self.log.error(emsg)
             raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
 
         # URI of the realm to start
-        realm = config['name']
+        realm = realm_config['name']
 
         # router/realm wide options
-        options = config.get('options', {})
+        options = realm_config.get('options', {})
 
         enable_meta_api = options.get('enable_meta_api', True)
 
@@ -946,17 +994,12 @@ class RouterWorkerSession(NativeWorkerSession):
             bridge_meta_api_prefix = None
 
         # track realm
-        rlm = RouterRealm(realm_id, config)
+        rlm = RouterRealm(realm_id, realm_config)
         self.realms[realm_id] = rlm
         self.realm_to_id[realm] = realm_id
 
         # create a new router for the realm
         router = self._router_factory.start_realm(rlm)
-        if enable_trace:
-            router._trace_traffic = True
-            router._trace_traffic_roles_include = None
-            router._trace_traffic_roles_exclude = [u'trusted']
-            self.log.info(">>> Traffic tracing enabled! <<<")
 
         # add a router/realm service session
         extra = {
@@ -985,7 +1028,7 @@ class RouterWorkerSession(NativeWorkerSession):
         self.publish(u'{}.on_realm_started'.format(self._uri_prefix), realm_id)
 
     @wamp.register(None)
-    def stop_router_realm(self, realm_id, close_sessions=False, details=None):
+    def stop_router_realm(self, realm_id, details=None):
         """
         Stop a realm currently running on this router worker.
 
@@ -994,13 +1037,27 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param id: ID of the realm to stop.
         :type id: str
-        :param close_sessions: If `True`, close all session currently attached.
-        :type close_sessions: bool
         """
-        self.log.debug("{name}.stop_router_realm", name=self.__class__.__name__)
+        self.log.info("{name}.stop_router_realm", name=self.__class__.__name__)
 
-        # FIXME
-        raise NotImplementedError()
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        rlm = self.realms[realm_id]
+        realm_name = rlm.config['name']
+
+        detached_sessions = self._router_factory.stop_realm(realm_name)
+
+        del self.realms[realm_id]
+        del self.realm_to_id[realm_name]
+
+        realm_stopped = {
+            u'id': realm_id,
+            u'name': realm_name,
+            u'detached_sessions': sorted(detached_sessions)
+        }
+
+        return realm_stopped
 
     @wamp.register(None)
     def get_router_realm_roles(self, id, details=None):
@@ -1169,30 +1226,6 @@ class RouterWorkerSession(NativeWorkerSession):
                 u'config': component.config,
             })
         return res
-
-    def onLeave(self, details):
-        # when this router is shutting down, we disconnect all our
-        # components so that they have a chance to shutdown properly
-        # -- e.g. on a ctrl-C of the router.
-        leaves = []
-        if self.components:
-            for component in self.components.values():
-                if component.session.is_connected():
-                    d = maybeDeferred(component.session.leave)
-
-                    def done(_):
-                        self.log.info(
-                            "component '{id}' disconnected",
-                            id=component.id,
-                        )
-                        component.session.disconnect()
-                    d.addCallback(done)
-                    leaves.append(d)
-        dl = DeferredList(leaves, consumeErrors=True)
-        # we want our default behavior, which disconnects this
-        # router-worker, effectively shutting it down .. but only
-        # *after* the components got a chance to shutdown.
-        dl.addBoth(lambda _: super(RouterWorkerSession, self).onLeave(details))
 
     @wamp.register(None)
     def start_router_component(self, id, config, details=None):

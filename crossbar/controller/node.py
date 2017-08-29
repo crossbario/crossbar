@@ -53,8 +53,7 @@ from txaio import make_logger
 
 from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
-from autobahn.wamp.request import Registration
-from autobahn.wamp.types import CallDetails, CallOptions, ComponentConfig
+from autobahn.wamp.types import CallOptions, ComponentConfig
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
 
@@ -567,16 +566,13 @@ class Node(object):
         # call options we use to call into the local node management API
         call_options = CallOptions()
 
-        # fake call details we use to call into the local node management API
-        fake_registration = Registration(None, None, None, None)
-        call_details = CallDetails(fake_registration, caller=0)
-
         # get contoller configuration subpart
         controller = config.get('controller', {})
 
         # start Manhole in node controller
         if 'manhole' in controller:
-            yield self._controller.start_manhole(controller['manhole'], details=call_details)
+            yield self._controller.call(u'crossbar.start_manhole', controller['manhole'], options=call_options)
+            self.log.debug("controller: manhole started")
 
         # startup all workers
         workers = config.get('workers', [])
@@ -612,33 +608,32 @@ class Node(object):
             # any worker specific options
             worker_options = worker.get('options', {})
 
-            # native worker processes: router, container, websocket-testee
+            # now actually start the worker ..
+            yield self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=call_options)
+
+            # native worker processes setup: router, container, websocket-testee
             if worker_type in ['router', 'container', 'websocket-testee']:
 
-                # start a new native worker process ..
-                if worker_type == 'router':
-                    yield self._controller.start_router(worker_id, worker_options, details=call_details)
-
-                elif worker_type == 'container':
-                    yield self._controller.start_container(worker_id, worker_options, details=call_details)
-
-                elif worker_type == 'websocket-testee':
-                    yield self._controller.start_websocket_testee(worker_id, worker_options, details=call_details)
-
-                else:
-                    raise Exception("logic error")
-
                 # setup native worker generic stuff
-                if 'pythonpath' in worker_options:
-                    added_paths = yield self._controller.call(u'crossbar.worker.{}.add_pythonpath'.format(worker_id), worker_options['pythonpath'], options=call_options)
-                    self.log.debug("{worker}: PYTHONPATH extended for {paths}",
-                                   worker=worker_logname, paths=added_paths)
 
-                if 'cpu_affinity' in worker_options:
-                    new_affinity = yield self._controller.call(u'crossbar.worker.{}.set_cpu_affinity'.format(worker_id), worker_options['cpu_affinity'], options=call_options)
-                    self.log.debug("{worker}: CPU affinity set to {affinity}",
-                                   worker=worker_logname, affinity=new_affinity)
+                # expanding PYTHONPATH of the newly started worker is now done
+                # directly in NodeControllerSession._start_native_worker
+                if False:
+                    if 'pythonpath' in worker_options:
+                        added_paths = yield self._controller.call(u'crossbar.worker.{}.add_pythonpath'.format(worker_id), worker_options['pythonpath'], options=call_options)
+                        self.log.warn("{worker}: PYTHONPATH extended for {paths}",
+                                      worker=worker_logname, paths=added_paths)
 
+                # FIXME: as the CPU affinity is in the worker options, this _also_ (see above fix)
+                # should be done directly in NodeControllerSession._start_native_worker
+                if True:
+                    if 'cpu_affinity' in worker_options:
+                        new_affinity = yield self._controller.call(u'crossbar.worker.{}.set_cpu_affinity'.format(worker_id), worker_options['cpu_affinity'], options=call_options)
+                        self.log.debug("{worker}: CPU affinity set to {affinity}",
+                                       worker=worker_logname, affinity=new_affinity)
+
+                # this is fine to start after the worker has been started, as manhole is
+                # CB developer/support feature anyways (like a vendor diagnostics port)
                 if 'manhole' in worker:
                     yield self._controller.call(u'crossbar.worker.{}.start_manhole'.format(worker_id), worker['manhole'], options=call_options)
                     self.log.debug("{worker}: manhole started",
@@ -815,15 +810,5 @@ class Node(object):
 
                 else:
                     raise Exception("logic error")
-
-            elif worker_type == 'guest':
-
-                # start guest worker
-                #
-                yield self._controller.start_guest(worker_id, worker, details=call_details)
-                self.log.info("{worker}: started", worker=worker_logname)
-
-            else:
-                raise Exception("logic error")
 
         self.log.info('Local node configuration applied successfully!')

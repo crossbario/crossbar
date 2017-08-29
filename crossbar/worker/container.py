@@ -106,6 +106,9 @@ class ContainerWorkerSession(NativeWorkerSession):
     WORKER_TYPE = u'container'
     WORKER_TITLE = u'Container'
 
+    SHUTDOWN_MANUAL = u'shutdown-manual'
+    SHUTDOWN_ON_LAST_COMPONENT_STOPPED = u'shutdown-on-last-component-stopped'
+
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
 
@@ -126,13 +129,15 @@ class ContainerWorkerSession(NativeWorkerSession):
 
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
 
+        self._exit_mode = self.SHUTDOWN_MANUAL
+
         self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
 
         # NativeWorkerSession.publish_ready()
         yield self.publish_ready()
 
     @wamp.register(None)
-    def stop(self, details=None):
+    def shutdown(self, details=None):
         """
         Stops the whole container gracefully by stopping all components
         currently running, and then stopping the container worker.
@@ -146,8 +151,8 @@ class ContainerWorkerSession(NativeWorkerSession):
         """
         stopped_component_ids = []
         dl = []
-        for component in self.components:
-            dl.append(self.stop_component(component.id))
+        for component in self.components.values():
+            dl.append(self.stop_component(component.id, details=details))
             stopped_component_ids.append(component.id)
         self.disconnect()
         return stopped_component_ids
@@ -307,10 +312,13 @@ class ContainerWorkerSession(NativeWorkerSession):
                 component._stopped.callback(component.marshal())
 
                 if not self.components:
-                    self.log.info("Container is hosting no more components: stopping container ...")
-                    self.stop()
+                    if self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
+                        self.log.info("Container is hosting no more components: stopping container in exit mode <{exit_mode}> ...", exit_mode=self._exit_mode)
+                        self.shutdown()
+                    else:
+                        self.log.info("Container is hosting no more components: continue running in exit mode <{exit_mode}>", exit_mode=self._exit_mode)
                 else:
-                    self.log.info("Container is still hosting {component_count} components", component_count=len(self.components))
+                    self.log.info("Container is still hosting {component_count} components: continue running in exit mode <{exit_mode}>", exit_mode=self._exit_mode, component_count=len(self.components))
 
                 return r
 
@@ -456,11 +464,15 @@ class ContainerWorkerSession(NativeWorkerSession):
             }
         }
 
-        del self.components[component_id]
+        # the component.proto above normally already cleaned it up
+        if component_id in self.components:
+            del self.components[component_id]
 
-        self.publish(u'{}.on_component_stopped'.format(self._uri_prefix),
-                     stopped,
-                     options=PublishOptions(exclude=details.caller))
+        # FIXME: this is getting autobahn.wamp.exception.TransportLost
+        if False:
+            self.publish(u'{}.on_component_stopped'.format(self._uri_prefix),
+                         stopped,
+                         options=PublishOptions(exclude=details.caller))
 
         returnValue(stopped)
 
@@ -486,7 +498,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         return self.components[component_id].marshal()
 
     @wamp.register(None)
-    def list_components(self, ids_only=True, details=None):
+    def get_components(self, details=None):
         """
         Get components currently running within this container.
 
@@ -501,11 +513,4 @@ class ContainerWorkerSession(NativeWorkerSession):
         :rtype: list
         """
         self.log.debug('{klass}.list_components({details})', klass=self.__class__.__name__, details=details)
-
-        if ids_only:
-            return sorted(self.components.keys())
-        else:
-            res = []
-            for component_id in sorted(self.components.keys()):
-                res.append(self.components[component_id].marshal())
-            return res
+        return sorted(self.components.keys())

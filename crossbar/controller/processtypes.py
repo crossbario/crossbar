@@ -222,9 +222,12 @@ class WorkerProcess(object):
                 self._stats_printer.stop()
 
             def print_stats():
-                self._logger.debug("Worker {id} -> Controller traffic: {stats}", id=self.id, stats=self._stats)
+                self._logger.info("Worker {id} -> Controller traffic: {stats}", id=self.id, stats=self._stats)
             self._stats_printer = LoopingCall(print_stats)
             self._stats_printer.start(period)
+
+    def get_stats(self):
+        return self._stats
 
 
 class NativeWorkerProcess(WorkerProcess):
