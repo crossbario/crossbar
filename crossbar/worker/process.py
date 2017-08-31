@@ -30,38 +30,13 @@
 
 from __future__ import absolute_import, print_function
 
-import six
+import importlib
 
-import pkg_resources
+import six
 
 from twisted.internet.error import ReactorNotRunning
 
 __all__ = ('run',)
-
-
-def get_worker_classes():
-    """
-    Get Worker classes which implement worker types.
-
-    :returns: Dict with worker classes and aux info.
-    :rtype: dict
-    """
-    res = {}
-    for entrypoint in pkg_resources.iter_entry_points('crossbar.worker'):
-        klassname = str(entrypoint).split('=')[1].strip()
-        klass = entrypoint.load()
-        ep = {
-            u'name': entrypoint.name,
-            u'dist': entrypoint.dist.key,
-            u'version': entrypoint.dist.version,
-            u'class': klass,
-            u'classname': klassname,
-            u'doc': None
-        }
-        if hasattr(klass, '__doc__') and klass.__doc__:
-            ep[u'doc'] = klass.__doc__.strip()
-        res[entrypoint.name] = ep
-    return res
 
 
 def run():
@@ -104,30 +79,6 @@ def run():
         log.debug("Ignoring SIGINT in worker.")
     signal.signal(signal.SIGINT, ignore)
 
-    from crossbar.worker.router import RouterWorkerSession
-    from crossbar.worker.container import ContainerWorkerSession
-    from crossbar.worker.testee import WebSocketTesteeWorkerSession
-
-    # default worker type classes
-    WORKER_TYPE_TO_CLASS = {
-        u'router': RouterWorkerSession,
-        u'container': ContainerWorkerSession,
-        u'websocket-testee': WebSocketTesteeWorkerSession
-    }
-
-    # get new worker type classes, or worker type class overrides from the
-    # plugin system (we need this early, to add --type choices to CLI)
-    worker_classes = get_worker_classes()
-    for ep, worker_class in worker_classes.items():
-        klass = worker_class['class']
-        worker_type = klass.WORKER_TYPE
-        WORKER_TYPE_TO_CLASS[worker_type] = klass
-        log.info(
-            "Worker type '{worker_type}' with '{worker_class}'",
-            worker_type=worker_type,
-            worker_class=qual(klass),
-        )
-
     # create the top-level parser
     #
     import argparse
@@ -153,10 +104,10 @@ def run():
                         type=six.text_type,
                         help='Crossbar.io node (management) realm (required).')
 
-    parser.add_argument('-t',
-                        '--type',
-                        choices=WORKER_TYPE_TO_CLASS.keys(),
-                        help='Worker type (required).')
+    parser.add_argument('-k',
+                        '--klass',
+                        type=six.text_type,
+                        help='Crossbar.io worker class (required).')
 
     parser.add_argument('-w',
                         '--worker',
@@ -188,9 +139,17 @@ def run():
     from autobahn.twisted.choosereactor import install_reactor
     reactor = install_reactor(options.reactor)
 
+    # eg: crossbar.worker.container.ContainerWorkerSession
+    l = options.klass.split('.')
+    worker_module, worker_klass = '.'.join(l[:-1]), l[-1]
+
+    # now load the worker module and class
+    _mod = importlib.import_module(worker_module)
+    Klass = getattr(_mod, worker_klass)
+
     log.info(
         '{worker_title} worker "{worker_id}" process {pid} starting on {python}-{reactor} ..',
-        worker_title=WORKER_TYPE_TO_CLASS[options.type].WORKER_TITLE,
+        worker_title=Klass.WORKER_TITLE,
         worker_id=options.worker,
         pid=os.getpid(),
         python=platform.python_implementation(),
@@ -207,7 +166,7 @@ def run():
         if options.title:
             setproctitle.setproctitle(options.title)
         else:
-            setproctitle.setproctitle('crossbar-worker [{}]'.format(options.type))
+            setproctitle.setproctitle('crossbar-worker [{}]'.format(options.klass))
 
     # node directory
     #
@@ -226,7 +185,7 @@ def run():
             setproctitle.setproctitle(options.title)
         else:
             setproctitle.setproctitle(
-                'crossbar-worker [{}]'.format(options.type)
+                'crossbar-worker [{}]'.format(options.klass)
             )
 
     from twisted.internet.error import ConnectionDone
@@ -282,7 +241,7 @@ def run():
 
         session_config = ComponentConfig(realm=options.realm, extra=options)
         session_factory = ApplicationSessionFactory(session_config)
-        session_factory.session = WORKER_TYPE_TO_CLASS[options.type]
+        session_factory.session = Klass
 
         # create a WAMP-over-WebSocket transport server factory
         #
