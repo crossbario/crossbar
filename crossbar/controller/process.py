@@ -42,6 +42,7 @@ except ImportError:
     # import backport of shutil.which
     from shutilwhich import which  # noqa
 
+from twisted.python.reflect import qual
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import ProcessExitedAlready
@@ -64,6 +65,10 @@ from crossbar.controller.processtypes import NativeWorkerProcess, \
     WebSocketTesteeWorkerProcess
 from crossbar.common.process import NativeProcessSession
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
+
+from crossbar.worker.router import RouterWorkerSession
+from crossbar.worker.container import ContainerWorkerSession
+from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
 from txaio import make_logger, get_global_log_level
 
@@ -93,6 +98,7 @@ class NodeControllerSession(NativeProcessSession):
     NATIVE_WORKER = {
         'router': {
             'class': RouterWorkerProcess,
+            'worker_class': RouterWorkerSession,
             'checkconfig': checkconfig.check_router_options,
             'logname': 'Router',
             'topics': {
@@ -102,6 +108,7 @@ class NodeControllerSession(NativeProcessSession):
         },
         'container': {
             'class': ContainerWorkerProcess,
+            'worker_class': ContainerWorkerSession,
             'checkconfig': checkconfig.check_container_options,
             'logname': 'Container',
             'topics': {
@@ -111,6 +118,7 @@ class NodeControllerSession(NativeProcessSession):
         },
         'websocket-testee': {
             'class': WebSocketTesteeWorkerProcess,
+            'worker_class': WebSocketTesteeWorkerSession,
             'checkconfig': checkconfig.check_websocket_testee_options,
             'logname': 'WebSocketTestee',
             'topics': {
@@ -393,6 +401,9 @@ class NodeControllerSession(NativeProcessSession):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
 
+        # the fully qualified worker class as a string
+        worker_class = qual(self.NATIVE_WORKER[worker_type]['worker_class'])
+
         # allow override Python executable from options
         #
         if 'python' in options:
@@ -432,7 +443,7 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--worker", str(worker_id)])
         args.extend(["--realm", self._realm])
-        args.extend(["--type", worker_type])
+        args.extend(["--klass", worker_class])
         args.extend(["--loglevel", get_global_log_level()])
 
         # Node-level callback to inject worker arguments
