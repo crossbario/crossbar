@@ -2943,7 +2943,7 @@ def check_websocket_testee(worker):
     check_listening_transport_websocket(worker['transport'])
 
 
-def check_worker(worker):
+def check_worker(worker, native_workers):
     """
     Check a node worker configuration item.
 
@@ -2961,23 +2961,14 @@ def check_worker(worker):
 
     ptype = worker['type']
 
-    if ptype not in ['router', 'container', 'guest', 'websocket-testee']:
-        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item\n\n{}".format(ptype, pformat(worker)))
+    if ptype not in native_workers.keys():#['router', 'container', 'guest', 'websocket-testee']:
+        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item (valid items are: {})\n\n{}".format(ptype, ', '.join(native_workers.keys()), pformat(worker)))
 
-    if ptype == 'router':
-        check_router(worker)
-
-    elif ptype == 'container':
-        check_container(worker)
-
-    elif ptype == 'guest':
-        check_guest(worker)
-
-    elif ptype == 'websocket-testee':
-        check_websocket_testee(worker)
-
-    else:
+    try:
+        check_fn = native_workers[ptype]['checkconfig']
+    except KeyError:
         raise InvalidConfigException('logic error')
+    check_fn(worker)
 
 
 def check_controller_options(options):
@@ -3061,7 +3052,7 @@ def check_controller(controller):
     check_connections(connections)
 
 
-def check_config(config):
+def check_config(config, native_workers):
     """
     Check a Crossbar.io top-level configuration.
 
@@ -3070,6 +3061,9 @@ def check_config(config):
 
     :param config: The configuration to check.
     :type config: dict
+
+    :param native_workers: Mapping of valid native workers
+    :type native_workers: dict
     """
     if not isinstance(config, Mapping):
         raise InvalidConfigException("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
@@ -3099,10 +3093,10 @@ def check_config(config):
 
     for i, worker in enumerate(workers):
         log.debug("Checking worker item {item} ..", item=i)
-        check_worker(worker)
+        check_worker(worker, native_workers)
 
 
-def check_config_file(configfile):
+def check_config_file(configfile, native_workers):
     """
     Check a Crossbar.io local configuration file.
 
@@ -3129,7 +3123,7 @@ def check_config_file(configfile):
         else:
             raise Exception('logic error')
 
-    check_config(config)
+    check_config(config, native_workers)
 
     return config
 
