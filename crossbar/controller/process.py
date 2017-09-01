@@ -58,17 +58,10 @@ from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
 from crossbar.controller.guest import create_guest_worker_client_factory
-from crossbar.controller.processtypes import NativeWorkerProcess, \
-    RouterWorkerProcess, \
-    ContainerWorkerProcess, \
-    GuestWorkerProcess, \
-    WebSocketTesteeWorkerProcess
+from crossbar.controller.processtypes import NativeWorkerProcess
+from crossbar.controller.processtypes import GuestWorkerProcess
 from crossbar.common.process import NativeProcessSession
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
-
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
 from txaio import make_logger, get_global_log_level
 

@@ -2961,7 +2961,7 @@ def check_worker(worker, native_workers):
 
     ptype = worker['type']
 
-    if ptype not in native_workers.keys():#['router', 'container', 'guest', 'websocket-testee']:
+    if ptype not in list(native_workers.keys()) + ['guest']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item (valid items are: {})\n\n{}".format(ptype, ', '.join(native_workers.keys()), pformat(worker)))
 
     try:

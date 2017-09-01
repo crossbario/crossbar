@@ -219,7 +219,6 @@ class _NativeWorkerFactory(object):
 
 from crossbar.controller.processtypes import RouterWorkerProcess, \
     ContainerWorkerProcess, \
-    GuestWorkerProcess, \
     WebSocketTesteeWorkerProcess
 from crossbar.worker.router import RouterWorkerSession
 from crossbar.worker.container import ContainerWorkerSession
@@ -279,7 +278,6 @@ class Node(object):
     ROUTER_SERVICE = RouterServiceSession
 
     _native_workers = default_native_workers()
-
 
     # A Crossbar.io node is the running a controller process and one or multiple
     # worker processes.
@@ -661,8 +659,8 @@ class Node(object):
             # now actually start the worker ..
             yield self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=CallOptions())
 
-            # native worker processes setup: router, container, websocket-testee
-            if worker_type in self._native_workers:#['router', 'container', 'websocket-testee']:
+            # native worker processes setup
+            if worker_type in self._native_workers:
 
                 # setup native worker generic stuff
                 method_name = '_configure_native_worker_{}'.format(worker_type.replace('-', '_'))
@@ -802,7 +800,6 @@ class Node(object):
                 logname=worker_logname,
                 tid=transport_id,
             )
-
 
     @inlineCallbacks
     def _configure_native_worker_container(self, worker_logname, worker_id, worker):
