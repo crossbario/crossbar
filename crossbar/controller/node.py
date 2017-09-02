@@ -62,8 +62,14 @@ from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
 from crossbar.worker.router import RouterRealm
+from crossbar.worker.router import RouterWorkerSession
 from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
+from crossbar.controller.processtypes import RouterWorkerProcess
+from crossbar.controller.processtypes import ContainerWorkerProcess
+from crossbar.controller.processtypes import WebSocketTesteeWorkerProcess
+from crossbar.worker.container import ContainerWorkerSession
+from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
 
 def _read_release_pubkey():
@@ -205,24 +211,6 @@ def _write_node_key(filepath, tags, msg):
             if value is None:
                 value = 'unknown'
             f.write(u'{}: {}\n'.format(tag, value))
-
-
-# XXX could do something like this, but .. too complex?
-class _NativeWorkerFactory(object):
-
-    def __init__(self):
-        self._workers = dict()
-
-    def set_worker_type(self, kind, **config):
-        self._workers[kind] = config
-
-
-from crossbar.controller.processtypes import RouterWorkerProcess, \
-    ContainerWorkerProcess, \
-    WebSocketTesteeWorkerProcess
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
 
 def default_native_workers():
