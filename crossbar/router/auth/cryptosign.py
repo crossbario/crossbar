@@ -85,7 +85,7 @@ class PendingAuthCryptosign(PendingAuth):
     def _compute_challenge(self, channel_binding):
         self._challenge = os.urandom(32)
 
-        if self._channel_id:
+        if self._channel_id and channel_binding:
             self._expected_signed_message = util.xor(self._challenge, self._channel_id)
         else:
             self._expected_signed_message = self._challenge
@@ -102,8 +102,9 @@ class PendingAuthCryptosign(PendingAuth):
             return types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding))
         else:
             self.log.debug(
-                "WAMP-cryptosign CHANNEL BINDING requested: {binding}",
-                binding=channel_binding,
+                "WAMP-cryptosign CHANNEL BINDING requested: channel_binding={channel_binding}, channel_id={channel_id}",
+                channel_binding=channel_binding,
+                channel_id=self._channel_id
             )
 
         # remember the realm the client requested to join (if any)

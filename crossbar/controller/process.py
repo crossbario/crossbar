@@ -522,8 +522,7 @@ class NodeControllerSession(NativeProcessSession):
                 self._cleanup_worker, self._node._reactor, worker,
             )
 
-            worker.status = 'started'
-            worker.started = datetime.utcnow()
+            worker.on_worker_started()
 
             started_info = {
                 u'id': worker.id,
@@ -651,18 +650,10 @@ class NodeControllerSession(NativeProcessSession):
             # e.g. the executable doesn't even exist. in other words,
             # I'm not sure under what conditions the deferred will errback ..
 
-            pid = proto.transport.pid
-            self.log.debug("Native worker process connected with PID {pid}",
-                           pid=pid)
+            self.log.debug('Native worker "{worker_id}" connected',
+                           worker_id=worker_id)
 
-            # note the PID of the worker
-            worker.pid = pid
-
-            # proto is an instance of NativeWorkerClientProtocol
-            worker.proto = proto
-
-            worker.status = 'connected'
-            worker.connected = datetime.utcnow()
+            worker.on_worker_connected(proto)
 
             # dynamically add a dedicated authrole to the router
             # for the worker we've just started
@@ -845,12 +836,10 @@ class NodeControllerSession(NativeProcessSession):
         #
         def on_ready_success(proto):
 
-            worker.pid = proto.transport.pid
-            worker.status = 'started'
-            worker.started = datetime.utcnow()
+            self.log.info('{worker_logname} worker "{worker_id}" started',
+                          worker_logname=worker_logname, worker_id=worker.id)
 
-            self.log.info('{worker_logname} worker "{worker_id}" process {pid} started',
-                          worker_logname=worker_logname, worker_id=worker.id, pid=worker.pid)
+            worker.on_worker_started(proto)
 
             self._node._reactor.addSystemEventTrigger(
                 'before', 'shutdown',
@@ -973,18 +962,12 @@ class NodeControllerSession(NativeProcessSession):
             # I'm not sure under what conditions the deferred will
             # errback - probably only if the forking of a new process fails
             # at OS level due to out of memory conditions or such.
+            self.log.debug('{worker_logname} "{worker_id}" connected',
+                           worker_logname=worker_logname, worker_id=worker_id)
 
-            pid = proto.transport.pid
-            self.log.debug("Guest worker process connected with PID {pid}",
-                           pid=pid)
-
-            worker.pid = pid
-
-            # proto is an instance of GuestWorkerClientProtocol
-            worker.proto = proto
-
-            worker.status = 'connected'
-            worker.connected = datetime.utcnow()
+            # do not comment this: it will lead to on_worker_started being called
+            # _before_ on_worker_connected, and we don't need it!
+            # worker.on_worker_connected(proto)
 
         def on_connect_error(err):
 

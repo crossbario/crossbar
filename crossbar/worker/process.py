@@ -148,8 +148,9 @@ def run():
     Klass = getattr(_mod, worker_klass)
 
     log.info(
-        '{worker_title} worker "{worker_id}" process {pid} starting on {python}-{reactor} ..',
+        'Started {worker_title} worker "{worker_id}" [{klass} / {python}-{reactor}]',
         worker_title=Klass.WORKER_TITLE,
+        klass=options.klass,
         worker_id=options.worker,
         pid=os.getpid(),
         python=platform.python_implementation(),
