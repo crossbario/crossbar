@@ -58,17 +58,10 @@ from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
 from crossbar.controller.guest import create_guest_worker_client_factory
-from crossbar.controller.processtypes import NativeWorkerProcess, \
-    RouterWorkerProcess, \
-    ContainerWorkerProcess, \
-    GuestWorkerProcess, \
-    WebSocketTesteeWorkerProcess
+from crossbar.controller.processtypes import NativeWorkerProcess
+from crossbar.controller.processtypes import GuestWorkerProcess
 from crossbar.common.process import NativeProcessSession
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
-
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
 from txaio import make_logger, get_global_log_level
 
@@ -91,42 +84,6 @@ class NodeControllerSession(NativeProcessSession):
     """
 
     log = make_logger()
-
-    # map: native worker_type -> worker classes
-    # native workers are started by looking up respective
-    # information in this map.
-    NATIVE_WORKER = {
-        'router': {
-            'class': RouterWorkerProcess,
-            'worker_class': RouterWorkerSession,
-            'checkconfig': checkconfig.check_router_options,
-            'logname': 'Router',
-            'topics': {
-                'starting': u'crossbar.node.on_router_starting',
-                'started': u'crossbar.node.on_router_started',
-            }
-        },
-        'container': {
-            'class': ContainerWorkerProcess,
-            'worker_class': ContainerWorkerSession,
-            'checkconfig': checkconfig.check_container_options,
-            'logname': 'Container',
-            'topics': {
-                'starting': u'crossbar.node.on_container_starting',
-                'started': u'crossbar.node.on_container_started',
-            }
-        },
-        'websocket-testee': {
-            'class': WebSocketTesteeWorkerProcess,
-            'worker_class': WebSocketTesteeWorkerSession,
-            'checkconfig': checkconfig.check_websocket_testee_options,
-            'logname': 'WebSocketTestee',
-            'topics': {
-                'starting': u'crossbar.node.on_websocket_testee_starting',
-                'started': u'crossbar.node.on_websocket_testee_started',
-            }
-        },
-    }
 
     def __init__(self, node):
         """
@@ -319,7 +276,7 @@ class NodeControllerSession(NativeProcessSession):
         if worker_type == u'guest':
             return self._start_guest_worker(worker_id, worker_config, details=details)
 
-        elif worker_type in self.NATIVE_WORKER:
+        elif worker_type in self._node._native_workers:
             return self._start_native_worker(worker_type, worker_id, worker_config, details=details)
 
         else:
@@ -346,7 +303,7 @@ class NodeControllerSession(NativeProcessSession):
 
         worker = self._workers[worker_id]
 
-        if worker.TYPE in self.NATIVE_WORKER:
+        if worker.TYPE in self._node._native_workers:
             return self._stop_native_worker(worker_id, kill=kill, details=details)
 
         elif worker.TYPE == u'guest':
@@ -389,9 +346,9 @@ class NodeControllerSession(NativeProcessSession):
         #
         options = worker_config or {}
         try:
-            if worker_type in self.NATIVE_WORKER:
-                if self.NATIVE_WORKER[worker_type]['checkconfig']:
-                    self.NATIVE_WORKER[worker_type]['checkconfig'](options)
+            if worker_type in self._node._native_workers:
+                if self._node._native_workers[worker_type]['checkconfig']:
+                    self._node._native_workers[worker_type]['checkconfig'](options)
                 else:
                     self.log.warn('No checkconfig for worker type "{worker_type}" implemented!', worker_type=worker_type)
             else:
@@ -402,7 +359,7 @@ class NodeControllerSession(NativeProcessSession):
             raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
 
         # the fully qualified worker class as a string
-        worker_class = qual(self.NATIVE_WORKER[worker_type]['worker_class'])
+        worker_class = qual(self._node._native_workers[worker_type]['worker_class'])
 
         # allow override Python executable from options
         #
@@ -474,7 +431,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # log name of worker
         #
-        worker_logname = self.NATIVE_WORKER[worker_type]['logname']
+        worker_logname = self._node._native_workers[worker_type]['logname']
 
         # each worker is run under its own dedicated WAMP auth role
         #
@@ -482,12 +439,12 @@ class NodeControllerSession(NativeProcessSession):
 
         # topic URIs used (later)
         #
-        starting_topic = self.NATIVE_WORKER[worker_type]['topics']['starting']
-        started_topic = self.NATIVE_WORKER[worker_type]['topics']['started']
+        starting_topic = self._node._native_workers[worker_type]['topics']['starting']
+        started_topic = self._node._native_workers[worker_type]['topics']['started']
 
         # add worker tracking instance to the worker map ..
         #
-        WORKER = self.NATIVE_WORKER[worker_type]['class']
+        WORKER = self._node._native_workers[worker_type]['class']
         worker = WORKER(self, worker_id, details.caller, keeplog=options.get('traceback', None))
         self._workers[worker_id] = worker
 
