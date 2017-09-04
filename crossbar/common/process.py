@@ -440,6 +440,8 @@ class NativeProcessSession(ApplicationSession):
                        cls=self.__class__.__name__)
 
         if self._pinfo:
+            # psutil.AccessDenied
+            # PermissionError: [Errno 13] Permission denied: '/proc/14787/io'
             return self._pinfo.get_info()
         else:
             emsg = "Could not retrieve process statistics: required packages not installed"

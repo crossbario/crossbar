@@ -44,6 +44,7 @@ from twisted.internet.task import LoopingCall
 
 from txaio import make_logger
 from crossbar._logging import cb_logging_aware, escape_formatting, record_separator
+from crossbar.common.processinfo import ProcessInfo
 
 __all__ = ('RouterWorkerProcess',
            'ContainerWorkerProcess',
@@ -80,11 +81,14 @@ class WorkerProcess(object):
         self.id = id
         self.who = who
         self.pid = None
-        self.status = "starting"
+        self.status = u'starting'
 
         self.created = datetime.utcnow()
         self.connected = None
         self.started = None
+
+        self.proto = None
+        self.pinfo = None
 
         self._log_entries = deque(maxlen=10)
 
@@ -107,6 +111,46 @@ class WorkerProcess(object):
         # A deferred that resolves when the worker has exited.
         self.exit = Deferred()
         self.exit.addBoth(self._dump_remaining_log)
+
+    def on_worker_connected(self, proto):
+        """
+        Called immediately after the worker process has been forked.
+
+        IMPORTANT: this slightly differs between native workers and guest workers!
+        """
+        assert(self.status == u'starting')
+        assert(self.connected is None)
+        assert(self.proto is None)
+        assert(self.pid is None)
+        assert(self.pinfo is None)
+        self.status = u'connected'
+        self.connected = datetime.utcnow()
+        self.proto = proto
+        self.pid = proto.transport.pid
+        self.pinfo = ProcessInfo(self.pid)
+
+    def on_worker_started(self, proto=None):
+        """
+        Called after the worker process is connected to the node
+        router and registered all its management APIs there.
+
+        The worker is now ready for use!
+        """
+        assert(self.status in [u'starting', u'connected'])
+        assert(self.started is None)
+        assert(self.proto is not None or proto is not None)
+
+        if not self.pid:
+            self.pid = proto.transport.pid
+        if not self.pinfo:
+            self.pinfo = ProcessInfo(self.pid)
+
+        assert(self.pid is not None)
+        assert(self.pinfo is not None)
+
+        self.status = u'started'
+        self.proto = self.proto or proto
+        self.started = datetime.utcnow()
 
     def getlog(self, limit=None):
         # FIXME: return reversed, limited log

@@ -169,11 +169,15 @@ if _HAS_PSUTIL:
                 (socket.AF_UNIX, socket.SOCK_DGRAM): 'unix'
             })
 
-        def __init__(self):
+        def __init__(self, pid=None):
             """
-            Ctor.
+
+            :param pid: Optional PID, if given, track info/stats for
+                the given PID, otherwise track the current process.
+            :type pid: int
             """
-            self._p = psutil.Process()
+            self._pid = pid
+            self._p = psutil.Process(pid)
 
         def get_stats(self):
             """
