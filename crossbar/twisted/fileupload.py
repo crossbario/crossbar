@@ -69,8 +69,8 @@ class FileUploadResource(Resource):
         """
 
         Resource.__init__(self)
-        self._uploadRoot = upload_directory
-        self._tempDirRoot = temp_directory
+        self._uploadRoot = upload_directory.decode('utf8')
+        self._tempDirRoot = temp_directory.decode('utf8')
         self._form_fields = form_fields
         self._fileupload_session = upload_session
         self._options = options or {}
