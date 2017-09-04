@@ -179,7 +179,7 @@ class NodeInfoResource(Resource):
 
     def render_GET(self, request):
         # http://twistedmatrix.com/documents/current/web/howto/web-in-60/asynchronous-deferred.html
-        d = self._controller_session.call(u'crossbar.get_info')
+        d = self._controller_session.call(u'crossbar.get_status')
         d.addCallback(self._delayedRender, request)
         return server.NOT_DONE_YET
 

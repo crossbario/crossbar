@@ -103,7 +103,7 @@ class UniSocketServerProtocol(Protocol):
                 # we switch to (as only the specific protocol knows what is allowed for the other
                 # parts). iow, we solely switch based on the HTTP Request-URI.
                 if len(rl) != 3:
-                    self.log.warn('received invalid HTTP request line for HTTP protocol subswitch')
+                    self.log.warn('received invalid HTTP request line for HTTP protocol subswitch: "{request_line}"', request_line=request_line)
                     self.transport.loseConnection()
                     return
 

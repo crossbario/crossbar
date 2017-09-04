@@ -430,7 +430,7 @@ class Node(object):
                     u"cache": True
                 },
                 {
-                    u"uri": u"crossbar.get_info",
+                    u"uri": u"crossbar.get_status",
                     u"match": u"exact",
                     u"allow": {
                         u"call": True,
