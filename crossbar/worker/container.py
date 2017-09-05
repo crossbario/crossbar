@@ -458,9 +458,9 @@ class ContainerWorkerSession(NativeWorkerSession):
             u'component_id': component_id,
             u'uptime': (datetime.utcnow() - component.started).total_seconds(),
             u'caller': {
-                u'session': details.caller,
-                u'authid': details.caller_authid,
-                u'authrole': details.caller_authrole,
+                u'session': details.caller if details else None,
+                u'authid': details.caller_authid if details else None,
+                u'authrole': details.caller_authrole if details else None,
             }
         }
 
