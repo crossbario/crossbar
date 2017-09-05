@@ -9,7 +9,7 @@ Resources
 ---------
 
 -  Read more on the `Project Homepage <http://crossbar.io>`__
--  Jump into the `Quick Start <http://crossbar.io/docs/Quick-Start/>`__
+-  Jump into the **`Getting Started <http://crossbar.io/docs/Getting-Started/>`__**
 -  Checkout the complete `Documentation <http://crossbar.io/docs/>`__
 -  Join the `Mailing List <https://groups.google.com/forum/#!forum/crossbario>`__
 -  Follow us on `Twitter <https://twitter.com/crossbario>`__
