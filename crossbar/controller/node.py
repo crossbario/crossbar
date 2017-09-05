@@ -218,7 +218,13 @@ def default_native_workers():
     factory['router'] = {
         'class': RouterWorkerProcess,
         'worker_class': RouterWorkerSession,
-        'checkconfig': checkconfig.check_router,
+
+        # check a whole router worker configuration item (including realms, transports, ..)
+        'checkconfig_item': checkconfig.check_router,
+
+        # only check router worker options
+        'checkconfig_options': checkconfig.check_router_options,
+
         'logname': 'Router',
         'topics': {
             'starting': u'crossbar.node.on_router_starting',
@@ -228,7 +234,13 @@ def default_native_workers():
     factory['container'] = {
         'class': ContainerWorkerProcess,
         'worker_class': ContainerWorkerSession,
-        'checkconfig': checkconfig.check_container,
+
+        # check a whole container worker configuration item (including components, ..)
+        'checkconfig_item': checkconfig.check_container,
+
+        # only check container worker options
+        'checkconfig_options': checkconfig.check_container_options,
+
         'logname': 'Container',
         'topics': {
             'starting': u'crossbar.node.on_container_starting',
@@ -238,7 +250,13 @@ def default_native_workers():
     factory['websocket-testee'] = {
         'class': WebSocketTesteeWorkerProcess,
         'worker_class': WebSocketTesteeWorkerSession,
-        'checkconfig': checkconfig.check_websocket_testee,
+
+        # check a whole websocket testee worker configuration item
+        'checkconfig_item': checkconfig.check_websocket_testee_options,
+
+        # only check websocket testee worker worker options
+        'checkconfig_options': checkconfig.check_websocket_testee_options,
+
         'logname': 'WebSocketTestee',
         'topics': {
             'starting': u'crossbar.node.on_websocket_testee_starting',

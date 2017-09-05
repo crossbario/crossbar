@@ -2671,7 +2671,7 @@ def check_container(container):
         check_manhole(container['manhole'])
 
     if 'options' in container:
-        check_native_worker_options(container['options'])
+        check_container_options(container['options'])
 
     # connections
     #
@@ -2935,7 +2935,7 @@ def check_websocket_testee(worker):
             raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket testee configuration".format(k))
 
     if 'options' in worker:
-        check_native_worker_options(worker['options'])
+        check_websocket_testee_options(worker['options'])
 
     if 'transport' not in worker:
         raise InvalidConfigException("missing mandatory attribute 'transport' in WebSocket testee configuration")
@@ -2964,11 +2964,14 @@ def check_worker(worker, native_workers):
     if ptype not in list(native_workers.keys()) + ['guest']:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item (valid items are: {})\n\n{}".format(ptype, ', '.join(native_workers.keys()), pformat(worker)))
 
-    try:
-        check_fn = native_workers[ptype]['checkconfig']
-    except KeyError:
-        raise InvalidConfigException('logic error')
-    check_fn(worker)
+    if ptype == 'guest':
+        check_guest(worker)
+    else:
+        try:
+            check_fn = native_workers[ptype]['checkconfig_item']
+        except KeyError:
+            raise InvalidConfigException('missing worker check function "checkconfig_item"')
+        check_fn(worker)
 
 
 def check_controller_options(options):

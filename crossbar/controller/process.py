@@ -269,15 +269,15 @@ class NodeControllerSession(NativeProcessSession):
         return worker_info
 
     @wamp.register(None)
-    def start_worker(self, worker_id, worker_type, worker_config=None, details=None):
+    def start_worker(self, worker_id, worker_type, worker_options=None, details=None):
         """
         Start a new worker process in the node.
         """
         if worker_type == u'guest':
-            return self._start_guest_worker(worker_id, worker_config, details=details)
+            return self._start_guest_worker(worker_id, worker_options, details=details)
 
         elif worker_type in self._node._native_workers:
-            return self._start_native_worker(worker_type, worker_id, worker_config, details=details)
+            return self._start_native_worker(worker_type, worker_id, worker_options, details=details)
 
         else:
             raise Exception('invalid worker type "{}"'.format(worker_type))
@@ -333,7 +333,7 @@ class NodeControllerSession(NativeProcessSession):
 
         return self._workers[worker_id].getlog(limit)
 
-    def _start_native_worker(self, worker_type, worker_id, worker_config=None, details=None):
+    def _start_native_worker(self, worker_type, worker_id, worker_options=None, details=None):
 
         # prohibit starting a worker twice
         #
@@ -344,13 +344,13 @@ class NodeControllerSession(NativeProcessSession):
 
         # check worker options
         #
-        options = worker_config or {}
+        options = worker_options or {}
         try:
             if worker_type in self._node._native_workers:
-                if self._node._native_workers[worker_type]['checkconfig']:
-                    self._node._native_workers[worker_type]['checkconfig'](options)
+                if self._node._native_workers[worker_type]['checkconfig_options']:
+                    self._node._native_workers[worker_type]['checkconfig_options'](options)
                 else:
-                    self.log.warn('No checkconfig for worker type "{worker_type}" implemented!', worker_type=worker_type)
+                    raise Exception('No checkconfig_options for worker type "{worker_type}" implemented!'.format(worker_type=worker_type))
             else:
                 raise Exception('invalid worker type "{}"'.format(worker_type))
         except Exception as e:
