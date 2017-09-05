@@ -684,6 +684,7 @@ def run_command_start(options, reactor=None):
     try:
         node.load(options.config)
     except InvalidConfigException as e:
+        log.failure()
         log.error("Invalid node configuration")
         log.error("{e!s}", e=e)
         sys.exit(1)
