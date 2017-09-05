@@ -449,7 +449,7 @@ class Node(object):
                 u'controller': {},
                 u'workers': []
             }
-            checkconfig.check_config(self._config)
+            checkconfig.check_config(self._config, self._native_workers)
             self.log.info('Node configuration loaded from built-in config.')
 
     def _add_global_roles(self):
