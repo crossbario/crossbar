@@ -1,5 +1,5 @@
 name: crossbar
-version: '17.5.1'
+version: '17.9.1'
 summary: Crossbar.io - Polyglot application router.
 description: |
   Crossbar.io is a networking platform for distributed and microservice
@@ -7,13 +7,16 @@ description: |
   Crossbar.io take care of the hard parts of messaging so you can focus
   on your app's features.
 
-grade: devel
+grade: stable
 confinement: strict
 
 apps:
   crossbar:
     command: bin/crossbar
-    plugs: [home, network, network-bind]
+    plugs:
+      - home
+      - network
+      - network-bind
 
 parts:
   crossbar:
