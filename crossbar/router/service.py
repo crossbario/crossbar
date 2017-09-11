@@ -131,7 +131,7 @@ class RouterServiceSession(ApplicationSession):
                 translated_topic = u'{}{}'.format(prefix, translated_topic)
 
             self.log.debug('RouterServiceSession.publish("{topic}") -> "{translated_topic}" on "{realm}"',
-                          topic=topic, translated_topic=translated_topic, realm=session._realm)
+                           topic=topic, translated_topic=translated_topic, realm=session._realm)
 
             dl.append(ApplicationSession.publish(session, translated_topic, *args, **kwargs))
 
