@@ -162,14 +162,14 @@ class Broker(object):
                     def _publish():
                         if session._session_id is None:
                             options = types.PublishOptions(
-                                correlation=None
+                                correlation_id=None
                             )
                         else:
                             options = types.PublishOptions(
                                 # we exclude the client session from the set of receivers
                                 # for the WAMP session meta events (race conditions!)
                                 exclude=[session._session_id],
-                                correlation=None
+                                correlation_id=None
                             )
                         service_session = self._router._realm.session
                         if was_subscribed:
@@ -268,7 +268,9 @@ class Broker(object):
         if not uri_is_valid:
             if publish.acknowledge:
                 reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with invalid topic URI '{0}' (URI strict checking {1})".format(publish.topic, self._option_uri_strict)])
-                reply.correlation = publish.correlation
+                reply.correlation_id = publish.correlation_id
+                reply.correlation_uri = publish.topic
+                reply.correlation_is_anchor = False
                 self._router.send(session, reply)
             return
 
@@ -280,7 +282,9 @@ class Broker(object):
             if is_restricted:
                 if publish.acknowledge:
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with restricted topic URI '{0}'".format(publish.topic)])
-                    reply.correlation = publish.correlation
+                    reply.correlation_id = publish.correlation_id
+                    reply.correlation_uri = publish.topic
+                    reply.correlation_is_anchor = False
                     self._router.send(session, reply)
                 return
 
@@ -323,7 +327,9 @@ class Broker(object):
                 except Exception as e:
                     if publish.acknowledge:
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [u"publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
-                        reply.correlation = publish.correlation
+                        reply.correlation_id = publish.correlation_id
+                        reply.correlation_uri = publish.topic
+                        reply.correlation_is_anchor = False
                         self._router.send(session, reply)
                     return
 
@@ -340,7 +346,9 @@ class Broker(object):
 
                     if publish.acknowledge:
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, [u"session not authorized to publish to topic '{0}'".format(publish.topic)])
-                        reply.correlation = publish.correlation
+                        reply.correlation_id = publish.correlation_id
+                        reply.correlation_uri = publish.topic
+                        reply.correlation_is_anchor = False
                         self._router.send(session, reply)
 
                 else:
@@ -353,7 +361,9 @@ class Broker(object):
                     #
                     if publish.acknowledge:
                         reply = message.Published(publish.request, publication)
-                        reply.correlation = publish.correlation
+                        reply.correlation_id = publish.correlation_id
+                        reply.correlation_uri = publish.topic
+                        reply.correlation_is_anchor = False
                         self._router.send(session, reply)
 
                     # publisher disclosure
@@ -472,7 +482,9 @@ class Broker(object):
 
                             # if the publish message had a correlation ID, this will also be the
                             # correlation ID of the event message sent out
-                            msg.correlation = publish.correlation
+                            msg.correlation_id = publish.correlation_id
+                            msg.correlation_uri = publish.topic
+                            msg.correlation_is_anchor = False
 
                             chunk_size = self._options.event_dispatching_chunk_size
 
@@ -528,7 +540,9 @@ class Broker(object):
                         ApplicationError.AUTHORIZATION_FAILED,
                         [u"failed to authorize session for publishing to topic URI '{0}': {1}".format(publish.topic, err.value)]
                     )
-                    reply.correlation = publish.correlation
+                    reply.correlation_id = publish.correlation_id
+                    reply.correlation_uri = publish.topic
+                    reply.correlation_is_anchor = False
                     self._router.send(session, reply)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -559,7 +573,9 @@ class Broker(object):
 
         if not uri_is_valid:
             reply = message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.INVALID_URI, [u"subscribe for invalid topic URI '{0}'".format(subscribe.topic)])
-            reply.correlation = subscribe.correlation
+            reply.correlation_id = subscribe.correlation_id
+            reply.correlation_uri = subscribe.topic
+            reply.correlation_is_anchor = False
             self._router.send(session, reply)
             return
 
@@ -572,7 +588,9 @@ class Broker(object):
                 # error reply since session is not authorized to subscribe
                 #
                 replies = [message.Error(message.Subscribe.MESSAGE_TYPE, subscribe.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to subscribe to topic '{0}'".format(subscribe.topic)])]
-                replies[0].correlation = subscribe.correlation
+                replies[0].correlation_id = subscribe.correlation_id
+                replies[0].correlation_uri = subscribe.topic
+                replies[0].correlation_is_anchor = False
 
             else:
                 # ok, session authorized to subscribe. now get the subscription
@@ -592,7 +610,7 @@ class Broker(object):
                             # we exclude the client session from the set of receivers
                             # for the WAMP session meta events (race conditions!)
                             exclude=[session._session_id],
-                            correlation=subscribe.correlation
+                            correlation_id=subscribe.correlation_id
                         )
                         if is_first_subscriber:
                             subscription_details = {
@@ -657,7 +675,9 @@ class Broker(object):
                                                         publisher_authrole=retained_event.publisher_authrole,
                                                         retained=True)
 
-                                msg.correlation = subscribe.correlation
+                                msg.correlation_id = subscribe.correlation_id
+                                msg.correlation_uri = subscribe.topic
+                                msg.correlation_is_anchor = False
 
                                 return [msg]
                     return []
@@ -665,7 +685,9 @@ class Broker(object):
                 # acknowledge subscribe with subscription ID
                 #
                 replies = [message.Subscribed(subscribe.request, subscription.id)]
-                replies[0].correlation = subscribe.correlation
+                replies[0].correlation_id = subscribe.correlation_id
+                replies[0].correlation_uri = subscribe.topic
+                replies[0].correlation_is_anchor = False
                 if subscribe.get_retained:
                     replies.extend(_get_retained_event())
 
@@ -687,7 +709,8 @@ class Broker(object):
                 ApplicationError.AUTHORIZATION_FAILED,
                 [u"failed to authorize session for subscribing to topic URI '{0}': {1}".format(subscribe.topic, err.value)]
             )
-            reply.correlation = subscribe.correlation
+            reply.correlation_id = subscribe.correlation_id
+            reply.correlation_uri = subscribe.topic
             self._router.send(session, reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -707,6 +730,7 @@ class Broker(object):
                 was_subscribed, was_last_subscriber = self._unsubscribe(subscription, session, unsubscribe)
 
                 reply = message.Unsubscribed(unsubscribe.request)
+                reply.correlation_uri = subscription.uri
             else:
                 # subscription exists on this broker, but the session that wanted to unsubscribe wasn't subscribed
                 #
@@ -717,7 +741,8 @@ class Broker(object):
             #
             reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
 
-        reply.correlation = unsubscribe.correlation
+        reply.correlation_id = unsubscribe.correlation_id
+        reply.correlation_is_anchor = False
 
         self._router.send(session, reply)
 
@@ -745,14 +770,14 @@ class Broker(object):
                 service_session = self._router._realm.session
                 if session._session_id is None:
                     options = types.PublishOptions(
-                        correlation=unsubscribe.correlation if unsubscribe else None
+                        correlation_id=unsubscribe.correlation_id if unsubscribe else None,
                     )
                 else:
                     options = types.PublishOptions(
                         # we exclude the client session from the set of receivers
                         # for the WAMP session meta events (race conditions!)
                         exclude=[session._session_id],
-                        correlation=unsubscribe.correlation if unsubscribe else None
+                        correlation_id=unsubscribe.correlation_id if unsubscribe else None,
                     )
                 if was_subscribed:
                     service_session.publish(
@@ -781,6 +806,7 @@ class Broker(object):
 
         if 'subscriber' in session._session_roles and session._session_roles['subscriber'] and session._session_roles['subscriber'].subscription_revocation:
             reply = message.Unsubscribed(0, subscription=subscription.id, reason=reason)
+            reply.correlation_uri = subscription.uri
             self._router.send(session, reply)
 
         return was_subscribed, was_last_subscriber

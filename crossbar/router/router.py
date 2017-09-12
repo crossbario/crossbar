@@ -246,6 +246,9 @@ class Router(object):
         elif isinstance(msg, message.Unsubscribe):
             self._broker.processUnsubscribe(session, msg)
 
+        elif isinstance(msg, message.EventReceived):
+            self._broker.processEventReceived(session, msg)
+
         # Dealer
         #
         elif isinstance(msg, message.Register):
