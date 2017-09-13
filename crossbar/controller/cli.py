@@ -1075,7 +1075,7 @@ def run(prog=None, args=None, reactor=None):
             try:
                 os.mkdir(options.cbdir)
             except Exception as e:
-                print("Could not create node directory: {e}".format(e))
+                print("Could not create node directory: {}".format(e))
                 sys.exit(1)
             else:
                 print("Auto-created node directory {}".format(options.cbdir))
