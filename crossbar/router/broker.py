@@ -260,6 +260,7 @@ class Broker(object):
             if not publish.correlation_id:
                 publish.correlation_id = self._router.new_correlation_id()
                 publish.correlation_is_anchor = True
+                publish.correlation_is_last = False
             if not publish.correlation_uri:
                 publish.correlation_uri = publish.topic
 
@@ -276,6 +277,7 @@ class Broker(object):
                 reply.correlation_id = publish.correlation_id
                 reply.correlation_uri = publish.topic
                 reply.correlation_is_anchor = False
+                reply.correlation_is_last = True
                 self._router.send(session, reply)
             return
 
@@ -290,6 +292,7 @@ class Broker(object):
                     reply.correlation_id = publish.correlation_id
                     reply.correlation_uri = publish.topic
                     reply.correlation_is_anchor = False
+                    reply.correlation_is_last = True
                     self._router.send(session, reply)
                 return
 
@@ -335,6 +338,7 @@ class Broker(object):
                         reply.correlation_id = publish.correlation_id
                         reply.correlation_uri = publish.topic
                         reply.correlation_is_anchor = False
+                        reply.correlation_is_last = True
                         self._router.send(session, reply)
                     return
 
@@ -354,6 +358,7 @@ class Broker(object):
                         reply.correlation_id = publish.correlation_id
                         reply.correlation_uri = publish.topic
                         reply.correlation_is_anchor = False
+                        reply.correlation_is_last = True
                         self._router.send(session, reply)
 
                 else:
@@ -490,6 +495,7 @@ class Broker(object):
                             msg.correlation_id = publish.correlation_id
                             msg.correlation_uri = publish.topic
                             msg.correlation_is_anchor = False
+                            msg.correlation_is_last = False
 
                             chunk_size = self._options.event_dispatching_chunk_size
 
@@ -560,6 +566,7 @@ class Broker(object):
             if not subscribe.correlation_id:
                 subscribe.correlation_id = self._router.new_correlation_id()
                 subscribe.correlation_is_anchor = True
+                subscribe.correlation_is_last = False
             if not subscribe.correlation_uri:
                 subscribe.correlation_uri = subscribe.topic
 
@@ -588,6 +595,7 @@ class Broker(object):
             reply.correlation_id = subscribe.correlation_id
             reply.correlation_uri = subscribe.topic
             reply.correlation_is_anchor = False
+            reply.correlation_is_last = True
             self._router.send(session, reply)
             return
 
@@ -603,6 +611,7 @@ class Broker(object):
                 replies[0].correlation_id = subscribe.correlation_id
                 replies[0].correlation_uri = subscribe.topic
                 replies[0].correlation_is_anchor = False
+                replies[0].correlation_is_last = True
 
             else:
                 # ok, session authorized to subscribe. now get the subscription
@@ -617,7 +626,10 @@ class Broker(object):
                 #
                 if self._router._realm and \
                    self._router._realm.session and \
-                   not subscription.uri.startswith(u'wamp.'):
+                   not subscription.uri.startswith(u'wamp.') and \
+                   (is_first_subscriber or not was_already_subscribed):
+
+                    has_follow_up_messages = True
 
                     def _publish():
                         service_session = self._router._realm.session
@@ -647,6 +659,9 @@ class Broker(object):
                             )
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish)
+
+                else:
+                    has_follow_up_messages = False
 
                 # check for retained events
                 #
@@ -691,6 +706,7 @@ class Broker(object):
                                 msg.correlation_id = subscribe.correlation_id
                                 msg.correlation_uri = subscribe.topic
                                 msg.correlation_is_anchor = False
+                                msg.correlation_is_last = False
 
                                 return [msg]
                     return []
@@ -701,8 +717,11 @@ class Broker(object):
                 replies[0].correlation_id = subscribe.correlation_id
                 replies[0].correlation_uri = subscribe.topic
                 replies[0].correlation_is_anchor = False
+                replies[0].correlation_is_last = False
                 if subscribe.get_retained:
                     replies.extend(_get_retained_event())
+
+                replies[-1].correlation_is_last = not has_follow_up_messages
 
             # send out reply to subscribe requestor
             #
@@ -725,6 +744,7 @@ class Broker(object):
             reply.correlation_id = subscribe.correlation_id
             reply.correlation_uri = subscribe.topic
             reply.correlation_is_anchor = False
+            reply.correlation_is_last = True
             self._router.send(session, reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -756,15 +776,22 @@ class Broker(object):
 
                 if self._router.is_traced:
                     reply.correlation_uri = subscription.uri
+                    reply.correlation_is_last = not has_follow_up_messages
             else:
                 # subscription exists on this broker, but the session that wanted to unsubscribe wasn't subscribed
                 #
                 reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
+                if self._router.is_traced:
+                    reply.correlation_uri = reply.error
+                    reply.correlation_is_last = True
 
         else:
             # subscription doesn't even exist on this broker
             #
             reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
+            if self._router.is_traced:
+                reply.correlation_uri = reply.error
+                reply.correlation_is_last = True
 
         if self._router.is_traced:
             reply.correlation_id = unsubscribe.correlation_id
