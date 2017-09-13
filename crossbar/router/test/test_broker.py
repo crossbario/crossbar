@@ -340,6 +340,7 @@ class TestBrokerPublish(unittest.TestCase):
         session0 = TestSession()
         session1 = TestSession()
         router = mock.MagicMock()
+        router.new_correlation_id = lambda: u'fake correlation id'
         broker = Broker(router, reactor)
 
         # let's just "cheat" our way a little to the right state by
@@ -385,6 +386,7 @@ class TestRouterSession(unittest.TestCase):
         """
 
         router = mock.MagicMock()
+        router.new_correlation_id = lambda: u'fake correlation id'
 
         class TestSession(RouterSession):
             def __init__(self, *args, **kw):
@@ -419,6 +421,7 @@ class TestRouterSession(unittest.TestCase):
         """
 
         router = mock.MagicMock()
+        router.new_correlation_id = lambda: u'fake correlation id'
         utest = self
 
         class TestSession(RouterSession):

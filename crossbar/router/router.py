@@ -123,7 +123,7 @@ class Router(object):
         return self._is_traced
 
     def new_correlation_id(self):
-        return str(uuid.uuid4())
+        return six.text_type(uuid.uuid4())
 
     def attach(self, session):
         """
