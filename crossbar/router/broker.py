@@ -94,8 +94,11 @@ class Broker(object):
         :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
         """
         self._router = router
-        self._options = options or RouterOptions()
         self._reactor = reactor
+        self._options = options or RouterOptions()
+
+        # generator for WAMP request IDs
+        self._request_id_gen = util.IdGenerator()
 
         # subscription map managed by this broker
         self._subscription_map = UriObservationMap()
@@ -155,23 +158,18 @@ class Broker(object):
                     was_deleted = True
                     self._subscription_map.delete_observation(subscription)
 
-                # publish WAMP meta events
+                # publish WAMP meta events, if we have a service session, but
+                # not for the meta API itself!
                 #
-                if self._router._realm and self._router._realm.session:
+                if self._router._realm and \
+                   self._router._realm.session and \
+                   not subscription.uri.startswith(u'wamp.'):
 
                     def _publish():
-                        if session._session_id is None:
-                            options = types.PublishOptions(
-                                correlation_id=None
-                            )
-                        else:
-                            options = types.PublishOptions(
-                                # we exclude the client session from the set of receivers
-                                # for the WAMP session meta events (race conditions!)
-                                exclude=[session._session_id],
-                                correlation_id=None
-                            )
                         service_session = self._router._realm.session
+                        options = types.PublishOptions(
+                            correlation_id=None
+                        )
                         if was_subscribed:
                             service_session.publish(
                                 u'wamp.subscription.on_unsubscribe',
@@ -258,6 +256,13 @@ class Broker(object):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processPublish`
         """
+        if self._router.is_traced:
+            if not publish.correlation_id:
+                publish.correlation_id = self._router.new_correlation_id()
+                publish.correlation_is_anchor = True
+            if not publish.correlation_uri:
+                publish.correlation_uri = publish.topic
+
         # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
         if self._option_uri_strict:
@@ -551,6 +556,13 @@ class Broker(object):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processSubscribe`
         """
+        if self._router.is_traced:
+            if not subscribe.correlation_id:
+                subscribe.correlation_id = self._router.new_correlation_id()
+                subscribe.correlation_is_anchor = True
+            if not subscribe.correlation_uri:
+                subscribe.correlation_uri = subscribe.topic
+
         # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
         # URI components must be non-empty for normal subscriptions, may be empty for
         # wildcard subscriptions and must be non-empty for all but the last component for
@@ -600,17 +612,18 @@ class Broker(object):
                 if not was_already_subscribed:
                     self._session_to_subscriptions[session].add(subscription)
 
-                # publish WAMP meta events
+                # publish WAMP meta events, if we have a service session, but
+                # not for the meta API itself!
                 #
-                if self._router._realm and self._router._realm.session:
+                if self._router._realm and \
+                   self._router._realm.session and \
+                   not subscription.uri.startswith(u'wamp.'):
 
                     def _publish():
                         service_session = self._router._realm.session
                         options = types.PublishOptions(
-                            # we exclude the client session from the set of receivers
-                            # for the WAMP session meta events (race conditions!)
-                            exclude=[session._session_id],
-                            correlation_id=subscribe.correlation_id
+                            correlation_id=subscribe.correlation_id,
+                            correlation_is_anchor=False
                         )
                         if is_first_subscriber:
                             subscription_details = {
@@ -701,8 +714,8 @@ class Broker(object):
             different from the call to authorize succeed, but the
             authorization being denied)
             """
-            # XXX same as another code-block, can we collapse?
-            self.log.failure("Authorization failed", failure=err)
+            self.log.failure("Authorization of 'subscribe' for '{uri}' failed",
+                             uri=subscribe.topic, failure=err)
             reply = message.Error(
                 message.Subscribe.MESSAGE_TYPE,
                 subscribe.request,
@@ -711,6 +724,7 @@ class Broker(object):
             )
             reply.correlation_id = subscribe.correlation_id
             reply.correlation_uri = subscribe.topic
+            reply.correlation_is_anchor = False
             self._router.send(session, reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -719,18 +733,28 @@ class Broker(object):
         """
         Implements :func:`crossbar.router.interfaces.IBroker.processUnsubscribe`
         """
+        if self._router.is_traced:
+            if not unsubscribe.correlation_id:
+                unsubscribe.correlation_id = self._router.new_correlation_id()
+                unsubscribe.correlation_is_anchor = True
+
         # get subscription by subscription ID or None (if it doesn't exist on this broker)
         #
         subscription = self._subscription_map.get_observation_by_id(unsubscribe.subscription)
 
         if subscription:
 
+            if self._router.is_traced and not unsubscribe.correlation_uri:
+                unsubscribe.correlation_uri = subscription.uri
+
             if session in subscription.observers:
 
                 was_subscribed, was_last_subscriber = self._unsubscribe(subscription, session, unsubscribe)
 
                 reply = message.Unsubscribed(unsubscribe.request)
-                reply.correlation_uri = subscription.uri
+
+                if self._router.is_traced:
+                    reply.correlation_uri = subscription.uri
             else:
                 # subscription exists on this broker, but the session that wanted to unsubscribe wasn't subscribed
                 #
@@ -741,8 +765,9 @@ class Broker(object):
             #
             reply = message.Error(message.Unsubscribe.MESSAGE_TYPE, unsubscribe.request, ApplicationError.NO_SUCH_SUBSCRIPTION)
 
-        reply.correlation_id = unsubscribe.correlation_id
-        reply.correlation_is_anchor = False
+        if self._router.is_traced:
+            reply.correlation_id = unsubscribe.correlation_id
+            reply.correlation_is_anchor = False
 
         self._router.send(session, reply)
 
@@ -762,23 +787,24 @@ class Broker(object):
         if was_subscribed:
             self._session_to_subscriptions[session].discard(subscription)
 
-        # publish WAMP meta events
+        # publish WAMP meta events, if we have a service session, but
+        # not for the meta API itself!
         #
-        if self._router._realm and self._router._realm.session:
+        if self._router._realm and \
+           self._router._realm.session and \
+           not subscription.uri.startswith(u'wamp.'):
 
             def _publish():
                 service_session = self._router._realm.session
-                if session._session_id is None:
+
+                if unsubscribe and self._router.is_traced:
                     options = types.PublishOptions(
-                        correlation_id=unsubscribe.correlation_id if unsubscribe else None,
+                        correlation_id=unsubscribe.correlation_id,
+                        correlation_is_anchor=False
                     )
                 else:
-                    options = types.PublishOptions(
-                        # we exclude the client session from the set of receivers
-                        # for the WAMP session meta events (race conditions!)
-                        exclude=[session._session_id],
-                        correlation_id=unsubscribe.correlation_id if unsubscribe else None,
-                    )
+                    options = None
+
                 if was_subscribed:
                     service_session.publish(
                         u'wamp.subscription.on_unsubscribe',
@@ -786,6 +812,7 @@ class Broker(object):
                         subscription.id,
                         options=options,
                     )
+
                 if was_deleted:
                     service_session.publish(
                         u'wamp.subscription.on_delete',
@@ -793,6 +820,7 @@ class Broker(object):
                         subscription.id,
                         options=options,
                     )
+
             # we postpone actual sending of meta events until we return to this client session
             self._reactor.callLater(0, _publish)
 

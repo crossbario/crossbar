@@ -103,15 +103,17 @@ class Dealer(object):
 
     log = make_logger()
 
-    def __init__(self, router, options=None):
+    def __init__(self, router, reactor, options=None):
         """
 
         :param router: The router this dealer is part of.
         :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
+
         :param options: Router options.
         :type options: Instance of :class:`crossbar.router.types.RouterOptions`.
         """
         self._router = router
+        self._reactor = reactor
         self._options = options or RouterOptions()
 
         # generator for WAMP request IDs
@@ -178,6 +180,7 @@ class Dealer(object):
         # if the caller on an in-flight invocation goes away
         # INTERRUPT the callee if supported
         if session in self._caller_to_invocations:
+
             outstanding = self._caller_to_invocations.get(session, [])
             for invoke in outstanding:  # type: InvocationRequest
                 if invoke.callee is invoke.caller:  # if the calling itself - no need to notify
@@ -229,18 +232,34 @@ class Dealer(object):
                 if was_registered and was_last_callee:
                     self._registration_map.delete_observation(registration)
 
-                # publish WAMP meta events
+                # publish WAMP meta events, if we have a service session, but
+                # not for the meta API itself!
                 #
-                if self._router._realm:
-                    service_session = self._router._realm.session
-                    if service_session and not registration.uri.startswith(u'wamp.'):
+                if self._router._realm and \
+                   self._router._realm.session and \
+                   not registration.uri.startswith(u'wamp.'):
+
+                    def _publish():
+                        service_session = self._router._realm.session
                         options = types.PublishOptions(
                             correlation_id=None
                         )
                         if was_registered:
-                            service_session.publish(u'wamp.registration.on_unregister', session._session_id, registration.id, options=options)
+                            service_session.publish(
+                                u'wamp.registration.on_unregister',
+                                session._session_id,
+                                registration.id,
+                                options=options,
+                            )
                         if was_last_callee:
-                            service_session.publish(u'wamp.registration.on_delete', session._session_id, registration.id, options=options)
+                            service_session.publish(
+                                u'wamp.registration.on_delete',
+                                session._session_id,
+                                registration.id,
+                                options=options,
+                            )
+                    # we postpone actual sending of meta events until we return to this client session
+                    self._reactor.callLater(0, _publish)
 
             del self._session_to_registrations[session]
 
@@ -254,6 +273,13 @@ class Dealer(object):
         # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
         # URI components must be non-empty other than for wildcard subscriptions
         #
+        if self._router.is_traced:
+            if not register.correlation_id:
+                register.correlation_id = self._router.new_correlation_id()
+                register.correlation_is_anchor = True
+            if not register.correlation_uri:
+                register.correlation_uri = register.procedure
+
         if self._option_uri_strict:
             if register.match == u"wildcard":
                 uri_is_valid = _URI_PAT_STRICT_EMPTY.match(register.procedure)
@@ -370,6 +396,8 @@ class Dealer(object):
                             reason=u"wamp.error.unregistered",
                         )
                         kicked.correlation_id = register.correlation_id
+                        kicked.correlation_uri = register.procedure
+                        kicked.correlation_is_anchor = False
                         self._router.send(obs, kicked)
                     self._registration_map.delete_observation(registration)
 
@@ -382,14 +410,24 @@ class Dealer(object):
                 if not was_already_registered:
                     self._session_to_registrations[session].add(registration)
 
-                # publish WAMP meta events
+                # publish WAMP meta events, if we have a service session, but
+                # not for the meta API itself!
                 #
-                if self._router._realm:
-                    service_session = self._router._realm.session
-                    if service_session and not registration.uri.startswith(u'wamp.'):
-                        options = types.PublishOptions(
-                            correlation_id=register.correlation_id
-                        )
+                if self._router._realm and \
+                   self._router._realm.session and \
+                   not registration.uri.startswith(u'wamp.'):
+
+                    def _publish():
+                        service_session = self._router._realm.session
+
+                        if self._router.is_traced:
+                            options = types.PublishOptions(
+                                correlation_id=register.correlation_id,
+                                correlation_is_anchor=False
+                            )
+                        else:
+                            options = None
+
                         if is_first_callee:
                             registration_details = {
                                 u'id': registration.id,
@@ -398,9 +436,23 @@ class Dealer(object):
                                 u'match': registration.match,
                                 u'invoke': registration.extra.invoke,
                             }
-                            service_session.publish(u'wamp.registration.on_create', session._session_id, registration_details, options=options)
+                            service_session.publish(
+                                u'wamp.registration.on_create',
+                                session._session_id,
+                                registration_details,
+                                options=options
+                            )
+
                         if not was_already_registered:
-                            service_session.publish(u'wamp.registration.on_register', session._session_id, registration.id, options=options)
+                            service_session.publish(
+                                u'wamp.registration.on_register',
+                                session._session_id,
+                                registration.id,
+                                options=options
+                            )
+
+                    # we postpone actual sending of meta events until we return to this client session
+                    self._reactor.callLater(0, _publish)
 
                 # acknowledge register with registration ID
                 #
@@ -419,7 +471,8 @@ class Dealer(object):
             different from the call to authorize succeed, but the
             authorization being denied)
             """
-            self.log.failure("Authorization of 'register' for '{uri}' failed", uri=register.procedure, failure=err)
+            self.log.failure("Authorization of 'register' for '{uri}' failed",
+                             uri=register.procedure, failure=err)
             reply = message.Error(
                 message.Register.MESSAGE_TYPE,
                 register.request,
@@ -437,18 +490,28 @@ class Dealer(object):
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processUnregister`
         """
+        if self._router.is_traced:
+            if not unregister.correlation_id:
+                unregister.correlation_id = self._router.new_correlation_id()
+                unregister.correlation_is_anchor = True
+
         # get registration by registration ID or None (if it doesn't exist on this broker)
         #
         registration = self._registration_map.get_observation_by_id(unregister.registration)
 
         if registration:
 
+            if self._router.is_traced and not unregister.correlation_uri:
+                unregister.correlation_uri = registration.uri
+
             if session in registration.observers:
 
-                was_registered, was_last_callee = self._unregister(registration, session)
+                was_registered, was_last_callee = self._unregister(registration, session, unregister)
 
                 reply = message.Unregistered(unregister.request)
-                reply.correlation_uri = registration.uri
+
+                if self._router.is_traced:
+                    reply.correlation_uri = registration.uri
             else:
                 # registration exists on this dealer, but the session that wanted to unregister wasn't registered
                 #
@@ -459,8 +522,9 @@ class Dealer(object):
             #
             reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
 
-        reply.correlation_id = unregister.correlation_id
-        reply.correlation_is_anchor = False
+        if self._router.is_traced:
+            reply.correlation_id = unregister.correlation_id
+            reply.correlation_is_anchor = False
 
         self._router.send(session, reply)
 
@@ -480,7 +544,7 @@ class Dealer(object):
         if was_registered:
             self._session_to_registrations[session].discard(registration)
 
-        # publish WAMP meta events
+        # publish WAMP meta events via router-realm service session
         #
         if self._router._realm and self._router._realm.session:
 
@@ -490,6 +554,7 @@ class Dealer(object):
                 if session._session_id is None:
                     options = types.PublishOptions(
                         correlation_id=unregister.correlation_id if unregister else None,
+                        correlation_is_anchor=unregister is None
                     )
                 else:
                     options = types.PublishOptions(
@@ -497,6 +562,7 @@ class Dealer(object):
                         # for the WAMP session meta events (race conditions!)
                         exclude=[session._session_id],
                         correlation_id=unregister.correlation_id if unregister else None,
+                        correlation_is_anchor=unregister is None
                     )
                 if was_registered:
                     service_session.publish(
@@ -536,6 +602,13 @@ class Dealer(object):
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processCall`
         """
+        if self._router.is_traced:
+            if not call.correlation_id:
+                call.correlation_id = self._router.new_correlation_id()
+                call.correlation_is_anchor = True
+            if not call.correlation_uri:
+                call.correlation_uri = call.procedure
+
         # check procedure URI: for CALL, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
         if self._option_uri_strict:
