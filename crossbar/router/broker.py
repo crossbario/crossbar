@@ -737,6 +737,7 @@ class Broker(object):
             if not unsubscribe.correlation_id:
                 unsubscribe.correlation_id = self._router.new_correlation_id()
                 unsubscribe.correlation_is_anchor = True
+                unsubscribe.correlation_is_last = False
 
         # get subscription by subscription ID or None (if it doesn't exist on this broker)
         #
@@ -749,7 +750,7 @@ class Broker(object):
 
             if session in subscription.observers:
 
-                was_subscribed, was_last_subscriber = self._unsubscribe(subscription, session, unsubscribe)
+                was_subscribed, was_last_subscriber, has_follow_up_messages = self._unsubscribe(subscription, session, unsubscribe)
 
                 reply = message.Unsubscribed(unsubscribe.request)
 
@@ -779,8 +780,8 @@ class Broker(object):
         was_deleted = False
 
         if was_subscribed and was_last_subscriber and not subscription.extra.retained_events:
-            was_deleted = True
             self._subscription_map.delete_observation(subscription)
+            was_deleted = True
 
         # remove subscription from session->subscriptions map
         #
@@ -792,7 +793,10 @@ class Broker(object):
         #
         if self._router._realm and \
            self._router._realm.session and \
-           not subscription.uri.startswith(u'wamp.'):
+           not subscription.uri.startswith(u'wamp.') and \
+           (was_subscribed or was_deleted):
+
+            has_follow_up_messages = True
 
             def _publish():
                 service_session = self._router._realm.session
@@ -800,7 +804,8 @@ class Broker(object):
                 if unsubscribe and self._router.is_traced:
                     options = types.PublishOptions(
                         correlation_id=unsubscribe.correlation_id,
-                        correlation_is_anchor=False
+                        correlation_is_anchor=False,
+                        correlation_is_last=False
                     )
                 else:
                     options = None
@@ -814,6 +819,9 @@ class Broker(object):
                     )
 
                 if was_deleted:
+                    if options:
+                        options.correlation_is_last = True
+
                     service_session.publish(
                         u'wamp.subscription.on_delete',
                         session._session_id,
@@ -824,13 +832,17 @@ class Broker(object):
             # we postpone actual sending of meta events until we return to this client session
             self._reactor.callLater(0, _publish)
 
-        return was_subscribed, was_last_subscriber
+        else:
+
+            has_follow_up_messages = False
+
+        return was_subscribed, was_last_subscriber, has_follow_up_messages
 
     def removeSubscriber(self, subscription, session, reason=None):
         """
         Actively unsubscribe a subscriber session from a subscription.
         """
-        was_subscribed, was_last_subscriber = self._unsubscribe(subscription, session)
+        was_subscribed, was_last_subscriber, _ = self._unsubscribe(subscription, session)
 
         if 'subscriber' in session._session_roles and session._session_roles['subscriber'] and session._session_roles['subscriber'].subscription_revocation:
             reply = message.Unsubscribed(0, subscription=subscription.id, reason=reason)

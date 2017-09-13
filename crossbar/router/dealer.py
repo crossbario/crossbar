@@ -277,6 +277,7 @@ class Dealer(object):
             if not register.correlation_id:
                 register.correlation_id = self._router.new_correlation_id()
                 register.correlation_is_anchor = True
+                register.correlation_is_last = False
             if not register.correlation_uri:
                 register.correlation_uri = register.procedure
 
@@ -306,6 +307,7 @@ class Dealer(object):
             reply.correlation_id = register.correlation_id
             reply.correlation_uri = register.procedure
             reply.correlation_is_anchor = False
+            reply.correlation_is_last = True
             self._router.send(session, reply)
             return
 
@@ -319,6 +321,7 @@ class Dealer(object):
                 reply.correlation_id = register.correlation_id
                 reply.correlation_uri = register.procedure
                 reply.correlation_is_anchor = False
+                reply.correlation_is_last = True
                 self._router.send(session, reply)
                 return
 
@@ -347,6 +350,7 @@ class Dealer(object):
                 reply.correlation_id = register.correlation_id
                 reply.correlation_uri = register.procedure
                 reply.correlation_is_anchor = False
+                reply.correlation_is_last = True
                 self._router.send(session, reply)
                 return
 
@@ -372,6 +376,7 @@ class Dealer(object):
                 reply.correlation_id = register.correlation_id
                 reply.correlation_uri = register.procedure
                 reply.correlation_is_anchor = False
+                reply.correlation_is_last = True
                 self._router.send(session, reply)
                 return
 
@@ -398,6 +403,7 @@ class Dealer(object):
                         kicked.correlation_id = register.correlation_id
                         kicked.correlation_uri = register.procedure
                         kicked.correlation_is_anchor = False
+                        kicked.correlation_is_last = False
                         self._router.send(obs, kicked)
                     self._registration_map.delete_observation(registration)
 
@@ -410,12 +416,22 @@ class Dealer(object):
                 if not was_already_registered:
                     self._session_to_registrations[session].add(registration)
 
+                # acknowledge register with registration ID
+                #
+                reply = message.Registered(register.request, registration.id)
+                reply.correlation_id = register.correlation_id
+                reply.correlation_uri = register.procedure
+                reply.correlation_is_anchor = False
+
                 # publish WAMP meta events, if we have a service session, but
                 # not for the meta API itself!
                 #
                 if self._router._realm and \
                    self._router._realm.session and \
-                   not registration.uri.startswith(u'wamp.'):
+                   not registration.uri.startswith(u'wamp.') and \
+                   (is_first_callee or not was_already_registered):
+
+                    reply.correlation_is_last = False
 
                     def _publish():
                         service_session = self._router._realm.session
@@ -423,7 +439,8 @@ class Dealer(object):
                         if self._router.is_traced:
                             options = types.PublishOptions(
                                 correlation_id=register.correlation_id,
-                                correlation_is_anchor=False
+                                correlation_is_anchor=False,
+                                correlation_is_last=False,
                             )
                         else:
                             options = None
@@ -444,25 +461,23 @@ class Dealer(object):
                             )
 
                         if not was_already_registered:
+                            if options:
+                                options.correlation_is_last = True
+
                             service_session.publish(
                                 u'wamp.registration.on_register',
                                 session._session_id,
                                 registration.id,
                                 options=options
                             )
-
                     # we postpone actual sending of meta events until we return to this client session
                     self._reactor.callLater(0, _publish)
 
-                # acknowledge register with registration ID
-                #
-                reply = message.Registered(register.request, registration.id)
+                else:
+                    reply.correlation_is_last = True
 
             # send out reply to register requestor
             #
-            reply.correlation_id = register.correlation_id
-            reply.correlation_uri = register.procedure
-            reply.correlation_is_anchor = False
             self._router.send(session, reply)
 
         def on_authorize_error(err):
@@ -482,6 +497,7 @@ class Dealer(object):
             reply.correlation_id = register.correlation_id
             reply.correlation_uri = register.procedure
             reply.correlation_is_anchor = False
+            reply.correlation_is_last = True
             self._router.send(session, reply)
 
         txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -494,6 +510,7 @@ class Dealer(object):
             if not unregister.correlation_id:
                 unregister.correlation_id = self._router.new_correlation_id()
                 unregister.correlation_is_anchor = True
+                unregister.correlation_is_last = False
 
         # get registration by registration ID or None (if it doesn't exist on this broker)
         #
@@ -506,21 +523,28 @@ class Dealer(object):
 
             if session in registration.observers:
 
-                was_registered, was_last_callee = self._unregister(registration, session, unregister)
+                was_registered, was_last_callee, has_follow_up_messages = self._unregister(registration, session, unregister)
 
                 reply = message.Unregistered(unregister.request)
 
                 if self._router.is_traced:
                     reply.correlation_uri = registration.uri
+                    reply.correlation_is_last = not has_follow_up_messages
             else:
                 # registration exists on this dealer, but the session that wanted to unregister wasn't registered
                 #
                 reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
+                if self._router.is_traced:
+                    reply.correlation_uri = reply.error
+                    reply.correlation_is_last = True
 
         else:
             # registration doesn't even exist on this broker
             #
             reply = message.Error(message.Unregister.MESSAGE_TYPE, unregister.request, ApplicationError.NO_SUCH_REGISTRATION)
+            if self._router.is_traced:
+                reply.correlation_uri = reply.error
+                reply.correlation_is_last = True
 
         if self._router.is_traced:
             reply.correlation_id = unregister.correlation_id
@@ -536,34 +560,36 @@ class Dealer(object):
         was_deleted = False
 
         if was_registered and was_last_callee:
-            was_deleted = True
             self._registration_map.delete_observation(registration)
+            was_deleted = True
 
         # remove registration from session->registrations map
         #
         if was_registered:
             self._session_to_registrations[session].discard(registration)
 
-        # publish WAMP meta events via router-realm service session
+        # publish WAMP meta events, if we have a service session, but
+        # not for the meta API itself!
         #
-        if self._router._realm and self._router._realm.session:
+        if self._router._realm and \
+           self._router._realm.session and \
+           not registration.uri.startswith(u'wamp.') and \
+           (was_registered or was_deleted):
+
+            has_follow_up_messages = True
 
             def _publish():
                 service_session = self._router._realm.session
 
-                if session._session_id is None:
+                if unregister and self._router.is_traced:
                     options = types.PublishOptions(
-                        correlation_id=unregister.correlation_id if unregister else None,
-                        correlation_is_anchor=unregister is None
+                        correlation_id=unregister.correlation_id,
+                        correlation_is_anchor=False,
+                        correlation_is_last=False
                     )
                 else:
-                    options = types.PublishOptions(
-                        # we exclude the client session from the set of receivers
-                        # for the WAMP session meta events (race conditions!)
-                        exclude=[session._session_id],
-                        correlation_id=unregister.correlation_id if unregister else None,
-                        correlation_is_anchor=unregister is None
-                    )
+                    options = None
+
                 if was_registered:
                     service_session.publish(
                         u'wamp.registration.on_unregister',
@@ -571,23 +597,31 @@ class Dealer(object):
                         registration.id,
                         options=options
                     )
+
                 if was_deleted:
+                    if options:
+                        options.correlation_is_last = True
+
                     service_session.publish(
                         u'wamp.registration.on_delete',
                         session._session_id,
                         registration.id,
                         options=options
                     )
+
             # we postpone actual sending of meta events until we return to this client session
             self._reactor.callLater(0, _publish)
 
-        return was_registered, was_last_callee
+        else:
+            has_follow_up_messages = False
+
+        return was_registered, was_last_callee, has_follow_up_messages
 
     def removeCallee(self, registration, session, reason=None):
         """
         Actively unregister a callee session from a registration.
         """
-        was_registered, was_last_callee = self._unregister(registration, session)
+        was_registered, was_last_callee, _ = self._unregister(registration, session)
 
         # actively inform the callee that it has been unregistered
         #
@@ -606,6 +640,7 @@ class Dealer(object):
             if not call.correlation_id:
                 call.correlation_id = self._router.new_correlation_id()
                 call.correlation_is_anchor = True
+                call.correlation_is_last = False
             if not call.correlation_uri:
                 call.correlation_uri = call.procedure
 
@@ -621,6 +656,7 @@ class Dealer(object):
             reply.correlation_id = call.correlation_id
             reply.correlation_uri = call.procedure
             reply.correlation_is_anchor = False
+            reply.correlation_is_last = True
             self._router.send(session, reply)
             return
 
@@ -640,6 +676,7 @@ class Dealer(object):
                     reply.correlation_id = call.correlation_id
                     reply.correlation_uri = call.procedure
                     reply.correlation_is_anchor = False
+                    reply.correlation_is_last = True
                     self._router.send(session, reply)
                     return
 
@@ -656,6 +693,7 @@ class Dealer(object):
                     reply.correlation_id = call.correlation_id
                     reply.correlation_uri = call.procedure
                     reply.correlation_is_anchor = False
+                    reply.correlation_is_last = True
                     self._router.send(session, reply)
 
                 else:
@@ -677,6 +715,7 @@ class Dealer(object):
                 reply.correlation_id = call.correlation_id
                 reply.correlation_uri = call.procedure
                 reply.correlation_is_anchor = False
+                reply.correlation_is_last = True
                 self._router.send(session, reply)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
@@ -686,6 +725,7 @@ class Dealer(object):
             reply.correlation_id = call.correlation_id
             reply.correlation_uri = call.procedure
             reply.correlation_is_anchor = False
+            reply.correlation_is_last = True
             self._router.send(session, reply)
 
     def _call(self, session, call, registration, authorization, is_queued_call=False):
@@ -729,6 +769,7 @@ class Dealer(object):
                         reply.correlation_id = call.correlation_id
                         reply.correlation_uri = call.procedure
                         reply.correlation_is_anchor = False
+                        reply.correlation_is_last = True
                         self._router.send(session, reply)
                         return False
                 else:
@@ -768,6 +809,7 @@ class Dealer(object):
                                 reply.correlation_id = call.correlation_id
                                 reply.correlation_uri = call.procedure
                                 reply.correlation_is_anchor = False
+                                reply.correlation_is_last = True
                                 self._router.send(session, reply)
                                 return False
                         else:
@@ -853,6 +895,7 @@ class Dealer(object):
         invocation.correlation_id = call.correlation_id
         invocation.correlation_uri = call.procedure
         invocation.correlation_is_anchor = False
+        invocation.correlation_is_last = False
 
         self._add_invoke_request(invocation_request_id, registration, session, call, callee)
         self._router.send(callee, invocation)
@@ -913,6 +956,7 @@ class Dealer(object):
             cancel.correlation_id = invocation_request.call.correlation_id
             cancel.correlation_uri = invocation_request.call.procedure
             cancel.correlation_is_anchor = False
+            cancel.correlation_is_last = False
 
             # for those that repeatedly push elevator buttons
             if invocation_request.canceled:
@@ -925,6 +969,7 @@ class Dealer(object):
                 interrupt.correlation_id = invocation_request.call.correlation_id
                 interrupt.correlation_uri = invocation_request.call.procedure
                 interrupt.correlation_is_anchor = False
+                interrupt.correlation_is_last = False
 
                 self._router.send(invocation_request.callee, interrupt)
 
@@ -946,6 +991,7 @@ class Dealer(object):
             yield_.correlation_id = invocation_request.call.correlation_id
             yield_.correlation_uri = invocation_request.call.correlation_uri
             yield_.correlation_is_anchor = False
+            yield_.correlation_is_last = False
 
             # check to make sure this session is the one that is supposed to be yielding
             if invocation_request.callee is not session:
@@ -966,21 +1012,29 @@ class Dealer(object):
                 reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress,
                                        enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
 
+            # the call is done if it's a regular call (non-progressive) or if the payload was invalid
+            #
+            if not yield_.progress or not is_valid:
+                call_complete = True
+            else:
+                call_complete = False
+
             # the calling session might have been lost in the meantime ..
             #
             if invocation_request.caller._transport:
                 reply.correlation_id = invocation_request.call.correlation_id
                 reply.correlation_uri = invocation_request.call.correlation_uri
                 reply.correlation_is_anchor = False
+                reply.correlation_is_last = call_complete
                 self._router.send(invocation_request.caller, reply)
 
-            # the call is done if it's a regular call (non-progressive) or if the payload was invalid
-            #
-            if not yield_.progress or not is_valid:
+            if call_complete:
+                # reduce current concurrency on callee
                 callee_extra = invocation_request.registration.observers_extra.get(session, None)
                 if callee_extra:
                     callee_extra.concurrency_current -= 1
 
+                # cleanup the (individual) invocation
                 self._remove_invoke_request(invocation_request)
 
                 # check for any calls queued on the registration for which an
@@ -1018,6 +1072,7 @@ class Dealer(object):
             error.correlation_id = invocation_request.call.correlation_id
             error.correlation_uri = invocation_request.call.correlation_uri
             error.correlation_is_anchor = False
+            error.correlation_is_last = False
 
             # if concurrency is enabled on this, an error counts as
             # "an answer" so we decrement.
@@ -1055,6 +1110,7 @@ class Dealer(object):
                 reply.correlation_id = invocation_request.call.correlation_id
                 reply.correlation_uri = invocation_request.call.correlation_uri
                 reply.correlation_is_anchor = False
+                reply.correlation_is_last = True
                 self._router.send(invocation_request.caller, reply)
 
             # the call is done
