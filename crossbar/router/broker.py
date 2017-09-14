@@ -260,7 +260,6 @@ class Broker(object):
             if not publish.correlation_id:
                 publish.correlation_id = self._router.new_correlation_id()
                 publish.correlation_is_anchor = True
-                publish.correlation_is_last = False
             if not publish.correlation_uri:
                 publish.correlation_uri = publish.topic
 
@@ -325,7 +324,14 @@ class Broker(object):
         #   - the event is to be persisted OR
         #   - the event is to be retained
         #
-        if subscriptions or publish.acknowledge or store_event or retain_event:
+        if not (subscriptions or publish.acknowledge or store_event or retain_event):
+
+            # the received PUBLISH message is the only one received/sent
+            # for this WAMP action, so mark it as "last" (there is another code path below!)
+            if self._router.is_traced and publish.correlation_is_last is None:
+                publish.correlation_is_last = True
+
+        else:
 
             # validate payload
             #
@@ -366,15 +372,6 @@ class Broker(object):
                     # new ID for the publication
                     #
                     publication = util.id()
-
-                    # send publish acknowledge immediately when requested
-                    #
-                    if publish.acknowledge:
-                        reply = message.Published(publish.request, publication)
-                        reply.correlation_id = publish.correlation_id
-                        reply.correlation_uri = publish.topic
-                        reply.correlation_is_anchor = False
-                        self._router.send(session, reply)
 
                     # publisher disclosure
                     #
@@ -438,13 +435,14 @@ class Broker(object):
                         else:
                             observation.extra.retained_events = [retained_event]
 
-                    all_dl = []
+                    subscription_to_receivers = {}
+                    total_receivers_cnt = 0
 
-                    # iterate over all subscriptions ..
+                    # iterate over all subscriptions and determine actual receivers of the event
+                    # under the respective subscription. also persist events (independent of whether
+                    # there is any actual receiver right now on the subscription)
                     #
                     for subscription in subscriptions:
-
-                        self.log.debug('dispatching for subscription={subscription}', subscription=subscription)
 
                         # persist event history, but check if it is persisted on the individual subscription!
                         #
@@ -460,6 +458,44 @@ class Broker(object):
                         #
                         receivers_cnt = len(receivers) - (1 if self in receivers else 0)
                         if receivers_cnt:
+
+                            total_receivers_cnt += receivers_cnt
+                            subscription_to_receivers[subscription] = receivers
+
+                    # send publish acknowledge before dispatching
+                    #
+                    if publish.acknowledge:
+                        if self._router.is_traced:
+                            publish.correlation_is_last = False
+
+                        reply = message.Published(publish.request, publication)
+                        reply.correlation_id = publish.correlation_id
+                        reply.correlation_uri = publish.topic
+                        reply.correlation_is_anchor = False
+                        reply.correlation_is_last = total_receivers_cnt == 0
+                        self._router.send(session, reply)
+                    else:
+                        if self._router.is_traced and publish.correlation_is_last is None:
+                            if total_receivers_cnt == 0:
+                                publish.correlation_is_last = True
+                            else:
+                                publish.correlation_is_last = False
+
+                    # now actually dispatch the events!
+                    # for chunked dispatching, this will be filled with deferreds for each chunk
+                    # processed. when the complete list of deferreds is done, that means the
+                    # event has been sent out to all applicable receivers
+                    all_dl = []
+
+                    if total_receivers_cnt:
+
+                        # list of receivers that should have received the event, but we could not
+                        # send the event, since the receiver has disappeared in the meantime
+                        vanished_receivers = []
+
+                        for subscription, receivers in subscription_to_receivers.items():
+
+                            self.log.debug('dispatching for subscription={subscription}', subscription=subscription)
 
                             # for pattern-based subscriptions, the EVENT must contain
                             # the actual topic being published to
@@ -499,8 +535,9 @@ class Broker(object):
 
                             chunk_size = self._options.event_dispatching_chunk_size
 
-                            if chunk_size:
-                                self.log.debug('chunked dispatching to {receivers_size} with chunk_size={chunk_size}', receivers_size=len(receivers), chunk_size=chunk_size)
+                            if chunk_size and len(receivers) > chunk_size:
+                                self.log.debug('chunked dispatching to {receivers_size} with chunk_size={chunk_size}',
+                                               receivers_size=len(receivers), chunk_size=chunk_size)
 
                                 # a Deferred that fires when all chunks are done
                                 all_d = txaio.create_future()
@@ -509,11 +546,12 @@ class Broker(object):
                                 def _notify_some(receivers):
                                     for receiver in receivers[:chunk_size]:
                                         if (me_also or receiver != session) and receiver != self._event_store:
-                                            # the receiving subscriber session
-                                            # might have no transport, or no
-                                            # longer be joined
+                                            # the receiving subscriber session might have no transport,
+                                            # or no longer be joined
                                             if receiver._session_id and receiver._transport:
                                                 self._router.send(receiver, msg)
+                                            else:
+                                                vanished_receivers.append(receiver)
                                     receivers = receivers[chunk_size:]
                                     if len(receivers) > 0:
                                         # still more to do ..
@@ -525,15 +563,17 @@ class Broker(object):
 
                                 _notify_some(list(receivers))
                             else:
-                                self.log.debug('unchunked dispatching to {receivers_size} receivers', receivers_size=len(receivers))
+                                self.log.debug('unchunked dispatching to {receivers_size} receivers',
+                                               receivers_size=len(receivers))
 
                                 for receiver in receivers:
                                     if (me_also or receiver != session) and receiver != self._event_store:
-                                        # the receiving subscriber session
-                                        # might have no transport, or no
-                                        # longer be joined
+                                        # the receiving subscriber session might have no transport,
+                                        # or no longer be joined
                                         if receiver._session_id and receiver._transport:
                                             self._router.send(receiver, msg)
+                                        else:
+                                            vanished_receivers.append(receiver)
 
                     return txaio.gather(all_dl)
 
@@ -635,7 +675,8 @@ class Broker(object):
                         service_session = self._router._realm.session
                         options = types.PublishOptions(
                             correlation_id=subscribe.correlation_id,
-                            correlation_is_anchor=False
+                            correlation_is_anchor=False,
+                            correlation_is_last=False,
                         )
                         if is_first_subscriber:
                             subscription_details = {
@@ -651,6 +692,7 @@ class Broker(object):
                                 options=options,
                             )
                         if not was_already_subscribed:
+                            options.correlation_is_last = True
                             service_session.publish(
                                 u'wamp.subscription.on_subscribe',
                                 session._session_id,
