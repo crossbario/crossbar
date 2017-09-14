@@ -650,7 +650,7 @@ class Node(object):
             if 'id' in worker:
                 worker_id = worker.pop('id')
             else:
-                worker_id = 'worker-{:03d}'.format(self._worker_no)
+                worker_id = u'worker-{:03d}'.format(self._worker_no)
                 self._worker_no += 1
 
             # worker type: either a native worker ('router', 'container', ..), or a guest worker ('guest')
