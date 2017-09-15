@@ -32,6 +32,7 @@ from __future__ import absolute_import, division, print_function
 
 import six
 import txaio
+import uuid
 
 from txaio import make_logger
 
@@ -106,12 +107,23 @@ class Router(object):
         self._authrole_to_sessions = {}
 
         self._broker = self.broker(self, factory._reactor, self._options)
-        self._dealer = self.dealer(self, self._options)
+        self._dealer = self.dealer(self, factory._reactor, self._options)
         self._attached = 0
 
         self._roles = {
             u'trusted': RouterTrustedRole(self, u'trusted')
         }
+
+        self._is_traced = self._factory._worker and \
+            hasattr(self._factory._worker, '_maybe_trace_rx_msg') and \
+            hasattr(self._factory._worker, '_maybe_trace_tx_msg')
+
+    @property
+    def is_traced(self):
+        return self._is_traced
+
+    def new_correlation_id(self):
+        return six.text_type(uuid.uuid4())
 
     def attach(self, session):
         """
@@ -220,7 +232,7 @@ class Router(object):
         if session._transport:
             session._transport.send(msg)
 
-            if self._factory._worker and hasattr(self._factory._worker, '_maybe_trace_tx_msg'):
+            if self._is_traced:
                 self._factory._worker._maybe_trace_tx_msg(session, msg)
         else:
             self.log.warn('skip sending msg - transport already closed')
@@ -232,7 +244,7 @@ class Router(object):
         if self._check_trace(session, msg):
             self.log.info(">>RX>> {msg}", msg=msg)
 
-        if self._factory._worker and hasattr(self._factory._worker, '_maybe_trace_rx_msg'):
+        if self._is_traced:
             self._factory._worker._maybe_trace_rx_msg(session, msg)
 
         # Broker
@@ -245,6 +257,9 @@ class Router(object):
 
         elif isinstance(msg, message.Unsubscribe):
             self._broker.processUnsubscribe(session, msg)
+
+        elif isinstance(msg, message.EventReceived):
+            self._broker.processEventReceived(session, msg)
 
         # Dealer
         #

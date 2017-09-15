@@ -47,6 +47,9 @@ from crossbar.router.broker import Broker
 from crossbar.router.role import RouterRoleStaticAuth
 
 from twisted.internet import defer, reactor
+from twisted.test.proto_helpers import Clock
+
+from txaio.testutil import replace_loop
 
 
 class TestBrokerPublish(unittest.TestCase):
@@ -340,6 +343,7 @@ class TestBrokerPublish(unittest.TestCase):
         session0 = TestSession()
         session1 = TestSession()
         router = mock.MagicMock()
+        router.new_correlation_id = lambda: u'fake correlation id'
         broker = Broker(router, reactor)
 
         # let's just "cheat" our way a little to the right state by
@@ -373,6 +377,133 @@ class TestBrokerPublish(unittest.TestCase):
         self.assertEquals(session0._transport.method_calls, [])
         self.assertEquals(session1._transport.method_calls, [])
 
+    def test_publish_traced_events(self):
+        """
+        with two subscribers and message tracing the last event should
+        have a magic flag
+        """
+        # we want to trigger a deeply-nested condition in
+        # processPublish in class Broker -- lets try w/o refactoring
+        # anything first...
+
+        class TestSession(ApplicationSession):
+            pass
+        session0 = TestSession()
+        session1 = TestSession()
+        session2 = TestSession()
+        router = mock.MagicMock()
+        router.send = mock.Mock()
+        router.new_correlation_id = lambda: u'fake correlation id'
+        router.is_traced = True
+        broker = Broker(router, reactor)
+
+        # let's just "cheat" our way a little to the right state by
+        # injecting our subscription "directly" (e.g. instead of
+        # faking out an entire Subscribe etc. flow
+        # ...so we need _subscriptions_map to have at least one
+        # subscription (our test one) for the topic we'll publish to
+        broker._subscription_map.add_observer(session0, u'test.topic')
+        broker._subscription_map.add_observer(session1, u'test.topic')
+
+        session0._session_id = 1000
+        session0._transport = mock.MagicMock()
+        session0._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+
+        session1._session_id = 1001
+        session1._transport = mock.MagicMock()
+        session1._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+
+        session2._session_id = 1002
+        session2._transport = mock.MagicMock()
+        session2._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+
+        # here's the main "cheat"; we're faking out the
+        # router.authorize because we need it to callback immediately
+        router.authorize = mock.MagicMock(return_value=txaio.create_future_success(dict(allow=True, cache=False, disclose=True)))
+
+        # now we scan call "processPublish" such that we get to the
+        # condition we're interested in (this "comes from" session1
+        # beacuse by default publishes don't go to the same session)
+        pubmsg = message.Publish(123, u'test.topic')
+        broker.processPublish(session2, pubmsg)
+
+        # extract all the event calls
+        events = [
+            call[1][1]
+            for call in router.send.mock_calls
+            if call[1][0] in [session0, session1, session2]
+        ]
+
+        self.assertEqual(2, len(events))
+        self.assertFalse(events[0].correlation_is_last)
+        self.assertTrue(events[1].correlation_is_last)
+
+    def test_publish_traced_events_batched(self):
+        """
+        with two subscribers and message tracing the last event should
+        have a magic flag
+        """
+        # we want to trigger a deeply-nested condition in
+        # processPublish in class Broker -- lets try w/o refactoring
+        # anything first...
+
+        class TestSession(ApplicationSession):
+            pass
+        session0 = TestSession()
+        session1 = TestSession()
+        session2 = TestSession()
+        session3 = TestSession()
+        session4 = TestSession()
+        sessions = [session0, session1, session2, session3, session4]
+        router = mock.MagicMock()
+        router.send = mock.Mock()
+        router.new_correlation_id = lambda: u'fake correlation id'
+        router.is_traced = True
+        clock = Clock()
+        with replace_loop(clock):
+            broker = Broker(router, clock)
+            broker._options.event_dispatching_chunk_size = 2
+
+            # let's just "cheat" our way a little to the right state by
+            # injecting our subscription "directly" (e.g. instead of
+            # faking out an entire Subscribe etc. flow
+            # ...so we need _subscriptions_map to have at least one
+            # subscription (our test one) for the topic we'll publish to
+            for session in sessions:
+                broker._subscription_map.add_observer(session, u'test.topic')
+
+            for i, sess in enumerate(sessions):
+                sess._session_id = 1000 + i
+                sess._transport = mock.MagicMock()
+                sess._transport.get_channel_id = mock.MagicMock(return_value=b'deadbeef')
+
+            # here's the main "cheat"; we're faking out the
+            # router.authorize because we need it to callback immediately
+            router.authorize = mock.MagicMock(return_value=txaio.create_future_success(dict(allow=True, cache=False, disclose=True)))
+
+            # now we scan call "processPublish" such that we get to the
+            # condition we're interested in; should go to all sessions
+            # except session0
+            pubmsg = message.Publish(123, u'test.topic')
+            broker.processPublish(session0, pubmsg)
+            clock.advance(1)
+            clock.advance(1)
+
+            # extract all the event calls
+            events = [
+                call[1][1]
+                for call in router.send.mock_calls
+                if call[1][0] in [session0, session1, session2, session3, session4]
+            ]
+
+            # all except session0 should have gotten an event, and
+            # session4's should have the "last" flag set
+            self.assertEqual(4, len(events))
+            self.assertFalse(events[0].correlation_is_last)
+            self.assertFalse(events[1].correlation_is_last)
+            self.assertFalse(events[2].correlation_is_last)
+            self.assertTrue(events[3].correlation_is_last)
+
 
 class TestRouterSession(unittest.TestCase):
     """
@@ -385,6 +516,7 @@ class TestRouterSession(unittest.TestCase):
         """
 
         router = mock.MagicMock()
+        router.new_correlation_id = lambda: u'fake correlation id'
 
         class TestSession(RouterSession):
             def __init__(self, *args, **kw):
@@ -419,6 +551,7 @@ class TestRouterSession(unittest.TestCase):
         """
 
         router = mock.MagicMock()
+        router.new_correlation_id = lambda: u'fake correlation id'
         utest = self
 
         class TestSession(RouterSession):

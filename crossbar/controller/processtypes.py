@@ -56,8 +56,8 @@ class WorkerProcess(object):
     """
     Internal run-time representation of a worker process.
     """
-    TYPE = 'worker'
-    LOGNAME = 'Worker'
+    TYPE = u'worker'
+    LOGNAME = u'Worker'
 
     def __init__(self, controller, id, who, keeplog=None):
         """
@@ -280,8 +280,8 @@ class NativeWorkerProcess(WorkerProcess):
     container currently) process.
     """
 
-    TYPE = 'native'
-    LOGNAME = 'Native'
+    TYPE = u'native'
+    LOGNAME = u'Native'
 
     def __init__(self, controller, id, who, keeplog=None):
         """
@@ -305,8 +305,8 @@ class RouterWorkerProcess(NativeWorkerProcess):
     Internal run-time representation of a router worker process.
     """
 
-    TYPE = 'router'
-    LOGNAME = 'Router'
+    TYPE = u'router'
+    LOGNAME = u'Router'
 
 
 class ContainerWorkerProcess(NativeWorkerProcess):
@@ -314,8 +314,8 @@ class ContainerWorkerProcess(NativeWorkerProcess):
     Internal run-time representation of a container worker process.
     """
 
-    TYPE = 'container'
-    LOGNAME = 'Container'
+    TYPE = u'container'
+    LOGNAME = u'Container'
 
 
 class WebSocketTesteeWorkerProcess(NativeWorkerProcess):
@@ -323,8 +323,8 @@ class WebSocketTesteeWorkerProcess(NativeWorkerProcess):
     Internal run-time representation of a websocket-testee worker process.
     """
 
-    TYPE = 'websocket-testee'
-    LOGNAME = 'WebSocketTestee'
+    TYPE = u'websocket-testee'
+    LOGNAME = u'WebSocketTestee'
 
 
 class GuestWorkerProcess(WorkerProcess):
@@ -332,8 +332,8 @@ class GuestWorkerProcess(WorkerProcess):
     Internal run-time representation of a guest worker process.
     """
 
-    TYPE = 'guest'
-    LOGNAME = 'Guest'
+    TYPE = u'guest'
+    LOGNAME = u'Guest'
 
     def __init__(self, controller, id, who, keeplog=None):
         """

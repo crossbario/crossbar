@@ -92,7 +92,7 @@ class RouterServiceSession(ApplicationSession):
 
         enable_meta_api = self.config.extra.get('enable_meta_api', True) if self.config.extra else True
         if enable_meta_api:
-            self._expose_on_sessions.append((self, None))
+            self._expose_on_sessions.append((self, None, None))
 
         # optionally, when this option is set, the service session exposes its API
         # additionally on the management session to the local node router (and from there, to CFC)
@@ -107,19 +107,33 @@ class RouterServiceSession(ApplicationSession):
             if bridge_meta_api_prefix is None:
                 raise Exception('logic error: missing bridge_meta_api_prefix in extra')
 
-            self._expose_on_sessions.append((management_session, bridge_meta_api_prefix))
+            self._expose_on_sessions.append((management_session, bridge_meta_api_prefix, u'-'))
 
     def publish(self, topic, *args, **kwargs):
         # WAMP meta events published over the service session are published on the
         # service session itself (the first in the list of sessions to expose), and potentially
         # more sessions - namely the management session on the local node router
         dl = []
-        for session, prefix in self._expose_on_sessions:
+        for session, prefix, replace_dots in self._expose_on_sessions:
+
+            translated_topic = topic
+
+            # we cannot subscribe in CFC to topics of the form
+            # crossbarfabriccenter.node.<node_id>.worker.<worker_id>.realm.<realm_id>.root.*,
+            # where * is an arbitrary suffix including dots, eg "wamp.session.on_join"
+            #
+            # to work around that, we replace the "."s in the suffix with "-", and reverse that
+            # in CFC
+            if replace_dots:
+                translated_topic = translated_topic.replace(u'.', replace_dots)
+
             if prefix:
-                _topic = u'{}{}'.format(prefix, topic)
-            else:
-                _topic = topic
-            dl.append(ApplicationSession.publish(session, _topic, *args, **kwargs))
+                translated_topic = u'{}{}'.format(prefix, translated_topic)
+
+            self.log.debug('RouterServiceSession.publish("{topic}") -> "{translated_topic}" on "{realm}"',
+                           topic=topic, translated_topic=translated_topic, realm=session._realm)
+
+            dl.append(ApplicationSession.publish(session, translated_topic, *args, **kwargs))
 
         # to keep the interface of ApplicationSession.publish, we only return the first
         # publish return (that is the return from publishing to the user router-realm)
@@ -137,7 +151,7 @@ class RouterServiceSession(ApplicationSession):
         #
         on_ready = self.config.extra.get('onready', None) if self.config.extra else None
         try:
-            for session, prefix in self._expose_on_sessions:
+            for session, prefix, _ in self._expose_on_sessions:
                 regs = yield session.register(self, options=RegisterOptions(details_arg='details'), prefix=prefix)
                 for reg in regs:
                     if isinstance(reg, Registration):

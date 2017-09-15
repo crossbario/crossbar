@@ -2994,7 +2994,7 @@ def check_controller_options(options):
             raise InvalidConfigException("'title' in 'options' in controller configuration must be a string ({} encountered)".format(type(title)))
 
     if 'shutdown' in options:
-        if not isinstance(options['shutdown'], Sequence):
+        if not isinstance(options['shutdown'], Sequence) or isinstance(options['shutdown'], six.text_type):
             raise InvalidConfigException("invalid type {} for 'shutdown' in node controller options (must be a list)".format(type(options['shutdown'])))
         for shutdown_mode in options['shutdown']:
             if shutdown_mode not in NODE_SHUTDOWN_MODES:
