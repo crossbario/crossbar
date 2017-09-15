@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import, division
 
+import copy
+
 import txaio
 
 from autobahn import util
@@ -554,9 +556,7 @@ class Broker(object):
                             # all the event messages are the same except for the last one, which
                             # needs to have the "is_last" flag set if we're doing a trace
                             if self._router.is_traced:
-                                last_msg = message.Event.parse(msg.marshal())
-                                # XXX why do I have to copy all this stuff myself? not in marshal()
-                                # on purpose?
+                                last_msg = copy.deepcopy(msg)
                                 last_msg.correlation_id = msg.correlation_id
                                 last_msg.correlation_uri = msg.correlation_uri
                                 last_msg.correlation_is_anchor = False
