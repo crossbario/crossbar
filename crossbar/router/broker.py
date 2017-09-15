@@ -595,7 +595,9 @@ class Broker(object):
                                     # last chunk, so last receiver gets the different message
                                     for receiver in receivers_this_chunk[:-1]:
                                         self._router.send(receiver, msg)
-                                    self._router.send(receivers_this_chunk[-1], last_msg)
+                                    # we might have zero valid receivers
+                                    if receivers_this_chunk:
+                                        self._router.send(receivers_this_chunk[-1], last_msg)
 
                                 if receivers:
                                     # still more to do ..
