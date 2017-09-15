@@ -5,6 +5,7 @@ Crossbar.io master (unreleased)
 ===============================
 
 * new: router-realm options: enable_meta_api, bridge_meta_api
+* new: container shutdown option ("shutdown-manual", "shutdown-on-last-worker-exit")
 
 
 Crossbar 17.4.1 (2017-04-15)
