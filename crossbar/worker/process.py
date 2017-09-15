@@ -129,6 +129,11 @@ def run():
                         default=False,
                         help='Expose a shared object to all components (this feature requires Crossbar.io Fabric extension).')
 
+    parser.add_argument('--shutdown',
+                        type=six.text_type,
+                        default=None,
+                        help='Shutdown method')
+
     options = parser.parse_args()
 
     # actually begin logging
@@ -145,11 +150,11 @@ def run():
 
     # now load the worker module and class
     _mod = importlib.import_module(worker_module)
-    Klass = getattr(_mod, worker_klass)
+    klass = getattr(_mod, worker_klass)
 
     log.info(
         'Started {worker_title} worker "{worker_id}" [{klass} / {python}-{reactor}]',
-        worker_title=Klass.WORKER_TITLE,
+        worker_title=klass.WORKER_TITLE,
         klass=options.klass,
         worker_id=options.worker,
         pid=os.getpid(),
@@ -242,7 +247,7 @@ def run():
 
         session_config = ComponentConfig(realm=options.realm, extra=options)
         session_factory = ApplicationSessionFactory(session_config)
-        session_factory.session = Klass
+        session_factory.session = klass
 
         # create a WAMP-over-WebSocket transport server factory
         #
