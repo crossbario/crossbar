@@ -538,42 +538,74 @@ class Broker(object):
                             if chunk_size and len(receivers) > chunk_size:
                                 self.log.debug('chunked dispatching to {receivers_size} with chunk_size={chunk_size}',
                                                receivers_size=len(receivers), chunk_size=chunk_size)
-
-                                # a Deferred that fires when all chunks are done
-                                all_d = txaio.create_future()
-                                all_dl.append(all_d)
-
-                                def _notify_some(receivers):
-                                    for receiver in receivers[:chunk_size]:
-                                        if (me_also or receiver != session) and receiver != self._event_store:
-                                            # the receiving subscriber session might have no transport,
-                                            # or no longer be joined
-                                            if receiver._session_id and receiver._transport:
-                                                self._router.send(receiver, msg)
-                                            else:
-                                                vanished_receivers.append(receiver)
-                                    receivers = receivers[chunk_size:]
-                                    if len(receivers) > 0:
-                                        # still more to do ..
-                                        return txaio.call_later(0, _notify_some, receivers)
-                                    else:
-                                        # all done! resolve all_d, which represents all receivers
-                                        # to a single subscription matching the event
-                                        txaio.resolve(all_d, None)
-
-                                _notify_some(list(receivers))
                             else:
                                 self.log.debug('unchunked dispatching to {receivers_size} receivers',
                                                receivers_size=len(receivers))
 
-                                for receiver in receivers:
+                            # note that we're using one code-path for both chunked and unchunked
+                            # dispatches; the *first* chunk is always done "synchronously" (before
+                            # the first call-later) so "un-chunked mode" really just means we know
+                            # we'll be done right now and NOT do a call_later...
+
+                            # a Deferred that fires when all chunks are done
+                            all_d = txaio.create_future()
+                            all_dl.append(all_d)
+
+                            # all the event messages are the same except for the last one, which
+                            # needs to have the "is_last" flag set if we're doing a trace
+                            if self._router.is_traced:
+                                last_msg = message.Event.parse(msg.marshal())
+                                # XXX why do I have to copy all this stuff myself? not in marshal()
+                                # on purpose?
+                                last_msg.correlation_id = msg.correlation_id
+                                last_msg.correlation_uri = msg.correlation_uri
+                                last_msg.correlation_is_anchor = False
+                                last_msg.correlation_is_last = True
+
+                            def _notify_some(receivers):
+
+                                # we do a first pass over the proposed chunk of receivers
+                                # because not all of them will have a transport, and if this
+                                # will be the last chunk of receivers we need to figure out
+                                # which event is last...
+                                receivers_this_chunk = []
+                                for receiver in receivers[:chunk_size]:
                                     if (me_also or receiver != session) and receiver != self._event_store:
                                         # the receiving subscriber session might have no transport,
                                         # or no longer be joined
                                         if receiver._session_id and receiver._transport:
-                                            self._router.send(receiver, msg)
+                                            receivers_this_chunk.append(receiver)
                                         else:
                                             vanished_receivers.append(receiver)
+
+                                receivers = receivers[chunk_size:]
+
+                                # XXX note there's still going to be some edge-cases here .. if
+                                # we are NOT the last chunk, but all the next chunk's receivers
+                                # (could be only 1 in that chunk!) vanish before we run our next
+                                # batch, then a "last" event will never go out ...
+
+                                # we now actually do the deliveries, but now we know which
+                                # receiver is the last one
+                                if receivers or not self._router.is_traced:
+                                    # NOT the last chunk (or we're not traced so don't care)
+                                    for receiver in receivers_this_chunk:
+                                        self._router.send(receiver, msg)
+                                else:
+                                    # last chunk, so last receiver gets the different message
+                                    for receiver in receivers_this_chunk[:-1]:
+                                        self._router.send(receiver, msg)
+                                    self._router.send(receivers_this_chunk[-1], last_msg)
+
+                                if receivers:
+                                    # still more to do ..
+                                    return txaio.call_later(0, _notify_some, receivers)
+                                else:
+                                    # all done! resolve all_d, which represents all receivers
+                                    # to a single subscription matching the event
+                                    txaio.resolve(all_d, None)
+
+                            _notify_some(list(receivers))
 
                     return txaio.gather(all_dl)
 
