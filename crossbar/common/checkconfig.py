@@ -2689,7 +2689,15 @@ def check_router_options(options):
 
 
 def check_container_options(options):
-    check_native_worker_options(options)
+    check_native_worker_options(options, extra_options=['shutdown'])
+    valid_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
+    if 'shutdown' in options:
+        if options['shutdown'] not in valid_modes:
+            raise InvalidConfigException(
+                "'shutdown' must be one of: {}".format(
+                    ', '.join(valid_modes)
+                )
+            )
 
 
 def check_websocket_testee_options(options):
@@ -2780,7 +2788,7 @@ def check_process_env(env):
                 raise InvalidConfigException("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
 
 
-def check_native_worker_options(options):
+def check_native_worker_options(options, extra_options=[]):
     """
     Check native worker options.
 
@@ -2796,7 +2804,7 @@ def check_native_worker_options(options):
 
     for k in options:
         if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity',
-                     'env', 'expose_controller', 'expose_shared']:
+                     'env', 'expose_controller', 'expose_shared'] + extra_options:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in 'options' in worker"
                 " configuration".format(k)
