@@ -402,6 +402,8 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--realm", self._realm])
         args.extend(["--klass", worker_class])
         args.extend(["--loglevel", get_global_log_level()])
+        if "shutdown" in options:
+            args.extend(["--shutdown", options["shutdown"]])
 
         # Node-level callback to inject worker arguments
         #

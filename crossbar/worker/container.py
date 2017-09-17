@@ -115,6 +115,9 @@ class ContainerWorkerSession(NativeWorkerSession):
         # map: component ID -> ContainerComponent
         self.components = {}
 
+        # when shall we exit?
+        self._exit_mode = (config.extra.shutdown or self.SHUTDOWN_MANUAL)
+
         # "global" shared between all components
         self.components_shared = {
             u'reactor': reactor
@@ -126,10 +129,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         Called when worker process has joined the node's management realm.
         """
         self.log.info('Container worker "{worker_id}" session {session_id} initializing ..', worker_id=self._worker_id, session_id=details.session)
-
         yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
-
-        self._exit_mode = self.SHUTDOWN_MANUAL
 
         self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
 
