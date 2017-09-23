@@ -28,7 +28,7 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import argparse
 import click
@@ -806,6 +806,22 @@ def run_command_upgrade(options, **kwargs):
         sys.exit(0)
 
 
+def run_command_keygen(options, **kwargs):
+    """
+    Subcommand "crossbar keygen".
+    """
+
+    try:
+        from autobahn.wamp.cryptobox import KeyRing
+    except ImportError:
+        print("You should install 'autobahn[encryption]'")
+        sys.exit(1)
+
+    priv, pub = KeyRing().generate_key()
+    print('  private: {}'.format(priv))
+    print('   public: {}'.format(pub))
+
+
 def run(prog=None, args=None, reactor=None):
     """
     Entry point of Crossbar.io CLI.
@@ -1038,6 +1054,16 @@ def run(prog=None, args=None, reactor=None):
                               type=six.text_type,
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+    # "keygen" command
+    #
+    help_text = 'Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
+    parser_keygen = subparsers.add_parser(
+        'keygen',
+        help=help_text,
+        description=help_text,
+    )
+    parser_keygen.set_defaults(func=run_command_keygen)
 
     # parse cmd line args
     #
