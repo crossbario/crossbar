@@ -888,7 +888,7 @@ def check_listening_endpoint_onion(endpoint):
         endpoint,
         "onion endpoint config",
     )
-    check_endpoint_port(u"port")
+    check_endpoint_port(endpoint[u"port"])
     check_connecting_endpoint(endpoint[u"tor_control_endpoint"])
 
 
