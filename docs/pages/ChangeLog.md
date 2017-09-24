@@ -1,11 +1,20 @@
 title: ChangeLog
 toc: [Documentation, Programming Guide, ChangeLog]
 
+
 Crossbar.io master (unreleased)
 ===============================
 
-* new: router-realm options: enable_meta_api, bridge_meta_api
-* new: container shutdown option ("shutdown-manual", "shutdown-on-last-worker-exit")
+* ADD ME
+
+
+Crossbar.io 17.9.2 (2017-09-24)
+===============================
+
+* fix: checking of onion-endpoint public ports + tests
+* new: message tracing API
+* new: router-realm options ("enable_meta_api", "bridge_meta_api")
+* new: configurable container shutdown behavior ("shutdown-manual", "shutdown-on-last-worker-exit")
 
 
 Crossbar 17.4.1 (2017-04-15)

@@ -5,14 +5,6 @@ sudo: false
 install:
   - pip install -U pip setuptools wheel
   - pip install -U tox codecov
-env:
-  - TOX_ENV=flake8
-  - TOX_ENV=py27-unpinned,coverage-report
-  - TOX_ENV=py27-pinned,coverage-report
-  - TOX_ENV=py27-abtrunk,coverage-report
-  - TOX_ENV=py36-unpinned,coverage-report
-  - TOX_ENV=py36-pinned,coverage-report
-  - TOX_ENV=py36-abtrunk,coverage-report
 script:
   - tox -c tox.ini -e $TOX_ENV
 after_success:
@@ -28,15 +20,56 @@ cache:
   directories:
     - $HOME/.cache/pip
 matrix:
-  # https://docs.travis-ci.com/user/customizing-the-build/#Rows-that-are-Allowed-to-Fail
+  fast_finish: true
+
+  include:
+    - env: TOX_ENV=flake8
+
+    - python: 2.7
+      env: TOX_ENV=py27-unpinned,coverage-report
+    - python: 2.7
+      env: TOX_ENV=py27-pinned,coverage-report
+    - python: 2.7
+      env: TOX_ENV=py27-abtrunk,coverage-report
+
+    - python: 3.6
+      env: TOX_ENV=py36-unpinned,coverage-report
+    - python: 3.6
+      env: TOX_ENV=py36-pinned,coverage-report
+    - python: 3.6
+      env: TOX_ENV=py36-abtrunk,coverage-report
+
+    - python: pypy
+      env: TOX_ENV=pypy-unpinned,coverage-report
+    - python: pypy
+      env: TOX_ENV=pypy-pinned,coverage-report
+    - python: pypy
+      env: TOX_ENV=pypy-abtrunk,coverage-report
+
+    - python: pypy3
+      env: TOX_ENV=pypy3-unpinned,coverage-report
+    - python: pypy3
+      env: TOX_ENV=pypy3-pinned,coverage-report
+    - python: pypy3
+      env: TOX_ENV=pypy3-abtrunk,coverage-report
+
   allow_failures:
-      # allow non-abtrunk jobs to fail (eg when we introduce new features in AB that we want in CB)
-      - python: 3.6
+      - python: 2.7
         env: TOX_ENV=py27-unpinned,coverage-report
-      - python: 3.6
+      - python: 2.7
         env: TOX_ENV=py27-pinned,coverage-report
+
       - python: 3.6
         env: TOX_ENV=py36-unpinned,coverage-report
       - python: 3.6
         env: TOX_ENV=py36-pinned,coverage-report
-  fast_finish: true
+
+      - python: pypy
+        env: TOX_ENV=pypy-unpinned,coverage-report
+      - python: pypy
+        env: TOX_ENV=pypy-pinned,coverage-report
+
+      - python: pypy3
+        env: TOX_ENV=pypy3-unpinned,coverage-report
+      - python: pypy3
+        env: TOX_ENV=pypy3-pinned,coverage-report

@@ -11,4 +11,3 @@ flask
 pygments
 jinja2_highlight
 mistune
-towncrier
