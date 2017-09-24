@@ -1,7 +1,7 @@
 title: ChangeLog
 toc: [Documentation, Programming Guide, ChangeLog]
 
-Crossbar.io master (unreleased)
+Crossbar.io 17.9.2 (2017-09-24)
 ===============================
 
 * new: router-realm options: enable_meta_api, bridge_meta_api
