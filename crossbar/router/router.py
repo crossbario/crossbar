@@ -173,6 +173,8 @@ class Router(object):
         Internal helper.
         """
         self._authid_to_sessions[details['authid']].discard(session)
+        if not self._authid_to_sessions[details['authid']]:
+            del self._authid_to_sessions[details['authid']]
         self._authrole_to_sessions[details['authrole']].discard(session)
 
         # log session details, but skip Crossbar.io internal sessions
