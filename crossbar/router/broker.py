@@ -570,13 +570,10 @@ class Broker(object):
                                 # which event is last...
                                 receivers_this_chunk = []
                                 for receiver in receivers[:chunk_size]:
-                                    if (me_also or receiver != session) and receiver != self._event_store:
-                                        # the receiving subscriber session might have no transport,
-                                        # or no longer be joined
-                                        if receiver._session_id and receiver._transport:
-                                            receivers_this_chunk.append(receiver)
-                                        else:
-                                            vanished_receivers.append(receiver)
+                                    if receiver._session_id and receiver._transport:
+                                        receivers_this_chunk.append(receiver)
+                                    else:
+                                        vanished_receivers.append(receiver)
 
                                 receivers = receivers[chunk_size:]
 
@@ -607,7 +604,10 @@ class Broker(object):
                                     # to a single subscription matching the event
                                     txaio.resolve(all_d, None)
 
-                            _notify_some(list(receivers))
+                            _notify_some([
+                                recv for recv in receivers
+                                if (me_also or recv != session) and recv != self._event_store
+                            ])
 
                     return txaio.gather(all_dl)
 
