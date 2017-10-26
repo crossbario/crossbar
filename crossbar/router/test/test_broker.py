@@ -454,7 +454,10 @@ class TestBrokerPublish(unittest.TestCase):
         session2 = TestSession()
         session3 = TestSession()
         session4 = TestSession()
-        sessions = [session0, session1, session2, session3, session4]
+        # NOTE! We ensure that "session0" (the publishing session) is
+        # *last* in the observation-list to trigger a (now fixed)
+        # edge-case)
+        sessions = [session1, session2, session3, session4, session0]
         router = mock.MagicMock()
         router.send = mock.Mock()
         router.new_correlation_id = lambda: u'fake correlation id'
@@ -463,6 +466,10 @@ class TestBrokerPublish(unittest.TestCase):
         with replace_loop(clock):
             broker = Broker(router, clock)
             broker._options.event_dispatching_chunk_size = 2
+
+            # to ensure we get "session0" last, we turn on ordering in
+            # the observations
+            broker._subscription_map._ordered = 1
 
             # let's just "cheat" our way a little to the right state by
             # injecting our subscription "directly" (e.g. instead of
