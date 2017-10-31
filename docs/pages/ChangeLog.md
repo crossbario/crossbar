@@ -8,6 +8,14 @@ Crossbar.io master (unreleased)
 * ADD ME
 
 
+Crossbar.io 17.10.1 (2017-10-31)
+===============================
+
+* fix: edge-case of traced + batched messaging
+* fix: stop retaining old authids and empty sets in router (memory leak!).
+* new: 'crossbar keygen' command
+
+
 Crossbar.io 17.9.2 (2017-09-24)
 ===============================
 
