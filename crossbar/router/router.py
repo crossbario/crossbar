@@ -246,45 +246,48 @@ class Router(object):
         if self._check_trace(session, msg):
             self.log.info(">>RX>> {msg}", msg=msg)
 
-        if self._is_traced:
-            self._factory._worker._maybe_trace_rx_msg(session, msg)
+        try:
+            # Broker
+            #
+            if isinstance(msg, message.Publish):
+                self._broker.processPublish(session, msg)
 
-        # Broker
-        #
-        if isinstance(msg, message.Publish):
-            self._broker.processPublish(session, msg)
+            elif isinstance(msg, message.Subscribe):
+                self._broker.processSubscribe(session, msg)
 
-        elif isinstance(msg, message.Subscribe):
-            self._broker.processSubscribe(session, msg)
+            elif isinstance(msg, message.Unsubscribe):
+                self._broker.processUnsubscribe(session, msg)
 
-        elif isinstance(msg, message.Unsubscribe):
-            self._broker.processUnsubscribe(session, msg)
+            elif isinstance(msg, message.EventReceived):
+                self._broker.processEventReceived(session, msg)
 
-        elif isinstance(msg, message.EventReceived):
-            self._broker.processEventReceived(session, msg)
+            # Dealer
+            #
+            elif isinstance(msg, message.Register):
+                self._dealer.processRegister(session, msg)
 
-        # Dealer
-        #
-        elif isinstance(msg, message.Register):
-            self._dealer.processRegister(session, msg)
+            elif isinstance(msg, message.Unregister):
+                self._dealer.processUnregister(session, msg)
 
-        elif isinstance(msg, message.Unregister):
-            self._dealer.processUnregister(session, msg)
+            elif isinstance(msg, message.Call):
+                self._dealer.processCall(session, msg)
 
-        elif isinstance(msg, message.Call):
-            self._dealer.processCall(session, msg)
+            elif isinstance(msg, message.Cancel):
+                self._dealer.processCancel(session, msg)
 
-        elif isinstance(msg, message.Cancel):
-            self._dealer.processCancel(session, msg)
+            elif isinstance(msg, message.Yield):
+                self._dealer.processYield(session, msg)
 
-        elif isinstance(msg, message.Yield):
-            self._dealer.processYield(session, msg)
+            elif isinstance(msg, message.Error) and msg.request_type == message.Invocation.MESSAGE_TYPE:
+                self._dealer.processInvocationError(session, msg)
 
-        elif isinstance(msg, message.Error) and msg.request_type == message.Invocation.MESSAGE_TYPE:
-            self._dealer.processInvocationError(session, msg)
-
-        else:
-            raise ProtocolError("Unexpected message {0}".format(msg.__class__))
+            else:
+                raise ProtocolError("Unexpected message {0}".format(msg.__class__))
+        except ProtocolError:
+            raise
+        except:
+            self.log.error('INTERNAL ERROR in router incoming message processing')
+            self.log.failure()
 
     def has_role(self, uri):
         """
