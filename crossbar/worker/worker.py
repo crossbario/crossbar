@@ -69,6 +69,7 @@ class NativeWorkerSession(NativeProcessSession):
         """
         Called when the worker has connected to the node's management router.
         """
+        self._node_id = self.config.extra.node
         self._worker_id = self.config.extra.worker
         self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
 
@@ -171,6 +172,14 @@ class NativeWorkerSession(NativeProcessSession):
         # return from the WAMP call when this procedure is called from the node controller
         #
         self._reactor.callLater(0, self.leave)
+
+    @wamp.register(None)
+    def set_node_id(self, node_id, details=None):
+        self._node_id = node_id
+
+    @wamp.register(None)
+    def get_node_id(self, details=None):
+        return self._node_id
 
     @wamp.register(None)
     def get_profilers(self, details=None):
