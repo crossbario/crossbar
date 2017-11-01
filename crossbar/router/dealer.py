@@ -278,8 +278,9 @@ class Dealer(object):
                 register.correlation_id = self._router.new_correlation_id()
                 register.correlation_is_anchor = True
                 register.correlation_is_last = False
+            if not register.correlation_uri:
                 register.correlation_uri = register.procedure
-                self._router._factory._worker._maybe_trace_rx_msg(session, register)
+            self._router._factory._worker._maybe_trace_rx_msg(session, register)
 
         if self._option_uri_strict:
             if register.match == u"wildcard":
@@ -643,8 +644,9 @@ class Dealer(object):
                 call.correlation_id = self._router.new_correlation_id()
                 call.correlation_is_anchor = True
                 call.correlation_is_last = False
+            if not call.correlation_uri:
                 call.correlation_uri = call.procedure
-                self._router._factory._worker._maybe_trace_rx_msg(session, call)
+            self._router._factory._worker._maybe_trace_rx_msg(session, call)
 
         # check procedure URI: for CALL, must be valid URI (either strict or loose), and
         # all URI components must be non-empty

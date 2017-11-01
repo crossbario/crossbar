@@ -263,8 +263,9 @@ class Broker(object):
                 publish.correlation_id = self._router.new_correlation_id()
                 publish.correlation_is_anchor = True
                 publish.correlation_is_last = False
+            if not publish.correlation_uri:
                 publish.correlation_uri = publish.topic
-                self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
         # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
@@ -642,8 +643,9 @@ class Broker(object):
                 subscribe.correlation_id = self._router.new_correlation_id()
                 subscribe.correlation_is_anchor = True
                 subscribe.correlation_is_last = False
+            if not subscribe.correlation_uri:
                 subscribe.correlation_uri = subscribe.topic
-                self._router._factory._worker._maybe_trace_rx_msg(session, subscribe)
+            self._router._factory._worker._maybe_trace_rx_msg(session, subscribe)
 
         # check topic URI: for SUBSCRIBE, must be valid URI (either strict or loose), and all
         # URI components must be non-empty for normal subscriptions, may be empty for
