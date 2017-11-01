@@ -954,12 +954,13 @@ class Dealer(object):
         if (session._session_id, cancel.request) in self._invocations_by_call:
             invocation_request = self._invocations_by_call[session._session_id, cancel.request]
 
-            # correlate the cancel request to the original call
-            cancel.correlation_id = invocation_request.call.correlation_id
-            cancel.correlation_uri = invocation_request.call.procedure
-            cancel.correlation_is_anchor = False
-            cancel.correlation_is_last = False
-            self._router._factory._worker._maybe_trace_rx_msg(session, cancel)
+            if self._router.is_traced:
+                # correlate the cancel request to the original call
+                cancel.correlation_id = invocation_request.call.correlation_id
+                cancel.correlation_uri = invocation_request.call.procedure
+                cancel.correlation_is_anchor = False
+                cancel.correlation_is_last = False
+                self._router._factory._worker._maybe_trace_rx_msg(session, cancel)
 
             # for those that repeatedly push elevator buttons
             if invocation_request.canceled:
@@ -969,10 +970,12 @@ class Dealer(object):
 
             if 'callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].call_canceling:
                 interrupt = message.Interrupt(invocation_request.id, cancel.mode)
-                interrupt.correlation_id = invocation_request.call.correlation_id
-                interrupt.correlation_uri = invocation_request.call.procedure
-                interrupt.correlation_is_anchor = False
-                interrupt.correlation_is_last = False
+
+                if self._router.is_traced:
+                    interrupt.correlation_id = invocation_request.call.correlation_id
+                    interrupt.correlation_uri = invocation_request.call.procedure
+                    interrupt.correlation_is_anchor = False
+                    interrupt.correlation_is_last = False
 
                 self._router.send(invocation_request.callee, interrupt)
 
