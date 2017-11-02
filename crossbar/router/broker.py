@@ -170,7 +170,9 @@ class Broker(object):
                     def _publish():
                         service_session = self._router._realm.session
                         options = types.PublishOptions(
-                            correlation_id=None
+                            correlation_id=None,
+                            correlation_is_anchor=True,
+                            correlation_is_last=False
                         )
                         if was_subscribed:
                             service_session.publish(
@@ -180,6 +182,7 @@ class Broker(object):
                                 options=options,
                             )
                         if was_deleted:
+                            options.correlation_is_last = True
                             service_session.publish(
                                 u'wamp.subscription.on_delete',
                                 session._session_id,
@@ -262,10 +265,8 @@ class Broker(object):
             if not publish.correlation_id:
                 publish.correlation_id = self._router.new_correlation_id()
                 publish.correlation_is_anchor = True
-                publish.correlation_is_last = False
             if not publish.correlation_uri:
                 publish.correlation_uri = publish.topic
-            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
         # check topic URI: for PUBLISH, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
@@ -276,12 +277,21 @@ class Broker(object):
 
         if not uri_is_valid:
             if publish.acknowledge:
+                if self._router.is_traced:
+                    publish.correlation_is_last = False
+                    self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
                 reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with invalid topic URI '{0}' (URI strict checking {1})".format(publish.topic, self._option_uri_strict)])
                 reply.correlation_id = publish.correlation_id
                 reply.correlation_uri = publish.topic
                 reply.correlation_is_anchor = False
                 reply.correlation_is_last = True
                 self._router.send(session, reply)
+
+            else:
+                if self._router.is_traced:
+                    publish.correlation_is_last = True
+                    self._router._factory._worker._maybe_trace_rx_msg(session, publish)
             return
 
         # disallow publication to topics starting with "wamp." other than for
@@ -291,12 +301,22 @@ class Broker(object):
             is_restricted = publish.topic.startswith(u"wamp.")
             if is_restricted:
                 if publish.acknowledge:
+                    if self._router.is_traced:
+                        publish.correlation_is_last = False
+                        self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
                     reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_URI, [u"publish with restricted topic URI '{0}'".format(publish.topic)])
                     reply.correlation_id = publish.correlation_id
                     reply.correlation_uri = publish.topic
                     reply.correlation_is_anchor = False
                     reply.correlation_is_last = True
                     self._router.send(session, reply)
+
+                else:
+                    if self._router.is_traced:
+                        publish.correlation_is_last = True
+                        self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
                 return
 
         # get subscriptions active on the topic published to
@@ -332,8 +352,10 @@ class Broker(object):
 
             # the received PUBLISH message is the only one received/sent
             # for this WAMP action, so mark it as "last" (there is another code path below!)
-            if self._router.is_traced and publish.correlation_is_last is None:
-                publish.correlation_is_last = True
+            if self._router.is_traced:
+                if publish.correlation_is_last is None:
+                    publish.correlation_is_last = True
+                self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
         else:
 
@@ -344,12 +366,21 @@ class Broker(object):
                     self._router.validate('event', publish.topic, publish.args, publish.kwargs)
                 except Exception as e:
                     if publish.acknowledge:
+                        if self._router.is_traced:
+                            publish.correlation_is_last = False
+                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.INVALID_ARGUMENT, [u"publish to topic URI '{0}' with invalid application payload: {1}".format(publish.topic, e)])
                         reply.correlation_id = publish.correlation_id
                         reply.correlation_uri = publish.topic
                         reply.correlation_is_anchor = False
                         reply.correlation_is_last = True
                         self._router.send(session, reply)
+                    else:
+                        if self._router.is_traced:
+                            publish.correlation_is_last = True
+                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
                     return
 
             # authorize PUBLISH action
@@ -364,12 +395,21 @@ class Broker(object):
                 if not authorization[u'allow']:
 
                     if publish.acknowledge:
+                        if self._router.is_traced:
+                            publish.correlation_is_last = False
+                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
                         reply = message.Error(message.Publish.MESSAGE_TYPE, publish.request, ApplicationError.NOT_AUTHORIZED, [u"session not authorized to publish to topic '{0}'".format(publish.topic)])
                         reply.correlation_id = publish.correlation_id
                         reply.correlation_uri = publish.topic
                         reply.correlation_is_anchor = False
                         reply.correlation_is_last = True
                         self._router.send(session, reply)
+
+                    else:
+                        if self._router.is_traced:
+                            publish.correlation_is_last = True
+                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
                 else:
 
@@ -471,6 +511,7 @@ class Broker(object):
                     if publish.acknowledge:
                         if self._router.is_traced:
                             publish.correlation_is_last = False
+                            self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
                         reply = message.Published(publish.request, publication)
                         reply.correlation_id = publish.correlation_id
@@ -621,6 +662,11 @@ class Broker(object):
                 """
                 self.log.failure("Authorization failed", failure=err)
                 if publish.acknowledge:
+
+                    if self._router.is_traced:
+                        publish.correlation_is_last = False
+                        self._router._factory._worker._maybe_trace_rx_msg(session, publish)
+
                     reply = message.Error(
                         message.Publish.MESSAGE_TYPE,
                         publish.request,
@@ -631,6 +677,10 @@ class Broker(object):
                     reply.correlation_uri = publish.topic
                     reply.correlation_is_anchor = False
                     self._router.send(session, reply)
+                else:
+                    if self._router.is_traced:
+                        publish.correlation_is_last = True
+                        self._router._factory._worker._maybe_trace_rx_msg(session, publish)
 
             txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 

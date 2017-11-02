@@ -860,7 +860,7 @@ class RouterWorkerSession(NativeWorkerSession):
         NativeWorkerSession.__init__(self, config, reactor)
 
         # factory for producing (per-realm) routers
-        self._router_factory = RouterFactory(self)
+        self._router_factory = RouterFactory(None, self)
 
         # factory for producing router sessions
         self._router_session_factory = RouterSessionFactory(self._router_factory)

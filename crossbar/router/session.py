@@ -418,9 +418,7 @@ class RouterSession(BaseSession):
                     msg = None
                     if isinstance(res, types.Accept):
                         custom = {
-                            # FIXME:
-                            # u'x_cb_node_id': self._router_factory._node_id
-                            u'x_cb_node_id': None
+                            u'x_cb_node_id': self._router_factory._node_id
                         }
                         welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
@@ -446,9 +444,7 @@ class RouterSession(BaseSession):
                     msg = None
                     if isinstance(res, types.Accept):
                         custom = {
-                            # FIXME:
-                            # u'x_cb_node_id': self._router_factory._node_id
-                            u'x_cb_node_id': None
+                            u'x_cb_node_id': self._router_factory._node_id
                         }
                         welcome(res.realm, res.authid, res.authrole, res.authmethod, res.authprovider, res.authextra, custom)
 
