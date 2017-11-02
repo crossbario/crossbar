@@ -32,7 +32,7 @@ pyasn1==0.3.7
 pyasn1-modules==0.1.5
 pycparser==2.18
 Pygments==2.2.0
-PyNaCl==1.1.2
+PyNaCl==1.2.0
 pyOpenSSL==17.3.0
 PyQRCode==1.2.1
 PyTrie==0.3
