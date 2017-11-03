@@ -398,6 +398,7 @@ class NodeControllerSession(NativeProcessSession):
         #
         args = [exe, "-u", "-m", "crossbar.worker.process"]
         args.extend(["--cbdir", self._node._cbdir])
+        args.extend(["--node", str(self._node._node_id)])
         args.extend(["--worker", str(worker_id)])
         args.extend(["--realm", self._realm])
         args.extend(["--klass", worker_class])

@@ -109,6 +109,11 @@ def run():
                         type=six.text_type,
                         help='Crossbar.io worker class (required).')
 
+    parser.add_argument('-n',
+                        '--node',
+                        type=six.text_type,
+                        help='Crossbar.io node ID (required).')
+
     parser.add_argument('-w',
                         '--worker',
                         type=six.text_type,
@@ -153,9 +158,10 @@ def run():
     klass = getattr(_mod, worker_klass)
 
     log.info(
-        'Started {worker_title} worker "{worker_id}" [{klass} / {python}-{reactor}]',
+        'Started {worker_title} worker "{worker_id}" on node "{node_id}" [{klass} / {python}-{reactor}]',
         worker_title=klass.WORKER_TITLE,
         klass=options.klass,
+        node_id=options.node,
         worker_id=options.worker,
         pid=os.getpid(),
         python=platform.python_implementation(),

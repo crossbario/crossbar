@@ -280,6 +280,7 @@ class Dealer(object):
                 register.correlation_is_last = False
             if not register.correlation_uri:
                 register.correlation_uri = register.procedure
+            self._router._factory._worker._maybe_trace_rx_msg(session, register)
 
         if self._option_uri_strict:
             if register.match == u"wildcard":
@@ -547,6 +548,8 @@ class Dealer(object):
                 reply.correlation_is_last = True
 
         if self._router.is_traced:
+            self._router._factory._worker._maybe_trace_rx_msg(session, unregister)
+
             reply.correlation_id = unregister.correlation_id
             reply.correlation_is_anchor = False
 
@@ -643,6 +646,7 @@ class Dealer(object):
                 call.correlation_is_last = False
             if not call.correlation_uri:
                 call.correlation_uri = call.procedure
+            self._router._factory._worker._maybe_trace_rx_msg(session, call)
 
         # check procedure URI: for CALL, must be valid URI (either strict or loose), and
         # all URI components must be non-empty
@@ -952,11 +956,13 @@ class Dealer(object):
         if (session._session_id, cancel.request) in self._invocations_by_call:
             invocation_request = self._invocations_by_call[session._session_id, cancel.request]
 
-            # correlate the cancel request to the original call
-            cancel.correlation_id = invocation_request.call.correlation_id
-            cancel.correlation_uri = invocation_request.call.procedure
-            cancel.correlation_is_anchor = False
-            cancel.correlation_is_last = False
+            if self._router.is_traced:
+                # correlate the cancel request to the original call
+                cancel.correlation_id = invocation_request.call.correlation_id
+                cancel.correlation_uri = invocation_request.call.procedure
+                cancel.correlation_is_anchor = False
+                cancel.correlation_is_last = False
+                self._router._factory._worker._maybe_trace_rx_msg(session, cancel)
 
             # for those that repeatedly push elevator buttons
             if invocation_request.canceled:
@@ -966,10 +972,12 @@ class Dealer(object):
 
             if 'callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].call_canceling:
                 interrupt = message.Interrupt(invocation_request.id, cancel.mode)
-                interrupt.correlation_id = invocation_request.call.correlation_id
-                interrupt.correlation_uri = invocation_request.call.procedure
-                interrupt.correlation_is_anchor = False
-                interrupt.correlation_is_last = False
+
+                if self._router.is_traced:
+                    interrupt.correlation_id = invocation_request.call.correlation_id
+                    interrupt.correlation_uri = invocation_request.call.procedure
+                    interrupt.correlation_is_anchor = False
+                    interrupt.correlation_is_last = False
 
                 self._router.send(invocation_request.callee, interrupt)
 
@@ -987,11 +995,13 @@ class Dealer(object):
             #
             invocation_request = self._invocations[yield_.request]
 
-            # correlate the received yield return to the original call
-            yield_.correlation_id = invocation_request.call.correlation_id
-            yield_.correlation_uri = invocation_request.call.correlation_uri
-            yield_.correlation_is_anchor = False
-            yield_.correlation_is_last = False
+            if self._router.is_traced:
+                # correlate the received yield return to the original call
+                yield_.correlation_id = invocation_request.call.correlation_id
+                yield_.correlation_uri = invocation_request.call.correlation_uri
+                yield_.correlation_is_anchor = False
+                yield_.correlation_is_last = False
+                self._router._factory._worker._maybe_trace_rx_msg(session, yield_)
 
             # check to make sure this session is the one that is supposed to be yielding
             if invocation_request.callee is not session:
@@ -1022,10 +1032,11 @@ class Dealer(object):
             # the calling session might have been lost in the meantime ..
             #
             if invocation_request.caller._transport:
-                reply.correlation_id = invocation_request.call.correlation_id
-                reply.correlation_uri = invocation_request.call.correlation_uri
-                reply.correlation_is_anchor = False
-                reply.correlation_is_last = call_complete
+                if self._router.is_traced:
+                    reply.correlation_id = invocation_request.call.correlation_id
+                    reply.correlation_uri = invocation_request.call.correlation_uri
+                    reply.correlation_is_anchor = False
+                    reply.correlation_is_last = call_complete
                 self._router.send(invocation_request.caller, reply)
 
             if call_complete:
@@ -1068,11 +1079,13 @@ class Dealer(object):
             # get the invocation request tracked for the caller
             invocation_request = self._invocations[error.request]
 
-            # correlate the received invocation error to the original call
-            error.correlation_id = invocation_request.call.correlation_id
-            error.correlation_uri = invocation_request.call.correlation_uri
-            error.correlation_is_anchor = False
-            error.correlation_is_last = False
+            if self._router.is_traced:
+                # correlate the received invocation error to the original call
+                error.correlation_id = invocation_request.call.correlation_id
+                error.correlation_uri = invocation_request.call.correlation_uri
+                error.correlation_is_anchor = False
+                error.correlation_is_last = False
+                self._router._factory._worker._maybe_trace_rx_msg(session, error)
 
             # if concurrency is enabled on this, an error counts as
             # "an answer" so we decrement.
@@ -1104,13 +1117,15 @@ class Dealer(object):
                                       enc_key=error.enc_key,
                                       enc_serializer=error.enc_serializer)
 
-            # the calling session might have been lost in the meantime ..
-            #
-            if invocation_request.caller._transport:
+            if self._router.is_traced:
                 reply.correlation_id = invocation_request.call.correlation_id
                 reply.correlation_uri = invocation_request.call.correlation_uri
                 reply.correlation_is_anchor = False
                 reply.correlation_is_last = True
+
+            # the calling session might have been lost in the meantime ..
+            #
+            if invocation_request.caller._transport:
                 self._router.send(invocation_request.caller, reply)
 
             # the call is done
