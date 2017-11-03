@@ -8,9 +8,10 @@ Crossbar.io master (unreleased)
 * ADD ME
 
 
-Crossbar.io 17.11.1 (2017-11-02)
+Crossbar.io 17.11.1 (2017-11-03)
 ===============================
 
+* fix: "crossbar check" command was broken
 * new: refactor tracing code to enable trace_level==action
 * new: forward node_id into worker
 
