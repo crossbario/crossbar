@@ -59,7 +59,8 @@ from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
 
-from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey
+from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey, \
+    default_native_workers
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
@@ -751,7 +752,7 @@ def run_command_check(options, **kwargs):
 
     try:
         print("Checking local node configuration file: {}".format(configfile))
-        config = check_config_file(configfile)
+        config = check_config_file(configfile, default_native_workers())
     except Exception as e:
         print("Error: {}".format(e))
         sys.exit(1)
