@@ -34,21 +34,21 @@ curl -H "Content-Type: application/json" \
 
 ## Using Python
 
-To make using the *HTTP Publisher* service even easier, jose-lpawe has created a library which you can install by doing:
+To make using the *HTTP Publisher* service even easier, we've created a (trivial) library which you can install by doing:
 
 ```console
-pip install crossbarhttp3
+pip install crossbarconnect
 ```
 
-> `crossbarhttp3` does *not* depend on `crossbar`, `autobahn`, `twisted` or `asyncio`. It only uses the Python standard library. It only does HTTP/POST requests.
+> `crossbarconnect` does *not* depend on `crossbar`, `autobahn`, `twisted` or `asyncio`. It only uses the Python standard library. It only does HTTP/POST requests.
 
 You can publish events from Python like this:
 
 ```python
-from crossbarhttp import Client
+import crossbarconnect
 
-client = Client('http://127.0.0.1/publish')
-result = client.publish('com.example.event', event='new event')
+client = crossbarconnect.Client("http://127.0.0.1:8080/publish")
+client.publish("com.myapp.topic1", "Hello, world!", 23)
 ```
 
 The example also contains two Python scripts for testing unsigned requests:
