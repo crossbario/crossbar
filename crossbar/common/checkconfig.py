@@ -1369,6 +1369,7 @@ def check_web_path_service_longpoll(config):
     check_dict_args({
         'type': (True, [six.text_type]),
         'options': (False, [Mapping]),
+        'auth': (False, [Mapping]),
     }, config, "Web transport 'longpoll' path service")
 
     if 'options' in config:
@@ -1380,6 +1381,9 @@ def check_web_path_service_longpoll(config):
             'queue_limit_bytes': (False, six.integer_types),
             'queue_limit_messages': (False, six.integer_types),
         }, config['options'], "Web transport 'longpoll' path service")
+
+    if 'auth' in config:
+        check_transport_auth(config['auth'])
 
 
 def check_web_path_service_rest_post_body_limit(limit):

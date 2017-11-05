@@ -289,6 +289,11 @@ class WampLongPollResourceSession(Resource):
         self._serializer = transport_details['serializer']
         self._session = None
 
+        if(hasattr(self._parent, '_auth')):
+            # Create a config entry so that the auth settings are picked up by the session
+            self._config = {'auth' : self._parent._auth}
+
+
         # session authentication information
         #
         self._authid = None
@@ -583,7 +588,8 @@ class WampLongPollResource(Resource):
                  queueLimitBytes=128 * 1024,
                  queueLimitMessages=100,
                  debug_transport_id=None,
-                 reactor=None):
+                 reactor=None,
+                 auth=None):
         """
         Create new HTTP WAMP Web resource.
 
@@ -605,6 +611,8 @@ class WampLongPollResource(Resource):
         :type debug_transport_id: str
         :param reactor: The Twisted reactor to run under.
         :type reactor: obj
+        :param auth: Optional authentication settings for the WAMP connection
+        :type auth: obj
         """
         Resource.__init__(self)
 
@@ -621,6 +629,7 @@ class WampLongPollResource(Resource):
         self._killAfter = killAfter
         self._queueLimitBytes = queueLimitBytes
         self._queueLimitMessages = queueLimitMessages
+        self._auth = auth
 
         if serializers is None:
             serializers = []
