@@ -43,6 +43,7 @@ from crossbar.router import RouterOptions
 from crossbar.router.realmstore import HAS_LMDB, LmdbRealmStore, MemoryRealmStore
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
+from crossbar.router.interface import RouterInterface
 from crossbar.router.role import RouterRole, \
     RouterTrustedRole, RouterRoleStaticAuth, \
     RouterRoleDynamicAuth
@@ -113,6 +114,8 @@ class Router(object):
         self._roles = {
             u'trusted': RouterTrustedRole(self, u'trusted')
         }
+
+        self._interfaces = {}
 
         self._is_traced = self._factory._worker and \
             hasattr(self._factory._worker, '_maybe_trace_rx_msg') and \
@@ -334,6 +337,20 @@ class Router(object):
         else:
             return False
 
+    def has_interface(self, uri):
+        return uri in self._interfaces
+
+    def add_interface(self, interface):
+        overwritten = interface.uri in self._interfaces
+        self._interfaces[interface.uri] = interface
+        return overwritten
+
+    def drop_interface(self, interface):
+        if interface.uri in self._interfaces:
+            del self._interfaces[interface.uri]
+            return True
+        return False
+
     def authorize(self, session, uri, action, options):
         """
         Authorizes a session for an action on an URI.
@@ -387,6 +404,8 @@ class Router(object):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
+        if payload_type == 'call':
+            print(self._interfaces)
         self.log.debug("Validate '{payload_type}' for '{uri}'",
                        payload_type=payload_type, uri=uri, cb_level="trace")
 
@@ -552,6 +571,29 @@ class RouterFactory(object):
 
         role = router._roles[role]
         router.drop_role(role)
+
+    def add_interface(self, realm, interface):
+        assert(type(realm) == six.text_type)
+        assert(realm in self._routers)
+
+        router = self._routers[realm]
+
+        router.add_interface(RouterInterface(router, interface['uri']))
+
+    def drop_interface(self, realm, interface_id):
+        assert(type(realm) == six.text_type)
+        assert(type(interface_id) == six.text_type)
+
+        if realm not in self._routers:
+            raise Exception('no router started for realm "{}"'.format(realm))
+
+        router = self._routers[realm]
+
+        if interface_id not in router._interfaces:
+            raise Exception('no interface "{}" started on router for realm "{}"'.format(interface_id, realm))
+
+        interface_id = router._interfaces[interface_id]
+        router.drop_interface(interface_id)
 
     def auto_start_realm(self, realm):
         raise Exception("realm auto-activation (realm '{}') not yet implemented".format(realm))
