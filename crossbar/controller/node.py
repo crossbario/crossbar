@@ -346,6 +346,7 @@ class Node(object):
         self._worker_no = 1
         self._realm_no = 1
         self._role_no = 1
+        self._interface_no = 1
         self._connection_no = 1
         self._transport_no = 1
         self._component_no = 1
@@ -753,6 +754,14 @@ class Node(object):
                     role_name=role['name'],
                     realm=realm_id,
                 )
+
+            for interface in realm.get('interfaces', []):
+                if 'id' in interface:
+                    interface_id = interface.pop('id')
+                else:
+                    interface_id = 'role-{:03d}'.format(self._interface_no)
+                    self._interface_no += 1
+                yield self._controller.call(u'crossbar.worker.{}.start_router_realm_interface'.format(worker_id), realm_id, interface_id, interface)
 
             # start uplinks for realm
             for uplink in realm.get('uplinks', []):

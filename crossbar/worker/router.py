@@ -218,6 +218,7 @@ class RouterRealm(object):
         self.created = datetime.utcnow()
         self.roles = {}
         self.uplinks = {}
+        self.interfaces = {}
 
     def marshal(self):
         return {
@@ -225,6 +226,7 @@ class RouterRealm(object):
             u'config': self.config,
             u'created': self.created,
             u'roles': self.roles,
+            u'interfaces': self.interfaces,
         }
 
 
@@ -243,6 +245,12 @@ class RouterRealmRole(object):
         :param config: The role configuration.
         :type config: dict
         """
+        self.id = id
+        self.config = config
+
+
+class RouterRealmInterface(object):
+    def __init__(self, id, config):
         self.id = id
         self.config = config
 
@@ -1130,6 +1138,42 @@ class RouterWorkerSession(NativeWorkerSession):
             raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, id))
 
         del self.realms[id].roles[role_id]
+
+    @wamp.register(None)
+    def start_router_realm_interface(self, realm_id, interface_id, interface_config, details=None):
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        if interface_id in self.realms[realm_id].interfaces:
+            raise ApplicationError(u"crossbar.error.already_exists", "A role with ID '{}' already exists in realm with ID '{}'".format(interface_id, realm_id))
+
+        self.realms[realm_id].interfaces[interface_id] = RouterRealmInterface(interface_id, interface_config)
+
+        realm = self.realms[realm_id].config['name']
+        self._router_factory.add_interface(realm, interface_config)
+
+        topic = u'{}.on_router_realm_interface_started'.format(self._uri_prefix)
+        event = {
+            u'id': interface_id
+        }
+        caller = details.caller if details else None
+        self.publish(topic, event, options=PublishOptions(exclude=caller))
+
+    @wamp.register(None)
+    def stop_router_realm_interface(self, realm_id, interface_id, details=None):
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+
+        if interface_id not in self.realms[realm_id].roles:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(interface_id, realm_id))
+
+        del self.realms[realm_id].interfaces[interface_id]
+
+    @wamp.register(None)
+    def get_router_realm_interface(self, realm_id, details=None):
+        if realm_id not in self.realms:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
+        return self.realms[realm_id].interfaces.values()
 
     @wamp.register(None)
     def get_router_realm_uplinks(self, id, details=None):
