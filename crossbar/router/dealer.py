@@ -239,7 +239,7 @@ class Dealer(object):
                    self._router._realm.session and \
                    not registration.uri.startswith(u'wamp.'):
 
-                    def _publish():
+                    def _publish(registration):
                         service_session = self._router._realm.session
                         options = types.PublishOptions(
                             correlation_id=None
@@ -259,7 +259,7 @@ class Dealer(object):
                                 options=options,
                             )
                     # we postpone actual sending of meta events until we return to this client session
-                    self._reactor.callLater(0, _publish)
+                    self._reactor.callLater(0, _publish, registration)
 
             del self._session_to_registrations[session]
 
