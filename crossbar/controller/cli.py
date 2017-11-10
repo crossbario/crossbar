@@ -165,7 +165,7 @@ def _is_crossbar_process(cmdline):
     """
     if len(cmdline) > 1 and 'crossbar' in cmdline[1]:
         return True
-    if cmdline[0] == 'crossbar-controller':
+    if len(cmdline) > 0 and cmdline[0] == 'crossbar-controller':
         return True
     return False
 
