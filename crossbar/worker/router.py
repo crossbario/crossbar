@@ -855,12 +855,14 @@ class RouterWorkerSession(NativeWorkerSession):
     """
     WORKER_TYPE = u'router'
     WORKER_TITLE = u'Router'
+    router_realm_class = RouterRealm
+    router_factory_class = RouterFactory
 
     def __init__(self, config=None, reactor=None):
         NativeWorkerSession.__init__(self, config, reactor)
 
         # factory for producing (per-realm) routers
-        self._router_factory = RouterFactory(None, self)
+        self._router_factory = self.router_factory_class(None, self)
 
         # factory for producing router sessions
         self._router_session_factory = RouterSessionFactory(self._router_factory)
@@ -994,7 +996,7 @@ class RouterWorkerSession(NativeWorkerSession):
             bridge_meta_api_prefix = None
 
         # track realm
-        rlm = RouterRealm(realm_id, realm_config)
+        rlm = self.router_realm_class(realm_id, realm_config)
         self.realms[realm_id] = rlm
         self.realm_to_id[realm] = realm_id
 
