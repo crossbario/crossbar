@@ -42,7 +42,7 @@ from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
 from autobahn.wamp.exception import ApplicationError
-from autobahn.websocket.types import ConnectionAccept, ConnectionDeny, ConnectionRequest, ConnectionResponse
+from autobahn.websocket.types import ConnectionAccept
 
 from txaio import make_logger
 
@@ -683,13 +683,12 @@ class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
         self.log.info('WebSocketReverseProxyClientProtocol.onConnect(response={response})',
                       response=response)
         # response={"peer": "tcp4:127.0.0.1:9000", "headers": {"server": "AutobahnPython/17.10.1", "upgrade": "WebSocket", "connection": "Upgrade", "sec-websocket-accept": "tJFVMTSzGypbxQb8GW1dK/QLMZQ="}, "version": 18, "protocol": null, "extensions": []}
-        #self.backend_on_connect.callback(response)
         try:
-            self.backend_on_connect.callback(None)
+            accept = ConnectionAccept(subprotocol=None, headers=None)
+            accept = None
+            self.backend_on_connect.callback(accept)
         except:
             self.log.failure()
-        else:
-            self.log.info('XXXXXXXXXXXXX')
 
     def onOpen(self):
         self.log.info('WebSocketReverseProxyClientProtocol.onOpen()')
@@ -697,12 +696,15 @@ class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
 
     def onMessage(self, payload, isBinary):
         self.log.info('WebSocketReverseProxyClientProtocol.onMessage(payload={payload}, isBinary={isBinary})',
-                      payload=payload if not isBinary else binascii.b2a_hex(payload)[:16].decode('ascii') + '..')
+                      payload=u'{}..'.format((binascii.b2a_hex(payload).decode() if isBinary else payload.decode('utf8'))[:16]),
+                      isBinary=isBinary)
         self.factory.frontend_protocol.sendMessage(payload, isBinary)
 
     def onClose(self, wasClean, code, reason):
         self.log.info('WebSocketReverseProxyClientProtocol.onClose(wasClean={wasClean}, code={code}, reason={reason})',
                       wasClean=wasClean, code=code, reason=reason)
+        code = 1000
+        self.factory.frontend_protocol.sendClose(code, reason)
 
 
 class WebSocketReverseProxyClientFactory(websocket.WebSocketClientFactory):
@@ -723,8 +725,6 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
 
     def onConnect(self, request):
         self.log.info('WebSocketReverseProxyServerProtocol.onConnect(request={request})', request=request)
-
-        #return ConnectionAccept(subprotocol=None, headers=None)
 
         config = self.factory.path_config['backend']
 
@@ -780,6 +780,7 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
     def onClose(self, wasClean, code, reason):
         if self.backend_protocol:
             self.log.info('WebSocketReverseProxyServerProtocol: forwarding close from frontend connection to backend connection')
+            code = 1000
             self.backend_protocol.sendClose(code, reason)
         else:
             self.log.warn('WebSocketReverseProxyServerProtocol: received WebSocket close on frontend connection while there is no backend connection! dropping WebSocket close')
