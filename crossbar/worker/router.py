@@ -58,7 +58,7 @@ from crossbar.router.service import RouterServiceSession
 from crossbar.router.router import RouterFactory
 
 from crossbar.router.protocol import WampWebSocketServerFactory, \
-    WampRawSocketServerFactory
+    WampRawSocketServerFactory, WebSocketReverseProxyServerFactory
 
 from crossbar.router.unisocket import UniSocketServerFactory
 
@@ -538,6 +538,14 @@ def _create_resource(reactor, path_config, templates, log, cbdir, _router_sessio
         ws_factory.startFactory()
 
         return WebSocketResource(ws_factory)
+
+    # Reverse WebSocket resource
+    #
+    elif path_config['type'] == 'websocket-reverseproxy':
+        ws_rproxy_factory = WebSocketReverseProxyServerFactory(reactor, path_config)
+        ws_rproxy_factory.startFactory()
+
+        return WebSocketResource(ws_rproxy_factory)
 
     # Static file hierarchy resource
     #

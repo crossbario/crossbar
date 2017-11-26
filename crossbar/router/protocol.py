@@ -33,14 +33,22 @@ from __future__ import absolute_import
 import os
 import traceback
 import crossbar
+import binascii
+
+from twisted import internet
 
 from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
+from autobahn.wamp.exception import ApplicationError
+from autobahn.websocket.types import ConnectionAccept, ConnectionDeny, ConnectionRequest, ConnectionResponse
+
 from txaio import make_logger
 
 from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked
+
+from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
 
 log = make_logger()
 
@@ -665,3 +673,164 @@ class WampRawSocketClientFactory(rawsocket.WampRawSocketClientFactory):
             raise Exception("invalid WAMP serializer '{}'".format(serid))
 
         rawsocket.WampRawSocketClientFactory.__init__(self, factory, serializer)
+
+
+class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
+
+    log = make_logger()
+
+    def onConnect(self, response):
+        self.log.info('WebSocketReverseProxyClientProtocol.onConnect(response={response})',
+                      response=response)
+        # response={"peer": "tcp4:127.0.0.1:9000", "headers": {"server": "AutobahnPython/17.10.1", "upgrade": "WebSocket", "connection": "Upgrade", "sec-websocket-accept": "tJFVMTSzGypbxQb8GW1dK/QLMZQ="}, "version": 18, "protocol": null, "extensions": []}
+        #self.backend_on_connect.callback(response)
+        try:
+            self.backend_on_connect.callback(None)
+        except:
+            self.log.failure()
+        else:
+            self.log.info('XXXXXXXXXXXXX')
+
+    def onOpen(self):
+        self.log.info('WebSocketReverseProxyClientProtocol.onOpen()')
+        self.factory.frontend_protocol.onOpen()
+
+    def onMessage(self, payload, isBinary):
+        self.log.info('WebSocketReverseProxyClientProtocol.onMessage(payload={payload}, isBinary={isBinary})',
+                      payload=payload if not isBinary else binascii.b2a_hex(payload)[:16].decode('ascii') + '..')
+        self.factory.frontend_protocol.sendMessage(payload, isBinary)
+
+    def onClose(self, wasClean, code, reason):
+        self.log.info('WebSocketReverseProxyClientProtocol.onClose(wasClean={wasClean}, code={code}, reason={reason})',
+                      wasClean=wasClean, code=code, reason=reason)
+
+
+class WebSocketReverseProxyClientFactory(websocket.WebSocketClientFactory):
+
+    log = make_logger()
+
+    protocol = WebSocketReverseProxyClientProtocol
+
+    def __init__(self, *args, **kwargs):
+        self.frontend_protocol = kwargs.pop('frontend_protocol', None)
+        assert(self.frontend_protocol is not None)
+        websocket.WebSocketClientFactory.__init__(self, *args, **kwargs)
+
+
+class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
+
+    log = make_logger()
+
+    def onConnect(self, request):
+        self.log.info('WebSocketReverseProxyServerProtocol.onConnect(request={request})', request=request)
+
+        #return ConnectionAccept(subprotocol=None, headers=None)
+
+        config = self.factory.path_config['backend']
+
+        self.backend_factory = WebSocketReverseProxyClientFactory(frontend_protocol=self,
+                                                                  url=config.get('url', None))
+        self.backend_factory.noisy = False
+
+        self.backend_protocol = None
+
+        # create and connect client endpoint
+        #
+        endpoint = create_connecting_endpoint_from_config(config[u'endpoint'],
+                                                          None,
+                                                          self.factory.reactor,
+                                                          self.log)
+
+        backend_on_connect = internet.defer.Deferred()
+
+        # now, actually connect the client
+        #
+        d = endpoint.connect(self.backend_factory)
+
+        def on_connect_success(proto):
+            self.log.info('WebSocketReverseProxyServerProtocol.onConnect(..): connected')
+            proto.backend_on_connect = backend_on_connect
+            self.backend_protocol = proto
+
+        def on_connect_error(err):
+            # https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
+            if isinstance(err.value, internet.error.ConnectError):
+                emsg = u'could not connect websocket reverse proxy frontend to backend - transport establishment failed ({})'.format(err.value)
+                self.log.warn(emsg)
+                backend_on_connect.errback(ApplicationError(u'crossbar.error.cannot_connect', emsg))
+            else:
+                # should not arrive here (since all errors arriving here
+                # should be subclasses of ConnectError)
+                backend_on_connect.errback(err)
+
+        d.addCallbacks(on_connect_success, on_connect_error)
+
+        return backend_on_connect
+
+    def onOpen(self):
+        self.log.info('WebSocketReverseProxyServerProtocol.onOpen()')
+
+    def onMessage(self, payload, isBinary):
+        if self.backend_protocol:
+            self.log.info('WebSocketReverseProxyServerProtocol: forwarding WebSocket message from frontend connection to backend connection')
+            self.backend_protocol.sendMessage(payload, isBinary)
+        else:
+            self.log.warn('WebSocketReverseProxyServerProtocol: received WebSocket message on frontend connection while there is no backend connection! dropping WebSocket message')
+
+    def onClose(self, wasClean, code, reason):
+        if self.backend_protocol:
+            self.log.info('WebSocketReverseProxyServerProtocol: forwarding close from frontend connection to backend connection')
+            self.backend_protocol.sendClose(code, reason)
+        else:
+            self.log.warn('WebSocketReverseProxyServerProtocol: received WebSocket close on frontend connection while there is no backend connection! dropping WebSocket close')
+
+
+class WebSocketReverseProxyServerFactory(websocket.WebSocketServerFactory):
+
+    """
+    Reverse WebSocket proxy factory.
+
+    This factory produces protocols that accept incoming WebSocket connections,
+    connect to a backend WebSocket server and forward WebSocket messages received
+    from both side to the other side.
+
+    Reverse WebSocket proxy factories are then given to WebSocketResource instances
+    in a Web transport resource tree.
+    """
+
+    protocol = WebSocketReverseProxyServerProtocol
+    log = make_logger()
+
+    def __init__(self, reactor, path_config):
+        """
+
+        :param path_config: The path configuration of the Web transport resource.
+        :type path_config: dict
+        """
+        self.reactor = reactor
+        self.path_config = path_config
+
+        url = path_config.get('url', None)
+
+        options = path_config.get('options', {})
+
+        showServerVersion = options.get('show_server_version', True)
+        if showServerVersion:
+            server = "Crossbar/{}".format(crossbar.__version__)
+        else:
+            server = "Crossbar"
+
+        externalPort = options.get('external_port', None)
+
+        protocols = None
+        headers = None
+
+        websocket.WebSocketServerFactory.__init__(self,
+                                                  reactor=reactor,
+                                                  url=url,
+                                                  protocols=protocols,
+                                                  server=server,
+                                                  headers=headers,
+                                                  externalPort=externalPort)
+        # set WebSocket options
+        set_websocket_options(self, options)
