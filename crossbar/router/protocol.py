@@ -41,8 +41,7 @@ from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
-from autobahn.wamp.exception import ApplicationError
-from autobahn.websocket.types import ConnectionAccept
+from autobahn.websocket.types import ConnectionAccept, ConnectionDeny
 
 from txaio import make_logger
 
@@ -141,30 +140,52 @@ def set_websocket_options(factory, options):
                                                                 mem_level=mem_level)
             per_msg_compression = accept
 
-    factory.setProtocolOptions(
-        versions=versions,
-        webStatus=c.get("enable_webstatus", True),
-        utf8validateIncoming=c.get("validate_utf8", True),
-        maskServerFrames=c.get("mask_server_frames", False),
-        requireMaskedClientFrames=c.get("require_masked_client_frames", True),
-        applyMask=c.get("apply_mask", True),
-        maxFramePayloadSize=c.get("max_frame_size", 0),
-        maxMessagePayloadSize=c.get("max_message_size", 0),
-        autoFragmentSize=c.get("auto_fragment_size", 0),
-        failByDrop=c.get("fail_by_drop", False),
-        echoCloseCodeReason=c.get("echo_close_codereason", False),
-        openHandshakeTimeout=openHandshakeTimeout,
-        closeHandshakeTimeout=closeHandshakeTimeout,
-        tcpNoDelay=c.get("tcp_nodelay", True),
-        autoPingInterval=autoPingInterval,
-        autoPingTimeout=autoPingTimeout,
-        autoPingSize=c.get("auto_ping_size", None),
-        serveFlashSocketPolicy=c.get("enable_flash_policy", None),
-        flashSocketPolicy=c.get("flash_policy", None),
-        allowedOrigins=c.get("allowed_origins", ["*"]),
-        allowNullOrigin=bool(c.get("allow_null_origin", True)),
-        perMessageCompressionAccept=per_msg_compression,
-    )
+    if factory.isServer:
+        factory.setProtocolOptions(
+            versions=versions,
+            webStatus=c.get("enable_webstatus", True),
+            utf8validateIncoming=c.get("validate_utf8", True),
+            maskServerFrames=c.get("mask_server_frames", False),
+            requireMaskedClientFrames=c.get("require_masked_client_frames", True),
+            applyMask=c.get("apply_mask", True),
+            maxFramePayloadSize=c.get("max_frame_size", 0),
+            maxMessagePayloadSize=c.get("max_message_size", 0),
+            autoFragmentSize=c.get("auto_fragment_size", 0),
+            failByDrop=c.get("fail_by_drop", False),
+            echoCloseCodeReason=c.get("echo_close_codereason", False),
+            openHandshakeTimeout=openHandshakeTimeout,
+            closeHandshakeTimeout=closeHandshakeTimeout,
+            tcpNoDelay=c.get("tcp_nodelay", True),
+            autoPingInterval=autoPingInterval,
+            autoPingTimeout=autoPingTimeout,
+            autoPingSize=c.get("auto_ping_size", None),
+            serveFlashSocketPolicy=c.get("enable_flash_policy", None),
+            flashSocketPolicy=c.get("flash_policy", None),
+            allowedOrigins=c.get("allowed_origins", ["*"]),
+            allowNullOrigin=bool(c.get("allow_null_origin", True)),
+            perMessageCompressionAccept=per_msg_compression,
+        )
+    else:
+        factory.setProtocolOptions(
+            version=None,
+            utf8validateIncoming=c.get("validate_utf8", True),
+            acceptMaskedServerFrames=c.get("accept_masked_server_frames", False),
+            maskClientFrames=c.get("mask_client_frames", True),
+            applyMask=c.get("apply_mask", True),
+            maxFramePayloadSize=c.get("max_frame_size", 0),
+            maxMessagePayloadSize=c.get("max_message_size", 0),
+            autoFragmentSize=c.get("auto_fragment_size", 0),
+            failByDrop=c.get("fail_by_drop", False),
+            echoCloseCodeReason=c.get("echo_close_codereason", False),
+            openHandshakeTimeout=openHandshakeTimeout,
+            closeHandshakeTimeout=closeHandshakeTimeout,
+            tcpNoDelay=c.get("tcp_nodelay", True),
+            autoPingInterval=autoPingInterval,
+            autoPingTimeout=autoPingTimeout,
+            autoPingSize=c.get("auto_ping_size", None),
+            perMessageCompressionOffers=None,
+            perMessageCompressionAccept=None,
+        )
 
 
 class WampWebSocketServerProtocol(websocket.WampWebSocketServerProtocol):
@@ -718,25 +739,43 @@ class WebSocketReverseProxyClientFactory(websocket.WebSocketClientFactory):
         assert(self.frontend_protocol is not None)
         websocket.WebSocketClientFactory.__init__(self, *args, **kwargs)
 
+        # set WebSocket options
+        self.backend_config = self.frontend_protocol.backend_config
+        set_websocket_options(self, self.backend_config.get('options', {}))
+
 
 class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
+    """
+    Server protocol to accept incoming (frontend) WebSocket connections and
+    forward traffic to a backend WebSocket server.
+
+    This protocol supports any WebSocket based subprotocol with text or
+    binary payload.
+
+    The WebSocket connection to the backend WebSocket server is configurable
+    on the factory for this protocol.
+    """
 
     log = make_logger()
 
     def onConnect(self, request):
+        """
+        Incoming (frontend) WebSocket connection accepted. Forward connect to
+        backend WebSocket server.
+        """
         self.log.info('WebSocketReverseProxyServerProtocol.onConnect(request={request})', request=request)
 
-        config = self.factory.path_config['backend']
+        self.backend_config = self.factory.path_config['backend']
 
         self.backend_factory = WebSocketReverseProxyClientFactory(frontend_protocol=self,
-                                                                  url=config.get('url', None))
+                                                                  url=self.backend_config.get('url', None))
         self.backend_factory.noisy = False
 
         self.backend_protocol = None
 
         # create and connect client endpoint
         #
-        endpoint = create_connecting_endpoint_from_config(config[u'endpoint'],
+        endpoint = create_connecting_endpoint_from_config(self.backend_config[u'endpoint'],
                                                           None,
                                                           self.factory.reactor,
                                                           self.log)
@@ -753,15 +792,8 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
             self.backend_protocol = proto
 
         def on_connect_error(err):
-            # https://twistedmatrix.com/documents/current/api/twisted.internet.error.ConnectError.html
-            if isinstance(err.value, internet.error.ConnectError):
-                emsg = u'could not connect websocket reverse proxy frontend to backend - transport establishment failed ({})'.format(err.value)
-                self.log.warn(emsg)
-                backend_on_connect.errback(ApplicationError(u'crossbar.error.cannot_connect', emsg))
-            else:
-                # should not arrive here (since all errors arriving here
-                # should be subclasses of ConnectError)
-                backend_on_connect.errback(err)
+            deny = ConnectionDeny(ConnectionDeny.SERVICE_UNAVAILABLE, u'WebSocket reverse proxy backend not reachable')
+            backend_on_connect.errback(deny)
 
         d.addCallbacks(on_connect_success, on_connect_error)
 
