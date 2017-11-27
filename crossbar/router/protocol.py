@@ -41,7 +41,8 @@ from autobahn.twisted import websocket
 from autobahn.twisted import rawsocket
 from autobahn.websocket.compress import PerMessageDeflateOffer, PerMessageDeflateOfferAccept
 
-from autobahn.websocket.types import ConnectionAccept, ConnectionDeny
+# from autobahn.websocket.types import ConnectionAccept
+from autobahn.websocket.types import ConnectionDeny
 
 from txaio import make_logger
 
@@ -705,8 +706,9 @@ class WebSocketReverseProxyClientProtocol(websocket.WebSocketClientProtocol):
                       response=response)
         # response={"peer": "tcp4:127.0.0.1:9000", "headers": {"server": "AutobahnPython/17.10.1", "upgrade": "WebSocket", "connection": "Upgrade", "sec-websocket-accept": "tJFVMTSzGypbxQb8GW1dK/QLMZQ="}, "version": 18, "protocol": null, "extensions": []}
         try:
-            accept = ConnectionAccept(subprotocol=None, headers=None)
-            accept = None
+            # accept = ConnectionAccept(subprotocol=response.protocol, headers=None)
+            headers = {}
+            accept = response.protocol, headers
             self.backend_on_connect.callback(accept)
         except:
             self.log.failure()
@@ -737,7 +739,16 @@ class WebSocketReverseProxyClientFactory(websocket.WebSocketClientFactory):
     def __init__(self, *args, **kwargs):
         self.frontend_protocol = kwargs.pop('frontend_protocol', None)
         assert(self.frontend_protocol is not None)
-        websocket.WebSocketClientFactory.__init__(self, *args, **kwargs)
+
+        frontend_request = kwargs.pop('frontend_request', None)
+        if frontend_request:
+            protocols = frontend_request.protocols
+            # headers = frontend_request.headers
+        else:
+            protocols = None
+            # headers = None
+
+        websocket.WebSocketClientFactory.__init__(self, *args, protocols=protocols, **kwargs)
 
         # set WebSocket options
         self.backend_config = self.frontend_protocol.backend_config
@@ -768,6 +779,7 @@ class WebSocketReverseProxyServerProtocol(websocket.WebSocketServerProtocol):
         self.backend_config = self.factory.path_config['backend']
 
         self.backend_factory = WebSocketReverseProxyClientFactory(frontend_protocol=self,
+                                                                  frontend_request=request,
                                                                   url=self.backend_config.get('url', None))
         self.backend_factory.noisy = False
 
