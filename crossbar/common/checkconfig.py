@@ -1156,6 +1156,29 @@ def check_websocket_compression(options):
     # FIXME
 
 
+def check_web_path_service_websocket_reverseproxy(config):
+    check_dict_args({
+        'type': (True, [six.text_type]),
+        'url': (False, [six.text_type]),
+        'options': (False, [Mapping]),
+        'backend': (True, [Mapping])
+    }, config, "Web transport 'Reverse WebSocket Proxy' path service")
+
+    if 'url' in config:
+        url = config['url']
+        if not isinstance(url, six.text_type):
+            raise InvalidConfigException("'url' in WebSocket configuration must be str ({} encountered)".format(type(url)))
+        try:
+            parse_url(url)
+        except InvalidConfigException as e:
+            raise InvalidConfigException("invalid 'url' in WebSocket configuration : {}".format(e))
+
+    if 'options' in config:
+        check_websocket_options(config['options'])
+
+    check_connecting_transport_websocket(config['backend'])
+
+
 def check_web_path_service_websocket(config):
     """
     Check a "websocket" path service on Web transport.
@@ -1624,7 +1647,7 @@ def check_web_path_service(path, config, nested):
         if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook', 'nodeinfo']:
             raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo']:
+        if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo']:
             raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -1632,6 +1655,7 @@ def check_web_path_service(path, config, nested):
         'static': check_web_path_service_static,
         'upload': check_web_path_service_upload,
         'websocket': check_web_path_service_websocket,
+        'websocket-reverseproxy': check_web_path_service_websocket_reverseproxy,
         'longpoll': check_web_path_service_longpoll,
         'redirect': check_web_path_service_redirect,
         'nodeinfo': check_web_path_service_nodeinfo,
