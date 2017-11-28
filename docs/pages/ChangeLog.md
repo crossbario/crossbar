@@ -5,7 +5,7 @@ toc: [Documentation, Programming Guide, ChangeLog]
 Crossbar.io master (unreleased)
 ===============================
 
-* ADD ME
+* new: reverse WebSocket proxy (Web service)
 
 
 Crossbar.io 17.11.1 (2017-11-03)
