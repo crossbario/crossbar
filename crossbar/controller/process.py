@@ -710,6 +710,10 @@ class NodeControllerSession(NativeProcessSession):
             self._workers[worker_id].factory.stopFactory()
             self._workers[worker_id].proto.transport.signalProcess('TERM')
 
+        # wait until the worker is actually done before we return from
+        # this call
+        yield self._workers[worker_id].proto.is_closed
+
         returnValue(stop_info)
 
     def _start_guest_worker(self, worker_id, worker_config, details=None):
