@@ -545,9 +545,9 @@ def _remove_paths(reactor, resource, paths):
         else:
             webPath = path
 
-        if path != b"/":
-            if path in resource.children:
-                del resource.children[path]
+        if webPath != b"/":
+            if webPath in resource.children:
+                del resource.children[webPath]
 
 
 def _create_resource(reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True):
@@ -1532,9 +1532,8 @@ class RouterWorkerSession(NativeWorkerSession):
                    self._templates,
                    self.log,
                    self.config.extra.cbdir,
-                   _router_session_factory,
+                   self._router_session_factory,
                    self)
-
 
     @wamp.register(None)
     def stop_web_transport_service(self, transport_id, path, details=None):
@@ -1558,7 +1557,12 @@ class RouterWorkerSession(NativeWorkerSession):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
-        if path not in transport.root_resource.children:
+        if isinstance(path, six.text_type):
+            webPath = path.encode('utf8')
+        else:
+            webPath = path
+
+        if webPath not in transport.root_resource.children:
             emsg = "Cannot stop service on Web transport {}: no service running on path '{}'".format(transport_id, path)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
