@@ -500,6 +500,7 @@ def _add_paths(reactor, resource, paths, templates, log, cbdir, _router_session_
 
     :param resource: The parent resource under which to add paths.
     :type resource: Resource
+
     :param paths: The path configurations.
     :type paths: dict
     """
@@ -515,6 +516,28 @@ def _add_paths(reactor, resource, paths, templates, log, cbdir, _router_session_
                 webPath,
                 _create_resource(reactor, paths[path], templates, log, cbdir, _router_session_factory, node)
             )
+
+
+def _remove_paths(reactor, resource, paths):
+    """
+    Remove (non-root) paths from a resource.
+
+    :param resource: The parent resource from which to remove paths.
+    :type resource: Resource
+
+    :param paths: The paths to remove.
+    :type paths: dict
+    """
+    for path in sorted(paths):
+
+        if isinstance(path, six.text_type):
+            webPath = path.encode('utf8')
+        else:
+            webPath = path
+
+        if path != b"/":
+            if path in resource.children:
+                del resource.children[path]
 
 
 def _create_resource(reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True):
