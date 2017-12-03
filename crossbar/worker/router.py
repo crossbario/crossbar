@@ -138,22 +138,29 @@ class RouterTransport(object):
     A (listening) transport running on a router worker.
     """
 
-    def __init__(self, id, config, factory, port):
+    def __init__(self, id, config, factory, root_resource, port):
         """
-        Ctor.
 
         :param id: The transport ID within the router.
         :type id: str
+
         :param config: The transport's configuration.
         :type config: dict
+
         :param factory: The transport factory in use.
         :type factory: obj
+
+        :param root_resource: Twisted Web root resource (used with Site factory), when
+            using a Web transport.
+        :type root_resource: obj
+
         :param port: The transport's listening port (https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IListeningPort.html)
         :type port: obj
         """
         self.id = id
         self.config = config
         self.factory = factory
+        self.root_resource = root_resource
         self.port = port
         self.created = datetime.utcnow()
 
@@ -290,7 +297,7 @@ class _LessNoisyHTTPChannel(HTTPChannel):
 
 def create_transport_from_config(reactor, name, config, cbdir, log, node,
                                  _router_session_factory=None,
-                                 _web_templates=None):
+                                 _web_templates=None, add_paths=False):
     """
     :return: a Deferred that fires with a new RouterTransport instance
         (or error) representing the given transport using config for
@@ -306,7 +313,10 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
         log.error(emsg)
         raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
     else:
-        log.debug("Starting {ttype}-transport on router.", ttype=config['type'])
+        log.debug("Starting {type}-transport on router.", ttype=config['type'])
+
+    # only set (down below) when running a Web transport
+    root_resource = None
 
     # standalone WAMP-RawSocket transport
     #
@@ -364,7 +374,7 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
             raise ApplicationError(
                 u"Transport with type='web' requires templates"
             )
-        transport_factory = _create_web_factory(
+        transport_factory, root_resource = _create_web_factory(
             reactor,
             config,
             u'tls' in config[u'endpoint'],
@@ -373,6 +383,7 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
             cbdir,
             _router_session_factory,
             node,
+            add_paths=add_paths
         )
 
     # Universal transport
@@ -383,7 +394,7 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
                 raise ApplicationError(
                     u"Universal transport with type='web' requires templates"
                 )
-            web_factory = _create_web_factory(
+            web_factory, root_resource = _create_web_factory(
                 reactor,
                 config['web'],
                 u'tls' in config['endpoint'],
@@ -392,6 +403,7 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
                 cbdir,
                 _router_session_factory,
                 node,
+                add_paths=add_paths
             )
         else:
             web_factory = None
@@ -442,12 +454,12 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
     )
 
     def is_listening(port):
-        return RouterTransport(id, config, transport_factory, port)
+        return RouterTransport(id, config, transport_factory, root_resource, port)
     d.addCallback(is_listening)
     return d
 
 
-def _create_web_factory(reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node):
+def _create_web_factory(reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node, add_paths=False):
     assert templates is not None
 
     options = config.get('options', {})
@@ -460,7 +472,9 @@ def _create_web_factory(reactor, config, is_secure, templates, log, cbdir, _rout
         root = Resource404(templates, b'')
 
     # create Twisted Web resources on all non-root paths configured
-    _add_paths(reactor, root, config.get('paths', {}), templates, log, cbdir, _router_session_factory, node)
+    paths = config.get('paths', {})
+    if add_paths and paths:
+        _add_paths(reactor, root, paths, templates, log, cbdir, _router_session_factory, node)
 
     # create the actual transport factory
     transport_factory = Site(
@@ -491,7 +505,7 @@ def _create_web_factory(reactor, config, is_secure, templates, log, cbdir, _rout
         else:
             log.warn("Warning: HSTS requested, but running on non-TLS - skipping HSTS")
 
-    return transport_factory
+    return transport_factory, root
 
 
 def _add_paths(reactor, resource, paths, templates, log, cbdir, _router_session_factory, node):
@@ -500,6 +514,7 @@ def _add_paths(reactor, resource, paths, templates, log, cbdir, _router_session_
 
     :param resource: The parent resource under which to add paths.
     :type resource: Resource
+
     :param paths: The path configurations.
     :type paths: dict
     """
@@ -515,6 +530,28 @@ def _add_paths(reactor, resource, paths, templates, log, cbdir, _router_session_
                 webPath,
                 _create_resource(reactor, paths[path], templates, log, cbdir, _router_session_factory, node)
             )
+
+
+def _remove_paths(reactor, resource, paths):
+    """
+    Remove (non-root) paths from a resource.
+
+    :param resource: The parent resource from which to remove paths.
+    :type resource: Resource
+
+    :param paths: The paths to remove.
+    :type paths: dict
+    """
+    for path in sorted(paths):
+
+        if isinstance(path, six.text_type):
+            webPath = path.encode('utf8')
+        else:
+            webPath = path
+
+        if webPath != b"/":
+            if webPath in resource.children:
+                del resource.children[webPath]
 
 
 def _create_resource(reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True):
@@ -1397,7 +1434,7 @@ class RouterWorkerSession(NativeWorkerSession):
         return res
 
     @wamp.register(None)
-    def start_router_transport(self, id, config, details=None):
+    def start_router_transport(self, id, config, add_paths=False, details=None):
         """
         Start a transport on this router worker.
 
@@ -1418,7 +1455,7 @@ class RouterWorkerSession(NativeWorkerSession):
         d = create_transport_from_config(
             self._reactor, id, config, self.config.extra.cbdir, self.log, self,
             _router_session_factory=self._router_session_factory,
-            _web_templates=self._templates,
+            _web_templates=self._templates, add_paths=add_paths
         )
 
         def ok(router_transport):
@@ -1463,3 +1500,113 @@ class RouterWorkerSession(NativeWorkerSession):
 
         d.addCallbacks(ok, fail)
         return d
+
+    @wamp.register(None)
+    def start_web_transport_service(self, transport_id, path, config, details=None):
+        """
+        Start a service on a Web transport.
+
+        :param transport_id: The ID of the transport to start the Web transport service on.
+        :type transport_id: str
+
+        :param path: The path (absolute URL, eg "/myservice1") on which to start the service.
+        :type path: str
+
+        :param config: The Web service configuration.
+        :type config: dict
+        """
+        self.log.info("{name}.start_web_transport_service(transport_id={transport_id}, path={path}, config={config})",
+                      name=self.__class__.__name__,
+                      transport_id=transport_id,
+                      path=path,
+                      config=config)
+
+        transport = self.transports.get(transport_id, None)
+        if not (transport and (transport.config[u'type'] == u'web' or (transport.config[u'type'] == u'universal' and transport.config.get(u'web', {})))):
+            emsg = "Cannot start service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.not_running', emsg)
+
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + u'.on_web_transport_service_starting',
+                     transport_id,
+                     path,
+                     options=PublishOptions(exclude=caller))
+
+        paths = {
+            path: config
+        }
+        _add_paths(self._reactor,
+                   transport.root_resource,
+                   paths,
+                   self._templates,
+                   self.log,
+                   self.config.extra.cbdir,
+                   self._router_session_factory,
+                   self)
+
+        on_web_transport_service_started = {
+            u'transport_id': transport_id,
+            u'path': path,
+            u'config': config
+        }
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + u'.on_web_transport_service_started',
+                     transport_id,
+                     path,
+                     on_web_transport_service_started,
+                     options=PublishOptions(exclude=caller))
+
+        return on_web_transport_service_started
+
+    @wamp.register(None)
+    def stop_web_transport_service(self, transport_id, path, details=None):
+        """
+        Stop a service on a Web transport.
+
+        :param transport_id: The ID of the transport to stop the Web transport service on.
+        :type transport_id: str
+
+        :param path: The path (absolute URL, eg "/myservice1") of the service to stop.
+        :type path: str
+        """
+        self.log.info("{name}.stop_web_transport_service(transport_id={transport_id}, path={path})",
+                      name=self.__class__.__name__,
+                      transport_id=transport_id,
+                      path=path)
+
+        transport = self.transports.get(transport_id, None)
+        if not transport or transport.config[u'type'] != u'web':
+            emsg = "Cannot stop service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.not_running', emsg)
+
+        if isinstance(path, six.text_type):
+            webPath = path.encode('utf8')
+        else:
+            webPath = path
+
+        if webPath not in transport.root_resource.children:
+            emsg = "Cannot stop service on Web transport {}: no service running on path '{}'".format(transport_id, path)
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.not_running', emsg)
+
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + u'.on_web_transport_service_stopping',
+                     transport_id,
+                     path,
+                     options=PublishOptions(exclude=caller))
+
+        _remove_paths(self._reactor, transport.root_resource, [path])
+
+        on_web_transport_service_stopped = {
+            u'transport_id': transport_id,
+            u'path': path,
+            u'config': transport.config
+        }
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + u'.on_web_transport_service_starting',
+                     transport_id,
+                     path,
+                     on_web_transport_service_stopped,
+                     options=PublishOptions(exclude=caller))
