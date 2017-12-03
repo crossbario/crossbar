@@ -812,12 +812,44 @@ class Node(object):
                 transport_id = 'transport-{:03d}'.format(self._transport_no)
                 self._transport_no += 1
 
-            yield self._controller.call(u'crossbar.worker.{}.start_router_transport'.format(worker_id), transport_id, transport, options=CallOptions())
+            add_paths_on_transport_create = False
+
+            yield self._controller.call(u'crossbar.worker.{}.start_router_transport'.format(worker_id),
+                                        transport_id,
+                                        transport,
+                                        add_paths=add_paths_on_transport_create,
+                                        options=CallOptions())
             self.log.info(
                 "{logname}: transport '{tid}' started",
                 logname=worker_logname,
                 tid=transport_id,
             )
+
+            if not add_paths_on_transport_create:
+
+                if transport['type'] == 'web':
+                    paths = transport.get('paths', {})
+                elif transport['type'] == 'universal':
+                    paths = transport.get('web', {}).get('paths', {})
+                else:
+                    paths = None
+
+                if paths:
+                    for path in sorted(paths):
+                        if path != '/':
+                            config = paths[path]
+                            yield self._controller.call(u'crossbar.worker.{}.start_web_transport_service'.format(worker_id),
+                                                        transport_id,
+                                                        path,
+                                                        config,
+                                                        options=CallOptions())
+                            self.log.info(
+                                "{logname}: web service '{path_type}' started on path '{path}' on transport '{tid}'",
+                                logname=worker_logname,
+                                path_type=config['type'],
+                                path=path,
+                                tid=transport_id,
+                            )
 
     @inlineCallbacks
     def _configure_native_worker_container(self, worker_logname, worker_id, worker):

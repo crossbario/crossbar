@@ -297,7 +297,7 @@ class _LessNoisyHTTPChannel(HTTPChannel):
 
 def create_transport_from_config(reactor, name, config, cbdir, log, node,
                                  _router_session_factory=None,
-                                 _web_templates=None):
+                                 _web_templates=None, add_paths=False):
     """
     :return: a Deferred that fires with a new RouterTransport instance
         (or error) representing the given transport using config for
@@ -383,6 +383,7 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
             cbdir,
             _router_session_factory,
             node,
+            add_paths=add_paths
         )
 
     # Universal transport
@@ -402,6 +403,7 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
                 cbdir,
                 _router_session_factory,
                 node,
+                add_paths=add_paths
             )
         else:
             web_factory = None
@@ -457,7 +459,7 @@ def create_transport_from_config(reactor, name, config, cbdir, log, node,
     return d
 
 
-def _create_web_factory(reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node):
+def _create_web_factory(reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node, add_paths=False):
     assert templates is not None
 
     options = config.get('options', {})
@@ -470,7 +472,9 @@ def _create_web_factory(reactor, config, is_secure, templates, log, cbdir, _rout
         root = Resource404(templates, b'')
 
     # create Twisted Web resources on all non-root paths configured
-    _add_paths(reactor, root, config.get('paths', {}), templates, log, cbdir, _router_session_factory, node)
+    paths = config.get('paths', {})
+    if add_paths and paths:
+        _add_paths(reactor, root, paths, templates, log, cbdir, _router_session_factory, node)
 
     # create the actual transport factory
     transport_factory = Site(
@@ -1430,7 +1434,7 @@ class RouterWorkerSession(NativeWorkerSession):
         return res
 
     @wamp.register(None)
-    def start_router_transport(self, id, config, details=None):
+    def start_router_transport(self, id, config, add_paths=False, details=None):
         """
         Start a transport on this router worker.
 
@@ -1451,7 +1455,7 @@ class RouterWorkerSession(NativeWorkerSession):
         d = create_transport_from_config(
             self._reactor, id, config, self.config.extra.cbdir, self.log, self,
             _router_session_factory=self._router_session_factory,
-            _web_templates=self._templates,
+            _web_templates=self._templates, add_paths=add_paths
         )
 
         def ok(router_transport):
@@ -1518,7 +1522,7 @@ class RouterWorkerSession(NativeWorkerSession):
                       config=config)
 
         transport = self.transports.get(transport_id, None)
-        if not transport or transport.config[u'type'] != u'web':
+        if not (transport and (transport.config[u'type'] == u'web' or (transport.config[u'type'] == u'universal' and transport.config.get(u'web', {})))):
             emsg = "Cannot start service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
