@@ -1527,6 +1527,12 @@ class RouterWorkerSession(NativeWorkerSession):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + u'.on_web_transport_service_starting',
+                     transport_id,
+                     path,
+                     options=PublishOptions(exclude=caller))
+
         paths = {
             path: config
         }
@@ -1538,6 +1544,20 @@ class RouterWorkerSession(NativeWorkerSession):
                    self.config.extra.cbdir,
                    self._router_session_factory,
                    self)
+
+        on_web_transport_service_started = {
+            u'transport_id': transport_id,
+            u'path': path,
+            u'config': config
+        }
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + u'.on_web_transport_service_started',
+                     transport_id,
+                     path,
+                     on_web_transport_service_started,
+                     options=PublishOptions(exclude=caller))
+
+        return on_web_transport_service_started
 
     @wamp.register(None)
     def stop_web_transport_service(self, transport_id, path, details=None):
@@ -1571,4 +1591,22 @@ class RouterWorkerSession(NativeWorkerSession):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + u'.on_web_transport_service_stopping',
+                     transport_id,
+                     path,
+                     options=PublishOptions(exclude=caller))
+
         _remove_paths(self._reactor, transport.root_resource, [path])
+
+        on_web_transport_service_stopped = {
+            u'transport_id': transport_id,
+            u'path': path,
+            u'config': transport.config
+        }
+        caller = details.caller if details else None
+        self.publish(self._uri_prefix + u'.on_web_transport_service_starting',
+                     transport_id,
+                     path,
+                     on_web_transport_service_stopped,
+                     options=PublishOptions(exclude=caller))
