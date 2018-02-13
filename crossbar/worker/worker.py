@@ -32,7 +32,7 @@ from __future__ import absolute_import
 
 import os
 import sys
-import pkg_resources
+import importlib
 import jinja2
 import signal
 
@@ -84,7 +84,8 @@ class NativeWorkerSession(NativeProcessSession):
 
         # Jinja2 templates for Web (like WS status page et al)
         #
-        templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
+        templates_dir = os.path.abspath(os.path.join(os.path.dirname(
+            importlib.import_module('crossbar').__file__), 'web/templates'))
         self.log.debug("Using Web templates from {templates_dir}",
                        templates_dir=templates_dir)
         self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
@@ -373,6 +374,7 @@ class NativeWorkerSession(NativeProcessSession):
         #
         # @see: https://pythonhosted.org/setuptools/pkg_resources.html#workingset-objects
         #
+        import pkg_resources
         for p in paths_added_resolved:
             pkg_resources.working_set.add_entry(p)
 

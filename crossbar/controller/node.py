@@ -33,7 +33,7 @@ from __future__ import absolute_import
 import os
 import socket
 import getpass
-import pkg_resources
+import importlib
 import binascii
 import six
 import subprocess
@@ -74,7 +74,8 @@ from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
 def _read_release_pubkey():
     release_pubkey_file = 'crossbar-{}.pub'.format('-'.join(crossbar.__version__.split('.')[0:2]))
-    release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'keys'), release_pubkey_file)
+    release_pubkey_dir = os.path.join(os.path.dirname(importlib.import_module('crossbar').__file__), 'keys')
+    release_pubkey_path = os.path.join(release_pubkey_dir, release_pubkey_file)
 
     release_pubkey_hex = binascii.b2a_hex(_read_signify_ed25519_pubkey(release_pubkey_path)).decode('ascii')
 

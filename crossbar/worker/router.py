@@ -33,7 +33,6 @@ from __future__ import absolute_import
 import os
 import sys
 import importlib
-import pkg_resources
 import tempfile
 import six
 
@@ -607,7 +606,8 @@ def _create_resource(reactor, path_config, templates, log, cbdir, _router_sessio
                 raise ApplicationError(u"crossbar.error.invalid_configuration", emsg)
             else:
                 try:
-                    static_dir = os.path.abspath(pkg_resources.resource_filename(path_config['package'], path_config['resource']))
+                    static_dir = os.path.abspath(os.path.join(os.path.dirname(
+                        importlib.import_module(path_config['package']).__file__), path_config['resource']))
                 except Exception as e:
                     emsg = "Could not import resource {} from package {}: {}".format(path_config['resource'], path_config['package'], e)
                     log.error(emsg)
