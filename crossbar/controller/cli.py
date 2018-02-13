@@ -32,6 +32,7 @@ from __future__ import absolute_import, print_function
 
 import argparse
 import click
+import importlib
 import json
 import os
 import pkg_resources
@@ -92,6 +93,16 @@ except ImportError:
 __all__ = ('run',)
 
 _PID_FILENAME = 'node.pid'
+
+
+def get_version(name_or_module):
+    if isinstance(name_or_module, str):
+        name_or_module = importlib.import_module(name_or_module)
+
+    try:
+        return name_or_module.__version__
+    except AttributeError:
+        return ''
 
 
 def get_node_classes():
@@ -257,20 +268,20 @@ def run_command_version(options, reactor=None, **kwargs):
         py_ver_detail = platform.python_implementation()
 
     # Twisted / Reactor
-    tx_ver = "%s-%s" % (pkg_resources.require("Twisted")[0].version, reactor.__class__.__name__)
+    tx_ver = "%s-%s" % (get_version('twisted'), reactor.__class__.__name__)
     tx_loc = "[%s]" % qual(reactor.__class__)
 
     # txaio
-    txaio_ver = '%s' % pkg_resources.require("txaio")[0].version
+    txaio_ver = get_version('txaio')
 
     # Autobahn
-    ab_ver = pkg_resources.require("autobahn")[0].version
+    ab_ver = get_version('autobahn')
     ab_loc = "[%s]" % qual(WebSocketProtocol)
 
     # UTF8 Validator
     s = qual(Utf8Validator)
     if 'wsaccel' in s:
-        utf8_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
+        utf8_ver = 'wsaccel-%s' % get_version('wsaccel')
     elif s.startswith('autobahn'):
         utf8_ver = 'autobahn'
     else:
@@ -281,7 +292,7 @@ def run_command_version(options, reactor=None, **kwargs):
     # XOR Masker
     s = qual(XorMaskerNull)
     if 'wsaccel' in s:
-        xor_ver = 'wsaccel-%s' % pkg_resources.require('wsaccel')[0].version
+        xor_ver = 'wsaccel-%s' % get_version('wsaccel')
     elif s.startswith('autobahn'):
         xor_ver = 'autobahn'
     else:
@@ -298,12 +309,12 @@ def run_command_version(options, reactor=None, **kwargs):
     if json_ver == 'json':
         json_ver = 'stdlib'
     else:
-        json_ver = (json_ver + "-%s") % pkg_resources.require(json_ver)[0].version
+        json_ver = (json_ver + "-%s") % get_version(json_ver)
 
     # MsgPack Serializer
     try:
         import umsgpack  # noqa
-        msgpack_ver = 'u-msgpack-python-%s' % pkg_resources.require('u-msgpack-python')[0].version
+        msgpack_ver = 'u-msgpack-python-%s' % get_version(umsgpack)
         supported_serializers.append('MessagePack')
     except ImportError:
         msgpack_ver = '-'
@@ -311,7 +322,7 @@ def run_command_version(options, reactor=None, **kwargs):
     # CBOR Serializer
     try:
         import cbor  # noqa
-        cbor_ver = 'cbor-%s' % pkg_resources.require('cbor')[0].version
+        cbor_ver = 'cbor-%s' % get_version(cbor)
         supported_serializers.append('CBOR')
     except ImportError:
         cbor_ver = '-'
@@ -319,7 +330,7 @@ def run_command_version(options, reactor=None, **kwargs):
     # UBJSON Serializer
     try:
         import ubjson  # noqa
-        ubjson_ver = 'ubjson-%s' % pkg_resources.require('py-ubjson')[0].version
+        ubjson_ver = 'ubjson-%s' % get_version(ubjson)
         supported_serializers.append('UBJSON')
     except ImportError:
         ubjson_ver = '-'
@@ -328,28 +339,28 @@ def run_command_version(options, reactor=None, **kwargs):
     try:
         import lmdb  # noqa
         lmdb_lib_ver = '.'.join([str(x) for x in lmdb.version()])
-        lmdb_ver = '{}/lmdb-{}'.format(pkg_resources.require('lmdb')[0].version, lmdb_lib_ver)
+        lmdb_ver = '{}/lmdb-{}'.format(get_version(lmdb), lmdb_lib_ver)
     except ImportError:
         lmdb_ver = '-'
 
     # crossbarfabric (only Crossbar.io FABRIC)
     try:
         import crossbarfabric  # noqa
-        crossbarfabric_ver = '%s' % pkg_resources.require('crossbarfabric')[0].version
+        crossbarfabric_ver = get_version(crossbarfabric)
     except ImportError:
         crossbarfabric_ver = '-'
 
     # crossbarfabriccenter (only Crossbar.io FABRIC CENTER)
     try:
         import crossbarfabriccenter  # noqa
-        crossbarfabriccenter_ver = '%s' % pkg_resources.require('crossbarfabriccenter')[0].version
+        crossbarfabriccenter_ver = get_version(crossbarfabriccenter)
     except ImportError:
         crossbarfabriccenter_ver = '-'
 
     # txaio-etcd (only Crossbar.io FABRIC CENTER)
     try:
         import txaioetcd  # noqa
-        txaioetcd_ver = '%s' % pkg_resources.require('txaioetcd')[0].version
+        txaioetcd_ver = get_version(txaioetcd)
     except ImportError:
         txaioetcd_ver = '-'
 
