@@ -373,6 +373,7 @@ class NativeWorkerSession(NativeProcessSession):
         #
         # @see: https://pythonhosted.org/setuptools/pkg_resources.html#workingset-objects
         #
+        # FIXME: remove pkg_resources usage here.
         for p in paths_added_resolved:
             pkg_resources.working_set.add_entry(p)
 

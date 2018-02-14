@@ -279,6 +279,8 @@ class Node(object):
 """
     PERSONALITY = "Crossbar.io COMMUNITY"
 
+    PERSONALITY_ID = 'community'
+
     NODE_CONTROLLER = NodeControllerSession
 
     ROUTER_SERVICE = RouterServiceSession
