@@ -65,6 +65,7 @@ from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey, \
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
+from crossbar.worker import process
 
 try:
     import psutil
@@ -925,9 +926,9 @@ def run(prog=None, args=None, reactor=None):
                              default=None,
                              help="Application base directory where to create app and node from template.")
 
-    from crossbar.worker import process
     # start a worker
     #
+    # FIXME: tentative name and help comment.
     parser_worker = subparsers.add_parser('worker', help='Start a worker process')
     parser_worker = process.get_argument_parser(parser_worker)
 

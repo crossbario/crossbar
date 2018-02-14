@@ -40,7 +40,7 @@ from twisted.internet.error import ReactorNotRunning
 __all__ = ('run',)
 
 
-def get_argument_parser(parser):
+def get_argument_parser(parser=argparse.ArgumentParser()):
     parser.add_argument('--reactor',
                         default=None,
                         choices=['select', 'poll', 'epoll', 'kqueue', 'iocp'],
@@ -301,4 +301,4 @@ def run(options, reactor=None):
 
 
 if __name__ == '__main__':
-    run(get_argument_parser(argparse.ArgumentParser()).parse_args())
+    run(get_argument_parser().parse_args())
