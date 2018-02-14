@@ -31,7 +31,7 @@
 import sys
 import os
 import shutil
-import importlib
+import pkg_resources
 import jinja2
 
 from txaio import make_logger
@@ -114,7 +114,7 @@ class Templates:
         IS_WIN = sys.platform.startswith("win")
 
         template = self.__getitem__(template)
-        basedir = os.path.join(os.path.dirname(importlib.import_module('crossbar').__file__), template['basedir'])
+        basedir = pkg_resources.resource_filename("crossbar", template['basedir'])
         if IS_WIN:
             basedir = basedir.replace('\\', '/')  # Jinja need forward slashes even on Windows
         self.log.info("Using template from '{dir}'", dir=basedir)
