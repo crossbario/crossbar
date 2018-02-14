@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import, print_function
 
+import argparse
 import importlib
 
 import six
@@ -39,51 +40,7 @@ from twisted.internet.error import ReactorNotRunning
 __all__ = ('run',)
 
 
-def run():
-    """
-    Entry point into (native) worker processes. This wires up stuff such that
-    a worker instance is talking WAMP-over-stdio to the node controller.
-    """
-    import os
-    import sys
-    import platform
-    import signal
-
-    # make sure logging to something else than stdio is setup _first_
-    #
-    from crossbar._logging import make_JSON_observer, cb_logging_aware
-    from txaio import make_logger, start_logging
-    from twisted.logger import globalLogPublisher
-    from twisted.python.reflect import qual
-
-    log = make_logger()
-
-    # Print a magic phrase that tells the capturing logger that it supports
-    # Crossbar's rich logging
-    print(cb_logging_aware, file=sys.__stderr__)
-    sys.__stderr__.flush()
-
-    flo = make_JSON_observer(sys.__stderr__)
-    globalLogPublisher.addObserver(flo)
-
-    # Ignore SIGINT so we get consistent behavior on control-C versus
-    # sending SIGINT to the controller process. When the controller is
-    # shutting down, it sends TERM to all its children but ctrl-C
-    # handling will send a SIGINT to all the processes in the group
-    # (so then the controller sends a TERM but the child already or
-    # will very shortly get a SIGINT as well). Twisted installs signal
-    # handlers, but not for SIGINT if there's already a custom one
-    # present.
-
-    def ignore(sig, frame):
-        log.debug("Ignoring SIGINT in worker.")
-    signal.signal(signal.SIGINT, ignore)
-
-    # create the top-level parser
-    #
-    import argparse
-    parser = argparse.ArgumentParser()
-
+def get_argument_parser(parser):
     parser.add_argument('--reactor',
                         default=None,
                         choices=['select', 'poll', 'epoll', 'kqueue', 'iocp'],
@@ -139,7 +96,48 @@ def run():
                         default=None,
                         help='Shutdown method')
 
-    options = parser.parse_args()
+    return parser
+
+
+def run(options, reactor=None):
+    """
+    Entry point into (native) worker processes. This wires up stuff such that
+    a worker instance is talking WAMP-over-stdio to the node controller.
+    """
+    import os
+    import sys
+    import platform
+    import signal
+
+    # make sure logging to something else than stdio is setup _first_
+    #
+    from crossbar._logging import make_JSON_observer, cb_logging_aware
+    from txaio import make_logger, start_logging
+    from twisted.logger import globalLogPublisher
+    from twisted.python.reflect import qual
+
+    log = make_logger()
+
+    # Print a magic phrase that tells the capturing logger that it supports
+    # Crossbar's rich logging
+    print(cb_logging_aware, file=sys.__stderr__)
+    sys.__stderr__.flush()
+
+    flo = make_JSON_observer(sys.__stderr__)
+    globalLogPublisher.addObserver(flo)
+
+    # Ignore SIGINT so we get consistent behavior on control-C versus
+    # sending SIGINT to the controller process. When the controller is
+    # shutting down, it sends TERM to all its children but ctrl-C
+    # handling will send a SIGINT to all the processes in the group
+    # (so then the controller sends a TERM but the child already or
+    # will very shortly get a SIGINT as well). Twisted installs signal
+    # handlers, but not for SIGINT if there's already a custom one
+    # present.
+
+    def ignore(sig, frame):
+        log.debug("Ignoring SIGINT in worker.")
+    signal.signal(signal.SIGINT, ignore)
 
     # actually begin logging
     start_logging(None, options.loglevel)
@@ -303,4 +301,4 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    run(get_argument_parser(argparse.ArgumentParser()).parse_args())

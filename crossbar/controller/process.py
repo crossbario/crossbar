@@ -396,7 +396,12 @@ class NodeControllerSession(NativeProcessSession):
         # invoking via "-m" so that .pyc files, __pycache__ etc work
         # properly.
         #
-        args = [exe, "-u", "-m", "crossbar.worker.process"]
+
+        # We are probably inside a single crossbar binary
+        if exe.endswith('crossbar'):
+            args = [exe, "worker"]
+        else:
+            args = [exe, "-u", "-m", "crossbar.worker.process"]
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--node", str(self._node._node_id)])
         args.extend(["--worker", str(worker_id)])
@@ -425,6 +430,7 @@ class NodeControllerSession(NativeProcessSession):
 
         # create worker process environment
         #
+
         worker_env = create_process_env(options)
 
         # We need to use the same PYTHONPATH we were started with, so we can

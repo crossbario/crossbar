@@ -33,9 +33,9 @@ from __future__ import absolute_import, print_function
 import argparse
 import click
 import importlib
+import pkgutil
 import json
 import os
-import pkg_resources
 import platform
 import signal
 import sys
@@ -109,22 +109,23 @@ def get_node_classes():
     """
     Get Node classes which implement node personalities.
 
-    :returns: Dict with node classes and aux info.
+    :returns: Dict with node classes.
     :rtype: dict
     """
+    # crossbar_nodes = {
+    #     name: importlib.import_module(name)
+    #     for finder, name, ispkg
+    #     in pkgutil.iter_modules()
+    #     if name.startswith('crossbar')
+    # }
+
     res = {}
-    for entrypoint in pkg_resources.iter_entry_points('crossbar.node'):
-        e = entrypoint.load()
-        ep = {
-            u'class': e,
-            u'dist': entrypoint.dist.key,
-            u'version': entrypoint.dist.version,
-        }
-        if hasattr(e, '__doc__') and e.__doc__:
-            ep[u'doc'] = e.__doc__.strip()
-        else:
-            ep[u'doc'] = None
-        res[entrypoint.name] = ep
+    for k, v in crossbar.NODES.items():
+        if v.count(':') != 1:
+            continue
+
+        module, class_name = v.split(':')
+        res.update({k: getattr(importlib.import_module(module), class_name)})
     return res
 
 
@@ -370,7 +371,7 @@ def run_command_version(options, reactor=None, **kwargs):
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
-    Node = node_classes[options.personality][u'class']
+    Node = node_classes[options.personality]
 
     for line in Node.BANNER.splitlines():
         log.info(decorate("{:>40}".format(line)))
@@ -669,7 +670,7 @@ def run_command_start(options, reactor=None):
 
     # represents the running Crossbar.io node
     #
-    Node = node_classes[options.personality][u'class']
+    Node = node_classes[options.personality]
     node = Node(options.cbdir, reactor=reactor)
 
     # possibly generate new node key
@@ -923,6 +924,14 @@ def run(prog=None, args=None, reactor=None):
                              type=six.text_type,
                              default=None,
                              help="Application base directory where to create app and node from template.")
+
+    from crossbar.worker import process
+    # start a worker
+    #
+    parser_worker = subparsers.add_parser('worker', help='Start a worker process')
+    parser_worker = process.get_argument_parser(parser_worker)
+
+    parser_worker.set_defaults(func=process.run)
 
     # "templates" command
     #

@@ -35,4 +35,9 @@ txaio.use_twisted()
 
 __version__ = '17.12.1'
 
-__all__ = ('__version__',)
+# FIXME: temporary to be removed
+NODES = {
+    'community': 'crossbar.controller.node:Node'
+}
+
+__all__ = ('__version__', 'NODES')
