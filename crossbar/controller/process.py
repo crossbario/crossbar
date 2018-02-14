@@ -398,8 +398,7 @@ class NodeControllerSession(NativeProcessSession):
         #
 
         # We are probably inside a single crossbar binary
-        # FIXME: fragile as it depends on the name of the binary
-        if exe.endswith('crossbar') or exe.endswith('crossbar.exe'):
+        if getattr(sys, 'frozen', False):
             args = [exe, "worker"]
         else:
             args = [exe, "-u", "-m", "crossbar.worker.process"]
