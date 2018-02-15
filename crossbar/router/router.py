@@ -490,7 +490,7 @@ class RouterFactory(object):
             if arg in realm.config.get('options', {}):
                 setattr(options, arg, realm.config['options'][arg])
 
-        router = Router(self, realm, options, store=store)
+        router = self.router(self, realm, options, store=store)
 
         self._routers[uri] = router
         self.log.debug("Router created for realm '{uri}'", uri=uri)
