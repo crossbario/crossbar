@@ -66,16 +66,3 @@ parameter | description
 **`references`** | Please see below.
 **`classname`** | The fully qualified Python classname to use.
 **`extra`** | Arbitrary custom data forwarded to the class ctonstructor.
-
-Another option for Router components are **WAMPlets**:
-
-parameter | description
----|---
-**`id`** | Optional component ID (default: `"component<N>"`)
-**`type`** | Must be `"wamplet"`.
-**`realm`** | The realm to join with the component.
-**`role`** | The atuhrole under which to attach the component.
-**`references`** | Please see below.
-**`package`** | The name of the package to look for.
-**`entrypoint`** | The entrypoint within packages to look at.
-**`extra`** | Arbitrary custom data forwarded to the class constructor.

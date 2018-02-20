@@ -30,7 +30,6 @@
 
 import sys
 import importlib
-import pkg_resources
 
 from autobahn.twisted.wamp import ApplicationSession
 from autobahn.wamp.exception import ApplicationError
@@ -42,7 +41,7 @@ from txaio import make_logger
 
 def _appsession_loader(config):
     """
-    Load a class or a WAMPlet from C{config}.
+    Load a class from C{config}.
     """
     log = make_logger()
 
@@ -73,24 +72,6 @@ def _appsession_loader(config):
                 emsg,
                 pythonpath=sys.path
             )
-
-    elif config['type'] == 'wamplet':
-
-        try:
-            dist = config['package']
-            name = config['entrypoint']
-
-            log.debug("Starting WAMPlet '{dist}/{name}'", dist=dist, name=name)
-
-            # component is supposed to make instances of ApplicationSession
-            component = pkg_resources.load_entry_point(
-                dist, 'autobahn.twisted.wamplet', name)
-
-        except Exception:
-            emsg = "Failed to import wamplet '{}/{}'\n{}".format(
-                dist, name, Failure().getTraceback())
-            log.error(emsg)
-            raise ApplicationError(u"crossbar.error.class_import_failed", emsg)
 
     elif config['type'] == 'function':
         callbacks = {}
