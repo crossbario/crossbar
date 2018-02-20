@@ -2274,23 +2274,10 @@ def check_router_component(component):
         raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
-    if ctype not in ['wamplet', 'class', 'function']:
+    if ctype not in ['class', 'function']:
         raise InvalidConfigException("invalid value '{}' for component type".format(ctype))
 
-    if ctype == 'wamplet':
-        check_dict_args({
-            'id': (False, [six.text_type]),
-            'type': (True, [six.text_type]),
-            'realm': (True, [six.text_type]),
-            'role': (False, [six.text_type]),
-            'references': (False, [Sequence]),
-
-            'package': (True, [six.text_type]),
-            'entrypoint': (True, [six.text_type]),
-            'extra': (False, None),
-        }, component, "invalid component configuration")
-
-    elif ctype == 'class':
+    if ctype == 'class':
         check_dict_args({
             'id': (False, [six.text_type]),
             'type': (True, [six.text_type]),
@@ -2369,22 +2356,10 @@ def check_container_component(component):
         raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
-    if ctype not in ['wamplet', 'class', 'function']:
+    if ctype not in ['class', 'function']:
         raise InvalidConfigException("invalid value '{}' for component type".format(ctype))
 
-    if ctype == 'wamplet':
-        check_dict_args({
-            'id': (False, [six.text_type]),
-            'type': (True, [six.text_type]),
-            'realm': (True, [six.text_type]),
-            'transport': (True, [Mapping]),
-
-            'package': (True, [six.text_type]),
-            'entrypoint': (True, [six.text_type]),
-            'extra': (False, None),
-        }, component, "invalid component configuration")
-
-    elif ctype == 'class':
+    if ctype == 'class':
         check_dict_args({
             'id': (False, [six.text_type]),
             'type': (True, [six.text_type]),
