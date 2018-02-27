@@ -52,7 +52,7 @@ def get_module_path_and_mtime(m):
     :type m: obj
     """
     res = (None, None)
-    if m and hasattr(m, '__file__') and (m.__file__.endswith('.py') or m.__file__.endswith('.pyc')):
+    if m and hasattr(m, '__file__') and m.__file__ and (m.__file__.endswith('.py') or m.__file__.endswith('.pyc')):
         f = m.__file__
         if f.endswith('.pyc'):
             f = f[:-1]
