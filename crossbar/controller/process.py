@@ -392,11 +392,17 @@ class NodeControllerSession(NativeProcessSession):
         # assemble command line for forking the worker
         #
         # all native workers (routers and containers for now) start
-        # from the same script in crossbar/worker/process.py -- we're
-        # invoking via "-m" so that .pyc files, __pycache__ etc work
-        # properly.
+        # from the same script in crossbar/worker/process.py
         #
-        args = [exe, "-u", "-m", "crossbar.worker.process"]
+
+        # We are probably inside a single crossbar binary
+        if getattr(sys, 'frozen', False):
+            args = [exe, "start-worker"]
+        else:
+            # we are invoking via "-m" so that .pyc files, __pycache__
+            # etc work properly.
+            #
+            args = [exe, "-u", "-m", "crossbar.worker.process"]
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--node", str(self._node._node_id)])
         args.extend(["--worker", str(worker_id)])
