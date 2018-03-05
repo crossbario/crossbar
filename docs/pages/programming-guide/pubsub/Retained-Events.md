@@ -3,7 +3,7 @@ toc: [Documentation, Programming Guide, Retained Events]
 
 # Retained Events
 
-When publishing an event, the publisher can set an option (`retained=True`) in the `PublishOptions` which will cause the Broker to retain the most-recent event published to this topic.
+When publishing an event, the publisher can set an option (`retain=True`) in the `PublishOptions` which will cause the Broker to retain the even being published as the most-recent event on this topic.
 
 Note that [[Event History]] is similar to this feature, but not the same.
 
