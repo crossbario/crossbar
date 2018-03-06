@@ -35,7 +35,7 @@ import click
 import importlib
 import json
 import os
-import pkg_resources
+import pkgutil
 import platform
 import signal
 import sys
@@ -53,7 +53,7 @@ from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
 
-import crossbar
+from crossbar import __version__ as cb_ver
 
 from autobahn.twisted.choosereactor import install_reactor
 from autobahn.websocket.protocol import WebSocketProtocol
@@ -66,6 +66,7 @@ from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
 from crossbar.worker import process
+import crossbar.personality
 
 try:
     import psutil
@@ -106,6 +107,14 @@ def get_version(name_or_module):
         return ''
 
 
+def iter_namespace(ns_pkg):
+    # Specifying the second argument (prefix) to iter_modules makes the
+    # returned name an absolute name instead of a relative one. This allows
+    # import_module to work without having to do additional modification to
+    # the name.
+    return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
+
+
 def get_node_classes():
     """
     Get Node classes which implement node personalities.
@@ -114,18 +123,10 @@ def get_node_classes():
     :rtype: dict
     """
     res = {}
-    for entrypoint in pkg_resources.iter_entry_points('crossbar.node'):
-        e = entrypoint.load()
-        ep = {
-            u'class': e,
-            u'dist': entrypoint.dist.key,
-            u'version': entrypoint.dist.version,
-        }
-        if hasattr(e, '__doc__') and e.__doc__:
-            ep[u'doc'] = e.__doc__.strip()
-        else:
-            ep[u'doc'] = None
-        res[entrypoint.name] = ep
+    for finder, name, ispkg in iter_namespace(crossbar.personality):
+        node_metadata = importlib.import_module(name).NODE
+        node_module, node_class = node_metadata['class'].split(':')
+        res.update({node_metadata['name']: getattr(importlib.import_module(node_module), node_class)})
     return res
 
 
@@ -134,14 +135,6 @@ node_classes = get_node_classes()
 
 # default is "community"
 node_default_personality = u'community'
-
-# however, if available, choose "fabric" as default
-if u'fabric' in node_classes:
-    node_default_personality = u'fabric'
-
-# however, if available, choose "fabriccenter" as default
-if u'fabriccenter' in node_classes:
-    node_default_personality = u'fabriccenter'
 
 
 def check_pid_exists(pid):
@@ -371,14 +364,14 @@ def run_command_version(options, reactor=None, **kwargs):
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
-    Node = node_classes[options.personality][u'class']
+    Node = node_classes[options.personality]
 
     for line in Node.BANNER.splitlines():
         log.info(decorate("{:>40}".format(line)))
 
     pad = " " * 22
 
-    log.info(" Crossbar.io        : {ver} ({personality})", ver=decorate(crossbar.__version__), personality=Node.PERSONALITY)
+    log.info(" Crossbar.io        : {ver} ({personality})", ver=decorate(cb_ver), personality=Node.PERSONALITY)
     log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
     log.debug("     txaio          : {ver}", ver=decorate(txaio_ver))
@@ -670,7 +663,7 @@ def run_command_start(options, reactor=None):
 
     # represents the running Crossbar.io node
     #
-    Node = node_classes[options.personality][u'class']
+    Node = node_classes[options.personality]
     node = Node(options.cbdir, reactor=reactor)
 
     # possibly generate new node key
@@ -683,7 +676,7 @@ def run_command_start(options, reactor=None):
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
     bannerFormat = "{:<12} {:<24}"
-    log.info(bannerFormat.format("Version:", click.style('{} {}'.format(node.PERSONALITY, crossbar.__version__), fg='yellow', bold=True)))
+    log.info(bannerFormat.format("Version:", click.style('{} {}'.format(node.PERSONALITY, cb_ver), fg='yellow', bold=True)))
     if pubkey:
         log.info(bannerFormat.format("Public Key:", click.style(pubkey, fg='yellow', bold=True)))
     log.info()
