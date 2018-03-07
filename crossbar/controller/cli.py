@@ -59,10 +59,12 @@ PKLASSES = {
 }
 
 try:
-    from crossbarfabric import Personality as FabricPersonality
-    PKLASSES['fabric'] = FabricPersonality
+    from crossbarfabric.personality import Personality as FabricPersonality
 except ImportError:
-    pass
+    FabricPersonality = None
+
+if FabricPersonality:
+    PKLASSES['fabric'] = FabricPersonality
 
 import crossbar
 
