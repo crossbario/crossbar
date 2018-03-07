@@ -75,7 +75,7 @@ class NativeWorkerSession(NativeProcessSession):
 
         NativeProcessSession.onConnect(self, False)
 
-        self._module_tracker = TrackingModuleReloader()
+        self._module_tracker = TrackingModuleReloader(snapshot=False)
 
         self._profiles = {}
 

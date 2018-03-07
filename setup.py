@@ -103,21 +103,6 @@ setup(
     install_requires=install_requires,
     extras_require=extras_require,
     entry_points={
-        # node controller entry class
-        'crossbar.node': [
-            'community = crossbar.controller.node:Node'
-        ],
-
-        # node workers entry classes
-        'crossbar.worker': [
-            'router-worker = crossbar.worker.router:RouterWorkerSession',
-            'container-worker = crossbar.worker.container:ContainerWorkerSession',
-            'testee-worker = crossbar.worker.testee:WebSocketTesteeWorkerSession',
-        ],
-
-        # router authorization entry classes
-        # FIXME
-
         # CLI entry function
         'console_scripts': [
             'crossbar = crossbar.controller.cli:run'
