@@ -35,7 +35,6 @@ import click
 import importlib
 import json
 import os
-import pkg_resources
 import platform
 import signal
 import sys
@@ -52,6 +51,8 @@ from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
+
+from crossbarpersonality.personality import PKLASSES
 
 import crossbar
 
@@ -106,42 +107,16 @@ def get_version(name_or_module):
         return ''
 
 
-def get_node_classes():
-    """
-    Get Node classes which implement node personalities.
-
-    :returns: Dict with node classes and aux info.
-    :rtype: dict
-    """
-    res = {}
-    for entrypoint in pkg_resources.iter_entry_points('crossbar.node'):
-        e = entrypoint.load()
-        ep = {
-            u'class': e,
-            u'dist': entrypoint.dist.key,
-            u'version': entrypoint.dist.version,
-        }
-        if hasattr(e, '__doc__') and e.__doc__:
-            ep[u'doc'] = e.__doc__.strip()
-        else:
-            ep[u'doc'] = None
-        res[entrypoint.name] = ep
-    return res
-
-
-# load all node personality classes
-node_classes = get_node_classes()
-
 # default is "community"
-node_default_personality = u'community'
+node_default_personality = 'community'
 
 # however, if available, choose "fabric" as default
-if u'fabric' in node_classes:
-    node_default_personality = u'fabric'
+if 'fabric' in PKLASSES:
+    node_default_personality = 'fabric'
 
 # however, if available, choose "fabriccenter" as default
-if u'fabriccenter' in node_classes:
-    node_default_personality = u'fabriccenter'
+if 'fabriccenter' in PKLASSES:
+    node_default_personality = 'fabriccenter'
 
 
 def check_pid_exists(pid):
@@ -371,7 +346,7 @@ def run_command_version(options, reactor=None, **kwargs):
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
-    Node = node_classes[options.personality][u'class']
+    Node = PKLASSES[options.personality].NodeKlass
 
     for line in Node.BANNER.splitlines():
         log.info(decorate("{:>40}".format(line)))
@@ -670,7 +645,7 @@ def run_command_start(options, reactor=None):
 
     # represents the running Crossbar.io node
     #
-    Node = node_classes[options.personality][u'class']
+    Node = PKLASSES[options.personality].NodeKlass
     node = Node(options.cbdir, reactor=reactor)
 
     # possibly generate new node key
@@ -857,7 +832,7 @@ def run(prog=None, args=None, reactor=None):
     # create the top-level parser
     #
     parser = argparse.ArgumentParser(prog='crossbar',
-                                     description="Crossbar.io - Polyglot application router - http://crossbar.io")
+                                     description="Crossbar.io - https://crossbar.io")
 
     # top-level options
     #
@@ -881,7 +856,7 @@ def run(prog=None, args=None, reactor=None):
     parser_version.add_argument('--personality',
                                 type=six.text_type,
                                 default=node_default_personality,
-                                choices=sorted(node_classes.keys()),
+                                choices=sorted(PKLASSES.keys()),
                                 help=("Node personality to run."))
 
     parser_version.add_argument('--loglevel',
@@ -959,7 +934,7 @@ def run(prog=None, args=None, reactor=None):
     parser_start.add_argument('--personality',
                               type=six.text_type,
                               default=node_default_personality,
-                              choices=sorted(node_classes.keys()),
+                              choices=sorted(PKLASSES.keys()),
                               help=("Node personality to run."))
 
     parser_start.add_argument('--logdir',
