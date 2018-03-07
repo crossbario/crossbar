@@ -60,11 +60,15 @@ PKLASSES = {
 
 try:
     from crossbarfabric.personality import Personality as FabricPersonality
-except ImportError:
-    FabricPersonality = None
-
-if FabricPersonality:
     PKLASSES['fabric'] = FabricPersonality
+except ImportError:
+    pass
+
+try:
+    from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
+    PKLASSES['fabriccenter'] = FabricCenterPersonality
+except ImportError:
+    pass
 
 import crossbar
 

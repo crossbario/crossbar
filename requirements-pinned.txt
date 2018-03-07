@@ -41,7 +41,7 @@ requests==2.18.4
 sdnotify==0.3.2
 service-identity==17.0.0
 setproctitle==1.1.10
-setuptools==38.5.1
+setuptools==38.5.2
 shutilwhich==1.1.0
 six==1.11.0
 sortedcontainers==1.5.9
