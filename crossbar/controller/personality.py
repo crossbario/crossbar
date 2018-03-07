@@ -31,12 +31,8 @@
 from __future__ import absolute_import
 
 from crossbar.controller.node import Node
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
 
 class Personality(object):
 
     NodeKlass = Node
-    WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]

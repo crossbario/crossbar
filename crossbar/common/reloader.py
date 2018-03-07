@@ -77,7 +77,7 @@ class TrackingModuleReloader:
 
     log = make_logger()
 
-    def __init__(self, use_mtimes=True):
+    def __init__(self, use_mtimes=True, snapshot=True):
         """
 
         :param use_mtimes: If `True`, try to use file modification times to limit
@@ -85,7 +85,8 @@ class TrackingModuleReloader:
         :type use_mtimes: bool
         """
         self._use_mtimes = use_mtimes
-        self.snapshot()
+        if snapshot:
+            self.snapshot()
 
     def snapshot(self):
         """

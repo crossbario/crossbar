@@ -52,7 +52,17 @@ from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
 
-from crossbarpersonality.personality import PKLASSES
+from crossbar.controller.personality import Personality as CommunityPersonality
+
+PKLASSES = {
+    'community': CommunityPersonality
+}
+
+try:
+    from crossbarfabric import Personality as FabricPersonality
+    PKLASSES['fabric'] = FabricPersonality
+except ImportError:
+    pass
 
 import crossbar
 
