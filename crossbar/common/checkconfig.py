@@ -524,6 +524,16 @@ def check_transport_auth_cryptosign(config):
         raise InvalidConfigException('logic error')
 
 
+def check_transport_auth_scram(config):
+    """
+    Check a WAMP-SCRAM configuration item.
+    """
+    if 'type' not in config:
+        raise InvalidConfigException(
+            "missing mandatory attribute 'type' in WAMP-SCRAM configuration"
+        )
+
+
 def check_transport_auth_cookie(config):
     """
     Check a WAMP-Cookie configuration item.
@@ -577,7 +587,8 @@ def check_transport_auth(auth):
         'wampcra': check_transport_auth_wampcra,
         'tls': check_transport_auth_tls,
         'cookie': check_transport_auth_cookie,
-        'cryptosign': check_transport_auth_cryptosign
+        'cryptosign': check_transport_auth_cryptosign,
+        'scram': check_transport_auth_scram,
     }
     for k in auth:
         if k not in CHECKS:

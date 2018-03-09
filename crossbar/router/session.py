@@ -50,7 +50,7 @@ from autobahn.wamp.types import SessionDetails
 from autobahn.wamp.interfaces import ITransportHandler
 
 from crossbar.twisted.endpoint import extract_peer_certificate
-from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket
+from crossbar.router.auth import PendingAuthWampCra, PendingAuthTicket, PendingAuthScram
 from crossbar.router.auth import AUTHMETHODS, AUTHMETHOD_MAP
 
 from twisted.internet.defer import inlineCallbacks
@@ -610,7 +610,7 @@ class RouterSession(BaseSession):
             authmethods = details.authmethods or [u'anonymous']
             authextra = details.authextra
 
-            self.log.debug('onHello: {authextra}', authextra=authextra)
+            self.log.debug('onHello: {methods} {authextra}', authextra=authextra, methods=authmethods)
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
@@ -673,6 +673,7 @@ class RouterSession(BaseSession):
 
                         # invalid authmethod
                         if authmethod not in AUTHMETHODS:
+                            self.log.debug("Unknown authmethod: {}".format(authmethod))
                             return types.Deny(message=u'invalid authmethod "{}"'.format(authmethod))
 
                         # authmethod not configured
@@ -686,7 +687,12 @@ class RouterSession(BaseSession):
                             continue
 
                         # WAMP-Anonymous, WAMP-Ticket, WAMP-CRA, WAMP-TLS, WAMP-Cryptosign
-                        if authmethod in [u'anonymous', u'ticket', u'wampcra', u'tls', u'cryptosign']:
+                        # WAMP-SCRAM
+                        pending_auth_methods = [
+                            u'anonymous', u'ticket', u'wampcra', u'tls',
+                            u'cryptosign', u'scram',
+                        ]
+                        if authmethod in pending_auth_methods:
                             PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
                             self._pending_auth = PendingAuthKlass(self, auth_config[authmethod])
                             return self._pending_auth.hello(realm, details)
@@ -725,7 +731,8 @@ class RouterSession(BaseSession):
             # WAMP-Ticket, WAMP-CRA, WAMP-Cryptosign
             if isinstance(self._pending_auth, PendingAuthTicket) or \
                isinstance(self._pending_auth, PendingAuthWampCra) or \
-               isinstance(self._pending_auth, PendingAuthCryptosign):
+               isinstance(self._pending_auth, PendingAuthCryptosign) or \
+               isinstance(self._pending_auth, PendingAuthScram):
                 return self._pending_auth.authenticate(signature)
 
             # should not arrive here: logic error
