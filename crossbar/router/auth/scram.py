@@ -102,13 +102,15 @@ class PendingAuthScram(PendingAuth):
                 return types.Deny(message=u'cannot identify client: no authid requested')
 
             if self._authid in self._config.get(u'principals', {}):
+                # we've already validated the configuration
                 principal = self._config[u'principals'][self._authid]
                 self._salt = binascii.a2b_hex(principal[u'salt'])  # error if no salt per-user
-                self._cost = principal[u'cost']
-                self._memory = principal.get(u'memory', 512)
-                self._parallel = principal.get(u'parallel', 2)
-                self._stored_key = binascii.a2b_hex(principal.get(u'stored-key'))
-                self._server_key = binascii.a2b_hex(principal.get(u'server-key'))
+                self._iterations = principal[u'iterations']
+                self._memory = principal[u'memory']
+                self._kdf = principal[u'kdf']
+                self._stored_key = binascii.a2b_hex(principal[u'stored-key'])
+                # do we actually need the server-key? can we compute it ourselves?
+                self._server_key = binascii.a2b_hex(principal[u'server-key'])
                 error = self._assign_principal(principal)
                 if error:
                     return error
@@ -134,10 +136,10 @@ class PendingAuthScram(PendingAuth):
 
         challenge = {
             "nonce": base64.b64encode(self._server_nonce).decode('ascii'),
+            "kdf": self._kdf,
             "salt": base64.b64encode(self._salt).decode('ascii'),
-            "cost": self._cost,
+            "iterations": self._iterations,
             "memory": self._memory,
-            "parallel": self._parallel,
         }
         return challenge
 
@@ -156,7 +158,7 @@ class PendingAuthScram(PendingAuth):
         auth_message = (
             "{client_first_bare},{server_first},{client_final_no_proof}".format(
                 client_first_bare="n={},r={}".format(saslprep(self._authid), client_nonce),
-                server_first="r={},s={},i={}".format(server_nonce, salt, self._cost),
+                server_first="r={},s={},i={}".format(server_nonce, salt, self._iterations),
                 client_final_no_proof="c={},r={}".format(channel_binding, server_nonce),
             )
         )

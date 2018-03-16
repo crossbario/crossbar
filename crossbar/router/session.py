@@ -774,6 +774,12 @@ class RouterSession(BaseSession):
         if self._service_session:
             self._service_session.publish(u'wamp.session.on_join', self._session_details)
 
+    def onWelcome(self, msg):
+        # this is a hook for authentication methods to deny the
+        # session after the Welcome message -- do we need to do
+        # anything in this impl?
+        pass
+
     def onLeave(self, details):
 
         # _router can be None when, e.g., authentication fails hard
