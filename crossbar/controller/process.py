@@ -846,7 +846,7 @@ class NodeControllerSession(NativeProcessSession):
                         if options['watch'].get('action', None) == 'restart':
                             self.log.info("Filesystem watcher detected change {fs_event} - restarting guest in {watch_timeout} seconds ..", fs_event=fs_event, watch_timeout=worker.watch_timeout)
                             # Add a timeout large enough (perhaps add a config option later)
-                            self._node._reactor.callLater(worker.watch_timeout, self.start_guest, worker_id, worker_config, details)
+                            self._node._reactor.callLater(worker.watch_timeout, self.start_worker, worker_id, worker_config, details)
                             # Shut the worker down, after the restart event is scheduled
                             # FIXME: all workers should have a stop() method ..
                             # -> 'GuestWorkerProcess' object has no attribute 'stop'
