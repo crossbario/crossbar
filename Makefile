@@ -41,21 +41,6 @@ freeze: clean
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
 
-pyinstaller_gen_spec_file:
-	pyi-makespec --onefile --name crossbar crossbar/controller/cli.py
-
-exe:
-#	pyinstaller crossbar.spec
-	pyinstaller \
-		--onefile \
-		--name crossbar \
-		--add-data crossbar/keys:crossbar/keys \
-		--add-data crossbar/web:crossbar/web \
-		--add-data crossbar/templates:crossbar/templates \
-		crossbar/controller/cli.py
-	ldd ./dist/crossbar
-	./dist/crossbar version
-
 # install using pinned/hashed dependencies, as we do for packaging
 install:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
