@@ -52,23 +52,38 @@ from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
 
-from crossbar.controller.personality import Personality as CommunityPersonality
 
-PKLASSES = {
-    'community': CommunityPersonality
-}
+def get_defined_personalities():
+    """
+    Return a list of personality names defined.
+    """
+    return ['community', 'fabric', 'fabriccenter']
 
-try:
-    from crossbarfabric.personality import Personality as FabricPersonality
-    PKLASSES['fabric'] = FabricPersonality
-except ImportError:
-    pass
 
-try:
-    from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
-    PKLASSES['fabriccenter'] = FabricCenterPersonality
-except ImportError:
-    pass
+def get_installed_personalities():
+    """
+    Return a map from personality names to actual available (=installed) Personality classes.
+    """
+    from crossbar.controller.personality import Personality as CommunityPersonality
+
+    PKLASSES = {
+        'community': CommunityPersonality
+    }
+
+    try:
+        from crossbarfabric.personality import Personality as FabricPersonality
+        PKLASSES['fabric'] = FabricPersonality
+    except ImportError:
+        pass
+
+    try:
+        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
+        PKLASSES['fabriccenter'] = FabricCenterPersonality
+    except ImportError:
+        pass
+
+    return PKLASSES
+
 
 import crossbar
 
@@ -77,8 +92,6 @@ from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
 
-from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey, \
-    default_native_workers
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import check_config_file, \
     color_json, convert_config_file, upgrade_config_file, InvalidConfigException
@@ -121,18 +134,6 @@ def get_version(name_or_module):
         return name_or_module.__version__
     except AttributeError:
         return ''
-
-
-# default is "community"
-node_default_personality = 'community'
-
-# however, if available, choose "fabric" as default
-if 'fabric' in PKLASSES:
-    node_default_personality = 'fabric'
-
-# however, if available, choose "fabriccenter" as default
-if 'fabriccenter' in PKLASSES:
-    node_default_personality = 'fabriccenter'
 
 
 def check_pid_exists(pid):
@@ -357,12 +358,13 @@ def run_command_version(options, reactor=None, **kwargs):
         txaioetcd_ver = '-'
 
     # Release Public Key
+    from crossbar.controller.node import _read_release_pubkey
     release_pubkey = _read_release_pubkey()
 
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
-    Node = PKLASSES[options.personality].NodeKlass
+    Node = get_installed_personalities()[options.personality].NodeKlass
 
     for line in Node.BANNER.splitlines():
         log.info(decorate("{:>40}".format(line)))
@@ -402,6 +404,8 @@ def run_command_keys(options, reactor=None, **kwargs):
     Subcommand "crossbar keys".
     """
     log = make_logger()
+
+    from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey
 
     # Release (public) key
     release_pubkey = _read_release_pubkey()
@@ -661,7 +665,7 @@ def run_command_start(options, reactor=None):
 
     # represents the running Crossbar.io node
     #
-    Node = PKLASSES[options.personality].NodeKlass
+    Node = get_installed_personalities()[options.personality].NodeKlass
     node = Node(options.cbdir, reactor=reactor)
 
     # possibly generate new node key
@@ -749,6 +753,8 @@ def run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
+    from crossbar.controller.node import default_native_workers
+
     configfile = os.path.join(options.cbdir, options.config)
 
     verbose = False
@@ -871,8 +877,8 @@ def run(prog=None, args=None, reactor=None):
 
     parser_version.add_argument('--personality',
                                 type=six.text_type,
-                                default=node_default_personality,
-                                choices=sorted(PKLASSES.keys()),
+                                default='community',
+                                choices=get_defined_personalities(),
                                 help=("Node personality to run."))
 
     parser_version.add_argument('--loglevel',
@@ -949,8 +955,8 @@ def run(prog=None, args=None, reactor=None):
 
     parser_start.add_argument('--personality',
                               type=six.text_type,
-                              default=node_default_personality,
-                              choices=sorted(PKLASSES.keys()),
+                              default='community',
+                              choices=get_defined_personalities(),
                               help=("Node personality to run."))
 
     parser_start.add_argument('--logdir',
