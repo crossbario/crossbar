@@ -5,11 +5,11 @@ toc: [Documentation, Administration, HTTP Bridge]
 
 ## Quick Links
 
+* [HTTP Bridge Webhook](HTTP Bridge Webhook)
 * [HTTP Bridge Publisher](HTTP Bridge Publisher)
 * [HTTP Bridge Subscriber](HTTP Bridge Subscriber)
 * [HTTP Bridge Caller](HTTP Bridge Caller)
 * [HTTP Bridge Callee](HTTP Bridge Callee)
-* [HTTP Bridge Webhook](HTTP Bridge Webhook)
 
 ## Background
 
@@ -21,6 +21,7 @@ Or if you want to access your existing HTTP services using WAMP?
 This is where the *HTTP bridge services* of Crossbar can help.
 They provide WAMP components which provide interoperability with existing code by using HTTP.
 
+* The [HTTP Bridge Webhook](HTTP Bridge Webhook) is a service that parses incoming WebHook requests (e.g. from GitLab or GitHub) and pushes all the arguments to a configured topic
 * The [HTTP Publisher](HTTP Bridge Publisher) is a service that allows clients to submit PubSub events via HTTP/POST requests.
 Crossbar will receive the event data via the request and forward the event via standard WAMP to any connected subscribers in real-time.
 * The [HTTP Caller](HTTP Bridge Caller) is a service that allows clients to perform WAMP calls via HTTP/POST requests.
