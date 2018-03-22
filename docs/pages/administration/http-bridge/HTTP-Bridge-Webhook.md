@@ -55,7 +55,8 @@ The *HTTP Webhook Service* is configured on a path of a Web transport - here is 
                      "realm": "realm1",
                      "role": "anonymous",
                      "options": {
-                         "topic": "com.myapp.topic1"
+                         "topic": "com.myapp.topic1",
+                         "success_response": ""
                      }
                   }
                }
@@ -81,6 +82,8 @@ option | description
 ---|---
 **`topic`** | The topic to which the forwarded events will be sent.
 **`post_body_limit`** | An integer when present limits the length (in bytes) of a HTTP/POST body that will be accepted. If the request body exceed this limit, the request is rejected. If 0, accept unlimited length. (default: **0**)
+**`success_response`** | A string to send as the body in a successful reply (default is `OK`)
+**`error_response`** | A string to send as the body in an unsuccessful reply (default is `NOT OK`)
 
 
 ## With GitHub
