@@ -39,6 +39,14 @@ from twisted.python.failure import Failure
 from txaio import make_logger
 
 
+#
+# the imports here are important (though not used in CB unless configured),
+# because of single-exe packaging and pyinstaller otherwise missing deps
+#
+
+from crossbar.worker.sample import LogTester  # noqa
+
+
 def _appsession_loader(config):
     """
     Load a class from C{config}.

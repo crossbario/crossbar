@@ -27,3 +27,12 @@
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
 #####################################################################################
+
+from __future__ import absolute_import
+
+#
+# the imports here are important (though not used in CB unless configured),
+# because of single-exe packaging and pyinstaller otherwise missing deps
+#
+
+from crossbar.worker.sample._logging import LogTester  # noqa
