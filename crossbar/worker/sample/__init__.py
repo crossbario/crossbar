@@ -27,12 +27,3 @@
 #  with this program. If not, see <http://www.gnu.org/licenses/agpl-3.0.en.html>.
 #
 #####################################################################################
-
-from __future__ import absolute_import
-
-import txaio
-txaio.use_twisted()
-
-__version__ = '18.3.2'
-
-__all__ = ('__version__',)
