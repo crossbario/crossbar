@@ -542,8 +542,8 @@ def check_transport_auth_scram(config):
     for authid, principal in config['principals'].items():
         check_dict_args({
             'kdf': (True, [six.text_type]),
-            'iterations': (True, [int]),
-            'memory': (True, [int]),
+            'iterations': (True, [six.integer_types]),
+            'memory': (True, [six.integer_types]),
             'salt': (True, [six.text_type]),
             'stored-key': (True, [six.text_type]),
             'server-key': (True, [six.text_type]),
