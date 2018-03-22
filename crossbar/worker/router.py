@@ -929,6 +929,12 @@ class RouterWorkerSession(NativeWorkerSession):
         # map: transport ID -> RouterTransport
         self.transports = {}
 
+    def onWelcome(self, msg):
+        # this is a hook for authentication methods to deny the
+        # session after the Welcome message -- do we need to do
+        # anything in this impl?
+        pass
+
     @inlineCallbacks
     def onJoin(self, details):
         """

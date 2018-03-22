@@ -34,6 +34,8 @@ from crossbar.router.auth.anonymous import PendingAuthAnonymous  # noqa
 from crossbar.router.auth.wampcra import PendingAuthWampCra  # noqa
 from crossbar.router.auth.ticket import PendingAuthTicket  # noqa
 from crossbar.router.auth.tls import PendingAuthTLS  # noqa
+from crossbar.router.auth.scram import PendingAuthScram  # noqa
+
 
 AUTHMETHODS = set([
     u'ticket',
@@ -41,7 +43,8 @@ AUTHMETHODS = set([
     u'tls',
     u'cryptosign',
     u'cookie',
-    u'anonymous'
+    u'anonymous',
+    u'scram',
 ])
 
 # map of authmethod name to processor class
@@ -53,6 +56,7 @@ AUTHMETHOD_MAP = {
     u'wampcra': PendingAuthWampCra,
     u'tls': PendingAuthTLS,
     u'cookie': None,
+    u'scram': PendingAuthScram,
 }
 
 try:

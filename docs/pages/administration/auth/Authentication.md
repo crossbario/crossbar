@@ -23,13 +23,14 @@ Crossbar.io provides a range of authentication methods.
 4. [WAMP-Cryptosign](Cryptosign Authentication)
 5. [WAMP-Cookie](Cookie Authentication)
 6. [WAMP-TLS](TLS Client Certificate Authentication)
+7. [WAMP-SCRAM](SCRAM Authentication) **experimental**
 
-These can be classed according to whether
+These can be classed according to whether:
 
 * they use transport or session level mechanisms
 * they are based on a shared secret or on public key cryptography
 
-and allow both static and dynamic authentication (i.e. credentials stored in the Crossbar.io config or using an authentication component which contains custom rules).
+...and allow both static and dynamic authentication (i.e. credentials stored in the Crossbar.io config or using an authentication component which contains custom rules).
 
 ## Session vs Transport Level
 
@@ -39,6 +40,7 @@ and allow both static and dynamic authentication (i.e. credentials stored in the
 * [WAMP-Ticket](Ticket Authentication)
 * [WAMP-CRA](Challenge-Response Authentication)
 * [WAMP-Cryptosign](Cryptosign Authentication)
+* [WAMP-SCRAM](SCRAM Authentication) **experimental**
 
 **WAMP transport level authentications** use the underlying transport for the WAMP session, and the result of the authentication is then passed on to the WAMP session level (i.e. the resulting `authid` and `authrole` are passed there).
 
@@ -52,6 +54,7 @@ and allow both static and dynamic authentication (i.e. credentials stored in the
 * [WAMP-Ticket](Ticket Authentication)
 * [WAMP-CRA](Challenge-Response Authentication)
 * [WAMP-Cookie](Cookie Authentication)
+* [WAMP-SCRAM](SCRAM Authentication) **experimental**
 
 **Public Key based authentication** relies on asymetric key pairs, i.e. the router (or authentication componenet) only has knowledge of the client's public key (and vice versa). This has the advantage that a compromised store of keys does not enable impersonation of the other participant(s).
 

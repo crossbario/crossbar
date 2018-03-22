@@ -524,6 +524,42 @@ def check_transport_auth_cryptosign(config):
         raise InvalidConfigException('logic error')
 
 
+def check_transport_auth_scram(config):
+    """
+    Check a WAMP-SCRAM configuration item.
+    """
+    for k in [u'type', u'principals']:
+        if k not in config:
+            raise InvalidConfigException(
+                "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format(k)
+            )
+    if config[u'type'] != u'static':
+        raise InvalidConfigException(
+            "Only static SCRAM configuration allowed currently"
+        )
+
+    # check map of principals
+    for authid, principal in config['principals'].items():
+        check_dict_args({
+            'kdf': (True, [six.text_type]),
+            'iterations': (True, [six.integer_types]),
+            'memory': (True, [six.integer_types]),
+            'salt': (True, [six.text_type]),
+            'stored-key': (True, [six.text_type]),
+            'server-key': (True, [six.text_type]),
+            'role': (False, [six.text_type]),
+        }, principal, "WAMP-SCRAM - principal '{}' configuration".format(authid))
+        available_kdfs = (u'argon2id-13', u'pbkdf2')
+        kdf = principal[u'kdf']
+        if kdf not in available_kdfs:
+            raise ValueError(
+                "WAMP-SCRAM illegal KDF '{}' not one of {}".format(
+                    kdf,
+                    ', '.join(available_kdfs),
+                )
+            )
+
+
 def check_transport_auth_cookie(config):
     """
     Check a WAMP-Cookie configuration item.
@@ -577,7 +613,8 @@ def check_transport_auth(auth):
         'wampcra': check_transport_auth_wampcra,
         'tls': check_transport_auth_tls,
         'cookie': check_transport_auth_cookie,
-        'cryptosign': check_transport_auth_cryptosign
+        'cryptosign': check_transport_auth_cryptosign,
+        'scram': check_transport_auth_scram,
     }
     for k in auth:
         if k not in CHECKS:
