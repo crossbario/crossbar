@@ -31,16 +31,8 @@
 from __future__ import absolute_import
 
 #
-# Warning: one or more imports below will trigger a Twisted reactor
-# import on Windows!
+# the imports here are important (though not used in CB unless configured),
+# because of single-exe packaging and pyinstaller otherwise missing deps
 #
-from crossbar.controller.node import Node
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
-
-class Personality(object):
-
-    NodeKlass = Node
-    WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
+from crossbar.worker.sample._logging import LogTester  # noqa

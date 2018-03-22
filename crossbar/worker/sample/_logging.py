@@ -30,17 +30,37 @@
 
 from __future__ import absolute_import
 
-#
-# Warning: one or more imports below will trigger a Twisted reactor
-# import on Windows!
-#
-from crossbar.controller.node import Node
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
+from twisted.internet.defer import inlineCallbacks
+
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.twisted.util import sleep
 
 
-class Personality(object):
+class LogTester(ApplicationSession):
+    """
+    Sample WAMP component to test logging at run-time.
+    """
 
-    NodeKlass = Node
-    WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
+    @inlineCallbacks
+    def onJoin(self, details):
+        LOG_PREFIX = '*** SAMPLE *** [{}]'.format(details.session)
+        config = self.config.extra or {'iterations': 300, 'delay': .2}
+
+        self.log.info('{prefix} joined realm "{realm}"', prefix=LOG_PREFIX, realm=details.realm)
+        self.log.info('{prefix} config={config}', prefix=LOG_PREFIX, config=self.config.extra)
+
+        self._tick = 1
+        for i in range(config['iterations']):
+            self.log.info('{prefix} TICK:', prefix=LOG_PREFIX)
+            for fn, lvl in [(self.log.trace, 'TRACE'),
+                            (self.log.debug, 'DEBUG'),
+                            (self.log.info, 'INFO '),
+                            (self.log.warn, 'WARN '),
+                            (self.log.error, 'ERROR')]:
+                fn('{prefix} {lvl} - TICK {tick}', prefix=LOG_PREFIX, lvl=lvl, tick=self._tick)
+            self._tick += 1
+            yield sleep(config['delay'])
+
+        self.log.info('{prefix} DONE!', prefix=LOG_PREFIX)
+
+        self.leave()
