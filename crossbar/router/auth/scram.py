@@ -115,7 +115,8 @@ class PendingAuthScram(PendingAuth):
                 if error:
                     return error
 
-                extra = self._compute_challenge()  ##channel_binding)
+                # XXX TODO this needs to include (optional) channel-binding
+                extra = self._compute_challenge()
                 return types.Challenge(self._authmethod, extra)
 
             else:
@@ -131,7 +132,8 @@ class PendingAuthScram(PendingAuth):
             # should not arrive here, as config errors should be caught earlier
             return types.Deny(message=u'invalid authentication configuration (authentication type "{}" is unknown)'.format(self._config['type']))
 
-    def _compute_challenge(self):  #, channel_binding):
+    # XXX TODO this needs to include (optional) channel-binding
+    def _compute_challenge(self):
         self._server_nonce = self._client_nonce + os.urandom(16)
 
         challenge = {

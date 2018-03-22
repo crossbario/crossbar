@@ -537,7 +537,7 @@ def check_transport_auth_scram(config):
         raise InvalidConfigException(
             "Only static SCRAM configuration allowed currently"
         )
-    principals = config[u'principals']
+
     # check map of principals
     for authid, principal in config['principals'].items():
         check_dict_args({
