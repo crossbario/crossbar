@@ -260,6 +260,9 @@ def run_command_version(options, reactor=None, **kwargs):
     else:
         py_ver_detail = platform.python_implementation()
 
+    # Pyinstaller (frozen EXE)
+    py_is_frozen = getattr(sys, 'frozen', False)
+
     # Twisted / Reactor
     tx_ver = "%s-%s" % (get_version('twisted'), reactor.__class__.__name__)
     tx_loc = "[%s]" % qual(reactor.__class__)
@@ -338,15 +341,13 @@ def run_command_version(options, reactor=None, **kwargs):
 
     # crossbarfabric (only Crossbar.io FABRIC)
     try:
-        import crossbarfabric  # noqa
-        crossbarfabric_ver = get_version(crossbarfabric)
+        from crossbarfabric._version import __version__ as crossbarfabric_ver  # noqa
     except ImportError:
         crossbarfabric_ver = '-'
 
     # crossbarfabriccenter (only Crossbar.io FABRIC CENTER)
     try:
-        import crossbarfabriccenter  # noqa
-        crossbarfabriccenter_ver = get_version(crossbarfabriccenter)
+        from crossbarfabriccenter._version import __version__ as crossbarfabriccenter_ver  # noqa
     except ImportError:
         crossbarfabriccenter_ver = '-'
 
@@ -393,8 +394,9 @@ def run_command_version(options, reactor=None, **kwargs):
     if options.personality == u'fabriccenter':
         log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabriccenter_ver))
         log.debug("   txaioetcd        : {ver}", ver=decorate(txaioetcd_ver))
-    log.info(" OS                 : {ver}", ver=decorate(platform.platform()))
-    log.info(" Machine            : {ver}", ver=decorate(platform.machine()))
+    log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if py_is_frozen else 'no'))
+    log.info(" Operating system   : {ver}", ver=decorate(platform.platform()))
+    log.info(" Host machine       : {ver}", ver=decorate(platform.machine()))
     log.info(" Release key        : {release_pubkey}", release_pubkey=decorate(release_pubkey[u'base64']))
     log.info("")
 
@@ -1094,6 +1096,13 @@ def run(prog=None, args=None, reactor=None):
     #
     if sys.platform == 'win32':
         options.colour = False
+
+    # Node personality
+    #
+    if hasattr(options, 'personality'):
+        if options.personality not in get_installed_personalities():
+            print('FATAL: no Crossbar.io node personality "{}" installed'.format(options.personality))
+            sys.exit(1)
 
     # Crossbar.io node directory
     #
