@@ -1106,7 +1106,7 @@ def run(prog=None, args=None, reactor=None):
                                   verbose=False,
                                   require_optimal_reactor=False)
 
-    ########## Twisted reactor installed FROM HERE ##########################################
+    # ################## Twisted reactor installed FROM HERE ##################
 
     # Node personality
     #
