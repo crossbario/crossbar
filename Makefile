@@ -69,6 +69,15 @@ test_mqtt:
 #	trial crossbar.adapter.mqtt.test.test_wamp
 	trial crossbar.adapter.mqtt.test.test_wamp.MQTTAdapterTests.test_basic_publish
 
+test_reactors:
+	clear
+	-crossbar version --loglevel=debug
+	-crossbar --reactor="select" version --loglevel=debug
+	-crossbar --reactor="poll" version --loglevel=debug
+	-crossbar --reactor="epoll" version --loglevel=debug
+	-crossbar --reactor="kqueue" version --loglevel=debug
+	-crossbar --reactor="iocp" version --loglevel=debug
+
 full_test: clean flake8
 	trial crossbar
 

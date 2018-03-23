@@ -1097,6 +1097,17 @@ def run(prog=None, args=None, reactor=None):
     if sys.platform == 'win32':
         options.colour = False
 
+    # IMPORTANT: keep the reactor install as early as possible to
+    # avoid importing any Twisted module that comes with the side effect
+    # of installing a default reactor (which might not be what we want!).
+    if not reactor:
+        # we use an Autobahn utility to import the "best" available Twisted reactor
+        reactor = install_reactor(explicit_reactor=options.reactor,
+                                  verbose=False,
+                                  require_optimal_reactor=False)
+
+    # ################## Twisted reactor installed FROM HERE ##################
+
     # Node personality
     #
     if hasattr(options, 'personality'):
@@ -1157,16 +1168,8 @@ def run(prog=None, args=None, reactor=None):
                 else:
                     print("Auto-created log directory {}".format(options.logdir))
 
-    if not reactor:
-        # try and get the log verboseness we want -- not all commands have a
-        # loglevel, so just default to info in that case
-        debug = getattr(options, "loglevel", "info") in ("debug", "trace")
-
-        # we use an Autobahn utility to import the "best" available Twisted
-        # reactor
-        reactor = install_reactor(options.reactor, debug)
-
     # Start the logger
+    #
     _startlog(options, reactor)
 
     # run the subcommand selected
