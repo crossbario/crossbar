@@ -37,3 +37,4 @@ incremental>=17.5.0
 constantly>=15.1.0
 enum34>=1.1.6
 ipaddress>=1.0.18
+passlib>=1.7.1
