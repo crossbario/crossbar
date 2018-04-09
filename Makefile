@@ -41,8 +41,10 @@ freeze: clean
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
 
+install: install_dev
+
 # install using pinned/hashed dependencies, as we do for packaging
-install:
+install_pinned:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
 	pip install .
 
