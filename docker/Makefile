@@ -21,6 +21,9 @@ version: version_cpy3 version_pypy3
 
 test: test_cpy3 test_pypy3
 
+prepare:
+	-rm -rf ./node
+	crossbar init --appdir ./node
 
 publish:
 	# amd64 / community / cpy3

@@ -3,7 +3,7 @@
 #
 # CHANGE FOR NEW RELEASES (these need to be proper Git tags in the respective repo):
 #
-export CROSSBAR_VERSION='18.3.1'
+export CROSSBAR_VERSION='18.4.1'
 #
 # END OF CONFIG
 #
@@ -12,7 +12,7 @@ export CROSSBAR_VERSION='18.3.1'
 # Git working directories of all relevant repos must reside
 # in parallel (as siblings) to this repository
 #
-export CROSSBAR_VCS_REF=`git --git-dir="../crossbar/.git" rev-list -n 1 v${CROSSBAR_VERSION} --abbrev-commit`
+export CROSSBAR_VCS_REF=`git --git-dir="../.git" rev-list -n 1 v${CROSSBAR_VERSION} --abbrev-commit`
 export BUILD_DATE=`date -u +"%Y-%m-%d"`
 
 echo ""
