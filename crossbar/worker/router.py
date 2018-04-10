@@ -734,12 +734,15 @@ def _create_resource(reactor, path_config, templates, log, cbdir, _router_sessio
 
         path_options = path_config.get('options', {})
 
+        auth = path_config.get('auth')
+
         lp_resource = WampLongPollResource(_router_session_factory,
                                            timeout=path_options.get('request_timeout', 10),
                                            killAfter=path_options.get('session_timeout', 30),
                                            queueLimitBytes=path_options.get('queue_limit_bytes', 128 * 1024),
                                            queueLimitMessages=path_options.get('queue_limit_messages', 100),
-                                           debug_transport_id=path_options.get('debug_transport_id', None)
+                                           debug_transport_id=path_options.get('debug_transport_id', None),
+                                           auth=auth
                                            )
         lp_resource._templates = templates
 

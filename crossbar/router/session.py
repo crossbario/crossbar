@@ -315,6 +315,9 @@ class RouterSession(BaseSession):
         # transport configuration
         if hasattr(self._transport, 'factory') and hasattr(self._transport.factory, '_config'):
             self._transport_config = self._transport.factory._config
+        elif hasattr(self._transport, '_config'):
+            # Longpoll transports have a config saved directly on the transport
+            self._transport_config = self._transport._config
         else:
             self._transport_config = {}
 
