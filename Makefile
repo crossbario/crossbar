@@ -41,18 +41,19 @@ freeze: clean
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
 
-install: install_dev
+# install for development, using pinned dependencies, and including dev-only dependencies
+install:
+	-pip uninstall -y crossbar
+	pip install --no-cache --upgrade -r requirements-dev.txt
+	pip install -e .
+	@python -c "import crossbar; print('*** crossbar-{} ***'.format(crossbar.__version__))"
 
 # install using pinned/hashed dependencies, as we do for packaging
 install_pinned:
+	-pip uninstall -y crossbar
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
 	pip install .
-
-# install for development, using pinned dependencies, and including dev-only dependencies
-install_dev:
-	pip install -r requirements-dev.txt
-	pip install -e .
-	python -c "import crossbar; print('\ncrossbar-{} installed'.format(crossbar.__version__))"
+	@python -c "import crossbar; print('*** crossbar-{} ***'.format(crossbar.__version__))"
 
 # upload to our internal deployment system
 upload: clean
