@@ -42,11 +42,12 @@ import six
 
 import txaio
 txaio.use_twisted()  # noqa
-from txaio import make_logger, start_logging, set_global_log_level
+from txaio import make_logger, start_logging, set_global_log_level, failure_format_traceback
 
 from twisted.python.reflect import qual
 from twisted.logger import globalLogPublisher
 
+from crossbar._util import hl, term_print
 from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
@@ -64,7 +65,7 @@ def get_installed_personalities():
     """
     Return a map from personality names to actual available (=installed) Personality classes.
     """
-    from crossbar.controller.personality import Personality as CommunityPersonality
+    from crossbar.personality import Personality as CommunityPersonality
 
     PKLASSES = {
         'community': CommunityPersonality
@@ -365,14 +366,15 @@ def run_command_version(options, reactor=None, **kwargs):
     def decorate(text):
         return click.style(text, fg='yellow', bold=True)
 
-    Node = get_installed_personalities()[options.personality].NodeKlass
+    PersonalityKlass = get_installed_personalities()[options.personality]
+    NodeKlass = PersonalityKlass.NodeKlass
 
-    for line in Node.BANNER.splitlines():
+    for line in NodeKlass.BANNER.splitlines():
         log.info(decorate("{:>40}".format(line)))
 
     pad = " " * 22
 
-    log.info(" Crossbar.io        : {ver} ({personality})", ver=decorate(crossbar.__version__), personality=Node.PERSONALITY)
+    log.info(" Crossbar.io        : {ver} ({personality})", ver=decorate(crossbar.__version__), personality=NodeKlass.PERSONALITY)
     log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
     log.debug("     txaio          : {ver}", ver=decorate(txaio_ver))
@@ -621,12 +623,10 @@ def _startlog(options, reactor):
     start_logging(None, loglevel)
 
 
-def run_command_start(options, reactor=None):
+def run_command_start(options, reactor):
     """
     Subcommand "crossbar start".
     """
-    assert reactor
-
     # do not allow to run more than one Crossbar.io instance
     # from the same Crossbar.io node directory
     #
@@ -667,8 +667,9 @@ def run_command_start(options, reactor=None):
 
     # represents the running Crossbar.io node
     #
-    Node = get_installed_personalities()[options.personality].NodeKlass
-    node = Node(options.cbdir, reactor=reactor)
+    PersonalityKlass = get_installed_personalities()[options.personality]
+    NodeKlass = PersonalityKlass.NodeKlass
+    node = NodeKlass(PersonalityKlass, options.cbdir, reactor=reactor)
 
     # possibly generate new node key
     #
@@ -676,7 +677,7 @@ def run_command_start(options, reactor=None):
 
     # Print the banner.
     #
-    for line in Node.BANNER.splitlines():
+    for line in NodeKlass.BANNER.splitlines():
         log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
 
     bannerFormat = "{:<12} {:<24}"
@@ -685,8 +686,7 @@ def run_command_start(options, reactor=None):
         log.info(bannerFormat.format("Public Key:", click.style(pubkey, fg='yellow', bold=True)))
     log.info()
 
-    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
-
+    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(NodeKlass.__module__, NodeKlass.__name__))
     log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
 
     # check and load the node configuration
@@ -705,37 +705,102 @@ def run_command_start(options, reactor=None):
              python=platform.python_implementation(),
              reactor=qual(reactor.__class__).split('.')[-1])
 
-    # now actually start the node ..
-    #
-    def start_crossbar():
-        d = node.start()
+    # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
+    # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
+    # 'before', 'during', and 'after' (in that order, of course). These events will be fired
+    # internally by the Reactor.
 
-        def on_error(err):
-            log.error("{e!s}", e=err.value)
-            log.error("Could not start node: {err}", err=err)
-            if reactor.running:
-                reactor.stop()
-        d.addErrback(on_error)
+    def before_reactor_started():
+        term_print('<CROSSBAR:REACTOR_STARTING>')
 
-    reactor.callWhenRunning(start_crossbar)
+    def after_reactor_started():
+        term_print('<CROSSBAR:REACTOR_STARTED>')
+
+    reactor.addSystemEventTrigger('before', 'startup', before_reactor_started)
+    reactor.addSystemEventTrigger('after', 'startup', after_reactor_started)
+
+    def before_reactor_stopped():
+        term_print('<CROSSBAR:REACTOR_STOPPING>')
 
     def after_reactor_stopped():
         # FIXME: we are indeed reaching this line, however,
         # the log output does not work (it also doesnt work using
         # plain old print). Dunno why.
-        log.info('Node has been shut down [after_reactor_stopped].')
+        # log.info(hl_green('REACTOR STOPPED'))
 
+        # my theory about this issue is: by the time this line
+        # is reached, Twisted has already closed the stdout/stderr
+        # pipes. hence we do an evil trick: we directly write to
+        # the process' controlling terminal
+        # https://unix.stackexchange.com/a/91716/52500
+        term_print('<CROSSBAR:REACTOR_STOPPED>')
+
+    reactor.addSystemEventTrigger('before', 'shutdown', before_reactor_stopped)
     reactor.addSystemEventTrigger('after', 'shutdown', after_reactor_stopped)
+
+    # now actually start the node ..
+    #
+    exit_info = {'was_clean': None}
+
+    def start_crossbar():
+        term_print('<CROSSBAR:NODE_STARTING>')
+
+        #
+        # ****** main entry point of node ******
+        #
+        d = node.start()
+
+        # node started successfully, and later ..
+        def on_startup_success(_shutdown_complete):
+            term_print('<CROSSBAR:NODE_STARTED>')
+
+            shutdown_complete = _shutdown_complete['shutdown_complete']
+
+            # .. exits, signaling exit status _inside_ the result returned
+            def on_shutdown_success(shutdown_info):
+                exit_info['was_clean'] = shutdown_info['was_clean']
+                term_print('on_shutdown_success: {}'.format(_was_clean))
+
+            # should not arrive here:
+            def on_shutdown_error(err):
+                exit_info['was_clean'] = False
+                log.error("on_shutdown_error: {tb}", tb=failure_format_traceback(err))
+
+            shutdown_complete.addCallbacks(on_shutdown_success, on_shutdown_error)
+
+        # node could not even start
+        def on_startup_error(err):
+            term_print('<CROSSBAR:NODE_STARTUP_FAILED>')
+            exit_info['was_clean'] = False
+            log.error("Could not start node: {tb}", tb=failure_format_traceback(err))
+            if reactor.running:
+                reactor.stop()
+
+        d.addCallbacks(on_startup_success, on_startup_error)
+
+    # Call a function when the reactor is running. If the reactor has not started, the callable
+    # will be scheduled to run when it does start.
+    reactor.callWhenRunning(start_crossbar)
 
     # now enter event loop ..
     #
-    try:
-        reactor.run()
-    except Exception:
-        log.failure("Could not start reactor - {log_failure.value}")
+    term_print('<CROSSBAR:REACTOR_RUN>')
+    reactor.run()
 
-    # this line is _never_ reached! Twisted reactor will sys.exit() before
-    # under all circumstances
+    # once the reactor has finally stopped, we get here, and at that point,
+    # exit_info['was_clean'] MUST have been set before - either to True or to False
+    # (otherwise we are missing a code path to handle in above)
+
+    # exit the program with exit code depending on whether the node has been cleanly shut down
+    if exit_info['was_clean'] == True:
+        term_print('<CROSSBAR:EXIT_WITH_SUCCESS>')
+        sys.exit(0)
+    elif exit_info['was_clean'] == False:
+        term_print('<CROSSBAR:EXIT_WITH_ERROR>')
+        sys.exit(1)
+    else:
+        term_print('<CROSSBAR:EXIT_WITH_INTERNAL_ERROR>')
+        sys.exit(1)
 
 
 def run_command_restart(options, **kwargs):
@@ -755,7 +820,7 @@ def run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
-    from crossbar.controller.node import default_native_workers
+    from crossbar.personality import default_native_workers
 
     configfile = os.path.join(options.cbdir, options.config)
 
@@ -834,7 +899,7 @@ def run_command_keygen(options, **kwargs):
     print('   public: {}'.format(pub))
 
 
-def run(prog=None, args=None, reactor=None):
+def _main_entry_point(prog=None, args=None, reactor=None):
     """
     Entry point of Crossbar.io CLI.
     """
@@ -1183,5 +1248,5 @@ def run(prog=None, args=None, reactor=None):
             raise
 
 
-if __name__ == '__main__':
-    run(args=sys.argv[1:])
+#if __name__ == '__main__':
+#    run(args=sys.argv[1:])

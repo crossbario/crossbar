@@ -55,7 +55,7 @@ from txaio import make_logger
 twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
 
 
-def create_web_factory(reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node, add_paths=False):
+def create_web_factory(personality, reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node, add_paths=False):
     assert templates is not None
 
     options = config.get('options', {})
@@ -125,7 +125,7 @@ class _LessNoisyHTTPChannel(HTTPChannel):
         self.loseConnection()
 
 
-def create_transport_from_config(reactor, name, config, cbdir, log, node,
+def create_transport_from_config(personality, reactor, name, config, cbdir, log, node,
                                  _router_session_factory=None,
                                  _web_templates=None, add_paths=False):
     """

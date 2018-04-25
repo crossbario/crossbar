@@ -32,146 +32,29 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import datetime
-
-from crossbar.worker.transport.factory import create_transport_from_config
-from crossbar.worker.transport.resource import add_paths, remove_paths
+from crossbar.worker.types import RouterComponent, RouterRealm, RouterRealmRole, RouterRealmUplink
 from twisted.internet.defer import Deferred, DeferredList, maybeDeferred
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
+from autobahn import wamp
 from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
-from autobahn import wamp
+from autobahn.wamp.types import PublishOptions, ComponentConfig
 
 from crossbar._util import class_name
+
 from crossbar.router import uplink
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
 from crossbar.router.router import RouterFactory
 
 from crossbar.worker import _appsession_loader
-
-from autobahn.wamp.types import PublishOptions
-
-
-from autobahn.wamp.types import ComponentConfig
-
 from crossbar.worker.worker import NativeWorkerSession
-
 from crossbar.common import checkconfig
 
 
 __all__ = ('RouterWorkerSession',)
-
-
-class RouterComponent(object):
-
-    """
-    A application component hosted and running inside a router worker.
-    """
-
-    def __init__(self, id, config, session):
-        """
-        Ctor.
-
-        :param id: The component ID within the router instance.
-        :type id: str
-        :param config: The component's configuration.
-        :type config: dict
-        :param session: The component application session.
-        :type session: obj (instance of ApplicationSession)
-        """
-        self.id = id
-        self.config = config
-        self.session = session
-        self.created = datetime.utcnow()
-
-    def marshal(self):
-        """
-        Marshal object information for use with WAMP calls/events.
-        """
-        now = datetime.utcnow()
-        return {
-            u'id': self.id,
-            # 'started' is used by container-components; keeping it
-            # for consistency in the public API
-            u'started': utcstr(self.created),
-            u'uptime': (now - self.created).total_seconds(),
-            u'config': self.config
-        }
-
-
-class RouterRealm(object):
-
-    """
-    A realm running in a router worker.
-    """
-
-    def __init__(self, id, config, session=None):
-        """
-        Ctor.
-
-        :param id: The realm ID within the router.
-        :type id: str
-        :param config: The realm configuration.
-        :type config: dict
-        :param session: The realm service session.
-        :type session: instance of CrossbarRouterServiceSession
-        """
-        self.id = id
-        self.config = config
-        self.session = session
-        self.created = datetime.utcnow()
-        self.roles = {}
-        self.uplinks = {}
-
-    def marshal(self):
-        return {
-            u'id': self.id,
-            u'config': self.config,
-            u'created': self.created,
-            u'roles': self.roles,
-        }
-
-
-class RouterRealmRole(object):
-
-    """
-    A role in a realm running in a router worker.
-    """
-
-    def __init__(self, id, config):
-        """
-        Ctor.
-
-        :param id: The role ID within the realm.
-        :type id: str
-        :param config: The role configuration.
-        :type config: dict
-        """
-        self.id = id
-        self.config = config
-
-
-class RouterRealmUplink(object):
-
-    """
-    An uplink in a realm running in a router worker.
-    """
-
-    def __init__(self, id, config):
-        """
-        Ctor.
-
-        :param id: The uplink ID within the realm.
-        :type id: str
-        :param config: The uplink configuration.
-        :type config: dict
-        """
-        self.id = id
-        self.config = config
-        self.session = None
 
 
 class RouterWorkerSession(NativeWorkerSession):
@@ -185,7 +68,12 @@ class RouterWorkerSession(NativeWorkerSession):
     router_realm_class = RouterRealm
     router_factory_class = RouterFactory
 
-    def __init__(self, config=None, reactor=None):
+    def __init__(self, config=None, reactor=None, personality=None):
+        if personality:
+            self.personality = personality
+        else:
+            from crossbar.personality import Personality
+            self.personality = Personality
         NativeWorkerSession.__init__(self, config, reactor)
 
         # factory for producing (per-realm) routers
@@ -740,7 +628,7 @@ class RouterWorkerSession(NativeWorkerSession):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.already_running', emsg)
 
-        d = create_transport_from_config(
+        d = self.personality.create_router_transport(
             self._reactor, id, config, self.config.extra.cbdir, self.log, self,
             _router_session_factory=self._router_session_factory,
             _web_templates=self._templates, add_paths=add_paths
@@ -824,14 +712,14 @@ class RouterWorkerSession(NativeWorkerSession):
         paths = {
             path: config
         }
-        add_paths(self._reactor,
-                  transport.root_resource,
-                  paths,
-                  self._templates,
-                  self.log,
-                  self.config.extra.cbdir,
-                  self._router_session_factory,
-                  self)
+        self.personality.add_web_services(self._reactor,
+                                          transport.root_resource,
+                                          paths,
+                                          self._templates,
+                                          self.log,
+                                          self.config.extra.cbdir,
+                                          self._router_session_factory,
+                                          self)
 
         on_web_transport_service_started = {
             u'transport_id': transport_id,

@@ -45,7 +45,7 @@ from nacl.signing import SigningKey
 from nacl.encoding import HexEncoder
 
 import twisted
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
 from twisted.python.runtime import platform
 from twisted.python.reflect import qual
 
@@ -58,18 +58,13 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
 
 import crossbar
+from crossbar._util import term_print
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
-from crossbar.worker.router import RouterRealm
-from crossbar.worker.router import RouterWorkerSession
+from crossbar.worker.types import RouterRealm
 from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
-from crossbar.controller.processtypes import RouterWorkerProcess
-from crossbar.controller.processtypes import ContainerWorkerProcess
-from crossbar.controller.processtypes import WebSocketTesteeWorkerProcess
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
 
 
 def _read_release_pubkey():
@@ -213,59 +208,6 @@ def _write_node_key(filepath, tags, msg):
             f.write(u'{}: {}\n'.format(tag, value))
 
 
-def default_native_workers():
-    factory = dict()
-    factory['router'] = {
-        'class': RouterWorkerProcess,
-        'worker_class': RouterWorkerSession,
-
-        # check a whole router worker configuration item (including realms, transports, ..)
-        'checkconfig_item': checkconfig.check_router,
-
-        # only check router worker options
-        'checkconfig_options': checkconfig.check_router_options,
-
-        'logname': 'Router',
-        'topics': {
-            'starting': u'crossbar.node.on_router_starting',
-            'started': u'crossbar.node.on_router_started',
-        }
-    }
-    factory['container'] = {
-        'class': ContainerWorkerProcess,
-        'worker_class': ContainerWorkerSession,
-
-        # check a whole container worker configuration item (including components, ..)
-        'checkconfig_item': checkconfig.check_container,
-
-        # only check container worker options
-        'checkconfig_options': checkconfig.check_container_options,
-
-        'logname': 'Container',
-        'topics': {
-            'starting': u'crossbar.node.on_container_starting',
-            'started': u'crossbar.node.on_container_started',
-        }
-    }
-    factory['websocket-testee'] = {
-        'class': WebSocketTesteeWorkerProcess,
-        'worker_class': WebSocketTesteeWorkerSession,
-
-        # check a whole websocket testee worker configuration item
-        'checkconfig_item': checkconfig.check_websocket_testee_options,
-
-        # only check websocket testee worker worker options
-        'checkconfig_options': checkconfig.check_websocket_testee_options,
-
-        'logname': 'WebSocketTestee',
-        'topics': {
-            'starting': u'crossbar.node.on_websocket_testee_starting',
-            'started': u'crossbar.node.on_websocket_testee_started',
-        }
-    }
-    return factory
-
-
 class Node(object):
     """
     Crossbar.io Community node personality.
@@ -283,8 +225,6 @@ class Node(object):
 
     ROUTER_SERVICE = RouterServiceSession
 
-    _native_workers = default_native_workers()
-
     # A Crossbar.io node is the running a controller process and one or multiple
     # worker processes.
     # A single Crossbar.io node runs exactly one instance of this class, hence
@@ -292,7 +232,7 @@ class Node(object):
 
     log = make_logger()
 
-    def __init__(self, cbdir=None, reactor=None, native_workers=None):
+    def __init__(self, personality, cbdir=None, reactor=None, native_workers=None):
         """
 
         :param cbdir: The node directory to run from.
@@ -300,6 +240,9 @@ class Node(object):
         :param reactor: Reactor to run on.
         :type reactor: obj or None
         """
+        self.personality = personality
+        self._native_workers = personality.native_workers
+
         # node directory
         self._cbdir = cbdir or u'.'
 
@@ -339,6 +282,10 @@ class Node(object):
 
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
         self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
+
+        # will be filled with a Deferred in start(). the Deferred will fire when
+        # the node has shut down, and the result signals if shutdown was clean
+        self._shutdown_complete = None
 
         # for node elements started under specific IDs, and where
         # the node configuration does not specify an ID, use a generic
@@ -538,16 +485,18 @@ class Node(object):
         Starts this node. This will start a node controller and then spawn new worker
         processes as needed.
         """
+        # a configuration ust have been loaded before
         if not self._config:
             raise Exception("No node configuration set")
 
+        # a node can only be started once for now
+        assert self._shutdown_complete is None
+
         # get controller config/options
-        #
         controller_config = self._config.get('controller', {})
         controller_options = controller_config.get('options', {})
 
         # set controller process title
-        #
         try:
             import setproctitle
         except ImportError:
@@ -556,7 +505,6 @@ class Node(object):
             setproctitle.setproctitle(controller_options.get('title', 'crossbar-controller'))
 
         # local node management router
-        #
         self._router_factory = RouterFactory(self._node_id, None)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
         rlm_config = {
@@ -566,58 +514,48 @@ class Node(object):
         router = self._router_factory.start_realm(rlm)
 
         # setup global static roles
-        #
         self._add_global_roles()
 
         # always add a realm service session
-        #
         cfg = ComponentConfig(self._realm)
         rlm.session = (self.ROUTER_SERVICE)(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
         self.log.debug('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
 
         # add the node controller singleton component
-        #
         self._controller = self.NODE_CONTROLLER(self)
 
         self._router_session_factory.add(self._controller, authrole=u'trusted')
         self.log.debug('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
 
         # add extra node controller components
-        #
         self._add_extra_controller_components(controller_options)
 
         # setup Node shutdown triggers
-        #
         self._set_shutdown_triggers(controller_options)
 
-        panic = False
+        # setup node shutdown Deferred
+        self._shutdown_complete = Deferred()
+
+        # startup the node personality ..
+        yield self._startup()
+
+        # notify systemd that we are fully up and running
         try:
-            # startup the node personality ..
-            yield self._startup()
+            import sdnotify
+        except ImportError:
+            # do nothing on non-systemd platforms
+            pass
+        else:
+            sdnotify.SystemdNotifier().notify("READY=1")
 
-            # .. and notify systemd that we are fully up and running
-            try:
-                import sdnotify
-                sdnotify.SystemdNotifier().notify("READY=1")
-            except:
-                # do nothing on non-systemd platforms
-                pass
-
-        except ApplicationError as e:
-            panic = True
-            self.log.error("{msg}", msg=e.error_message())
-
-        except Exception:
-            panic = True
-            self.log.failure()
-            self.log.error('fatal: could not startup node')
-
-        if panic:
-            try:
-                self._reactor.stop()
-            except twisted.internet.error.ReactorNotRunning:
-                pass
+        # return a shutdown deferred which we will fire to notify the code that
+        # called start() - which is the main crossbar boot code
+        res = {
+            'shutdown_complete': self._shutdown_complete
+        }
+        returnValue(res)
+#        returnValue(self._shutdown_complete)
 
     def _startup(self):
         return self._configure_node_from_config(self._config)

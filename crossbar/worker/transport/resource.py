@@ -68,7 +68,8 @@ if _HAS_CGI:
     pass
 
 
-def create_resource(reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True):
+def create_resource(personality, reactor, path_config, templates, log, cbdir,
+                    router_session_factory, node, nested=True):
     """
     Creates child resource to be added to the parent.
 
@@ -396,7 +397,7 @@ def create_resource(reactor, path_config, templates, log, cbdir, _router_session
 
         # nest subpaths under the current entry
         #
-        add_paths(reactor, nested_resource, nested_paths, templates, log, cbdir, _router_session_factory, node)
+        personality.add_paths(reactor, nested_resource, nested_paths, templates, log, cbdir, _router_session_factory, node)
 
         return nested_resource
 
@@ -406,7 +407,7 @@ def create_resource(reactor, path_config, templates, log, cbdir, _router_session
                                                                                 'nested' if nested else 'root'))
 
 
-def add_paths(reactor, resource, paths, templates, log, cbdir, _router_session_factory, node):
+def add_paths(personality, reactor, resource, paths, templates, log, cbdir, _router_session_factory, node):
     """
     Add all configured non-root paths under a resource.
 
@@ -426,11 +427,11 @@ def add_paths(reactor, resource, paths, templates, log, cbdir, _router_session_f
         if path != b"/":
             resource.putChild(
                 webPath,
-                create_resource(reactor, paths[path], templates, log, cbdir, _router_session_factory, node)
+                personality.create_resource(reactor, paths[path], templates, log, cbdir, _router_session_factory, node)
             )
 
 
-def remove_paths(reactor, resource, paths):
+def remove_paths(personality, reactor, resource, paths):
     """
     Remove (non-root) paths from a resource.
 

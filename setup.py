@@ -40,7 +40,7 @@ with open('README.rst') as f:
 
 # read package version
 with open('crossbar/__init__.py') as f:
-    mo = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", f.read(), re.M)
+    mo = re.search(r"^__version__ = [u'\"]([^'\"]*)['\"]", f.read(), re.M)
     if mo:
         version = mo.group(1)
     else:
@@ -105,7 +105,7 @@ setup(
     entry_points={
         # CLI entry function
         'console_scripts': [
-            'crossbar = crossbar.controller.cli:run'
+            'crossbar = crossbar:run'
         ]
     },
     packages=find_packages(),
