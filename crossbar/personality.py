@@ -119,7 +119,7 @@ class Personality(object):
          _router_session_factory=None, _web_templates=None, add_paths=False) -> None
     """
 
-    __create_web_service = create_resource
+    create_web_service = create_resource
     """
     Create a (single) Web service to be added to a Web service tree:
 
@@ -139,9 +139,3 @@ class Personality(object):
 
         (reactor, resource, paths) -> None
     """
-
-
-    @staticmethod
-    def create_web_service(personality, reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True):
-        print('>>>>>>>> crossbar.personality.Personality.create_web_server')
-        return create_resource(personality, reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True)

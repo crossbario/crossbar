@@ -69,7 +69,7 @@ if _HAS_CGI:
 
 
 def create_resource(personality, reactor, path_config, templates, log, cbdir,
-                    router_session_factory, node, nested=True):
+                    _router_session_factory, node, nested=True):
     """
     Creates child resource to be added to the parent.
 
@@ -391,13 +391,13 @@ def create_resource(personality, reactor, path_config, templates, log, cbdir,
         nested_paths = path_config.get('paths', {})
 
         if '/' in nested_paths:
-            nested_resource = create_resource(reactor, nested_paths['/'], templates, cbdir)
+            nested_resource = personality.create_web_service(personality, reactor, nested_paths['/'], templates, cbdir)
         else:
             nested_resource = Resource404(templates, b'')
 
         # nest subpaths under the current entry
         #
-        personality.add_paths(reactor, nested_resource, nested_paths, templates, log, cbdir, _router_session_factory, node)
+        personality.add_web_services(personality, reactor, nested_resource, nested_paths, templates, log, cbdir, _router_session_factory, node)
 
         return nested_resource
 
@@ -427,7 +427,7 @@ def add_paths(personality, reactor, resource, paths, templates, log, cbdir, _rou
         if path != b"/":
             resource.putChild(
                 webPath,
-                personality.create_resource(reactor, paths[path], templates, log, cbdir, _router_session_factory, node)
+                personality.create_web_service(personality, reactor, paths[path], templates, log, cbdir, _router_session_factory, node)
             )
 
 

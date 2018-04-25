@@ -610,7 +610,7 @@ class RouterWorkerSession(NativeWorkerSession):
         return res
 
     @wamp.register(None)
-    def start_router_transport(self, id, config, add_paths=False, details=None):
+    def start_router_transport(self, id, config, create_paths=False, details=None):
         """
         Start a transport on this router worker.
 
@@ -629,9 +629,9 @@ class RouterWorkerSession(NativeWorkerSession):
             raise ApplicationError(u'crossbar.error.already_running', emsg)
 
         d = self.personality.create_router_transport(
-            self._reactor, id, config, self.config.extra.cbdir, self.log, self,
+            self.personality, self._reactor, id, config, self.config.extra.cbdir, self.log, self,
             _router_session_factory=self._router_session_factory,
-            _web_templates=self._templates, add_paths=add_paths
+            _web_templates=self._templates, create_paths=create_paths
         )
 
         def ok(router_transport):
@@ -712,7 +712,8 @@ class RouterWorkerSession(NativeWorkerSession):
         paths = {
             path: config
         }
-        self.personality.add_web_services(self._reactor,
+        self.personality.add_web_services(self.personality,
+                                          self._reactor,
                                           transport.root_resource,
                                           paths,
                                           self._templates,

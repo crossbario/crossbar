@@ -813,7 +813,7 @@ def run_command_restart(options, **kwargs):
     args = pid_data['argv'][1:]
     # replace 'restart' with 'start'
     args = [(lambda x: x if x != 'restart' else 'start')(x) for x in args]
-    run(prog, args)
+    _main_entry_point(prog, args)
 
 
 def run_command_check(options, **kwargs):
@@ -1246,7 +1246,3 @@ def _main_entry_point(prog=None, args=None, reactor=None):
         # re-raised.
         if e.args[0] != 0:
             raise
-
-
-#if __name__ == '__main__':
-#    run(args=sys.argv[1:])

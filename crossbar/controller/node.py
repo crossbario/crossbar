@@ -755,7 +755,7 @@ class Node(object):
             yield self._controller.call(u'crossbar.worker.{}.start_router_transport'.format(worker_id),
                                         transport_id,
                                         transport,
-                                        add_paths=add_paths_on_transport_create,
+                                        create_paths=add_paths_on_transport_create,
                                         options=CallOptions())
             self.log.info(
                 "{logname}: transport '{tid}' started",

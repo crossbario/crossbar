@@ -55,7 +55,7 @@ from txaio import make_logger
 twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
 
 
-def create_web_factory(personality, reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node, add_paths=False):
+def create_web_factory(personality, reactor, config, is_secure, templates, log, cbdir, _router_session_factory, node, create_paths=False):
     assert templates is not None
 
     options = config.get('options', {})
@@ -63,14 +63,14 @@ def create_web_factory(personality, reactor, config, is_secure, templates, log, 
     # create Twisted Web root resource
     if '/' in config['paths']:
         root_config = config['paths']['/']
-        root = create_resource(reactor, root_config, templates, log, cbdir, _router_session_factory, node, nested=False)
+        root = personality.create_web_service(personality, reactor, root_config, templates, log, cbdir, _router_session_factory, node, nested=False)
     else:
         root = Resource404(templates, b'')
 
     # create Twisted Web resources on all non-root paths configured
     paths = config.get('paths', {})
-    if add_paths and paths:
-        add_paths(reactor, root, paths, templates, log, cbdir, _router_session_factory, node)
+    if create_paths and paths:
+        personality.add_web_services(personality, reactor, root, paths, templates, log, cbdir, _router_session_factory, node)
 
     # create the actual transport factory
     transport_factory = Site(
@@ -127,7 +127,7 @@ class _LessNoisyHTTPChannel(HTTPChannel):
 
 def create_transport_from_config(personality, reactor, name, config, cbdir, log, node,
                                  _router_session_factory=None,
-                                 _web_templates=None, add_paths=False):
+                                 _web_templates=None, create_paths=False):
     """
     :return: a Deferred that fires with a new RouterTransport instance
         (or error) representing the given transport using config for
@@ -205,6 +205,7 @@ def create_transport_from_config(personality, reactor, name, config, cbdir, log,
                 u"Transport with type='web' requires templates"
             )
         transport_factory, root_resource = create_web_factory(
+            personality,
             reactor,
             config,
             u'tls' in config[u'endpoint'],
@@ -213,7 +214,7 @@ def create_transport_from_config(personality, reactor, name, config, cbdir, log,
             cbdir,
             _router_session_factory,
             node,
-            add_paths=add_paths
+            create_paths=create_paths
         )
 
     # Universal transport
@@ -225,6 +226,7 @@ def create_transport_from_config(personality, reactor, name, config, cbdir, log,
                     u"Universal transport with type='web' requires templates"
                 )
             web_factory, root_resource = create_web_factory(
+                personality,
                 reactor,
                 config['web'],
                 u'tls' in config['endpoint'],
@@ -233,7 +235,7 @@ def create_transport_from_config(personality, reactor, name, config, cbdir, log,
                 cbdir,
                 _router_session_factory,
                 node,
-                add_paths=add_paths
+                create_paths=create_paths
             )
         else:
             web_factory = None
