@@ -69,12 +69,8 @@ class RouterWorkerSession(NativeWorkerSession):
     router_factory_class = RouterFactory
 
     def __init__(self, config=None, reactor=None, personality=None):
-        if personality:
-            self.personality = personality
-        else:
-            from crossbar.personality import Personality
-            self.personality = Personality
-        NativeWorkerSession.__init__(self, config, reactor)
+        # base ctor
+        NativeWorkerSession.__init__(self, config=config, reactor=reactor, personality=personality)
 
         # factory for producing (per-realm) routers
         self._router_factory = self.router_factory_class(None, self)
@@ -691,7 +687,8 @@ class RouterWorkerSession(NativeWorkerSession):
         :param config: The Web service configuration.
         :type config: dict
         """
-        self.log.info("{name}.start_web_transport_service(transport_id={transport_id}, path={path}, config={config})",
+        self.log.info("{name}[{personality}].start_web_transport_service(transport_id={transport_id}, path={path}, config={config})",
+                      personality=self.personality.NAME,
                       name=self.__class__.__name__,
                       transport_id=transport_id,
                       path=path,
@@ -712,6 +709,7 @@ class RouterWorkerSession(NativeWorkerSession):
         paths = {
             path: config
         }
+        print('5'*100, self.personality)
         self.personality.add_web_services(self.personality,
                                           self._reactor,
                                           transport.root_resource,

@@ -65,6 +65,10 @@ class NativeWorkerSession(NativeProcessSession):
 
     log = make_logger()
 
+    def __init__(self, config=None, reactor=None, personality=None):
+        # base ctor
+        NativeProcessSession.__init__(self, config=config, reactor=reactor, personality=personality)
+
     def onConnect(self):
         """
         Called when the worker has connected to the node's management router.

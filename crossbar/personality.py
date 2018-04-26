@@ -34,7 +34,7 @@ from crossbar.common import checkconfig
 from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
 
 from crossbar.worker.transport.factory import create_transport_from_config
-from crossbar.worker.transport.resource import create_resource, add_paths, remove_paths
+from crossbar.worker.transport.resource import create_web_service, add_web_services, remove_paths
 
 #
 # Warning: one or more imports below will trigger a Twisted reactor
@@ -101,6 +101,8 @@ def default_native_workers():
 
 class Personality(object):
 
+    NAME = 'community'
+
     NodeKlass = Node
 
     WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
@@ -119,14 +121,14 @@ class Personality(object):
          _router_session_factory=None, _web_templates=None, add_paths=False) -> None
     """
 
-    create_web_service = create_resource
+    create_web_service = create_web_service
     """
     Create a (single) Web service to be added to a Web service tree:
 
         (reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True) -> None
     """
 
-    add_web_services = add_paths
+    add_web_services = add_web_services
     """
     Add Web service(s) to a Web service tree:
 

@@ -92,7 +92,11 @@ class NodeControllerSession(NativeProcessSession):
         :param node: The node singleton for this node controller session.
         :type node: obj
         """
-        NativeProcessSession.__init__(self, reactor=node._reactor)
+        #NativeProcessSession.__init__(self, reactor=node._reactor)
+
+        # base ctor
+        NativeProcessSession.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
+
 
         # associated node
         self._node = node
@@ -426,6 +430,8 @@ class NodeControllerSession(NativeProcessSession):
         # from the same script in crossbar/worker/process.py
         #
 
+        print('9'*100, self._node.personality, self._node.personality.NAME)
+
         # We are probably inside a single crossbar binary
         if getattr(sys, 'frozen', False):
             args = [exe, "start-worker"]
@@ -438,6 +444,7 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--node", str(self._node._node_id)])
         args.extend(["--worker", str(worker_id)])
         args.extend(["--realm", self._realm])
+        args.extend(["--personality", self._node.personality.NAME])
         args.extend(["--klass", worker_class])
         args.extend(["--loglevel", get_global_log_level()])
         if "shutdown" in options:

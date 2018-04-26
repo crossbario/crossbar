@@ -68,8 +68,8 @@ if _HAS_CGI:
     pass
 
 
-def create_resource(personality, reactor, path_config, templates, log, cbdir,
-                    _router_session_factory, node, nested=True):
+def create_web_service(personality, reactor, path_config, templates, log, cbdir,
+                       _router_session_factory, node, nested=True):
     """
     Creates child resource to be added to the parent.
 
@@ -407,7 +407,7 @@ def create_resource(personality, reactor, path_config, templates, log, cbdir,
                                                                                 'nested' if nested else 'root'))
 
 
-def add_paths(personality, reactor, resource, paths, templates, log, cbdir, _router_session_factory, node):
+def add_web_services(personality, reactor, resource, paths, templates, log, cbdir, _router_session_factory, node):
     """
     Add all configured non-root paths under a resource.
 

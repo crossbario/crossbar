@@ -46,7 +46,7 @@ from crossbar.twisted.flashpolicy import FlashPolicyFactory
 from crossbar.twisted.resource import Resource404
 from crossbar.twisted.site import createHSTSRequestFactory
 from crossbar.worker.testee import WebSocketTesteeServerFactory, StreamTesteeServerFactory
-from crossbar.worker.transport.resource import create_resource
+from crossbar.worker.transport.resource import create_web_service
 from twisted.web.http import _GenericHTTPChannelProtocol, HTTPChannel
 from twisted.web.server import Site
 from txaio import make_logger
