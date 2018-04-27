@@ -38,7 +38,7 @@ from autobahn.twisted import install_reactor
 
 txaio.use_twisted()
 
-__version__ = u'18.4.2-dev'
+__version__ = u'18.4.2'
 
 __all__ = ('__version__', 'version', 'run')
 
@@ -164,7 +164,3 @@ def run(args=None, reactor=None):
 
     # and now actually enter here .. this never returns!
     return _main_entry_point('crossbar', args, reactor)
-
-
-if __name__ == '__main__':
-    run(sys.argv[1:])

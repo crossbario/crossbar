@@ -40,11 +40,7 @@ with open('README.rst') as f:
 
 # read package version
 with open('crossbar/__init__.py') as f:
-    mo = re.search(r"^__version__ = [u'\"]([^'\"]*)['\"]", f.read(), re.M)
-    if mo:
-        version = mo.group(1)
-    else:
-        raise RuntimeError('could not read package version')
+    exec(f.read())  # defines __version__
 
 # we read requirements from requirements*.txt files down below
 install_requires = []
@@ -93,7 +89,7 @@ os.environ['PYUBJSON_NO_EXTENSION'] = '1'
 # now actually call into setuptools ..
 setup(
     name='crossbar',
-    version=version,
+    version=__version__,
     description='Crossbar.io - The Unified Application Router',
     long_description=long_description,
     author='Crossbar.io Technologies GmbH',
