@@ -170,7 +170,7 @@ def run(options, reactor=None):
 
     elif options.personality == 'fabriccenter':
         try:
-            from crossbarfabric.personality import Personality
+            from crossbarfabriccenter.personality import Personality
         except ImportError:
             raise Exception('Crossbar.io Fabric Center personality not installed')
     else:
