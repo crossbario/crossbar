@@ -103,6 +103,11 @@ class Personality(object):
 
     NAME = 'community'
 
+    # a list of directories to serach Jinja2 templates for
+    # rendering various web resources. this must be a list
+    # of _pairs_ to be used with pkg_resources.resource_filename()!
+    TEMPLATE_DIRS = [('crossbar', 'web/templates')]
+
     NodeKlass = Node
 
     WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
