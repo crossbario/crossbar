@@ -278,9 +278,8 @@ def run(options, reactor=None):
                     pass
 
     try:
-        # create a WAMP application session factory
+        # define a WAMP application session factory
         #
-        from autobahn.twisted.wamp import ApplicationSessionFactory
         from autobahn.wamp.types import ComponentConfig
 
         def make_session():

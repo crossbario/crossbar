@@ -431,7 +431,7 @@ def add_web_services(personality, reactor, resource, paths, templates, log, cbdi
             )
 
 
-def remove_paths(personality, reactor, resource, paths):
+def remove_web_services(personality, reactor, resource, paths):
     """
     Remove (non-root) paths from a resource.
 

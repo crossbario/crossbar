@@ -34,7 +34,7 @@ from crossbar.common import checkconfig
 from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
 
 from crossbar.worker.transport.factory import create_transport_from_config
-from crossbar.worker.transport.resource import create_web_service, add_web_services, remove_paths
+from crossbar.worker.transport.resource import create_web_service, add_web_services, remove_web_services
 
 #
 # Warning: one or more imports below will trigger a Twisted reactor
@@ -135,7 +135,7 @@ class Personality(object):
         (reactor, resource, paths, templates, log, cbdir, _router_session_factory, node) -> None
     """
 
-    remove_web_services = remove_paths
+    remove_web_services = remove_web_services
     """
     Remove web service(s) from a Web service tree:
 

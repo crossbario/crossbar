@@ -709,7 +709,6 @@ class RouterWorkerSession(NativeWorkerSession):
         paths = {
             path: config
         }
-        print('5'*100, self.personality)
         self.personality.add_web_services(self.personality,
                                           self._reactor,
                                           transport.root_resource,
@@ -772,7 +771,7 @@ class RouterWorkerSession(NativeWorkerSession):
                      path,
                      options=PublishOptions(exclude=caller))
 
-        remove_paths(self._reactor, transport.root_resource, [path])
+        self.personality.remove_web_services(self.personality, self._reactor, transport.root_resource, [path])
 
         on_web_transport_service_stopped = {
             u'transport_id': transport_id,

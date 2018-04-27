@@ -47,7 +47,7 @@ from txaio import make_logger, start_logging, set_global_log_level, failure_form
 from twisted.python.reflect import qual
 from twisted.logger import globalLogPublisher
 
-from crossbar._util import hl, term_print
+from crossbar._util import term_print
 from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
@@ -122,7 +122,7 @@ try:
 except ImportError:
     pass
 
-__all__ = ('run',)
+__all__ = ('_main_entry_point',)
 
 _PID_FILENAME = 'node.pid'
 
@@ -726,7 +726,6 @@ def run_command_start(options, reactor):
         # FIXME: we are indeed reaching this line, however,
         # the log output does not work (it also doesnt work using
         # plain old print). Dunno why.
-        # log.info(hl_green('REACTOR STOPPED'))
 
         # my theory about this issue is: by the time this line
         # is reached, Twisted has already closed the stdout/stderr
@@ -759,7 +758,7 @@ def run_command_start(options, reactor):
             # .. exits, signaling exit status _inside_ the result returned
             def on_shutdown_success(shutdown_info):
                 exit_info['was_clean'] = shutdown_info['was_clean']
-                term_print('on_shutdown_success: {}'.format(_was_clean))
+                term_print('on_shutdown_success: was_clean={}'.format(shutdown_info['was_clean']))
 
             # should not arrive here:
             def on_shutdown_error(err):
@@ -792,10 +791,10 @@ def run_command_start(options, reactor):
     # (otherwise we are missing a code path to handle in above)
 
     # exit the program with exit code depending on whether the node has been cleanly shut down
-    if exit_info['was_clean'] == True:
+    if exit_info['was_clean'] is True:
         term_print('<CROSSBAR:EXIT_WITH_SUCCESS>')
         sys.exit(0)
-    elif exit_info['was_clean'] == False:
+    elif exit_info['was_clean'] is False:
         term_print('<CROSSBAR:EXIT_WITH_ERROR>')
         sys.exit(1)
     else:

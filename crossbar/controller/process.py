@@ -54,7 +54,7 @@ from autobahn.wamp.types import PublishOptions
 from autobahn import wamp
 
 import crossbar
-from crossbar._util import hl, term_print
+from crossbar._util import term_print
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
@@ -92,11 +92,8 @@ class NodeControllerSession(NativeProcessSession):
         :param node: The node singleton for this node controller session.
         :type node: obj
         """
-        #NativeProcessSession.__init__(self, reactor=node._reactor)
-
         # base ctor
         NativeProcessSession.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
-
 
         # associated node
         self._node = node
@@ -429,8 +426,6 @@ class NodeControllerSession(NativeProcessSession):
         # all native workers (routers and containers for now) start
         # from the same script in crossbar/worker/process.py
         #
-
-        print('9'*100, self._node.personality, self._node.personality.NAME)
 
         # We are probably inside a single crossbar binary
         if getattr(sys, 'frozen', False):

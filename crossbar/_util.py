@@ -99,7 +99,6 @@ def term_print(text):
     This currently only works on Unix like systems (tested only on Linux).
     When it cannot do so, it falls back to plain old print.
     """
-    #if not isinstance(text, six.text_type):
     text = '{:<44}'.format(text)
     if not text.endswith('\n'):
         text += '\n'

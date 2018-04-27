@@ -54,11 +54,9 @@ from txaio import make_logger
 from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
 from autobahn.wamp.types import CallOptions, ComponentConfig
-from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
 
 import crossbar
-from crossbar._util import term_print
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
