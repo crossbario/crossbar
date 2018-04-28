@@ -68,8 +68,15 @@ publish: clean
 test: flake8
 	trial crossbar
 
+test_quick:
+	tox -e flake8,py36-abtrunk,cli
+
 test_cli:
 	./test/test_cli.sh
+
+test_cli_tox:
+	tox -e py36-cli,pypy-cli .
+
 
 test_mqtt:
 #	trial crossbar.adapter.mqtt.test.test_wamp
