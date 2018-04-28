@@ -25,7 +25,8 @@ matrix:
   include:
     - env: TOX_ENV=flake8
 
-    - env: TOX_ENV=cli
+    - env: TOX_ENV=cpy-cli
+    - env: TOX_ENV=pypy-cli
 
     - python: 2.7
       env: TOX_ENV=py27-unpinned,coverage-report
