@@ -39,6 +39,7 @@ import platform
 import signal
 import sys
 import six
+import pkg_resources
 
 import txaio
 txaio.use_twisted()  # noqa
@@ -47,7 +48,7 @@ from txaio import make_logger, start_logging, set_global_log_level, failure_form
 from twisted.python.reflect import qual
 from twisted.logger import globalLogPublisher
 
-from crossbar._util import term_print
+from crossbar._util import hl, term_print
 from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
@@ -68,18 +69,22 @@ def get_installed_personalities():
     from crossbar.personality import Personality as CommunityPersonality
 
     PKLASSES = {
-        'community': CommunityPersonality
+        'default': CommunityPersonality,
+        'community': CommunityPersonality,
+        'max': CommunityPersonality,
     }
 
     try:
         from crossbarfabric.personality import Personality as FabricPersonality
         PKLASSES['fabric'] = FabricPersonality
+        PKLASSES['max'] = FabricPersonality
     except ImportError:
         pass
 
     try:
         from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
         PKLASSES['fabriccenter'] = FabricCenterPersonality
+        PKLASSES['max'] = FabricCenterPersonality
     except ImportError:
         pass
 
@@ -246,6 +251,19 @@ def check_is_running(cbdir):
     return None
 
 
+def run_command_legal(options, reactor=None, **kwargs):
+    """
+    Subcommand "crossbar legal".
+    """
+    PersonalityKlass = get_installed_personalities()['max']
+    package, resource_name = PersonalityKlass.LEGAL
+    filename = pkg_resources.resource_filename(package, resource_name)
+    filepath = os.path.abspath(filename)
+    with open(filepath) as f:
+        legal = f.read()
+        print(legal)
+
+
 def run_command_version(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar version".
@@ -363,19 +381,19 @@ def run_command_version(options, reactor=None, **kwargs):
     from crossbar.controller.node import _read_release_pubkey
     release_pubkey = _read_release_pubkey()
 
-    def decorate(text):
-        return click.style(text, fg='yellow', bold=True)
+    def decorate(text, fg='white', bg=None, bold=True):
+        return click.style(text, fg=fg, bg=bg, bold=bold)
 
     PersonalityKlass = get_installed_personalities()[options.personality]
     NodeKlass = PersonalityKlass.NodeKlass
 
     for line in NodeKlass.BANNER.splitlines():
-        log.info(decorate("{:>40}".format(line)))
+        log.info(decorate("{:>40}".format(line), fg='yellow', bold=True))
 
     pad = " " * 22
 
-    log.info(" Crossbar.io        : {ver} ({personality})", ver=decorate(crossbar.__version__), personality=NodeKlass.PERSONALITY)
-    log.info("   Autobahn         : {ver} (with {serializers})", ver=decorate(ab_ver), serializers=', '.join(supported_serializers))
+    log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
+    log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
     log.debug("     txaio          : {ver}", ver=decorate(txaio_ver))
     log.debug("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
@@ -902,6 +920,14 @@ def _main_entry_point(prog=None, args=None, reactor=None):
     """
     Entry point of Crossbar.io CLI.
     """
+    if args is not None:
+        if not args:
+            print('')
+            print(hl(get_installed_personalities()['max'].NodeKlass.BANNER, color='yellow', bold=True))
+            print('Type "crossbar --help to get help, or "crossbar <command> --help" to get help on a specific command.')
+            print('Type "crossbar legal" to read legal notices, terms of use and license and privacy information.')
+            return
+
     loglevel_args = {
         "type": str,
         "default": 'info',
@@ -935,6 +961,13 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                                        title='commands',
                                        help='Crossbar.io command to run')
     subparsers.required = True
+
+    # "legal" command
+    #
+    parser_legal = subparsers.add_parser('legal',
+                                         help='Print legal and licensing information.')
+
+    parser_legal.set_defaults(func=run_command_legal)
 
     # "version" command
     #
@@ -990,17 +1023,18 @@ def _main_entry_point(prog=None, args=None, reactor=None):
 
     # Start a worker
     #
-    parser_worker = subparsers.add_parser('start-worker', help='Start a worker process')
+    parser_worker = subparsers.add_parser('start-worker', help='INTERNAL USE. This cannot be invoked directly.')  # argparse.SUPPRESS does not work here =(
     parser_worker = process.get_argument_parser(parser_worker)
 
     parser_worker.set_defaults(func=process.run)
 
     # "templates" command
     #
-    parser_templates = subparsers.add_parser('templates',
-                                             help='List templates available for initializing a new Crossbar.io node.')
+    if False:
+        parser_templates = subparsers.add_parser('templates',
+                                                 help='List templates available for initializing a new Crossbar.io node.')
 
-    parser_templates.set_defaults(func=run_command_templates)
+        parser_templates.set_defaults(func=run_command_templates)
 
     # "start" command
     #

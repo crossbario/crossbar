@@ -217,7 +217,7 @@ class Node(object):
     \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
 
 """
-    PERSONALITY = "Crossbar.io COMMUNITY"
+    PERSONALITY = "Crossbar.io OSS"
 
     NODE_CONTROLLER = NodeControllerSession
 

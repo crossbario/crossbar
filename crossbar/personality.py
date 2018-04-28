@@ -103,6 +103,8 @@ class Personality(object):
 
     NAME = 'community'
 
+    LEGAL = ('crossbar', 'LEGAL')
+
     # a list of directories to serach Jinja2 templates for
     # rendering various web resources. this must be a list
     # of _pairs_ to be used with pkg_resources.resource_filename()!
