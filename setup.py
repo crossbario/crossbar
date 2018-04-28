@@ -39,7 +39,7 @@ with open('README.rst') as f:
     long_description = f.read()
 
 # read package version
-with open('crossbar/__init__.py') as f:
+with open('crossbar/_version.py') as f:
     exec(f.read())  # defines __version__
 
 # we read requirements from requirements*.txt files down below

@@ -35,10 +35,9 @@ import os
 
 import txaio
 from autobahn.twisted import install_reactor
+from crossbar._version import __version__
 
 txaio.use_twisted()
-
-__version__ = u'18.4.2'
 
 __all__ = ('__version__', 'version', 'run')
 
