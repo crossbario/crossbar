@@ -384,7 +384,7 @@ def _run_command_version(options, reactor=None, **kwargs):
     Personality = _INSTALLED_PERSONALITIES[options.personality]
     Node = Personality.NodeKlass
 
-    log.info(hl(Node.BANNER, color='yellow', bold=True))
+    log.info(hl(Personality.BANNER, color='yellow', bold=True))
     pad = " " * 22
     log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
     log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
@@ -517,17 +517,26 @@ def _run_command_stop(options, exit=True, **kwargs):
         else:
             p = psutil.Process(pid)
             try:
-                # first try to terminate (orderly shutdown)
-                _TERMINATE_TIMEOUT = 5
-                p.terminate()
-                print("SIGINT sent to process {} .. waiting for exit ({} seconds) ...".format(pid, _TERMINATE_TIMEOUT))
-                p.wait(timeout=_TERMINATE_TIMEOUT)
+                # first try to interrupt (orderly shutdown)
+                _INTERRUPT_TIMEOUT = 5
+                p.send_signal(signal.SIGINT)
+                print("SIGINT sent to process {} .. waiting for exit ({} seconds) ...".format(pid, _INTERRUPT_TIMEOUT))
+                p.wait(timeout=_INTERRUPT_TIMEOUT)
             except psutil.TimeoutExpired:
-                print("... process {} still alive - will kill now.".format(pid))
-                p.kill()
-                print("SIGKILL sent to process {}.".format(pid))
-            finally:
-                print("Process {} terminated.".format(pid))
+                print("... process {} still alive - will _terminate_ now.".format(pid))
+                try:
+                    _TERMINATE_TIMEOUT = 5
+                    p.terminate()
+                    print("SIGTERM sent to process {} .. waiting for exit ({} seconds) ...".format(pid, _TERMINATE_TIMEOUT))
+                    p.wait(timeout=_TERMINATE_TIMEOUT)
+                except psutil.TimeoutExpired:
+                    print("... process {} still alive - will KILL now.".format(pid))
+                    p.kill()
+                    print("SIGKILL sent to process {}.".format(pid))
+                else:
+                    print("Process {} terminated.".format(pid))
+            else:
+                print("Process {} has excited gracefully.".format(pid))
         if exit:
             sys.exit(0)
         else:
@@ -913,7 +922,7 @@ def main(prog, args, reactor):
     #
     if args is not None:
         if not args:
-            print(hl(_DEFAULT_PERSONALITY_KLASS.NodeKlass.BANNER, color='yellow', bold=True))
+            print(hl(_DEFAULT_PERSONALITY_KLASS.BANNER, color='yellow', bold=True))
             print('Type "crossbar --help to get help, or "crossbar <command> --help" to get help on a specific command.')
             print('Type "crossbar legal" to read legal notices, terms of use and license and privacy information.')
             print('Type "crossbar version" to print detailed version information.')

@@ -33,6 +33,7 @@ from __future__ import absolute_import
 import os
 import sys
 import signal
+import threading
 from datetime import datetime
 
 try:
@@ -163,16 +164,22 @@ class NodeControllerSession(NativeProcessSession):
         # node explicitly (a Twisted system trigger wouldn't allow us to distinguish
         # different reasons/origins of exiting ..)
         def signal_handler(_signal, frame):
-            self.log.warn('Controller received SIGINT [{}]: shutting down node ..'.format(_signal))
-
             if _signal == signal.SIGINT:
                 # CTRL-C'ing Crossbar.io is considered "willful", and hence we want to exit cleanly
                 self._shutdown_was_clean = True
+            elif _signal == signal.SIGTERM:
+                self._shutdown_was_clean = False
+            else:
+                # FIXME: can we run into others here?
+                self._shutdown_was_clean = False
+
+            self.log.warn('Controller received SIGINT [signal={signal}]: shutting down node [shutdown_was_clean={shutdown_was_clean}] ..', signal=_signal, shutdown_was_clean=self._shutdown_was_clean)
 
             # the following will shutdown the Twisted reactor in the end
             self.shutdown()
 
         signal.signal(signal.SIGINT, signal_handler)
+        self.log.info('Signal handler installed on process {pid} thread {tid}', pid=os.getpid(), tid=threading.get_ident())
 
         self._started = utcnow()
 

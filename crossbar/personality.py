@@ -96,14 +96,14 @@ def default_native_workers():
     return factory
 
 
-_TITLE = "Crossbar.io Standalone (AGPL)"
+_TITLE = "Crossbar.io Standalone"
 
 # http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
 _BANNER = r"""     __  __  __  __  __  __      __
     /  `|__)/  \/__`/__`|__) /\ |__)
     \__,|  \\__/.__/.__/|__)/~~\|  \
 
-    {} {}.
+    {} {}, https://crossbar.io
     Copyright (c) 2013-{} Crossbar.io Technologies GmbH, open-source licensed under AGPL 3.0.
 """
 
