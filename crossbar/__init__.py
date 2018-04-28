@@ -124,7 +124,7 @@ def run(args=None, reactor=None):
 
     ``--cbdir``         **CROSSBAR_DIR**          Node directory (local directory)
     ``--config``        **CROSSBAR_CONFIG**       Node configuration (local filename)
-    ``--colour``        n.a.                      Enable colored terminal output
+    ``--color``        n.a.                      Enable colored terminal output
     ``--loglevel``      n.a.                      Select log level
     ``--logformat``     n.a.                      Select log format
     ``--logdir``        n.a.                      Log to this local directory

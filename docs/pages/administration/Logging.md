@@ -11,9 +11,9 @@ Crossbar.io has configurable logging systems, to make it's log output easier to 
 
 Crossbar.io has three log formats, specified by the ``--logformat`` switch.
 
-* ``colour``: This is the default, and outputs coloured logging messages. [Example](https://asciinema.org/a/73tuxhtzl8yokk0pqstomyu1j)
-* ``nocolour``: This reduces the colour output by Crossbar, and is suitable for redirecting to files. [Example](https://asciinema.org/a/eqx5dt291xuwjap2b3g6g8gql)
-* ``syslogd``: This removes timestamps, and reduces the colour. [Example](https://asciinema.org/a/9ropoyi6k9hpr7l5sbesqutox)
+* ``color``: This is the default, and outputs colored logging messages. [Example](https://asciinema.org/a/73tuxhtzl8yokk0pqstomyu1j)
+* ``nocolor``: This reduces the color output by Crossbar, and is suitable for redirecting to files. [Example](https://asciinema.org/a/eqx5dt291xuwjap2b3g6g8gql)
+* ``syslogd``: This removes timestamps, and reduces the color. [Example](https://asciinema.org/a/9ropoyi6k9hpr7l5sbesqutox)
 
 
 ## Levels
@@ -33,7 +33,7 @@ These levels are:
 ## Logging to a file
 
 By passing ``--logtofile`` to Crossbar.io, you can log to the location specified by ``--logdir``.
-You may combine the ``--loglevel`` switches with ``--logtofile``, but not ``--logformat`` (it is always in ``nocolour``).
+You may combine the ``--loglevel`` switches with ``--logtofile``, but not ``--logformat`` (it is always in ``nocolor``).
 
 
 ## Adding logging to your components
