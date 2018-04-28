@@ -90,7 +90,7 @@ os.environ['PYUBJSON_NO_EXTENSION'] = '1'
 setup(
     name='crossbar',
     version=__version__,
-    description='Crossbar.io - The Unified Application Router',
+    description='Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices.',
     long_description=long_description,
     author='Crossbar.io Technologies GmbH',
     url='http://crossbar.io/',

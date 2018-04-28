@@ -55,7 +55,7 @@ from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
 
 
-def get_installed_INSTALLED_PERSONALITIES():
+def _get_personalities():
     """
     Return a map from personality names to actual available (=installed) Personality classes.
     """
@@ -70,21 +70,21 @@ def get_installed_INSTALLED_PERSONALITIES():
     try:
         from crossbarfabric.personality import Personality as FabricPersonality
         PKLASSES['fabric'] = FabricPersonality
-        default_personality = 'fabric'
+        # default_personality = 'fabric'
     except ImportError:
         pass
 
     try:
         from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
         PKLASSES['fabriccenter'] = FabricCenterPersonality
-        default_personality = 'fabriccenter'
+        # default_personality = 'fabriccenter'
     except ImportError:
         pass
 
     return PKLASSES, default_personality
 
 
-_INSTALLED_PERSONALITIES, _DEFAULT_PERSONALITY = get_installed_INSTALLED_PERSONALITIES()
+_INSTALLED_PERSONALITIES, _DEFAULT_PERSONALITY = _get_personalities()
 _DEFAULT_PERSONALITY_KLASS = _INSTALLED_PERSONALITIES[_DEFAULT_PERSONALITY]
 
 
@@ -124,12 +124,12 @@ try:
 except ImportError:
     pass
 
-__all__ = ('_main_entry_point',)
+__all__ = ('main',)
 
 _PID_FILENAME = 'node.pid'
 
 
-def get_version(name_or_module):
+def _get_version(name_or_module):
     if isinstance(name_or_module, str):
         name_or_module = importlib.import_module(name_or_module)
 
@@ -139,7 +139,7 @@ def get_version(name_or_module):
         return ''
 
 
-def check_pid_exists(pid):
+def _check_pid_exists(pid):
     """
     Check if a process with given PID exists.
 
@@ -177,7 +177,7 @@ def _is_crossbar_process(cmdline):
     return False
 
 
-def check_is_running(cbdir):
+def _check_is_running(cbdir):
     """
     Check if a Crossbar.io node is already running on a Crossbar.io node directory.
 
@@ -213,7 +213,7 @@ def check_is_running(cbdir):
                     # just assume it exists
                     return pid_data
                 else:
-                    pid_exists = check_pid_exists(pid)
+                    pid_exists = _check_pid_exists(pid)
                     if pid_exists:
                         if _HAS_PSUTIL:
                             # additionally check this is actually a crossbar process
@@ -248,7 +248,7 @@ def check_is_running(cbdir):
     return None
 
 
-def run_command_legal(options, reactor=None, **kwargs):
+def _run_command_legal(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar legal".
     """
@@ -261,7 +261,7 @@ def run_command_legal(options, reactor=None, **kwargs):
         print(legal)
 
 
-def run_command_version(options, reactor=None, **kwargs):
+def _run_command_version(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar version".
     """
@@ -280,20 +280,20 @@ def run_command_version(options, reactor=None, **kwargs):
     py_is_frozen = getattr(sys, 'frozen', False)
 
     # Twisted / Reactor
-    tx_ver = "%s-%s" % (get_version('twisted'), reactor.__class__.__name__)
+    tx_ver = "%s-%s" % (_get_version('twisted'), reactor.__class__.__name__)
     tx_loc = "[%s]" % qual(reactor.__class__)
 
     # txaio
-    txaio_ver = get_version('txaio')
+    txaio_ver = _get_version('txaio')
 
     # Autobahn
-    ab_ver = get_version('autobahn')
+    ab_ver = _get_version('autobahn')
     ab_loc = "[%s]" % qual(WebSocketProtocol)
 
     # UTF8 Validator
     s = qual(Utf8Validator)
     if 'wsaccel' in s:
-        utf8_ver = 'wsaccel-%s' % get_version('wsaccel')
+        utf8_ver = 'wsaccel-%s' % _get_version('wsaccel')
     elif s.startswith('autobahn'):
         utf8_ver = 'autobahn'
     else:
@@ -304,7 +304,7 @@ def run_command_version(options, reactor=None, **kwargs):
     # XOR Masker
     s = qual(XorMaskerNull)
     if 'wsaccel' in s:
-        xor_ver = 'wsaccel-%s' % get_version('wsaccel')
+        xor_ver = 'wsaccel-%s' % _get_version('wsaccel')
     elif s.startswith('autobahn'):
         xor_ver = 'autobahn'
     else:
@@ -321,12 +321,12 @@ def run_command_version(options, reactor=None, **kwargs):
     if json_ver == 'json':
         json_ver = 'stdlib'
     else:
-        json_ver = (json_ver + "-%s") % get_version(json_ver)
+        json_ver = (json_ver + "-%s") % _get_version(json_ver)
 
     # MsgPack Serializer
     try:
         import umsgpack  # noqa
-        msgpack_ver = 'u-msgpack-python-%s' % get_version(umsgpack)
+        msgpack_ver = 'u-msgpack-python-%s' % _get_version(umsgpack)
         supported_serializers.append('MessagePack')
     except ImportError:
         msgpack_ver = '-'
@@ -334,7 +334,7 @@ def run_command_version(options, reactor=None, **kwargs):
     # CBOR Serializer
     try:
         import cbor  # noqa
-        cbor_ver = 'cbor-%s' % get_version(cbor)
+        cbor_ver = 'cbor-%s' % _get_version(cbor)
         supported_serializers.append('CBOR')
     except ImportError:
         cbor_ver = '-'
@@ -342,7 +342,7 @@ def run_command_version(options, reactor=None, **kwargs):
     # UBJSON Serializer
     try:
         import ubjson  # noqa
-        ubjson_ver = 'ubjson-%s' % get_version(ubjson)
+        ubjson_ver = 'ubjson-%s' % _get_version(ubjson)
         supported_serializers.append('UBJSON')
     except ImportError:
         ubjson_ver = '-'
@@ -351,7 +351,7 @@ def run_command_version(options, reactor=None, **kwargs):
     try:
         import lmdb  # noqa
         lmdb_lib_ver = '.'.join([str(x) for x in lmdb.version()])
-        lmdb_ver = '{}/lmdb-{}'.format(get_version(lmdb), lmdb_lib_ver)
+        lmdb_ver = '{}/lmdb-{}'.format(_get_version(lmdb), lmdb_lib_ver)
     except ImportError:
         lmdb_ver = '-'
 
@@ -370,7 +370,7 @@ def run_command_version(options, reactor=None, **kwargs):
     # txaio-etcd (only Crossbar.io FABRIC CENTER)
     try:
         import txaioetcd  # noqa
-        txaioetcd_ver = get_version(txaioetcd)
+        txaioetcd_ver = _get_version(txaioetcd)
     except ImportError:
         txaioetcd_ver = '-'
 
@@ -415,7 +415,7 @@ def run_command_version(options, reactor=None, **kwargs):
     log.info("")
 
 
-def run_command_keys(options, reactor=None, **kwargs):
+def _run_command_keys(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar keys".
     """
@@ -438,26 +438,15 @@ def run_command_keys(options, reactor=None, **kwargs):
     log.info('')
 
 
-def run_command_templates(options, **kwargs):
-    """
-    Subcommand "crossbar templates".
-    """
-    templates = Templates()
-    templates.help()
-
-
-def run_command_init(options, **kwargs):
+def _run_command_init(options, **kwargs):
     """
     Subcommand "crossbar init".
     """
     log = make_logger()
 
+    template = 'default'
     templates = Templates()
-
-    if options.template not in templates:
-        log.info("Huh, sorry. There is no template named '{options.template}'. Try 'crossbar templates' to list the templates available.",
-                 options=options)
-        sys.exit(1)
+    assert(template in templates)
 
     if options.appdir is None:
         options.appdir = '.'
@@ -477,7 +466,7 @@ def run_command_init(options, **kwargs):
 
     log.info("Initializing application template '{options.template}' in directory '{options.appdir}'",
              options=options)
-    get_started_hint = templates.init(options.appdir, options.template)
+    get_started_hint = templates.init(options.appdir, template)
 
     log.info("Application template initialized")
 
@@ -488,7 +477,7 @@ def run_command_init(options, **kwargs):
                  cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
 
 
-def run_command_status(options, **kwargs):
+def _run_command_status(options, **kwargs):
     """
     Subcommand "crossbar status".
     """
@@ -497,7 +486,7 @@ def run_command_status(options, **kwargs):
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
     #
-    pid_data = check_is_running(options.cbdir)
+    pid_data = _check_is_running(options.cbdir)
     if pid_data is None:
         # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
         # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
@@ -510,14 +499,14 @@ def run_command_status(options, **kwargs):
         sys.exit(0)
 
 
-def run_command_stop(options, exit=True, **kwargs):
+def _run_command_stop(options, exit=True, **kwargs):
     """
     Subcommand "crossbar stop".
     """
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
     #
-    pid_data = check_is_running(options.cbdir)
+    pid_data = _check_is_running(options.cbdir)
     if pid_data:
         pid = pid_data['pid']
         print("Stopping Crossbar.io currently running from node directory {} (PID {}) ...".format(options.cbdir, pid))
@@ -547,13 +536,13 @@ def run_command_stop(options, exit=True, **kwargs):
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
 
 
-def _startlog(options, reactor):
+def _start_logging(options, reactor):
     """
     Start the logging in a way that all the subcommands can use it.
     """
     loglevel = getattr(options, "loglevel", "info")
     logformat = getattr(options, "logformat", "none")
-    colour = getattr(options, "colour", "auto")
+    color = getattr(options, "color", "auto")
 
     set_global_log_level(loglevel)
 
@@ -578,15 +567,15 @@ def _startlog(options, reactor):
     else:
         # We want to log to stdout/stderr.
 
-        if colour == "auto":
+        if color == "auto":
             if sys.__stdout__.isatty():
-                colour = True
+                color = True
             else:
-                colour = False
-        elif colour == "true":
-            colour = True
+                color = False
+        elif color == "true":
+            color = True
         else:
-            colour = False
+            color = False
 
         if loglevel == "none":
             # Do no logging!
@@ -595,10 +584,10 @@ def _startlog(options, reactor):
             # Print info to stdout, warn+ to stderr
             observers.append(make_stdout_observer(show_source=False,
                                                   format=logformat,
-                                                  colour=colour))
+                                                  color=color))
             observers.append(make_stderr_observer(show_source=False,
                                                   format=logformat,
-                                                  colour=colour))
+                                                  color=color))
         elif loglevel == "debug":
             # Print debug+info to stdout, warn+ to stderr, with the class
             # source
@@ -606,10 +595,10 @@ def _startlog(options, reactor):
                                                   levels=(LogLevel.info,
                                                           LogLevel.debug),
                                                   format=logformat,
-                                                  colour=colour))
+                                                  color=color))
             observers.append(make_stderr_observer(show_source=True,
                                                   format=logformat,
-                                                  colour=colour))
+                                                  color=color))
         elif loglevel == "trace":
             # Print trace+, with the class source
             observers.append(make_stdout_observer(show_source=True,
@@ -617,10 +606,10 @@ def _startlog(options, reactor):
                                                           LogLevel.debug),
                                                   format=logformat,
                                                   trace=True,
-                                                  colour=colour))
+                                                  color=color))
             observers.append(make_stderr_observer(show_source=True,
                                                   format=logformat,
-                                                  colour=colour))
+                                                  color=color))
         else:
             assert False, "Shouldn't ever get here."
 
@@ -635,14 +624,14 @@ def _startlog(options, reactor):
     start_logging(None, loglevel)
 
 
-def run_command_start(options, reactor):
+def _run_command_start(options, reactor):
     """
     Subcommand "crossbar start".
     """
     # do not allow to run more than one Crossbar.io instance
     # from the same Crossbar.io node directory
     #
-    pid_data = check_is_running(options.cbdir)
+    pid_data = _check_is_running(options.cbdir)
     if pid_data:
         print("Crossbar.io is already running from node directory {} (PID {}).".format(options.cbdir, pid_data['pid']))
         sys.exit(1)
@@ -809,20 +798,20 @@ def run_command_start(options, reactor):
         sys.exit(1)
 
 
-def run_command_restart(options, **kwargs):
+def _run_command_restart(options, **kwargs):
     """
     Subcommand "crossbar restart".
     """
-    pid_data = run_command_stop(options, exit=False)
+    pid_data = _run_command_stop(options, exit=False)
     prog = pid_data['argv'][0]
     # remove first item, which is the (fully qualified) path to Python
     args = pid_data['argv'][1:]
     # replace 'restart' with 'start'
     args = [(lambda x: x if x != 'restart' else 'start')(x) for x in args]
-    _main_entry_point(prog, args)
+    main(prog, args)
 
 
-def run_command_check(options, **kwargs):
+def _run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
@@ -855,7 +844,7 @@ def run_command_check(options, **kwargs):
         sys.exit(0)
 
 
-def run_command_convert(options, **kwargs):
+def _run_command_convert(options, **kwargs):
     """
     Subcommand "crossbar convert".
     """
@@ -872,7 +861,7 @@ def run_command_convert(options, **kwargs):
         sys.exit(0)
 
 
-def run_command_upgrade(options, **kwargs):
+def _run_command_upgrade(options, **kwargs):
     """
     Subcommand "crossbar upgrade".
     """
@@ -889,7 +878,7 @@ def run_command_upgrade(options, **kwargs):
         sys.exit(0)
 
 
-def run_command_keygen(options, **kwargs):
+def _run_command_keygen(options, **kwargs):
     """
     Subcommand "crossbar keygen".
     """
@@ -905,10 +894,22 @@ def run_command_keygen(options, **kwargs):
     print('   public: {}'.format(pub))
 
 
-def _main_entry_point(prog=None, args=None, reactor=None):
+_HELP_DESCRIPTION = "{} server".format(_DEFAULT_PERSONALITY_KLASS.NodeKlass.PERSONALITY)
+
+
+_HELP_PERSONALITIES = """Software personality to use:
+ "standalone" (Crossbar.io single node, AGPL),
+ "fabric" (Crossbar.io mesh node, license required),
+ "fabriccenter" (Crossbar.io mesh controller, license required)
+"""
+
+
+def main(prog, args, reactor):
     """
     Entry point of Crossbar.io CLI.
     """
+    # print banner and usage notes when started with empty args
+    #
     if args is not None:
         if not args:
             print(hl(_DEFAULT_PERSONALITY_KLASS.NodeKlass.BANNER, color='yellow', bold=True))
@@ -917,25 +918,9 @@ def _main_entry_point(prog=None, args=None, reactor=None):
             print('Type "crossbar version" to print detailed version information.')
             return
 
-    loglevel_args = {
-        "type": str,
-        "default": 'info',
-        "choices": ['none', 'error', 'warn', 'info', 'debug', 'trace'],
-        "help": ("How much Crossbar.io should log to the terminal, in order "
-                 "of verbosity.")
-    }
-
-    colour_args = {
-        "type": str,
-        "default": "auto",
-        "choices": ["true", "false", "auto"],
-        "help": "If logging should be coloured."
-    }
-
     # create the top-level parser
     #
-    parser = argparse.ArgumentParser(prog='crossbar',
-                                     description="Crossbar.io - https://crossbar.io")
+    parser = argparse.ArgumentParser(prog=prog or 'crossbar', description=_HELP_DESCRIPTION)
 
     # top-level options (reactor is no longer one of those! can only be overridden via
     # the CROSSBAR_REACTOR env var.
@@ -944,7 +929,7 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                         type=six.text_type,
                         default=_DEFAULT_PERSONALITY,
                         choices=sorted(_INSTALLED_PERSONALITIES.keys()),
-                        help=("Software personality to use (availability depends on installation and license)"))
+                        help=(_HELP_PERSONALITIES))
 
     # create subcommand parser
     #
@@ -955,12 +940,29 @@ def _main_entry_point(prog=None, args=None, reactor=None):
 
     # #############################################################
 
+    # some shared arguments
+    #
+    log_level_args = {
+        "type": str,
+        "default": 'info',
+        "choices": ['none', 'error', 'warn', 'info', 'debug', 'trace'],
+        "help": ("How much Crossbar.io should log to the terminal, in order "
+                 "of verbosity.")
+    }
+
+    color_args = {
+        "type": str,
+        "default": "auto",
+        "choices": ["true", "false", "auto"],
+        "help": "If logging should be colored."
+    }
+
     # "init" command
     #
     parser_init = subparsers.add_parser('init',
                                         help='Initialize a new Crossbar.io node.')
 
-    parser_init.set_defaults(func=run_command_init)
+    parser_init.set_defaults(func=_run_command_init)
 
     parser_init.add_argument('--appdir',
                              type=six.text_type,
@@ -972,7 +974,7 @@ def _main_entry_point(prog=None, args=None, reactor=None):
     parser_start = subparsers.add_parser('start',
                                          help='Start a Crossbar.io node.')
 
-    parser_start.set_defaults(func=run_command_start)
+    parser_start.set_defaults(func=_run_command_start)
 
     parser_start.add_argument('--cbdir',
                               type=six.text_type,
@@ -994,17 +996,17 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                               help="Whether or not to log to file")
 
     parser_start.add_argument('--loglevel',
-                              **loglevel_args)
+                              **log_level_args)
 
-    parser_start.add_argument('--colour',
-                              **colour_args)
+    parser_start.add_argument('--color',
+                              **color_args)
 
     parser_start.add_argument('--logformat',
                               type=six.text_type,
                               default='standard',
                               choices=['syslogd', 'standard', 'none'],
                               help=("The format of the logs -- suitable for "
-                                    "syslogd, not coloured, or coloured."))
+                                    "syslogd, not colored, or colored."))
 
     # "stop" command
     #
@@ -1016,7 +1018,7 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_stop.set_defaults(func=run_command_stop)
+    parser_stop.set_defaults(func=_run_command_stop)
 
     # "restart" command
     #
@@ -1028,7 +1030,7 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                                 default=None,
                                 help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_restart.set_defaults(func=run_command_restart)
+    parser_restart.set_defaults(func=_run_command_restart)
 
     # "status" command
     #
@@ -1040,7 +1042,7 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                                default=None,
                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_status.set_defaults(func=run_command_status)
+    parser_status.set_defaults(func=_run_command_status)
 
     # "check" command
     #
@@ -1048,10 +1050,10 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                                          help='Check a Crossbar.io node`s local configuration file.')
 
     parser_check.add_argument('--loglevel',
-                              **loglevel_args)
-    parser_check.add_argument('--colour',
-                              **colour_args)
-    parser_check.set_defaults(func=run_command_check)
+                              **log_level_args)
+    parser_check.add_argument('--color',
+                              **color_args)
+    parser_check.set_defaults(func=_run_command_check)
 
     parser_check.add_argument('--cbdir',
                               type=six.text_type,
@@ -1068,7 +1070,7 @@ def _main_entry_point(prog=None, args=None, reactor=None):
     parser_check = subparsers.add_parser('convert',
                                          help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
-    parser_check.set_defaults(func=run_command_convert)
+    parser_check.set_defaults(func=_run_command_convert)
 
     parser_check.add_argument('--cbdir',
                               type=six.text_type,
@@ -1085,7 +1087,7 @@ def _main_entry_point(prog=None, args=None, reactor=None):
     parser_check = subparsers.add_parser('upgrade',
                                          help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
 
-    parser_check.set_defaults(func=run_command_upgrade)
+    parser_check.set_defaults(func=_run_command_upgrade)
 
     parser_check.add_argument('--cbdir',
                               type=six.text_type,
@@ -1105,7 +1107,7 @@ def _main_entry_point(prog=None, args=None, reactor=None):
         help=help_text,
         description=help_text,
     )
-    parser_keygen.set_defaults(func=run_command_keygen)
+    parser_keygen.set_defaults(func=_run_command_keygen)
 
     # "keys" command
     #
@@ -1118,11 +1120,11 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser_keys.add_argument('--loglevel',
-                             **loglevel_args)
-    parser_keys.add_argument('--colour',
-                             **colour_args)
+                             **log_level_args)
+    parser_keys.add_argument('--color',
+                             **color_args)
 
-    parser_keys.set_defaults(func=run_command_keys)
+    parser_keys.set_defaults(func=_run_command_keys)
 
     # "version" command
     #
@@ -1130,18 +1132,18 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                                            help='Print software versions.')
 
     parser_version.add_argument('--loglevel',
-                                **loglevel_args)
-    parser_version.add_argument('--colour',
-                                **colour_args)
+                                **log_level_args)
+    parser_version.add_argument('--color',
+                                **color_args)
 
-    parser_version.set_defaults(func=run_command_version)
+    parser_version.set_defaults(func=_run_command_version)
 
     # "legal" command
     #
     parser_legal = subparsers.add_parser('legal',
                                          help='Print legal and licensing information.')
 
-    parser_legal.set_defaults(func=run_command_legal)
+    parser_legal.set_defaults(func=_run_command_legal)
 
     # INTERNAL USE! start a worker (this is used by the controller to start worker processes
     # but cannot be used outside that context.
@@ -1161,10 +1163,10 @@ def _main_entry_point(prog=None, args=None, reactor=None):
     else:
         options.argv = sys.argv
 
-    # coloured logging does not work on Windows, so overwrite it!
+    # colored logging does not work on Windows, so overwrite it!
     #
     if sys.platform == 'win32':
-        options.colour = False
+        options.color = False
 
     # IMPORTANT: keep the reactor install as early as possible to
     # avoid importing any Twisted module that comes with the side effect
@@ -1225,14 +1227,14 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                 try:
                     os.mkdir(options.logdir)
                 except Exception as e:
-                    print("Could not create log directory: {e}".format(e))
+                    print("Could not create log directory: {}".format(e))
                     sys.exit(1)
                 else:
                     print("Auto-created log directory {}".format(options.logdir))
 
     # Start the logger
     #
-    _startlog(options, reactor)
+    _start_logging(options, reactor)
 
     # run the subcommand selected
     #

@@ -37,6 +37,8 @@ import txaio
 from autobahn.twisted import install_reactor
 from crossbar._version import __version__
 
+"""Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."""
+
 txaio.use_twisted()
 
 __all__ = ('__version__', 'version', 'run')
@@ -159,7 +161,7 @@ def run(args=None, reactor=None):
     # Only _now_ import actual stuff, as this triggers lots of imports in turn,
     # somewhere down the line Twisted _will_ likely import its one and only reactor,
     # and if we haven't done before, Twisted will install whatever it deems right then.
-    from crossbar.controller.cli import _main_entry_point
+    from crossbar.controller.cli import main
 
     # and now actually enter here .. this never returns!
-    return _main_entry_point('crossbar', args, reactor)
+    return main('crossbar', args, reactor)

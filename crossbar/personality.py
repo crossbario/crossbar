@@ -30,16 +30,11 @@
 
 from __future__ import absolute_import
 
+import crossbar
 from crossbar.common import checkconfig
 from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
-
 from crossbar.worker.transport.factory import create_transport_from_config
 from crossbar.worker.transport.resource import create_web_service, add_web_services, remove_web_services
-
-#
-# Warning: one or more imports below will trigger a Twisted reactor
-# import on Windows!
-#
 from crossbar.controller.node import Node
 from crossbar.worker.router import RouterWorkerSession
 from crossbar.worker.container import ContainerWorkerSession
@@ -100,8 +95,18 @@ def default_native_workers():
 
 
 class Personality(object):
+    """
+    Software personality for Crossbar.io OSS.
+
+    This is a policy class that configures various parts of Crossbar.io's
+    behavior.
+    """
 
     NAME = 'community'
+
+    TITLE = 'Crossbar.io OSS'
+
+    DESC = crossbar.__doc__
 
     LEGAL = ('crossbar', 'LEGAL')
 
@@ -115,10 +120,6 @@ class Personality(object):
     WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
 
     native_workers = default_native_workers()
-
-    """
-    Node policy class.
-    """
 
     create_router_transport = create_transport_from_config
     """
