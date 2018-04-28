@@ -382,7 +382,6 @@ def _run_command_version(options, reactor=None, **kwargs):
         return click.style(text, fg=fg, bg=bg, bold=bold)
 
     Personality = _INSTALLED_PERSONALITIES[options.personality]
-    Node = Personality.NodeKlass
 
     log.info(hl(Personality.BANNER, color='yellow', bold=True))
     pad = " " * 22
