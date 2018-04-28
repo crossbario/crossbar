@@ -1,35 +1,33 @@
 #!/bin/sh
 
-cwd=$(pwd)
+OLDCWD=$(pwd)
+PERSONALITY=standalone
+CB='crossbar --personality='$PERSONALITY
+APPDIR=/tmp/testnode
+CBDIR=$APPDIR/.crossbar
+
+echo 'OLDCWD='$OLDCWD
+echo 'PERSONALITY='$PERSONALITY
+echo 'CB='$CB
+echo 'APPDIR='$APPDIR
+echo 'CBDIRCBDIR='$CBDIR
 
 # version
 #
-crossbar --personality=standalone version
+$CB version
 
 # legal
 #
-#crossbar legal
+$CB  legal
 
-# status
+# init, start and status
 #
-#crossbar status
-
-# start (from empty node dir)
-#
-#rm -rf /tmp/testnode && mkdir /tmp/testnode
-#cd /tmp/testnode && crossbar start &
-#find /tmp/testnode
-#sleep 5
-#crossbar stop
-
-# cd $(cwd)
-
-
-# init and start
-#
-rm -rf /tmp/testnode
-crossbar init --appdir=/tmp/testnode
-find /tmp/testnode
-(crossbar --personality=standalone start --cbdir=/tmp/testnode/.crossbar) &
-sleep 5
-crossbar stop --cbdir=/tmp/testnode/.crossbar
+rm -rf $APPDIR
+$CB init --appdir=$APPDIR
+find $APPDIR
+( $CB start --cbdir=$CBDIR ) &
+sleep 2
+$CB status --cbdir=$CBDIR
+sleep 2
+$CB stop --cbdir=$CBDIR
+$CB status --cbdir=$CBDIR

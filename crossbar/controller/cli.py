@@ -492,7 +492,10 @@ def _run_command_status(options, **kwargs):
         # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
         log.info("No Crossbar.io instance is currently running from node directory {cbdir}.",
                  cbdir=options.cbdir)
-        sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
+        if False:
+            sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
+        else:
+            sys.exit(0)
     else:
         log.info("A Crossbar.io instance is running from node directory {cbdir} (PID {pid}).",
                  cbdir=options.cbdir, pid=pid_data['pid'])
