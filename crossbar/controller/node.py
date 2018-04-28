@@ -31,23 +31,13 @@
 from __future__ import absolute_import
 
 import os
-import time
-import socket
-import getpass
-import pkg_resources
-import binascii
-import six
-import subprocess
 from collections import OrderedDict
-
-import pyqrcode
 
 from nacl.signing import SigningKey
 from nacl.encoding import HexEncoder
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
-from twisted.python.runtime import platform
 from twisted.python.reflect import qual
 
 from txaio import make_logger
@@ -55,10 +45,8 @@ from txaio import make_logger
 from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
 from autobahn.wamp.types import CallOptions, ComponentConfig
-from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
 
-import crossbar
-from crossbar._version import __version__
+from crossbar.common.key import _parse_keyfile, _machine_id, _creator, _write_node_key
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
@@ -67,165 +55,10 @@ from crossbar.common import checkconfig
 from crossbar.controller.process import NodeControllerSession
 
 
-def _read_release_pubkey():
-    release_pubkey_file = 'crossbar-{}.pub'.format('-'.join(crossbar.__version__.split('.')[0:2]))
-    release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'keys'), release_pubkey_file)
-
-    release_pubkey_hex = binascii.b2a_hex(_read_signify_ed25519_pubkey(release_pubkey_path)).decode('ascii')
-
-    with open(release_pubkey_path) as f:
-        release_pubkey_base64 = f.read().splitlines()[1]
-
-    release_pubkey_qrcode = _qrcode_from_signify_ed25519_pubkey(release_pubkey_path)
-
-    release_pubkey = {
-        u'base64': release_pubkey_base64,
-        u'hex': release_pubkey_hex,
-        u'qrcode': release_pubkey_qrcode
-    }
-
-    return release_pubkey
-
-
-def _parse_keyfile(key_path, private=True):
-    """
-    Internal helper. This parses a node.pub or node.priv file and
-    returns a dict mapping tags -> values.
-    """
-    if os.path.exists(key_path) and not os.path.isfile(key_path):
-        raise Exception("Key file '{}' exists, but isn't a file".format(key_path))
-
-    allowed_tags = [u'public-key-ed25519', u'machine-id', u'created-at',
-                    u'creator']
-    if private:
-        allowed_tags.append(u'private-key-ed25519')
-
-    tags = OrderedDict()
-    with open(key_path, 'r') as key_file:
-        got_blankline = False
-        for line in key_file.readlines():
-            if line.strip() == '':
-                got_blankline = True
-            elif got_blankline:
-                tag, value = line.split(':', 1)
-                tag = tag.strip().lower()
-                value = value.strip()
-                if tag not in allowed_tags:
-                    raise Exception("Invalid tag '{}' in key file {}".format(tag, key_path))
-                if tag in tags:
-                    raise Exception("Duplicate tag '{}' in key file {}".format(tag, key_path))
-                tags[tag] = value
-    return tags
-
-
-def _read_node_pubkey(cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
-
-    node_pubkey_path = os.path.join(cbdir, pubkey_path)
-
-    if not os.path.exists(node_pubkey_path):
-        raise Exception('no node public key found at {}'.format(node_pubkey_path))
-
-    node_pubkey_tags = _parse_keyfile(node_pubkey_path)
-
-    node_pubkey_hex = node_pubkey_tags[u'public-key-ed25519']
-
-    qr = pyqrcode.create(node_pubkey_hex, error='L', mode='binary')
-
-    mode = 'text'
-
-    if mode == 'text':
-        node_pubkey_qr = qr.terminal()
-
-    elif mode == 'svg':
-        import io
-        data_buffer = io.BytesIO()
-
-        qr.svg(data_buffer, omithw=True)
-
-        node_pubkey_qr = data_buffer.getvalue()
-
-    else:
-        raise Exception('logic error')
-
-    node_pubkey = {
-        u'hex': node_pubkey_hex,
-        u'qrcode': node_pubkey_qr
-    }
-
-    return node_pubkey
-
-
-def _machine_id():
-    """
-    for informational purposes, try to get a machine unique id thing
-    """
-    if platform.isLinux():
-        try:
-            # why this? see: http://0pointer.de/blog/projects/ids.html
-            with open('/var/lib/dbus/machine-id', 'r') as f:
-                return f.read().strip()
-        except:
-            # Non-dbus using Linux, get a hostname
-            return socket.gethostname()
-
-    elif platform.isMacOSX():
-        # Get the serial number of the platform
-        import plistlib
-        plist_data = subprocess.check_output(["ioreg", "-rd1", "-c", "IOPlatformExpertDevice", "-a"])
-
-        if six.PY2:
-            # Only API on 2.7
-            return plistlib.readPlistFromString(plist_data)[0]["IOPlatformSerialNumber"]
-        else:
-            # New, non-deprecated 3.4+ API
-            return plistlib.loads(plist_data)[0]["IOPlatformSerialNumber"]
-
-    else:
-        # Something else, just get a hostname
-        return socket.gethostname()
-
-
-def _creator():
-    """
-    for informational purposes, try to identify the creator (user@hostname)
-    """
-    try:
-        return u'{}@{}'.format(getpass.getuser(), socket.gethostname())
-    except:
-        return None
-
-
-def _write_node_key(filepath, tags, msg):
-    """
-    Internal helper.
-    Write the given tags to the given file
-    """
-    with open(filepath, 'w') as f:
-        f.write(msg)
-        for (tag, value) in tags.items():
-            if value is None:
-                value = 'unknown'
-            f.write(u'{}: {}\n'.format(tag, value))
-
-
-_PERSONALITY = "Crossbar.io OSS"
-
-# http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
-_BANNER = r"""     __  __  __  __  __  __      __
-    /  `|__)/  \/__`/__`|__) /\ |__)
-    \__,|  \\__/.__/.__/|__)/~~\|  \
-
-    {} {}.
-    Copyright (c) 2013-{} Crossbar.io Technologies GmbH, open-source licensed under AGPL 3.0.
-"""
-
-
 class Node(object):
     """
     Crossbar.io Standalone node personality.
     """
-    PERSONALITY = _PERSONALITY
-    BANNER = _BANNER.format(_PERSONALITY, __version__, time.strftime('%Y'))
     NODE_CONTROLLER = NodeControllerSession
 
     ROUTER_SERVICE = RouterServiceSession

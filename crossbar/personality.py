@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+import time
+
 import crossbar
 from crossbar.common import checkconfig
 from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
@@ -94,6 +96,18 @@ def default_native_workers():
     return factory
 
 
+_TITLE = "Crossbar.io Standalone (AGPL)"
+
+# http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
+_BANNER = r"""     __  __  __  __  __  __      __
+    /  `|__)/  \/__`/__`|__) /\ |__)
+    \__,|  \\__/.__/.__/|__)/~~\|  \
+
+    {} {}.
+    Copyright (c) 2013-{} Crossbar.io Technologies GmbH, open-source licensed under AGPL 3.0.
+"""
+
+
 class Personality(object):
     """
     Software personality for Crossbar.io OSS.
@@ -101,12 +115,13 @@ class Personality(object):
     This is a policy class that configures various parts of Crossbar.io's
     behavior.
     """
+    NAME = 'standalone'
 
-    NAME = 'community'
-
-    TITLE = 'Crossbar.io OSS'
+    TITLE = _TITLE
 
     DESC = crossbar.__doc__
+
+    BANNER = _BANNER.format(_TITLE, crossbar.__version__, time.strftime('%Y'))
 
     LEGAL = ('crossbar', 'LEGAL')
 

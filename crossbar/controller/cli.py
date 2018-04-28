@@ -375,7 +375,7 @@ def _run_command_version(options, reactor=None, **kwargs):
         txaioetcd_ver = '-'
 
     # Release Public Key
-    from crossbar.controller.node import _read_release_pubkey
+    from crossbar.common.key import _read_release_pubkey
     release_pubkey = _read_release_pubkey()
 
     def decorate(text, fg='white', bg=None, bold=True):
@@ -421,7 +421,8 @@ def _run_command_keys(options, reactor=None, **kwargs):
     """
     log = make_logger()
 
-    from crossbar.controller.node import _read_release_pubkey, _read_node_pubkey
+    from crossbar.common.key import _read_node_pubkey
+    from crossbar.common.key import _read_release_pubkey
 
     # Release (public) key
     release_pubkey = _read_release_pubkey()
@@ -894,7 +895,7 @@ def _run_command_keygen(options, **kwargs):
     print('   public: {}'.format(pub))
 
 
-_HELP_DESCRIPTION = "{} server".format(_DEFAULT_PERSONALITY_KLASS.NodeKlass.PERSONALITY)
+_HELP_DESCRIPTION = _DEFAULT_PERSONALITY_KLASS.DESC
 
 
 _HELP_PERSONALITIES = """Software personality to use:
