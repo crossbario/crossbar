@@ -118,7 +118,7 @@ def run(args=None, reactor=None):
 
     ``--personality``   **CROSSBAR_PERSONALITY**  Node personality:
 
-                                                  * **community**
+                                                  * **standalone**
                                                   * **fabric**
                                                   * **fabricenter**
 

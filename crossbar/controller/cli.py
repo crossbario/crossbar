@@ -675,7 +675,7 @@ def _run_command_start(options, reactor):
 
     # Print the banner.
     #
-    for line in Node.BANNER.splitlines():
+    for line in Personality.BANNER.splitlines():
         log.info(hl(line, color='yellow', bold=True))
     log.info('')
 

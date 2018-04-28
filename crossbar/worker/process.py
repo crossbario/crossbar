@@ -37,6 +37,8 @@ import six
 
 from twisted.internet.error import ReactorNotRunning
 
+from crossbar.controller.cli import _INSTALLED_PERSONALITIES
+
 __all__ = ('run',)
 
 
@@ -69,7 +71,7 @@ def get_argument_parser(parser=None):
     parser.add_argument('-p',
                         '--personality',
                         required=True,
-                        choices=['community', 'fabric', 'fabriccenter'],
+                        choices=sorted(_INSTALLED_PERSONALITIES.keys()),
                         help='Crossbar.io personality (required).')
 
     parser.add_argument('-k',
@@ -155,26 +157,9 @@ def run(options, reactor=None):
     start_logging(None, options.loglevel)
 
     # now check if we can import the requested personality
-    if options.personality == 'community':
-        # this should always succeed
-        try:
-            from crossbar.personality import Personality
-        except ImportError:
-            raise Exception('Crossbar.io Community personality not installed')
-
-    elif options.personality == 'fabric':
-        try:
-            from crossbarfabric.personality import Personality
-        except ImportError:
-            raise Exception('Crossbar.io Fabric personality not installed')
-
-    elif options.personality == 'fabriccenter':
-        try:
-            from crossbarfabriccenter.personality import Personality
-        except ImportError:
-            raise Exception('Crossbar.io Fabric Center personality not installed')
-    else:
-        raise Exception('logic error: unexpected personality "{}"'.format(options.personality))
+    Personality = _INSTALLED_PERSONALITIES.get(options.personality, None)
+    if not Personality:
+        raise Exception('logic error: personality "{}" not installed ({})'.format(options.personality, sorted(_INSTALLED_PERSONALITIES.keys())))
 
     # we use an Autobahn utility to import the "best" available Twisted reactor
     from autobahn.twisted.choosereactor import install_reactor

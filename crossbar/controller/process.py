@@ -189,10 +189,7 @@ class NodeControllerSession(NativeProcessSession):
         :rtype: dict
         """
         return {
-            # eg "Crossbar.io COMMUNITY"
             u'title': u'{} {}'.format(self._node.PERSONALITY, crossbar.__version__),
-
-            # basic information about the node
             u'started': self._started,
             u'controller_pid': self._pid,
             u'running_workers': len(self._workers),
