@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import os
+import time
 import socket
 import getpass
 import pkg_resources
@@ -57,6 +58,7 @@ from autobahn.wamp.types import CallOptions, ComponentConfig
 from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
 
 import crossbar
+from crossbar._version import __version__
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
@@ -206,19 +208,24 @@ def _write_node_key(filepath, tags, msg):
             f.write(u'{}: {}\n'.format(tag, value))
 
 
+_PERSONALITY = "Crossbar.io OSS"
+
+# http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
+_BANNER = r"""     __  __  __  __  __  __      __
+    /  `|__)/  \/__`/__`|__) /\ |__)
+    \__,|  \\__/.__/.__/|__)/~~\|  \
+
+    {} {}.
+    Copyright (c) 2013-{} Crossbar.io Technologies GmbH, open-source licensed under AGPL 3.0.
+"""
+
+
 class Node(object):
     """
-    Crossbar.io Community node personality.
+    Crossbar.io Standalone node personality.
     """
-
-    # http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
-    BANNER = r"""     __  __  __  __  __  __      __     __
-    /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
-    \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
-
-"""
-    PERSONALITY = "Crossbar.io OSS"
-
+    PERSONALITY = _PERSONALITY
+    BANNER = _BANNER.format(_PERSONALITY, __version__, time.strftime('%Y'))
     NODE_CONTROLLER = NodeControllerSession
 
     ROUTER_SERVICE = RouterServiceSession

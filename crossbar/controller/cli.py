@@ -55,40 +55,37 @@ from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
 
 
-def get_defined_personalities():
-    """
-    Return a list of personality names defined.
-    """
-    return ['community', 'fabric', 'fabriccenter']
-
-
-def get_installed_personalities():
+def get_installed_INSTALLED_PERSONALITIES():
     """
     Return a map from personality names to actual available (=installed) Personality classes.
     """
-    from crossbar.personality import Personality as CommunityPersonality
+    from crossbar.personality import Personality as StandalonePersonality
+
+    default_personality = 'standalone'
 
     PKLASSES = {
-        'default': CommunityPersonality,
-        'community': CommunityPersonality,
-        'max': CommunityPersonality,
+        'standalone': StandalonePersonality,
     }
 
     try:
         from crossbarfabric.personality import Personality as FabricPersonality
         PKLASSES['fabric'] = FabricPersonality
-        PKLASSES['max'] = FabricPersonality
+        default_personality = 'fabric'
     except ImportError:
         pass
 
     try:
         from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
         PKLASSES['fabriccenter'] = FabricCenterPersonality
-        PKLASSES['max'] = FabricCenterPersonality
+        default_personality = 'fabriccenter'
     except ImportError:
         pass
 
-    return PKLASSES
+    return PKLASSES, default_personality
+
+
+_INSTALLED_PERSONALITIES, _DEFAULT_PERSONALITY = get_installed_INSTALLED_PERSONALITIES()
+_DEFAULT_PERSONALITY_KLASS = _INSTALLED_PERSONALITIES[_DEFAULT_PERSONALITY]
 
 
 import crossbar
@@ -255,8 +252,8 @@ def run_command_legal(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar legal".
     """
-    PersonalityKlass = get_installed_personalities()['max']
-    package, resource_name = PersonalityKlass.LEGAL
+    Personality = _INSTALLED_PERSONALITIES[options.personality]
+    package, resource_name = Personality.LEGAL
     filename = pkg_resources.resource_filename(package, resource_name)
     filepath = os.path.abspath(filename)
     with open(filepath) as f:
@@ -384,14 +381,11 @@ def run_command_version(options, reactor=None, **kwargs):
     def decorate(text, fg='white', bg=None, bold=True):
         return click.style(text, fg=fg, bg=bg, bold=bold)
 
-    PersonalityKlass = get_installed_personalities()[options.personality]
-    NodeKlass = PersonalityKlass.NodeKlass
+    Personality = _INSTALLED_PERSONALITIES[options.personality]
+    Node = Personality.NodeKlass
 
-    for line in NodeKlass.BANNER.splitlines():
-        log.info(decorate("{:>40}".format(line), fg='yellow', bold=True))
-
+    log.info(hl(Node.BANNER, color='yellow', bold=True))
     pad = " " * 22
-
     log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
     log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
@@ -685,26 +679,21 @@ def run_command_start(options, reactor):
 
     # represents the running Crossbar.io node
     #
-    PersonalityKlass = get_installed_personalities()[options.personality]
-    NodeKlass = PersonalityKlass.NodeKlass
-    node = NodeKlass(PersonalityKlass, options.cbdir, reactor=reactor)
-
-    # possibly generate new node key
-    #
-    pubkey = node.maybe_generate_key(options.cbdir)
+    Personality = _INSTALLED_PERSONALITIES[options.personality]
+    Node = Personality.NodeKlass
+    node = Node(Personality, options.cbdir, reactor=reactor)
 
     # Print the banner.
     #
-    for line in NodeKlass.BANNER.splitlines():
-        log.info(click.style(("{:>40}").format(line), fg='yellow', bold=True))
+    for line in Node.BANNER.splitlines():
+        log.info(hl(line, color='yellow', bold=True))
+    log.info('')
 
-    bannerFormat = "{:<12} {:<24}"
-    log.info(bannerFormat.format("Version:", click.style('{} {}'.format(node.PERSONALITY, crossbar.__version__), fg='yellow', bold=True)))
-    if pubkey:
-        log.info(bannerFormat.format("Public Key:", click.style(pubkey, fg='yellow', bold=True)))
-    log.info()
+    # possibly generate new node key
+    #
+    node.maybe_generate_key(options.cbdir)
 
-    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(NodeKlass.__module__, NodeKlass.__name__))
+    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
     log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
 
     # check and load the node configuration
@@ -922,10 +911,10 @@ def _main_entry_point(prog=None, args=None, reactor=None):
     """
     if args is not None:
         if not args:
-            print('')
-            print(hl(get_installed_personalities()['max'].NodeKlass.BANNER, color='yellow', bold=True))
+            print(hl(_DEFAULT_PERSONALITY_KLASS.NodeKlass.BANNER, color='yellow', bold=True))
             print('Type "crossbar --help to get help, or "crossbar <command> --help" to get help on a specific command.')
             print('Type "crossbar legal" to read legal notices, terms of use and license and privacy information.')
+            print('Type "crossbar version" to print detailed version information.')
             return
 
     loglevel_args = {
@@ -948,61 +937,23 @@ def _main_entry_point(prog=None, args=None, reactor=None):
     parser = argparse.ArgumentParser(prog='crossbar',
                                      description="Crossbar.io - https://crossbar.io")
 
-    # top-level options
+    # top-level options (reactor is no longer one of those! can only be overridden via
+    # the CROSSBAR_REACTOR env var.
     #
-    parser.add_argument('--reactor',
-                        default=None,
-                        choices=['select', 'poll', 'epoll', 'kqueue', 'iocp'],
-                        help='Explicit Twisted reactor selection')
+    parser.add_argument('--personality',
+                        type=six.text_type,
+                        default=_DEFAULT_PERSONALITY,
+                        choices=sorted(_INSTALLED_PERSONALITIES.keys()),
+                        help=("Software personality to use (availability depends on installation and license)"))
 
     # create subcommand parser
     #
     subparsers = parser.add_subparsers(dest='command',
                                        title='commands',
-                                       help='Crossbar.io command to run')
+                                       help='Command to run (required)')
     subparsers.required = True
 
-    # "legal" command
-    #
-    parser_legal = subparsers.add_parser('legal',
-                                         help='Print legal and licensing information.')
-
-    parser_legal.set_defaults(func=run_command_legal)
-
-    # "version" command
-    #
-    parser_version = subparsers.add_parser('version',
-                                           help='Print software versions.')
-
-    parser_version.add_argument('--personality',
-                                type=six.text_type,
-                                default='community',
-                                choices=get_defined_personalities(),
-                                help=("Node personality to run."))
-
-    parser_version.add_argument('--loglevel',
-                                **loglevel_args)
-    parser_version.add_argument('--colour',
-                                **colour_args)
-
-    parser_version.set_defaults(func=run_command_version)
-
-    # "keys" command
-    #
-    parser_keys = subparsers.add_parser('keys',
-                                        help='Print Crossbar.io release and node keys.')
-
-    parser_keys.add_argument('--cbdir',
-                             type=six.text_type,
-                             default=None,
-                             help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_keys.add_argument('--loglevel',
-                             **loglevel_args)
-    parser_keys.add_argument('--colour',
-                             **colour_args)
-
-    parser_keys.set_defaults(func=run_command_keys)
+    # #############################################################
 
     # "init" command
     #
@@ -1011,30 +962,10 @@ def _main_entry_point(prog=None, args=None, reactor=None):
 
     parser_init.set_defaults(func=run_command_init)
 
-    parser_init.add_argument('--template',
-                             type=six.text_type,
-                             default='default',
-                             help="Template for initialization")
-
     parser_init.add_argument('--appdir',
                              type=six.text_type,
                              default=None,
                              help="Application base directory where to create app and node from template.")
-
-    # Start a worker
-    #
-    parser_worker = subparsers.add_parser('start-worker', help='INTERNAL USE. This cannot be invoked directly.')  # argparse.SUPPRESS does not work here =(
-    parser_worker = process.get_argument_parser(parser_worker)
-
-    parser_worker.set_defaults(func=process.run)
-
-    # "templates" command
-    #
-    if False:
-        parser_templates = subparsers.add_parser('templates',
-                                                 help='List templates available for initializing a new Crossbar.io node.')
-
-        parser_templates.set_defaults(func=run_command_templates)
 
     # "start" command
     #
@@ -1052,12 +983,6 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                               type=six.text_type,
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
-
-    parser_start.add_argument('--personality',
-                              type=six.text_type,
-                              default='community',
-                              choices=get_defined_personalities(),
-                              help=("Node personality to run."))
 
     parser_start.add_argument('--logdir',
                               type=six.text_type,
@@ -1182,6 +1107,52 @@ def _main_entry_point(prog=None, args=None, reactor=None):
     )
     parser_keygen.set_defaults(func=run_command_keygen)
 
+    # "keys" command
+    #
+    parser_keys = subparsers.add_parser('keys',
+                                        help='Print Crossbar.io release and node keys.')
+
+    parser_keys.add_argument('--cbdir',
+                             type=six.text_type,
+                             default=None,
+                             help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser_keys.add_argument('--loglevel',
+                             **loglevel_args)
+    parser_keys.add_argument('--colour',
+                             **colour_args)
+
+    parser_keys.set_defaults(func=run_command_keys)
+
+    # "version" command
+    #
+    parser_version = subparsers.add_parser('version',
+                                           help='Print software versions.')
+
+    parser_version.add_argument('--loglevel',
+                                **loglevel_args)
+    parser_version.add_argument('--colour',
+                                **colour_args)
+
+    parser_version.set_defaults(func=run_command_version)
+
+    # "legal" command
+    #
+    parser_legal = subparsers.add_parser('legal',
+                                         help='Print legal and licensing information.')
+
+    parser_legal.set_defaults(func=run_command_legal)
+
+    # INTERNAL USE! start a worker (this is used by the controller to start worker processes
+    # but cannot be used outside that context.
+    #
+    parser_worker = subparsers.add_parser('start-worker', help='INTERNAL USE. This cannot be invoked directly.')  # argparse.SUPPRESS does not work here =(
+    parser_worker = process.get_argument_parser(parser_worker)
+
+    parser_worker.set_defaults(func=process.run)
+
+    # #############################################################
+
     # parse cmd line args
     #
     options = parser.parse_args(args)
@@ -1205,13 +1176,6 @@ def _main_entry_point(prog=None, args=None, reactor=None):
                                   require_optimal_reactor=False)
 
     # ################## Twisted reactor installed FROM HERE ##################
-
-    # Node personality
-    #
-    if hasattr(options, 'personality'):
-        if options.personality not in get_installed_personalities():
-            print('FATAL: no Crossbar.io node personality "{}" installed'.format(options.personality))
-            sys.exit(1)
 
     # Crossbar.io node directory
     #
