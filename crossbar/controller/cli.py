@@ -429,12 +429,14 @@ def _run_command_keys(options, reactor=None, **kwargs):
     # Node (public) key
     node_pubkey = _read_node_pubkey(options.cbdir)
 
-    log.info(release_pubkey[u'qrcode'])
-    log.info('   Release key: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
     log.info('')
-
-    log.info(node_pubkey[u'qrcode'])
-    log.info('   Node key: {node_pubkey}', node_pubkey=node_pubkey[u'hex'])
+    log.info('{key_title}', key_title=hl('Crossbar Release Key', color='yellow', bold=True))
+    log.info('base64: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
+    log.info(release_pubkey[u'qrcode'].strip())
+    log.info('')
+    log.info('{key_title}', key_title=hl('Crossbar Node Public Key', color='yellow', bold=True))
+    log.info('hex: {node_pubkey}', node_pubkey=node_pubkey[u'hex'])
+    log.info(node_pubkey[u'qrcode'].strip())
     log.info('')
 
 
