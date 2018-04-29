@@ -34,7 +34,7 @@ from autobahn.wamp.types import ComponentConfig
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
-from crossbar.worker.router import RouterRealm
+from crossbar.worker.types import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.protocol import WampRawSocketServerFactory
 from crossbar.router.unisocket import UniSocketServerFactory

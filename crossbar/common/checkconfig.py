@@ -1666,7 +1666,7 @@ def check_web_path_service_upload(config):
             check_web_path_service_max_file_size(config['options']['max_file_size'])
 
 
-def check_web_path_service(path, config, nested):
+def check_web_path_service(path, config, nested, allow_unknown=True):
     """
     Check a single path service on Web transport.
 
@@ -1684,10 +1684,12 @@ def check_web_path_service(path, config, nested):
     ptype = config['type']
     if path == '/' and not nested:
         if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook', 'nodeinfo']:
-            raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
+            if not allow_unknown:
+                raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
         if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo']:
-            raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
+            if not allow_unknown:
+                raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
         'path': check_web_path_service_path,
@@ -1708,8 +1710,8 @@ def check_web_path_service(path, config, nested):
         'webhook': check_web_path_service_webhook,
         'schemadoc': check_web_path_service_schemadoc,
     }
-
-    checkers[ptype](config)
+    if ptype in checkers:
+        checkers[ptype](config)
 
 
 def check_listening_transport_web(transport, with_endpoint=True):

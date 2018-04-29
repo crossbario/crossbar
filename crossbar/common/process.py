@@ -178,12 +178,21 @@ class NativeProcessSession(ApplicationSession):
     """
     log = make_logger()
 
-    def __init__(self, config=None, reactor=None):
+    def __init__(self, config=None, reactor=None, personality=None):
+        # Twisted reactor
         if not reactor:
             from twisted.internet import reactor
             self._reactor = reactor
-
         self._reactor = reactor
+
+        # node/software personality
+        if personality:
+            self.personality = personality
+        else:
+            from crossbar.personality import Personality
+            self.personality = Personality
+
+        # base ctor
         super(ApplicationSession, self).__init__(config=config)
 
     def onConnect(self, do_join=True):
