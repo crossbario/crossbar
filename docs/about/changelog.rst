@@ -1,23 +1,21 @@
-Crossbar.io master (unreleased)
-===============================
-
--  ...
+Release Changelog
+=================
 
 Crossbar.io 18.3.1 (2018-03-05)
-===============================
+-------------------------------
 
 -  new: manage web services at the resource level (fixes #1078)
 -  new: reverse WebSocket proxy (Web service)
 
 Crossbar.io 17.11.1 (2017-11-03)
-================================
+--------------------------------
 
 -  fix: "crossbar check" command was broken
--  new: refactor tracing code to enable trace\_level==action
+-  new: refactor tracing code to enable trace\_level--action
 -  new: forward node\_id into worker
 
 Crossbar.io 17.10.1 (2017-10-31)
-================================
+--------------------------------
 
 -  fix: edge-case of traced + batched messaging
 -  fix: stop retaining old authids and empty sets in router (memory
@@ -25,7 +23,7 @@ Crossbar.io 17.10.1 (2017-10-31)
 -  new: 'crossbar keygen' command
 
 Crossbar.io 17.9.2 (2017-09-24)
-===============================
+-------------------------------
 
 -  fix: checking of onion-endpoint public ports + tests
 -  new: message tracing API
@@ -34,7 +32,7 @@ Crossbar.io 17.9.2 (2017-09-24)
    "shutdown-on-last-worker-exit")
 
 Crossbar 17.4.1 (2017-04-15)
-============================
+----------------------------
 
 -  new: MQTT core protocol support in beta
 -  new: MQTT payload mapping modes (passthrough, native, dynamic)
@@ -42,7 +40,7 @@ Crossbar 17.4.1 (2017-04-15)
 -  new: Web resource type "nodeinfo"
 
 Crossbar 17.3.1 (2017-03-31)
-============================
+----------------------------
 
 -  new: subscriber black-/whitelisting based on authid/authrole
 -  fix: use version pinned dependencies
@@ -74,7 +72,7 @@ Crossbar 17.3.1 (2017-03-31)
 -  new: hooks for Crossbar.io Fabric
 
 Crossbar 17.2.1 (2017-02-25)
-============================
+----------------------------
 
 -  fix: tighten up internal worker WAMP permissions on local node
    management router
@@ -87,11 +85,11 @@ Crossbar 17.2.1 (2017-02-25)
 -  new: WAMP session testaments (alpha)
 -  fix: authextra handling with cookie-based authentication (#895)
 -  fix: custom cookie name when using cookie tracking transports (#873)
--  fix: loading of optimal (=kqueue) reactor on BSD/OSX
+-  fix: loading of optimal (-kqueue) reactor on BSD/OSX
 -  fix: event history (#918)
 
 Crossbar 16.10.1 (2016-11-08)
-=============================
+-----------------------------
 
 Bugfixes
 --------
@@ -99,7 +97,7 @@ Bugfixes
 -  Fix event history (#918)
 
 Crossbar 16.10.0 (2016-11-07)
-=============================
+-----------------------------
 
 Features
 --------
@@ -132,7 +130,7 @@ Bugfixes
    authenticators (#853)
 
 Crossbar 0.14.0 (2016-05-26)
-============================
+----------------------------
 
 Features
 --------
@@ -160,7 +158,7 @@ Bugfixes
    other dependencies (#766)
 
 Crossbar 0.13.2 (2016-05-26)
-============================
+----------------------------
 
 Features
 --------
