@@ -1,6 +1,3 @@
-title: Configuring Crossbar.io's Logging toc: [Documentation,
-Programming Guide, Configuring Crossbario Logging]
-
 Configuring Crossbar.io Logging
 ===============================
 

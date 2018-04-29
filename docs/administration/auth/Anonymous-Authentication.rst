@@ -1,6 +1,3 @@
-title: Anonymous Authentication toc: [Documentation, Administration,
-Authentication, Anonymous Authentication]
-
 Anonymous Authentication
 ========================
 

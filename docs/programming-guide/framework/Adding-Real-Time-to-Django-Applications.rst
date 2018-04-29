@@ -1,6 +1,3 @@
-title: Adding Real Time to Django Applications toc: [Documentation,
-Programming Guide, Adding Real Time to Django Applications]
-
 Adding Real-Time to Django Applications
 =======================================
 

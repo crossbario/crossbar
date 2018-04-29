@@ -1,6 +1,3 @@
-title: HTTP Bridge Publisher toc: [Documentation, Administration, HTTP
-Bridge, HTTP Bridge Publisher]
-
 HTTP Bridge Publisher
 =====================
 

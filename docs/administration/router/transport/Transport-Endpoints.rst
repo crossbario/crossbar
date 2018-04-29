@@ -1,6 +1,3 @@
-title: Transport Endpoints toc: [Documentation, Administration, Router
-Transports, Transport Endpoints]
-
 Transport Endpoints
 ===================
 

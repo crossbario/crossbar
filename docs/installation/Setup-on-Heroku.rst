@@ -1,6 +1,3 @@
-title: Setup on Heroku toc: [Documentation, Installation, Setup on
-Heroku]
-
 Setup on Heroku
 ===============
 

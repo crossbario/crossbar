@@ -1,4 +1,5 @@
-title: Programming Guide toc: [Documentation, Programming]
+Programming Overview
+====================
 
 The following are language specific guides for application developers
 working with Crossbar.io.

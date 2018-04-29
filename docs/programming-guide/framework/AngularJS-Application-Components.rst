@@ -1,6 +1,3 @@
-title: AngularJS Application Components toc: [Documentation, Programming
-Guide, AngularJS Application Components]
-
 AngularJS Application Components
 ================================
 

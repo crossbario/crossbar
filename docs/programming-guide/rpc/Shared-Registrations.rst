@@ -1,6 +1,3 @@
-title: Shared Registrations toc: [Documentation, Programming Guide,
-Shared Registrations]
-
 Shared Registrations
 ====================
 

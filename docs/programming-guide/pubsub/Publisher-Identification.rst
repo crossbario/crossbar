@@ -1,6 +1,3 @@
-title: Publisher Identification toc: [Documentation, Programming Guide,
-Publisher Identification]
-
 Publisher Identification
 ========================
 

@@ -1,6 +1,3 @@
-title: MQTT Broker and Bridge toc: [Documentation, Administration, MQTT
-Broker, MQTT Broker]
-
 MQTT Broker and Bridge
 ======================
 

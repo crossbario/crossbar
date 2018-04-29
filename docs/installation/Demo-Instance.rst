@@ -1,5 +1,3 @@
-title: Demo Instance toc: [Documentation, Installation, Demo Instance]
-
 Demo Instance
 =============
 

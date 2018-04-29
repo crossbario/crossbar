@@ -1,6 +1,3 @@
-title: Router Transports toc: [Documentation, Administration, Router
-Transports]
-
 Router Transports
 =================
 

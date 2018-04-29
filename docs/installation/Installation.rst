@@ -1,5 +1,3 @@
-title: Installation toc: [Documentation, Installation]
-
 Installing Crossbar.io
 ======================
 

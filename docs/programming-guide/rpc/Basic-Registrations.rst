@@ -1,6 +1,3 @@
-title: Basic Registrations toc: [Documentation, Programming Guide, Basic
-Registrations]
-
 Basic Registrations
 ===================
 

@@ -1,6 +1,3 @@
-title: Automatic Startup and Restart toc: [Documentation,
-Administration, Going to Production, Automatic Startup and Restart]
-
 Automatic Startup and Restart
 =============================
 

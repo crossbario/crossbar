@@ -1,6 +1,3 @@
-title: Stream Testee toc: [Documentation, Administration, Going to
-Production, Stream Testee]
-
 Stream Testee
 =============
 

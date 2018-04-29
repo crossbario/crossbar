@@ -1,6 +1,3 @@
-title: Try out without Installation toc: [Documentation, Programming
-Guide, Try out without Installation]
-
 Try out without installation
 ============================
 

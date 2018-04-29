@@ -1,6 +1,3 @@
-title: Resource Service toc: [Documentation, Administration, Web
-Services, Resource Service]
-
 Resource Service
 ================
 

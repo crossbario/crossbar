@@ -1,6 +1,3 @@
-title: Web Redirection Service toc: [Documentation, Administration, Web
-Services, Web Redirection Service]
-
 Web Redirection Service
 =======================
 

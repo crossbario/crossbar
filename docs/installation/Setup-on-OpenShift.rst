@@ -1,6 +1,3 @@
-title: Setup on OpenShift toc: [Documentation, Installation, Setup on
-OpenShift]
-
 Setup on OpenShift
 ==================
 

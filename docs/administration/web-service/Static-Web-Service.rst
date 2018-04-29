@@ -1,6 +1,3 @@
-title: Static Web Service toc: [Documentation, Administration, Web
-Services, Static Web Service]
-
 Static Web Service
 ==================
 

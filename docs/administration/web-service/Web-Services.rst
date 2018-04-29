@@ -1,5 +1,3 @@
-title: Web Services toc: [Documentation, Administration, Web Services]
-
 Web Services
 ============
 

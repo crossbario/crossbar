@@ -1,6 +1,3 @@
-title: Path Service toc: [Documentation, Administration, Web Services,
-Path Service]
-
 Path Service
 ============
 

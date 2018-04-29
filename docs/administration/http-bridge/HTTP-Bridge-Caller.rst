@@ -1,6 +1,3 @@
-title: HTTP Bridge Caller toc: [Documentation, Administration, HTTP
-Bridge, HTTP Bridge Caller]
-
 HTTP Bridge Caller
 ==================
 

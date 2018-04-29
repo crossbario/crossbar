@@ -1,6 +1,3 @@
-title: Remote Procedure Calls toc: [Documentation, Programming Guide,
-RPC]
-
 Overview
 ========
 

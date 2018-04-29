@@ -1,6 +1,3 @@
-title: HTTP Bridge Callee toc: [Documentation, Administration, HTTP
-Bridge, HTTP Bridge Callee]
-
 HTTP Bridge Callee
 ==================
 

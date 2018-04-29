@@ -1,6 +1,3 @@
-title: Session Meta Events and Procedures toc: [Documentation,
-Programming Guide, Session Metaevents and Procedures]
-
 Session Meta Events and Procedures
 ==================================
 

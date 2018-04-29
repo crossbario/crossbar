@@ -1,6 +1,3 @@
-title: Getting started with PHP toc: [Documentation, Getting Started,
-Getting started with PHP]
-
 Getting started with PHP
 ========================
 

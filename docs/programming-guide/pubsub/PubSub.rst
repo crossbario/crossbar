@@ -1,6 +1,3 @@
-title: Publish & Subscribe toc: [Documentation, Programming Guide,
-PubSub]
-
 Overview
 ========
 

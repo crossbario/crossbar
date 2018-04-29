@@ -1,6 +1,3 @@
-title: Native Worker Options toc: [Documentation, Administration,
-Processes, Native Worker Options]
-
 Native Worker Options
 =====================
 

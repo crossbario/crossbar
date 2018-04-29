@@ -1,6 +1,3 @@
-title: WSGI Host Service toc: [Documentation, Administration, Web
-Services, WSGI Host Service]
-
 WSGI Host Service
 =================
 

@@ -1,6 +1,3 @@
-title: File Upload Service toc: [Documentation, Administration, Web
-Services, File Upload Service]
-
 File Upload Service
 ===================
 

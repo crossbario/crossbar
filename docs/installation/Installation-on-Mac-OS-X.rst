@@ -1,6 +1,3 @@
-title: Installation on Mac OS X toc: [Documentation, Installation,
-Installation on Mac OS X]
-
 Installation on Mac OS X
 ========================
 

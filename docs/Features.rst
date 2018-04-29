@@ -1,5 +1,3 @@
-title: Features toc: [Documentation, Features]
-
 Features
 ========
 

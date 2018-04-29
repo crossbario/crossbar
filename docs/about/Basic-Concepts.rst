@@ -1,5 +1,3 @@
-title: Basic Concepts toc: [Documentation, Basic Concepts]
-
 Basic Concepts
 ==============
 
@@ -143,7 +141,7 @@ The basic structure is:
         "version": 2,
         "controller": {},
         "workers": [
-          "-- configuration work is done here --"      
+          "-- configuration work is done here --"
         ]
     }
 
@@ -254,7 +252,7 @@ A sample realm configuration is:
                          "publish": true,
                          "subscribe": true
                       }
-                   }               
+                   }
                 ]
              }
           ]

@@ -1,6 +1,3 @@
-title: Registration Options toc: [Documentation, Programming Guide,
-Registration Options]
-
 Registration Options
 ====================
 

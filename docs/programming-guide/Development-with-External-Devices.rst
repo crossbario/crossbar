@@ -1,6 +1,3 @@
-title: Development with External Devices toc: [Documentation,
-Programming Guide, Development with External Devices]
-
 Development with External Devices
 =================================
 

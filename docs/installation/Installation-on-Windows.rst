@@ -1,6 +1,3 @@
-title: Installation on Windows toc: [Documentation, Installation,
-Installation on Windows]
-
 Installation on Windows
 =======================
 

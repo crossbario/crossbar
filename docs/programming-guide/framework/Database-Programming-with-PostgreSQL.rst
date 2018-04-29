@@ -1,6 +1,3 @@
-title: Database Programming with PostgreSQL toc: [Documentation,
-Programming Guide, Database Programming with PostgreSQL]
-
 Database Programming with PostgreSQL
 ====================================
 

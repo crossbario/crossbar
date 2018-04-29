@@ -1,6 +1,3 @@
-title: JSON Value Service toc: [Documentation, Administration, Web
-Services, JSON Value Service]
-
 JSON Value Service
 ==================
 

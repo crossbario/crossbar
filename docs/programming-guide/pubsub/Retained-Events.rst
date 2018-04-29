@@ -1,6 +1,3 @@
-title: Retained Events toc: [Documentation, Programming Guide, Retained
-Events]
-
 Retained Events
 ===============
 

@@ -1,6 +1,3 @@
-title: Installation FAQ toc: [Documentation, Installation, Installation
-FAQ]
-
 Installation FAQ
 ================
 

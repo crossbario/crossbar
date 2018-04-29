@@ -1,6 +1,3 @@
-title: Getting started with Erlang toc: [Documentation, Getting Started,
-Getting started with Erlang]
-
 Getting started with Erlang
 ===========================
 

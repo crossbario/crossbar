@@ -1,6 +1,3 @@
-title: TLS Certificates toc: [Documentation, Administration, Going to
-Production, TLS Certificates]
-
 TLS Certificates
 ================
 

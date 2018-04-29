@@ -1,6 +1,3 @@
-title: Guest Configuration toc: [Documentation, Administration,
-Processes, Guest Configuration]
-
 Guest Configuration
 ===================
 

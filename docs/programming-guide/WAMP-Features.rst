@@ -1,5 +1,5 @@
-title: WAMP Features toc: [Documentation, Programming Guide, WAMP
-Features]
+WAMP Features
+=============
 
 The Web Application Messaging Protocol (WAMP) enables both the Publish &
 Subscribe and the routed Remote Procedure Calls messaging pattern in a

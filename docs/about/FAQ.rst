@@ -1,5 +1,3 @@
-title: FAQ toc: [Documentation, FAQ]
-
 FAQ
 ===
 

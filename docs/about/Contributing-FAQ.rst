@@ -1,5 +1,3 @@
-title: FAQ toc: [Documentation, Contributing FAQ]
-
 Contributing to the project - FAQ
 =================================
 

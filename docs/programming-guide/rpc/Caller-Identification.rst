@@ -1,6 +1,3 @@
-title: Caller Identification toc: [Documentation, Programming Guide,
-Caller Identification]
-
 Caller Identification
 =====================
 

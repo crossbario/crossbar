@@ -1,5 +1,3 @@
-title: Logging toc: [Documentation, Administration, Logging]
-
 Logging
 =======
 

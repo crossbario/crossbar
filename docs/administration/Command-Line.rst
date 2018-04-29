@@ -1,6 +1,3 @@
-title: The Command Line toc: [Documentation, Administration, Command
-Line]
-
 The Command Line
 ================
 

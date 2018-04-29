@@ -1,6 +1,3 @@
-title: Reverse WebSocket Proxy Service toc: [Documentation,
-Administration, Web Services, Reverse WebSocket Proxy Service]
-
 Reverse WebSocket Proxy Service
 ===============================
 

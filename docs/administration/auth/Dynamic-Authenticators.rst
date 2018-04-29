@@ -1,6 +1,3 @@
-title: Dynamic Authenticators toc: [Documentation, Administration,
-Authentication, Dynamic Authenticators]
-
 Dynamic Authenticators
 ======================
 

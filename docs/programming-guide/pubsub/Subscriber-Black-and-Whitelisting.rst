@@ -1,6 +1,3 @@
-title: Subscriber Black and Whitelisting toc: [Documentation,
-Programming Guide, Subscriber Black and Whitelisting]
-
 Subscriber Black- and Whitelisting
 ==================================
 

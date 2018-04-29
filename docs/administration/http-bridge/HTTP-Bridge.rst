@@ -1,5 +1,3 @@
-title: HTTP Bridge toc: [Documentation, Administration, HTTP Bridge]
-
 HTTP Bridge
 ===========
 

@@ -1,6 +1,3 @@
-title: Pattern Based Subscriptions toc: [Documentation, Programming
-Guide, Pattern Based Subscriptions]
-
 Pattern Based Subscriptions
 ===========================
 

@@ -1,6 +1,3 @@
-title: Router Configuration toc: [Documentation, Administration,
-Processes, Router Configuration]
-
 Router Configuration
 ====================
 

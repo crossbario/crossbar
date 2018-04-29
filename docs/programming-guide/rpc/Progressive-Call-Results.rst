@@ -1,6 +1,3 @@
-title: Progressive Call Results toc: [Documentation, Programming Guide,
-Progressive Call Results]
-
 Progressive Call Results
 ========================
 

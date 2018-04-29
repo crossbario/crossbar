@@ -1,6 +1,3 @@
-title: Router Realms toc: [Documentation, Administration, Processes,
-Router Configuration, Router Realms]
-
 Router Realms
 =============
 

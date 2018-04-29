@@ -1,6 +1,3 @@
-title: Browser Support toc: [Documentation, Administration, Going to
-Production, Browser Support]
-
 Browser Support
 ===============
 

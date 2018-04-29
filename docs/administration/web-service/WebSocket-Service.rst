@@ -1,6 +1,3 @@
-title: WebSocket Service toc: [Documentation, Administration, Web
-Services, WebSocket Service]
-
 WebSocket Service
 =================
 

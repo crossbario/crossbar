@@ -1,6 +1,3 @@
-title: Cryptobox Payload Encryption toc: [Documentation, Administration,
-Going to Production, Cryptobox Payload Encryption]
-
 Cryptobox Payload Encryption
 ============================
 

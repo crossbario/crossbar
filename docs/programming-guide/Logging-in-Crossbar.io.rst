@@ -1,6 +1,3 @@
-title: Logging in Crossbar.io toc: [Documentation, Programming Guide,
-Logging in Crossbario]
-
 Logging in Crossbar.io
 ======================
 

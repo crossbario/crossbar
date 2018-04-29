@@ -1,6 +1,3 @@
-title: Publisher Exclusion toc: [Documentation, Programming Guide,
-Publisher Exclusion]
-
 Publisher Exclusion
 ===================
 

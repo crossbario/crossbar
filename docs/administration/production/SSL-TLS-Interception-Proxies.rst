@@ -1,6 +1,3 @@
-title: SSL/TLS Interception Proxies toc: [Documentation, Administration,
-Going to Production, SSL TLS Interception Proxies]
-
 SSL/TLS Interception Proxies
 ============================
 

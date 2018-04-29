@@ -1,6 +1,3 @@
-title: HTTP Bridge Subscriber toc: [Documentation, Administration, HTTP
-Bridge, HTTP Bridge Subscriber]
-
 HTTP Bridge Subscriber
 ======================
 

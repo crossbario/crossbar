@@ -1,6 +1,3 @@
-title: Error Handling toc: [Documentation, Programming Guide, WAMP
-Features, Error Handling]
-
 Error Handling
 ==============
 

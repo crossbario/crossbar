@@ -1,6 +1,3 @@
-title: Node Configuration toc: [Documentation, Administration, Node
-Configuration]
-
 Node Configuration
 ==================
 

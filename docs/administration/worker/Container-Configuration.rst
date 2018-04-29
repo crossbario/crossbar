@@ -1,6 +1,3 @@
-title: Container Configuration toc: [Documentation, Administration,
-Processes, Container Configuration]
-
 Container Configuration
 =======================
 

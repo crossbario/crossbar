@@ -1,5 +1,3 @@
-title: Processes toc: [Documentation, Administration, Processes]
-
 Processes
 =========
 

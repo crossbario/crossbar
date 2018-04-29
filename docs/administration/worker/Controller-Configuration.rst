@@ -1,6 +1,3 @@
-title: Controller Configuration toc: [Documentation, Administration,
-Processes, Controller Configuration]
-
 Controller Configuration
 ========================
 

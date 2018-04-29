@@ -1,6 +1,3 @@
-title: Authentication toc: [Documentation, Administration,
-Authentication]
-
 Authentication
 ==============
 

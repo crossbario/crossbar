@@ -1,6 +1,3 @@
-title: CGI Script Service toc: [Documentation, Administration, Web
-Services, CGI Script Service]
-
 CGI Script Service
 ==================
 

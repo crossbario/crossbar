@@ -1,6 +1,3 @@
-title: Router Components toc: [Documentation, Administration, Processes,
-Router Configuration, Router Components]
-
 Router Components
 =================
 

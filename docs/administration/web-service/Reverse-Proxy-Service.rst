@@ -1,6 +1,3 @@
-title: Reverse Proxy Service toc: [Documentation, Administration, Web
-Services, Reverse Proxy Service]
-
 Reverse Proxy Service
 =====================
 

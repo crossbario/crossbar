@@ -1,6 +1,3 @@
-title: Ticket Authentication toc: [Documentation, Administration,
-Authentication, Ticket Authentication]
-
 Ticket Authentication
 =====================
 

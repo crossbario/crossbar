@@ -1,6 +1,3 @@
-title: Node Info Service toc: [Documentation, Administration, Web
-Services, Node Info Service]
-
 Node Info Service
 =================
 

@@ -1,5 +1,3 @@
-title: Getting Started toc: [Documentation, Getting Started]
-
 Getting Started with Crossbar.io
 ================================
 

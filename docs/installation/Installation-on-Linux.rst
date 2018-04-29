@@ -1,6 +1,3 @@
-title: Installation on Linux toc: [Documentation, Installation,
-Installation on Linux]
-
 Installation on Linux
 =====================
 

@@ -1,5 +1,3 @@
-title: URI Format toc: [Documentation, Programming Guide, URI Format]
-
 URI Format
 ==========
 

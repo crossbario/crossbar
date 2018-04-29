@@ -1,5 +1,3 @@
-title: Administration toc: [Documentation, Administration]
-
 Administration Manual
 =====================
 

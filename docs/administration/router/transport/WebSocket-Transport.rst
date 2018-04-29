@@ -1,6 +1,3 @@
-title: WebSocket Transport toc: [Documentation, Administration, Router
-Transports, WebSocket Transport]
-
 WebSocket Transport
 ===================
 

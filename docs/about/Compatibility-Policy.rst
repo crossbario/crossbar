@@ -1,5 +1,3 @@
-title: Compatibility Policy toc: [Documentation, Compatibility Policy]
-
 Compatibility Policy
 ====================
 

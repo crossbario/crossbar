@@ -1,5 +1,3 @@
-title: Crossbar.io Code License toc: [Documentation, Crossbar License]
-
 Crossbar.io Code License
 ========================
 

@@ -1,6 +1,3 @@
-title: RawSocket Transport toc: [Documentation, Administration, Router
-Transports, RawSocket Transport]
-
 RawSocket Transport
 ===================
 

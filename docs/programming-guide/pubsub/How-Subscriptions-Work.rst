@@ -1,6 +1,3 @@
-title: How Subscriptions Work toc: [Documentation, Programming Guide,
-How Subscriptions Work]
-
 How Subscriptions Work
 ======================
 

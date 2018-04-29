@@ -1,6 +1,3 @@
-title: Basic Subscriptions toc: [Documentation, Programming Guide, Basic
-Subscriptions]
-
 Basic Subscriptions
 ===================
 

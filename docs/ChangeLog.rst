@@ -1,5 +1,3 @@
-title: ChangeLog toc: [Documentation, Programming Guide, ChangeLog]
-
 Crossbar.io master (unreleased)
 ===============================
 

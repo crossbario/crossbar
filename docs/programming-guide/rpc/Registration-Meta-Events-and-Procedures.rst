@@ -1,6 +1,3 @@
-title: Registration Meta Events and Procedures toc: [Documentation,
-Programming Guide, Registration Meta Events and Procedures]
-
 Registration Meta-Events and Procedures
 =======================================
 

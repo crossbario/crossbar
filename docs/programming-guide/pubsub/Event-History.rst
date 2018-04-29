@@ -1,6 +1,3 @@
-title: Event History toc: [Documentation, Programming Guide, Event
-History]
-
 Event History
 =============
 

@@ -1,6 +1,3 @@
-title: WebSocket Options toc: [Documentation, Administration, Router
-Transports, WebSocket Transport, WebSocket Options]
-
 WebSocket Options
 =================
 
