@@ -824,19 +824,6 @@ def _run_command_start(options, reactor):
         sys.exit(1)
 
 
-def _run_command_restart(options, **kwargs):
-    """
-    Subcommand "crossbar restart".
-    """
-    pid_data = _run_command_stop(options, exit=False)
-    prog = pid_data['argv'][0]
-    # remove first item, which is the (fully qualified) path to Python
-    args = pid_data['argv'][1:]
-    # replace 'restart' with 'start'
-    args = [(lambda x: x if x != 'restart' else 'start')(x) for x in args]
-    main(prog, args)
-
-
 def _run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
@@ -1045,18 +1032,6 @@ def main(prog, args, reactor):
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser_stop.set_defaults(func=_run_command_stop)
-
-    # "restart" command
-    #
-    parser_restart = subparsers.add_parser('restart',
-                                           help='Restart a Crossbar.io node.')
-
-    parser_restart.add_argument('--cbdir',
-                                type=six.text_type,
-                                default=None,
-                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_restart.set_defaults(func=_run_command_restart)
 
     # "status" command
     #

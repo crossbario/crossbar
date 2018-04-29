@@ -5,6 +5,7 @@
 #
 # init,start,stop,restart,status,check,convert,upgrade,keygen,keys,version,legal
 #
+# FIXME: add tests for commands "keygen"
 
 OLDCWD=$(pwd)
 PERSONALITY=standalone
@@ -23,7 +24,18 @@ echo 'CBDIRCBDIR='$CBDIR
 $CB version
 $CB legal
 
-# init, check, start, status, stop, keys
+
+# start (from empty node directory), stop, keys
+#
+rm -rf $APPDIR
+mkdir -p $CBDIR
+( $CB start --cbdir=$CBDIR ) &
+sleep 2
+$CB stop --cbdir=$CBDIR
+$CB keys --cbdir=$CBDIR
+
+
+# init, check, start (from default initialized node directory), status, stop
 #
 rm -rf $APPDIR
 $CB init --appdir=$APPDIR
@@ -36,16 +48,19 @@ $CB status --cbdir=$CBDIR --assertstate=running
 sleep 2
 $CB stop --cbdir=$CBDIR
 $CB status --cbdir=$CBDIR --assertstate=stopped
-$CB keys --cbdir=$CBDIR
 
 
-
-#    restart             Restart a Crossbar.io node.
-#    check               Check a Crossbar.io node`s local configuration file.
-#    convert             Convert a Crossbar.io node`s local configuration file
-#                        from JSON to YAML or vice versa.
-#    upgrade             Upgrade a Crossbar.io node`s local configuration file
-#                        to current configuration file format.
-#    keygen              Generate public/private keypairs for use with
-#                        autobahn.wamp.cryptobox.KeyRing
-#    keys                Print Crossbar.io release and node keys.
+# convert, check, start, status, stop
+#
+rm -rf $APPDIR
+$CB init --appdir=$APPDIR
+$CB check --cbdir=$CBDIR
+$CB convert --cbdir=$CBDIR
+cat $CBDIR/config.json
+cat $CBDIR/config.yaml
+rm $CBDIR/config.json
+$CB check --cbdir=$CBDIR
+( $CB start --cbdir=$CBDIR ) &
+sleep 2
+$CB status --cbdir=$CBDIR --assertstate=running
+$CB stop --cbdir=$CBDIR
