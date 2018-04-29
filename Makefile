@@ -70,13 +70,13 @@ test: flake8
 	trial crossbar
 
 test_quick:
-	tox -e flake8,py36-abtrunk,cli
+	tox -e flake8,py36-abtrunk-trial
 
 test_cli:
 	./test/test_cli.sh
 
 test_cli_tox:
-	tox -e py36-cli,pypy-cli .
+	tox -e py36-cli .
 
 
 test_mqtt:

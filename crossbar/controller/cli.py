@@ -464,8 +464,7 @@ def _run_command_init(options, **kwargs):
 
     options.appdir = os.path.abspath(options.appdir)
 
-    log.info("Initializing application template '{options.template}' in directory '{options.appdir}'",
-             options=options)
+    log.info("Initializing node in directory '{options.appdir}'", options=options)
     get_started_hint = templates.init(options.appdir, template)
 
     log.info("Application template initialized")
@@ -490,15 +489,15 @@ def _run_command_status(options, **kwargs):
     if pid_data is None:
         # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
         # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
-        log.info("No Crossbar.io instance is currently running from node directory {cbdir}.",
-                 cbdir=options.cbdir)
+        log.info("Status {status}: no Crossbar.io instance is currently running from node directory {cbdir}.",
+                 status=hl("STOPPED", color='red', bold=True), cbdir=options.cbdir)
         if False:
             sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
         else:
             sys.exit(0)
     else:
-        log.info("A Crossbar.io instance is running from node directory {cbdir} (PID {pid}).",
-                 cbdir=options.cbdir, pid=pid_data['pid'])
+        log.info("Status {status}: a Crossbar.io instance is running from node directory {cbdir} (PID {pid}).",
+                 status=hl("RUNNING", color='green', bold=True), cbdir=options.cbdir, pid=pid_data['pid'])
         sys.exit(0)
 
 
@@ -1053,6 +1052,12 @@ def main(prog, args, reactor):
                                type=six.text_type,
                                default=None,
                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser_status.add_argument('--assert',
+                               type=six.text_type,
+                               default='none',
+                               choices=['running', 'stopped', 'none'],
+                               help=("If given, assert the node is in this state, otherwise exit with error."))
 
     parser_status.set_defaults(func=_run_command_status)
 

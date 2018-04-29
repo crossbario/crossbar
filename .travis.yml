@@ -35,50 +35,50 @@ matrix:
       env: TOX_ENV=pypy3-cli
 
     - python: 2.7
-      env: TOX_ENV=py27-unpinned,coverage-report
+      env: TOX_ENV=py27-unpinned-trial,coverage-report
     - python: 2.7
-      env: TOX_ENV=py27-pinned,coverage-report
+      env: TOX_ENV=py27-pinned-trial,coverage-report
     - python: 2.7
-      env: TOX_ENV=py27-abtrunk,coverage-report
+      env: TOX_ENV=py27-abtrunk-trial,coverage-report
 
     - python: 3.6
-      env: TOX_ENV=py36-unpinned,coverage-report
+      env: TOX_ENV=py36-unpinned-trial,coverage-report
     - python: 3.6
-      env: TOX_ENV=py36-pinned,coverage-report
+      env: TOX_ENV=py36-pinned-trial,coverage-report
     - python: 3.6
-      env: TOX_ENV=py36-abtrunk,coverage-report
+      env: TOX_ENV=py36-abtrunk-trial,coverage-report
 
     - python: pypy
-      env: TOX_ENV=pypy-unpinned,coverage-report
+      env: TOX_ENV=pypy-unpinned-trial,coverage-report
     - python: pypy
-      env: TOX_ENV=pypy-pinned,coverage-report
+      env: TOX_ENV=pypy-pinned-trial,coverage-report
     - python: pypy
-      env: TOX_ENV=pypy-abtrunk,coverage-report
+      env: TOX_ENV=pypy-abtrunk-trial,coverage-report
 
     - python: pypy3
-      env: TOX_ENV=pypy3-unpinned,coverage-report
+      env: TOX_ENV=pypy3-unpinned-trial,coverage-report
     - python: pypy3
-      env: TOX_ENV=pypy3-pinned,coverage-report
+      env: TOX_ENV=pypy3-pinned-trial,coverage-report
     - python: pypy3
-      env: TOX_ENV=pypy3-abtrunk,coverage-report
+      env: TOX_ENV=pypy3-abtrunk-trial,coverage-report
 
   allow_failures:
       - python: 2.7
-        env: TOX_ENV=py27-unpinned,coverage-report
+        env: TOX_ENV=py27-unpinned-trial,coverage-report
       - python: 2.7
-        env: TOX_ENV=py27-pinned,coverage-report
+        env: TOX_ENV=py27-pinned-trial,coverage-report
 
       - python: 3.6
-        env: TOX_ENV=py36-unpinned,coverage-report
+        env: TOX_ENV=py36-unpinned-trial,coverage-report
       - python: 3.6
-        env: TOX_ENV=py36-pinned,coverage-report
+        env: TOX_ENV=py36-pinned-trial,coverage-report
 
       - python: pypy
-        env: TOX_ENV=pypy-unpinned,coverage-report
+        env: TOX_ENV=pypy-unpinned-trial,coverage-report
       - python: pypy
-        env: TOX_ENV=pypy-pinned,coverage-report
+        env: TOX_ENV=pypy-pinned-trial,coverage-report
 
       - python: pypy3
-        env: TOX_ENV=pypy3-unpinned,coverage-report
+        env: TOX_ENV=pypy3-unpinned-trial,coverage-report
       - python: pypy3
-        env: TOX_ENV=pypy3-pinned,coverage-report
+        env: TOX_ENV=pypy3-pinned-trial,coverage-report

@@ -18,7 +18,7 @@ $CB version
 
 # legal
 #
-$CB  legal
+$CB legal
 
 # init, start and status
 #
@@ -27,7 +27,7 @@ $CB init --appdir=$APPDIR
 find $APPDIR
 ( $CB start --cbdir=$CBDIR ) &
 sleep 2
-$CB status --cbdir=$CBDIR
+$CB status --cbdir=$CBDIR --assert=running
 sleep 2
 $CB stop --cbdir=$CBDIR
-$CB status --cbdir=$CBDIR
+$CB status --cbdir=$CBDIR --assert=stopped
