@@ -916,6 +916,13 @@ _HELP_PERSONALITIES = """Software personality to use:
  "fabriccenter" (Crossbar.io mesh controller, license required)
 """
 
+def _add_personality_argument(parser):
+    parser.add_argument('--personality',
+                        type=six.text_type,
+                        default=_DEFAULT_PERSONALITY,
+                        choices=sorted(_INSTALLED_PERSONALITIES.keys()) + ['community'],
+                        help=(_HELP_PERSONALITIES))
+
 
 def main(prog, args, reactor):
     """
@@ -935,14 +942,7 @@ def main(prog, args, reactor):
     #
     parser = argparse.ArgumentParser(prog=prog or 'crossbar', description=_HELP_DESCRIPTION)
 
-    # top-level options (reactor is no longer one of those! can only be overridden via
-    # the CROSSBAR_REACTOR env var.
-    #
-    parser.add_argument('--personality',
-                        type=six.text_type,
-                        default=_DEFAULT_PERSONALITY,
-                        choices=sorted(_INSTALLED_PERSONALITIES.keys()),
-                        help=(_HELP_PERSONALITIES))
+    _add_personality_argument(parser)
 
     # create subcommand parser
     #
@@ -977,6 +977,8 @@ def main(prog, args, reactor):
 
     parser_init.set_defaults(func=_run_command_init)
 
+    _add_personality_argument(parser_init)
+
     parser_init.add_argument('--appdir',
                              type=six.text_type,
                              default=None,
@@ -988,6 +990,8 @@ def main(prog, args, reactor):
                                          help='Start a Crossbar.io node.')
 
     parser_start.set_defaults(func=_run_command_start)
+
+    _add_personality_argument(parser_start)
 
     parser_start.add_argument('--cbdir',
                               type=six.text_type,
@@ -1026,17 +1030,23 @@ def main(prog, args, reactor):
     parser_stop = subparsers.add_parser('stop',
                                         help='Stop a Crossbar.io node.')
 
+    parser_stop.set_defaults(func=_run_command_stop)
+
+    _add_personality_argument(parser_stop)
+
     parser_stop.add_argument('--cbdir',
                              type=six.text_type,
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_stop.set_defaults(func=_run_command_stop)
-
     # "status" command
     #
     parser_status = subparsers.add_parser('status',
                                           help='Checks whether a Crossbar.io node is running.')
+
+    parser_status.set_defaults(func=_run_command_status)
+
+    _add_personality_argument(parser_status)
 
     parser_status.add_argument('--cbdir',
                                type=six.text_type,
@@ -1049,18 +1059,20 @@ def main(prog, args, reactor):
                                choices=['running', 'stopped'],
                                help=("If given, assert the node is in this state, otherwise exit with error."))
 
-    parser_status.set_defaults(func=_run_command_status)
-
     # "check" command
     #
     parser_check = subparsers.add_parser('check',
                                          help='Check a Crossbar.io node`s local configuration file.')
 
+    parser_check.set_defaults(func=_run_command_check)
+
+    _add_personality_argument(parser_check)
+
     parser_check.add_argument('--loglevel',
                               **log_level_args)
+
     parser_check.add_argument('--color',
                               **color_args)
-    parser_check.set_defaults(func=_run_command_check)
 
     parser_check.add_argument('--cbdir',
                               type=six.text_type,
@@ -1074,52 +1086,61 @@ def main(prog, args, reactor):
 
     # "convert" command
     #
-    parser_check = subparsers.add_parser('convert',
+    parser_convert = subparsers.add_parser('convert',
                                          help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
-    parser_check.set_defaults(func=_run_command_convert)
+    parser_convert.set_defaults(func=_run_command_convert)
 
-    parser_check.add_argument('--cbdir',
+    _add_personality_argument(parser_convert)
+
+    parser_convert.add_argument('--cbdir',
                               type=six.text_type,
                               default=None,
                               help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_check.add_argument('--config',
+    parser_convert.add_argument('--config',
                               type=six.text_type,
                               default=None,
                               help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
     # "upgrade" command
     #
-    parser_check = subparsers.add_parser('upgrade',
-                                         help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
+    parser_upgrade = subparsers.add_parser('upgrade',
+                                           help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
 
-    parser_check.set_defaults(func=_run_command_upgrade)
+    parser_upgrade.set_defaults(func=_run_command_upgrade)
 
-    parser_check.add_argument('--cbdir',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+    _add_personality_argument(parser_upgrade)
 
-    parser_check.add_argument('--config',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+    parser_upgrade.add_argument('--cbdir',
+                                type=six.text_type,
+                                default=None,
+                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser_upgrade.add_argument('--config',
+                                type=six.text_type,
+                                default=None,
+                                help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
     # "keygen" command
     #
-    help_text = 'Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
     parser_keygen = subparsers.add_parser(
         'keygen',
-        help=help_text,
-        description=help_text,
+        help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
     )
+
     parser_keygen.set_defaults(func=_run_command_keygen)
+
+    _add_personality_argument(parser_keygen)
 
     # "keys" command
     #
     parser_keys = subparsers.add_parser('keys',
                                         help='Print Crossbar.io release and node keys.')
+
+    parser_keys.set_defaults(func=_run_command_keys)
+
+    _add_personality_argument(parser_keys)
 
     parser_keys.add_argument('--cbdir',
                              type=six.text_type,
@@ -1131,19 +1152,19 @@ def main(prog, args, reactor):
     parser_keys.add_argument('--color',
                              **color_args)
 
-    parser_keys.set_defaults(func=_run_command_keys)
-
     # "version" command
     #
     parser_version = subparsers.add_parser('version',
                                            help='Print software versions.')
 
+    parser_version.set_defaults(func=_run_command_version)
+
+    _add_personality_argument(parser_version)
+
     parser_version.add_argument('--loglevel',
                                 **log_level_args)
     parser_version.add_argument('--color',
                                 **color_args)
-
-    parser_version.set_defaults(func=_run_command_version)
 
     # "legal" command
     #
@@ -1152,12 +1173,13 @@ def main(prog, args, reactor):
 
     parser_legal.set_defaults(func=_run_command_legal)
 
+    _add_personality_argument(parser_legal)
+
     # INTERNAL USE! start a worker (this is used by the controller to start worker processes
     # but cannot be used outside that context.
     #
     parser_worker = subparsers.add_parser('start-worker', help='INTERNAL USE. This cannot be invoked directly.')  # argparse.SUPPRESS does not work here =(
     parser_worker = process.get_argument_parser(parser_worker)
-
     parser_worker.set_defaults(func=process.run)
 
     # #############################################################
@@ -1169,6 +1191,12 @@ def main(prog, args, reactor):
         options.argv = [prog] + args
     else:
         options.argv = sys.argv
+
+    # backward compat for personality name "community": renamed to "standalone"
+    #
+    if options.personality == 'community':
+        options.personality = 'standalone'
+        print('Personality name "community" deprecated: please use "standalone" (automatically selected now)')
 
     # colored logging does not work on Windows, so overwrite it!
     #
