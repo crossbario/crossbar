@@ -28,7 +28,6 @@
 #
 #####################################################################################
 
-import re
 import os
 
 from setuptools import setup, find_packages
@@ -47,7 +46,6 @@ install_requires = []
 extras_require = {
     'dev': []
 }
-
 
 # minimum, open-ended requirements
 reqs = 'requirements-min.txt'
@@ -111,15 +109,12 @@ setup(
 
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=["License :: OSI Approved :: GNU Affero General Public License v3",
-                 "Development Status :: 4 - Beta",
+                 "Development Status :: 5 - Production/Stable",
                  "Environment :: No Input/Output (Daemon)",
                  "Environment :: Console",
                  "Framework :: Twisted",
                  "Intended Audience :: Developers",
                  "Operating System :: OS Independent",
-                 "Programming Language :: Python :: 2.7",
-                 "Programming Language :: Python :: 3.3",
-                 "Programming Language :: Python :: 3.4",
                  "Programming Language :: Python :: 3.5",
                  "Programming Language :: Python :: 3.6",
                  "Programming Language :: Python :: Implementation :: CPython",

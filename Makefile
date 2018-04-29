@@ -16,10 +16,13 @@ clean:
 	rm -rf ./dist
 	rm -rf ./crossbar.egg-info
 	rm -rf ./.crossbar
-	rm -rf ./_trial_temp
+	-find . -type d -name _trial_temp -exec rm -rf {} \;
+	rm -rf ./tests
 	rm -rf ./.tox
 	rm -rf ./vers
 	rm -f .coverage.*
+	rm -f .coverage
+	rm -rf ./htmlcov
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
