@@ -119,6 +119,7 @@ If you only want to run WebSocket and the HTTP Publisher Service (and no other W
 
 ```javascript
 {
+   "version": 2,
    "workers": [
       {
          "type": "router",
@@ -136,7 +137,7 @@ If you only want to run WebSocket and the HTTP Publisher Service (and no other W
                               "register": true,
                               "publish": true,
                               "subscribe": true
-                           },
+                           }
                         }
                      ]
                   }
