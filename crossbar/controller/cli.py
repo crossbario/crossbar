@@ -916,6 +916,7 @@ _HELP_PERSONALITIES = """Software personality to use:
  "fabriccenter" (Crossbar.io mesh controller, license required)
 """
 
+
 def _add_personality_argument(parser):
     parser.add_argument('--personality',
                         type=six.text_type,
@@ -1087,21 +1088,21 @@ def main(prog, args, reactor):
     # "convert" command
     #
     parser_convert = subparsers.add_parser('convert',
-                                         help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
+                                           help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
     parser_convert.set_defaults(func=_run_command_convert)
 
     _add_personality_argument(parser_convert)
 
     parser_convert.add_argument('--cbdir',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+                                type=six.text_type,
+                                default=None,
+                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser_convert.add_argument('--config',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+                                type=six.text_type,
+                                default=None,
+                                help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
     # "upgrade" command
     #
