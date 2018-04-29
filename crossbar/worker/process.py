@@ -37,6 +37,8 @@ import six
 
 from twisted.internet.error import ReactorNotRunning
 
+from crossbar.controller.cli import _INSTALLED_PERSONALITIES
+
 __all__ = ('run',)
 
 
@@ -50,33 +52,44 @@ def get_argument_parser(parser=None):
                         help='Explicit Twisted reactor selection (optional).')
 
     parser.add_argument('--loglevel',
-                        default="info",
+                        default='info',
                         choices=['none', 'error', 'warn', 'info', 'debug', 'trace'],
                         help='Initial log level.')
 
     parser.add_argument('-c',
                         '--cbdir',
                         type=six.text_type,
+                        required=True,
                         help="Crossbar.io node directory (required).")
 
     parser.add_argument('-r',
                         '--realm',
                         type=six.text_type,
+                        required=True,
                         help='Crossbar.io node (management) realm (required).')
+
+    parser.add_argument('-p',
+                        '--personality',
+                        required=True,
+                        choices=sorted(_INSTALLED_PERSONALITIES.keys()),
+                        help='Crossbar.io personality (required).')
 
     parser.add_argument('-k',
                         '--klass',
+                        required=True,
                         type=six.text_type,
                         help='Crossbar.io worker class (required).')
 
     parser.add_argument('-n',
                         '--node',
+                        required=True,
                         type=six.text_type,
                         help='Crossbar.io node ID (required).')
 
     parser.add_argument('-w',
                         '--worker',
                         type=six.text_type,
+                        required=True,
                         help='Crossbar.io worker ID (required).')
 
     parser.add_argument('--title',
@@ -113,7 +126,6 @@ def run(options, reactor=None):
     import signal
 
     # make sure logging to something else than stdio is setup _first_
-    #
     from crossbar._logging import make_JSON_observer, cb_logging_aware
     from txaio import make_logger, start_logging
     from twisted.logger import globalLogPublisher
@@ -137,7 +149,6 @@ def run(options, reactor=None):
     # will very shortly get a SIGINT as well). Twisted installs signal
     # handlers, but not for SIGINT if there's already a custom one
     # present.
-
     def ignore(sig, frame):
         log.debug("Ignoring SIGINT in worker.")
     signal.signal(signal.SIGINT, ignore)
@@ -145,8 +156,12 @@ def run(options, reactor=None):
     # actually begin logging
     start_logging(None, options.loglevel)
 
+    # now check if we can import the requested personality
+    Personality = _INSTALLED_PERSONALITIES.get(options.personality, None)
+    if not Personality:
+        raise Exception('logic error: personality "{}" not installed ({})'.format(options.personality, sorted(_INSTALLED_PERSONALITIES.keys())))
+
     # we use an Autobahn utility to import the "best" available Twisted reactor
-    #
     from autobahn.twisted.choosereactor import install_reactor
     reactor = install_reactor(options.reactor)
 
@@ -159,8 +174,9 @@ def run(options, reactor=None):
     klass = getattr(_mod, worker_klass)
 
     log.info(
-        'Started {worker_title} worker "{worker_id}" on node "{node_id}" [{klass} / {python}-{reactor}]',
+        'Started {worker_title} worker "{worker_id}" on node "{node_id}" [{personality}/{klass}/{python}-{reactor}]',
         worker_title=klass.WORKER_TITLE,
+        personality=Personality.NAME,
         klass=options.klass,
         node_id=options.node,
         worker_id=options.worker,
@@ -247,19 +263,19 @@ def run(options, reactor=None):
                     pass
 
     try:
-        # create a WAMP application session factory
+        # define a WAMP application session factory
         #
-        from autobahn.twisted.wamp import ApplicationSessionFactory
         from autobahn.wamp.types import ComponentConfig
 
-        session_config = ComponentConfig(realm=options.realm, extra=options)
-        session_factory = ApplicationSessionFactory(session_config)
-        session_factory.session = klass
+        def make_session():
+            session_config = ComponentConfig(realm=options.realm, extra=options)
+            session = klass(config=session_config, reactor=reactor, personality=Personality)
+            return session
 
         # create a WAMP-over-WebSocket transport server factory
         #
         from autobahn.twisted.websocket import WampWebSocketServerFactory
-        transport_factory = WampWebSocketServerFactory(session_factory, u'ws://localhost')
+        transport_factory = WampWebSocketServerFactory(make_session, u'ws://localhost')
         transport_factory.protocol = WorkerServerProtocol
         transport_factory.setProtocolOptions(failByDrop=False)
 

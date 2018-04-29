@@ -5,6 +5,7 @@ include requirements.txt
 include requirements-min.txt
 include requirements-pinned.txt
 include requirements-dev.txt
+include crossbar/LEGAL
 recursive-include crossbar/web *
 recursive-include crossbar/templates *
 recursive-include crossbar/keys *

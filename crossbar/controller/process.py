@@ -33,6 +33,7 @@ from __future__ import absolute_import
 import os
 import sys
 import signal
+import threading
 from datetime import datetime
 
 try:
@@ -54,6 +55,7 @@ from autobahn.wamp.types import PublishOptions
 from autobahn import wamp
 
 import crossbar
+from crossbar._util import term_print
 from crossbar.common import checkconfig
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
@@ -91,7 +93,8 @@ class NodeControllerSession(NativeProcessSession):
         :param node: The node singleton for this node controller session.
         :type node: obj
         """
-        NativeProcessSession.__init__(self, reactor=node._reactor)
+        # base ctor
+        NativeProcessSession.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
 
         # associated node
         self._node = node
@@ -107,7 +110,15 @@ class NodeControllerSession(NativeProcessSession):
         # map of worker processes: worker_id -> NativeWorkerProcess
         self._workers = {}
 
+        # shutdown of node is requested, and further requests to shutdown (or start)
+        # are denied
         self._shutdown_requested = False
+
+        # when shutting down, this flags marks if the shutdown is graceful and clean,
+        # and expected (under the node configuration/settings) or if the shutdown is
+        # under error or unnormal conditions. this flag controls the final exit
+        # code returned by crossbar: 0 in case of "clean shutdown", and 1 otherwise
+        self._shutdown_was_clean = None
 
     def onConnect(self):
 
@@ -152,10 +163,23 @@ class NodeControllerSession(NativeProcessSession):
         # we need to catch SIGINT here to properly shutdown the
         # node explicitly (a Twisted system trigger wouldn't allow us to distinguish
         # different reasons/origins of exiting ..)
-        def signal_handler(signal, frame):
+        def signal_handler(_signal, frame):
+            if _signal == signal.SIGINT:
+                # CTRL-C'ing Crossbar.io is considered "willful", and hence we want to exit cleanly
+                self._shutdown_was_clean = True
+            elif _signal == signal.SIGTERM:
+                self._shutdown_was_clean = False
+            else:
+                # FIXME: can we run into others here?
+                self._shutdown_was_clean = False
+
+            self.log.warn('Controller received SIGINT [signal={signal}]: shutting down node [shutdown_was_clean={shutdown_was_clean}] ..', signal=_signal, shutdown_was_clean=self._shutdown_was_clean)
+
             # the following will shutdown the Twisted reactor in the end
             self.shutdown()
+
         signal.signal(signal.SIGINT, signal_handler)
+        self.log.info('Signal handler installed on process {pid} thread {tid}', pid=os.getpid(), tid=threading.get_ident())
 
         self._started = utcnow()
 
@@ -172,10 +196,7 @@ class NodeControllerSession(NativeProcessSession):
         :rtype: dict
         """
         return {
-            # eg "Crossbar.io COMMUNITY"
             u'title': u'{} {}'.format(self._node.PERSONALITY, crossbar.__version__),
-
-            # basic information about the node
             u'started': self._started,
             u'controller_pid': self._pid,
             u'running_workers': len(self._workers),
@@ -194,32 +215,47 @@ class NodeControllerSession(NativeProcessSession):
             return
 
         self._shutdown_requested = True
+        self.log.info('Node shutdown requested (restart={}, mode={}, reactor.running={}) ..'.format(
+                      restart, mode, self._reactor.running))
 
-        self.log.info('Node shutdown requested ..')
+        term_print('<CROSSBAR:NODE_SHUTDOWN_REQUESTED>')
 
-        # publish management API event
-        shutdown_info = {
-            u'node_id': self._node._node_id,
-            u'restart': restart,
-            u'mode': mode,
-            u'who': details.caller if details else None,
-            u'when': utcnow()
-        }
-        yield self.publish(
-            u'{}.on_shutdown'.format(self._uri_prefix),
-            shutdown_info,
-            options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
-        )
+        try:
+            # node shutdown information
+            shutdown_info = {
+                u'node_id': self._node._node_id,
+                u'restart': restart,
+                u'mode': mode,
+                u'who': details.caller if details else None,
+                u'when': utcnow(),
+                u'was_clean': self._shutdown_was_clean,
+            }
 
-        def stop_reactor():
-            try:
-                self._reactor.stop()
-            except ReactorNotRunning:
-                pass
+            if self._node._shutdown_complete:
+                self._node._shutdown_complete.callback(shutdown_info)
 
-        self._reactor.callLater(0, stop_reactor)
+            # publish management API event
+            yield self.publish(
+                u'{}.on_shutdown'.format(self._uri_prefix),
+                shutdown_info,
+                options=PublishOptions(exclude=details.caller if details else None, acknowledge=True)
+            )
 
-        returnValue(shutdown_info)
+            def stop_reactor():
+                try:
+                    self._reactor.stop()
+                except ReactorNotRunning:
+                    pass
+
+            _SHUTDOWN_DELAY = 0.2
+            self._reactor.callLater(_SHUTDOWN_DELAY, stop_reactor)
+
+        except:
+            self._shutdown_requested = False
+            raise
+
+        else:
+            returnValue(shutdown_info)
 
     @wamp.register(None)
     def get_workers(self, details=None):
@@ -407,6 +443,7 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--node", str(self._node._node_id)])
         args.extend(["--worker", str(worker_id)])
         args.extend(["--realm", self._realm])
+        args.extend(["--personality", self._node.personality.NAME])
         args.extend(["--klass", worker_class])
         args.extend(["--loglevel", get_global_log_level()])
         if "shutdown" in options:
@@ -553,19 +590,22 @@ class NodeControllerSession(NativeProcessSession):
             # automatically shutdown node whenever a worker ended (successfully, or with error)
             #
             if checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT in self._node._node_shutdown_triggers:
-                self.log.info("Node worker ended, and trigger '{trigger}' active", trigger=checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT)
+                self.log.info("Node worker ended, and trigger '{trigger}' is active: will shutdown node ..", trigger=checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT)
+                term_print('<CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT>')
                 shutdown = True
 
             # automatically shutdown node when worker ended with error
             #
-            if not was_successful and checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR in self._node._node_shutdown_triggers:
-                self.log.info("Node worker ended with error, and trigger '{trigger}' active", trigger=checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR)
+            elif not was_successful and checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR in self._node._node_shutdown_triggers:
+                self.log.info("Node worker ended with error, and trigger '{trigger}' is active: will shutdown node ..", trigger=checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR)
+                term_print('<CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR>')
                 shutdown = True
 
             # automatically shutdown node when no more workers are left
             #
-            if len(self._workers) == 0 and checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT in self._node._node_shutdown_triggers:
-                self.log.info("No more node workers running, and trigger '{trigger}' active", trigger=checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT)
+            elif len(self._workers) == 0 and checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT in self._node._node_shutdown_triggers:
+                self.log.info("No more node workers running, and trigger '{trigger}' is active: will shutdown node ..", trigger=checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT)
+                term_print('<CROSSBAR:NODE_SHUTDOWN_ON_LAST_WORKER_EXIT>')
                 shutdown = True
 
             # initiate shutdown (but only if we are not already shutting down)

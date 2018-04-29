@@ -16,9 +16,13 @@ clean:
 	rm -rf ./dist
 	rm -rf ./crossbar.egg-info
 	rm -rf ./.crossbar
-	rm -rf ./_trial_temp
+	-find . -type d -name _trial_temp -exec rm -rf {} \;
+	rm -rf ./tests
 	rm -rf ./.tox
 	rm -rf ./vers
+	rm -f .coverage.*
+	rm -f .coverage
+	rm -rf ./htmlcov
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
@@ -41,18 +45,19 @@ freeze: clean
 wheel:
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip wheel --require-hashes --wheel-dir ./wheels -r requirements.txt
 
-install: install_dev
+# install for development, using pinned dependencies, and including dev-only dependencies
+install:
+	-pip uninstall -y crossbar
+	pip install --no-cache --upgrade -r requirements-dev.txt
+	pip install -e .
+	@python -c "import crossbar; print('*** crossbar-{} ***'.format(crossbar.__version__))"
 
 # install using pinned/hashed dependencies, as we do for packaging
 install_pinned:
+	-pip uninstall -y crossbar
 	LMDB_FORCE_CFFI=1 SODIUM_INSTALL=bundled pip install --ignore-installed --require-hashes -r requirements.txt
 	pip install .
-
-# install for development, using pinned dependencies, and including dev-only dependencies
-install_dev:
-	pip install -r requirements-dev.txt
-	pip install -e .
-	python -c "import crossbar; print('\ncrossbar-{} installed'.format(crossbar.__version__))"
+	@python -c "import crossbar; print('*** crossbar-{} ***'.format(crossbar.__version__))"
 
 # upload to our internal deployment system
 upload: clean
@@ -66,6 +71,16 @@ publish: clean
 
 test: flake8
 	trial crossbar
+
+test_quick:
+	tox -e flake8,py36-abtrunk-trial
+
+test_cli:
+	./test/test_cli.sh
+
+test_cli_tox:
+	tox -e py36-cli .
+
 
 test_mqtt:
 #	trial crossbar.adapter.mqtt.test.test_wamp

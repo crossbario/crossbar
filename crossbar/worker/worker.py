@@ -65,6 +65,10 @@ class NativeWorkerSession(NativeProcessSession):
 
     log = make_logger()
 
+    def __init__(self, config=None, reactor=None, personality=None):
+        # base ctor
+        NativeProcessSession.__init__(self, config=config, reactor=reactor, personality=personality)
+
     def onConnect(self):
         """
         Called when the worker has connected to the node's management router.
@@ -84,10 +88,13 @@ class NativeWorkerSession(NativeProcessSession):
 
         # Jinja2 templates for Web (like WS status page et al)
         #
-        templates_dir = os.path.abspath(pkg_resources.resource_filename("crossbar", "web/templates"))
-        self.log.debug("Using Web templates from {templates_dir}",
-                       templates_dir=templates_dir)
-        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
+        template_dirs = []
+        for package, directory in self.personality.TEMPLATE_DIRS:
+            dir_path = os.path.abspath(pkg_resources.resource_filename(package, directory))
+            template_dirs.append(dir_path)
+        self.log.debug("Using Web templates from {template_dirs}",
+                       template_dirs=template_dirs)
+        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs))
 
         self.join(self.config.realm)
 

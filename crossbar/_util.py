@@ -30,8 +30,29 @@
 
 from __future__ import absolute_import, division
 
+import sys
 import inspect
 import json
+
+import six
+import click
+
+
+# FS path to controlling terminal
+_TERMINAL = None
+
+# *BSD and MacOSX
+if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
+    _TERMINAL = '/dev/tty'
+# Windows
+elif sys.platform in ['win32']:
+    pass
+# Linux
+elif sys.platform.startswith('linux'):
+    _TERMINAL = '/dev/tty'
+# Other OS
+else:
+    pass
 
 
 def class_name(obj):
@@ -57,3 +78,34 @@ def dump_json(obj, minified=True):
     else:
         return json.dumps(obj, indent=4, separators=(',', ': '),
                           sort_keys=True, ensure_ascii=False)
+
+
+def hl(text, bold=False, color='yellow'):
+    """
+    Returns highlighted text.
+    """
+    if not isinstance(text, six.text_type):
+        text = '{}'.format(text)
+    return click.style(text, fg=color, bold=bold)
+
+
+def term_print(text):
+    """
+    This directly prints to the process controlling terminal (if there is any).
+    It bypasses any output redirections, or closes stdout/stderr pipes.
+
+    This can be used eg for "admin messages", such as "node is shutting down now!"
+
+    This currently only works on Unix like systems (tested only on Linux).
+    When it cannot do so, it falls back to plain old print.
+    """
+    text = '{:<44}'.format(text)
+    if not text.endswith('\n'):
+        text += '\n'
+    text = click.style(text, fg='blue', bold=True)
+    if _TERMINAL:
+        with open('/dev/tty', 'w') as f:
+            f.write(text)
+            f.flush()
+    else:
+        print(text)

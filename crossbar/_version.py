@@ -28,19 +28,4 @@
 #
 #####################################################################################
 
-from __future__ import absolute_import
-
-#
-# Warning: one or more imports below will trigger a Twisted reactor
-# import on Windows!
-#
-from crossbar.controller.node import Node
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
-
-
-class Personality(object):
-
-    NodeKlass = Node
-    WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
+__version__ = u'18.5.1'

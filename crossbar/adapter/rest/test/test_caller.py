@@ -39,7 +39,7 @@ from autobahn.wamp import types, error
 from autobahn.wamp.exception import ApplicationError
 from autobahn.twisted.wamp import ApplicationSession
 
-from crossbar.worker.router import RouterRealm
+from crossbar.worker.types import RouterRealm
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.role import RouterRoleStaticAuth

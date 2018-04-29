@@ -38,7 +38,7 @@ from autobahn.wamp import message
 from autobahn.wamp import role
 from autobahn.wamp.exception import ProtocolError
 
-from crossbar.worker.router import RouterRealm
+from crossbar.worker.types import RouterRealm
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.session import RouterApplicationSession

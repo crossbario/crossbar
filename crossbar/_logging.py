@@ -78,8 +78,8 @@ except ImportError:
         LIGHTWHITE_EX = ""
     Fore = _Fore()
 
-STANDARD_FORMAT = u"{startcolour}{time} [{system}]{endcolour} {text}"
-SYSLOGD_FORMAT = u"{startcolour}[{system}]{endcolour} {text}"
+STANDARD_FORMAT = u"{startcolor}{time} [{system}]{endcolor} {text}"
+SYSLOGD_FORMAT = u"{startcolor}[{system}]{endcolor} {text}"
 NONE_FORMAT = u"{text}"
 
 # A regex that matches ANSI escape sequences
@@ -103,7 +103,7 @@ def escape_formatting(text):
 
 def make_stdout_observer(levels=(LogLevel.info,),
                          show_source=False, format="standard", trace=False,
-                         colour=False, _file=None, _categories=None):
+                         color=False, _file=None, _categories=None):
     """
     Create an observer which prints logs to L{sys.stdout}.
     """
@@ -146,8 +146,8 @@ def make_stdout_observer(levels=(LogLevel.info,),
         else:
             assert False
 
-        if colour:
-            # Choose a colour depending on where the log came from.
+        if color:
+            # Choose a color depending on where the log came from.
             if "Controller" in logSystem:
                 fore = Fore.BLUE
             elif "Router" in logSystem:
@@ -158,13 +158,13 @@ def make_stdout_observer(levels=(LogLevel.info,),
                 fore = Fore.WHITE
 
             eventString = FORMAT_STRING.format(
-                startcolour=fore, time=formatTime(event["log_time"]),
-                system=logSystem, endcolour=Fore.RESET,
+                startcolor=fore, time=formatTime(event["log_time"]),
+                system=logSystem, endcolor=Fore.RESET,
                 text=formatEvent(event))
         else:
             eventString = strip_ansi(FORMAT_STRING.format(
-                startcolour=u'', time=formatTime(event["log_time"]),
-                system=logSystem, endcolour=u'',
+                startcolor=u'', time=formatTime(event["log_time"]),
+                system=logSystem, endcolor=u'',
                 text=formatEvent(event)))
 
         print(eventString, file=_file)
@@ -175,7 +175,7 @@ def make_stdout_observer(levels=(LogLevel.info,),
 def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
                                  LogLevel.critical),
                          show_source=False, format="standard",
-                         colour=False, _file=None, _categories=None):
+                         color=False, _file=None, _categories=None):
     """
     Create an observer which prints logs to L{sys.stderr}.
     """
@@ -223,18 +223,18 @@ def make_stderr_observer(levels=(LogLevel.warn, LogLevel.error,
         else:
             assert False
 
-        if colour:
+        if color:
             # Errors are always red.
             fore = Fore.RED
 
             eventString = FORMAT_STRING.format(
-                startcolour=fore, time=formatTime(event["log_time"]),
-                system=logSystem, endcolour=Fore.RESET,
+                startcolor=fore, time=formatTime(event["log_time"]),
+                system=logSystem, endcolor=Fore.RESET,
                 text=eventText)
         else:
             eventString = strip_ansi(FORMAT_STRING.format(
-                startcolour=u'', time=formatTime(event["log_time"]),
-                system=logSystem, endcolour=u'',
+                startcolor=u'', time=formatTime(event["log_time"]),
+                system=logSystem, endcolor=u'',
                 text=eventText))
 
         print(eventString, file=_file)
@@ -339,8 +339,8 @@ def make_logfile_observer(path, show_source=False):
             eventText = eventText + event["log_failure"].getTraceback()
 
         eventString = strip_ansi(STANDARD_FORMAT.format(
-            startcolour=u'', time=formatTime(event["log_time"]),
-            system=logSystem, endcolour=u'',
+            startcolor=u'', time=formatTime(event["log_time"]),
+            system=logSystem, endcolor=u'',
             text=eventText)) + os.linesep
 
         return eventString
@@ -359,7 +359,7 @@ def color_json(json_str):
 
 class JSON(object):
     """
-    An object which encapsulates a JSON-dumpable item, and will colourise it
+    An object which encapsulates a JSON-dumpable item, and will colorise it
     when it is __str__'d.
     """
     def __init__(self, item):
