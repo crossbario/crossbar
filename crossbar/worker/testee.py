@@ -145,6 +145,10 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
     WORKER_TYPE = 'websocket-testee'
     WORKER_TITLE = u'WebSocket Testee'
 
+    def __init__(self, config=None, reactor=None, personality=None):
+        # base ctor
+        NativeWorkerSession.__init__(self, config=config, reactor=reactor, personality=personality)
+
     @inlineCallbacks
     def onJoin(self, details):
         """

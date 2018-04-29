@@ -109,8 +109,9 @@ class ContainerWorkerSession(NativeWorkerSession):
     SHUTDOWN_MANUAL = u'shutdown-manual'
     SHUTDOWN_ON_LAST_COMPONENT_STOPPED = u'shutdown-on-last-component-stopped'
 
-    def __init__(self, config=None, reactor=None):
-        NativeWorkerSession.__init__(self, config, reactor)
+    def __init__(self, config=None, reactor=None, personality=None):
+        # base ctor
+        NativeWorkerSession.__init__(self, config=config, reactor=reactor, personality=personality)
 
         # map: component ID -> ContainerComponent
         self.components = {}

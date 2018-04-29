@@ -49,7 +49,13 @@
                         "paths": {
                             "/": {
                                 "type": "static",
-                                "directory": "../web"
+                                "directory": "../web",
+                                "options": {
+                                    "enable_directory_listing": true
+                                }
+                            },
+                            "info": {
+                                "type": "nodeinfo"
                             }
                         }
                     }

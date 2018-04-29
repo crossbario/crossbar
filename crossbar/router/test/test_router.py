@@ -42,7 +42,7 @@ from autobahn.twisted.wamp import ApplicationSession
 
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
-from crossbar.worker.router import RouterRealm
+from crossbar.worker.types import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth
 
 

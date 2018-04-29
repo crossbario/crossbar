@@ -42,3 +42,4 @@ docs/_build
 requirements-latest.txt
 vers/
 .DS_Store
+_build
