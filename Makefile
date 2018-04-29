@@ -19,6 +19,7 @@ clean:
 	rm -rf ./_trial_temp
 	rm -rf ./.tox
 	rm -rf ./vers
+	rm -f .coverage.*
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
