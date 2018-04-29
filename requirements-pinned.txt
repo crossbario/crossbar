@@ -47,7 +47,7 @@ shutilwhich==1.1.0
 six==1.11.0
 sortedcontainers==1.5.10
 treq==17.8.0
-Twisted==17.9.0
+Twisted==18.4.0
 txaio==2.10.0
 txtorcon==0.20.0
 u-msgpack-python==2.5.0
