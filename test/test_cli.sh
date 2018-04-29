@@ -27,7 +27,7 @@ $CB init --appdir=$APPDIR
 find $APPDIR
 ( $CB start --cbdir=$CBDIR ) &
 sleep 2
-$CB status --cbdir=$CBDIR --assert=running
+$CB status --cbdir=$CBDIR --assertstate=running
 sleep 2
 $CB stop --cbdir=$CBDIR
-$CB status --cbdir=$CBDIR --assert=stopped
+$CB status --cbdir=$CBDIR --assertstate=stopped

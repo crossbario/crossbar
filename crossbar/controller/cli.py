@@ -482,23 +482,36 @@ def _run_command_status(options, **kwargs):
     """
     log = make_logger()
 
+    # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
+    # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
+    _EXIT_ERROR = getattr(os, 'EX_UNAVAILABLE', 1)
+
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
-    #
     pid_data = _check_is_running(options.cbdir)
+
+    # optional current state to assert
+    assertstate = options.assertstate
     if pid_data is None:
-        # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
-        # https://www.freebsd.org/cgi/man.cgi?query=sysexits&sektion=3
-        log.info("Status {status}: no Crossbar.io instance is currently running from node directory {cbdir}.",
-                 status=hl("STOPPED", color='red', bold=True), cbdir=options.cbdir)
-        if False:
-            sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
+        if assertstate == 'running':
+            log.error('Assert status RUNNING failed: status is {}'.format(hl('STOPPED', color='red', bold=True)))
+            sys.exit(_EXIT_ERROR)
+        elif assertstate == 'stopped':
+            log.info('Assert status STOPPED succeeded: status is {}'.format(hl('STOPPED', color='green', bold=True)))
+            sys.exit(0)
         else:
+            log.info('Status is {}'.format(hl('STOPPED', color='white', bold=True)))
             sys.exit(0)
     else:
-        log.info("Status {status}: a Crossbar.io instance is running from node directory {cbdir} (PID {pid}).",
-                 status=hl("RUNNING", color='green', bold=True), cbdir=options.cbdir, pid=pid_data['pid'])
-        sys.exit(0)
+        if assertstate == 'running':
+            log.info('Assert status RUNNING succeeded: status is {}'.format(hl('RUNNING', color='green', bold=True)))
+            sys.exit(0)
+        elif assertstate == 'stopped':
+            log.error('Assert status STOPPED failed: status is {}'.format(hl('RUNNING', color='red', bold=True)))
+            sys.exit(_EXIT_ERROR)
+        else:
+            log.info('Status is {}'.format(hl('RUNNING', color='white', bold=True)))
+            sys.exit(0)
 
 
 def _run_command_stop(options, exit=True, **kwargs):
@@ -1053,10 +1066,10 @@ def main(prog, args, reactor):
                                default=None,
                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_status.add_argument('--assert',
+    parser_status.add_argument('--assertstate',
                                type=six.text_type,
-                               default='none',
-                               choices=['running', 'stopped', 'none'],
+                               default=None,
+                               choices=['running', 'stopped'],
                                help=("If given, assert the node is in this state, otherwise exit with error."))
 
     parser_status.set_defaults(func=_run_command_status)
