@@ -53,6 +53,7 @@ from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
+from crossbar.common.key import _maybe_generate_key
 
 
 def _get_personalities():
@@ -423,26 +424,32 @@ def _run_command_keys(options, reactor=None, **kwargs):
     from crossbar.common.key import _read_node_key
     from crossbar.common.key import _read_release_key
 
-    # Release (public) key
-    release_pubkey = _read_release_key()
-
-    # Node key
-    node_key = _read_node_key(options.cbdir, private=options.private)
-
-    if options.private:
-        key_title = 'Crossbar.io Node PRIVATE Key'
+    if options.generate:
+        # Generate a new node key pair (2 files), load and check
+        _maybe_generate_key(options.cbdir)
     else:
-        key_title = 'Crossbar.io Node PUBLIC Key'
+        # Print keys
 
-    log.info('')
-    log.info('{key_title}', key_title=hl('Crossbar Software Release Key', color='yellow', bold=True))
-    log.info('base64: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
-    log.info(release_pubkey[u'qrcode'].strip())
-    log.info('')
-    log.info('{key_title}', key_title=hl(key_title, color='yellow', bold=True))
-    log.info('hex: {node_key}', node_key=node_key[u'hex'])
-    log.info(node_key[u'qrcode'].strip())
-    log.info('')
+        # Release (public) key
+        release_pubkey = _read_release_key()
+
+        # Node key
+        node_key = _read_node_key(options.cbdir, private=options.private)
+
+        if options.private:
+            key_title = 'Crossbar.io Node PRIVATE Key'
+        else:
+            key_title = 'Crossbar.io Node PUBLIC Key'
+
+        log.info('')
+        log.info('{key_title}', key_title=hl('Crossbar Software Release Key', color='yellow', bold=True))
+        log.info('base64: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
+        log.info(release_pubkey[u'qrcode'].strip())
+        log.info('')
+        log.info('{key_title}', key_title=hl(key_title, color='yellow', bold=True))
+        log.info('hex: {node_key}', node_key=node_key[u'hex'])
+        log.info(node_key[u'qrcode'].strip())
+        log.info('')
 
 
 def _run_command_init(options, **kwargs):
@@ -498,22 +505,22 @@ def _run_command_status(options, **kwargs):
     pid_data = _check_is_running(options.cbdir)
 
     # optional current state to assert
-    assertstate = options.assertstate
+    _assert = options.__dict__['assert']
     if pid_data is None:
-        if assertstate == 'running':
+        if _assert == 'running':
             log.error('Assert status RUNNING failed: status is {}'.format(hl('STOPPED', color='red', bold=True)))
             sys.exit(_EXIT_ERROR)
-        elif assertstate == 'stopped':
+        elif _assert == 'stopped':
             log.info('Assert status STOPPED succeeded: status is {}'.format(hl('STOPPED', color='green', bold=True)))
             sys.exit(0)
         else:
             log.info('Status is {}'.format(hl('STOPPED', color='white', bold=True)))
             sys.exit(0)
     else:
-        if assertstate == 'running':
+        if _assert == 'running':
             log.info('Assert status RUNNING succeeded: status is {}'.format(hl('RUNNING', color='green', bold=True)))
             sys.exit(0)
-        elif assertstate == 'stopped':
+        elif _assert == 'stopped':
             log.error('Assert status STOPPED failed: status is {}'.format(hl('RUNNING', color='red', bold=True)))
             sys.exit(_EXIT_ERROR)
         else:
@@ -703,23 +710,22 @@ def _run_command_start(options, reactor):
     Node = Personality.NodeKlass
     node = Node(Personality, options.cbdir, reactor=reactor)
 
-    # Print the banner.
+    # print the banner, personality and node directory
     #
     for line in Personality.BANNER.splitlines():
         log.info(hl(line, color='yellow', bold=True))
     log.info('')
+    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
+    log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
 
     # possibly generate new node key
     #
-    node.maybe_generate_key(options.cbdir)
-
-    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
-    log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
+    node.load_keys(options.cbdir)
 
     # check and load the node configuration
     #
     try:
-        node.load(options.config)
+        node.load_config(options.config)
     except InvalidConfigException as e:
         log.failure()
         log.error("Invalid node configuration")
@@ -785,7 +791,7 @@ def _run_command_start(options, reactor):
             # .. exits, signaling exit status _inside_ the result returned
             def on_shutdown_success(shutdown_info):
                 exit_info['was_clean'] = shutdown_info['was_clean']
-                term_print('on_shutdown_success: was_clean={}'.format(shutdown_info['was_clean']))
+                log.info('on_shutdown_success: was_clean={was_clean}', shutdown_info['was_clean'])
 
             # should not arrive here:
             def on_shutdown_error(err):
@@ -1059,7 +1065,7 @@ def main(prog, args, reactor):
                                default=None,
                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_status.add_argument('--assertstate',
+    parser_status.add_argument('--assert',
                                type=six.text_type,
                                default=None,
                                choices=['running', 'stopped'],
@@ -1145,6 +1151,11 @@ def main(prog, args, reactor):
     parser_keys = subparsers.add_parser('keys',
                                         help='Print Crossbar.io release and node key (public key part by default).')
 
+    parser_keys.add_argument('--generate',
+                             '-g',
+                             action='store_true',
+                             help='Generate a new node key pair if none exists, or loads/checks existing.')
+
     parser_keys.add_argument('--private',
                              '-p',
                              action='store_true',
@@ -1189,8 +1200,9 @@ def main(prog, args, reactor):
 
     # INTERNAL USE! start a worker (this is used by the controller to start worker processes
     # but cannot be used outside that context.
+    # argparse.SUPPRESS does not work here =( so we obfuscate the name to discourage use.
     #
-    parser_worker = subparsers.add_parser('start-worker', help='INTERNAL USE. This cannot be invoked directly.')  # argparse.SUPPRESS does not work here =(
+    parser_worker = subparsers.add_parser('_exec_worker', help='Program internal use.')
     parser_worker = process.get_argument_parser(parser_worker)
     parser_worker.set_defaults(func=process.run)
 

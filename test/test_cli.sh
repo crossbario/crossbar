@@ -31,6 +31,7 @@ echo 'CBDIRCBDIR='$CBDIR
 #
 $CB
 $CB version
+$CB version --loglevel=debug
 $CB legal
 
 
@@ -51,13 +52,13 @@ rm -rf $APPDIR
 $CB init --appdir=$APPDIR
 find $APPDIR
 $CB check --cbdir=$CBDIR
-$CB status --cbdir=$CBDIR --assertstate=stopped
+$CB status --cbdir=$CBDIR --assert=stopped
 ( $CB start --cbdir=$CBDIR ) &
 sleep 2
-$CB status --cbdir=$CBDIR --assertstate=running
+$CB status --cbdir=$CBDIR --assert=running
 sleep 2
 $CB stop --cbdir=$CBDIR
-$CB status --cbdir=$CBDIR --assertstate=stopped
+$CB status --cbdir=$CBDIR --assert=stopped
 
 
 # convert, check, start, status, stop
@@ -72,5 +73,5 @@ rm $CBDIR/config.json
 $CB check --cbdir=$CBDIR
 ( $CB start --cbdir=$CBDIR ) &
 sleep 2
-$CB status --cbdir=$CBDIR --assertstate=running
+$CB status --cbdir=$CBDIR --assert=running
 $CB stop --cbdir=$CBDIR
