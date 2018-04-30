@@ -375,8 +375,8 @@ def _run_command_version(options, reactor=None, **kwargs):
         txaioetcd_ver = '-'
 
     # Release Public Key
-    from crossbar.common.key import _read_release_pubkey
-    release_pubkey = _read_release_pubkey()
+    from crossbar.common.key import _read_release_key
+    release_pubkey = _read_release_key()
 
     def decorate(text, fg='white', bg=None, bold=True):
         return click.style(text, fg=fg, bg=bg, bold=bold)
@@ -420,23 +420,28 @@ def _run_command_keys(options, reactor=None, **kwargs):
     """
     log = make_logger()
 
-    from crossbar.common.key import _read_node_pubkey
-    from crossbar.common.key import _read_release_pubkey
+    from crossbar.common.key import _read_node_key
+    from crossbar.common.key import _read_release_key
 
     # Release (public) key
-    release_pubkey = _read_release_pubkey()
+    release_pubkey = _read_release_key()
 
-    # Node (public) key
-    node_pubkey = _read_node_pubkey(options.cbdir)
+    # Node key
+    node_key = _read_node_key(options.cbdir, private=options.private)
+
+    if options.private:
+        key_title = 'Crossbar.io Node PRIVATE Key'
+    else:
+        key_title = 'Crossbar.io Node PUBLIC Key'
 
     log.info('')
-    log.info('{key_title}', key_title=hl('Crossbar Release Key', color='yellow', bold=True))
+    log.info('{key_title}', key_title=hl('Crossbar Software Release Key', color='yellow', bold=True))
     log.info('base64: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
     log.info(release_pubkey[u'qrcode'].strip())
     log.info('')
-    log.info('{key_title}', key_title=hl('Crossbar Node Public Key', color='yellow', bold=True))
-    log.info('hex: {node_pubkey}', node_pubkey=node_pubkey[u'hex'])
-    log.info(node_pubkey[u'qrcode'].strip())
+    log.info('{key_title}', key_title=hl(key_title, color='yellow', bold=True))
+    log.info('hex: {node_key}', node_key=node_key[u'hex'])
+    log.info(node_key[u'qrcode'].strip())
     log.info('')
 
 
@@ -1125,19 +1130,25 @@ def main(prog, args, reactor):
 
     # "keygen" command
     #
-    parser_keygen = subparsers.add_parser(
-        'keygen',
-        help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
-    )
+    if False:
+        parser_keygen = subparsers.add_parser(
+            'keygen',
+            help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
+        )
 
-    parser_keygen.set_defaults(func=_run_command_keygen)
+        parser_keygen.set_defaults(func=_run_command_keygen)
 
-    _add_personality_argument(parser_keygen)
+        _add_personality_argument(parser_keygen)
 
     # "keys" command
     #
     parser_keys = subparsers.add_parser('keys',
-                                        help='Print Crossbar.io release and node keys.')
+                                        help='Print Crossbar.io release and node key (public key part by default).')
+
+    parser_keys.add_argument('--private',
+                             '-p',
+                             action='store_true',
+                             help='Print the node private key instead of the public key.')
 
     parser_keys.set_defaults(func=_run_command_keys)
 

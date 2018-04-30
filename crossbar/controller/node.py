@@ -46,7 +46,7 @@ from autobahn.util import utcnow
 from autobahn.wamp import cryptosign
 from autobahn.wamp.types import CallOptions, ComponentConfig
 
-from crossbar.common.key import _parse_keyfile, _machine_id, _creator, _write_node_key
+from crossbar.common.key import _parse_key_file, _machine_id, _creator, _write_node_key
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
@@ -144,7 +144,7 @@ class Node(object):
 
             # node private key seems to exist already .. check!
 
-            priv_tags = _parse_keyfile(privkey_path, private=True)
+            priv_tags = _parse_key_file(privkey_path, private=True)
             for tag in [u'creator', u'created-at', u'machine-id', u'public-key-ed25519', u'private-key-ed25519']:
                 if tag not in priv_tags:
                     raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
@@ -161,7 +161,7 @@ class Node(object):
                 )
 
             if os.path.exists(pubkey_path):
-                pub_tags = _parse_keyfile(pubkey_path, private=False)
+                pub_tags = _parse_key_file(pubkey_path, private=False)
                 for tag in [u'creator', u'created-at', u'machine-id', u'public-key-ed25519']:
                     if tag not in pub_tags:
                         raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))

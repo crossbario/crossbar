@@ -48,7 +48,7 @@ from twisted.python.runtime import platform
 import crossbar
 
 
-def _read_release_pubkey():
+def _read_release_key():
     release_pubkey_file = 'crossbar-{}.pub'.format('-'.join(crossbar.__version__.split('.')[0:2]))
     release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'keys'), release_pubkey_file)
 
@@ -68,7 +68,7 @@ def _read_release_pubkey():
     return release_pubkey
 
 
-def _parse_keyfile(key_path, private=True):
+def _parse_key_file(key_path, private=True):
     """
     Internal helper. This parses a node.pub or node.priv file and
     returns a dict mapping tags -> values.
@@ -99,41 +99,40 @@ def _parse_keyfile(key_path, private=True):
     return tags
 
 
-def _read_node_pubkey(cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
+def _read_node_key(cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub', private=False):
+    if private:
+        node_key_path = os.path.join(cbdir, privkey_path)
+    else:
+        node_key_path = os.path.join(cbdir, pubkey_path)
 
-    node_pubkey_path = os.path.join(cbdir, pubkey_path)
+    if not os.path.exists(node_key_path):
+        raise Exception('no node key file found at {}'.format(node_key_path))
 
-    if not os.path.exists(node_pubkey_path):
-        raise Exception('no node public key found at {}'.format(node_pubkey_path))
+    node_key_tags = _parse_key_file(node_key_path)
 
-    node_pubkey_tags = _parse_keyfile(node_pubkey_path)
+    if private:
+        node_key_hex = node_key_tags[u'private-key-ed25519']
+    else:
+        node_key_hex = node_key_tags[u'public-key-ed25519']
 
-    node_pubkey_hex = node_pubkey_tags[u'public-key-ed25519']
-
-    qr = pyqrcode.create(node_pubkey_hex, error='L', mode='binary')
-
+    qr = pyqrcode.create(node_key_hex, error='L', mode='binary')
     mode = 'text'
-
     if mode == 'text':
-        node_pubkey_qr = qr.terminal()
-
+        node_key_qr = qr.terminal()
     elif mode == 'svg':
         import io
         data_buffer = io.BytesIO()
-
         qr.svg(data_buffer, omithw=True)
-
-        node_pubkey_qr = data_buffer.getvalue()
-
+        node_key_qr = data_buffer.getvalue()
     else:
         raise Exception('logic error')
 
-    node_pubkey = {
-        u'hex': node_pubkey_hex,
-        u'qrcode': node_pubkey_qr
+    node_key = {
+        u'hex': node_key_hex,
+        u'qrcode': node_key_qr
     }
 
-    return node_pubkey
+    return node_key
 
 
 def _machine_id():

@@ -3,9 +3,17 @@
 #
 # test all crossbar CLI commands:
 #
-# init,start,stop,restart,status,check,convert,upgrade,keygen,keys,version,legal
+#   * init
+#   * start
+#   * stop
+#   * status
+#   * check
+#   * convert
+#   * upgrade
+#   * keys
+#   * version
+#   * legal
 #
-# FIXME: add tests for commands "keygen"
 
 OLDCWD=$(pwd)
 PERSONALITY=standalone
@@ -19,8 +27,9 @@ echo 'CB='$CB
 echo 'APPDIR='$APPDIR
 echo 'CBDIRCBDIR='$CBDIR
 
-# version, legal
+# "usage" (no command given), version, legal
 #
+$CB
 $CB version
 $CB legal
 
@@ -33,6 +42,7 @@ mkdir -p $CBDIR
 sleep 2
 $CB stop --cbdir=$CBDIR
 $CB keys --cbdir=$CBDIR
+$CB keys --private --cbdir=$CBDIR
 
 
 # init, check, start (from default initialized node directory), status, stop
