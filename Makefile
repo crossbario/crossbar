@@ -29,8 +29,9 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
+# build documentation
 docs:
-	python docs/test_server.py
+	sphinx-build -b html ./docs ./docs/_build
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
 freeze: clean
