@@ -1,0 +1,5 @@
+/* https://stackoverflow.com/a/33626140/884770 */
+.wy-nav-content {
+    /* max-width: none; */
+    max-width: 1200px !important;
+}
