@@ -59,8 +59,10 @@ from crossbar.twisted.sharedport import SharedPort, SharedTLSPort
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \
         SSL4ClientEndpoint
+    # import OpenSSL
     from OpenSSL import crypto
-    from OpenSSL.SSL import OP_NO_SSLv3, OP_NO_TLSv1
+    # from OpenSSL.SSL import OP_NO_SSLv3, OP_NO_TLSv1
+    from twisted.internet._sslverify import TLSVersion
     from twisted.internet.interfaces import ISSLTransport
 
     _HAS_TLS = True
@@ -224,15 +226,23 @@ def _create_tls_server_context(config, cbdir, log):
         dhParameters=dh_params,
         acceptableCiphers=crossbar_ciphers,
 
+        # Disable SSLv3 and TLSv1 -- only allow TLSv1.1 or higher
+        #
+        # We are using Twisted private stuff (from twisted.internet._sslverify import TLSVersion),
+        # as OpenSSL.SSL.TLSv1_1_METHOD wont work:
+        #
+        # [ERROR] File "../twisted/internet/_sslverify.py", line 1530, in __init__
+        #    if raiseMinimumTo > self._defaultMinimumTLSVersion:
+        #       builtins.TypeError: '>' not supported between instances of 'int' and 'NamedConstant'
+        #
+        raiseMinimumTo=TLSVersion.TLSv1_1,
+
         # TLS hardening
         enableSingleUseKeys=True,
         enableSessions=False,
         enableSessionTickets=False,
         fixBrokenPeers=False,
     )
-
-    # Disable SSLv3 and TLSv1 -- only do 1.1+
-    ctx._options = ctx._options | OP_NO_SSLv3 | OP_NO_TLSv1
 
     # Without a curve being set, ECDH won't be available even if listed
     # in acceptable ciphers!
@@ -254,13 +264,16 @@ def _create_tls_server_context(config, cbdir, log):
     #
     # https://twitter.com/hyperelliptic/status/394258454342148096
     #
-    if ctx._ecCurve is None:
-        log.warn("No OpenSSL elliptic curve set - EC cipher modes will be deactive!")
-    else:
-        if ctx._ecCurve.snName != "prime256v1":
-            log.info("OpenSSL is using elliptic curve {curve}", curve=ctx._ecCurve.snName)
+    if False:
+        # FIXME: this doesn't work anymore with Twisted 18.4. (there now seems more complex machinery
+        # in self._ecChooser)
+        if ctx._ecCurve is None:
+            log.warn("No OpenSSL elliptic curve set - EC cipher modes will be deactive!")
         else:
-            log.info("OpenSSL is using elliptic curve prime256v1 (NIST P-256)")
+            if ctx._ecCurve.snName != "prime256v1":
+                log.info("OpenSSL is using elliptic curve {curve}", curve=ctx._ecCurve.snName)
+            else:
+                log.info("OpenSSL is using elliptic curve prime256v1 (NIST P-256)")
 
     return ctx
 

@@ -29,8 +29,9 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
+# build documentation
 docs:
-	python docs/test_server.py
+	sphinx-build -b html ./docs ./docs/_build
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
 freeze: clean
@@ -72,15 +73,14 @@ publish: clean
 test: flake8
 	trial crossbar
 
-test_quick:
-	tox -e flake8,py36-abtrunk-trial
+test_tox:
+	tox -e flake8,py36-unpinned-trial,py36-cli .
 
 test_cli:
 	./test/test_cli.sh
 
 test_cli_tox:
 	tox -e py36-cli .
-
 
 test_mqtt:
 #	trial crossbar.adapter.mqtt.test.test_wamp

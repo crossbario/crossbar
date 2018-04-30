@@ -31,10 +31,6 @@
 from __future__ import absolute_import
 
 import os
-from collections import OrderedDict
-
-from nacl.signing import SigningKey
-from nacl.encoding import HexEncoder
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
@@ -42,16 +38,14 @@ from twisted.python.reflect import qual
 
 from txaio import make_logger
 
-from autobahn.util import utcnow
-from autobahn.wamp import cryptosign
 from autobahn.wamp.types import CallOptions, ComponentConfig
 
-from crossbar.common.key import _parse_keyfile, _machine_id, _creator, _write_node_key
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
 from crossbar.worker.types import RouterRealm
 from crossbar.common import checkconfig
+from crossbar.common.key import _maybe_generate_key
 from crossbar.controller.process import NodeControllerSession
 
 
@@ -135,100 +129,12 @@ class Node(object):
         self._transport_no = 1
         self._component_no = 1
 
-    def maybe_generate_key(self, cbdir, privkey_path=u'key.priv', pubkey_path=u'key.pub'):
+    def load_keys(self, cbdir):
+        """
+        """
+        self._node_key = _maybe_generate_key(cbdir)
 
-        privkey_path = os.path.join(cbdir, privkey_path)
-        pubkey_path = os.path.join(cbdir, pubkey_path)
-
-        if os.path.exists(privkey_path):
-
-            # node private key seems to exist already .. check!
-
-            priv_tags = _parse_keyfile(privkey_path, private=True)
-            for tag in [u'creator', u'created-at', u'machine-id', u'public-key-ed25519', u'private-key-ed25519']:
-                if tag not in priv_tags:
-                    raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
-
-            privkey_hex = priv_tags[u'private-key-ed25519']
-            privkey = SigningKey(privkey_hex, encoder=HexEncoder)
-            pubkey = privkey.verify_key
-            pubkey_hex = pubkey.encode(encoder=HexEncoder).decode('ascii')
-
-            if priv_tags[u'public-key-ed25519'] != pubkey_hex:
-                raise Exception(
-                    ("Inconsistent node private key file {} - public-key-ed25519 doesn't"
-                     " correspond to private-key-ed25519").format(pubkey_path)
-                )
-
-            if os.path.exists(pubkey_path):
-                pub_tags = _parse_keyfile(pubkey_path, private=False)
-                for tag in [u'creator', u'created-at', u'machine-id', u'public-key-ed25519']:
-                    if tag not in pub_tags:
-                        raise Exception("Corrupt node public key file {} - {} tag not found".format(pubkey_path, tag))
-
-                if pub_tags[u'public-key-ed25519'] != pubkey_hex:
-                    raise Exception(
-                        ("Inconsistent node public key file {} - public-key-ed25519 doesn't"
-                         " correspond to private-key-ed25519").format(pubkey_path)
-                    )
-            else:
-                self.log.info(
-                    "Node public key file {pub_path} not found - re-creating from node private key file {priv_path}",
-                    pub_path=pubkey_path,
-                    priv_path=privkey_path,
-                )
-                pub_tags = OrderedDict([
-                    (u'creator', priv_tags[u'creator']),
-                    (u'created-at', priv_tags[u'created-at']),
-                    (u'machine-id', priv_tags[u'machine-id']),
-                    (u'public-key-ed25519', pubkey_hex),
-                ])
-                msg = u'Crossbar.io node public key\n\n'
-                _write_node_key(pubkey_path, pub_tags, msg)
-
-            self.log.debug("Node key already exists (public key: {hex})", hex=pubkey_hex)
-
-        else:
-            # node private key does not yet exist: generate one
-
-            privkey = SigningKey.generate()
-            privkey_hex = privkey.encode(encoder=HexEncoder).decode('ascii')
-            pubkey = privkey.verify_key
-            pubkey_hex = pubkey.encode(encoder=HexEncoder).decode('ascii')
-
-            # first, write the public file
-            tags = OrderedDict([
-                (u'creator', _creator()),
-                (u'created-at', utcnow()),
-                (u'machine-id', _machine_id()),
-                (u'public-key-ed25519', pubkey_hex),
-            ])
-            msg = u'Crossbar.io node public key\n\n'
-            _write_node_key(pubkey_path, tags, msg)
-
-            # now, add the private key and write the private file
-            tags[u'private-key-ed25519'] = privkey_hex
-            msg = u'Crossbar.io node private key - KEEP THIS SAFE!\n\n'
-            _write_node_key(privkey_path, tags, msg)
-
-            self.log.info("New node key pair generated!")
-
-        # fix file permissions on node public/private key files
-        # note: we use decimals instead of octals as octal literals have changed between Py2/3
-        #
-        if os.stat(pubkey_path).st_mode & 511 != 420:  # 420 (decimal) == 0644 (octal)
-            os.chmod(pubkey_path, 420)
-            self.log.info("File permissions on node public key fixed!")
-
-        if os.stat(privkey_path).st_mode & 511 != 384:  # 384 (decimal) == 0600 (octal)
-            os.chmod(privkey_path, 384)
-            self.log.info("File permissions on node private key fixed!")
-
-        self._node_key = cryptosign.SigningKey(privkey)
-
-        return pubkey_hex
-
-    def load(self, configfile=None):
+    def load_config(self, configfile=None):
         """
         Check and load the node configuration (usually, from ".crossbar/config.json")
         or load built-in empty config.
