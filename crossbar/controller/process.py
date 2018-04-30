@@ -428,16 +428,17 @@ class NodeControllerSession(NativeProcessSession):
         # assemble command line for forking the worker
         #
         # all native workers (routers and containers for now) start
-        # from the same script in crossbar/worker/process.py
+        # from the same script in crossbar/worker/process.py or
+        # from the command "crossbar _exec_worker" when crossbar is
+        # running from a frozen executable (single-file, pyinstaller, etc)
         #
-
-        # We are probably inside a single crossbar binary
         if getattr(sys, 'frozen', False):
-            args = [exe, "start-worker"]
+            # if we are probably inside a frozen crossbar executable, we need to actually
+            # invoke the crossbar executable with a command ("_exec_worker")
+            args = [exe, "_exec_worker"]
         else:
             # we are invoking via "-m" so that .pyc files, __pycache__
-            # etc work properly.
-            #
+            # etc work properly. this works everywhere, but frozen executables
             args = [exe, "-u", "-m", "crossbar.worker.process"]
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--node", str(self._node._node_id)])

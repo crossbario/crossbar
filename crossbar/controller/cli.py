@@ -53,6 +53,7 @@ from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
+from crossbar.common.key import _maybe_generate_key
 
 
 def _get_personalities():
@@ -375,8 +376,8 @@ def _run_command_version(options, reactor=None, **kwargs):
         txaioetcd_ver = '-'
 
     # Release Public Key
-    from crossbar.common.key import _read_release_pubkey
-    release_pubkey = _read_release_pubkey()
+    from crossbar.common.key import _read_release_key
+    release_pubkey = _read_release_key()
 
     def decorate(text, fg='white', bg=None, bold=True):
         return click.style(text, fg=fg, bg=bg, bold=bold)
@@ -420,22 +421,35 @@ def _run_command_keys(options, reactor=None, **kwargs):
     """
     log = make_logger()
 
-    from crossbar.common.key import _read_node_pubkey
-    from crossbar.common.key import _read_release_pubkey
+    from crossbar.common.key import _read_node_key
+    from crossbar.common.key import _read_release_key
 
-    # Release (public) key
-    release_pubkey = _read_release_pubkey()
+    if options.generate:
+        # Generate a new node key pair (2 files), load and check
+        _maybe_generate_key(options.cbdir)
+    else:
+        # Print keys
 
-    # Node (public) key
-    node_pubkey = _read_node_pubkey(options.cbdir)
+        # Release (public) key
+        release_pubkey = _read_release_key()
 
-    log.info(release_pubkey[u'qrcode'])
-    log.info('   Release key: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
-    log.info('')
+        # Node key
+        node_key = _read_node_key(options.cbdir, private=options.private)
 
-    log.info(node_pubkey[u'qrcode'])
-    log.info('   Node key: {node_pubkey}', node_pubkey=node_pubkey[u'hex'])
-    log.info('')
+        if options.private:
+            key_title = 'Crossbar.io Node PRIVATE Key'
+        else:
+            key_title = 'Crossbar.io Node PUBLIC Key'
+
+        log.info('')
+        log.info('{key_title}', key_title=hl('Crossbar Software Release Key', color='yellow', bold=True))
+        log.info('base64: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
+        log.info(release_pubkey[u'qrcode'].strip())
+        log.info('')
+        log.info('{key_title}', key_title=hl(key_title, color='yellow', bold=True))
+        log.info('hex: {node_key}', node_key=node_key[u'hex'])
+        log.info(node_key[u'qrcode'].strip())
+        log.info('')
 
 
 def _run_command_init(options, **kwargs):
@@ -491,22 +505,22 @@ def _run_command_status(options, **kwargs):
     pid_data = _check_is_running(options.cbdir)
 
     # optional current state to assert
-    assertstate = options.assertstate
+    _assert = options.__dict__['assert']
     if pid_data is None:
-        if assertstate == 'running':
+        if _assert == 'running':
             log.error('Assert status RUNNING failed: status is {}'.format(hl('STOPPED', color='red', bold=True)))
             sys.exit(_EXIT_ERROR)
-        elif assertstate == 'stopped':
+        elif _assert == 'stopped':
             log.info('Assert status STOPPED succeeded: status is {}'.format(hl('STOPPED', color='green', bold=True)))
             sys.exit(0)
         else:
             log.info('Status is {}'.format(hl('STOPPED', color='white', bold=True)))
             sys.exit(0)
     else:
-        if assertstate == 'running':
+        if _assert == 'running':
             log.info('Assert status RUNNING succeeded: status is {}'.format(hl('RUNNING', color='green', bold=True)))
             sys.exit(0)
-        elif assertstate == 'stopped':
+        elif _assert == 'stopped':
             log.error('Assert status STOPPED failed: status is {}'.format(hl('RUNNING', color='red', bold=True)))
             sys.exit(_EXIT_ERROR)
         else:
@@ -696,23 +710,22 @@ def _run_command_start(options, reactor):
     Node = Personality.NodeKlass
     node = Node(Personality, options.cbdir, reactor=reactor)
 
-    # Print the banner.
+    # print the banner, personality and node directory
     #
     for line in Personality.BANNER.splitlines():
         log.info(hl(line, color='yellow', bold=True))
     log.info('')
+    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
+    log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
 
     # possibly generate new node key
     #
-    node.maybe_generate_key(options.cbdir)
-
-    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
-    log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
+    node.load_keys(options.cbdir)
 
     # check and load the node configuration
     #
     try:
-        node.load(options.config)
+        node.load_config(options.config)
     except InvalidConfigException as e:
         log.failure()
         log.error("Invalid node configuration")
@@ -778,7 +791,7 @@ def _run_command_start(options, reactor):
             # .. exits, signaling exit status _inside_ the result returned
             def on_shutdown_success(shutdown_info):
                 exit_info['was_clean'] = shutdown_info['was_clean']
-                term_print('on_shutdown_success: was_clean={}'.format(shutdown_info['was_clean']))
+                log.info('on_shutdown_success: was_clean={was_clean}', shutdown_info['was_clean'])
 
             # should not arrive here:
             def on_shutdown_error(err):
@@ -820,19 +833,6 @@ def _run_command_start(options, reactor):
     else:
         term_print('<CROSSBAR:EXIT_WITH_INTERNAL_ERROR>')
         sys.exit(1)
-
-
-def _run_command_restart(options, **kwargs):
-    """
-    Subcommand "crossbar restart".
-    """
-    pid_data = _run_command_stop(options, exit=False)
-    prog = pid_data['argv'][0]
-    # remove first item, which is the (fully qualified) path to Python
-    args = pid_data['argv'][1:]
-    # replace 'restart' with 'start'
-    args = [(lambda x: x if x != 'restart' else 'start')(x) for x in args]
-    main(prog, args)
 
 
 def _run_command_check(options, **kwargs):
@@ -928,6 +928,14 @@ _HELP_PERSONALITIES = """Software personality to use:
 """
 
 
+def _add_personality_argument(parser):
+    parser.add_argument('--personality',
+                        type=six.text_type,
+                        default=_DEFAULT_PERSONALITY,
+                        choices=sorted(_INSTALLED_PERSONALITIES.keys()) + ['community'],
+                        help=(_HELP_PERSONALITIES))
+
+
 def main(prog, args, reactor):
     """
     Entry point of Crossbar.io CLI.
@@ -946,14 +954,7 @@ def main(prog, args, reactor):
     #
     parser = argparse.ArgumentParser(prog=prog or 'crossbar', description=_HELP_DESCRIPTION)
 
-    # top-level options (reactor is no longer one of those! can only be overridden via
-    # the CROSSBAR_REACTOR env var.
-    #
-    parser.add_argument('--personality',
-                        type=six.text_type,
-                        default=_DEFAULT_PERSONALITY,
-                        choices=sorted(_INSTALLED_PERSONALITIES.keys()),
-                        help=(_HELP_PERSONALITIES))
+    _add_personality_argument(parser)
 
     # create subcommand parser
     #
@@ -988,6 +989,8 @@ def main(prog, args, reactor):
 
     parser_init.set_defaults(func=_run_command_init)
 
+    _add_personality_argument(parser_init)
+
     parser_init.add_argument('--appdir',
                              type=six.text_type,
                              default=None,
@@ -999,6 +1002,8 @@ def main(prog, args, reactor):
                                          help='Start a Crossbar.io node.')
 
     parser_start.set_defaults(func=_run_command_start)
+
+    _add_personality_argument(parser_start)
 
     parser_start.add_argument('--cbdir',
                               type=six.text_type,
@@ -1037,53 +1042,49 @@ def main(prog, args, reactor):
     parser_stop = subparsers.add_parser('stop',
                                         help='Stop a Crossbar.io node.')
 
+    parser_stop.set_defaults(func=_run_command_stop)
+
+    _add_personality_argument(parser_stop)
+
     parser_stop.add_argument('--cbdir',
                              type=six.text_type,
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_stop.set_defaults(func=_run_command_stop)
-
-    # "restart" command
-    #
-    parser_restart = subparsers.add_parser('restart',
-                                           help='Restart a Crossbar.io node.')
-
-    parser_restart.add_argument('--cbdir',
-                                type=six.text_type,
-                                default=None,
-                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_restart.set_defaults(func=_run_command_restart)
 
     # "status" command
     #
     parser_status = subparsers.add_parser('status',
                                           help='Checks whether a Crossbar.io node is running.')
 
+    parser_status.set_defaults(func=_run_command_status)
+
+    _add_personality_argument(parser_status)
+
     parser_status.add_argument('--cbdir',
                                type=six.text_type,
                                default=None,
                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_status.add_argument('--assertstate',
+    parser_status.add_argument('--assert',
                                type=six.text_type,
                                default=None,
                                choices=['running', 'stopped'],
                                help=("If given, assert the node is in this state, otherwise exit with error."))
-
-    parser_status.set_defaults(func=_run_command_status)
 
     # "check" command
     #
     parser_check = subparsers.add_parser('check',
                                          help='Check a Crossbar.io node`s local configuration file.')
 
+    parser_check.set_defaults(func=_run_command_check)
+
+    _add_personality_argument(parser_check)
+
     parser_check.add_argument('--loglevel',
                               **log_level_args)
+
     parser_check.add_argument('--color',
                               **color_args)
-    parser_check.set_defaults(func=_run_command_check)
 
     parser_check.add_argument('--cbdir',
                               type=six.text_type,
@@ -1097,52 +1098,72 @@ def main(prog, args, reactor):
 
     # "convert" command
     #
-    parser_check = subparsers.add_parser('convert',
-                                         help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
+    parser_convert = subparsers.add_parser('convert',
+                                           help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
-    parser_check.set_defaults(func=_run_command_convert)
+    parser_convert.set_defaults(func=_run_command_convert)
 
-    parser_check.add_argument('--cbdir',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+    _add_personality_argument(parser_convert)
 
-    parser_check.add_argument('--config',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+    parser_convert.add_argument('--cbdir',
+                                type=six.text_type,
+                                default=None,
+                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser_convert.add_argument('--config',
+                                type=six.text_type,
+                                default=None,
+                                help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
     # "upgrade" command
     #
-    parser_check = subparsers.add_parser('upgrade',
-                                         help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
+    parser_upgrade = subparsers.add_parser('upgrade',
+                                           help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
 
-    parser_check.set_defaults(func=_run_command_upgrade)
+    parser_upgrade.set_defaults(func=_run_command_upgrade)
 
-    parser_check.add_argument('--cbdir',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+    _add_personality_argument(parser_upgrade)
 
-    parser_check.add_argument('--config',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+    parser_upgrade.add_argument('--cbdir',
+                                type=six.text_type,
+                                default=None,
+                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser_upgrade.add_argument('--config',
+                                type=six.text_type,
+                                default=None,
+                                help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
     # "keygen" command
     #
-    help_text = 'Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
-    parser_keygen = subparsers.add_parser(
-        'keygen',
-        help=help_text,
-        description=help_text,
-    )
-    parser_keygen.set_defaults(func=_run_command_keygen)
+    if False:
+        parser_keygen = subparsers.add_parser(
+            'keygen',
+            help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
+        )
+
+        parser_keygen.set_defaults(func=_run_command_keygen)
+
+        _add_personality_argument(parser_keygen)
 
     # "keys" command
     #
     parser_keys = subparsers.add_parser('keys',
-                                        help='Print Crossbar.io release and node keys.')
+                                        help='Print Crossbar.io release and node key (public key part by default).')
+
+    parser_keys.add_argument('--generate',
+                             '-g',
+                             action='store_true',
+                             help='Generate a new node key pair if none exists, or loads/checks existing.')
+
+    parser_keys.add_argument('--private',
+                             '-p',
+                             action='store_true',
+                             help='Print the node private key instead of the public key.')
+
+    parser_keys.set_defaults(func=_run_command_keys)
+
+    _add_personality_argument(parser_keys)
 
     parser_keys.add_argument('--cbdir',
                              type=six.text_type,
@@ -1154,19 +1175,19 @@ def main(prog, args, reactor):
     parser_keys.add_argument('--color',
                              **color_args)
 
-    parser_keys.set_defaults(func=_run_command_keys)
-
     # "version" command
     #
     parser_version = subparsers.add_parser('version',
                                            help='Print software versions.')
 
+    parser_version.set_defaults(func=_run_command_version)
+
+    _add_personality_argument(parser_version)
+
     parser_version.add_argument('--loglevel',
                                 **log_level_args)
     parser_version.add_argument('--color',
                                 **color_args)
-
-    parser_version.set_defaults(func=_run_command_version)
 
     # "legal" command
     #
@@ -1175,12 +1196,14 @@ def main(prog, args, reactor):
 
     parser_legal.set_defaults(func=_run_command_legal)
 
+    _add_personality_argument(parser_legal)
+
     # INTERNAL USE! start a worker (this is used by the controller to start worker processes
     # but cannot be used outside that context.
+    # argparse.SUPPRESS does not work here =( so we obfuscate the name to discourage use.
     #
-    parser_worker = subparsers.add_parser('start-worker', help='INTERNAL USE. This cannot be invoked directly.')  # argparse.SUPPRESS does not work here =(
+    parser_worker = subparsers.add_parser('_exec_worker', help='Program internal use.')
     parser_worker = process.get_argument_parser(parser_worker)
-
     parser_worker.set_defaults(func=process.run)
 
     # #############################################################
@@ -1192,6 +1215,12 @@ def main(prog, args, reactor):
         options.argv = [prog] + args
     else:
         options.argv = sys.argv
+
+    # backward compat for personality name "community": renamed to "standalone"
+    #
+    if options.personality == 'community':
+        options.personality = 'standalone'
+        print('Personality name "community" deprecated: please use "standalone" (automatically selected now)')
 
     # colored logging does not work on Windows, so overwrite it!
     #
