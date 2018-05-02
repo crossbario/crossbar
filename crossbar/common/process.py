@@ -65,7 +65,6 @@ from txaio import make_logger
 
 from twisted.cred import checkers, portal
 
-from crossbar.common import checkconfig
 from crossbar.common.checkconfig import get_config_value
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
@@ -355,7 +354,7 @@ class NativeProcessSession(ApplicationSession):
         # check configuration
         #
         try:
-            checkconfig.check_connection(config)
+            self.personality.check_connection(self.personality, config)
         except Exception as e:
             emsg = "invalid connection configuration ({})".format(e)
             self.log.warn(emsg)
@@ -639,7 +638,7 @@ class NativeProcessSession(ApplicationSession):
             raise ApplicationError(u"crossbar.error.already_started", emsg)
 
         try:
-            checkconfig.check_manhole(config)
+            self.personality.check_manhole(self.personality, config)
         except Exception as e:
             emsg = "Could not start manhole: invalid configuration ({})".format(e)
             self.log.error(emsg)

@@ -51,7 +51,6 @@ from crossbar.router.router import RouterFactory
 
 from crossbar.worker import _appsession_loader
 from crossbar.worker.worker import NativeWorkerSession
-from crossbar.common import checkconfig
 
 
 __all__ = ('RouterWorkerSession',)
@@ -190,7 +189,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            checkconfig.check_router_realm(realm_config)
+            self.personality.checkconfig.check_router_realm(self.personality, realm_config)
         except Exception as e:
             emsg = "Invalid router realm configuration: {}".format(e)
             self.log.error(emsg)
@@ -468,7 +467,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            checkconfig.check_router_component(config)
+            self.personality.checkconfig.check_router_component(self.personality, config)
         except Exception as e:
             emsg = "Invalid router component configuration: {}".format(e)
             self.log.error(emsg)

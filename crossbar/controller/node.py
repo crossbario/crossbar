@@ -44,7 +44,7 @@ from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
 from crossbar.worker.types import RouterRealm
-from crossbar.common import checkconfig
+from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT
 from crossbar.common.key import _maybe_generate_key
 from crossbar.controller.process import NodeControllerSession
 
@@ -113,7 +113,7 @@ class Node(object):
         self._controller = None
 
         # node shutdown triggers, one or more of checkconfig.NODE_SHUTDOWN_MODES
-        self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
+        self._node_shutdown_triggers = [NODE_SHUTDOWN_ON_WORKER_EXIT]
 
         # will be filled with a Deferred in start(). the Deferred will fire when
         # the node has shut down, and the result signals if shutdown was clean
@@ -148,7 +148,7 @@ class Node(object):
             # the following will read the config, check the config and replace
             # environment variable references in configuration values ("${MYVAR}") and
             # finally return the parsed configuration object
-            self._config = checkconfig.check_config_file(configpath, self._native_workers)
+            self._config = self.personality.check_config_file(self.personality, configpath)
 
             self.log.info('Node configuration loaded from "{configpath}"',
                           configpath=configpath)
@@ -158,7 +158,7 @@ class Node(object):
                 u'controller': {},
                 u'workers': []
             }
-            checkconfig.check_config(self._config, self._native_workers)
+            self.personality.check_config(self.personality, self._config)
             self.log.info('Node configuration loaded from built-in config.')
 
     def _add_global_roles(self):
@@ -220,7 +220,7 @@ class Node(object):
             self._node_shutdown_triggers = controller_options['shutdown']
             self.log.info("Using node shutdown triggers {triggers} from configuration", triggers=self._node_shutdown_triggers)
         else:
-            self._node_shutdown_triggers = [checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT]
+            self._node_shutdown_triggers = [NODE_SHUTDOWN_ON_WORKER_EXIT]
             self.log.info("Using default node shutdown triggers {triggers}", triggers=self._node_shutdown_triggers)
 
     @inlineCallbacks

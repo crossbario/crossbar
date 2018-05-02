@@ -97,8 +97,7 @@ from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
 
 from crossbar.controller.template import Templates
-from crossbar.common.checkconfig import check_config_file, \
-    color_json, convert_config_file, upgrade_config_file, InvalidConfigException
+from crossbar.common.checkconfig import color_json, InvalidConfigException
 from crossbar.worker import process
 
 try:
@@ -253,8 +252,8 @@ def _run_command_legal(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar legal".
     """
-    Personality = _INSTALLED_PERSONALITIES[options.personality]
-    package, resource_name = Personality.LEGAL
+    personality = _INSTALLED_PERSONALITIES[options.personality]
+    package, resource_name = personality.LEGAL
     filename = pkg_resources.resource_filename(package, resource_name)
     filepath = os.path.abspath(filename)
     with open(filepath) as f:
@@ -266,6 +265,8 @@ def _run_command_version(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar version".
     """
+    personality = _INSTALLED_PERSONALITIES[options.personality]
+
     log = make_logger()
 
     # Python
@@ -382,9 +383,7 @@ def _run_command_version(options, reactor=None, **kwargs):
     def decorate(text, fg='white', bg=None, bold=True):
         return click.style(text, fg=fg, bg=bg, bold=bold)
 
-    Personality = _INSTALLED_PERSONALITIES[options.personality]
-
-    log.info(hl(Personality.BANNER, color='yellow', bold=True))
+    log.info(hl(personality.BANNER, color='yellow', bold=True))
     pad = " " * 22
     log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
     log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
@@ -419,6 +418,8 @@ def _run_command_keys(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar keys".
     """
+    # personality = _INSTALLED_PERSONALITIES[options.personality]
+
     log = make_logger()
 
     from crossbar.common.key import _read_node_key
@@ -456,6 +457,8 @@ def _run_command_init(options, **kwargs):
     """
     Subcommand "crossbar init".
     """
+    # personality = _INSTALLED_PERSONALITIES[options.personality]
+
     log = make_logger()
 
     template = 'default'
@@ -494,6 +497,8 @@ def _run_command_status(options, **kwargs):
     """
     Subcommand "crossbar status".
     """
+    # personality = _INSTALLED_PERSONALITIES[options.personality]
+
     log = make_logger()
 
     # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
@@ -532,6 +537,8 @@ def _run_command_stop(options, exit=True, **kwargs):
     """
     Subcommand "crossbar stop".
     """
+    # personality = _INSTALLED_PERSONALITIES[options.personality]
+
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
     #
@@ -839,7 +846,7 @@ def _run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
-    from crossbar.personality import default_native_workers
+    personality = _INSTALLED_PERSONALITIES[options.personality]
 
     configfile = os.path.join(options.cbdir, options.config)
 
@@ -847,7 +854,7 @@ def _run_command_check(options, **kwargs):
 
     try:
         print("Checking local node configuration file: {}".format(configfile))
-        config = check_config_file(configfile, default_native_workers())
+        config = personality.check_config_file(personality, configfile)
     except Exception as e:
         print("Error: {}".format(e))
         sys.exit(1)
@@ -872,12 +879,14 @@ def _run_command_convert(options, **kwargs):
     """
     Subcommand "crossbar convert".
     """
+    personality = _INSTALLED_PERSONALITIES[options.personality]
+
     configfile = os.path.join(options.cbdir, options.config)
 
     print("Converting local configuration file {}".format(configfile))
 
     try:
-        convert_config_file(configfile)
+        personality.convert_config_file(personality, configfile)
     except Exception as e:
         print("\nError: {}\n".format(e))
         sys.exit(1)
@@ -889,12 +898,14 @@ def _run_command_upgrade(options, **kwargs):
     """
     Subcommand "crossbar upgrade".
     """
+    personality = _INSTALLED_PERSONALITIES[options.personality]
+
     configfile = os.path.join(options.cbdir, options.config)
 
     print("Upgrading local configuration file {}".format(configfile))
 
     try:
-        upgrade_config_file(configfile)
+        personality.upgrade_config_file(personality, configfile)
     except Exception as e:
         print("\nError: {}\n".format(e))
         sys.exit(1)

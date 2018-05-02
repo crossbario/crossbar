@@ -37,7 +37,6 @@ from autobahn.wamp import ApplicationError
 import crossbar
 import twisted
 from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
-from crossbar.common import checkconfig
 from crossbar.router.protocol import WampRawSocketServerFactory, WampWebSocketServerFactory
 from crossbar.router.unisocket import UniSocketServerFactory
 from crossbar.twisted.endpoint import create_listening_port_from_config
@@ -136,7 +135,7 @@ def create_transport_from_config(personality, reactor, name, config, cbdir, log,
     # check configuration
     #
     try:
-        checkconfig.check_router_transport(config)
+        personality.check_router_transport(personality, config)
     except Exception as e:
         emsg = "Invalid router transport configuration: {}".format(e)
         log.error(emsg)

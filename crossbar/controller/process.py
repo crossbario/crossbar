@@ -56,7 +56,7 @@ from autobahn import wamp
 
 import crossbar
 from crossbar._util import term_print
-from crossbar.common import checkconfig
+from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT, NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR, NODE_SHUTDOWN_ON_LAST_WORKER_EXIT
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
 from crossbar.controller.guest import create_guest_worker_client_factory
@@ -590,22 +590,22 @@ class NodeControllerSession(NativeProcessSession):
 
             # automatically shutdown node whenever a worker ended (successfully, or with error)
             #
-            if checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT in self._node._node_shutdown_triggers:
-                self.log.info("Node worker ended, and trigger '{trigger}' is active: will shutdown node ..", trigger=checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT)
+            if NODE_SHUTDOWN_ON_WORKER_EXIT in self._node._node_shutdown_triggers:
+                self.log.info("Node worker ended, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_WORKER_EXIT)
                 term_print('<CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT>')
                 shutdown = True
 
             # automatically shutdown node when worker ended with error
             #
-            elif not was_successful and checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR in self._node._node_shutdown_triggers:
-                self.log.info("Node worker ended with error, and trigger '{trigger}' is active: will shutdown node ..", trigger=checkconfig.NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR)
+            elif not was_successful and NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR in self._node._node_shutdown_triggers:
+                self.log.info("Node worker ended with error, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR)
                 term_print('<CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR>')
                 shutdown = True
 
             # automatically shutdown node when no more workers are left
             #
-            elif len(self._workers) == 0 and checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT in self._node._node_shutdown_triggers:
-                self.log.info("No more node workers running, and trigger '{trigger}' is active: will shutdown node ..", trigger=checkconfig.NODE_SHUTDOWN_ON_LAST_WORKER_EXIT)
+            elif len(self._workers) == 0 and NODE_SHUTDOWN_ON_LAST_WORKER_EXIT in self._node._node_shutdown_triggers:
+                self.log.info("No more node workers running, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_LAST_WORKER_EXIT)
                 term_print('<CROSSBAR:NODE_SHUTDOWN_ON_LAST_WORKER_EXIT>')
                 shutdown = True
 
@@ -780,7 +780,7 @@ class NodeControllerSession(NativeProcessSession):
             raise ApplicationError(u'crossbar.error.worker_already_running', emsg)
 
         try:
-            checkconfig.check_guest(worker_config)
+            self.personality.check_guest(self.personality, worker_config)
         except Exception as e:
             raise ApplicationError(u'crossbar.error.invalid_configuration', 'invalid guest worker configuration: {}'.format(e))
 
