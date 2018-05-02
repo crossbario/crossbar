@@ -1870,7 +1870,7 @@ def check_listening_transport_mqtt(personality, transport, with_endpoint=True):
                 raise Exception('logic error')
 
 
-def check_paths(personality, paths, nested=False):
+def check_paths(personality, paths, nested=False, ignore=[]):
     """
     Checks all configured paths.
 
@@ -1886,7 +1886,7 @@ def check_paths(personality, paths, nested=False):
         if not _WEB_PATH_PATH.match(p):
             raise InvalidConfigException("invalid value '{}' for path in Web transport / WebSocket subitem in Universal transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
-        personality.check_web_path_service(personality, p, paths[p], nested)
+        personality.check_web_path_service(personality, p, paths[p], nested, ignore)
 
 
 def check_listening_transport_universal(personality, transport):

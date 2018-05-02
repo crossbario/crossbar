@@ -32,6 +32,8 @@ from __future__ import absolute_import
 
 import time
 
+import txaio
+
 import crossbar
 from crossbar.common import checkconfig
 from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
@@ -115,6 +117,9 @@ class Personality(object):
     This is a policy class that configures various parts of Crossbar.io's
     behavior.
     """
+
+    log = txaio.make_logger()
+
     NAME = 'standalone'
 
     TITLE = _TITLE
