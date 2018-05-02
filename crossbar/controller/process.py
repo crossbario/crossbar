@@ -384,7 +384,7 @@ class NodeControllerSession(NativeProcessSession):
         try:
             if worker_type in self._node._native_workers:
                 if self._node._native_workers[worker_type]['checkconfig_options']:
-                    self._node._native_workers[worker_type]['checkconfig_options'](options)
+                    self._node._native_workers[worker_type]['checkconfig_options'](self.personality, options)
                 else:
                     raise Exception('No checkconfig_options for worker type "{worker_type}" implemented!'.format(worker_type=worker_type))
             else:

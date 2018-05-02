@@ -904,7 +904,7 @@ def check_listening_endpoint_twisted(endpoint):
     # should/can we ask Twisted to parse it easily?
 
 
-def check_listening_endpoint_onion(endpoint):
+def check_listening_endpoint_onion(personality, endpoint):
     """
     :param endpoint: The onion endpoint
     :type endpoint: dict
@@ -926,7 +926,7 @@ def check_listening_endpoint_onion(endpoint):
         "onion endpoint config",
     )
     check_endpoint_port(endpoint[u"port"])
-    check_connecting_endpoint(endpoint[u"tor_control_endpoint"])
+    personality.check_connecting_endpoint(personality, endpoint[u"tor_control_endpoint"])
 
 
 def check_connecting_endpoint_tcp(endpoint):
@@ -1015,7 +1015,7 @@ def check_connecting_endpoint_twisted(endpoint):
         check_endpoint_timeout(endpoint['timeout'])
 
 
-def check_connecting_endpoint_tor(endpoint):
+def check_connecting_endpoint_tor(personality, endpoint):
     """
     :param endpoint: The Tor connecting endpoint to check.
     :type endpoint: dict
@@ -1039,10 +1039,10 @@ def check_connecting_endpoint_tor(endpoint):
     check_endpoint_port(endpoint['tor_socks_port'])
 
     if 'tls' in endpoint:
-        check_connecting_endpoint_tls(endpoint['tls'])
+        check_connecting_endpoint_tls(personality, endpoint['tls'])
 
 
-def check_listening_endpoint(personality, endpoint):
+def check_listening_endpoint(personality, endpoint, ignore=[]):
     """
     Check a listening endpoint configuration.
 
@@ -1059,7 +1059,7 @@ def check_listening_endpoint(personality, endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix', 'twisted', 'onion']:
+    if etype not in ['tcp', 'unix', 'twisted', 'onion'] + ignore:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
@@ -1069,12 +1069,14 @@ def check_listening_endpoint(personality, endpoint):
     elif etype == 'twisted':
         check_listening_endpoint_twisted(endpoint)
     elif etype == 'onion':
-        check_listening_endpoint_onion(endpoint)
+        check_listening_endpoint_onion(personality, endpoint)
+    elif etype in ignore:
+        pass
     else:
         raise InvalidConfigException('logic error')
 
 
-def check_connecting_endpoint(personality, endpoint):
+def check_connecting_endpoint(personality, endpoint, ignore=[]):
     """
     Check a conencting endpoint configuration.
 
@@ -1091,7 +1093,7 @@ def check_connecting_endpoint(personality, endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix', 'twisted', 'tor']:
+    if etype not in ['tcp', 'unix', 'twisted', 'tor'] + ignore:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
@@ -1101,7 +1103,9 @@ def check_connecting_endpoint(personality, endpoint):
     elif etype == 'twisted':
         check_connecting_endpoint_twisted(endpoint)
     elif etype == 'tor':
-        check_connecting_endpoint_tor(endpoint)
+        check_connecting_endpoint_tor(personality, endpoint)
+    elif etype in ignore:
+        pass
     else:
         raise InvalidConfigException('logic error')
 
@@ -1714,7 +1718,7 @@ def check_web_path_service(personality, path, config, nested, allow_unknown=True
         checkers[ptype](config)
 
 
-def check_listening_transport_web(personality, transport, with_endpoint=True):
+def check_listening_transport_web(personality, transport, with_endpoint=True, ignore=[]):
     """
     Check a listening Web-WAMP transport configuration.
 
@@ -1734,7 +1738,7 @@ def check_listening_transport_web(personality, transport, with_endpoint=True):
     if with_endpoint:
         if 'endpoint' not in transport:
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
-        check_listening_endpoint(transport['endpoint'])
+        personality.check_listening_endpoint(personality, transport['endpoint'])
     else:
         if 'endpoint' in transport:
             raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport Web transport subitem\n\n{}".format(pformat(transport)))
@@ -1746,7 +1750,7 @@ def check_listening_transport_web(personality, transport, with_endpoint=True):
     if not isinstance(paths, Mapping):
         raise InvalidConfigException("'paths' attribute in Web transport configuration must be dictionary ({} encountered)".format(type(paths)))
 
-    check_paths(paths)
+    personality.check_paths(personality, paths)
 
     if 'options' in transport:
         options = transport['options']
@@ -1759,7 +1763,7 @@ def check_listening_transport_web(personality, transport, with_endpoint=True):
             'hsts',
             'hsts_max_age',
             'client_timeout',
-        ]
+        ] + ignore
         for k in options.keys():
             if k not in valid_options:
                 raise InvalidConfigException(
@@ -1825,7 +1829,7 @@ def check_listening_transport_mqtt(personality, transport, with_endpoint=True):
     if with_endpoint:
         if 'endpoint' not in transport:
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in MQTT transport item\n\n{}".format(pformat(transport)))
-        check_listening_endpoint(transport['endpoint'])
+        personality.check_listening_endpoint(personality, transport['endpoint'])
 
     # Check MQTT options...
     options = transport.get('options', {})
@@ -1880,7 +1884,7 @@ def check_paths(personality, paths, nested=False):
         if not _WEB_PATH_PATH.match(p):
             raise InvalidConfigException("invalid value '{}' for path in Web transport / WebSocket subitem in Universal transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
-        check_web_path_service(p, paths[p], nested)
+        personality.check_web_path_service(personality, p, paths[p], nested)
 
 
 def check_listening_transport_universal(personality, transport):
@@ -1903,10 +1907,10 @@ def check_listening_transport_universal(personality, transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in Universal transport item\n\n{}".format(pformat(transport)))
 
-    check_listening_endpoint(transport['endpoint'])
+    personality.check_listening_endpoint(personality, transport['endpoint'])
 
     if 'rawsocket' in transport:
-        check_listening_transport_rawsocket(transport['rawsocket'], with_endpoint=False)
+        personality.check_listening_transport_rawsocket(personality, transport['rawsocket'], with_endpoint=False)
 
     if 'websocket' in transport:
         paths = transport['websocket']
@@ -1914,16 +1918,16 @@ def check_listening_transport_universal(personality, transport):
         if not isinstance(paths, Mapping):
             raise InvalidConfigException("'websocket' attribute in Universal transport configuration must be dictionary ({} encountered)".format(type(paths)))
 
-        check_paths(paths)
+        personality.check_paths(personality, paths)
 
         for path in paths:
-            check_listening_transport_websocket(transport['websocket'][path], with_endpoint=False)
+            personality.check_listening_transport_websocket(personality, transport['websocket'][path], with_endpoint=False)
 
     if 'mqtt' in transport:
-        check_listening_transport_mqtt(transport['mqtt'], with_endpoint=False)
+        personality.check_listening_transport_mqtt(personality, transport['mqtt'], with_endpoint=False)
 
     if 'web' in transport:
-        check_listening_transport_web(transport['web'], with_endpoint=False)
+        personality.check_listening_transport_web(personality, transport['web'], with_endpoint=False)
 
 
 def check_listening_transport_websocket(personality, transport, with_endpoint=True):
@@ -1955,7 +1959,7 @@ def check_listening_transport_websocket(personality, transport, with_endpoint=Tr
     if with_endpoint:
         if 'endpoint' not in transport:
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
-        check_listening_endpoint(transport['endpoint'])
+        personality.check_listening_endpoint(personality, transport['endpoint'])
     else:
         if 'endpoint' in transport:
             raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport WebSocket transport subitem\n\n{}".format(pformat(transport)))
@@ -2015,7 +2019,7 @@ def check_listening_transport_websocket_testee(personality, transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket-Testee transport item\n\n{}".format(pformat(transport)))
 
-    check_listening_endpoint(transport['endpoint'])
+    personality.check_listening_endpoint(personality, transport['endpoint'])
 
     if 'options' in transport:
         check_websocket_options(transport['options'])
@@ -2059,7 +2063,7 @@ def check_listening_transport_stream_testee(personality, transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in Stream-Testee transport item\n\n{}".format(pformat(transport)))
 
-    check_listening_endpoint(transport['endpoint'])
+    personality.check_listening_endpoint(personality, transport['endpoint'])
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2087,7 +2091,7 @@ def check_listening_transport_flashpolicy(personality, transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in Flash-policy transport item\n\n{}".format(pformat(transport)))
 
-    check_listening_endpoint(transport['endpoint'])
+    personality.check_listening_endpoint(personality, transport['endpoint'])
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2135,7 +2139,7 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
     if with_endpoint:
         if 'endpoint' not in transport:
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
-        check_listening_endpoint(transport['endpoint'])
+        personality.check_listening_endpoint(personality, transport['endpoint'])
     else:
         if 'endpoint' in transport:
             raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport RawSocket transport subitem\n\n{}".format(pformat(transport)))
@@ -2179,7 +2183,7 @@ def check_connecting_transport_websocket(personality, transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
-    check_connecting_endpoint(transport['endpoint'])
+    personality.check_connecting_endpoint(personality, transport['endpoint'])
 
     if 'options' in transport:
         check_websocket_options(transport['options'])
@@ -2220,7 +2224,7 @@ def check_connecting_transport_rawsocket(personality, transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
-    check_connecting_endpoint(transport['endpoint'])
+    personality.check_connecting_endpoint(personality, transport['endpoint'])
 
     if 'serializer' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
@@ -2267,28 +2271,28 @@ def check_router_transport(personality, transport, ignore=[]):
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
     if ttype == 'websocket':
-        check_listening_transport_websocket(transport)
+        check_listening_transport_websocket(personality, transport)
 
     elif ttype == 'rawsocket':
-        check_listening_transport_rawsocket(transport)
+        check_listening_transport_rawsocket(personality, transport)
 
     elif ttype == 'universal':
-        check_listening_transport_universal(transport)
+        check_listening_transport_universal(personality, transport)
 
     elif ttype == 'web':
-        check_listening_transport_web(transport)
+        check_listening_transport_web(personality, transport)
 
     elif ttype == 'mqtt':
-        check_listening_transport_mqtt(transport)
+        check_listening_transport_mqtt(personality, transport)
 
     elif ttype == 'flashpolicy':
-        check_listening_transport_flashpolicy(transport)
+        check_listening_transport_flashpolicy(personality, transport)
 
     elif ttype == 'websocket.testee':
-        check_listening_transport_websocket_testee(transport)
+        check_listening_transport_websocket_testee(personality, transport)
 
     elif ttype == 'stream.testee':
-        check_listening_transport_stream_testee(transport)
+        check_listening_transport_stream_testee(personality, transport)
 
     elif ttype in ignore:
         pass
@@ -2691,12 +2695,12 @@ def check_router(personality, router, ignore=[]):
     # connections
     #
     connections = router.get('connections', [])
-    personality.check_connections(personality, connections)
+    check_connections(personality, connections)
 
     # components
     #
     components = router.get('components', [])
-    personality.check_router_components(personality, components)
+    check_router_components(personality, components)
 
 
 def check_router_options(personality, options):
@@ -2704,7 +2708,7 @@ def check_router_options(personality, options):
 
 
 def check_container_options(personality, options):
-    check_native_worker_options(options, extra_options=['shutdown'])
+    check_native_worker_options(personality, options, ignore=['shutdown'])
     valid_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
     if 'shutdown' in options:
         if options['shutdown'] not in valid_modes:
@@ -2739,7 +2743,7 @@ def check_manhole(personality, manhole):
     if 'endpoint' not in manhole:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in Manhole item\n\n{}".format(pformat(manhole)))
 
-    check_listening_endpoint(manhole['endpoint'])
+    personality.check_listening_endpoint(personality, manhole['endpoint'])
 
     if 'users' not in manhole:
         raise InvalidConfigException("missing mandatory attribute 'users' in Manhole item\n\n{}".format(pformat(manhole)))
@@ -2803,7 +2807,7 @@ def check_process_env(env):
                 raise InvalidConfigException("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
 
 
-def check_native_worker_options(options, extra_options=[]):
+def check_native_worker_options(personality, options, ignore=[]):
     """
     Check native worker options.
 
@@ -2819,7 +2823,7 @@ def check_native_worker_options(options, extra_options=[]):
 
     for k in options:
         if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity',
-                     'env', 'expose_controller', 'expose_shared'] + extra_options:
+                     'env', 'expose_controller', 'expose_shared'] + ignore:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in 'options' in worker"
                 " configuration".format(k)
@@ -2916,12 +2920,12 @@ def check_container(personality, container, ignore=[]):
     # connections
     #
     connections = container.get('connections', [])
-    personality.check_connections(personality, connections)
+    check_connections(personality, connections)
 
     # components
     #
     components = container.get('components', [])
-    personality.check_container_components(personality, components)
+    check_container_components(personality, components)
 
 
 def check_guest(personality, guest):
@@ -3092,7 +3096,7 @@ def check_controller(personality, controller, ignore=[]):
     # connections
     #
     connections = controller.get('connections', [])
-    personality.check_connections(personality, connections)
+    check_connections(personality, connections)
 
 
 def check_config(personality, config):

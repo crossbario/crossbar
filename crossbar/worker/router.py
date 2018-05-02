@@ -189,7 +189,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            self.personality.checkconfig.check_router_realm(self.personality, realm_config)
+            self.personality.check_router_realm(self.personality, realm_config)
         except Exception as e:
             emsg = "Invalid router realm configuration: {}".format(e)
             self.log.error(emsg)
@@ -467,7 +467,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            self.personality.checkconfig.check_router_component(self.personality, config)
+            self.personality.check_router_component(self.personality, config)
         except Exception as e:
             emsg = "Invalid router component configuration: {}".format(e)
             self.log.error(emsg)

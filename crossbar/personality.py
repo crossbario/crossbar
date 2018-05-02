@@ -169,6 +169,9 @@ class Personality(object):
     # configuration related functions
     #
 
+    # config
+    check_config = checkconfig.check_config
+
     # config files
     upgrade_config_file = checkconfig.upgrade_config_file
     convert_config_file = checkconfig.convert_config_file
@@ -208,6 +211,9 @@ class Personality(object):
     check_listening_transport_universal = checkconfig.check_listening_transport_universal
     check_listening_transport_websocket = checkconfig.check_listening_transport_websocket
     check_listening_transport_web = checkconfig.check_listening_transport_web
+
+    # web services
+    check_paths = checkconfig.check_paths
     check_web_path_service = checkconfig.check_web_path_service
 
     # authentication
@@ -215,4 +221,16 @@ class Personality(object):
     check_transport_cookie = checkconfig.check_transport_cookie
 
     # connecting transports
+    check_connecting_endpoint = checkconfig.check_connecting_endpoint
     check_connecting_transport = checkconfig.check_connecting_transport
+
+    # check_listening_transport_websocket = checkconfig.check_listening_transport_websocket
+    check_listening_transport_rawsocket = checkconfig.check_listening_transport_rawsocket
+    # check_listening_transport_universal = checkconfig.check_listening_transport_universal
+    # check_listening_transport_web = checkconfig.check_listening_transport_web
+    check_listening_transport_mqtt = checkconfig.check_listening_transport_mqtt
+    check_listening_transport_flashpolicy = checkconfig.check_listening_transport_flashpolicy
+    check_listening_transport_websocket_testee = checkconfig.check_listening_transport_websocket_testee
+    check_listening_transport_stream_testee = checkconfig.check_listening_transport_stream_testee
+
+    check_listening_endpoint_onion = checkconfig.check_listening_endpoint_onion
