@@ -1687,13 +1687,11 @@ def check_web_path_service(personality, path, config, nested, ignore=[]):
 
     ptype = config['type']
     if path == '/' and not nested:
-        if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook', 'nodeinfo']:
-            if not allow_unknown:
-                raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
+        if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook', 'nodeinfo'] + ignore:
+            raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo']:
-            if ptype not in ignore:
-                raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
+        if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo'] + ignore:
+            raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
         'path': check_web_path_service_path,
@@ -1716,6 +1714,10 @@ def check_web_path_service(personality, path, config, nested, ignore=[]):
     }
     if ptype in checkers:
         checkers[ptype](personality, config)
+    elif ptype in ignore:
+        pass
+    else:
+        raise Exception('logic error')
 
 
 def check_listening_transport_web(personality, transport, with_endpoint=True, ignore=[]):

@@ -74,7 +74,7 @@ test: flake8
 	trial crossbar
 
 test_tox:
-	tox -e flake8,py36-unpinned-trial,py36-cli,py36-example .
+	tox -e flake8,py36-unpinned-trial,py36-cli,py36-examples .
 
 test_cli:
 	./test/test_cli.sh

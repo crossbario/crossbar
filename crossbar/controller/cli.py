@@ -940,11 +940,60 @@ _HELP_PERSONALITIES = """Software personality to use:
 
 
 def _add_personality_argument(parser):
-    parser.add_argument('--personality',
+    return parser.add_argument('--personality',
+                               type=six.text_type,
+                               default=_DEFAULT_PERSONALITY,
+                               choices=sorted(_INSTALLED_PERSONALITIES.keys()) + ['community'],
+                               help=(_HELP_PERSONALITIES))
+
+
+def _add_log_arguments(parser):
+    color_args = dict({
+        "type": str,
+        "default": "auto",
+        "choices": ["true", "false", "auto"],
+        "help": "If logging should be colored."
+    })
+    parser.add_argument('--color', **color_args)
+
+    log_level_args = dict({
+        "type": str,
+        "default": 'info',
+        "choices": ['none', 'error', 'warn', 'info', 'debug', 'trace'],
+        "help": ("How much Crossbar.io should log to the terminal, in order of verbosity.")
+    })
+    parser.add_argument('--loglevel', **log_level_args)
+
+    parser.add_argument('--logformat',
                         type=six.text_type,
-                        default=_DEFAULT_PERSONALITY,
-                        choices=sorted(_INSTALLED_PERSONALITIES.keys()) + ['community'],
-                        help=(_HELP_PERSONALITIES))
+                        default='standard',
+                        choices=['syslogd', 'standard', 'none'],
+                        help=("The format of the logs -- suitable for syslogd, not colored, or colored."))
+
+    parser.add_argument('--logdir',
+                        type=six.text_type,
+                        default=None,
+                        help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
+
+    parser.add_argument('--logtofile',
+                        action='store_true',
+                        help="Whether or not to log to file")
+
+    return parser
+
+
+def _add_cbdir_config(parser):
+    parser.add_argument('--cbdir',
+                        type=six.text_type,
+                        default=None,
+                        help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser.add_argument('--config',
+                        type=six.text_type,
+                        default=None,
+                        help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+    return parser
 
 
 def main(prog, args, reactor):
@@ -954,7 +1003,9 @@ def main(prog, args, reactor):
     # print banner and usage notes when started with empty args
     #
     if args is not None:
-        if not args:
+        # if all args are options (start with "-"), then we don't have a command,
+        # but we need one! hence, print a usage message
+        if not [x for x in args if not x.startswith('-')]:
             print(hl(_DEFAULT_PERSONALITY_KLASS.BANNER, color='yellow', bold=True))
             print('Type "crossbar --help to get help, or "crossbar <command> --help" to get help on a specific command.')
             print('Type "crossbar legal" to read legal notices, terms of use and license and privacy information.')
@@ -976,29 +1027,10 @@ def main(prog, args, reactor):
 
     # #############################################################
 
-    # some shared arguments
-    #
-    log_level_args = {
-        "type": str,
-        "default": 'info',
-        "choices": ['none', 'error', 'warn', 'info', 'debug', 'trace'],
-        "help": ("How much Crossbar.io should log to the terminal, in order "
-                 "of verbosity.")
-    }
-
-    color_args = {
-        "type": str,
-        "default": "auto",
-        "choices": ["true", "false", "auto"],
-        "help": "If logging should be colored."
-    }
-
     # "init" command
     #
     parser_init = subparsers.add_parser('init',
                                         help='Initialize a new Crossbar.io node.')
-
-    parser_init.set_defaults(func=_run_command_init)
 
     _add_personality_argument(parser_init)
 
@@ -1007,53 +1039,23 @@ def main(prog, args, reactor):
                              default=None,
                              help="Application base directory where to create app and node from template.")
 
+    parser_init.set_defaults(func=_run_command_init)
+
     # "start" command
     #
     parser_start = subparsers.add_parser('start',
                                          help='Start a Crossbar.io node.')
 
-    parser_start.set_defaults(func=_run_command_start)
-
     _add_personality_argument(parser_start)
+    _add_log_arguments(parser_start)
+    _add_cbdir_config(parser_start)
 
-    parser_start.add_argument('--cbdir',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_start.add_argument('--config',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
-
-    parser_start.add_argument('--logdir',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
-
-    parser_start.add_argument('--logtofile',
-                              action='store_true',
-                              help="Whether or not to log to file")
-
-    parser_start.add_argument('--loglevel',
-                              **log_level_args)
-
-    parser_start.add_argument('--color',
-                              **color_args)
-
-    parser_start.add_argument('--logformat',
-                              type=six.text_type,
-                              default='standard',
-                              choices=['syslogd', 'standard', 'none'],
-                              help=("The format of the logs -- suitable for "
-                                    "syslogd, not colored, or colored."))
+    parser_start.set_defaults(func=_run_command_start)
 
     # "stop" command
     #
     parser_stop = subparsers.add_parser('stop',
                                         help='Stop a Crossbar.io node.')
-
-    parser_stop.set_defaults(func=_run_command_stop)
 
     _add_personality_argument(parser_stop)
 
@@ -1062,12 +1064,12 @@ def main(prog, args, reactor):
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
+    parser_stop.set_defaults(func=_run_command_stop)
+
     # "status" command
     #
     parser_status = subparsers.add_parser('status',
                                           help='Checks whether a Crossbar.io node is running.')
-
-    parser_status.set_defaults(func=_run_command_status)
 
     _add_personality_argument(parser_status)
 
@@ -1082,68 +1084,37 @@ def main(prog, args, reactor):
                                choices=['running', 'stopped'],
                                help=("If given, assert the node is in this state, otherwise exit with error."))
 
+    parser_status.set_defaults(func=_run_command_status)
+
     # "check" command
     #
     parser_check = subparsers.add_parser('check',
                                          help='Check a Crossbar.io node`s local configuration file.')
 
-    parser_check.set_defaults(func=_run_command_check)
-
     _add_personality_argument(parser_check)
+    _add_cbdir_config(parser_check)
 
-    parser_check.add_argument('--loglevel',
-                              **log_level_args)
-
-    parser_check.add_argument('--color',
-                              **color_args)
-
-    parser_check.add_argument('--cbdir',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_check.add_argument('--config',
-                              type=six.text_type,
-                              default=None,
-                              help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+    parser_check.set_defaults(func=_run_command_check)
 
     # "convert" command
     #
     parser_convert = subparsers.add_parser('convert',
                                            help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
-    parser_convert.set_defaults(func=_run_command_convert)
-
     _add_personality_argument(parser_convert)
+    _add_cbdir_config(parser_convert)
 
-    parser_convert.add_argument('--cbdir',
-                                type=six.text_type,
-                                default=None,
-                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_convert.add_argument('--config',
-                                type=six.text_type,
-                                default=None,
-                                help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+    parser_convert.set_defaults(func=_run_command_convert)
 
     # "upgrade" command
     #
     parser_upgrade = subparsers.add_parser('upgrade',
                                            help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
 
-    parser_upgrade.set_defaults(func=_run_command_upgrade)
-
     _add_personality_argument(parser_upgrade)
+    _add_cbdir_config(parser_upgrade)
 
-    parser_upgrade.add_argument('--cbdir',
-                                type=six.text_type,
-                                default=None,
-                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_upgrade.add_argument('--config',
-                                type=six.text_type,
-                                default=None,
-                                help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+    parser_upgrade.set_defaults(func=_run_command_upgrade)
 
     # "keygen" command
     #
@@ -1152,27 +1123,13 @@ def main(prog, args, reactor):
             'keygen',
             help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
         )
-
-        parser_keygen.set_defaults(func=_run_command_keygen)
-
         _add_personality_argument(parser_keygen)
+        parser_keygen.set_defaults(func=_run_command_keygen)
 
     # "keys" command
     #
     parser_keys = subparsers.add_parser('keys',
                                         help='Print Crossbar.io release and node key (public key part by default).')
-
-    parser_keys.add_argument('--generate',
-                             '-g',
-                             action='store_true',
-                             help='Generate a new node key pair if none exists, or loads/checks existing.')
-
-    parser_keys.add_argument('--private',
-                             '-p',
-                             action='store_true',
-                             help='Print the node private key instead of the public key.')
-
-    parser_keys.set_defaults(func=_run_command_keys)
 
     _add_personality_argument(parser_keys)
 
@@ -1181,33 +1138,34 @@ def main(prog, args, reactor):
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
-    parser_keys.add_argument('--loglevel',
-                             **log_level_args)
-    parser_keys.add_argument('--color',
-                             **color_args)
+    parser_keys.add_argument('--generate',
+                             action='store_true',
+                             help='Generate a new node key pair if none exists, or loads/checks existing.')
+
+    parser_keys.add_argument('--private',
+                             action='store_true',
+                             help='Print the node private key instead of the public key.')
+
+    parser_keys.set_defaults(func=_run_command_keys)
 
     # "version" command
     #
     parser_version = subparsers.add_parser('version',
                                            help='Print software versions.')
 
-    parser_version.set_defaults(func=_run_command_version)
-
     _add_personality_argument(parser_version)
+    _add_log_arguments(parser_version)
 
-    parser_version.add_argument('--loglevel',
-                                **log_level_args)
-    parser_version.add_argument('--color',
-                                **color_args)
+    parser_version.set_defaults(func=_run_command_version)
 
     # "legal" command
     #
     parser_legal = subparsers.add_parser('legal',
                                          help='Print legal and licensing information.')
 
-    parser_legal.set_defaults(func=_run_command_legal)
-
     _add_personality_argument(parser_legal)
+
+    parser_legal.set_defaults(func=_run_command_legal)
 
     # INTERNAL USE! start a worker (this is used by the controller to start worker processes
     # but cannot be used outside that context.
