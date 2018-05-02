@@ -644,7 +644,7 @@ def check_cookie_store_file(store):
     }, store, "WebSocket memory-backed cookie store configuration")
 
 
-def check_transport_cookie(cookie, ignore=[]):
+def check_transport_cookie(personality, cookie, ignore=[]):
     """
     Check a WAMP-WebSocket transport cookie configuration.
 
@@ -1197,7 +1197,7 @@ def check_websocket_compression(options):
     # FIXME
 
 
-def check_web_path_service_websocket_reverseproxy(config):
+def check_web_path_service_websocket_reverseproxy(personality, config):
     check_dict_args({
         'type': (True, [six.text_type]),
         'url': (False, [six.text_type]),
@@ -1220,7 +1220,7 @@ def check_web_path_service_websocket_reverseproxy(config):
     check_connecting_transport_websocket(config['backend'])
 
 
-def check_web_path_service_websocket(config):
+def check_web_path_service_websocket(personality, config):
     """
     Check a "websocket" path service on Web transport.
 
@@ -1258,13 +1258,13 @@ def check_web_path_service_websocket(config):
             raise InvalidConfigException("invalid 'url' in WebSocket configuration : {}".format(e))
 
     if 'auth' in config:
-        check_transport_auth(config['auth'])
+        personality.check_transport_auth(personality, config['auth'])
 
     if 'cookie' in config:
-        check_transport_cookie(config['cookie'])
+        personality.check_transport_cookie(personality, config['cookie'])
 
 
-def check_web_path_service_static(config):
+def check_web_path_service_static(personality, config):
     """
     Check a "static" path service on Web transport.
 
@@ -1297,7 +1297,7 @@ def check_web_path_service_static(config):
         }, config['options'], "'options' in Web transport 'static' path service")
 
 
-def check_web_path_service_wsgi(config):
+def check_web_path_service_wsgi(personality, config):
     """
     Check a "wsgi" path service on Web transport.
 
@@ -1316,7 +1316,7 @@ def check_web_path_service_wsgi(config):
     }, config, "Web transport 'wsgi' path service")
 
 
-def check_web_path_service_resource(config):
+def check_web_path_service_resource(personality, config):
     """
     Check a "resource" path service on Web transport.
 
@@ -1333,7 +1333,7 @@ def check_web_path_service_resource(config):
     }, config, "Web transport 'resource' path service")
 
 
-def check_web_path_service_redirect(config):
+def check_web_path_service_redirect(personality, config):
     """
     Check a "redirect" path service on Web transport.
 
@@ -1349,7 +1349,7 @@ def check_web_path_service_redirect(config):
     }, config, "Web transport 'redirect' path service")
 
 
-def check_web_path_service_nodeinfo(config):
+def check_web_path_service_nodeinfo(personality, config):
     """
     Check a "nodeinfo" path service on Web transport.
 
@@ -1361,7 +1361,7 @@ def check_web_path_service_nodeinfo(config):
     }, config, "Web transport 'nodeinfo' path service")
 
 
-def check_web_path_service_reverseproxy(config):
+def check_web_path_service_reverseproxy(personality, config):
     """
     Check a "reverseproxy" path service on Web transport.
 
@@ -1379,7 +1379,7 @@ def check_web_path_service_reverseproxy(config):
     }, config, "Web transport 'reverseproxy' path service")
 
 
-def check_web_path_service_json(config):
+def check_web_path_service_json(personality, config):
     """
     Check a "json" path service on Web transport.
 
@@ -1403,7 +1403,7 @@ def check_web_path_service_json(config):
         }, config['options'], "Web transport 'json' path service")
 
 
-def check_web_path_service_cgi(config):
+def check_web_path_service_cgi(personality, config):
     """
     Check a "cgi" path service on Web transport.
 
@@ -1420,7 +1420,7 @@ def check_web_path_service_cgi(config):
     }, config, "Web transport 'cgi' path service")
 
 
-def check_web_path_service_longpoll(config):
+def check_web_path_service_longpoll(personality, config):
     """
     Check a "longpoll" path service on Web transport.
 
@@ -1472,7 +1472,7 @@ def check_web_path_service_rest_timestamp_delta_limit(limit):
         raise InvalidConfigException("invalid value {} for 'timestamp_delta_limit' attribute in publisher/caller configuration".format(limit))
 
 
-def check_web_path_service_publisher(config):
+def check_web_path_service_publisher(personality, config):
     """
     Check a "publisher" path service on Web transport.
 
@@ -1507,7 +1507,7 @@ def check_web_path_service_publisher(config):
             check_web_path_service_rest_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
-def check_web_path_service_webhook(config):
+def check_web_path_service_webhook(personality, config):
     """
     Check a "webhook" path service on Web transport.
 
@@ -1536,7 +1536,7 @@ def check_web_path_service_webhook(config):
         check_web_path_service_rest_post_body_limit(config['options']['post_body_limit'])
 
 
-def check_web_path_service_caller(config):
+def check_web_path_service_caller(personality, config):
     """
     Check a "caller" path service on Web transport.
 
@@ -1555,7 +1555,7 @@ def check_web_path_service_caller(config):
     }, config, "Web transport 'caller' path service")
 
     if 'auth' in config:
-        check_transport_auth(config['auth'])
+        personality.check_transport_auth(personality, config['auth'])
 
     # TODO: check auth and role are not defined at the same time
 
@@ -1583,12 +1583,12 @@ def check_web_path_service_caller(config):
             check_web_path_service_rest_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
-def check_web_path_service_schemadoc(config):
+def check_web_path_service_schemadoc(personality, config):
     # FIXME
     pass
 
 
-def check_web_path_service_path(config):
+def check_web_path_service_path(personality, config):
     """
     Check a "path" path service on Web transport.
 
@@ -1621,7 +1621,7 @@ def check_web_path_service_max_file_size(limit):
         raise InvalidConfigException("invalid value {} for 'max_file_size' attribute - must be non-negative".format(limit))
 
 
-def check_web_path_service_upload(config):
+def check_web_path_service_upload(personality, config):
     """
     Check a file upload path service on Web transport.
 
@@ -1670,7 +1670,7 @@ def check_web_path_service_upload(config):
             check_web_path_service_max_file_size(config['options']['max_file_size'])
 
 
-def check_web_path_service(personality, path, config, nested, allow_unknown=True):
+def check_web_path_service(personality, path, config, nested, ignore=[]):
     """
     Check a single path service on Web transport.
 
@@ -1692,7 +1692,7 @@ def check_web_path_service(personality, path, config, nested, allow_unknown=True
                 raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
         if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo']:
-            if not allow_unknown:
+            if ptype not in ignore:
                 raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -1715,7 +1715,7 @@ def check_web_path_service(personality, path, config, nested, allow_unknown=True
         'schemadoc': check_web_path_service_schemadoc,
     }
     if ptype in checkers:
-        checkers[ptype](config)
+        checkers[ptype](personality, config)
 
 
 def check_listening_transport_web(personality, transport, with_endpoint=True, ignore=[]):
@@ -1987,10 +1987,10 @@ def check_listening_transport_websocket(personality, transport, with_endpoint=Tr
             raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
     if 'auth' in transport:
-        check_transport_auth(transport['auth'])
+        personality.check_transport_auth(personality, transport['auth'])
 
     if 'cookie' in transport:
-        check_transport_cookie(transport['cookie'])
+        personality.check_transport_cookie(personality, transport['cookie'])
 
 
 def check_listening_transport_websocket_testee(personality, transport):
@@ -2161,7 +2161,7 @@ def check_listening_transport_rawsocket(personality, transport, with_endpoint=Tr
             raise InvalidConfigException("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
     if 'auth' in transport:
-        check_transport_auth(transport['auth'])
+        personality.check_transport_auth(personality, transport['auth'])
 
 
 def check_connecting_transport_websocket(personality, transport):

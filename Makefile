@@ -74,13 +74,16 @@ test: flake8
 	trial crossbar
 
 test_tox:
-	tox -e flake8,py36-unpinned-trial,py36-cli .
+	tox -e flake8,py36-unpinned-trial,py36-cli,py36-example .
 
 test_cli:
 	./test/test_cli.sh
 
 test_cli_tox:
 	tox -e py36-cli .
+
+test_examples:
+	tox -e py36-examples .
 
 test_mqtt:
 #	trial crossbar.adapter.mqtt.test.test_wamp
