@@ -151,7 +151,7 @@ if _HAS_PSUTIL:
                 }
             return res
 
-    class ProcessInfo:
+    class ProcessInfo(object):
 
         """
         Access process related information and statistics
@@ -178,6 +178,11 @@ if _HAS_PSUTIL:
             """
             self._pid = pid
             self._p = psutil.Process(pid)
+            self._cpus = sorted(self._p.cpu_affinity())
+
+        @property
+        def cpus(self):
+            return self._cpus
 
         def get_stats(self):
             """

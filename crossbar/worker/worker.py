@@ -98,6 +98,13 @@ class NativeWorkerSession(NativeProcessSession):
 
         self.join(self.config.realm)
 
+    def templates(self):
+        """
+
+        :return: jinja2.Environment for the built in templates from personality.TEMPLATE_DIRS
+        """
+        return self._templates
+
     @inlineCallbacks
     def onJoin(self, details, publish_ready=True):
         """
