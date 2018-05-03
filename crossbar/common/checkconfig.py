@@ -2605,11 +2605,11 @@ def check_connection(personality, connection, ignore=[]):
     if 'type' not in connection:
         raise InvalidConfigException("missing mandatory attribute 'type' in connection configuration")
 
-    valid_types = ['postgresql.connection']
+    valid_types = ['postgres']
     if connection['type'] not in valid_types:
         raise InvalidConfigException("invalid type '{}' for connection type - must be one of {}".format(connection['type'], valid_types))
 
-    if connection['type'] == 'postgresql.connection':
+    if connection['type'] == 'postgres':
         check_dict_args({
             'id': (False, [six.text_type]),
             'type': (True, [six.text_type]),
@@ -2617,12 +2617,12 @@ def check_connection(personality, connection, ignore=[]):
             'port': (False, six.integer_types),
             'database': (True, [six.text_type]),
             'user': (True, [six.text_type]),
-            'password': (True, [six.text_type]),
+            'password': (False, [six.text_type]),
             'options': (False, [Mapping]),
         }, connection, "PostgreSQL connection configuration")
 
         if 'port' in connection:
-            check_endpoint_port(personality, connection['port'])
+            check_endpoint_port(connection['port'])
 
         if 'options' in connection:
             check_dict_args({
@@ -2824,7 +2824,7 @@ def check_native_worker_options(personality, options, ignore=[]):
         raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity',
+        if k not in ['title', 'python', 'pythonpath', 'cpu_affinity',
                      'env', 'expose_controller', 'expose_shared'] + ignore:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in 'options' in worker"
@@ -2835,11 +2835,6 @@ def check_native_worker_options(personality, options, ignore=[]):
         title = options['title']
         if not isinstance(title, six.text_type):
             raise InvalidConfigException("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
-
-    if 'reactor' in options:
-        _reactor = options['reactor']
-        if not isinstance(_reactor, Mapping):
-            raise InvalidConfigException("'reactor' in 'options' in worker configuration must be a dict ({} encountered)".format(type(_reactor)))
 
     if 'python' in options:
         python = options['python']
@@ -3022,7 +3017,7 @@ def check_worker(personality, worker, ignore=[]):
 
     worker_type = worker['type']
 
-    valid_worker_types = ['router', 'container', 'guest'] + ignore
+    valid_worker_types = ['router', 'container', 'guest', 'websocket-testee'] + ignore
     if worker_type not in valid_worker_types:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item (valid items are: {})\n\n{}".format(worker_type, valid_worker_types))
 
@@ -3034,6 +3029,9 @@ def check_worker(personality, worker, ignore=[]):
 
     elif worker_type == 'guest':
         personality.check_guest(personality, worker)
+
+    elif worker_type == 'websocket-testee':
+        personality.check_websocket_testee(personality, worker)
 
     elif worker_type in ignore:
         pass
@@ -3083,7 +3081,7 @@ def check_controller(personality, controller, ignore=[]):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'extra', 'manhole', 'connections'] + ignore:
+        if k not in ['id', 'options', 'manhole', 'connections'] + ignore:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:

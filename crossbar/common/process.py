@@ -63,7 +63,7 @@ from autobahn import wamp
 
 from txaio import make_logger
 
-from twisted.cred import checkers, portal
+from twisted.cred import portal
 
 from crossbar.common.checkconfig import get_config_value
 from crossbar.twisted.endpoint import create_listening_port_from_config
@@ -644,19 +644,35 @@ class NativeProcessSession(ApplicationSession):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
 
+        from twisted.conch.ssh import keys
+        from twisted.conch.manhole_ssh import (
+            ConchFactory, TerminalRealm, TerminalSession)
+        from twisted.conch.manhole import ColoredManhole
+        from twisted.conch.checkers import SSHPublicKeyDatabase
+
+        class PublicKeyChecker(SSHPublicKeyDatabase):
+            def __init__(self, userKeys):
+                self.userKeys = {}
+                for username, keyData in userKeys.items():
+                    self.userKeys[username] = keys.Key.fromString(data=keyData).blob()
+
+            def checkKey(self, credentials):
+                print('CHECK KEY     ', credentials)
+                if credentials.username in self.userKeys:
+                    keyBlob = self.userKeys[credentials.username]
+
+                    return keyBlob == credentials.blob
+
         # setup user authentication
         #
-        checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
-        for user in config['users']:
-            checker.addUser(user['user'], user['password'])
+        authorized_keys = {
+            'oberstet': 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCz7K1QwDhaq/Bi8o0uqiJQuVFCDQL5rbRvMClLHRx9KE3xP2Fh2eapzXuYGSgtG9Fyz1UQd+1oNM3wuNnT/DsBUBQrECP4bpFIHcJkMaFTARlCagkXosWsadzNnkW0osUCuHYMrzBJuXWF2GH+0OFCtVu+8E+4Mhvchu9xsHG8PM92SpI6aP0TtmT9D/0Bsm9JniRj8kndeS+iWG4s/pEGj7Rg7eGnbyQJt/9Jc1nWl6PngGbwp63dMVmh+8LP49PtfnxY8m9fdwpL4oW9U8beYqm8hyfBPN2yDXaehg6RILjIa7LU2/6bu96ZgnIz26zi/X9XlnJQt2aahWJs1+GR oberstet@thinkpad-t430s'
+        }
+        checker = PublicKeyChecker(authorized_keys)
 
         # setup manhole namespace
         #
         namespace = {'session': self}
-
-        from twisted.conch.manhole_ssh import (
-            ConchFactory, TerminalRealm, TerminalSession)
-        from twisted.conch.manhole import ColoredManhole
 
         class PatchedTerminalSession(TerminalSession):
             # get rid of
@@ -669,10 +685,23 @@ class NativeProcessSession(ApplicationSession):
         rlm.sessionFactory = PatchedTerminalSession  # monkey patch
         rlm.chainedProtocolFactory.protocolFactory = lambda _: ColoredManhole(namespace)
 
-        ptl = portal.Portal(rlm, [checker])
+        ptl = portal.Portal(rlm)
+        ptl.registerChecker(checker)
 
         factory = ConchFactory(ptl)
         factory.noisy = False
+
+        private_key = keys.Key.fromFile(os.path.join(self.cbdir, 'ssh_host_rsa_key'))
+        public_key = private_key.public()
+
+        publicKeys = {
+            b'ssh-rsa': private_key
+        }
+        privateKeys = {
+            b'ssh-rsa': public_key
+        }
+        factory.publicKeys = publicKeys
+        factory.privateKeys = privateKeys
 
         self._manhole_service = ManholeService(config, details.caller)
 
