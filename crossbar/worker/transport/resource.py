@@ -69,7 +69,7 @@ if _HAS_CGI:
 
 
 def create_web_service(personality, reactor, path_config, templates, log, cbdir,
-                       _router_session_factory, node, nested=True):
+                       _router_session_factory, node, nested=True, ignore=[]):
     """
     Creates child resource to be added to the parent.
 
@@ -400,6 +400,9 @@ def create_web_service(personality, reactor, path_config, templates, log, cbdir,
         personality.add_web_services(personality, reactor, nested_resource, nested_paths, templates, log, cbdir, _router_session_factory, node)
 
         return nested_resource
+
+    elif path_config['type'] in ignore:
+        pass
 
     else:
         raise ApplicationError(u"crossbar.error.invalid_configuration",

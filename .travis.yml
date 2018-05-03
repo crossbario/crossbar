@@ -26,6 +26,9 @@ matrix:
     - env: TOX_ENV=flake8
 
     - python: 3.6
+      env: TOX_ENV=coverage
+
+    - python: 3.6
       env: TOX_ENV=py36-cli
     - python: pypy3
       env: TOX_ENV=pypy3-cli
@@ -36,28 +39,28 @@ matrix:
       env: TOX_ENV=pypy3-examples
 
     - python: 3.6
-      env: TOX_ENV=py36-unpinned-trial,coverage-report
+      env: TOX_ENV=py36-unpinned-trial
     - python: 3.6
-      env: TOX_ENV=py36-pinned-trial,coverage-report
+      env: TOX_ENV=py36-pinned-trial
     - python: 3.6
-      env: TOX_ENV=py36-abtrunk-trial,coverage-report
+      env: TOX_ENV=py36-abtrunk-trial
 
     - python: pypy3
-      env: TOX_ENV=pypy3-unpinned-trial,coverage-report
+      env: TOX_ENV=pypy3-unpinned-trial
     - python: pypy3
-      env: TOX_ENV=pypy3-pinned-trial,coverage-report
+      env: TOX_ENV=pypy3-pinned-trial
     - python: pypy3
-      env: TOX_ENV=pypy3-abtrunk-trial,coverage-report
+      env: TOX_ENV=pypy3-abtrunk-trial
 
   # we allow failures when not using autobahn trunk, for cases
   # where we depend on a new feature in autobahn here in crossbar
   allow_failures:
       - python: 3.6
-        env: TOX_ENV=py36-unpinned-trial,coverage-report
+        env: TOX_ENV=py36-unpinned-trial
       - python: 3.6
-        env: TOX_ENV=py36-pinned-trial,coverage-report
+        env: TOX_ENV=py36-pinned-trial
 
       - python: pypy3
-        env: TOX_ENV=pypy3-unpinned-trial,coverage-report
+        env: TOX_ENV=pypy3-unpinned-trial
       - python: pypy3
-        env: TOX_ENV=pypy3-pinned-trial,coverage-report
+        env: TOX_ENV=pypy3-pinned-trial

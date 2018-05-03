@@ -43,7 +43,6 @@ from txaio import make_logger
 import crossbar
 from crossbar.router.protocol import set_websocket_options
 from crossbar.worker.worker import NativeWorkerSession
-from crossbar.common import checkconfig
 from crossbar.twisted.endpoint import create_listening_port_from_config
 
 __all__ = (
@@ -182,7 +181,7 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            checkconfig.check_listening_transport_websocket(config)
+            self.personality.check_listening_transport_websocket(self.personality, config)
         except Exception as e:
             emsg = "Invalid WebSocket testee transport configuration: {}".format(e)
             self.log.error(emsg)
