@@ -196,7 +196,7 @@ class NodeControllerSession(NativeProcessSession):
         :rtype: dict
         """
         return {
-            u'title': u'{} {}'.format(self._node.PERSONALITY, crossbar.__version__),
+            u'title': u'{} {}'.format(self.personality.TITLE, crossbar.__version__),
             u'started': self._started,
             u'controller_pid': self._pid,
             u'running_workers': len(self._workers),
