@@ -126,11 +126,12 @@ def run(options, reactor=None):
     import signal
 
     # https://coverage.readthedocs.io/en/coverage-4.4.2/subprocess.html#measuring-sub-processes
+    MEASURING_COVERAGE = False
     if 'COVERAGE_PROCESS_START' in os.environ:
         try:
             import coverage
         except ImportError:
-            MEASURING_COVERAGE = False
+            pass
         else:
             # The following will read the environment variable COVERAGE_PROCESS_START,
             # and that should be set to the .coveragerc file:
