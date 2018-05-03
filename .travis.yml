@@ -31,6 +31,9 @@ matrix:
       env: TOX_ENV=pypy3-cli
 
     - python: 3.6
+      env: TOX_ENV=py36-clicoverage,coverage-report
+
+    - python: 3.6
       env: TOX_ENV=py36-examples
     - python: pypy3
       env: TOX_ENV=pypy3-examples
