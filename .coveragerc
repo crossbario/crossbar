@@ -1,6 +1,7 @@
 [run]
 omit =
      crossbar/worker/test/examples/syntaxerror.py
+     */test/*.py
 branch = True
 source = crossbar
 parallel = True
