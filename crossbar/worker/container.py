@@ -43,7 +43,6 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import ComponentConfig, PublishOptions
 from autobahn import wamp
 
-from crossbar.common import checkconfig
 from crossbar.worker import _appsession_loader
 from crossbar.worker.worker import NativeWorkerSession
 from crossbar.router.protocol import WampWebSocketClientFactory, \
@@ -194,7 +193,7 @@ class ContainerWorkerSession(NativeWorkerSession):
         # check component configuration
         #
         try:
-            checkconfig.check_container_component(config)
+            self.personality.check_container_component(self.personality, config)
         except Exception as e:
             emsg = u'invalid container component configuration: {}'.format(e)
             self.log.debug(emsg)

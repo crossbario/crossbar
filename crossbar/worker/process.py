@@ -125,8 +125,25 @@ def run(options, reactor=None):
     import platform
     import signal
 
+    # https://coverage.readthedocs.io/en/coverage-4.4.2/subprocess.html#measuring-sub-processes
+    MEASURING_COVERAGE = False
+    if 'COVERAGE_PROCESS_START' in os.environ:
+        try:
+            import coverage
+        except ImportError:
+            pass
+        else:
+            # The following will read the environment variable COVERAGE_PROCESS_START,
+            # and that should be set to the .coveragerc file:
+            #
+            #   export COVERAGE_PROCESS_START=${PWD}/.coveragerc
+            #
+            coverage.process_startup()
+            MEASURING_COVERAGE = True
+
     # make sure logging to something else than stdio is setup _first_
     from crossbar._logging import make_JSON_observer, cb_logging_aware
+    from crossbar._util import hl
     from txaio import make_logger, start_logging
     from twisted.logger import globalLogPublisher
     from twisted.python.reflect import qual
@@ -184,6 +201,9 @@ def run(options, reactor=None):
         python=platform.python_implementation(),
         reactor=qual(reactor.__class__).split('.')[-1],
     )
+    if MEASURING_COVERAGE:
+        log.info(hl('Code coverage measurements enabled (coverage={coverage_version}).', color='green', bold=True),
+                 coverage_version=coverage.__version__)
 
     # set process title if requested to
     #
