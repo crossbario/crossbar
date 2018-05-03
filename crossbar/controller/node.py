@@ -223,6 +223,10 @@ class Node(object):
             self._node_shutdown_triggers = [NODE_SHUTDOWN_ON_WORKER_EXIT]
             self.log.info("Using default node shutdown triggers {triggers}", triggers=self._node_shutdown_triggers)
 
+    def stop(self):
+        self._controller._shutdown_was_clean = True
+        return self._controller.shutdown()
+
     @inlineCallbacks
     def start(self):
         """

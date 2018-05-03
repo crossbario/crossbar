@@ -47,6 +47,7 @@ from txaio import make_logger, start_logging, set_global_log_level, failure_form
 
 from twisted.python.reflect import qual
 from twisted.logger import globalLogPublisher
+from twisted.internet.defer import inlineCallbacks
 
 from crossbar._util import hl, term_print
 from crossbar._logging import make_logfile_observer
@@ -751,16 +752,16 @@ def _run_command_start(options, reactor):
     # internally by the Reactor.
 
     def before_reactor_started():
-        term_print('<CROSSBAR:REACTOR_STARTING>')
+        term_print('CROSSBAR:REACTOR_STARTING')
 
     def after_reactor_started():
-        term_print('<CROSSBAR:REACTOR_STARTED>')
+        term_print('CROSSBAR:REACTOR_STARTED')
 
     reactor.addSystemEventTrigger('before', 'startup', before_reactor_started)
     reactor.addSystemEventTrigger('after', 'startup', after_reactor_started)
 
     def before_reactor_stopped():
-        term_print('<CROSSBAR:REACTOR_STOPPING>')
+        term_print('CROSSBAR:REACTOR_STOPPING')
 
     def after_reactor_stopped():
         # FIXME: we are indeed reaching this line, however,
@@ -772,7 +773,7 @@ def _run_command_start(options, reactor):
         # pipes. hence we do an evil trick: we directly write to
         # the process' controlling terminal
         # https://unix.stackexchange.com/a/91716/52500
-        term_print('<CROSSBAR:REACTOR_STOPPED>')
+        term_print('CROSSBAR:REACTOR_STOPPED')
 
     reactor.addSystemEventTrigger('before', 'shutdown', before_reactor_stopped)
     reactor.addSystemEventTrigger('after', 'shutdown', after_reactor_stopped)
@@ -782,7 +783,7 @@ def _run_command_start(options, reactor):
     exit_info = {'was_clean': None}
 
     def start_crossbar():
-        term_print('<CROSSBAR:NODE_STARTING>')
+        term_print('CROSSBAR:NODE_STARTING')
 
         #
         # ****** main entry point of node ******
@@ -791,7 +792,7 @@ def _run_command_start(options, reactor):
 
         # node started successfully, and later ..
         def on_startup_success(_shutdown_complete):
-            term_print('<CROSSBAR:NODE_STARTED>')
+            term_print('CROSSBAR:NODE_STARTED')
 
             shutdown_complete = _shutdown_complete['shutdown_complete']
 
@@ -809,7 +810,7 @@ def _run_command_start(options, reactor):
 
         # node could not even start
         def on_startup_error(err):
-            term_print('<CROSSBAR:NODE_STARTUP_FAILED>')
+            term_print('CROSSBAR:NODE_STARTUP_FAILED')
             exit_info['was_clean'] = False
             log.error("Could not start node: {tb}", tb=failure_format_traceback(err))
             if reactor.running:
@@ -821,9 +822,21 @@ def _run_command_start(options, reactor):
     # will be scheduled to run when it does start.
     reactor.callWhenRunning(start_crossbar)
 
+    # Special feature to automatically shutdown the node after this many seconds
+    if options.shutdownafter:
+
+        @inlineCallbacks
+        def _shutdown():
+            term_print('CROSSBAR:SHUTDOWN_AFTER_FIRED')
+            shutdown_info = yield node.stop()
+            exit_info['was_clean'] = shutdown_info['was_clean']
+            term_print('CROSSBAR:SHUTDOWN_AFTER_COMPLETE')
+
+        reactor.callLater(options.shutdownafter, _shutdown)
+
     # now enter event loop ..
     #
-    term_print('<CROSSBAR:REACTOR_RUN>')
+    term_print('CROSSBAR:REACTOR_RUN')
     reactor.run()
 
     # once the reactor has finally stopped, we get here, and at that point,
@@ -832,13 +845,15 @@ def _run_command_start(options, reactor):
 
     # exit the program with exit code depending on whether the node has been cleanly shut down
     if exit_info['was_clean'] is True:
-        term_print('<CROSSBAR:EXIT_WITH_SUCCESS>')
+        term_print('CROSSBAR:EXIT_WITH_SUCCESS')
         sys.exit(0)
+
     elif exit_info['was_clean'] is False:
-        term_print('<CROSSBAR:EXIT_WITH_ERROR>')
+        term_print('CROSSBAR:EXIT_WITH_ERROR')
         sys.exit(1)
+
     else:
-        term_print('<CROSSBAR:EXIT_WITH_INTERNAL_ERROR>')
+        term_print('CROSSBAR:EXIT_WITH_INTERNAL_ERROR')
         sys.exit(1)
 
 
@@ -1050,6 +1065,11 @@ def main(prog, args, reactor):
     _add_log_arguments(parser_start)
     _add_cbdir_config(parser_start)
 
+    parser_start.add_argument('--shutdownafter',
+                              type=int,
+                              default=None,
+                              help='Automatically shutdown node after this many seconds.')
+
     parser_start.set_defaults(func=_run_command_start)
 
     # "stop" command
@@ -1184,6 +1204,9 @@ def main(prog, args, reactor):
         options.argv = [prog] + args
     else:
         options.argv = sys.argv
+
+    if hasattr(options, 'shutdownafter') and options.shutdownafter:
+        options.shutdownafter = float(options.shutdownafter)
 
     # backward compat for personality name "community": renamed to "standalone"
     #

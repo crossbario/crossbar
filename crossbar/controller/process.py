@@ -218,7 +218,7 @@ class NodeControllerSession(NativeProcessSession):
         self.log.info('Node shutdown requested (restart={}, mode={}, reactor.running={}) ..'.format(
                       restart, mode, self._reactor.running))
 
-        term_print('<CROSSBAR:NODE_SHUTDOWN_REQUESTED>')
+        term_print('CROSSBAR:NODE_SHUTDOWN_REQUESTED')
 
         try:
             # node shutdown information
@@ -251,6 +251,7 @@ class NodeControllerSession(NativeProcessSession):
             self._reactor.callLater(_SHUTDOWN_DELAY, stop_reactor)
 
         except:
+            self.log.failure()
             self._shutdown_requested = False
             raise
 
@@ -592,21 +593,21 @@ class NodeControllerSession(NativeProcessSession):
             #
             if NODE_SHUTDOWN_ON_WORKER_EXIT in self._node._node_shutdown_triggers:
                 self.log.info("Node worker ended, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_WORKER_EXIT)
-                term_print('<CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT>')
+                term_print('CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT')
                 shutdown = True
 
             # automatically shutdown node when worker ended with error
             #
             elif not was_successful and NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR in self._node._node_shutdown_triggers:
                 self.log.info("Node worker ended with error, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR)
-                term_print('<CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR>')
+                term_print('CROSSBAR:NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR')
                 shutdown = True
 
             # automatically shutdown node when no more workers are left
             #
             elif len(self._workers) == 0 and NODE_SHUTDOWN_ON_LAST_WORKER_EXIT in self._node._node_shutdown_triggers:
                 self.log.info("No more node workers running, and trigger '{trigger}' is active: will shutdown node ..", trigger=NODE_SHUTDOWN_ON_LAST_WORKER_EXIT)
-                term_print('<CROSSBAR:NODE_SHUTDOWN_ON_LAST_WORKER_EXIT>')
+                term_print('CROSSBAR:NODE_SHUTDOWN_ON_LAST_WORKER_EXIT')
                 shutdown = True
 
             # initiate shutdown (but only if we are not already shutting down)
