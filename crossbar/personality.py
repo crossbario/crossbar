@@ -37,7 +37,7 @@ import txaio
 import crossbar
 from crossbar.common import checkconfig
 from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
-from crossbar.worker.transport.factory import create_transport_from_config
+from crossbar.worker.transport.factory import create_router_transport
 from crossbar.worker.transport.resource import create_web_service, add_web_services, remove_web_services
 from crossbar.controller.node import Node
 from crossbar.worker.router import RouterWorkerSession
@@ -141,7 +141,7 @@ class Personality(object):
 
     native_workers = default_native_workers()
 
-    create_router_transport = create_transport_from_config
+    create_router_transport = create_router_transport
     """
     Create a router (listening) transport from a (complete) router transport configuration:
 
