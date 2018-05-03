@@ -44,6 +44,16 @@
     },
     "workers": [
         {
+            "type": "guest",
+            "executable": "/bin/sh",
+            "arguments": [
+                "tick.sh"
+            ],
+            "options": {
+                "workdir": ".."
+            }
+        },
+        {
             "id": "wstestee1",
             "type": "websocket-testee",
             "transport": {

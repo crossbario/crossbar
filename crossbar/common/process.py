@@ -265,6 +265,20 @@ class NativeProcessSession(ApplicationSession):
         return psutil.cpu_count(logical=logical)
 
     @wamp.register(None)
+    def get_cpus(self, details=None):
+        """
+
+        :returns: List of CPU IDs.
+        :rtype: list[Int]
+        """
+        if not _HAS_PSUTIL:
+            emsg = "unable to get CPUs: required package 'psutil' is not installed"
+            self.log.warn(emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+
+        return self._pinfo.cpus
+
+    @wamp.register(None)
     def get_cpu_affinity(self, details=None):
         """
         Get CPU affinity of this process.
@@ -288,7 +302,7 @@ class NativeProcessSession(ApplicationSession):
             return current_affinity
 
     @wamp.register(None)
-    def set_cpu_affinity(self, cpus, details=None):
+    def set_cpu_affinity(self, cpus, relative=True, details=None):
         """
         Set CPU affinity of this process.
 
@@ -305,10 +319,18 @@ class NativeProcessSession(ApplicationSession):
             self.log.warn(emsg)
             raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
+        if relative:
+            _cpu_ids = self._pinfo.cpus
+            _cpus = [_cpu_ids[i] for i in cpus]
+        else:
+            _cpus = cpus
+
         try:
             p = psutil.Process(os.getpid())
-            p.cpu_affinity(cpus)
+            p.cpu_affinity(_cpus)
             new_affinity = p.cpu_affinity()
+            if set(_cpus) != set(new_affinity):
+                raise Exception('CPUs mismatch after affinity setting ({} != {})'.format(set(_cpus), set(new_affinity)))
         except Exception as e:
             emsg = "Could not set CPU affinity: {}".format(e)
             self.log.failure(emsg)
@@ -319,6 +341,8 @@ class NativeProcessSession(ApplicationSession):
             #
             cpu_affinity_set_topic = u'{}.on_cpu_affinity_set'.format(self._uri_prefix)
             cpu_affinity_set_info = {
+                u'cpus': cpus,
+                u'relative': relative,
                 u'affinity': new_affinity,
                 u'who': details.caller
             }
