@@ -42,6 +42,7 @@ import six
 import pkg_resources
 
 import txaio
+
 txaio.use_twisted()  # noqa
 from txaio import make_logger, start_logging, set_global_log_level, failure_format_traceback
 
@@ -49,46 +50,13 @@ from twisted.python.reflect import qual
 from twisted.logger import globalLogPublisher
 from twisted.internet.defer import inlineCallbacks
 
-from crossbar._util import hl, term_print
+from crossbar._util import hl, hlid, hltype, term_print, _add_debug_options, _add_cbdir_config, _add_log_arguments, \
+    _add_personality_argument
 from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
 from crossbar._logging import LogLevel
 from crossbar.common.key import _maybe_generate_key
-
-
-def _get_personalities():
-    """
-    Return a map from personality names to actual available (=installed) Personality classes.
-    """
-    from crossbar.personality import Personality as StandalonePersonality
-
-    default_personality = 'standalone'
-
-    PKLASSES = {
-        'standalone': StandalonePersonality,
-    }
-
-    try:
-        from crossbarfabric.personality import Personality as FabricPersonality
-        PKLASSES['fabric'] = FabricPersonality
-        # default_personality = 'fabric'
-    except ImportError:
-        pass
-
-    try:
-        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
-        PKLASSES['fabriccenter'] = FabricCenterPersonality
-        # default_personality = 'fabriccenter'
-    except ImportError:
-        pass
-
-    return PKLASSES, default_personality
-
-
-_INSTALLED_PERSONALITIES, _DEFAULT_PERSONALITY = _get_personalities()
-_DEFAULT_PERSONALITY_KLASS = _INSTALLED_PERSONALITIES[_DEFAULT_PERSONALITY]
-
 
 import crossbar
 
@@ -253,7 +221,7 @@ def _run_command_legal(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar legal".
     """
-    personality = _INSTALLED_PERSONALITIES[options.personality]
+    personality = crossbar.personalities()[options.personality]
     package, resource_name = personality.LEGAL
     filename = pkg_resources.resource_filename(package, resource_name)
     filepath = os.path.abspath(filename)
@@ -266,7 +234,7 @@ def _run_command_version(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar version".
     """
-    personality = _INSTALLED_PERSONALITIES[options.personality]
+    personality = crossbar.personalities()[options.personality]
 
     log = make_logger()
 
@@ -384,8 +352,10 @@ def _run_command_version(options, reactor=None, **kwargs):
     def decorate(text, fg='white', bg=None, bold=True):
         return click.style(text, fg=fg, bg=bg, bold=bold)
 
-    log.info(hl(personality.BANNER, color='yellow', bold=True))
     pad = " " * 22
+    for line in personality.BANNER.splitlines():
+        log.info(hl(line, color='yellow', bold=True))
+    log.info("")
     log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
     log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
@@ -419,7 +389,7 @@ def _run_command_keys(options, reactor=None, **kwargs):
     """
     Subcommand "crossbar keys".
     """
-    # personality = _INSTALLED_PERSONALITIES[options.personality]
+    # personality = crossbar.personalities()[options.personality]
 
     log = make_logger()
 
@@ -458,7 +428,7 @@ def _run_command_init(options, **kwargs):
     """
     Subcommand "crossbar init".
     """
-    # personality = _INSTALLED_PERSONALITIES[options.personality]
+    # personality = crossbar.personalities()[options.personality]
 
     log = make_logger()
 
@@ -498,7 +468,7 @@ def _run_command_status(options, **kwargs):
     """
     Subcommand "crossbar status".
     """
-    # personality = _INSTALLED_PERSONALITIES[options.personality]
+    # personality = crossbar.personalities()[options.personality]
 
     log = make_logger()
 
@@ -538,7 +508,7 @@ def _run_command_stop(options, exit=True, **kwargs):
     """
     Subcommand "crossbar stop".
     """
-    # personality = _INSTALLED_PERSONALITIES[options.personality]
+    # personality = crossbar.personalities()[options.personality]
 
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
@@ -714,17 +684,25 @@ def _run_command_start(options, reactor):
 
     # represents the running Crossbar.io node
     #
-    Personality = _INSTALLED_PERSONALITIES[options.personality]
-    Node = Personality.NodeKlass
-    node = Node(Personality, options.cbdir, reactor=reactor)
+    personality = crossbar.personalities()[options.personality]
+
+    node_options = personality.NodeOptions(debug_lifecycle=options.debug_lifecycle,
+                                           debug_programflow=options.debug_programflow)
+
+    node = personality.Node(personality,
+                            options.cbdir,
+                            reactor=reactor,
+                            options=node_options)
 
     # print the banner, personality and node directory
     #
-    for line in Personality.BANNER.splitlines():
+    for line in personality.BANNER.splitlines():
         log.info(hl(line, color='yellow', bold=True))
     log.info('')
-    log.info('Node starting with personality "{node_personality}" [{node_class}]', node_personality=options.personality, node_class='{}.{}'.format(Node.__module__, Node.__name__))
-    log.info('Running from node directory "{cbdir}"', cbdir=options.cbdir)
+    log.info('Initializing {node_personality} node from node directory {cbdir} {node_class}',
+             node_personality=options.personality,
+             cbdir=hlid(options.cbdir),
+             node_class=hltype(personality.Node))
 
     # possibly generate new node key
     #
@@ -741,10 +719,6 @@ def _run_command_start(options, reactor):
         sys.exit(1)
     except:
         raise
-
-    log.info("Controller process starting [{python}-{reactor}] ..",
-             python=platform.python_implementation(),
-             reactor=qual(reactor.__class__).split('.')[-1])
 
     # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
     # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
@@ -836,7 +810,8 @@ def _run_command_start(options, reactor):
 
     # now enter event loop ..
     #
-    term_print('CROSSBAR:REACTOR_RUN')
+    log.info(hl('Entering event reactor ...', color='cyan', bold=True))
+    term_print('CROSSBAR:REACTOR_ENTERED')
     reactor.run()
 
     # once the reactor has finally stopped, we get here, and at that point,
@@ -861,7 +836,7 @@ def _run_command_check(options, **kwargs):
     """
     Subcommand "crossbar check".
     """
-    personality = _INSTALLED_PERSONALITIES[options.personality]
+    personality = crossbar.personalities()[options.personality]
 
     configfile = os.path.join(options.cbdir, options.config)
 
@@ -894,7 +869,7 @@ def _run_command_convert(options, **kwargs):
     """
     Subcommand "crossbar convert".
     """
-    personality = _INSTALLED_PERSONALITIES[options.personality]
+    personality = crossbar.personalities()[options.personality]
 
     configfile = os.path.join(options.cbdir, options.config)
 
@@ -913,7 +888,7 @@ def _run_command_upgrade(options, **kwargs):
     """
     Subcommand "crossbar upgrade".
     """
-    personality = _INSTALLED_PERSONALITIES[options.personality]
+    personality = crossbar.personalities()[options.personality]
 
     configfile = os.path.join(options.cbdir, options.config)
 
@@ -944,84 +919,25 @@ def _run_command_keygen(options, **kwargs):
     print('   public: {}'.format(pub))
 
 
-_HELP_DESCRIPTION = _DEFAULT_PERSONALITY_KLASS.DESC
-
-
-_HELP_PERSONALITIES = """Software personality to use:
- "standalone" (Crossbar.io single node, AGPL),
- "fabric" (Crossbar.io mesh node, license required),
- "fabriccenter" (Crossbar.io mesh controller, license required)
-"""
-
-
-def _add_personality_argument(parser):
-    return parser.add_argument('--personality',
-                               type=six.text_type,
-                               default=_DEFAULT_PERSONALITY,
-                               choices=sorted(_INSTALLED_PERSONALITIES.keys()) + ['community'],
-                               help=(_HELP_PERSONALITIES))
-
-
-def _add_log_arguments(parser):
-    color_args = dict({
-        "type": str,
-        "default": "auto",
-        "choices": ["true", "false", "auto"],
-        "help": "If logging should be colored."
-    })
-    parser.add_argument('--color', **color_args)
-
-    log_level_args = dict({
-        "type": str,
-        "default": 'info',
-        "choices": ['none', 'error', 'warn', 'info', 'debug', 'trace'],
-        "help": ("How much Crossbar.io should log to the terminal, in order of verbosity.")
-    })
-    parser.add_argument('--loglevel', **log_level_args)
-
-    parser.add_argument('--logformat',
-                        type=six.text_type,
-                        default='standard',
-                        choices=['syslogd', 'standard', 'none'],
-                        help=("The format of the logs -- suitable for syslogd, not colored, or colored."))
-
-    parser.add_argument('--logdir',
-                        type=six.text_type,
-                        default=None,
-                        help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
-
-    parser.add_argument('--logtofile',
-                        action='store_true',
-                        help="Whether or not to log to file")
-
-    return parser
-
-
-def _add_cbdir_config(parser):
-    parser.add_argument('--cbdir',
-                        type=six.text_type,
-                        default=None,
-                        help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser.add_argument('--config',
-                        type=six.text_type,
-                        default=None,
-                        help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
-
-    return parser
-
-
 def main(prog, args, reactor):
     """
     Entry point of Crossbar.io CLI.
     """
+    from crossbar import _util
+    _util.set_flags_from_args(args)
+
+    term_print('CROSSBAR:MAIN_ENTRY')
+
+    _DEFAULT_PERSONALITY_CLASS = crossbar.personalities()['standalone']
+    _DEFAULT_PERSONALITY_DESC = _DEFAULT_PERSONALITY_CLASS.DESC
+
     # print banner and usage notes when started with empty args
     #
-    if args is not None:
+    if args is not None and '--help' not in args:
         # if all args are options (start with "-"), then we don't have a command,
         # but we need one! hence, print a usage message
         if not [x for x in args if not x.startswith('-')]:
-            print(hl(_DEFAULT_PERSONALITY_KLASS.BANNER, color='yellow', bold=True))
+            print(hl(_DEFAULT_PERSONALITY_CLASS.BANNER, color='yellow', bold=True))
             print('Type "crossbar --help to get help, or "crossbar <command> --help" to get help on a specific command.')
             print('Type "crossbar legal" to read legal notices, terms of use and license and privacy information.')
             print('Type "crossbar version" to print detailed version information.')
@@ -1029,8 +945,9 @@ def main(prog, args, reactor):
 
     # create the top-level parser
     #
-    parser = argparse.ArgumentParser(prog=prog or 'crossbar', description=_HELP_DESCRIPTION)
+    parser = argparse.ArgumentParser(prog=prog or 'crossbar', description=_DEFAULT_PERSONALITY_DESC)
 
+    _add_debug_options(parser)
     _add_personality_argument(parser)
 
     # create subcommand parser
@@ -1174,7 +1091,6 @@ def main(prog, args, reactor):
                                            help='Print software versions.')
 
     _add_personality_argument(parser_version)
-    _add_log_arguments(parser_version)
 
     parser_version.set_defaults(func=_run_command_version)
 
@@ -1286,6 +1202,7 @@ def main(prog, args, reactor):
     # Start the logger
     #
     _start_logging(options, reactor)
+    term_print('CROSSBAR:LOGGING_STARTED')
 
     # run the subcommand selected
     #

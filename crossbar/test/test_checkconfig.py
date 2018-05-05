@@ -30,16 +30,19 @@
 
 from __future__ import absolute_import, division, print_function
 
-from crossbar.test import TestCase
-from crossbar.common import checkconfig
-from crossbar.controller.cli import _DEFAULT_PERSONALITY_KLASS
-
 import json
 import six
 if six.PY3:
     from collections.abc import Sequence
 else:
     from collections import Sequence
+
+import crossbar
+from crossbar.test import TestCase
+from crossbar.common import checkconfig
+
+
+_DEFAULT_PERSONALITY_CLASS = crossbar.personalities()['standalone']
 
 
 class CheckDictArgsTests(TestCase):
@@ -103,7 +106,7 @@ class CheckContainerTests(TestCase):
     Tests for L{crossbar.common.checkconfig.check_container}.
     """
     def setUp(self):
-        self.personality = _DEFAULT_PERSONALITY_KLASS
+        self.personality = _DEFAULT_PERSONALITY_CLASS
         return super(TestCase, self).setUp()
 
     def test_validTemplate_hello(self):
@@ -197,7 +200,7 @@ class CheckEndpointTests(TestCase):
     check_listening_endpoint and check_connecting_endpoint
     """
     def setUp(self):
-        self.personality = _DEFAULT_PERSONALITY_KLASS
+        self.personality = _DEFAULT_PERSONALITY_CLASS
         return super(TestCase, self).setUp()
 
     def test_twisted_client_error(self):
@@ -250,7 +253,7 @@ class CheckEndpointTests(TestCase):
 class CheckWebsocketTests(TestCase):
 
     def setUp(self):
-        self.personality = _DEFAULT_PERSONALITY_KLASS
+        self.personality = _DEFAULT_PERSONALITY_CLASS
         return super(TestCase, self).setUp()
 
     def test_tiny_timeout_auto_ping(self):
@@ -270,7 +273,7 @@ class CheckRealmTests(TestCase):
     """
 
     def setUp(self):
-        self.personality = _DEFAULT_PERSONALITY_KLASS
+        self.personality = _DEFAULT_PERSONALITY_CLASS
         return super(TestCase, self).setUp()
 
     def test_dynamic_authorizer(self):
@@ -435,7 +438,7 @@ class CheckRealmTests(TestCase):
 class CheckOnion(TestCase):
 
     def setUp(self):
-        self.personality = _DEFAULT_PERSONALITY_KLASS
+        self.personality = _DEFAULT_PERSONALITY_CLASS
         return super(TestCase, self).setUp()
 
     def test_unknown_attr(self):

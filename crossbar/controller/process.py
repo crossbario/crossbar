@@ -55,7 +55,7 @@ from autobahn.wamp.types import PublishOptions
 from autobahn import wamp
 
 import crossbar
-from crossbar._util import term_print
+from crossbar._util import term_print, hlid, hltype
 from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT, NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR, NODE_SHUTDOWN_ON_LAST_WORKER_EXIT
 from crossbar.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
@@ -310,6 +310,10 @@ class NodeControllerSession(NativeProcessSession):
         """
         Start a new worker process in the node.
         """
+        self.log.info('Starting {worker_type} worker {worker_id} {worker_klass}',
+                      worker_type=worker_type,
+                      worker_id=hlid(worker_id),
+                      worker_klass=hltype(NodeControllerSession.start_worker))
         if worker_type == u'guest':
             return self._start_guest_worker(worker_id, worker_options, details=details)
 
@@ -448,6 +452,10 @@ class NodeControllerSession(NativeProcessSession):
         args.extend(["--personality", self._node.personality.NAME])
         args.extend(["--klass", worker_class])
         args.extend(["--loglevel", get_global_log_level()])
+        if self._node.options.debug_lifecycle:
+            args.append("--debug-lifecycle")
+        if self._node.options.debug_programflow:
+            args.append("--debug-programflow")
         if "shutdown" in options:
             args.extend(["--shutdown", options["shutdown"]])
 
@@ -642,13 +650,12 @@ class NodeControllerSession(NativeProcessSession):
         # .. while all others get an event
         self.publish(starting_topic, starting_info, options=PublishOptions(exclude=details.caller))
 
-        # now actually fork the worker ..
-        #
-        self.log.info('{worker_logname} worker "{worker_id}" starting ..',
-                      worker_logname=worker_logname, worker_id=worker_id)
-        self.log.debug('{worker_logname} "{worker_id}" command line is "{cmdline}"',
-                       worker_logname=worker_logname, worker_id=worker_id, cmdline=' '.join(args))
-
+        # only the following line will actually exec a new worker process - everything before is just setup
+        # for this moment:
+        self.log.info('Starting new managed worker process for {worker_logname} worker "{worker_id}"',
+                      worker_id=worker_id, worker_logname=worker_logname)
+        self.log.debug('Starting new managed worker process for {worker_logname} worker "{worker_id}" using {exe} with args {args}',
+                       worker_id=worker_id, worker_logname=worker_logname, exe=exe, args=args)
         d = ep.connect(transport_factory)
 
         def on_connect_success(proto):

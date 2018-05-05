@@ -40,6 +40,8 @@ from txaio import make_logger
 
 from autobahn.wamp.types import CallOptions, ComponentConfig
 
+from crossbar._util import hltype, hlid
+
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceSession
@@ -47,6 +49,14 @@ from crossbar.worker.types import RouterRealm
 from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT
 from crossbar.common.key import _maybe_generate_key
 from crossbar.controller.process import NodeControllerSession
+
+
+class NodeOptions(object):
+
+    def __init__(self, debug_lifecycle=False, debug_programflow=False):
+
+        self.debug_lifecycle = debug_lifecycle
+        self.debug_programflow = debug_programflow
 
 
 class Node(object):
@@ -64,7 +74,7 @@ class Node(object):
 
     log = make_logger()
 
-    def __init__(self, personality, cbdir=None, reactor=None, native_workers=None):
+    def __init__(self, personality, cbdir=None, reactor=None, native_workers=None, options=None):
         """
 
         :param cbdir: The node directory to run from.
@@ -73,6 +83,8 @@ class Node(object):
         :type reactor: obj or None
         """
         self.personality = personality
+        self.options = options or NodeOptions()
+
         self._native_workers = personality.native_workers
 
         # node directory
@@ -150,8 +162,8 @@ class Node(object):
             # finally return the parsed configuration object
             self._config = self.personality.check_config_file(self.personality, configpath)
 
-            self.log.info('Node configuration loaded from "{configpath}"',
-                          configpath=configpath)
+            self.log.info('Node configuration loaded from {configpath}',
+                          configpath=hlid(configpath))
         else:
             self._config = {
                 u'version': 2,
@@ -228,21 +240,40 @@ class Node(object):
         return self._controller.shutdown()
 
     @inlineCallbacks
-    def start(self):
+    def start(self, node_id=None):
         """
         Starts this node. This will start a node controller and then spawn new worker
         processes as needed.
         """
-        # a configuration ust have been loaded before
+        self.log.info('Starting {personality} node {method}',
+                      personality=self.personality.NAME,
+                      method=hltype(Node.start))
+
+        # a configuration must have been loaded before
         if not self._config:
             raise Exception("No node configuration set")
 
         # a node can only be started once for now
         assert self._shutdown_complete is None
+        assert self._node_id is None
 
         # get controller config/options
         controller_config = self._config.get('controller', {})
         controller_options = controller_config.get('options', {})
+
+        # the node ID: CLI takes precedence over config over hostname
+        if node_id:
+            self._node_id = node_id
+            _node_id_source = 'explicit run-time argument'
+        elif 'id' in controller_config:
+            self._node_id = controller_config['id']
+            _node_id_source = 'explicit configuration'
+        else:
+            self._node_id = os.uname().nodename
+            _node_id_source = 'hostname'
+        self.log.info('Node ID {node_id} set from {node_id_source}',
+                      node_id=hlid(self._node_id),
+                      node_id_source=_node_id_source)
 
         # set controller process title
         try:
@@ -286,7 +317,7 @@ class Node(object):
         self._shutdown_complete = Deferred()
 
         # startup the node personality ..
-        yield self._startup()
+        yield self.personality.Node.boot(self)
 
         # notify systemd that we are fully up and running
         try:
@@ -305,17 +336,19 @@ class Node(object):
         returnValue(res)
 #        returnValue(self._shutdown_complete)
 
-    def _startup(self):
-        return self._configure_node_from_config(self._config)
+    def boot(self):
+        self.log.info('Booting node {method}', method=hltype(Node.boot))
+        return self.configure_from_config(self._config)
 
     @inlineCallbacks
-    def _configure_node_from_config(self, config):
+    def configure_from_config(self, config):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
-        self.log.info('Configuring node from local configuration ...')
+        self.log.info('Configuring node from local configuration {method}',
+                      method=hltype(Node.configure_from_config))
 
-        # get contoller configuration subpart
+        # get controller configuration subpart
         controller = config.get('controller', {})
 
         # start Manhole in node controller

@@ -37,9 +37,10 @@ import txaio
 import crossbar
 from crossbar.common import checkconfig
 from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
-from crossbar.worker.transport.factory import create_router_transport
-from crossbar.worker.transport.resource import create_web_service, add_web_services, remove_web_services
-from crossbar.controller.node import Node
+
+from crossbar.worker.transport import factory
+
+from crossbar.controller import node
 from crossbar.worker.router import RouterWorkerSession
 from crossbar.worker.container import ContainerWorkerSession
 from crossbar.worker.testee import WebSocketTesteeWorkerSession
@@ -110,6 +111,9 @@ _BANNER = r"""     __  __  __  __  __  __      __
 """
 
 
+from crossbar.worker.transport.webservice import misc, wsgi, base, rest, longpoll, static, websocket
+
+
 class Personality(object):
     """
     Software personality for Crossbar.io OSS.
@@ -135,40 +139,71 @@ class Personality(object):
     # of _pairs_ to be used with pkg_resources.resource_filename()!
     TEMPLATE_DIRS = [('crossbar', 'web/templates')]
 
-    NodeKlass = Node
+    WEB_SERVICE_CHECKERS = {
+        'none': None,
+
+        'path': checkconfig.check_web_path_service_path,
+        'redirect': checkconfig.check_web_path_service_redirect,
+        'resource': checkconfig.check_web_path_service_resource,
+        'reverseproxy': checkconfig.check_web_path_service_reverseproxy,
+
+        'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
+        'json': checkconfig.check_web_path_service_json,
+        'cgi': checkconfig.check_web_path_service_cgi,
+
+        'wsgi': checkconfig.check_web_path_service_wsgi,
+
+        'static': checkconfig.check_web_path_service_static,
+
+        'websocket': checkconfig.check_web_path_service_websocket,
+        'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
+
+        'longpoll': checkconfig.check_web_path_service_longpoll,
+
+        'caller': checkconfig.check_web_path_service_caller,
+        'publisher': checkconfig.check_web_path_service_publisher,
+        'webhook': checkconfig.check_web_path_service_webhook,
+    }
+
+    WEB_SERVICE_FACTORIES = {
+        # renders to 404
+        'none': base.RouterWebService,
+
+        'path': base.RouterWebServiceNestedPath,
+        'redirect': base.RouterWebServiceRedirect,
+        'resource': base.RouterWebServiceTwistedWeb,
+        'reverseproxy': base.RouterWebServiceReverseWeb,
+
+        'nodeinfo': misc.RouterWebServiceNodeInfo,
+        'json': misc.RouterWebServiceJson,
+        'cgi': misc.RouterWebServiceCgi,
+
+        'wsgi': wsgi.RouterWebServiceWsgi,
+
+        'static': static.RouterWebServiceStatic,
+
+        'websocket': websocket.RouterWebServiceWebSocket,
+        'websocket-reverseproxy': websocket.RouterWebServiceWebSocketReverseProxy,
+
+        'longpoll': longpoll.RouterWebServiceLongPoll,
+
+        'caller': rest.RouterWebServiceRestCaller,
+        'publisher': rest.RouterWebServiceRestPublisher,
+        'webhook': rest.RouterWebServiceWebhook,
+    }
+
+    Node = node.Node
+    NodeOptions = node.NodeOptions
 
     WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
 
     native_workers = default_native_workers()
 
-    create_router_transport = create_router_transport
-    """
-    Create a router (listening) transport from a (complete) router transport configuration:
+    create_router_transport = factory.create_router_transport
 
-        (reactor, name, config, cbdir, log, node,
-         _router_session_factory=None, _web_templates=None, add_paths=False) -> None
-    """
+    RouterWebTransport = factory.RouterWebTransport
 
-    create_web_service = create_web_service
-    """
-    Create a (single) Web service to be added to a Web service tree:
-
-        (reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True) -> None
-    """
-
-    add_web_services = add_web_services
-    """
-    Add Web service(s) to a Web service tree:
-
-        (reactor, resource, paths, templates, log, cbdir, _router_session_factory, node) -> None
-    """
-
-    remove_web_services = remove_web_services
-    """
-    Remove web service(s) from a Web service tree:
-
-        (reactor, resource, paths) -> None
-    """
+    RouterTransport = factory.RouterTransport
 
     #
     # configuration related functions

@@ -165,3 +165,28 @@ def run(args=None, reactor=None):
 
     # and now actually enter here .. this never returns!
     return main('crossbar', args, reactor)
+
+
+def personalities():
+    """
+    Return a map from personality names to actual available (=installed) Personality classes.
+    """
+    from crossbar.personality import Personality as StandalonePersonality
+
+    personality_classes = {
+        'standalone': StandalonePersonality,
+    }
+
+    try:
+        from crossbarfabric.personality import Personality as FabricPersonality
+        personality_classes['fabric'] = FabricPersonality
+    except ImportError:
+        pass
+
+    try:
+        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
+        personality_classes['fabriccenter'] = FabricCenterPersonality
+    except ImportError:
+        pass
+
+    return personality_classes

@@ -51,7 +51,7 @@ from autobahn.wamp import cryptosign
 from twisted.python.runtime import platform
 
 import crossbar
-
+from crossbar._util import hlid
 
 log = txaio.make_logger()
 
@@ -247,7 +247,7 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
             msg = u'Crossbar.io node public key\n\n'
             _write_node_key(pubkey_path, pub_tags, msg)
 
-        log.info("Node key files exist and are valid")
+        log.debug("Node key files exist and are valid")
         log.debug("Node public key: {hex}", hex=pubkey_hex)
 
     else:
@@ -287,7 +287,7 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
         log.info("File permissions on node private key fixed")
 
     log.info(
-        'Node key loaded from "{priv_path}"',
-        priv_path=privkey_path,
+        'Node key loaded from {priv_path}',
+        priv_path=hlid(privkey_path),
     )
     return cryptosign.SigningKey(privkey)

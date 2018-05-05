@@ -37,14 +37,20 @@ import six
 
 from twisted.internet.error import ReactorNotRunning
 
-from crossbar.controller.cli import _INSTALLED_PERSONALITIES
+import crossbar
+from crossbar._util import hl, hltype, _add_debug_options
 
 __all__ = ('run',)
+
+
+_INSTALLED_PERSONALITIES = crossbar.personalities()
 
 
 def get_argument_parser(parser=None):
     if not parser:
         parser = argparse.ArgumentParser()
+
+    _add_debug_options(parser)
 
     parser.add_argument('--reactor',
                         default=None,
@@ -143,7 +149,6 @@ def run(options, reactor=None):
 
     # make sure logging to something else than stdio is setup _first_
     from crossbar._logging import make_JSON_observer, cb_logging_aware
-    from crossbar._util import hl
     from txaio import make_logger, start_logging
     from twisted.logger import globalLogPublisher
     from twisted.python.reflect import qual
@@ -191,12 +196,14 @@ def run(options, reactor=None):
     klass = getattr(_mod, worker_klass)
 
     log.info(
-        'Started {worker_title} worker "{worker_id}" on node "{node_id}" [{personality}/{klass}/{python}-{reactor}]',
-        worker_title=klass.WORKER_TITLE,
-        personality=Personality.NAME,
-        klass=options.klass,
-        node_id=options.node,
+        'Starting worker "{worker_id}" for node "{node_id}" with personality "{personality}" {worker_class}',
         worker_id=options.worker,
+        node_id=options.node,
+        personality=Personality.NAME,
+        worker_class=hltype(klass),
+    )
+    log.info(
+        'Running as PID {pid} on {python}-{reactor}',
         pid=os.getpid(),
         python=platform.python_implementation(),
         reactor=qual(reactor.__class__).split('.')[-1],
@@ -322,12 +329,12 @@ def run(options, reactor=None):
             outfd = os.open(PROFILE_FILE, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
             vmprof.enable(outfd, period=0.01)
 
-            log.info("Entering event loop...")
+            log.info(hl('Entering event reactor ...', color='cyan', bold=True))
             reactor.run()
 
             vmprof.disable()
         else:
-            log.debug("Entering event loop...")
+            log.info(hl('Entering event reactor ...', color='cyan', bold=True))
             reactor.run()
 
     except Exception as e:
@@ -340,4 +347,13 @@ def run(options, reactor=None):
 
 
 if __name__ == '__main__':
-    run(get_argument_parser().parse_args())
+    import sys
+    from crossbar import _util
+
+    _args = sys.argv[1:]
+    _util.set_flags_from_args(_args)
+
+    parser = get_argument_parser()
+    args = parser.parse_args(_args)
+
+    run(args)

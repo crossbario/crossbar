@@ -61,6 +61,11 @@ $CB stop --cbdir=$CBDIR
 $CB status --cbdir=$CBDIR --assert=stopped
 
 
+# start with debug options, and auto-shutdown
+#
+$CB --debug-lifecycle --debug-programflow start --cbdir=$CBDIR --shutdownafter 5
+
+
 # convert, check, start, status, stop
 #
 rm -rf $APPDIR

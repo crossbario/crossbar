@@ -1583,11 +1583,6 @@ def check_web_path_service_caller(personality, config):
             check_web_path_service_rest_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
-def check_web_path_service_schemadoc(personality, config):
-    # FIXME
-    pass
-
-
 def check_web_path_service_path(personality, config):
     """
     Check a "path" path service on Web transport.
@@ -1605,7 +1600,7 @@ def check_web_path_service_path(personality, config):
 
     # check nested paths
     #
-    check_paths(config['paths'], nested=True)
+    check_paths(personality, config['paths'], nested=True)
 
 
 def check_web_path_service_max_file_size(limit):
@@ -1690,7 +1685,7 @@ def check_web_path_service(personality, path, config, nested, ignore=[]):
         if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook', 'nodeinfo'] + ignore:
             raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
     else:
-        if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo'] + ignore:
+        if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'path', 'resource', 'upload', 'nodeinfo'] + ignore:
             raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
 
     checkers = {
@@ -1710,7 +1705,6 @@ def check_web_path_service(personality, path, config, nested, ignore=[]):
         'caller': check_web_path_service_caller,
         'publisher': check_web_path_service_publisher,
         'webhook': check_web_path_service_webhook,
-        'schemadoc': check_web_path_service_schemadoc,
     }
     if ptype in checkers:
         checkers[ptype](personality, config)

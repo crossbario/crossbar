@@ -77,6 +77,9 @@ test:
 	crossbar start --personality=standalone --cbdir=./test/full/.crossbar
 #	crossbar start --personality=standalone --cbdir=./test/full/.crossbar --shutdownafter=10
 
+test_mahole:
+	ssh -vvv -p 6022 oberstet@localhost
+
 gen_ssh_keys:
 #	ssh-keygen -t ed25519 -f test/full/.crossbar/ssh_host_ed25519_key
 	ssh-keygen -t rsa -b 4096 -f test/full/.crossbar/ssh_host_rsa_key
