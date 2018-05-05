@@ -36,7 +36,7 @@ import txaio
 
 import crossbar
 from crossbar.common import checkconfig
-from crossbar.node.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
+from crossbar.node.worker import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
 
 from crossbar.worker import transport
 

@@ -60,8 +60,8 @@ from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT, NODE_SHUTD
 from crossbar.common.twisted.processutil import WorkerProcessEndpoint
 from crossbar.node.native import create_native_worker_client_factory
 from crossbar.node.guest import create_guest_worker_client_factory
-from crossbar.node.processtypes import NativeWorkerProcess
-from crossbar.node.processtypes import GuestWorkerProcess
+from crossbar.node.worker import NativeWorkerProcess
+from crossbar.node.worker import GuestWorkerProcess
 from crossbar.common.process import NativeProcessSession
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
 

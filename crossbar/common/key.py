@@ -58,7 +58,7 @@ log = txaio.make_logger()
 
 def _read_release_key():
     release_pubkey_file = 'crossbar-{}.pub'.format('-'.join(crossbar.__version__.split('.')[0:2]))
-    release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'keys'), release_pubkey_file)
+    release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'common/keys'), release_pubkey_file)
 
     release_pubkey_hex = binascii.b2a_hex(cryptosign._read_signify_ed25519_pubkey(release_pubkey_path)).decode('ascii')
 
