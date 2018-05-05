@@ -34,7 +34,7 @@ from txaio import make_logger
 
 import crossbar
 from crossbar.router import longpoll
-from crossbar.worker.transport.webservice.base import RouterWebService
+from crossbar.webservice.base import RouterWebService
 
 
 class WampLongPollResourceSession(longpoll.WampLongPollResourceSession):

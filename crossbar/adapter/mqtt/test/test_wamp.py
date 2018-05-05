@@ -56,8 +56,8 @@ from crossbar.adapter.mqtt._events import (
     Disconnect,
 )
 from crossbar._logging import LogCapturer
-from crossbar.twisted.endpoint import (create_listening_endpoint_from_config,
-                                       create_connecting_endpoint_from_config)
+from crossbar.common.twisted.endpoint import (create_listening_endpoint_from_config,
+                                              create_connecting_endpoint_from_config)
 
 from txaio.tx import make_logger
 

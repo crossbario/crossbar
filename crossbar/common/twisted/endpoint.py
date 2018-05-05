@@ -54,7 +54,7 @@ from zope.interface import implementer
 
 import txtorcon
 
-from crossbar.twisted.sharedport import SharedPort, SharedTLSPort
+from crossbar.common.twisted.sharedport import SharedPort, SharedTLSPort
 
 try:
     from twisted.internet.endpoints import SSL4ServerEndpoint, \

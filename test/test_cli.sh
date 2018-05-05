@@ -80,3 +80,13 @@ $CB check --cbdir=$CBDIR
 sleep 2
 $CB status --cbdir=$CBDIR --assert=running
 $CB stop --cbdir=$CBDIR
+
+
+# test "full" configuration (all features and options)
+#
+$CB \
+    --debug-lifecycle \
+    --debug-programflow\
+    start \
+    --cbdir=./test/full/.crossbar \
+    --shutdownafter=20

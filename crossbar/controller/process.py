@@ -57,7 +57,7 @@ from autobahn import wamp
 import crossbar
 from crossbar._util import term_print, hlid, hltype
 from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT, NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR, NODE_SHUTDOWN_ON_LAST_WORKER_EXIT
-from crossbar.twisted.processutil import WorkerProcessEndpoint
+from crossbar.common.twisted.processutil import WorkerProcessEndpoint
 from crossbar.controller.native import create_native_worker_client_factory
 from crossbar.controller.guest import create_guest_worker_client_factory
 from crossbar.controller.processtypes import NativeWorkerProcess

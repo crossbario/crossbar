@@ -39,7 +39,7 @@ from twisted.web.static import File
 from twisted.web.twcgi import CGIScript, CGIProcessProtocol
 
 import crossbar
-from crossbar.worker.transport.webservice.base import set_cross_origin_headers, RouterWebService, Resource404
+from crossbar.webservice.base import RouterWebService, Resource404, set_cross_origin_headers
 
 
 class NodeInfoResource(Resource):

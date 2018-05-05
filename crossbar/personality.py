@@ -38,7 +38,7 @@ import crossbar
 from crossbar.common import checkconfig
 from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
 
-from crossbar.worker.transport import factory
+from crossbar.worker import transport
 
 from crossbar.controller import node
 from crossbar.worker.router import RouterWorkerSession
@@ -111,7 +111,8 @@ _BANNER = r"""     __  __  __  __  __  __      __
 """
 
 
-from crossbar.worker.transport.webservice import misc, wsgi, base, rest, longpoll, static, websocket
+from crossbar.webservice import base
+from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static
 
 
 class Personality(object):
@@ -137,7 +138,7 @@ class Personality(object):
     # a list of directories to serach Jinja2 templates for
     # rendering various web resources. this must be a list
     # of _pairs_ to be used with pkg_resources.resource_filename()!
-    TEMPLATE_DIRS = [('crossbar', 'web/templates')]
+    TEMPLATE_DIRS = [('crossbar', 'webservice/templates')]
 
     WEB_SERVICE_CHECKERS = {
         'none': None,
@@ -199,11 +200,11 @@ class Personality(object):
 
     native_workers = default_native_workers()
 
-    create_router_transport = factory.create_router_transport
+    create_router_transport = transport.create_router_transport
 
-    RouterWebTransport = factory.RouterWebTransport
+    RouterWebTransport = transport.RouterWebTransport
 
-    RouterTransport = factory.RouterTransport
+    RouterTransport = transport.RouterTransport
 
     #
     # configuration related functions

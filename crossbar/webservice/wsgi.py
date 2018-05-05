@@ -37,7 +37,7 @@ from twisted.web.wsgi import WSGIResource
 from autobahn.wamp import ApplicationError
 from autobahn.twisted.resource import WSGIRootResource
 
-from crossbar.worker.transport.webservice.base import RouterWebService
+from crossbar.webservice.base import RouterWebService
 
 
 class RouterWebServiceWsgi(RouterWebService):

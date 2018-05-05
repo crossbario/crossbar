@@ -35,7 +35,7 @@ from autobahn.twisted.wamp import ApplicationSession
 from crossbar.adapter.rest import PublisherResource, CallerResource
 from crossbar.adapter.rest import WebhookResource
 
-from crossbar.worker.transport.webservice.base import RouterWebService
+from crossbar.webservice.base import RouterWebService
 
 
 class RouterWebServiceRestPublisher(RouterWebService):

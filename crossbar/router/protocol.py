@@ -48,7 +48,7 @@ from txaio import make_logger
 
 from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked
 
-from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
+from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
 log = make_logger()
 

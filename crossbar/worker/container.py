@@ -48,7 +48,7 @@ from crossbar.worker.worker import NativeWorkerSession
 from crossbar.router.protocol import WampWebSocketClientFactory, \
     WampRawSocketClientFactory, WampWebSocketClientProtocol, WampRawSocketClientProtocol
 
-from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
+from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
 __all__ = ('ContainerWorkerSession',)
 

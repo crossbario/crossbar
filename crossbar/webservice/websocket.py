@@ -32,7 +32,7 @@
 from autobahn.twisted.resource import WebSocketResource
 
 from crossbar.router.protocol import WampWebSocketServerFactory, WebSocketReverseProxyServerFactory
-from crossbar.worker.transport.webservice.base import RouterWebService
+from crossbar.webservice.base import RouterWebService
 
 
 class RouterWebServiceWebSocket(RouterWebService):

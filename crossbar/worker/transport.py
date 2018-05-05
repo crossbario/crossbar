@@ -39,13 +39,13 @@ import twisted
 
 from crossbar._util import hltype
 
-from crossbar.twisted.web import Site
+from crossbar.common.twisted.web import Site
+from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
 from crossbar.router.protocol import WampRawSocketServerFactory, WampWebSocketServerFactory
 from crossbar.router.unisocket import UniSocketServerFactory
-from crossbar.twisted.endpoint import create_listening_port_from_config
-from crossbar.worker.transport.webservice.flashpolicy import FlashPolicyFactory
+from crossbar.webservice.flashpolicy import FlashPolicyFactory
 
 from crossbar.worker.testee import WebSocketTesteeServerFactory, StreamTesteeServerFactory
 

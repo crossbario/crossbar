@@ -70,14 +70,19 @@ publish: clean
 	python setup.py sdist bdist_wheel
 	twine upload dist/*
 
-_test: flake8
+test: flake8
 	trial crossbar
 
-test:
-	crossbar start --personality=standalone --cbdir=./test/full/.crossbar
-#	crossbar start --personality=standalone --cbdir=./test/full/.crossbar --shutdownafter=10
+test_full:
+	crossbar \
+		--personality=standalone \
+		--debug-lifecycle \
+		--debug-programflow\
+		start \
+		--cbdir=./test/full/.crossbar \
+		--shutdownafter=15
 
-test_mahole:
+test_manhole:
 	ssh -vvv -p 6022 oberstet@localhost
 
 gen_ssh_keys:

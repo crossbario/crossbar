@@ -43,8 +43,8 @@ from twisted.protocols.wire import Echo
 from twisted.python.runtime import platform
 
 from crossbar.test import TestCase
-from crossbar.twisted.endpoint import create_listening_endpoint_from_config
-from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
+from crossbar.common.twisted.endpoint import create_listening_endpoint_from_config
+from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
 from txaio import make_logger
 

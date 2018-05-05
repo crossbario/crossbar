@@ -39,8 +39,8 @@ from autobahn.wamp import ApplicationError
 from twisted.web import http
 from twisted.web.static import File
 
-from crossbar.twisted.web import patchFileContentTypes
-from crossbar.worker.transport.webservice.base import RouterWebService, Resource404, set_cross_origin_headers
+from crossbar.common.twisted.web import patchFileContentTypes
+from crossbar.webservice.base import RouterWebService, Resource404, set_cross_origin_headers
 
 DEFAULT_CACHE_TIMEOUT = 12 * 60 * 60
 

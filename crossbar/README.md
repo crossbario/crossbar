@@ -6,6 +6,6 @@ The Crossbar.io code base:
 * [controller](controller) Classes for the node controller process.
 * [adapter](adapter) WAMP protocol and system adapters.
 * [platform](platform) Platform-specific code.
-* [twisted](twisted) Twisted auxiliary code.
+* [twisted](common/twisted) Twisted auxiliary code.
 * [web](web) Crossbar.io web assets.
-* [templates](templates) Crossbar.op node templates.
+* [templates](controller/templates) Crossbar.op node templates.

@@ -66,7 +66,7 @@ from txaio import make_logger
 from twisted.cred import portal
 
 from crossbar.common.checkconfig import get_config_value
-from crossbar.twisted.endpoint import create_listening_port_from_config
+from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
