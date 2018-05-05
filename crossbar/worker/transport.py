@@ -42,7 +42,7 @@ from crossbar._util import hltype
 from crossbar.common.twisted.web import Site
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
-from crossbar.adapter.mqtt.wamp import WampMQTTServerFactory
+from crossbar.bridge.mqtt.wamp import WampMQTTServerFactory
 from crossbar.router.protocol import WampRawSocketServerFactory, WampWebSocketServerFactory
 from crossbar.router.unisocket import UniSocketServerFactory
 from crossbar.webservice.flashpolicy import FlashPolicyFactory
@@ -81,7 +81,7 @@ class RouterTransport(object):
         """
 
         :param worker: The (router) worker session the transport is created from.
-        :type worker: crossbar.worker.router.RouterWorkerSession
+        :type worker: crossbar.worker.router.RouterController
 
         :param transport_id: The transport ID within the router.
         :type transport_id: str

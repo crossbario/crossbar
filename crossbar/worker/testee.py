@@ -42,7 +42,7 @@ from txaio import make_logger
 
 import crossbar
 from crossbar.router.protocol import set_websocket_options
-from crossbar.worker.controller import NativeWorkerSession
+from crossbar.worker.controller import WorkerController
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 __all__ = (
@@ -137,7 +137,7 @@ class WebSocketTesteeServerFactory(WebSocketServerFactory):
         set_websocket_options(self, options)
 
 
-class WebSocketTesteeWorkerSession(NativeWorkerSession):
+class WebSocketTesteeController(WorkerController):
     """
     A native Crossbar.io worker that runs a WebSocket testee.
     """
@@ -146,16 +146,16 @@ class WebSocketTesteeWorkerSession(NativeWorkerSession):
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
-        NativeWorkerSession.__init__(self, config=config, reactor=reactor, personality=personality)
+        WorkerController.__init__(self, config=config, reactor=reactor, personality=personality)
 
     @inlineCallbacks
     def onJoin(self, details):
         """
         Called when worker process has joined the node's management realm.
         """
-        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
+        yield WorkerController.onJoin(self, details, publish_ready=False)
 
-        # NativeWorkerSession.publish_ready()
+        # WorkerController.publish_ready()
         yield self.publish_ready()
 
     @wamp.register(None)

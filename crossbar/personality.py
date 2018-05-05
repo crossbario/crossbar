@@ -36,21 +36,21 @@ import txaio
 
 import crossbar
 from crossbar.common import checkconfig
-from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
+from crossbar.node.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
 
 from crossbar.worker import transport
 
-from crossbar.controller import node
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
+from crossbar.node import node
+from crossbar.worker.router import RouterController
+from crossbar.worker.container import ContainerController
+from crossbar.worker.testee import WebSocketTesteeController
 
 
 def default_native_workers():
     factory = dict()
     factory['router'] = {
         'class': RouterWorkerProcess,
-        'worker_class': RouterWorkerSession,
+        'worker_class': RouterController,
 
         # check a whole router worker configuration item (including realms, transports, ..)
         'checkconfig_item': checkconfig.check_router,
@@ -66,7 +66,7 @@ def default_native_workers():
     }
     factory['container'] = {
         'class': ContainerWorkerProcess,
-        'worker_class': ContainerWorkerSession,
+        'worker_class': ContainerController,
 
         # check a whole container worker configuration item (including components, ..)
         'checkconfig_item': checkconfig.check_container,
@@ -82,7 +82,7 @@ def default_native_workers():
     }
     factory['websocket-testee'] = {
         'class': WebSocketTesteeWorkerProcess,
-        'worker_class': WebSocketTesteeWorkerSession,
+        'worker_class': WebSocketTesteeController,
 
         # check a whole websocket testee worker configuration item
         'checkconfig_item': checkconfig.check_websocket_testee,
@@ -196,7 +196,7 @@ class Personality(object):
     Node = node.Node
     NodeOptions = node.NodeOptions
 
-    WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
+    WorkerKlasses = [RouterController, ContainerController, WebSocketTesteeController]
 
     native_workers = default_native_workers()
 

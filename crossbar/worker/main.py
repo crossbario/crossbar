@@ -187,7 +187,7 @@ def run(options, reactor=None):
     from autobahn.twisted.choosereactor import install_reactor
     reactor = install_reactor(options.reactor)
 
-    # eg: crossbar.worker.container.ContainerWorkerSession
+    # eg: crossbar.worker.container.ContainerController
     l = options.klass.split('.')
     worker_module, worker_klass = '.'.join(l[:-1]), l[-1]
 

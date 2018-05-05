@@ -48,13 +48,13 @@ from crossbar.router.service import RouterServiceSession
 from crossbar.router.router import RouterFactory
 
 from crossbar.worker import _appsession_loader
-from crossbar.worker.controller import NativeWorkerSession
+from crossbar.worker.controller import WorkerController
 
 
-__all__ = ('RouterWorkerSession',)
+__all__ = ('RouterController',)
 
 
-class RouterWorkerSession(NativeWorkerSession):
+class RouterController(WorkerController):
     """
     A native Crossbar.io worker that runs a WAMP router which can manage
     multiple realms, run multiple transports and links, as well as host
@@ -67,7 +67,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
-        NativeWorkerSession.__init__(self, config=config, reactor=reactor, personality=personality)
+        WorkerController.__init__(self, config=config, reactor=reactor, personality=personality)
 
         # factory for producing (per-realm) routers
         self._router_factory = self.router_factory_class(None, self)
@@ -123,11 +123,11 @@ class RouterWorkerSession(NativeWorkerSession):
                       realm=self._realm,
                       worker_id=self._worker_id,
                       session_id=details.session,
-                      method=hltype(RouterWorkerSession.onJoin))
+                      method=hltype(RouterController.onJoin))
 
-        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
+        yield WorkerController.onJoin(self, details, publish_ready=False)
 
-        # NativeWorkerSession.publish_ready()
+        # WorkerController.publish_ready()
         self.publish_ready()
 
         self.log.info('Router worker session for "{worker_id}" ready',
@@ -155,7 +155,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # we want our default behavior, which disconnects this
         # router-worker, effectively shutting it down .. but only
         # *after* the components got a chance to shutdown.
-        dl.addBoth(lambda _: super(RouterWorkerSession, self).onLeave(details))
+        dl.addBoth(lambda _: super(RouterController, self).onLeave(details))
 
     @wamp.register(None)
     def get_router_realms(self, details=None):
@@ -206,7 +206,7 @@ class RouterWorkerSession(NativeWorkerSession):
         :type details: autobahn.wamp.types.CallDetails
         """
         self.log.info('Starting router realm {realm_id} {method}',
-                      realm_id=hlid(realm_id), method=hltype(RouterWorkerSession.start_router_realm))
+                      realm_id=hlid(realm_id), method=hltype(RouterController.start_router_realm))
 
         # prohibit starting a realm twice
         #

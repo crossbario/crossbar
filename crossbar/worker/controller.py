@@ -50,10 +50,10 @@ from crossbar.common.reloader import TrackingModuleReloader
 from crossbar.common.process import NativeProcessSession
 from crossbar.common.profiler import PROFILERS
 
-__all__ = ('NativeWorkerSession',)
+__all__ = ('WorkerController',)
 
 
-class NativeWorkerSession(NativeProcessSession):
+class WorkerController(NativeProcessSession):
 
     """
     A native Crossbar.io worker process. The worker will be connected
