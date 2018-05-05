@@ -67,7 +67,7 @@ from autobahn.websocket.xormasker import XorMaskerNull
 
 from crossbar.controller.template import Templates
 from crossbar.common.checkconfig import color_json, InvalidConfigException
-from crossbar.worker import process
+from crossbar.worker import main as worker_main
 
 try:
     import psutil
@@ -1108,8 +1108,8 @@ def main(prog, args, reactor):
     # argparse.SUPPRESS does not work here =( so we obfuscate the name to discourage use.
     #
     parser_worker = subparsers.add_parser('_exec_worker', help='Program internal use.')
-    parser_worker = process.get_argument_parser(parser_worker)
-    parser_worker.set_defaults(func=process.run)
+    parser_worker = worker_main.get_argument_parser(parser_worker)
+    parser_worker.set_defaults(func=worker_main.run)
 
     # #############################################################
 

@@ -48,7 +48,7 @@ from crossbar.router.service import RouterServiceSession
 from crossbar.router.router import RouterFactory
 
 from crossbar.worker import _appsession_loader
-from crossbar.worker.worker import NativeWorkerSession
+from crossbar.worker.controller import NativeWorkerSession
 
 
 __all__ = ('RouterWorkerSession',)

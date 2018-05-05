@@ -42,7 +42,7 @@ from txaio import make_logger
 
 import crossbar
 from crossbar.router.protocol import set_websocket_options
-from crossbar.worker.worker import NativeWorkerSession
+from crossbar.worker.controller import NativeWorkerSession
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 __all__ = (

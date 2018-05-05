@@ -444,7 +444,7 @@ class NodeControllerSession(NativeProcessSession):
         else:
             # we are invoking via "-m" so that .pyc files, __pycache__
             # etc work properly. this works everywhere, but frozen executables
-            args = [exe, "-u", "-m", "crossbar.worker.process"]
+            args = [exe, "-u", "-m", "crossbar.worker.main"]
         args.extend(["--cbdir", self._node._cbdir])
         args.extend(["--node", str(self._node._node_id)])
         args.extend(["--worker", str(worker_id)])

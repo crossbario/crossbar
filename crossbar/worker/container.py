@@ -44,7 +44,7 @@ from autobahn.wamp.types import ComponentConfig, PublishOptions
 from autobahn import wamp
 
 from crossbar.worker import _appsession_loader
-from crossbar.worker.worker import NativeWorkerSession
+from crossbar.worker.controller import NativeWorkerSession
 from crossbar.router.protocol import WampWebSocketClientFactory, \
     WampRawSocketClientFactory, WampWebSocketClientProtocol, WampRawSocketClientProtocol
 
