@@ -56,7 +56,7 @@ class Templates:
         {
             "name": "default",
             "help": "A WAMP router speaking WebSocket plus a static Web server.",
-            "basedir": "templates/default",
+            "basedir": "node/templates/default",
             "params": {
             },
             "skip_jinja": ["autobahn.js", "autobahn.min.js", "autobahn.min.jgz"]

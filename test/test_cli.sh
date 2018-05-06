@@ -31,7 +31,6 @@ echo 'CBDIRCBDIR='$CBDIR
 #
 $CB
 $CB version
-$CB version --loglevel=debug
 $CB legal
 
 
