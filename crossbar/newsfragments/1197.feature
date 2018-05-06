@@ -1,1 +1,0 @@
-add 'crossbar keygen' command to generate keys

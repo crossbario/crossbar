@@ -31,7 +31,6 @@ echo 'CBDIRCBDIR='$CBDIR
 #
 $CB
 $CB version
-$CB version --loglevel=debug
 $CB legal
 
 
@@ -61,6 +60,11 @@ $CB stop --cbdir=$CBDIR
 $CB status --cbdir=$CBDIR --assert=stopped
 
 
+# start with debug options, and auto-shutdown
+#
+$CB --debug-lifecycle --debug-programflow start --cbdir=$CBDIR --shutdownafter 5
+
+
 # convert, check, start, status, stop
 #
 rm -rf $APPDIR
@@ -75,3 +79,13 @@ $CB check --cbdir=$CBDIR
 sleep 2
 $CB status --cbdir=$CBDIR --assert=running
 $CB stop --cbdir=$CBDIR
+
+
+# test "full" configuration (all features and options)
+#
+$CB \
+    --debug-lifecycle \
+    --debug-programflow\
+    start \
+    --cbdir=./test/full/.crossbar \
+    --shutdownafter=20
