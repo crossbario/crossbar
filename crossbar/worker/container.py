@@ -44,20 +44,20 @@ from autobahn.wamp.types import ComponentConfig, PublishOptions
 from autobahn import wamp
 
 from crossbar.worker import _appsession_loader
-from crossbar.worker.worker import NativeWorkerSession
+from crossbar.worker.controller import WorkerController
 from crossbar.router.protocol import WampWebSocketClientFactory, \
     WampRawSocketClientFactory, WampWebSocketClientProtocol, WampRawSocketClientProtocol
 
-from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
+from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
-__all__ = ('ContainerWorkerSession',)
+__all__ = ('ContainerController',)
 
 
 class ContainerComponent(object):
     """
     An application component running inside a container.
 
-    This class is for _internal_ use within ContainerWorkerSession.
+    This class is for _internal_ use within ContainerController.
     """
 
     def __init__(self, component_id, config, proto, session):
@@ -96,7 +96,7 @@ class ContainerComponent(object):
         }
 
 
-class ContainerWorkerSession(NativeWorkerSession):
+class ContainerController(WorkerController):
     """
     A container is a native worker process that hosts application components
     written in Python. A container connects to an application router (creating
@@ -110,7 +110,7 @@ class ContainerWorkerSession(NativeWorkerSession):
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
-        NativeWorkerSession.__init__(self, config=config, reactor=reactor, personality=personality)
+        WorkerController.__init__(self, config=config, reactor=reactor, personality=personality)
 
         # map: component ID -> ContainerComponent
         self.components = {}
@@ -129,11 +129,11 @@ class ContainerWorkerSession(NativeWorkerSession):
         Called when worker process has joined the node's management realm.
         """
         self.log.info('Container worker "{worker_id}" session {session_id} initializing ..', worker_id=self._worker_id, session_id=details.session)
-        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
+        yield WorkerController.onJoin(self, details, publish_ready=False)
 
         self.log.info('Container worker "{worker_id}" session ready', worker_id=self._worker_id)
 
-        # NativeWorkerSession.publish_ready()
+        # WorkerController.publish_ready()
         yield self.publish_ready()
 
     @wamp.register(None)

@@ -36,20 +36,21 @@ import txaio
 
 import crossbar
 from crossbar.common import checkconfig
-from crossbar.controller.processtypes import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
-from crossbar.worker.transport.factory import create_router_transport
-from crossbar.worker.transport.resource import create_web_service, add_web_services, remove_web_services
-from crossbar.controller.node import Node
-from crossbar.worker.router import RouterWorkerSession
-from crossbar.worker.container import ContainerWorkerSession
-from crossbar.worker.testee import WebSocketTesteeWorkerSession
+from crossbar.node.worker import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
+
+from crossbar.worker import transport
+
+from crossbar.node import node
+from crossbar.worker.router import RouterController
+from crossbar.worker.container import ContainerController
+from crossbar.worker.testee import WebSocketTesteeController
 
 
 def default_native_workers():
     factory = dict()
     factory['router'] = {
         'class': RouterWorkerProcess,
-        'worker_class': RouterWorkerSession,
+        'worker_class': RouterController,
 
         # check a whole router worker configuration item (including realms, transports, ..)
         'checkconfig_item': checkconfig.check_router,
@@ -65,7 +66,7 @@ def default_native_workers():
     }
     factory['container'] = {
         'class': ContainerWorkerProcess,
-        'worker_class': ContainerWorkerSession,
+        'worker_class': ContainerController,
 
         # check a whole container worker configuration item (including components, ..)
         'checkconfig_item': checkconfig.check_container,
@@ -81,7 +82,7 @@ def default_native_workers():
     }
     factory['websocket-testee'] = {
         'class': WebSocketTesteeWorkerProcess,
-        'worker_class': WebSocketTesteeWorkerSession,
+        'worker_class': WebSocketTesteeController,
 
         # check a whole websocket testee worker configuration item
         'checkconfig_item': checkconfig.check_websocket_testee,
@@ -110,6 +111,10 @@ _BANNER = r"""     __  __  __  __  __  __      __
 """
 
 
+from crossbar.webservice import base
+from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static
+
+
 class Personality(object):
     """
     Software personality for Crossbar.io OSS.
@@ -133,42 +138,73 @@ class Personality(object):
     # a list of directories to serach Jinja2 templates for
     # rendering various web resources. this must be a list
     # of _pairs_ to be used with pkg_resources.resource_filename()!
-    TEMPLATE_DIRS = [('crossbar', 'web/templates')]
+    TEMPLATE_DIRS = [('crossbar', 'webservice/templates')]
 
-    NodeKlass = Node
+    WEB_SERVICE_CHECKERS = {
+        'none': None,
 
-    WorkerKlasses = [RouterWorkerSession, ContainerWorkerSession, WebSocketTesteeWorkerSession]
+        'path': checkconfig.check_web_path_service_path,
+        'redirect': checkconfig.check_web_path_service_redirect,
+        'resource': checkconfig.check_web_path_service_resource,
+        'reverseproxy': checkconfig.check_web_path_service_reverseproxy,
+
+        'nodeinfo': checkconfig.check_web_path_service_nodeinfo,
+        'json': checkconfig.check_web_path_service_json,
+        'cgi': checkconfig.check_web_path_service_cgi,
+
+        'wsgi': checkconfig.check_web_path_service_wsgi,
+
+        'static': checkconfig.check_web_path_service_static,
+
+        'websocket': checkconfig.check_web_path_service_websocket,
+        'websocket-reverseproxy': checkconfig.check_web_path_service_websocket_reverseproxy,
+
+        'longpoll': checkconfig.check_web_path_service_longpoll,
+
+        'caller': checkconfig.check_web_path_service_caller,
+        'publisher': checkconfig.check_web_path_service_publisher,
+        'webhook': checkconfig.check_web_path_service_webhook,
+    }
+
+    WEB_SERVICE_FACTORIES = {
+        # renders to 404
+        'none': base.RouterWebService,
+
+        'path': base.RouterWebServiceNestedPath,
+        'redirect': base.RouterWebServiceRedirect,
+        'resource': base.RouterWebServiceTwistedWeb,
+        'reverseproxy': base.RouterWebServiceReverseWeb,
+
+        'nodeinfo': misc.RouterWebServiceNodeInfo,
+        'json': misc.RouterWebServiceJson,
+        'cgi': misc.RouterWebServiceCgi,
+
+        'wsgi': wsgi.RouterWebServiceWsgi,
+
+        'static': static.RouterWebServiceStatic,
+
+        'websocket': websocket.RouterWebServiceWebSocket,
+        'websocket-reverseproxy': websocket.RouterWebServiceWebSocketReverseProxy,
+
+        'longpoll': longpoll.RouterWebServiceLongPoll,
+
+        'caller': rest.RouterWebServiceRestCaller,
+        'publisher': rest.RouterWebServiceRestPublisher,
+        'webhook': rest.RouterWebServiceWebhook,
+    }
+
+    Node = node.Node
+    NodeOptions = node.NodeOptions
+
+    WorkerKlasses = [RouterController, ContainerController, WebSocketTesteeController]
 
     native_workers = default_native_workers()
 
-    create_router_transport = create_router_transport
-    """
-    Create a router (listening) transport from a (complete) router transport configuration:
+    create_router_transport = transport.create_router_transport
 
-        (reactor, name, config, cbdir, log, node,
-         _router_session_factory=None, _web_templates=None, add_paths=False) -> None
-    """
+    RouterWebTransport = transport.RouterWebTransport
 
-    create_web_service = create_web_service
-    """
-    Create a (single) Web service to be added to a Web service tree:
-
-        (reactor, path_config, templates, log, cbdir, _router_session_factory, node, nested=True) -> None
-    """
-
-    add_web_services = add_web_services
-    """
-    Add Web service(s) to a Web service tree:
-
-        (reactor, resource, paths, templates, log, cbdir, _router_session_factory, node) -> None
-    """
-
-    remove_web_services = remove_web_services
-    """
-    Remove web service(s) from a Web service tree:
-
-        (reactor, resource, paths) -> None
-    """
+    RouterTransport = transport.RouterTransport
 
     #
     # configuration related functions

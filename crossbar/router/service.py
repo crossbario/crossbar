@@ -170,11 +170,9 @@ class RouterServiceSession(ApplicationSession):
                 on_ready.errback(e)
             self.leave()
         else:
+            self.log.info('RouterServiceSession ready (realm_name="{realm}", on_ready={on_ready})', realm=self._realm, on_ready=on_ready)
             if on_ready:
                 on_ready.callback(self)
-                self.log.info('RouterServiceSession ready [configured on_ready fired]')
-            else:
-                self.log.info('RouterServiceSession ready [no on_ready configured]')
 
     def onUserError(self, failure, msg):
         # ApplicationError's are raised explicitly and by purpose to signal
