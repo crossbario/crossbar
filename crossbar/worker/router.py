@@ -92,6 +92,11 @@ class RouterController(WorkerController):
         # map: transport ID -> RouterTransport
         self.transports = {}
 
+    def realm_by_name(self, name):
+        realm_id = self.realm_to_id.get(name, None)
+        assert(realm_id in self.realms)
+        return self.realms[realm_id]
+
     @property
     def router_factory(self):
         """
