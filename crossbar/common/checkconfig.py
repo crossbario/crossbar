@@ -1672,46 +1672,29 @@ def check_web_path_service(personality, path, config, nested, ignore=[]):
     http://crossbar.io/docs/
     https://github.com/crossbario/crossbar/blob/master/docs/pages/administration/web-service/Web-Services.md
 
+    :param personality: The node personality class.
+    :type personality: crossbar.personality.Personality
+
     :param config: The path service configuration.
     :type config: dict
+
     :param nested: Whether this is a nested path.
     :type nested: bool
     """
     if 'type' not in config:
-        raise InvalidConfigException("missing mandatory attribute 'type' in Web transport path service '{}' configuration\n\n{}".format(path, config))
+        raise InvalidConfigException('missing mandatory attribute "type" in Web service configuration item\n\n{}'.format(path, config))
 
     ptype = config['type']
-    if path == '/' and not nested:
-        if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook', 'nodeinfo'] + ignore:
-            raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
-    else:
-        if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'path', 'resource', 'upload', 'nodeinfo'] + ignore:
-            raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
-
-    checkers = {
-        'path': check_web_path_service_path,
-        'static': check_web_path_service_static,
-        'upload': check_web_path_service_upload,
-        'websocket': check_web_path_service_websocket,
-        'websocket-reverseproxy': check_web_path_service_websocket_reverseproxy,
-        'longpoll': check_web_path_service_longpoll,
-        'redirect': check_web_path_service_redirect,
-        'nodeinfo': check_web_path_service_nodeinfo,
-        'reverseproxy': check_web_path_service_reverseproxy,
-        'json': check_web_path_service_json,
-        'cgi': check_web_path_service_cgi,
-        'wsgi': check_web_path_service_wsgi,
-        'resource': check_web_path_service_resource,
-        'caller': check_web_path_service_caller,
-        'publisher': check_web_path_service_publisher,
-        'webhook': check_web_path_service_webhook,
-    }
-    if ptype in checkers:
-        checkers[ptype](personality, config)
+    if ptype in personality.WEB_SERVICE_CHECKERS:
+        if path == '/' and not nested:
+            # FIXME: check if Web service can run on root path
+            if False:
+                raise InvalidConfigException('invalid Web service type "{}" on root URL path "{}" - service cannot run on root path'.format(ptype, path))
+        personality.WEB_SERVICE_CHECKERS[ptype](personality, config)
     elif ptype in ignore:
         pass
     else:
-        raise Exception('logic error')
+        raise InvalidConfigException('invalid Web service type "{}" on URL path "{}"'.format(ptype, path))
 
 
 def check_listening_transport_web(personality, transport, with_endpoint=True, ignore=[]):

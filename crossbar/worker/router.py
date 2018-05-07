@@ -44,7 +44,7 @@ from crossbar._util import class_name, hltype, hlid
 
 from crossbar.router import uplink
 from crossbar.router.session import RouterSessionFactory
-from crossbar.router.service import RouterServiceSession
+from crossbar.router.service import RouterServiceAgent
 from crossbar.router.router import RouterFactory
 
 from crossbar.worker import _appsession_loader
@@ -250,10 +250,10 @@ class RouterController(WorkerController):
 
         # add a router/realm service session
         extra = {
-            # the RouterServiceSession will fire this when it is ready
+            # the RouterServiceAgent will fire this when it is ready
             'onready': Deferred(),
 
-            # if True, forward the WAMP meta API (implemented by RouterServiceSession)
+            # if True, forward the WAMP meta API (implemented by RouterServiceAgent)
             # that is normally only exposed on the app router/realm _additionally_
             # to the local node management router.
             'enable_meta_api': enable_meta_api,
@@ -265,7 +265,7 @@ class RouterController(WorkerController):
             'management_session': self,
         }
         cfg = ComponentConfig(realm, extra)
-        rlm.session = RouterServiceSession(cfg, router)
+        rlm.session = RouterServiceAgent(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
         yield extra['onready']
@@ -774,8 +774,14 @@ class RouterController(WorkerController):
         :param details: Call details.
         :type details: autobahn.wamp.types.CallDetails
         """
-        self.log.info('Starting Web transport service on path "{path}" of transport "{transport_id}" {method}',
-                      path=path, transport_id=transport_id, method=hltype(self.start_web_transport_service))
+        if type(config) != dict or 'type' not in config:
+            raise ApplicationError(u'crossbar.invalid_argument', 'config parameter must be dict with type attribute')
+
+        self.log.info('Starting "{service_type}" Web service on path "{path}" of transport "{transport_id}" {method}',
+                      service_type=config.get('type', None),
+                      path=path,
+                      transport_id=transport_id,
+                      method=hltype(self.start_web_transport_service))
 
         transport = self.transports.get(transport_id, None)
         if not transport:

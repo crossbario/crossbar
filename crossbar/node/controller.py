@@ -511,8 +511,8 @@ class NodeController(NativeProcessSession):
         else:
             # The communication between controller and container workers is
             # using WAMP running over 2 pipes.
-            # For controller->container traffic this runs over FD 0 (`stdin`)
-            # and for the container->controller traffic, this runs over FD 3.
+            # For controller->native-worker traffic this runs over FD 0 (`stdin`)
+            # and for the native-worker->controller traffic, this runs over FD 3.
             #
             # Note: We use FD 3, not FD 1 (`stdout`) or FD 2 (`stderr`) for
             # container->controller traffic, so that components running in the
