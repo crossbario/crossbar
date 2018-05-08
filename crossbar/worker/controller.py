@@ -47,13 +47,13 @@ from autobahn import wamp
 from txaio import make_logger
 
 from crossbar.common.reloader import TrackingModuleReloader
-from crossbar.common.process import NativeProcessSession
+from crossbar.common.process import NativeProcess
 from crossbar.common.profiler import PROFILERS
 
 __all__ = ('WorkerController',)
 
 
-class WorkerController(NativeProcessSession):
+class WorkerController(NativeProcess):
 
     """
     A native Crossbar.io worker process. The worker will be connected
@@ -67,7 +67,7 @@ class WorkerController(NativeProcessSession):
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
-        NativeProcessSession.__init__(self, config=config, reactor=reactor, personality=personality)
+        NativeProcess.__init__(self, config=config, reactor=reactor, personality=personality)
 
     def onConnect(self):
         """
@@ -77,7 +77,7 @@ class WorkerController(NativeProcessSession):
         self._worker_id = self.config.extra.worker
         self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
 
-        NativeProcessSession.onConnect(self, False)
+        NativeProcess.onConnect(self, False)
 
         self._module_tracker = TrackingModuleReloader(snapshot=False)
 
@@ -110,7 +110,7 @@ class WorkerController(NativeProcessSession):
         """
         Called when worker process has joined the node's management realm.
         """
-        yield NativeProcessSession.onJoin(self, details)
+        yield NativeProcess.onJoin(self, details)
         # above upcall registers all our "@wamp.register(None)" methods
 
         # setup SIGTERM handler to orderly shutdown the worker

@@ -79,8 +79,7 @@ test_full:
 		--debug-lifecycle \
 		--debug-programflow\
 		start \
-		--cbdir=./test/full/.crossbar \
-		--shutdownafter=15
+		--cbdir=./test/full/.crossbar
 
 test_manhole:
 	ssh -vvv -p 6022 oberstet@localhost

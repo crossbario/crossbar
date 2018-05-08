@@ -44,7 +44,7 @@ from crossbar._util import hltype, hlid
 
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
-from crossbar.router.service import RouterServiceSession
+from crossbar.router.service import RouterServiceAgent
 from crossbar.worker.types import RouterRealm
 from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT
 from crossbar.common.key import _maybe_generate_key
@@ -65,7 +65,7 @@ class Node(object):
     """
     NODE_CONTROLLER = NodeController
 
-    ROUTER_SERVICE = RouterServiceSession
+    ROUTER_SERVICE = RouterServiceAgent
 
     # A Crossbar.io node is the running a controller process and one or multiple
     # worker processes.
@@ -98,6 +98,12 @@ class Node(object):
         # allow overriding to add (or remove) native-worker types
         if native_workers is not None:
             self._native_workers = native_workers
+
+        # local node management router
+        self._router_factory = None
+
+        # session factory for node management router
+        self._router_session_factory = None
 
         # the node controller realm
         self._realm = u'crossbar'
@@ -338,15 +344,15 @@ class Node(object):
 
     def boot(self):
         self.log.info('Booting node {method}', method=hltype(Node.boot))
-        return self.configure_from_config(self._config)
+        return self.boot_from_config(self._config)
 
     @inlineCallbacks
-    def configure_from_config(self, config):
+    def boot_from_config(self, config):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
         self.log.info('Configuring node from local configuration {method}',
-                      method=hltype(Node.configure_from_config))
+                      method=hltype(Node.boot_from_config))
 
         # get controller configuration subpart
         controller = config.get('controller', {})

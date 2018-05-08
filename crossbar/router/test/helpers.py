@@ -33,7 +33,7 @@ from autobahn.wamp.types import ComponentConfig
 
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
-from crossbar.router.service import RouterServiceSession
+from crossbar.router.service import RouterServiceAgent
 from crossbar.worker.types import RouterRealm
 from crossbar.router.role import RouterRoleStaticAuth
 from crossbar.router.protocol import WampRawSocketServerFactory
@@ -73,7 +73,7 @@ def add_realm_to_router(router_factory, session_factory, realm_name=u'default',
 
     extra = {}
     session_config = ComponentConfig(realm_name, extra)
-    realm.session = RouterServiceSession(session_config, router)
+    realm.session = RouterServiceAgent(session_config, router)
 
     # allow everything
     default_permissions = {

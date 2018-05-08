@@ -123,14 +123,14 @@
                     "type": "websocket",
                     "endpoint": {
                         "type": "tcp",
-                        "port": 8080
+                        "port": 9001
                     }
                 },
                 {
                     "type": "web",
                     "endpoint": {
                         "type": "tcp",
-                        "port": 8081
+                        "port": 8090
                     },
                     "paths": {
                         "/": {
@@ -146,14 +146,22 @@
                     "type": "rawsocket",
                     "endpoint": {
                         "type": "tcp",
-                        "port": 8082
+                        "port": 9002
+                    },
+                    "serializers": ["cbor", "msgpack"],
+                    "max_message_size": 1000000,
+                    "auth": {
+                        "anonymous": {
+                            "type": "static",
+                            "role": "anonymous"
+                        }
                     }
                 },
                 {
                     "type": "universal",
                     "endpoint": {
                         "type": "tcp",
-                        "port": 8083
+                        "port": 8080
                     },
                     "rawsocket": {
                     },
@@ -165,14 +173,38 @@
                     "web": {
                         "paths": {
                             "/": {
+                                "type": "nodeinfo"
+                            },
+                            "tmp": {
                                 "type": "static",
-                                "directory": "../web",
+                                "directory": "/tmp",
                                 "options": {
-                                    "enable_directory_listing": true
+                                    "enable_directory_listing": true,
+                                    "cache_timeout": 600,
+                                    "mime_types": {
+                                    }
                                 }
                             },
-                            "info": {
-                                "type": "nodeinfo"
+                            "crossbar": {
+                                "type": "redirect",
+                                "url": "https://crossbar.io"
+                            },
+                            "foobar": {
+                                "type": "json",
+                                "value": {
+                                    "foo": 23,
+                                    "bar": ["baz", 666]
+                                },
+                                "options": {
+                                    "prettify": true,
+                                    "allow_cross_origin": true,
+                                    "discourage_caching": true
+                                }
+                            },
+                            "ws2": {
+                                "type": "websocket",
+                                "url": "ws://localhost:8080/ws2",
+                                "serializers": ["cbor", "json"]
                             }
                         }
                     }
@@ -198,7 +230,7 @@
                             "host": "127.0.0.1",
                             "port": 8080
                         },
-                        "url": "ws://127.0.0.1:8080"
+                        "url": "ws://127.0.0.1:8080/ws"
                     }
                 }
             ]
