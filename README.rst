@@ -67,7 +67,6 @@ your *config.json* that points to a copy of the schema definition file, for exam
     {
         "$schema": "file:///home/user/Devel/crossbar/crossbar.json",
         "version": 2,
-        ...
 
 This file is currently experimental, but it should give you contextual auto-completion on 
 all Crossbar **config.json** syntax, use CTRL+Space in VSCode to specifically activate. 
