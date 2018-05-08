@@ -3090,7 +3090,7 @@ def check_config(personality, config):
         raise InvalidConfigException("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
 
     for k in config:
-        if k not in ['version', 'controller', 'workers']:
+        if k not in ['$schema', 'version', 'controller', 'workers']:
             raise InvalidConfigException("encountered unknown attribute '{}' in top-level configuration".format(k))
 
     version = config.get(u'version', 1)
