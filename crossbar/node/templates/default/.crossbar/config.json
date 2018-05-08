@@ -1,6 +1,8 @@
 {
+    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
     "version": 2,
-    "controller": {},
+    "controller": {
+    },
     "workers": [
         {
             "type": "router",
