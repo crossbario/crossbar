@@ -49,7 +49,7 @@ if platform.isWindows():
         def childDataReceived(self, childFD, data):
             """
             Some data has come in from the process child. If it's one of our
-            log FDs, log it. Otherwise, let _WrapIProtocol deal with it.
+            log FDs ([2]), log it. Otherwise, let _WrapIProtocol deal with it.
             """
             # track bytes received per child FD
             self._worker.track_stats(childFD, len(data))
@@ -72,7 +72,7 @@ else:
         def childDataReceived(self, childFD, data):
             """
             Some data has come in from the process child. If it's one of our
-            log FDs, log it. If it's on FD3, send it to the WAMP connection.
+            log FDs ([1, 2]), log it. If it's on FD3, send it to the WAMP connection.
             Otherwise, let _WrapIProtocol deal with it.
             """
             # track bytes received per child FD

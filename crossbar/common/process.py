@@ -80,7 +80,7 @@ try:
 except ImportError:
     _HAS_POSTGRESQL = False
 
-__all__ = ('NativeProcessSession',)
+__all__ = ('NativeProcess',)
 
 
 if _HAS_POSTGRESQL:
@@ -136,7 +136,7 @@ if _HAS_MANHOLE:
         """
         Manhole service running inside a native processes (controller, router, container).
 
-        This class is for _internal_ use within NativeProcessSession.
+        This class is for _internal_ use within NativeProcess.
         """
 
         def __init__(self, config, who):
@@ -171,7 +171,7 @@ if _HAS_MANHOLE:
             }
 
 
-class NativeProcessSession(ApplicationSession):
+class NativeProcess(ApplicationSession):
     """
     A native Crossbar.io process (currently: controller, router or container).
     """

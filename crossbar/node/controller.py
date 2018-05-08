@@ -62,7 +62,7 @@ from crossbar.node.native import create_native_worker_client_factory
 from crossbar.node.guest import create_guest_worker_client_factory
 from crossbar.node.worker import NativeWorkerProcess
 from crossbar.node.worker import GuestWorkerProcess
-from crossbar.common.process import NativeProcessSession
+from crossbar.common.process import NativeProcess
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
 
 from txaio import make_logger, get_global_log_level
@@ -78,7 +78,7 @@ def check_executable(fn):
     return os.path.exists(fn) and os.access(fn, os.F_OK | os.X_OK) and not os.path.isdir(fn)
 
 
-class NodeController(NativeProcessSession):
+class NodeController(NativeProcess):
     """
     Singleton node WAMP session hooked up to the node management router.
 
@@ -94,7 +94,7 @@ class NodeController(NativeProcessSession):
         :type node: obj
         """
         # base ctor
-        NativeProcessSession.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
+        NativeProcess.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
 
         # associated node
         self._node = node
@@ -124,7 +124,7 @@ class NodeController(NativeProcessSession):
 
         self.log.debug("Connected to node management router")
 
-        NativeProcessSession.onConnect(self, False)
+        NativeProcess.onConnect(self, False)
 
         # self.join(self.config.realm)
         self.join(self._realm)
@@ -157,7 +157,7 @@ class NodeController(NativeProcessSession):
 
         self.subscribe(on_worker_ready, u'crossbar.worker..on_worker_ready', SubscribeOptions(match=u'wildcard'))
 
-        yield NativeProcessSession.onJoin(self, details)
+        yield NativeProcess.onJoin(self, details)
         # above upcall registers procedures we have marked with @wamp.register(None)
 
         # we need to catch SIGINT here to properly shutdown the
@@ -511,8 +511,8 @@ class NodeController(NativeProcessSession):
         else:
             # The communication between controller and container workers is
             # using WAMP running over 2 pipes.
-            # For controller->container traffic this runs over FD 0 (`stdin`)
-            # and for the container->controller traffic, this runs over FD 3.
+            # For controller->native-worker traffic this runs over FD 0 (`stdin`)
+            # and for the native-worker->controller traffic, this runs over FD 3.
             #
             # Note: We use FD 3, not FD 1 (`stdout`) or FD 2 (`stderr`) for
             # container->controller traffic, so that components running in the
