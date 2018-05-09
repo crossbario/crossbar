@@ -43,7 +43,7 @@ from crossbar._util import dump_json
 from crossbar._compat import native_string
 from crossbar._log_categories import log_categories
 from crossbar.router.auth import PendingAuthTicket
-from netaddr.ip import IPAddress, IPNetwork
+from ipaddress import ip_address, ip_network
 
 from twisted.web import server
 from twisted.web.resource import Resource
@@ -96,7 +96,7 @@ class _CommonResource(Resource):
 
         self._require_ip = None
         if 'require_ip' in options:
-            self._require_ip = [IPNetwork(net) for net in options['require_ip']]
+            self._require_ip = [ip_network(net) for net in options['require_ip']]
 
         self._require_tls = options.get('require_tls', None)
 
@@ -428,7 +428,7 @@ class _CommonResource(Resource):
         # enforce client IP address
         #
         if self._require_ip:
-            ip = IPAddress(client_ip)
+            ip = ip_address(client_ip)
             allowed = False
             for net in self._require_ip:
                 if ip in net:
