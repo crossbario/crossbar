@@ -105,11 +105,11 @@ class ContainerRunningTests(CLITestBase):
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-        main.run("crossbar",
-                 ["start",
-                 "--cbdir={}".format(self.cbdir),
-                 "--logformat=syslogd"],
-                 reactor=reactor)
+        main.main("crossbar",
+                  ["start",
+                   "--cbdir={}".format(self.cbdir),
+                   "--logformat=syslogd"],
+                  reactor=reactor)
 
         out = self.stdout.getvalue()
         err = self.stderr.getvalue()
@@ -1237,11 +1237,11 @@ class InitTests(CLITestBase):
         cbdir = os.path.join(appdir, ".crossbar")
 
         reactor = SelectReactor()
-        main.run("crossbar",
-                 ["init",
-                 "--appdir={}".format(appdir),
-                 "--template=hello:python"],
-                 reactor=reactor)
+        main.main("crossbar",
+                  ["init",
+                   "--appdir={}".format(appdir),
+                   "--template=hello:python"],
+                  reactor=reactor)
 
         self.assertIn("Application template initialized",
                       self.stdout.getvalue())
@@ -1252,11 +1252,11 @@ class InitTests(CLITestBase):
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-        main.run("crossbar",
-                 ["start",
-                 "--cbdir={}".format(cbdir.path),
-                 "--logformat=syslogd"],
-                 reactor=reactor)
+        main.main("crossbar",
+                  ["start",
+                   "--cbdir={}".format(cbdir.path),
+                   "--logformat=syslogd"],
+                  reactor=reactor)
 
         stdout_expected = ["published to 'oncounter'"]
 

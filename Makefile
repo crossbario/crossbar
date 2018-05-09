@@ -94,6 +94,9 @@ test_coverage:
 test_tox:
 	tox -e flake8,py36-unpinned-trial,py36-cli,py36-examples,coverage .
 
+test_bandit:
+	tox -e bandit .
+
 test_cli:
 	./test/test_cli.sh
 
