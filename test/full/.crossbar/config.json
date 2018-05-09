@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
     "version": 2,
     "controller": {
         "id": "mynode1",
@@ -232,6 +233,42 @@
                         },
                         "url": "ws://127.0.0.1:8080/ws"
                     }
+                }
+            ]
+        },
+        {
+            "transports": [
+                {
+                    "type": "universal",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 9005
+                    },
+                    "websocket": {
+                    }
+                }
+            ],
+            "type": "router",
+            "realms": [
+                {
+                    "name": "realm2",
+                    "roles": [
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "",
+                                    "match": "prefix",
+                                    "allow": {
+                                        "call": true,
+                                        "publish": true,
+                                        "register": true,
+                                        "subscribe": true
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         }
