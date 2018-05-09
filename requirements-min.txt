@@ -14,7 +14,6 @@ Jinja2>=2.9.6
 mistune>=0.7.4
 Pygments>=2.2.0
 PyYAML>=3.12
-shutilwhich>=1.1.0
 sdnotify>=0.3.1
 psutil>=5.2.2
 lmdb>=0.92

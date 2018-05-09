@@ -42,7 +42,6 @@ sdnotify==0.3.2
 service-identity==17.0.0
 setproctitle==1.1.10
 setuptools==39.1.0
-shutilwhich==1.1.0
 six==1.11.0
 sortedcontainers==1.5.10
 treq==17.8.0

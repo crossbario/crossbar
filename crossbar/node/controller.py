@@ -35,19 +35,15 @@ import sys
 import signal
 import threading
 from datetime import datetime
-
-try:
-    # try Python 3.3+ native module
-    from shutil import which
-except ImportError:
-    # import backport of shutil.which
-    from shutilwhich import which  # noqa
+from shutil import which
 
 from twisted.python.reflect import qual
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import ProcessExitedAlready
 from twisted.python.runtime import platform
+
+from txaio import make_logger, get_global_log_level
 
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
@@ -64,8 +60,6 @@ from crossbar.node.worker import NativeWorkerProcess
 from crossbar.node.worker import GuestWorkerProcess
 from crossbar.common.process import NativeProcess
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
-
-from txaio import make_logger, get_global_log_level
 
 
 __all__ = ('NodeController', 'create_process_env')
