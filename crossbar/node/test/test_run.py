@@ -39,7 +39,7 @@ from six import PY3
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall
 
-from crossbar.node import cli
+from crossbar.node import main
 from .test_cli import CLITestBase
 
 # Turn this to `True` to print the stdout/stderr of the Crossbars spawned
@@ -105,11 +105,11 @@ class ContainerRunningTests(CLITestBase):
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-        cli.run("crossbar",
-                ["start",
+        main.run("crossbar",
+                 ["start",
                  "--cbdir={}".format(self.cbdir),
                  "--logformat=syslogd"],
-                reactor=reactor)
+                 reactor=reactor)
 
         out = self.stdout.getvalue()
         err = self.stderr.getvalue()
@@ -1237,11 +1237,11 @@ class InitTests(CLITestBase):
         cbdir = os.path.join(appdir, ".crossbar")
 
         reactor = SelectReactor()
-        cli.run("crossbar",
-                ["init",
+        main.run("crossbar",
+                 ["init",
                  "--appdir={}".format(appdir),
                  "--template=hello:python"],
-                reactor=reactor)
+                 reactor=reactor)
 
         self.assertIn("Application template initialized",
                       self.stdout.getvalue())
@@ -1252,11 +1252,11 @@ class InitTests(CLITestBase):
         # In case it hard-locks
         reactor.callLater(self._subprocess_timeout, reactor.stop)
 
-        cli.run("crossbar",
-                ["start",
+        main.run("crossbar",
+                 ["start",
                  "--cbdir={}".format(cbdir.path),
                  "--logformat=syslogd"],
-                reactor=reactor)
+                 reactor=reactor)
 
         stdout_expected = ["published to 'oncounter'"]
 

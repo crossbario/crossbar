@@ -161,7 +161,7 @@ def run(args=None, reactor=None):
     # Only _now_ import actual stuff, as this triggers lots of imports in turn,
     # somewhere down the line Twisted _will_ likely import its one and only reactor,
     # and if we haven't done before, Twisted will install whatever it deems right then.
-    from crossbar.node.cli import main
+    from crossbar.node.main import main
 
     # and now actually enter here .. this never returns!
     return main('crossbar', args, reactor)
