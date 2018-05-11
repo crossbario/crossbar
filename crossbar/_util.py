@@ -37,6 +37,24 @@ import json
 import six
 import click
 
+import txaio
+
+log = txaio.make_logger()
+
+DEBUG_LIFECYCLE = False
+DEBUG_PROGRAMFLOW = False
+
+
+def set_flags_from_args(_args):
+    global DEBUG_LIFECYCLE
+    global DEBUG_PROGRAMFLOW
+
+    for arg in _args:
+        if arg.strip().lower() == '--debug-lifecycle':
+            DEBUG_LIFECYCLE = True
+        if arg.strip().lower() == '--debug-programflow':
+            DEBUG_PROGRAMFLOW = True
+
 
 # FS path to controlling terminal
 _TERMINAL = None
@@ -89,6 +107,31 @@ def hl(text, bold=False, color='yellow'):
     return click.style(text, fg=color, bold=bold)
 
 
+def _qn(obj):
+    if inspect.isclass(obj) or inspect.isfunction(obj) or inspect.ismethod(obj):
+        qn = '{}.{}'.format(obj.__module__, obj.__qualname__)
+    else:
+        qn = 'unknown'
+    return qn
+
+
+def hltype(obj):
+    if DEBUG_PROGRAMFLOW:
+        qn = _qn(obj).split('.')
+        text = hl(qn[0], color='yellow', bold=True) + hl('.' + '.'.join(qn[1:]), color='white', bold=True)
+        return '<' + text + '>'
+    else:
+        return ''
+
+
+def hlid(oid):
+    return hl('"{}"'.format(oid), color='magenta', bold=True)
+
+
+def hlfixme(msg, obj):
+    return hl('FIXME: {} {}'.format(msg, _qn(obj)), color='green', bold=True)
+
+
 def term_print(text):
     """
     This directly prints to the process controlling terminal (if there is any).
@@ -100,12 +143,88 @@ def term_print(text):
     When it cannot do so, it falls back to plain old print.
     """
     text = '{:<44}'.format(text)
-    if not text.endswith('\n'):
-        text += '\n'
     text = click.style(text, fg='blue', bold=True)
-    if _TERMINAL:
+    if DEBUG_LIFECYCLE and _TERMINAL:
         with open('/dev/tty', 'w') as f:
-            f.write(text)
+            f.write(text + '\n')
             f.flush()
     else:
-        print(text)
+        log.debug(text)
+
+
+def _add_debug_options(parser):
+    parser.add_argument('--debug-lifecycle',
+                        action='store_true',
+                        help="This debug flag enables overall program lifecycle messages directly to terminal.")
+
+    parser.add_argument('--debug-programflow',
+                        action='store_true',
+                        help="This debug flag enables program flow log messages with fully qualified class/method names.")
+
+    return parser
+
+
+def _add_cbdir_config(parser):
+    parser.add_argument('--cbdir',
+                        type=six.text_type,
+                        default=None,
+                        help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
+
+    parser.add_argument('--config',
+                        type=six.text_type,
+                        default=None,
+                        help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
+
+    return parser
+
+
+def _add_log_arguments(parser):
+    color_args = dict({
+        "type": str,
+        "default": "auto",
+        "choices": ["true", "false", "auto"],
+        "help": "If logging should be colored."
+    })
+    parser.add_argument('--color', **color_args)
+
+    log_level_args = dict({
+        "type": str,
+        "default": 'info',
+        "choices": ['none', 'error', 'warn', 'info', 'debug', 'trace'],
+        "help": ("How much Crossbar.io should log to the terminal, in order of verbosity.")
+    })
+    parser.add_argument('--loglevel', **log_level_args)
+
+    parser.add_argument('--logformat',
+                        type=six.text_type,
+                        default='standard',
+                        choices=['syslogd', 'standard', 'none'],
+                        help=("The format of the logs -- suitable for syslogd, not colored, or colored."))
+
+    parser.add_argument('--logdir',
+                        type=six.text_type,
+                        default=None,
+                        help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
+
+    parser.add_argument('--logtofile',
+                        action='store_true',
+                        help="Whether or not to log to file")
+
+    return parser
+
+
+_HELP_PERSONALITIES = """Software personality to use:
+ "standalone" (Crossbar.io single node, AGPL),
+ "fabric" (Crossbar.io mesh node, license required),
+ "fabriccenter" (Crossbar.io mesh controller, license required)
+"""
+
+
+def _add_personality_argument(parser):
+    import crossbar
+
+    return parser.add_argument('--personality',
+                               type=six.text_type,
+                               default='standalone',
+                               choices=sorted(crossbar.personalities().keys()) + ['community'],
+                               help=_HELP_PERSONALITIES)

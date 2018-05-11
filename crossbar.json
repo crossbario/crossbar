@@ -1,0 +1,1365 @@
+{
+    "$schema":"http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "definitions": {
+        "id": {
+            "description": "The id of the relevant object",
+            "type": "string",
+            "examples": [ "my_id" ]
+        },
+        "name": {
+            "description": "The name or label of the relevant object",
+            "type":"string"
+        },
+        "protocol_type": {
+            "description": "Must be 'tcp'",
+            "enum": [ "tcp" ]
+        },
+        "debug": {
+            "description": "Set the debug flag for this object",
+            "type": "boolean"
+        },
+        "url": {
+            "description": "",
+            "type": "string",
+            "format": "url"
+        },
+        "check_ip_port": {
+            "description": "A TCP Port number (0-65535)",
+            "type": "integer",
+            "examples":[
+                80,
+                8080,
+                443,
+                8443
+            ]
+        },
+        "check_ip_version": {
+            "description": "IP Protocol version, [ipv] 4 or 6",
+            "type": "integer",
+            "enum": [
+                4, 6
+            ],
+            "default": 4
+        },       
+        "check_ip_host": {
+            "description": "The hostname to use for this connection",
+            "type":"string"
+        },
+        "check_endpoint_timeout": {
+            "description": "",
+            "type": "integer",
+            "minimum": 0,
+            "maxItems": 600
+        },
+        "check_transport_max_message_size": {
+            "description": "",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 67108864
+        },
+        "user_list": {
+            "description": "List of valid user credentials",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "description": "User id",
+                        "type": "string",
+                        "examples": [
+                            "tom",
+                            "dick",
+                            "harry"
+                        ]
+                    },
+                    "password": {
+                        "description": "Password",
+                        "type": "string",
+                        "examples": [
+                            "really1234long5678password"
+                        ]
+                    }
+                }
+            }
+        },
+        "check_compression": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "deflate": {
+                    "type": "object",
+                    "properties": {
+                        "request_no_context_takeover": {
+                            "description": "request the client to not takeover compression context from message to message (default: false)",
+                            "type": "boolean"
+                        },
+                        "request_max_window_bits": {
+                            "description": "request the client to use a maximum compression window size of this many bits. Permissible values are 8 .. 15 (default: 15)",
+                            "type": "integer"
+                        },
+                        "no_context_takeover": {
+                            "description": "while sending, do not takeover compression context from message to message (default: false)",
+                            "type": "boolean"
+                        },
+                        "max_window_bits": {
+                            "description": "while sending, use a maximum compression window size of this many bits. Permissible values are 8 .. 15 (default: 15)",
+                            "type": "integer"
+                        },
+                        "memory_level": {
+                            "description": "while sending, limit memory consumption to this level. Permissible values are 1 .. 9 (default: 8)",
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
+        "check_websocket_options": {
+            "type": "object",
+            "properties": {
+                "allowed_origins": {
+                    "description": "A list of allowed WebSocket origins - can use * as a wildcard character, e.g. ['https://*.tavendo.com', 'http://localhost:8080']",
+                    "type": "array"
+                },
+                "allow_null_origin": {
+                    "description": "",
+                    "type": "boolean"
+                },
+                "external_port": {
+                    "description": "The external visible port this service be reachable under (i.e. when running behind a L2/L3 forwarding device) (default: null)",
+                    "type": "integer"
+                },
+                "enable_hybi10": {
+                    "description": "Enable Hybi-10 version of WebSocket (an intermediary spec). (default: true)",
+                    "type": "boolean"
+                },
+                "enable_rc6455": {
+                    "description": "Enable RFC6455 version of WebSocket (the final spec). (default: true)",
+                    "type": "boolean"
+                },
+                "open_handshake_timeout": { "$ref": "#/definitions/check_milliseconds" },
+                "close_handshake_timeout": { "$ref": "#/definitions/check_milliseconds" },
+                "enable_webstatus": {
+                    "description": "Enable the WebSocket server's status rendering page. (default: true)",
+                    "type": "boolean"
+                },
+                "validate_utf8": {
+                    "description": "Validate incoming WebSocket text messages for UTF8 conformance. (default: true)",
+                    "type": "boolean"
+                },
+                "mask_server_frames": {
+                    "description": "Mask server-sent WebSocket frames. WARNING: Enabling this will break protocol compliance! (default: false)",
+                    "type": "boolean"
+                },
+                "require_masked_client_frames": {
+                    "description": "Require all WebSocket frames received to be masked. (default: true)",
+                    "type": "boolean"
+                },
+                "apply_mask": {
+                    "description": "Actually apply WebSocket masking (both in- and outgoing). (default: true)",
+                    "type": "boolean"
+                },
+                "max_frame_size": {
+                    "description": "Maximum size in bytes of incoming WebSocket frames accepted or 0 to allow any size. (default: 0)",
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "require_masked_client_frames": {
+                    "description": "Require all WebSocket frames received to be masked. (default: true)",
+                    "type": "boolean"
+                },
+                "apply_mask": {
+                    "description": "Actually apply WebSocket masking (both in- and outgoing). (default: true)",
+                    "type": "boolean"
+                },
+                "max_frame_size": {
+                    "description": "Maximum size in bytes of incoming WebSocket frames accepted or 0 to allow any size. (default: 0)",
+                    "type": "integer",
+                    "examples": [
+                        0
+                    ]
+                },
+                "max_message_size": {
+                    "description": "Maximum size in bytes of incoming WebSocket messages accepted or 0 to allow any size. (default: 0)",
+                    "type": "integer",
+                    "examples": [
+                        0
+                    ]
+                },
+                "auto_fragment_size": {
+                    "description": "Automatically fragment outgoing WebSocket messages into WebSocket frames of payload maximum specified size in bytes or 0 to disable. (default: 0)",
+                    "type": "integer",
+                    "examples": [
+                        0
+                    ]
+                },
+                "fail_by_drop": {
+                    "description": "On severe errors (like WebSocket protocol violations), brutally drop the TCP connection instead of performing a full WebSocket closing handshake. (default: false)",
+                    "type": "boolean"
+                },
+                "echo_close_codereason": {
+                    "description": "uring a WebSocket closing handshake initiated by a peer, echo the peer's close code and reason. Otherwise reply with code 1000 and no reason. (default: false)",
+                    "type": "boolean"
+                },
+                "tcp_nodelay": {
+                    "description": "Set the TCP No-Delay ('Nagle') socket option (default: true)",
+                    "type": "boolean"
+                },
+                "auto_ping_interval": { "$ref": "#/definitions/check_milliseconds" },
+                "auto_ping_timeout": { "$ref": "#/definitions/check_milliseconds" },
+                "enable_flash_policy": {
+                    "description": "This is new - fixme!",
+                    "type": "boolean"
+                },
+                "flash_policy": {
+                    "description": "This is new - fixme!",
+                    "type": "string"                    
+                },
+                "compression": { "$ref": "#/definitions/check_compression" },
+                "require_websocket_subprotocol": {
+                    "description": "Require WebSocket clients to properly announce the WAMP-WebSocket subprotocols it is able to speak. This can be one or more from wamp.2.json, wamp.2.msgpack, wamp.2.json.batched and wamp.2.json.batched. Crossbar.io will by default require the client to announce the subprotocols it supports and select one of the announced subprotocols. If this option is set to false, Crossbar.io will no longer require the client to announce subprotocols and assume wamp.2.json when no WebSocket subprotocol is announced. (default: true)",
+                    "type": "boolean"
+                },
+                "show_server_version": {
+                    "description": "This is new - fixme!",
+                    "type": "boolean"
+                }
+            }
+        },
+        "check_connecting_transport_websocket": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "type": {
+                    "description": "",
+                    "type": "string"
+                },
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },
+                "serializers": { "$ref": "#/definitions/check_listening_serializers" },
+                "url": { "$ref": "#/definitions/url" },                        
+                "options": { "$ref": "#/definitions/check_websocket_options" }
+            }
+        },
+        "check_connecting_endpoint": {
+            "description": "A connecting endpoint",
+            "type": "object",
+            "oneOf": [
+                { "$ref": "#/definitions/check_connecting_endpoint_tcp" },
+                { "$ref": "#/definitions/check_connecting_endpoint_unix" },
+                { "$ref": "#/definitions/check_connecting_endpoint_twisted" },
+                { "$ref": "#/definitions/check_connecting_endpoint_onion" }
+            ]
+        },
+        "check_connecting_endpoint_tcp": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "type": { "enum": [
+                    "tcp"
+                ]},
+                "version": { "$ref": "#/definitions/check_ip_version" },
+                "port": { "$ref": "#/definitions/check_ip_port" },
+                "host": { "$ref": "#/definitions/check_ip_host" },
+                "timeout": { "$ref": "#/definitions/check_endpoint_timeout" },
+                "tls": { "$ref": "#/definitions/check_connecting_endpoint_tls" }
+            }
+        },
+        "check_connecting_endpoint_unix": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "type": { "enum": [
+                    "unix"
+                ]},
+                "path": {
+                    "description": "",
+                    "type": "string"
+                },
+                "timeout": { "$ref": "#/definitions/check_endpoint_timeout" }
+            }
+        },
+        "check_connecting_endpoint_twisted": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "type": { "enum": [
+                    "twisted"
+                ]},
+                "client_string": {
+                    "description": "",
+                    "type": "string"
+                },
+                "timeout": { "$ref": "#/definitions/check_endpoint_timeout" }
+            }
+        },
+        "check_connecting_endpoint_onion": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "type": { "enum": [
+                    "onion"
+                ]},
+                "port": { "$ref": "#/definitions/check_ip_port" },
+                "host": { "$ref": "#/definitions/check_ip_host" },
+                "tor_socks_port": { "$ref": "#/definitions/check_ip_port" },
+                "timeout": { "$ref": "#/definitions/check_endpoint_timeout" },
+                "tls": { "$ref": "#/definitions/check_connecting_endpoint_tls" }
+            }
+        },
+        "check_connecting_endpoint_tls": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "type": { "enum": [
+                    "tls"
+                ]},
+                "ca_certificates": {
+                    "description": "",
+                    "type": "array"
+                },
+                "hostname": {
+                    "description": "",
+                    "type": "string"
+                },
+                "certificate": {
+                    "description": "",
+                    "type": "string"
+                },
+                "key": {
+                    "description": "",
+                    "type": "string"
+                }
+            }
+        },
+        "listening_endpoint": {
+            "description": "A listening endpoint",
+            "type": "object",
+            "oneOf": [
+                { "$ref": "#/definitions/listening_endpoint_tcp" },
+                { "$ref": "#/definitions/listening_endpoint_unix" },
+                { "$ref": "#/definitions/listening_endpoint_twisted" },
+                { "$ref": "#/definitions/listening_endpoint_onion" }
+            ]
+        },
+        "listening_endpoint_unix": {
+            "type": "object",
+            "properties": {
+                "type": { "enum": [ "unix" ]},
+                "path": {
+                    "description": "",
+                    "type": "string"
+                },
+                "backlog": {
+                    "description": "",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                }
+            }
+        },
+        "listening_endpoint_twisted": {
+            "type": "object",
+            "properties": {
+                "type": { "enum": [ "twisted" ]},
+                "server_string": {
+                    "description": "",
+                    "type": "string"
+                }
+            }
+        },
+        "listening_endpoint_onion": {
+            "type": "object",
+            "properties": {
+                "type": { "enum": [ "onion" ]},
+                "port": {
+                    "description": "",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                },
+                "private_key_file": {
+                    "description": "",
+                    "type": "string"
+                },
+                "tor_control_endpoint": {
+                    "description": "",
+                    "type": "object",
+                    "properties": {
+                        "host": { "$ref": "#/definitions/check_ip_host" },
+                        "port": { "$ref": "#/definitions/check_ip_port" },
+                        "tor_socks_port": { "$ref": "#/definitions/check_ip_port" },
+                        "tls": { "$ref": "#/definitions/check_connecting_endpoint_tls" }
+                    }
+                }
+            }
+        },
+        "listening_endpoint_tcp": {
+            "type": "object",
+            "properties": {
+                "type": { "enum": [ "tcp" ] },
+                "port": { "$ref": "#/definitions/check_ip_port" },
+                "version": { "$ref": "#/definitions/check_ip_version" },
+                "interface": {
+                    "description": "Interface / address to listen on",
+                    "type": "string",
+                    "examples": [
+                        "127.0.0.1",
+                        "localhost",
+                        "::1"
+                    ]
+                },
+                "backlog": {
+                    "description": "Backlog queue length",
+                    "type": "integer",
+                    "default": 50,
+                    "examples": [
+                        50,
+                        100,
+                        250
+                    ]
+                },
+                "shared": {
+                    "description": "Share socket between multiple workers [Linux>3.9]",
+                    "type": "boolean",
+                    "enum": [
+                        true,
+                        false
+                    ],
+                    "default": false
+                },
+                "tls": {
+                    "description": "Options associated with a TLS endpoint",
+                    "type": "object",
+                    "properties": {       
+                        "key": {
+                            "description": "TLS Key file",
+                            "type": "string"
+                        },
+                        "certificate": {
+                            "description": "TLS Certificate file",
+                            "type": "string"
+                        },
+                        "dhparam": {
+                            "description": "Optional DHParam file",
+                            "type": "string"
+                        },
+                        "ciphers": {
+                            "description": "Valid CIPHERS",
+                            "type": "string",
+                            "default": "ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA"
+                        },                       
+                        "chain_certificates": {
+                            "description": "Certificate chain",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "ca_certificates": {
+                            "description": "CA Certificates",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }               
+        },
+        "roles": {
+            "type":"array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": { "$ref": "#/definitions/name" },
+                    "permissions": {
+                        "description": "",
+                        "type":"array",
+                        "items": {
+                            "description": "",
+                            "type": "object",
+                            "properties": {
+                                "uri": {
+                                    "description": "",
+                                    "type":"string"
+                                },
+                                "match": {
+                                    "description": "",
+                                    "type":"string",
+                                    "examples": [
+                                        "prefix"
+                                    ]
+                                },
+                                "allow": {
+                                    "description": "",
+                                    "type": "object",
+                                    "properties": {
+                                        "call": {
+                                            "description": "",
+                                            "type": "boolean"
+                                        },
+                                        "register": {
+                                            "description": "",
+                                            "type":"boolean"
+                                        },
+                                        "publish":{
+                                            "description": "",
+                                            "type":"boolean"
+                                        },    
+                                        "subscribe": {
+                                            "description": "",
+                                            "type":"boolean"
+                                        }
+                                    }
+                                },
+                                "disclose":{
+                                    "description": "",
+                                    "type":"object",
+                                    "properties":{
+                                        "caller": {
+                                            "description": "",
+                                            "type":"boolean"
+                                        },
+                                        "publisher": {
+                                            "description": "",
+                                            "type":"boolean"
+                                        }
+                                    }
+                                },
+                                "cache": {
+                                    "description": "",
+                                    "type":"boolean"
+                                }
+                            }
+                        }
+                    }
+                }       
+            }
+        },
+        "check_listening_transport_web": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "type": { "enum": [ "web" ]},
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },
+                "paths": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "url": { "$ref": "#/definitions/url" },
+                        "backend": { "$ref": "#/definitions/check_connecting_transport_websocket" },
+                        "options": { "$ref": "#/definitions/check_websocket_options" }
+                    }
+                },
+                "options": {
+                    "type": "object",
+                    "properties": {
+                        "access_log": {
+                            "description": "",
+                            "type": "boolean"
+                        },
+                        "display_tracebacks": {
+                            "description": "",
+                            "type": "boolean"
+                        },
+                        "hsts": {
+                            "description": "",
+                            "type": "boolean"
+                        },
+                        "hsts_max_page": {
+                            "description": "",
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "client_timeout": {
+                            "description": "",
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 86400
+                        }
+                    }
+                }
+            }
+        },
+        "check_listening_transport_rawsocket": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "type": { "enum": [ "rawsocket" ]},
+                "serializers": { "$ref": "#/definitions/check_listening_serializers" },
+                "max_message_size": { "$ref": "#/definitions/check_transport_max_message_size" },
+                "debug": { "$ref": "#/definitions/debug" },
+                "auth": { "$ref": "#/definitions/check_transport_auth" },
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" }
+            }
+        },
+        "check_listening_transport_websocket": {
+            "type": "object",
+            "properties":{
+                "id": { "$ref": "#/definitions/id" },
+                "type": { "enum": [ "websocket"] },
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },
+                "url": { "$ref": "#/definitions/url" },
+                "serializers": { "$ref": "#/definitions/check_listening_serializers" },
+                "debug": { "$ref": "#/definitions/debug" },
+                "options": { "$ref": "#/definitions/check_websocket_options" },
+                "auth": { "$ref": "#/definitions/check_transport_auth" },
+                "cookie": { "$ref": "#/definitions/check_transport_cookie" }
+            }
+        },
+        "check_listening_transport_universal": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },                 
+                "type": { "enum": [ "universal" ]},
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" }, 
+                "rawsocket": { 
+                    "type": "object",
+                    "oneOf": [
+                        { "$ref": "#/definitions/check_listening_transport_rawsocket" }
+                    ]
+                },
+                "websocket": {
+                    "type": "object",
+                    "oneOf": [
+                        { "$ref": "#/definitions/check_listening_transport_websocket" }
+                    ]                   
+                },
+                "mqtt": {
+                    "type": "object",
+                    "oneOf": [
+                        { "$ref": "#/definitions/check_listening_transport_mqtt" }
+                    ]                                       
+                },
+                "web": {
+                    "type": "object",
+                    "oneOf": [
+                        { "$ref": "#/definitions/check_listening_transport_web" }
+                    ]                                       
+                }
+            }
+        },
+        "transport_mqtt_payload_passthrough": {
+            "type": "object",
+            "properties": {
+                "type": { "enum": [ "passthrough" ]}
+            }
+        },
+        "check_listening_serializers": {
+            "description": "",
+            "enum": [
+                "cbor",
+                "json",
+                "msgpack",
+                "ubjson"
+            ]
+        },
+        "transport_mqtt_payload_native": {
+            "type": "object",
+            "properties": {
+                "type": { "enum": [ "native" ]}
+            }
+        },
+        "transport_mqtt_payload_dynamic": {
+            "type": "object",
+            "properties": {
+                "type": { "enum": [ "dynamic" ]},            
+                "encoder": {
+                    "description": "",
+                    "type": "object",
+                    "properties": {
+                        "encoder": {
+                            "description": "",
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "check_listening_transport_mqtt": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "type": { "enum": [ "mqtt" ]},
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },                
+                "options": {
+                    "type": "object",
+                    "properties": {
+                        "realm": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "role": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "payload_mapping": {
+                            "description": "",
+                            "type": "object",
+                            "oneOf": [
+                                { "$ref": "#/definitions/transport_mqtt_payload_passthrough" },
+                                { "$ref": "#/definitions/transport_mqtt_payload_native" },
+                                { "$ref": "#/definitions/transport_mqtt_payload_dynamic" }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "check_endpoint_port": {
+            "description": "",
+            "type": "integer",
+            "minimum": 1,
+            "maxItems": 65535
+        },
+        "transport_flashpolicy": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "type": { "enum": [ "flashpolicy" ]},
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },
+                "alowed_domain": {
+                    "description": "",
+                    "type": "string"
+                },
+                "allowed_ports": {
+                    "description": "",
+                    "type": "array",
+                    "items": {
+                        "type":"integer",
+                        "oneOf": [
+                            { "$ref": "#/definitions/check_endpoint_port" }
+                        ]
+                    }
+                },
+                "debug": { "$ref": "#/definitions/debug" }
+            }
+        },
+        "transport_websocket_testee": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "type": { "enum": [ "websocket-testee" ]},
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },
+                "url": {
+                    "description": "",
+                    "type": "string",
+                    "format": "url"
+                },
+                "debug": {
+                    "description": "",
+                    "type": "boolean"
+                },
+                "options": { "$ref": "#/definitions/check_websocket_options" }
+            }
+        },
+        "transport_stream_testee": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "type": { "enum": [ "stream-testee" ]},
+                "endpoint": { "$ref": "#/definitions/listening_endpoint" },
+                "debug": { "$ref": "#/definitions/debug" }
+            }
+        },       
+        "check_milliseconds": {
+            "description": "",
+            "type": "integer",
+            "minimum": 0
+        },
+        "check_container_options": {
+            "type": "object",
+            "properties": {
+                "shutdown": {
+                    "enum": [
+                        "shutdown-manual",
+                        "shutdown-on-last-component-stopped"
+                    ]
+                }
+            },
+            "allOf": [
+                { "$ref": "#/definitions/check_native_options" }
+            ]
+        },
+        "check_process_env": {
+            "type": "object",
+            "properties": {
+                "inherit": {
+                    "description": "",
+                    "type": [ "boolean", "array" ]
+                },
+                "vars": {
+                    "description": "",
+                    "type": "array"
+                }
+            }
+        },
+        "worker_router": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "router" ] },
+                "realms":{
+                    "type":"array",
+                    "items":{
+                        "type":"object",
+                        "properties":{
+                            "name": { "$ref": "#/definitions/name" },
+                            "roles": { "$ref": "#/definitions/roles" }
+                        }
+                    }
+                },
+                "transports": {
+                    "type":"array",
+                    "items": {
+                        "type":"object",
+                        "oneOf": [
+                            { "$ref": "#/definitions/check_listening_transport_universal" },
+                            { "$ref": "#/definitions/check_listening_transport_web" },
+                            { "$ref": "#/definitions/check_listening_transport_rawsocket" },
+                            { "$ref": "#/definitions/check_listening_transport_websocket" },
+                            { "$ref": "#/definitions/check_listening_transport_mqtt" },
+                            { "$ref": "#/definitions/transport_flashpolicy" },
+                            { "$ref": "#/definitions/transport_websocket_testee" },
+                            { "$ref": "#/definitions/transport_stream_testee" }                   
+                        ]
+                    }
+                }
+            }
+        },
+        "check_container_components": {
+            "description": "",
+            "type": "array",
+            "items": [
+                { "$ref": "#/definitions/check_container_component" }
+            ]
+        },       
+        "check_container_component": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" }
+            },
+            "anyOf": [
+                { "$ref": "#/definitions/check_manhole" },
+                { "$ref": "#/definitions/check_container_options" },
+                { "$ref": "#/definitions/check_container_components" },
+                { "$ref": "#/definitions/check_connections" }
+            ]
+        },
+        "worker_container": {
+            "description": "",
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "container" ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_container_component" }
+            ]
+        },
+        "worker_guest": {
+            "description": "",
+            "type": "object",
+            "properties":{
+                "id": { "$ref": "#/definitions/id" },                
+                "type": { "enum": [ "guest" ] },
+                "executable": {
+                    "description": "",
+                    "type": "string"
+                },
+                "arguments": {
+                    "description": "",
+                    "type": "array"
+                },
+                "options": {
+                    "description": "Guest process configuration",
+                    "type": "object",
+                    "properties": {
+                        "env": { "$ref": "#/definitions/check_process_env" },
+                        "workdir": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "stdin": {
+                            "description": "",
+                            "type": [ "string", "object" ]
+                        },
+                        "stdout": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "stderr": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "watch": {
+                            "description": "",
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "check_transport_auth_dynamic": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "dynamic" ] },
+                "authenticator": {
+                    "description": "",
+                    "type": "string"
+                }
+            }
+        },
+        "check_transport_auth_anonymous_static": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "static" ] },
+                "role": {
+                    "description": "",
+                    "type": "string"
+                }
+            }
+        },
+        "check_transport_auth_ticket_static": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "static" ] },
+                "principals": {
+                    "type": "object",
+                    "properties": {
+                        "ticket": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "role": {
+                            "description": "",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "ticket"
+                    ]
+                }
+            }
+        },
+        "check_transport_auth_wampcra_static": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "static" ] },
+                "users": {
+                    "type": "object",
+                    "properties": {
+                        "secret": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "role": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "salt": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "iterations": {
+                            "description": "",
+                            "type": "integer"
+                        },
+                        "keylen": {
+                            "description": "",
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
+        "check_transport_auth_tls_static": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "static" ] },
+                "principals": {
+                    "type": "object",
+                    "properties": {
+                        
+                    }
+                }
+            }
+        },       
+        "check_transport_auth_cookie_static": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "static" ] }
+
+            }
+        },       
+        "check_transport_auth_cryptosign_static": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "static" ] },
+                "principals": {
+                    "type": "object",
+                    "properties": {
+                        "authorized_keys": {
+                            "description": "",
+                            "type": "array",
+                            "items": {
+                                
+                            }
+                        },
+                        "role": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "realm": {
+                            "description": "",
+                            "type": "string"
+                        }
+                    }
+                }               
+            }
+        },       
+        "check_transport_auth_scram_static": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "static" ] },
+                "principals": {
+                    "type": "object",
+                    "properties": {
+                        "kdf": {
+                            "description": "",
+                            "type": "string",
+                            "enum": [
+                                "argon2id-13",
+                                "pbkdf2"
+                            ]
+                        },
+                        "iterations": {
+                            "description": "",
+                            "type": "integer"
+                        },
+                        "memory": {
+                            "description": "",
+                            "type": "integer"
+                        },
+                        "salt": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "stored-key": {
+                            "description": "",
+                            "type": "string"
+                        },
+                        "server-key": {
+                            "description": "",
+                            "type": "string"
+                        }
+
+                    }
+                }               
+            }
+        },       
+        "check_transport_auth_anonymous": {
+            "type": "object",
+            "properties":{
+                "auth": { "enum": [ "anonymous" ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_transport_auth_anonymous_static" },
+                { "$ref": "#/definitions/check_transport_auth_dynamic" }
+            ]
+        },
+        "check_transport_auth_ticket": {
+            "type": "object",
+            "properties":{
+                "auth": { "enum": [ "ticket" ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_transport_auth_ticket_static" },
+                { "$ref": "#/definitions/check_transport_auth_dynamic" }
+            ]           
+        },
+        "check_transport_auth_wampcra": {
+            "type": "object",
+            "properties":{
+                "auth": { "enum": [ "wampcra" ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_transport_auth_wampcra_static" },
+                { "$ref": "#/definitions/check_transport_auth_dynamic" }
+            ]                      
+        },
+        "check_transport_auth_tls": {
+            "type": "object",
+            "properties":{
+                "auth": { "enum": [ "tls" ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_transport_auth_tls_static" },
+                { "$ref": "#/definitions/check_transport_auth_dynamic" }
+            ]                                  
+        },
+        "check_transport_auth_cookie": {
+            "type": "object",
+            "properties":{
+                "auth": { "enum": [ "cookie" ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_transport_auth_cookie_static" },
+                { "$ref": "#/definitions/check_transport_auth_dynamic" }
+            ]
+        },
+        "check_transport_auth_cryptosign": {
+            "type": "object",
+            "properties":{
+                "auth": { "enum": [ "cryptosign" ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_transport_auth_cryptosign_static" },
+                { "$ref": "#/definitions/check_transport_auth_dynamic" }
+            ]
+        },
+        "check_transport_auth_scram": {
+            "type": "object",
+            "properties":{
+                "auth": { "enum": [ "scram" ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_transport_auth_scram_static" }
+            ]
+        },
+        "check_transport_auth": {
+            "type": "object",
+            "properties":{
+                "auth": { "enum": [ 
+                    "anonymous",
+                    "ticket",
+                    "wampcra",
+                    "tls",
+                    "cookie",
+                    "cryptosign",
+                    "scram"
+                 ] }
+            },
+            "oneOf": [
+                { "$ref": "#/definitions/check_transport_auth_anonymous" },
+                { "$ref": "#/definitions/check_transport_auth_ticket" },
+                { "$ref": "#/definitions/check_transport_auth_wampcra" },
+                { "$ref": "#/definitions/check_transport_auth_tls" },
+                { "$ref": "#/definitions/check_transport_auth_cookie" },
+                { "$ref": "#/definitions/check_transport_auth_cryptosign" },
+                { "$ref": "#/definitions/check_transport_auth_scram" }
+            ]
+        },
+        "check_transport_cookie": {
+            "type": "object",
+            "properties":{
+                "type": { "enum": [ "cookie" ] },
+                "name": {
+                    "description": "",
+                    "type": "string"
+                },
+                "length": {
+                    "description": "",
+                    "type": "integer",
+                    "minimum": 6,
+                    "maximum": 64
+                },
+                "max_age": {
+                    "description": "",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12960000
+                },
+                "store": {
+                    "description": "",
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "description": "",
+                            "enum": [
+                                "memory",
+                                "file"
+                            ]
+                        }
+                    }
+                }
+            }
+        },       
+        "worker_testee": {
+            "type": "object",
+            "properties":{
+                "id": { "$ref": "#/definitions/id" },
+                "type": { "enum": [ "websocket-testee" ] },
+                "options": { "$ref": "#/definitions/check_listening_transport_websocket" },
+                "transport": { "$ref": "#/definitions/check_listening_transport_websocket" }
+            },
+            "anyOf": [
+                { "$ref": "#/definitions/check_native_options" }
+            ]
+        },
+        "check_native_options": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "description": "",
+                    "type": "string"
+                },
+                "python": {
+                    "description": "",
+                    "type": "string"
+                },
+                "pythonpath": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "cpu_affinity": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "env": { "$ref": "#/definitions/check_process_env" },
+                "expose_controller": {
+                    "description": "",
+                    "type": "boolean"
+                },
+                "expose_shared": {
+                    "description": "",
+                    "type": "boolean"
+                }
+            }
+        },
+        "check_controller_options": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "options": {
+                    "type": "object",
+                    "properties": {               
+                        "title": {
+                            "description": "Controller title",
+                            "type": "string"
+                        },
+                        "shutdown": {
+                            "description": "List of shutdown options",
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "shutdown_on_shutdown_requested",
+                                    "shutdown_on_worker_exit",
+                                    "shutdown_on_worker_exit_with_error",
+                                    "shutdown_on_last_worker_exit"
+                                ]                        
+                            }   
+                        }
+                    }
+                }
+            }
+        },
+        "check_manhole": {
+            "description": "",
+            "type": "object",
+            "properties": {               
+                "manhole": {
+                    "description": "",
+                    "type": "object",
+                    "properties": {
+                        "endpoint": { "$ref": "#/definitions/listening_endpoint" },
+                        "users": { "$ref": "#/definitions/user_list" }
+                    }
+                }
+            }
+        },
+        "connection_postgres": {
+            "type": "object",
+            "properties": {               
+                "type": { "enum": [ "postgres" ] },
+                "id": { "$ref": "#/definitions/id" },
+                "host": {
+                    "description": "",
+                    "type": "string"
+                },
+                "port": { "$ref": "#/definitions/check_ip_port" },
+                "database": {
+                    "description": "",
+                    "type": "string"
+                },
+                "user": {
+                    "description": "",
+                    "type": "string"
+                },
+                "password": {
+                    "description": "",
+                    "type": "string"
+                },
+                "options": {
+                    "description": "",
+                    "type": "object",
+                    "properties": {
+                        "min_connections": {
+                            "description": "",
+                            "type": "integer"
+                        },
+                        "max_connections": {
+                            "description": "",
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },       
+        "check_connections": {
+            "description": "",
+            "type": "object",
+            "properties": {
+                "connections": { 
+                    "type": "array",
+                    "items": {
+                        "type": "object",                       
+                        "oneOf": [
+                            { "$ref": "#/definitions/connection_postgres" }
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "properties":{
+        "version":{
+            "type": "integer",
+            "title": "The schema version this file relates to",
+            "default": 2
+        },
+        "controller": {
+            "description": "Configuration for the node controller",
+            "type":"object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" }
+            },
+            "allOf": [
+                { "$ref": "#/definitions/check_controller_options" },
+                { "$ref": "#/definitions/check_manhole" },
+                { "$ref": "#/definitions/check_connections" }
+            ]
+        },
+        "workers": {
+            "description": "Configuration for the workers",
+            "type":"array",
+            "items": {
+                "type": "object",
+                "oneOf": [
+                    { "$ref": "#/definitions/worker_router" },
+                    { "$ref": "#/definitions/worker_container" },
+                    { "$ref": "#/definitions/worker_guest" },
+                    { "$ref": "#/definitions/worker_testee"}                   
+                ]
+            }
+        }
+    }
+}

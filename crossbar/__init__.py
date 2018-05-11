@@ -161,7 +161,32 @@ def run(args=None, reactor=None):
     # Only _now_ import actual stuff, as this triggers lots of imports in turn,
     # somewhere down the line Twisted _will_ likely import its one and only reactor,
     # and if we haven't done before, Twisted will install whatever it deems right then.
-    from crossbar.controller.cli import main
+    from crossbar.node.main import main
 
     # and now actually enter here .. this never returns!
     return main('crossbar', args, reactor)
+
+
+def personalities():
+    """
+    Return a map from personality names to actual available (=installed) Personality classes.
+    """
+    from crossbar.personality import Personality as StandalonePersonality
+
+    personality_classes = {
+        'standalone': StandalonePersonality,
+    }
+
+    try:
+        from crossbarfabric.personality import Personality as FabricPersonality
+        personality_classes['fabric'] = FabricPersonality
+    except ImportError:
+        pass
+
+    try:
+        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
+        personality_classes['fabriccenter'] = FabricCenterPersonality
+    except ImportError:
+        pass
+
+    return personality_classes

@@ -1,1 +1,0 @@
-Add a force_reregister= option to kick out existing registrations (required corresponding Autobahn release)

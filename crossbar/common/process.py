@@ -63,11 +63,10 @@ from autobahn import wamp
 
 from txaio import make_logger
 
-from twisted.cred import checkers, portal
+from twisted.cred import portal
 
-from crossbar.common import checkconfig
 from crossbar.common.checkconfig import get_config_value
-from crossbar.twisted.endpoint import create_listening_port_from_config
+from crossbar.common.twisted.endpoint import create_listening_port_from_config
 
 from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
@@ -81,7 +80,7 @@ try:
 except ImportError:
     _HAS_POSTGRESQL = False
 
-__all__ = ('NativeProcessSession',)
+__all__ = ('NativeProcess',)
 
 
 if _HAS_POSTGRESQL:
@@ -137,7 +136,7 @@ if _HAS_MANHOLE:
         """
         Manhole service running inside a native processes (controller, router, container).
 
-        This class is for _internal_ use within NativeProcessSession.
+        This class is for _internal_ use within NativeProcess.
         """
 
         def __init__(self, config, who):
@@ -172,7 +171,7 @@ if _HAS_MANHOLE:
             }
 
 
-class NativeProcessSession(ApplicationSession):
+class NativeProcess(ApplicationSession):
     """
     A native Crossbar.io process (currently: controller, router or container).
     """
@@ -266,6 +265,20 @@ class NativeProcessSession(ApplicationSession):
         return psutil.cpu_count(logical=logical)
 
     @wamp.register(None)
+    def get_cpus(self, details=None):
+        """
+
+        :returns: List of CPU IDs.
+        :rtype: list[Int]
+        """
+        if not _HAS_PSUTIL:
+            emsg = "unable to get CPUs: required package 'psutil' is not installed"
+            self.log.warn(emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+
+        return self._pinfo.cpus
+
+    @wamp.register(None)
     def get_cpu_affinity(self, details=None):
         """
         Get CPU affinity of this process.
@@ -289,7 +302,7 @@ class NativeProcessSession(ApplicationSession):
             return current_affinity
 
     @wamp.register(None)
-    def set_cpu_affinity(self, cpus, details=None):
+    def set_cpu_affinity(self, cpus, relative=True, details=None):
         """
         Set CPU affinity of this process.
 
@@ -306,10 +319,18 @@ class NativeProcessSession(ApplicationSession):
             self.log.warn(emsg)
             raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
+        if relative:
+            _cpu_ids = self._pinfo.cpus
+            _cpus = [_cpu_ids[i] for i in cpus]
+        else:
+            _cpus = cpus
+
         try:
             p = psutil.Process(os.getpid())
-            p.cpu_affinity(cpus)
+            p.cpu_affinity(_cpus)
             new_affinity = p.cpu_affinity()
+            if set(_cpus) != set(new_affinity):
+                raise Exception('CPUs mismatch after affinity setting ({} != {})'.format(set(_cpus), set(new_affinity)))
         except Exception as e:
             emsg = "Could not set CPU affinity: {}".format(e)
             self.log.failure(emsg)
@@ -320,6 +341,8 @@ class NativeProcessSession(ApplicationSession):
             #
             cpu_affinity_set_topic = u'{}.on_cpu_affinity_set'.format(self._uri_prefix)
             cpu_affinity_set_info = {
+                u'cpus': cpus,
+                u'relative': relative,
                 u'affinity': new_affinity,
                 u'who': details.caller
             }
@@ -355,7 +378,7 @@ class NativeProcessSession(ApplicationSession):
         # check configuration
         #
         try:
-            checkconfig.check_connection(config)
+            self.personality.check_connection(self.personality, config)
         except Exception as e:
             emsg = "invalid connection configuration ({})".format(e)
             self.log.warn(emsg)
@@ -639,25 +662,41 @@ class NativeProcessSession(ApplicationSession):
             raise ApplicationError(u"crossbar.error.already_started", emsg)
 
         try:
-            checkconfig.check_manhole(config)
+            self.personality.check_manhole(self.personality, config)
         except Exception as e:
             emsg = "Could not start manhole: invalid configuration ({})".format(e)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.invalid_configuration', emsg)
 
+        from twisted.conch.ssh import keys
+        from twisted.conch.manhole_ssh import (
+            ConchFactory, TerminalRealm, TerminalSession)
+        from twisted.conch.manhole import ColoredManhole
+        from twisted.conch.checkers import SSHPublicKeyDatabase
+
+        class PublicKeyChecker(SSHPublicKeyDatabase):
+            def __init__(self, userKeys):
+                self.userKeys = {}
+                for username, keyData in userKeys.items():
+                    self.userKeys[username] = keys.Key.fromString(data=keyData).blob()
+
+            def checkKey(self, credentials):
+                print('CHECK KEY     ', credentials)
+                if credentials.username in self.userKeys:
+                    keyBlob = self.userKeys[credentials.username]
+
+                    return keyBlob == credentials.blob
+
         # setup user authentication
         #
-        checker = checkers.InMemoryUsernamePasswordDatabaseDontUse()
-        for user in config['users']:
-            checker.addUser(user['user'], user['password'])
+        authorized_keys = {
+            'oberstet': 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCz7K1QwDhaq/Bi8o0uqiJQuVFCDQL5rbRvMClLHRx9KE3xP2Fh2eapzXuYGSgtG9Fyz1UQd+1oNM3wuNnT/DsBUBQrECP4bpFIHcJkMaFTARlCagkXosWsadzNnkW0osUCuHYMrzBJuXWF2GH+0OFCtVu+8E+4Mhvchu9xsHG8PM92SpI6aP0TtmT9D/0Bsm9JniRj8kndeS+iWG4s/pEGj7Rg7eGnbyQJt/9Jc1nWl6PngGbwp63dMVmh+8LP49PtfnxY8m9fdwpL4oW9U8beYqm8hyfBPN2yDXaehg6RILjIa7LU2/6bu96ZgnIz26zi/X9XlnJQt2aahWJs1+GR oberstet@thinkpad-t430s'
+        }
+        checker = PublicKeyChecker(authorized_keys)
 
         # setup manhole namespace
         #
         namespace = {'session': self}
-
-        from twisted.conch.manhole_ssh import (
-            ConchFactory, TerminalRealm, TerminalSession)
-        from twisted.conch.manhole import ColoredManhole
 
         class PatchedTerminalSession(TerminalSession):
             # get rid of
@@ -670,10 +709,23 @@ class NativeProcessSession(ApplicationSession):
         rlm.sessionFactory = PatchedTerminalSession  # monkey patch
         rlm.chainedProtocolFactory.protocolFactory = lambda _: ColoredManhole(namespace)
 
-        ptl = portal.Portal(rlm, [checker])
+        ptl = portal.Portal(rlm)
+        ptl.registerChecker(checker)
 
         factory = ConchFactory(ptl)
         factory.noisy = False
+
+        private_key = keys.Key.fromFile(os.path.join(self.cbdir, 'ssh_host_rsa_key'))
+        public_key = private_key.public()
+
+        publicKeys = {
+            b'ssh-rsa': private_key
+        }
+        privateKeys = {
+            b'ssh-rsa': public_key
+        }
+        factory.publicKeys = publicKeys
+        factory.privateKeys = privateKeys
 
         self._manhole_service = ManholeService(config, details.caller)
 

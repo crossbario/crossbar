@@ -73,14 +73,38 @@ publish: clean
 test: flake8
 	trial crossbar
 
+test_full:
+	crossbar \
+		--personality=standalone \
+		--debug-lifecycle \
+		--debug-programflow\
+		start \
+		--cbdir=./test/full/.crossbar
+
+test_manhole:
+	ssh -vvv -p 6022 oberstet@localhost
+
+gen_ssh_keys:
+#	ssh-keygen -t ed25519 -f test/full/.crossbar/ssh_host_ed25519_key
+	ssh-keygen -t rsa -b 4096 -f test/full/.crossbar/ssh_host_rsa_key
+
+test_coverage:
+	tox -e coverage .
+
 test_tox:
-	tox -e flake8,py36-unpinned-trial,py36-cli .
+	tox -e flake8,py36-unpinned-trial,py36-cli,py36-examples,coverage .
+
+test_bandit:
+	tox -e bandit .
 
 test_cli:
 	./test/test_cli.sh
 
 test_cli_tox:
 	tox -e py36-cli .
+
+test_examples:
+	tox -e py36-examples .
 
 test_mqtt:
 #	trial crossbar.adapter.mqtt.test.test_wamp

@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import six
-
 from crossbar.worker.types import RouterComponent, RouterRealm, RouterRealmRole, RouterRealmUplink
 from twisted.internet.defer import Deferred, DeferredList, maybeDeferred
 from twisted.internet.defer import inlineCallbacks
@@ -42,22 +40,21 @@ from autobahn.util import utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, ComponentConfig
 
-from crossbar._util import class_name
+from crossbar._util import class_name, hltype, hlid
 
 from crossbar.router import uplink
 from crossbar.router.session import RouterSessionFactory
-from crossbar.router.service import RouterServiceSession
+from crossbar.router.service import RouterServiceAgent
 from crossbar.router.router import RouterFactory
 
 from crossbar.worker import _appsession_loader
-from crossbar.worker.worker import NativeWorkerSession
-from crossbar.common import checkconfig
+from crossbar.worker.controller import WorkerController
 
 
-__all__ = ('RouterWorkerSession',)
+__all__ = ('RouterController',)
 
 
-class RouterWorkerSession(NativeWorkerSession):
+class RouterController(WorkerController):
     """
     A native Crossbar.io worker that runs a WAMP router which can manage
     multiple realms, run multiple transports and links, as well as host
@@ -70,7 +67,7 @@ class RouterWorkerSession(NativeWorkerSession):
 
     def __init__(self, config=None, reactor=None, personality=None):
         # base ctor
-        NativeWorkerSession.__init__(self, config=config, reactor=reactor, personality=personality)
+        WorkerController.__init__(self, config=config, reactor=reactor, personality=personality)
 
         # factory for producing (per-realm) routers
         self._router_factory = self.router_factory_class(None, self)
@@ -95,6 +92,27 @@ class RouterWorkerSession(NativeWorkerSession):
         # map: transport ID -> RouterTransport
         self.transports = {}
 
+    def realm_by_name(self, name):
+        realm_id = self.realm_to_id.get(name, None)
+        assert(realm_id in self.realms)
+        return self.realms[realm_id]
+
+    @property
+    def router_factory(self):
+        """
+
+        :return: The router factory used for producing (per-realm) routers.
+        """
+        return self._router_factory
+
+    @property
+    def router_session_factory(self):
+        """
+
+        :return: The router session factory for producing router sessions.
+        """
+        return self._router_session_factory
+
     def onWelcome(self, msg):
         # this is a hook for authentication methods to deny the
         # session after the Welcome message -- do we need to do
@@ -102,18 +120,23 @@ class RouterWorkerSession(NativeWorkerSession):
         pass
 
     @inlineCallbacks
-    def onJoin(self, details):
+    def onJoin(self, details, publish_ready=True):
         """
         Called when worker process has joined the node's management realm.
         """
-        self.log.info('Router worker "{worker_id}" session {session_id} initializing ..', worker_id=self._worker_id, session_id=details.session)
+        self.log.info('Router worker session for "{worker_id}" joined realm "{realm}" on node router {method}',
+                      realm=self._realm,
+                      worker_id=self._worker_id,
+                      session_id=details.session,
+                      method=hltype(RouterController.onJoin))
 
-        yield NativeWorkerSession.onJoin(self, details, publish_ready=False)
+        yield WorkerController.onJoin(self, details, publish_ready=False)
 
-        self.log.info('Router worker "{worker_id}" session ready', worker_id=self._worker_id)
+        # WorkerController.publish_ready()
+        self.publish_ready()
 
-        # NativeWorkerSession.publish_ready()
-        yield self.publish_ready()
+        self.log.info('Router worker session for "{worker_id}" ready',
+                      worker_id=self._worker_id)
 
     def onLeave(self, details):
         # when this router is shutting down, we disconnect all our
@@ -137,12 +160,15 @@ class RouterWorkerSession(NativeWorkerSession):
         # we want our default behavior, which disconnects this
         # router-worker, effectively shutting it down .. but only
         # *after* the components got a chance to shutdown.
-        dl.addBoth(lambda _: super(RouterWorkerSession, self).onLeave(details))
+        dl.addBoth(lambda _: super(RouterController, self).onLeave(details))
 
     @wamp.register(None)
     def get_router_realms(self, details=None):
         """
         Get realms currently running on this router worker.
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
 
         :returns: List of realms currently running.
         :rtype: list of str
@@ -155,6 +181,9 @@ class RouterWorkerSession(NativeWorkerSession):
     def get_router_realm(self, realm_id, details=None):
         """
         Return realm detail information.
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
 
         :returns: realm information object
         :rtype: dict
@@ -177,8 +206,12 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param realm_config: The realm configuration.
         :type realm_config: dict
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
-        self.log.debug("{name}.start_router_realm", name=self.__class__.__name__)
+        self.log.info('Starting router realm {realm_id} {method}',
+                      realm_id=hlid(realm_id), method=hltype(RouterController.start_router_realm))
 
         # prohibit starting a realm twice
         #
@@ -190,7 +223,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            checkconfig.check_router_realm(realm_config)
+            self.personality.check_router_realm(self.personality, realm_config)
         except Exception as e:
             emsg = "Invalid router realm configuration: {}".format(e)
             self.log.error(emsg)
@@ -222,10 +255,10 @@ class RouterWorkerSession(NativeWorkerSession):
 
         # add a router/realm service session
         extra = {
-            # the RouterServiceSession will fire this when it is ready
+            # the RouterServiceAgent will fire this when it is ready
             'onready': Deferred(),
 
-            # if True, forward the WAMP meta API (implemented by RouterServiceSession)
+            # if True, forward the WAMP meta API (implemented by RouterServiceAgent)
             # that is normally only exposed on the app router/realm _additionally_
             # to the local node management router.
             'enable_meta_api': enable_meta_api,
@@ -237,12 +270,12 @@ class RouterWorkerSession(NativeWorkerSession):
             'management_session': self,
         }
         cfg = ComponentConfig(realm, extra)
-        rlm.session = RouterServiceSession(cfg, router)
+        rlm.session = RouterServiceAgent(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
 
         yield extra['onready']
 
-        self.log.info("Realm '{realm}' started", realm=realm)
+        self.log.info('Realm "{realm_id}" (name="{realm_name}") started', realm_id=realm_id, realm_name=rlm.session._realm)
 
         self.publish(u'{}.on_realm_started'.format(self._uri_prefix), realm_id)
 
@@ -256,6 +289,9 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param id: ID of the realm to stop.
         :type id: str
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
         self.log.info("{name}.stop_router_realm", name=self.__class__.__name__)
 
@@ -286,6 +322,9 @@ class RouterWorkerSession(NativeWorkerSession):
         :param id: The ID of the realm to list roles for.
         :type id: str
 
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
+
         :returns: A list of roles.
         :rtype: list of dicts
         """
@@ -303,12 +342,18 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param id: The ID of the realm the role should be started on.
         :type id: str
+
         :param role_id: The ID of the role to start under.
         :type role_id: str
+
         :param config: The role configuration.
         :type config: dict
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
-        self.log.debug("{name}.start_router_realm_role", name=self.__class__.__name__)
+        self.log.info('Starting role "{role_id}" on realm "{realm_id}" {method}',
+                      role_id=role_id, realm_id=realm_id, method=hltype(self.start_router_realm_role))
 
         if realm_id not in self.realms:
             raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
@@ -337,8 +382,12 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param id: The ID of the realm of the role to be stopped.
         :type id: str
+
         :param role_id: The ID of the role to be stopped.
         :type role_id: str
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
         self.log.debug("{name}.stop_router_realm_role", name=self.__class__.__name__)
 
@@ -358,6 +407,9 @@ class RouterWorkerSession(NativeWorkerSession):
         :param id: The ID of the router realm to list uplinks for.
         :type id: str
 
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
+
         :returns: A list of uplinks.
         :rtype: list of dicts
         """
@@ -376,10 +428,15 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param realm_id: The ID of the realm the uplink should be started on.
         :type realm_id: unicode
+
         :param uplink_id: The ID of the uplink to start.
         :type uplink_id: unicode
+
         :param uplink_config: The uplink configuration.
         :type uplink_config: dict
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
         self.log.debug("{name}.start_router_realm_uplink", name=self.__class__.__name__)
 
@@ -420,8 +477,12 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param id: The ID of the realm to stop an uplink on.
         :type id: str
+
         :param uplink_id: The ID of the uplink within the realm to stop.
         :type uplink_id: str
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
         self.log.debug("{name}.stop_router_realm_uplink", name=self.__class__.__name__)
 
@@ -431,6 +492,9 @@ class RouterWorkerSession(NativeWorkerSession):
     def get_router_components(self, details=None):
         """
         Get app components currently running in this router worker.
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
 
         :returns: List of app components currently running.
         :rtype: list of dict
@@ -453,8 +517,12 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param id: The ID of the component to start.
         :type id: str
+
         :param config: The component configuration.
         :type config: obj
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
         self.log.debug("{name}.start_router_component", name=self.__class__.__name__)
 
@@ -468,7 +536,7 @@ class RouterWorkerSession(NativeWorkerSession):
         # check configuration
         #
         try:
-            checkconfig.check_router_component(config)
+            self.personality.check_router_component(self.personality, config)
         except Exception as e:
             emsg = "Invalid router component configuration: {}".format(e)
             self.log.error(emsg)
@@ -553,6 +621,7 @@ class RouterWorkerSession(NativeWorkerSession):
             caller = details.caller if details else None
             self.publish(topic, event, options=PublishOptions(exclude=caller))
             return event
+
         session.on('leave', publish_stopped)
         session.on('join', publish_started)
 
@@ -571,6 +640,9 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param id: The ID of the component to stop.
         :type id: str
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
         self.log.debug("{name}.stop_router_component({id})", name=self.__class__.__name__, id=id)
 
@@ -591,6 +663,9 @@ class RouterWorkerSession(NativeWorkerSession):
         """
         Get transports currently running in this router worker.
 
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
+
         :returns: List of transports currently running.
         :rtype: list of dict
         """
@@ -606,69 +681,83 @@ class RouterWorkerSession(NativeWorkerSession):
         return res
 
     @wamp.register(None)
-    def start_router_transport(self, id, config, create_paths=False, details=None):
+    def start_router_transport(self, transport_id, config, create_paths=False, details=None):
         """
         Start a transport on this router worker.
 
-        :param id: The ID of the transport to start.
-        :type id: str
+        :param transport_id: The ID of the transport to start.
+        :type transport_id: str
+
         :param config: The transport configuration.
         :type config: dict
+
+        :param create_paths: If set, start subservices defined in the configuration too.
+            This currently only applies to Web services, which are part of a Web transport.
+        :type create_paths: bool
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
-        self.log.debug("{name}.start_router_transport", name=self.__class__.__name__)
+        self.log.info('Starting router transport "{transport_id}" {method}',
+                      transport_id=transport_id, method=hltype(self.start_router_transport))
 
         # prohibit starting a transport twice
-        #
-        if id in self.transports:
-            emsg = "Could not start transport: a transport with ID '{}' is already running (or starting)".format(id)
-            self.log.error(emsg)
-            raise ApplicationError(u'crossbar.error.already_running', emsg)
+        if transport_id in self.transports:
+            _emsg = 'Could not start transport: a transport with ID "{}" is already running (or starting)'.format(transport_id)
+            self.log.error(_emsg)
+            raise ApplicationError(u'crossbar.error.already_running', _emsg)
 
-        d = self.personality.create_router_transport(
-            self.personality, self._reactor, id, config, self.config.extra.cbdir, self.log, self,
-            _router_session_factory=self._router_session_factory,
-            _web_templates=self._templates, create_paths=create_paths
-        )
+        # create a transport and parse the transport configuration
+        router_transport = self.personality.create_router_transport(self, transport_id, config)
 
-        def ok(router_transport):
-            self.transports[id] = router_transport
-            self.log.debug("Router transport '{id}'' started and listening", id=id)
+        # start listening ..
+        d = router_transport.start(create_paths)
+
+        def ok(_):
+            self.transports[transport_id] = router_transport
+            self.log.debug('Router transport "{transport_id}" started and listening', transport_id=transport_id)
             return
 
         def fail(err):
-            emsg = "Cannot listen on transport endpoint: {log_failure}"
-            self.log.error(emsg, log_failure=err)
-            raise ApplicationError(u"crossbar.error.cannot_listen", emsg)
+            _emsg = "Cannot listen on transport endpoint: {log_failure}"
+            self.log.error(_emsg, log_failure=err)
+            raise ApplicationError(u"crossbar.error.cannot_listen", _emsg)
 
         d.addCallbacks(ok, fail)
         return d
 
     @wamp.register(None)
-    def stop_router_transport(self, id, details=None):
+    def stop_router_transport(self, transport_id, details=None):
         """
         Stop a transport currently running in this router worker.
 
-        :param id: The ID of the transport to stop.
-        :type id: str
+        :param transport_id: The ID of the transport to stop.
+        :type transport_id: str
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
         self.log.debug("{name}.stop_router_transport", name=self.__class__.__name__)
 
-        # FIXME
-        if id not in self.transports:
-            #      if not id in self.transports or self.transports[id].status != 'started':
-            emsg = "Cannot stop transport: no transport with ID '{}' or transport is already stopping".format(id)
+        if transport_id not in self.transports or self.transports[transport_id].state() != self.personality.RouterTransport.STATE_STARTED:
+            emsg = "Cannot stop transport: no transport with ID '{}' or transport is already stopping".format(transport_id)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
-        self.log.debug("Stopping transport with ID '{id}'", id=id)
+        router_transport = self.transports[transport_id]
 
-        d = self.transports[id].port.stopListening()
+        self.log.debug("Stopping transport with ID '{transport_id}'", transport_id=transport_id)
+
+        # stop listening ..
+        d = router_transport.stop()
 
         def ok(_):
-            del self.transports[id]
+            del self.transports[transport_id]
 
         def fail(err):
-            raise ApplicationError(u"crossbar.error.cannot_stop", "Failed to stop transport: {}".format(str(err.value)))
+            emsg = "Cannot listen on transport endpoint: {log_failure}"
+            self.log.error(emsg, log_failure=err)
+            raise ApplicationError(u"crossbar.error.cannot_stop", emsg)
 
         d.addCallbacks(ok, fail)
         return d
@@ -686,19 +775,40 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param config: The Web service configuration.
         :type config: dict
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
-        self.log.info("{name}[{personality}].start_web_transport_service(transport_id={transport_id}, path={path}, config={config})",
-                      personality=self.personality.NAME,
-                      name=self.__class__.__name__,
-                      transport_id=transport_id,
+        if type(config) != dict or 'type' not in config:
+            raise ApplicationError(u'crossbar.invalid_argument', 'config parameter must be dict with type attribute')
+
+        self.log.info('Starting "{service_type}" Web service on path "{path}" of transport "{transport_id}" {method}',
+                      service_type=config.get('type', None),
                       path=path,
-                      config=config)
+                      transport_id=transport_id,
+                      method=hltype(self.start_web_transport_service))
 
         transport = self.transports.get(transport_id, None)
-        if not (transport and (transport.config[u'type'] == u'web' or (transport.config[u'type'] == u'universal' and transport.config.get(u'web', {})))):
-            emsg = "Cannot start service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
+        if not transport:
+            emsg = 'Cannot start service on transport: no transport with ID "{}"'.format(transport_id)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
+
+        if not isinstance(transport, self.personality.RouterWebTransport):
+            emsg = 'Cannot start service on transport: transport is not a Web transport (transport_type={})'.format(hltype(transport.__class__))
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.not_running', emsg)
+
+        if transport.state != self.personality.RouterTransport.STATE_STARTED:
+            emsg = 'Cannot start service on Web transport service: transport is not running (transport_state={})'.format(
+                transport_id, self.personality.RouterWebTransport.STATES.get(transport.state, None))
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.not_running', emsg)
+
+        if path in transport.root:
+            emsg = 'Cannot start service on Web transport "{}": a service is already running on path "{}"'.format(transport_id, path)
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.already_running', emsg)
 
         caller = details.caller if details else None
         self.publish(self._uri_prefix + u'.on_web_transport_service_starting',
@@ -706,18 +816,11 @@ class RouterWorkerSession(NativeWorkerSession):
                      path,
                      options=PublishOptions(exclude=caller))
 
-        paths = {
-            path: config
-        }
-        self.personality.add_web_services(self.personality,
-                                          self._reactor,
-                                          transport.root_resource,
-                                          paths,
-                                          self._templates,
-                                          self.log,
-                                          self.config.extra.cbdir,
-                                          self._router_session_factory,
-                                          self)
+        # now actually add the web service ..
+        # note: currently this is NOT async, but direct/sync.
+        webservice_factory = self.personality.WEB_SERVICE_FACTORIES[config['type']]
+        webservice = webservice_factory.create(transport, path, config)
+        transport.root[path] = webservice
 
         on_web_transport_service_started = {
             u'transport_id': transport_id,
@@ -743,6 +846,9 @@ class RouterWorkerSession(NativeWorkerSession):
 
         :param path: The path (absolute URL, eg "/myservice1") of the service to stop.
         :type path: str
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
         """
         self.log.info("{name}.stop_web_transport_service(transport_id={transport_id}, path={path})",
                       name=self.__class__.__name__,
@@ -750,17 +856,14 @@ class RouterWorkerSession(NativeWorkerSession):
                       path=path)
 
         transport = self.transports.get(transport_id, None)
-        if not transport or transport.config[u'type'] != u'web':
+        if not transport or \
+           not isinstance(transport, self.personality.RouterWebTransport) or \
+           transport.state != self.personality.RouterTransport.STATE_STARTED:
             emsg = "Cannot stop service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
-        if isinstance(path, six.text_type):
-            webPath = path.encode('utf8')
-        else:
-            webPath = path
-
-        if webPath not in transport.root_resource.children:
+        if path not in transport:
             emsg = "Cannot stop service on Web transport {}: no service running on path '{}'".format(transport_id, path)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
@@ -771,15 +874,16 @@ class RouterWorkerSession(NativeWorkerSession):
                      path,
                      options=PublishOptions(exclude=caller))
 
-        self.personality.remove_web_services(self.personality, self._reactor, transport.root_resource, [path])
+        # now actually remove the web service ..
+        # Note: currently this is NOT async, but direct/sync.
+        transport.remove_web_service(path)
 
         on_web_transport_service_stopped = {
             u'transport_id': transport_id,
             u'path': path,
-            u'config': transport.config
         }
         caller = details.caller if details else None
-        self.publish(self._uri_prefix + u'.on_web_transport_service_starting',
+        self.publish(self._uri_prefix + u'.on_web_transport_service_stopped',
                      transport_id,
                      path,
                      on_web_transport_service_stopped,

@@ -119,11 +119,11 @@ class RouterWorkerSessionTests(TestCase):
 
     def test_basic(self):
         """
-        We can instantiate a RouterWorkerSession.
+        We can instantiate a RouterController.
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
+        r = router.RouterController(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -137,7 +137,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         Starting a class-based router component works.
         """
-        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
+        r = router.RouterController(config=self.config, reactor=reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
@@ -179,7 +179,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
+        r = router.RouterController(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -217,7 +217,7 @@ class RouterWorkerSessionTests(TestCase):
         """
         log_list = []
 
-        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
+        r = router.RouterController(config=self.config, reactor=reactor)
         r.log = make_logger(observer=log_list.append, log_level="debug")
 
         # Open the transport
@@ -248,7 +248,7 @@ class RouterWorkerSessionTests(TestCase):
         Starting a class-based router component fails when the application
         session isn't derived from ApplicationSession.
         """
-        r = router.RouterWorkerSession(config=self.config, reactor=reactor)
+        r = router.RouterController(config=self.config, reactor=reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
@@ -323,8 +323,8 @@ class WebTests(TestCase):
         will still be routed correctly.
         """
         temp_reactor = SelectReactor()
-        r = router.RouterWorkerSession(config=self.config,
-                                       reactor=temp_reactor)
+        r = router.RouterController(config=self.config,
+                                    reactor=temp_reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
@@ -397,8 +397,8 @@ class WSGITests(TestCase):
         A basic WSGI app can be ran.
         """
         temp_reactor = SelectReactor()
-        r = router.RouterWorkerSession(config=self.config,
-                                       reactor=temp_reactor)
+        r = router.RouterController(config=self.config,
+                                    reactor=temp_reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
@@ -447,8 +447,8 @@ class WSGITests(TestCase):
         A basic WSGI app can be ran, with subresources
         """
         temp_reactor = SelectReactor()
-        r = router.RouterWorkerSession(config=self.config,
-                                       reactor=temp_reactor)
+        r = router.RouterController(config=self.config,
+                                    reactor=temp_reactor)
 
         # Open the transport
         transport = FakeWAMPTransport(r)
@@ -503,7 +503,7 @@ class WSGITests(TestCase):
     #     A basic WSGI app can be ran, with subresources
     #     """
     #     temp_reactor = SelectReactor()
-    #     r = router.RouterWorkerSession(config=self.config,
+    #     r = router.RouterController(config=self.config,
     #                                    reactor=temp_reactor)
 
     #     # Open the transport

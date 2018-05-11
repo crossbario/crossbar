@@ -41,31 +41,31 @@ import six
 import pkg_resources
 import pyqrcode
 
-from nacl.signing import SigningKey
-from nacl.encoding import HexEncoder
+from nacl import signing
+from nacl import encoding
 
 import txaio
 from autobahn.util import utcnow
-from autobahn.wamp.cryptosign import _read_signify_ed25519_pubkey, _qrcode_from_signify_ed25519_pubkey
+from autobahn.wamp import cryptosign
 
 from twisted.python.runtime import platform
 
 import crossbar
-
+from crossbar._util import hlid
 
 log = txaio.make_logger()
 
 
 def _read_release_key():
     release_pubkey_file = 'crossbar-{}.pub'.format('-'.join(crossbar.__version__.split('.')[0:2]))
-    release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'keys'), release_pubkey_file)
+    release_pubkey_path = os.path.join(pkg_resources.resource_filename('crossbar', 'common/keys'), release_pubkey_file)
 
-    release_pubkey_hex = binascii.b2a_hex(_read_signify_ed25519_pubkey(release_pubkey_path)).decode('ascii')
+    release_pubkey_hex = binascii.b2a_hex(cryptosign._read_signify_ed25519_pubkey(release_pubkey_path)).decode('ascii')
 
     with open(release_pubkey_path) as f:
         release_pubkey_base64 = f.read().splitlines()[1]
 
-    release_pubkey_qrcode = _qrcode_from_signify_ed25519_pubkey(release_pubkey_path)
+    release_pubkey_qrcode = cryptosign._qrcode_from_signify_ed25519_pubkey(release_pubkey_path)
 
     release_pubkey = {
         u'base64': release_pubkey_base64,
@@ -211,9 +211,9 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
                 raise Exception("Corrupt node private key file {} - {} tag not found".format(privkey_path, tag))
 
         privkey_hex = priv_tags[u'private-key-ed25519']
-        privkey = SigningKey(privkey_hex, encoder=HexEncoder)
+        privkey = signing.SigningKey(privkey_hex, encoder=encoding.HexEncoder)
         pubkey = privkey.verify_key
-        pubkey_hex = pubkey.encode(encoder=HexEncoder).decode('ascii')
+        pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
         if priv_tags[u'public-key-ed25519'] != pubkey_hex:
             raise Exception(
@@ -247,16 +247,16 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
             msg = u'Crossbar.io node public key\n\n'
             _write_node_key(pubkey_path, pub_tags, msg)
 
-        log.info("Node key files exist and are valid")
+        log.debug("Node key files exist and are valid")
         log.debug("Node public key: {hex}", hex=pubkey_hex)
 
     else:
         # node private key does not yet exist: generate one
 
-        privkey = SigningKey.generate()
-        privkey_hex = privkey.encode(encoder=HexEncoder).decode('ascii')
+        privkey = signing.SigningKey.generate()
+        privkey_hex = privkey.encode(encoder=encoding.HexEncoder).decode('ascii')
         pubkey = privkey.verify_key
-        pubkey_hex = pubkey.encode(encoder=HexEncoder).decode('ascii')
+        pubkey_hex = pubkey.encode(encoder=encoding.HexEncoder).decode('ascii')
 
         # first, write the public file
         tags = OrderedDict([
@@ -287,7 +287,7 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
         log.info("File permissions on node private key fixed")
 
     log.info(
-        'Node key loaded from "{priv_path}"',
-        priv_path=privkey_path,
+        'Node key loaded from {priv_path}',
+        priv_path=hlid(privkey_path),
     )
-    return privkey
+    return cryptosign.SigningKey(privkey)

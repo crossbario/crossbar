@@ -1,7 +1,7 @@
 argh==0.26.2
 asn1crypto==0.24.0
-attrs==17.4.0
-autobahn==18.4.1
+attrs==18.1.0
+autobahn==18.5.1
 Automat==0.6.0
 bitstring==3.1.5
 cbor==1.0.0
@@ -11,14 +11,12 @@ chardet==3.0.4
 click==6.7
 constantly==15.1.0
 cryptography==2.2.2
-enum34==1.1.6
 h2==3.0.1
 hpack==3.0.0
 hyperframe==5.1.0
 hyperlink==18.0.0
 idna==2.5
 incremental==17.5.0
-ipaddress==1.0.22
 Jinja2==2.10
 lmdb==0.94
 MarkupSafe==1.0
@@ -43,7 +41,6 @@ sdnotify==0.3.2
 service-identity==17.0.0
 setproctitle==1.1.10
 setuptools==39.1.0
-shutilwhich==1.1.0
 six==1.11.0
 sortedcontainers==1.5.10
 treq==17.8.0

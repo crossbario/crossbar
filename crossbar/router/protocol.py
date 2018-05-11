@@ -48,7 +48,7 @@ from txaio import make_logger
 
 from crossbar.router.cookiestore import CookieStoreMemoryBacked, CookieStoreFileBacked
 
-from crossbar.twisted.endpoint import create_connecting_endpoint_from_config
+from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
 log = make_logger()
 
@@ -371,14 +371,18 @@ class WampWebSocketServerFactory(websocket.WampWebSocketServerFactory):
 
     def __init__(self, factory, cbdir, config, templates):
         """
-        Ctor.
 
         :param factory: WAMP session factory.
         :type factory: An instance of ..
+
         :param cbdir: The Crossbar.io node directory.
         :type cbdir: str
+
         :param config: Crossbar transport configuration.
         :type config: dict
+
+        :param templates:
+        :type templates:
         """
         self.debug_traffic = config.get('debug_traffic', False)
 

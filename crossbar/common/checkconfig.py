@@ -124,6 +124,19 @@ Permissible node shutdown modes.
 """
 
 
+_WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
+_WEB_PATH_PATH = re.compile(_WEB_PATH_PAT_STR)
+_COOKIE_NAME_PAT_STR = "^[a-z][a-z0-9_]+$"
+_COOKIE_NAME_PAT = re.compile(_COOKIE_NAME_PAT_STR)
+_ENV_VAR_PAT_STR = "^\$([a-zA-Z_][a-zA-Z0-9_]*)$"
+_ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
+_ENVPAT = re.compile(u"^\$\{(.+)\}$")
+_CONFIG_ITEM_ID_PAT_STR = "^[a-z][a-z0-9_]{2,11}$"
+_CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
+_REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
+_REALM_NAME_PAT = re.compile(_REALM_NAME_PAT_STR)
+
+
 log = make_logger()
 
 
@@ -243,9 +256,6 @@ for Klass in [Dumper, SafeDumper]:
 
 # http://stackoverflow.com/a/2821183/884770
 
-_ENV_VAR_PAT_STR = "^\$([a-zA-Z_][a-zA-Z0-9_]*)$"
-_ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
-
 
 def _readenv(var, msg):
     match = _ENV_VAR_PAT.match(var)
@@ -260,9 +270,6 @@ def _readenv(var, msg):
             raise InvalidConfigException("{} - environment variable '{}' not set".format(msg, var))
     else:
         raise InvalidConfigException("{} - environment variable name '{}' does not match pattern '{}'".format(msg, var, _ENV_VAR_PAT_STR))
-
-
-_ENVPAT = re.compile(u"^\$\{(.+)\}$")
 
 
 def maybe_from_env(config_item, value):
@@ -317,10 +324,6 @@ def get_config_value(config, item, default=None):
         return default
 
 
-_CONFIG_ITEM_ID_PAT_STR = "^[a-z][a-z0-9_]{2,11}$"
-_CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
-
-
 def check_id(id):
     """
     Check a configuration item ID.
@@ -329,10 +332,6 @@ def check_id(id):
         raise InvalidConfigException(u'invalid configuration item ID "{}" - type must be string, was {}'.format(id, type(id)))
     if not _CONFIG_ITEM_ID_PAT.match(id):
         raise InvalidConfigException(u'invalid configuration item ID "{}" - must match regular expression {}'.format(id, _CONFIG_ITEM_ID_PAT_STR))
-
-
-_REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
-_REALM_NAME_PAT = re.compile(_REALM_NAME_PAT_STR)
 
 
 def check_realm_name(name):
@@ -598,7 +597,7 @@ def check_transport_auth_anonymous(config):
         raise InvalidConfigException('logic error')
 
 
-def check_transport_auth(auth):
+def check_transport_auth(personality, auth, ignore=[]):
     """
     Check a WAMP transport authentication configuration.
 
@@ -617,9 +616,12 @@ def check_transport_auth(auth):
         'scram': check_transport_auth_scram,
     }
     for k in auth:
-        if k not in CHECKS:
-            raise InvalidConfigException("invalid authentication method key '{}' - must be one of {}".format(k, CHECKS.keys()))
-        CHECKS[k](auth[k])
+        if k in CHECKS:
+            CHECKS[k](auth[k])
+        elif k in ignore:
+            pass
+        else:
+            raise InvalidConfigException("invalid authentication method key '{}' - must be one of {}".format(k, CHECKS.keys() + ignore))
 
 
 def check_cookie_store_memory(store):
@@ -642,11 +644,7 @@ def check_cookie_store_file(store):
     }, store, "WebSocket memory-backed cookie store configuration")
 
 
-_COOKIE_NAME_PAT_STR = "^[a-z][a-z0-9_]+$"
-_COOKIE_NAME_PAT = re.compile(_COOKIE_NAME_PAT_STR)
-
-
-def check_transport_cookie(cookie):
+def check_transport_cookie(personality, cookie, ignore=[]):
     """
     Check a WAMP-WebSocket transport cookie configuration.
 
@@ -682,13 +680,15 @@ def check_transport_cookie(cookie):
             raise InvalidConfigException("missing mandatory attribute 'type' in cookie store configuration\n\n{}".format(pformat(cookie)))
 
         store_type = store['type']
-        if store_type not in ['memory', 'file']:
+        if store_type not in ['memory', 'file'] + ignore:
             raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in cookie store item\n\n{}".format(store_type, pformat(cookie)))
 
         if store_type == 'memory':
             check_cookie_store_memory(store)
         elif store_type == 'file':
             check_cookie_store_file(store)
+        elif store_type in ignore:
+            pass
         else:
             raise InvalidConfigException('logic error')
 
@@ -904,7 +904,7 @@ def check_listening_endpoint_twisted(endpoint):
     # should/can we ask Twisted to parse it easily?
 
 
-def check_listening_endpoint_onion(endpoint):
+def check_listening_endpoint_onion(personality, endpoint):
     """
     :param endpoint: The onion endpoint
     :type endpoint: dict
@@ -926,7 +926,7 @@ def check_listening_endpoint_onion(endpoint):
         "onion endpoint config",
     )
     check_endpoint_port(endpoint[u"port"])
-    check_connecting_endpoint(endpoint[u"tor_control_endpoint"])
+    personality.check_connecting_endpoint(personality, endpoint[u"tor_control_endpoint"])
 
 
 def check_connecting_endpoint_tcp(endpoint):
@@ -1015,7 +1015,7 @@ def check_connecting_endpoint_twisted(endpoint):
         check_endpoint_timeout(endpoint['timeout'])
 
 
-def check_connecting_endpoint_tor(endpoint):
+def check_connecting_endpoint_tor(personality, endpoint):
     """
     :param endpoint: The Tor connecting endpoint to check.
     :type endpoint: dict
@@ -1039,10 +1039,10 @@ def check_connecting_endpoint_tor(endpoint):
     check_endpoint_port(endpoint['tor_socks_port'])
 
     if 'tls' in endpoint:
-        check_connecting_endpoint_tls(endpoint['tls'])
+        check_connecting_endpoint_tls(personality, endpoint['tls'])
 
 
-def check_listening_endpoint(endpoint):
+def check_listening_endpoint(personality, endpoint, ignore=[]):
     """
     Check a listening endpoint configuration.
 
@@ -1059,7 +1059,7 @@ def check_listening_endpoint(endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix', 'twisted', 'onion']:
+    if etype not in ['tcp', 'unix', 'twisted', 'onion'] + ignore:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
@@ -1069,12 +1069,14 @@ def check_listening_endpoint(endpoint):
     elif etype == 'twisted':
         check_listening_endpoint_twisted(endpoint)
     elif etype == 'onion':
-        check_listening_endpoint_onion(endpoint)
+        check_listening_endpoint_onion(personality, endpoint)
+    elif etype in ignore:
+        pass
     else:
         raise InvalidConfigException('logic error')
 
 
-def check_connecting_endpoint(endpoint):
+def check_connecting_endpoint(personality, endpoint, ignore=[]):
     """
     Check a conencting endpoint configuration.
 
@@ -1091,7 +1093,7 @@ def check_connecting_endpoint(endpoint):
         raise InvalidConfigException("missing mandatory attribute 'type' in endpoint item\n\n{}".format(pformat(endpoint)))
 
     etype = endpoint['type']
-    if etype not in ['tcp', 'unix', 'twisted', 'tor']:
+    if etype not in ['tcp', 'unix', 'twisted', 'tor'] + ignore:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in endpoint item\n\n{}".format(etype, pformat(endpoint)))
 
     if etype == 'tcp':
@@ -1101,7 +1103,9 @@ def check_connecting_endpoint(endpoint):
     elif etype == 'twisted':
         check_connecting_endpoint_twisted(endpoint)
     elif etype == 'tor':
-        check_connecting_endpoint_tor(endpoint)
+        check_connecting_endpoint_tor(personality, endpoint)
+    elif etype in ignore:
+        pass
     else:
         raise InvalidConfigException('logic error')
 
@@ -1193,7 +1197,7 @@ def check_websocket_compression(options):
     # FIXME
 
 
-def check_web_path_service_websocket_reverseproxy(config):
+def check_web_path_service_websocket_reverseproxy(personality, config):
     check_dict_args({
         'type': (True, [six.text_type]),
         'url': (False, [six.text_type]),
@@ -1216,7 +1220,7 @@ def check_web_path_service_websocket_reverseproxy(config):
     check_connecting_transport_websocket(config['backend'])
 
 
-def check_web_path_service_websocket(config):
+def check_web_path_service_websocket(personality, config):
     """
     Check a "websocket" path service on Web transport.
 
@@ -1254,13 +1258,13 @@ def check_web_path_service_websocket(config):
             raise InvalidConfigException("invalid 'url' in WebSocket configuration : {}".format(e))
 
     if 'auth' in config:
-        check_transport_auth(config['auth'])
+        personality.check_transport_auth(personality, config['auth'])
 
     if 'cookie' in config:
-        check_transport_cookie(config['cookie'])
+        personality.check_transport_cookie(personality, config['cookie'])
 
 
-def check_web_path_service_static(config):
+def check_web_path_service_static(personality, config):
     """
     Check a "static" path service on Web transport.
 
@@ -1293,7 +1297,7 @@ def check_web_path_service_static(config):
         }, config['options'], "'options' in Web transport 'static' path service")
 
 
-def check_web_path_service_wsgi(config):
+def check_web_path_service_wsgi(personality, config):
     """
     Check a "wsgi" path service on Web transport.
 
@@ -1312,7 +1316,7 @@ def check_web_path_service_wsgi(config):
     }, config, "Web transport 'wsgi' path service")
 
 
-def check_web_path_service_resource(config):
+def check_web_path_service_resource(personality, config):
     """
     Check a "resource" path service on Web transport.
 
@@ -1329,7 +1333,7 @@ def check_web_path_service_resource(config):
     }, config, "Web transport 'resource' path service")
 
 
-def check_web_path_service_redirect(config):
+def check_web_path_service_redirect(personality, config):
     """
     Check a "redirect" path service on Web transport.
 
@@ -1345,7 +1349,7 @@ def check_web_path_service_redirect(config):
     }, config, "Web transport 'redirect' path service")
 
 
-def check_web_path_service_nodeinfo(config):
+def check_web_path_service_nodeinfo(personality, config):
     """
     Check a "nodeinfo" path service on Web transport.
 
@@ -1357,7 +1361,7 @@ def check_web_path_service_nodeinfo(config):
     }, config, "Web transport 'nodeinfo' path service")
 
 
-def check_web_path_service_reverseproxy(config):
+def check_web_path_service_reverseproxy(personality, config):
     """
     Check a "reverseproxy" path service on Web transport.
 
@@ -1375,7 +1379,7 @@ def check_web_path_service_reverseproxy(config):
     }, config, "Web transport 'reverseproxy' path service")
 
 
-def check_web_path_service_json(config):
+def check_web_path_service_json(personality, config):
     """
     Check a "json" path service on Web transport.
 
@@ -1399,7 +1403,7 @@ def check_web_path_service_json(config):
         }, config['options'], "Web transport 'json' path service")
 
 
-def check_web_path_service_cgi(config):
+def check_web_path_service_cgi(personality, config):
     """
     Check a "cgi" path service on Web transport.
 
@@ -1416,7 +1420,7 @@ def check_web_path_service_cgi(config):
     }, config, "Web transport 'cgi' path service")
 
 
-def check_web_path_service_longpoll(config):
+def check_web_path_service_longpoll(personality, config):
     """
     Check a "longpoll" path service on Web transport.
 
@@ -1468,7 +1472,7 @@ def check_web_path_service_rest_timestamp_delta_limit(limit):
         raise InvalidConfigException("invalid value {} for 'timestamp_delta_limit' attribute in publisher/caller configuration".format(limit))
 
 
-def check_web_path_service_publisher(config):
+def check_web_path_service_publisher(personality, config):
     """
     Check a "publisher" path service on Web transport.
 
@@ -1503,7 +1507,7 @@ def check_web_path_service_publisher(config):
             check_web_path_service_rest_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
-def check_web_path_service_webhook(config):
+def check_web_path_service_webhook(personality, config):
     """
     Check a "webhook" path service on Web transport.
 
@@ -1532,7 +1536,7 @@ def check_web_path_service_webhook(config):
         check_web_path_service_rest_post_body_limit(config['options']['post_body_limit'])
 
 
-def check_web_path_service_caller(config):
+def check_web_path_service_caller(personality, config):
     """
     Check a "caller" path service on Web transport.
 
@@ -1551,7 +1555,7 @@ def check_web_path_service_caller(config):
     }, config, "Web transport 'caller' path service")
 
     if 'auth' in config:
-        check_transport_auth(config['auth'])
+        personality.check_transport_auth(personality, config['auth'])
 
     # TODO: check auth and role are not defined at the same time
 
@@ -1579,12 +1583,7 @@ def check_web_path_service_caller(config):
             check_web_path_service_rest_timestamp_delta_limit(config['options']['timestamp_delta_limit'])
 
 
-def check_web_path_service_schemadoc(config):
-    # FIXME
-    pass
-
-
-def check_web_path_service_path(config):
+def check_web_path_service_path(personality, config):
     """
     Check a "path" path service on Web transport.
 
@@ -1601,7 +1600,7 @@ def check_web_path_service_path(config):
 
     # check nested paths
     #
-    check_paths(config['paths'], nested=True)
+    check_paths(personality, config['paths'], nested=True)
 
 
 def check_web_path_service_max_file_size(limit):
@@ -1617,7 +1616,7 @@ def check_web_path_service_max_file_size(limit):
         raise InvalidConfigException("invalid value {} for 'max_file_size' attribute - must be non-negative".format(limit))
 
 
-def check_web_path_service_upload(config):
+def check_web_path_service_upload(personality, config):
     """
     Check a file upload path service on Web transport.
 
@@ -1666,55 +1665,39 @@ def check_web_path_service_upload(config):
             check_web_path_service_max_file_size(config['options']['max_file_size'])
 
 
-def check_web_path_service(path, config, nested, allow_unknown=True):
+def check_web_path_service(personality, path, config, nested, ignore=[]):
     """
     Check a single path service on Web transport.
 
     http://crossbar.io/docs/
     https://github.com/crossbario/crossbar/blob/master/docs/pages/administration/web-service/Web-Services.md
 
+    :param personality: The node personality class.
+    :type personality: crossbar.personality.Personality
+
     :param config: The path service configuration.
     :type config: dict
+
     :param nested: Whether this is a nested path.
     :type nested: bool
     """
     if 'type' not in config:
-        raise InvalidConfigException("missing mandatory attribute 'type' in Web transport path service '{}' configuration\n\n{}".format(path, config))
+        raise InvalidConfigException('missing mandatory attribute "type" in Web service configuration item\n\n{}'.format(path, config))
 
     ptype = config['type']
-    if path == '/' and not nested:
-        if ptype not in ['static', 'wsgi', 'redirect', 'reverseproxy', 'publisher', 'caller', 'resource', 'webhook', 'nodeinfo']:
-            if not allow_unknown:
-                raise InvalidConfigException("invalid type '{}' for root-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
+    if ptype in personality.WEB_SERVICE_CHECKERS:
+        if path == '/' and not nested:
+            # FIXME: check if Web service can run on root path
+            if False:
+                raise InvalidConfigException('invalid Web service type "{}" on root URL path "{}" - service cannot run on root path'.format(ptype, path))
+        personality.WEB_SERVICE_CHECKERS[ptype](personality, config)
+    elif ptype in ignore:
+        pass
     else:
-        if ptype not in ['websocket', 'websocket-reverseproxy', 'static', 'wsgi', 'redirect', 'reverseproxy', 'json', 'cgi', 'longpoll', 'publisher', 'caller', 'webhook', 'schemadoc', 'path', 'resource', 'upload', 'nodeinfo']:
-            if not allow_unknown:
-                raise InvalidConfigException("invalid type '{}' for sub-path service in Web transport path service '{}' configuration\n\n{}".format(ptype, path, config))
-
-    checkers = {
-        'path': check_web_path_service_path,
-        'static': check_web_path_service_static,
-        'upload': check_web_path_service_upload,
-        'websocket': check_web_path_service_websocket,
-        'websocket-reverseproxy': check_web_path_service_websocket_reverseproxy,
-        'longpoll': check_web_path_service_longpoll,
-        'redirect': check_web_path_service_redirect,
-        'nodeinfo': check_web_path_service_nodeinfo,
-        'reverseproxy': check_web_path_service_reverseproxy,
-        'json': check_web_path_service_json,
-        'cgi': check_web_path_service_cgi,
-        'wsgi': check_web_path_service_wsgi,
-        'resource': check_web_path_service_resource,
-        'caller': check_web_path_service_caller,
-        'publisher': check_web_path_service_publisher,
-        'webhook': check_web_path_service_webhook,
-        'schemadoc': check_web_path_service_schemadoc,
-    }
-    if ptype in checkers:
-        checkers[ptype](config)
+        raise InvalidConfigException('invalid Web service type "{}" on URL path "{}"'.format(ptype, path))
 
 
-def check_listening_transport_web(transport, with_endpoint=True):
+def check_listening_transport_web(personality, transport, with_endpoint=True, ignore=[]):
     """
     Check a listening Web-WAMP transport configuration.
 
@@ -1734,7 +1717,7 @@ def check_listening_transport_web(transport, with_endpoint=True):
     if with_endpoint:
         if 'endpoint' not in transport:
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in Web transport item\n\n{}".format(pformat(transport)))
-        check_listening_endpoint(transport['endpoint'])
+        personality.check_listening_endpoint(personality, transport['endpoint'])
     else:
         if 'endpoint' in transport:
             raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport Web transport subitem\n\n{}".format(pformat(transport)))
@@ -1746,7 +1729,7 @@ def check_listening_transport_web(transport, with_endpoint=True):
     if not isinstance(paths, Mapping):
         raise InvalidConfigException("'paths' attribute in Web transport configuration must be dictionary ({} encountered)".format(type(paths)))
 
-    check_paths(paths)
+    personality.check_paths(personality, paths)
 
     if 'options' in transport:
         options = transport['options']
@@ -1759,7 +1742,7 @@ def check_listening_transport_web(transport, with_endpoint=True):
             'hsts',
             'hsts_max_age',
             'client_timeout',
-        ]
+        ] + ignore
         for k in options.keys():
             if k not in valid_options:
                 raise InvalidConfigException(
@@ -1806,11 +1789,7 @@ def check_listening_transport_web(transport, with_endpoint=True):
                 )
 
 
-_WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
-_WEB_PATH_PATH = re.compile(_WEB_PATH_PAT_STR)
-
-
-def check_listening_transport_mqtt(transport, with_endpoint=True):
+def check_listening_transport_mqtt(personality, transport, with_endpoint=True):
     """
     Check a listening MQTT-WAMP transport configuration.
 
@@ -1829,7 +1808,7 @@ def check_listening_transport_mqtt(transport, with_endpoint=True):
     if with_endpoint:
         if 'endpoint' not in transport:
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in MQTT transport item\n\n{}".format(pformat(transport)))
-        check_listening_endpoint(transport['endpoint'])
+        personality.check_listening_endpoint(personality, transport['endpoint'])
 
     # Check MQTT options...
     options = transport.get('options', {})
@@ -1868,7 +1847,7 @@ def check_listening_transport_mqtt(transport, with_endpoint=True):
                 raise Exception('logic error')
 
 
-def check_paths(paths, nested=False):
+def check_paths(personality, paths, nested=False, ignore=[]):
     """
     Checks all configured paths.
 
@@ -1884,10 +1863,10 @@ def check_paths(paths, nested=False):
         if not _WEB_PATH_PATH.match(p):
             raise InvalidConfigException("invalid value '{}' for path in Web transport / WebSocket subitem in Universal transport configuration - must match regular expression {}".format(p, _WEB_PATH_PAT_STR))
 
-        check_web_path_service(p, paths[p], nested)
+        personality.check_web_path_service(personality, p, paths[p], nested, ignore)
 
 
-def check_listening_transport_universal(transport):
+def check_listening_transport_universal(personality, transport):
 
     for k in transport:
         if k not in [
@@ -1907,10 +1886,10 @@ def check_listening_transport_universal(transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in Universal transport item\n\n{}".format(pformat(transport)))
 
-    check_listening_endpoint(transport['endpoint'])
+    personality.check_listening_endpoint(personality, transport['endpoint'])
 
     if 'rawsocket' in transport:
-        check_listening_transport_rawsocket(transport['rawsocket'], with_endpoint=False)
+        personality.check_listening_transport_rawsocket(personality, transport['rawsocket'], with_endpoint=False)
 
     if 'websocket' in transport:
         paths = transport['websocket']
@@ -1918,19 +1897,19 @@ def check_listening_transport_universal(transport):
         if not isinstance(paths, Mapping):
             raise InvalidConfigException("'websocket' attribute in Universal transport configuration must be dictionary ({} encountered)".format(type(paths)))
 
-        check_paths(paths)
+        personality.check_paths(personality, paths)
 
         for path in paths:
-            check_listening_transport_websocket(transport['websocket'][path], with_endpoint=False)
+            personality.check_listening_transport_websocket(personality, transport['websocket'][path], with_endpoint=False)
 
     if 'mqtt' in transport:
-        check_listening_transport_mqtt(transport['mqtt'], with_endpoint=False)
+        personality.check_listening_transport_mqtt(personality, transport['mqtt'], with_endpoint=False)
 
     if 'web' in transport:
-        check_listening_transport_web(transport['web'], with_endpoint=False)
+        personality.check_listening_transport_web(personality, transport['web'], with_endpoint=False)
 
 
-def check_listening_transport_websocket(transport, with_endpoint=True):
+def check_listening_transport_websocket(personality, transport, with_endpoint=True):
     """
     Check a listening WebSocket-WAMP transport configuration.
 
@@ -1959,7 +1938,7 @@ def check_listening_transport_websocket(transport, with_endpoint=True):
     if with_endpoint:
         if 'endpoint' not in transport:
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
-        check_listening_endpoint(transport['endpoint'])
+        personality.check_listening_endpoint(personality, transport['endpoint'])
     else:
         if 'endpoint' in transport:
             raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport WebSocket transport subitem\n\n{}".format(pformat(transport)))
@@ -1987,13 +1966,13 @@ def check_listening_transport_websocket(transport, with_endpoint=True):
             raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
     if 'auth' in transport:
-        check_transport_auth(transport['auth'])
+        personality.check_transport_auth(personality, transport['auth'])
 
     if 'cookie' in transport:
-        check_transport_cookie(transport['cookie'])
+        personality.check_transport_cookie(personality, transport['cookie'])
 
 
-def check_listening_transport_websocket_testee(transport):
+def check_listening_transport_websocket_testee(personality, transport):
     """
     Check a listening WebSocket-Testee pseudo transport configuration.
 
@@ -2019,7 +1998,7 @@ def check_listening_transport_websocket_testee(transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket-Testee transport item\n\n{}".format(pformat(transport)))
 
-    check_listening_endpoint(transport['endpoint'])
+    personality.check_listening_endpoint(personality, transport['endpoint'])
 
     if 'options' in transport:
         check_websocket_options(transport['options'])
@@ -2039,7 +2018,7 @@ def check_listening_transport_websocket_testee(transport):
             raise InvalidConfigException("invalid 'url' in WebSocket-Testee transport configuration : {}".format(e))
 
 
-def check_listening_transport_stream_testee(transport):
+def check_listening_transport_stream_testee(personality, transport):
     """
     Check a listening Stream-Testee pseudo transport configuration.
 
@@ -2063,7 +2042,7 @@ def check_listening_transport_stream_testee(transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in Stream-Testee transport item\n\n{}".format(pformat(transport)))
 
-    check_listening_endpoint(transport['endpoint'])
+    personality.check_listening_endpoint(personality, transport['endpoint'])
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2071,7 +2050,7 @@ def check_listening_transport_stream_testee(transport):
             raise InvalidConfigException("'debug' in WebSocket-Stream transport configuration must be boolean ({} encountered)".format(type(debug)))
 
 
-def check_listening_transport_flashpolicy(transport):
+def check_listening_transport_flashpolicy(personality, transport):
     """
     Check a Flash-policy file serving pseudo-transport.
 
@@ -2091,7 +2070,7 @@ def check_listening_transport_flashpolicy(transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in Flash-policy transport item\n\n{}".format(pformat(transport)))
 
-    check_listening_endpoint(transport['endpoint'])
+    personality.check_listening_endpoint(personality, transport['endpoint'])
 
     if 'debug' in transport:
         debug = transport['debug']
@@ -2111,7 +2090,7 @@ def check_listening_transport_flashpolicy(transport):
             check_endpoint_port(port, "Flash-policy allowed_ports")
 
 
-def check_listening_transport_rawsocket(transport, with_endpoint=True):
+def check_listening_transport_rawsocket(personality, transport, with_endpoint=True):
     """
     Check a listening RawSocket-WAMP transport configuration.
 
@@ -2139,7 +2118,7 @@ def check_listening_transport_rawsocket(transport, with_endpoint=True):
     if with_endpoint:
         if 'endpoint' not in transport:
             raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
-        check_listening_endpoint(transport['endpoint'])
+        personality.check_listening_endpoint(personality, transport['endpoint'])
     else:
         if 'endpoint' in transport:
             raise InvalidConfigException("illegal attribute 'endpoint' in Universal transport RawSocket transport subitem\n\n{}".format(pformat(transport)))
@@ -2161,10 +2140,10 @@ def check_listening_transport_rawsocket(transport, with_endpoint=True):
             raise InvalidConfigException("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
     if 'auth' in transport:
-        check_transport_auth(transport['auth'])
+        personality.check_transport_auth(personality, transport['auth'])
 
 
-def check_connecting_transport_websocket(transport):
+def check_connecting_transport_websocket(personality, transport):
     """
     Check a connecting WebSocket-WAMP transport configuration.
 
@@ -2183,7 +2162,7 @@ def check_connecting_transport_websocket(transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in WebSocket transport item\n\n{}".format(pformat(transport)))
 
-    check_connecting_endpoint(transport['endpoint'])
+    personality.check_connecting_endpoint(personality, transport['endpoint'])
 
     if 'options' in transport:
         check_websocket_options(transport['options'])
@@ -2205,7 +2184,7 @@ def check_connecting_transport_websocket(transport):
         raise InvalidConfigException("invalid 'url' in WebSocket transport configuration : {}".format(e))
 
 
-def check_connecting_transport_rawsocket(transport):
+def check_connecting_transport_rawsocket(personality, transport):
     """
     Check a connecting RawSocket-WAMP transport configuration.
 
@@ -2224,7 +2203,7 @@ def check_connecting_transport_rawsocket(transport):
     if 'endpoint' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in RawSocket transport item\n\n{}".format(pformat(transport)))
 
-    check_connecting_endpoint(transport['endpoint'])
+    personality.check_connecting_endpoint(personality, transport['endpoint'])
 
     if 'serializer' not in transport:
         raise InvalidConfigException("missing mandatory attribute 'serializer' in RawSocket transport item\n\n{}".format(pformat(transport)))
@@ -2242,7 +2221,7 @@ def check_connecting_transport_rawsocket(transport):
             raise InvalidConfigException("'debug' in RawSocket transport configuration must be boolean ({} encountered)".format(type(debug)))
 
 
-def check_router_transport(transport):
+def check_router_transport(personality, transport, ignore=[]):
     """
     Check router transports.
 
@@ -2267,38 +2246,41 @@ def check_router_transport(transport):
         'flashpolicy',
         'websocket.testee',
         'stream.testee'
-    ]:
+    ] + ignore:
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
     if ttype == 'websocket':
-        check_listening_transport_websocket(transport)
+        check_listening_transport_websocket(personality, transport)
 
     elif ttype == 'rawsocket':
-        check_listening_transport_rawsocket(transport)
+        check_listening_transport_rawsocket(personality, transport)
 
     elif ttype == 'universal':
-        check_listening_transport_universal(transport)
+        check_listening_transport_universal(personality, transport)
 
     elif ttype == 'web':
-        check_listening_transport_web(transport)
+        check_listening_transport_web(personality, transport)
 
     elif ttype == 'mqtt':
-        check_listening_transport_mqtt(transport)
+        check_listening_transport_mqtt(personality, transport)
 
     elif ttype == 'flashpolicy':
-        check_listening_transport_flashpolicy(transport)
+        check_listening_transport_flashpolicy(personality, transport)
 
     elif ttype == 'websocket.testee':
-        check_listening_transport_websocket_testee(transport)
+        check_listening_transport_websocket_testee(personality, transport)
 
     elif ttype == 'stream.testee':
-        check_listening_transport_stream_testee(transport)
+        check_listening_transport_stream_testee(personality, transport)
+
+    elif ttype in ignore:
+        pass
 
     else:
         raise InvalidConfigException('logic error')
 
 
-def check_router_component(component):
+def check_router_component(personality, component, ignore=[]):
     """
     Check a component configuration for a component running side-by-side with
     a router.
@@ -2315,7 +2297,7 @@ def check_router_component(component):
         raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
-    if ctype not in ['class', 'function']:
+    if ctype not in ['class', 'function'] + ignore:
         raise InvalidConfigException("invalid value '{}' for component type".format(ctype))
 
     if ctype == 'class':
@@ -2348,11 +2330,15 @@ def check_router_component(component):
                             name, valid_callbacks
                         )
                     )
+
+    elif ctype in ignore:
+        pass
+
     else:
         raise InvalidConfigException('logic error')
 
 
-def check_connecting_transport(transport):
+def check_connecting_transport(personality, transport):
     """
     Check container transports.
 
@@ -2372,16 +2358,16 @@ def check_connecting_transport(transport):
         raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in transport item\n\n{}".format(ttype, pformat(transport)))
 
     if ttype == 'websocket':
-        check_connecting_transport_websocket(transport)
+        check_connecting_transport_websocket(personality, transport)
 
     elif ttype == 'rawsocket':
-        check_connecting_transport_rawsocket(transport)
+        check_connecting_transport_rawsocket(personality, transport)
 
     else:
         raise InvalidConfigException('logic error')
 
 
-def check_container_component(component):
+def check_container_component(personality, component, ignore=[]):
     """
     Check a container component configuration.
 
@@ -2397,7 +2383,7 @@ def check_container_component(component):
         raise InvalidConfigException("missing mandatory attribute 'type' in component")
 
     ctype = component['type']
-    if ctype not in ['class', 'function']:
+    if ctype not in ['class', 'function'] + ignore:
         raise InvalidConfigException("invalid value '{}' for component type".format(ctype))
 
     if ctype == 'class':
@@ -2432,13 +2418,17 @@ def check_container_component(component):
                             name, valid_callbacks
                         )
                     )
+
+    elif ctype in ignore:
+        pass
+
     else:
         raise InvalidConfigException('logic error')
 
-    check_connecting_transport(component['transport'])
+    personality.check_connecting_transport(personality, component['transport'])
 
 
-def check_container_components(components):
+def check_container_components(personality, components):
     """
     Check components inside a container.
 
@@ -2449,10 +2439,10 @@ def check_container_components(components):
 
     for i, component in enumerate(components):
         log.debug("Checking container component item {item} ..", item=i)
-        check_container_component(component)
+        check_container_component(personality, component)
 
 
-def check_router_realm(realm):
+def check_router_realm(personality, realm, ignore=[]):
     """
     Checks the configuration for a router realm entry, which can be
     *either* a dynamic authorizer or static permissions.
@@ -2460,7 +2450,7 @@ def check_router_realm(realm):
     # router/router.py and router/role.py
 
     for role in realm.get('roles', []):
-        check_router_realm_role(role)
+        personality.check_router_realm_role(personality, role)
 
     options = realm.get('options', {})
     if not isinstance(options, Mapping):
@@ -2468,7 +2458,7 @@ def check_router_realm(realm):
             "Realm 'options' must be a dict"
         )
     for arg, val in options.items():
-        if arg not in ['event_dispatching_chunk_size', 'uri_check', 'enable_meta_api', 'bridge_meta_api']:
+        if arg not in ['event_dispatching_chunk_size', 'uri_check', 'enable_meta_api', 'bridge_meta_api'] + ignore:
             raise InvalidConfigException(
                 "Unknown realm option '{}'".format(arg)
             )
@@ -2491,7 +2481,7 @@ def check_router_realm(realm):
             raise InvalidConfigException("Invalid type {} for bridge_meta_api in realm options".format(type(options['bridge_meta_api'])))
 
 
-def check_router_realm_role(role):
+def check_router_realm_role(personality, role):
     """
     Checks a single role from a router realm 'roles' list
     """
@@ -2568,7 +2558,7 @@ def check_router_realm_role(role):
                 }, role['disclose'], "invalid disclose in role permissions")
 
 
-def check_router_components(components):
+def check_router_components(personality, components):
     """
     Check the components that go inside a router.
 
@@ -2579,10 +2569,10 @@ def check_router_components(components):
 
     for i, component in enumerate(components):
         log.debug("Checking router component item {item} ..", item=i)
-        check_router_component(component)
+        personality.check_router_component(personality, component)
 
 
-def check_connection(connection):
+def check_connection(personality, connection, ignore=[]):
     """
     Check a connection item (such as a PostgreSQL or Oracle database connection pool).
     """
@@ -2592,11 +2582,11 @@ def check_connection(connection):
     if 'type' not in connection:
         raise InvalidConfigException("missing mandatory attribute 'type' in connection configuration")
 
-    valid_types = ['postgresql.connection']
+    valid_types = ['postgres']
     if connection['type'] not in valid_types:
         raise InvalidConfigException("invalid type '{}' for connection type - must be one of {}".format(connection['type'], valid_types))
 
-    if connection['type'] == 'postgresql.connection':
+    if connection['type'] == 'postgres':
         check_dict_args({
             'id': (False, [six.text_type]),
             'type': (True, [six.text_type]),
@@ -2604,7 +2594,7 @@ def check_connection(connection):
             'port': (False, six.integer_types),
             'database': (True, [six.text_type]),
             'user': (True, [six.text_type]),
-            'password': (True, [six.text_type]),
+            'password': (False, [six.text_type]),
             'options': (False, [Mapping]),
         }, connection, "PostgreSQL connection configuration")
 
@@ -2621,7 +2611,7 @@ def check_connection(connection):
         raise InvalidConfigException('logic error')
 
 
-def check_connections(connections):
+def check_connections(personality, connections):
     """
     Connections can be present in controller, router and container processes.
     """
@@ -2630,16 +2620,16 @@ def check_connections(connections):
 
     for i, connection in enumerate(connections):
         log.debug("Checking connection item {item} ..", item=i)
-        check_connection(connection)
+        personality.check_connection(personality, connection)
 
 
-def check_transports(transports):
+def check_transports(personality, transports):
     """
     Transports can only be present in router workers.
     """
 
 
-def check_router(router):
+def check_router(personality, router, ignore=[]):
     """
     Checks a router worker configuration.
 
@@ -2649,16 +2639,16 @@ def check_router(router):
     :type router: dict
     """
     for k in router:
-        if k not in ['id', 'type', 'options', 'manhole', 'realms', 'transports', 'components', 'connections']:
+        if k not in ['id', 'type', 'options', 'manhole', 'realms', 'transports', 'components', 'connections'] + ignore:
             raise InvalidConfigException("encountered unknown attribute '{}' in router configuration".format(k))
 
     # check stuff common to all native workers
     #
     if 'manhole' in router:
-        check_manhole(router['manhole'])
+        personality.check_manhole(personality, router['manhole'])
 
     if 'options' in router:
-        check_router_options(router['options'])
+        personality.check_router_options(personality, router['options'])
 
     # realms
     #
@@ -2669,7 +2659,7 @@ def check_router(router):
 
     for i, realm in enumerate(realms):
         log.debug("Checking realm item {item} ..", item=i)
-        check_router_realm(realm)
+        personality.check_router_realm(personality, realm)
 
     # transports
     #
@@ -2679,57 +2669,25 @@ def check_router(router):
 
     for i, transport in enumerate(transports):
         log.debug("Checking transport item {item} ..", item=i)
-        check_router_transport(transport)
+        personality.check_router_transport(personality, transport)
 
     # connections
     #
     connections = router.get('connections', [])
-    check_connections(connections)
+    check_connections(personality, connections)
 
     # components
     #
     components = router.get('components', [])
-    check_router_components(components)
+    check_router_components(personality, components)
 
 
-def check_container(container):
-    """
-    Checks a container worker configuration.
-
-    https://github.com/crossbario/crossbar/blob/master/docs/pages/administration/worker/Container-Configuration.md
-
-    :param router: The configuration to check.
-    :type router: dict
-    """
-    for k in container:
-        if k not in ['id', 'type', 'options', 'manhole', 'components', 'connections']:
-            raise InvalidConfigException("encountered unknown attribute '{}' in container configuration".format(k))
-
-    # check stuff common to all native workers
-    #
-    if 'manhole' in container:
-        check_manhole(container['manhole'])
-
-    if 'options' in container:
-        check_container_options(container['options'])
-
-    # connections
-    #
-    connections = container.get('connections', [])
-    check_connections(connections)
-
-    # components
-    #
-    components = container.get('components', [])
-    check_container_components(components)
+def check_router_options(personality, options):
+    check_native_worker_options(personality, options)
 
 
-def check_router_options(options):
-    check_native_worker_options(options)
-
-
-def check_container_options(options):
-    check_native_worker_options(options, extra_options=['shutdown'])
+def check_container_options(personality, options):
+    check_native_worker_options(personality, options, ignore=['shutdown'])
     valid_modes = [u'shutdown-manual', u'shutdown-on-last-component-stopped']
     if 'shutdown' in options:
         if options['shutdown'] not in valid_modes:
@@ -2740,11 +2698,11 @@ def check_container_options(options):
             )
 
 
-def check_websocket_testee_options(options):
-    check_native_worker_options(options)
+def check_websocket_testee_options(personality, options):
+    check_native_worker_options(personality, options)
 
 
-def check_manhole(manhole):
+def check_manhole(personality, manhole):
     """
     Check a process manhole configuration.
 
@@ -2764,7 +2722,7 @@ def check_manhole(manhole):
     if 'endpoint' not in manhole:
         raise InvalidConfigException("missing mandatory attribute 'endpoint' in Manhole item\n\n{}".format(pformat(manhole)))
 
-    check_listening_endpoint(manhole['endpoint'])
+    personality.check_listening_endpoint(personality, manhole['endpoint'])
 
     if 'users' not in manhole:
         raise InvalidConfigException("missing mandatory attribute 'users' in Manhole item\n\n{}".format(pformat(manhole)))
@@ -2828,7 +2786,7 @@ def check_process_env(env):
                 raise InvalidConfigException("invalid type for environment variable value '{}' in 'options.env.vars' - must be a string ({} encountered)".format(v, type(v)))
 
 
-def check_native_worker_options(options, extra_options=[]):
+def check_native_worker_options(personality, options, ignore=[]):
     """
     Check native worker options.
 
@@ -2843,8 +2801,8 @@ def check_native_worker_options(options, extra_options=[]):
         raise InvalidConfigException("'options' in worker configurations must be dictionaries ({} encountered)".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'reactor', 'python', 'pythonpath', 'cpu_affinity',
-                     'env', 'expose_controller', 'expose_shared'] + extra_options:
+        if k not in ['title', 'python', 'pythonpath', 'cpu_affinity',
+                     'env', 'expose_controller', 'expose_shared'] + ignore:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in 'options' in worker"
                 " configuration".format(k)
@@ -2854,11 +2812,6 @@ def check_native_worker_options(options, extra_options=[]):
         title = options['title']
         if not isinstance(title, six.text_type):
             raise InvalidConfigException("'title' in 'options' in worker configuration must be a string ({} encountered)".format(type(title)))
-
-    if 'reactor' in options:
-        _reactor = options['reactor']
-        if not isinstance(_reactor, Mapping):
-            raise InvalidConfigException("'reactor' in 'options' in worker configuration must be a dict ({} encountered)".format(type(_reactor)))
 
     if 'python' in options:
         python = options['python']
@@ -2897,7 +2850,59 @@ def check_native_worker_options(options, extra_options=[]):
             raise InvalidConfigException("'expose_shared' in 'options' in worker configuration must be a boolean ({} encountered)".format(type(expose_shared)))
 
 
-def check_guest(guest):
+def check_websocket_testee(personality, worker):
+    """
+    Checks a WebSocket testee worker configuration.
+
+    :param worker: The configuration to check.
+    :type worker: dict
+    """
+    for k in worker:
+        if k not in ['id', 'type', 'options', 'transport']:
+            raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket testee configuration".format(k))
+
+    if 'options' in worker:
+        check_websocket_testee_options(personality, worker['options'])
+
+    if 'transport' not in worker:
+        raise InvalidConfigException("missing mandatory attribute 'transport' in WebSocket testee configuration")
+
+    check_listening_transport_websocket(personality, worker['transport'])
+
+
+def check_container(personality, container, ignore=[]):
+    """
+    Checks a container worker configuration.
+
+    https://github.com/crossbario/crossbar/blob/master/docs/pages/administration/worker/Container-Configuration.md
+
+    :param router: The configuration to check.
+    :type router: dict
+    """
+    for k in container:
+        if k not in ['id', 'type', 'options', 'manhole', 'components', 'connections'] + ignore:
+            raise InvalidConfigException("encountered unknown attribute '{}' in container configuration".format(k))
+
+    # check stuff common to all native workers
+    #
+    if 'manhole' in container:
+        personality.check_manhole(personality, container['manhole'])
+
+    if 'options' in container:
+        personality.check_container_options(personality, container['options'])
+
+    # connections
+    #
+    connections = container.get('connections', [])
+    check_connections(personality, connections)
+
+    # components
+    #
+    components = container.get('components', [])
+    check_container_components(personality, components)
+
+
+def check_guest(personality, guest):
     """
     Check a guest worker configuration.
 
@@ -2971,27 +2976,7 @@ def check_guest(guest):
             check_process_env(options['env'])
 
 
-def check_websocket_testee(worker):
-    """
-    Checks a WebSocket testee worker configuration.
-
-    :param worker: The configuration to check.
-    :type worker: dict
-    """
-    for k in worker:
-        if k not in ['id', 'type', 'options', 'transport']:
-            raise InvalidConfigException("encountered unknown attribute '{}' in WebSocket testee configuration".format(k))
-
-    if 'options' in worker:
-        check_websocket_testee_options(worker['options'])
-
-    if 'transport' not in worker:
-        raise InvalidConfigException("missing mandatory attribute 'transport' in WebSocket testee configuration")
-
-    check_listening_transport_websocket(worker['transport'])
-
-
-def check_worker(worker, native_workers):
+def check_worker(personality, worker, ignore=[]):
     """
     Check a node worker configuration item.
 
@@ -3007,22 +2992,32 @@ def check_worker(worker, native_workers):
     if 'type' not in worker:
         raise InvalidConfigException("missing mandatory attribute 'type' in worker item\n\n{}".format(pformat(worker)))
 
-    ptype = worker['type']
+    worker_type = worker['type']
 
-    if ptype not in list(native_workers.keys()) + ['guest']:
-        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item (valid items are: {})\n\n{}".format(ptype, ', '.join(native_workers.keys()), pformat(worker)))
+    valid_worker_types = ['router', 'container', 'guest', 'websocket-testee'] + ignore
+    if worker_type not in valid_worker_types:
+        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item (valid items are: {})\n\n{}".format(worker_type, valid_worker_types))
 
-    if ptype == 'guest':
-        check_guest(worker)
+    if worker_type == 'router':
+        personality.check_router(personality, worker)
+
+    elif worker_type == 'container':
+        personality.check_container(personality, worker)
+
+    elif worker_type == 'guest':
+        personality.check_guest(personality, worker)
+
+    elif worker_type == 'websocket-testee':
+        personality.check_websocket_testee(personality, worker)
+
+    elif worker_type in ignore:
+        pass
+
     else:
-        try:
-            check_fn = native_workers[ptype]['checkconfig_item']
-        except KeyError:
-            raise InvalidConfigException('missing worker check function "checkconfig_item"')
-        check_fn(worker)
+        raise InvalidConfigException('logic error')
 
 
-def check_controller_options(options):
+def check_controller_options(personality, options, ignore=[]):
     """
     Check controller options.
 
@@ -3033,7 +3028,7 @@ def check_controller_options(options):
         raise InvalidConfigException("'options' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'shutdown']:
+        if k not in ['title', 'shutdown'] + ignore:
             raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in controller configuration".format(k))
 
     if 'title' in options:
@@ -3049,26 +3044,7 @@ def check_controller_options(options):
                 raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
 
 
-def check_controller_fabric(fabric):
-    """
-    Check controller Fabric configuration override (which essentially is only
-    for debugging purposes or for people running Crossbar.io Fabric Service on-premise)
-
-    :param fabric: The Fabric configuration to check.
-    :type fabric: dict
-    """
-    if not isinstance(fabric, Mapping):
-        raise InvalidConfigException("'fabric' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(fabric)))
-
-    for k in fabric:
-        if k not in ['transport']:
-            raise InvalidConfigException("encountered unknown attribute '{}' in 'fabric' in controller configuration".format(k))
-
-    if 'transport' in fabric:
-        check_connecting_transport(fabric['transport'])
-
-
-def check_controller(controller):
+def check_controller(personality, controller, ignore=[]):
     """
     Check a node controller configuration item.
 
@@ -3082,28 +3058,25 @@ def check_controller(controller):
         raise InvalidConfigException("controller items must be dictionaries ({} encountered)\n\n{}".format(type(controller), pformat(controller)))
 
     for k in controller:
-        if k not in ['id', 'options', 'extra', 'manhole', 'connections', 'fabric']:
+        if k not in ['id', 'options', 'manhole', 'connections'] + ignore:
             raise InvalidConfigException("encountered unknown attribute '{}' in controller configuration".format(k))
 
     if 'id' in controller:
         check_id(controller['id'])
 
     if 'options' in controller:
-        check_controller_options(controller['options'])
-
-    if 'fabric' in controller:
-        check_controller_fabric(controller['fabric'])
+        personality.check_controller_options(personality, controller['options'])
 
     if 'manhole' in controller:
-        check_manhole(controller['manhole'])
+        personality.check_manhole(personality, controller['manhole'])
 
     # connections
     #
     connections = controller.get('connections', [])
-    check_connections(connections)
+    check_connections(personality, connections)
 
 
-def check_config(config, native_workers):
+def check_config(personality, config):
     """
     Check a Crossbar.io top-level configuration.
 
@@ -3112,15 +3085,12 @@ def check_config(config, native_workers):
 
     :param config: The configuration to check.
     :type config: dict
-
-    :param native_workers: Mapping of valid native workers
-    :type native_workers: dict
     """
     if not isinstance(config, Mapping):
         raise InvalidConfigException("top-level configuration item must be a dictionary ({} encountered)".format(type(config)))
 
     for k in config:
-        if k not in ['version', 'controller', 'workers']:
+        if k not in ['$schema', 'version', 'controller', 'workers']:
             raise InvalidConfigException("encountered unknown attribute '{}' in top-level configuration".format(k))
 
     version = config.get(u'version', 1)
@@ -3134,7 +3104,7 @@ def check_config(config, native_workers):
     #
     if 'controller' in config:
         log.debug("Checking controller item ..")
-        check_controller(config['controller'])
+        personality.check_controller(personality, config['controller'])
 
     # check worker configs
     #
@@ -3144,10 +3114,10 @@ def check_config(config, native_workers):
 
     for i, worker in enumerate(workers):
         log.debug("Checking worker item {item} ..", item=i)
-        check_worker(worker, native_workers)
+        personality.check_worker(personality, worker)
 
 
-def check_config_file(configfile, native_workers):
+def check_config_file(personality, configfile):
     """
     Check a Crossbar.io local configuration file.
 
@@ -3174,12 +3144,12 @@ def check_config_file(configfile, native_workers):
         else:
             raise Exception('logic error')
 
-    check_config(config, native_workers)
+    personality.check_config(personality, config)
 
     return config
 
 
-def convert_config_file(configfile):
+def convert_config_file(personality, configfile):
     """
     Converts a Crossbar.io configuration file from JSON to YAML or from
     YAML to JSON.
@@ -3187,6 +3157,9 @@ def convert_config_file(configfile):
     :param configfile: The Crossbar.io node configuration file to convert.
     :type configfile: str
     """
+    # deny conversion of an invalid configuration
+    personality.check_config_file(personality, configfile)
+
     configbase, configext = os.path.splitext(configfile)
     configfile = os.path.abspath(configfile)
 
@@ -3213,12 +3186,11 @@ def convert_config_file(configfile):
                 with open(newconfig, 'w') as outfile:
                     yaml.safe_dump(config, outfile, default_flow_style=False)
                     log.info("ok, YAML formatted configuration written to {cfg}", cfg=newconfig)
-
         else:
             raise InvalidConfigException("configuration file needs to be '.json' or '.yaml'.")
 
 
-def fill_config_from_env(config, keys=None):
+def _fill_config_from_env(config, keys=None):
     """
     Fill in configuration values in a configuration dictionary from
     environment variables.
@@ -3246,7 +3218,7 @@ def fill_config_from_env(config, keys=None):
                         log.debug("warning: configuration parameter '{key}' should have been read from enviroment variable {envvar}, but the latter is not set", key=k, envvar=envvar)
 
 
-def upgrade_config_file(configfile):
+def upgrade_config_file(personality, configfile):
     """
     Upgrade a local node configuration file.
 

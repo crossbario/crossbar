@@ -44,14 +44,14 @@ from crossbar.router.observation import is_protected_uri
 
 from txaio import make_logger
 
-__all__ = ('RouterServiceSession',)
+__all__ = ('RouterServiceAgent',)
 
 
 def is_restricted_session(session):
     return session._authrole is None or session._authrole == u'trusted'
 
 
-class RouterServiceSession(ApplicationSession):
+class RouterServiceAgent(ApplicationSession):
 
     """
     User router-realm service session, and WAMP meta API implementation.
@@ -130,7 +130,7 @@ class RouterServiceSession(ApplicationSession):
             if prefix:
                 translated_topic = u'{}{}'.format(prefix, translated_topic)
 
-            self.log.debug('RouterServiceSession.publish("{topic}") -> "{translated_topic}" on "{realm}"',
+            self.log.debug('RouterServiceAgent.publish("{topic}") -> "{translated_topic}" on "{realm}"',
                            topic=topic, translated_topic=translated_topic, realm=session._realm)
 
             dl.append(ApplicationSession.publish(session, translated_topic, *args, **kwargs))
@@ -170,11 +170,9 @@ class RouterServiceSession(ApplicationSession):
                 on_ready.errback(e)
             self.leave()
         else:
+            self.log.info('RouterServiceAgent ready (realm_name="{realm}", on_ready={on_ready})', realm=self._realm, on_ready=on_ready)
             if on_ready:
                 on_ready.callback(self)
-                self.log.info('RouterServiceSession ready [configured on_ready fired]')
-            else:
-                self.log.info('RouterServiceSession ready [no on_ready configured]')
 
     def onUserError(self, failure, msg):
         # ApplicationError's are raised explicitly and by purpose to signal
@@ -183,7 +181,7 @@ class RouterServiceSession(ApplicationSession):
         # processing on our side. It needs to be logged to CB log, and CB code
         # needs to be expanded!
         if not isinstance(failure.value, ApplicationError):
-            super(RouterServiceSession, self).onUserError(failure, msg)
+            super(RouterServiceAgent, self).onUserError(failure, msg)
 
     @wamp.register(u'wamp.session.list')
     def session_list(self, filter_authroles=None, details=None):

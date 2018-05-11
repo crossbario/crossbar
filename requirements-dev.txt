@@ -5,6 +5,7 @@ mock
 wheel
 hashin
 coverage
+bandit
 
 # docs
 flask
