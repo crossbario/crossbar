@@ -7,6 +7,6 @@ include requirements-pinned.txt
 include requirements-dev.txt
 include crossbar/LEGAL
 recursive-include crossbar/common/keys *
-recursive-include crossbar/controller/templates *
+recursive-include crossbar/node/templates *
 recursive-include crossbar/webservice/templates *
 recursive-include crossbar/adapter/mqtt/test/certs *

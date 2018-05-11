@@ -94,7 +94,7 @@ class WorkerController(NativeProcess):
             template_dirs.append(dir_path)
         self.log.debug("Using Web templates from {template_dirs}",
                        template_dirs=template_dirs)
-        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs))
+        self._templates = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs), autoescape=True)
 
         self.join(self.config.realm)
 

@@ -35,7 +35,7 @@ from six import StringIO as NativeStringIO
 from twisted.internet.selectreactor import SelectReactor
 
 from crossbar.test import TestCase
-from crossbar.node import cli
+from crossbar.node import main
 from crossbar import _logging
 
 from weakref import WeakKeyDictionary
@@ -83,9 +83,9 @@ class VersionTests(CLITestBase):
         """
         reactor = SelectReactor()
 
-        cli.run("crossbar",
-                ["version"],
-                reactor=reactor)
+        main.main("crossbar",
+                  ["version"],
+                  reactor=reactor)
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
         self.assertIn(
@@ -99,9 +99,9 @@ class VersionTests(CLITestBase):
         """
         reactor = SelectReactor()
 
-        cli.run("crossbar",
-                ["version", "--loglevel=debug"],
-                reactor=reactor)
+        main.main("crossbar",
+                  ["version", "--loglevel=debug"],
+                  reactor=reactor)
 
         self.assertIn("Crossbar.io", self.stdout.getvalue())
         self.assertIn(
@@ -136,10 +136,10 @@ class StartTests(CLITestBase):
         reactor = SelectReactor()
         reactor.run = lambda: False
 
-        cli.run("crossbar",
-                ["start", "--cbdir={}".format(self.cbdir),
-                 "--logformat=syslogd"],
-                reactor=reactor)
+        main.main("crossbar",
+                  ["start", "--cbdir={}".format(self.cbdir),
+                   "--logformat=syslogd"],
+                  reactor=reactor)
 
         self.assertIn("Entering reactor event loop", self.stdout.getvalue())
 
@@ -153,10 +153,10 @@ class StartTests(CLITestBase):
         reactor = SelectReactor()
 
         with self.assertRaises(SystemExit) as e:
-            cli.run("crossbar",
-                    ["start", "--cbdir={}".format(self.cbdir),
-                     "--logformat=syslogd"],
-                    reactor=reactor)
+            main.main("crossbar",
+                      ["start", "--cbdir={}".format(self.cbdir),
+                       "--logformat=syslogd"],
+                      reactor=reactor)
 
         # Exit with code 1
         self.assertEqual(e.exception.args[0], 1)
@@ -177,9 +177,9 @@ class StartTests(CLITestBase):
         reactor = SelectReactor()
         reactor.run = lambda: None
 
-        cli.run("crossbar",
-                ["start", "--cbdir={}".format(self.cbdir), "--logtofile"],
-                reactor=reactor)
+        main.main("crossbar",
+                  ["start", "--cbdir={}".format(self.cbdir), "--logtofile"],
+                  reactor=reactor)
 
         with open(os.path.join(self.cbdir, "node.log"), "r") as f:
             logFile = f.read()
@@ -199,10 +199,10 @@ class StartTests(CLITestBase):
         reactor = SelectReactor()
         reactor.run = lambda: None
 
-        cli.run("crossbar",
-                ["start", "--cbdir={}".format(self.cbdir),
-                 "--logformat=syslogd"],
-                reactor=reactor)
+        main.main("crossbar",
+                  ["start", "--cbdir={}".format(self.cbdir),
+                   "--logformat=syslogd"],
+                  reactor=reactor)
 
         self.assertIn(
             ("Stale Crossbar.io PID file (pointing to non-existing process "
@@ -227,8 +227,8 @@ class ConvertTests(CLITestBase):
         open(config_file, 'wb').close()
 
         with self.assertRaises(SystemExit) as e:
-            cli.run("crossbar",
-                    ["convert", "--config={}".format(config_file)])
+            main.main("crossbar",
+                      ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
         self.assertIn(
@@ -251,8 +251,8 @@ foo:
         foo: cat
         """)
 
-        cli.run("crossbar",
-                ["convert", "--config={}".format(config_file)])
+        main.main("crossbar",
+                  ["convert", "--config={}".format(config_file)])
 
         self.assertIn(
             ("JSON formatted configuration written"),
@@ -280,8 +280,8 @@ foo:
             f.write("""{{{{{{{{""")
 
         with self.assertRaises(SystemExit) as e:
-            cli.run("crossbar",
-                    ["convert", "--config={}".format(config_file)])
+            main.main("crossbar",
+                      ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
         self.assertIn(
@@ -306,8 +306,8 @@ foo:
    }
 }""")
 
-        cli.run("crossbar",
-                ["convert", "--config={}".format(config_file)])
+        main.main("crossbar",
+                  ["convert", "--config={}".format(config_file)])
 
         self.assertIn(
             ("YAML formatted configuration written"),
@@ -332,8 +332,8 @@ foo:
             f.write("""{{{{{{{{""")
 
         with self.assertRaises(SystemExit) as e:
-            cli.run("crossbar",
-                    ["convert", "--config={}".format(config_file)])
+            main.main("crossbar",
+                      ["convert", "--config={}".format(config_file)])
 
         self.assertEqual(e.exception.args[0], 1)
         self.assertIn(

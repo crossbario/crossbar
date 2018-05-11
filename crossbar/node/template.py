@@ -127,7 +127,9 @@ class Templates:
             kwargs = {}
 
         jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(basedir),
-                                       keep_trailing_newline=True, **kwargs)
+                                       keep_trailing_newline=True,
+                                       autoescape=True,
+                                       **kwargs)
 
         _params = template['params'].copy()
         if params:

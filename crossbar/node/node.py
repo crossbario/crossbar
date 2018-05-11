@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import os
+import socket
 
 import twisted
 from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
@@ -275,7 +276,7 @@ class Node(object):
             self._node_id = controller_config['id']
             _node_id_source = 'explicit configuration'
         else:
-            self._node_id = os.uname().nodename
+            self._node_id = u'{}'.format(socket.gethostname()).lower()
             _node_id_source = 'hostname'
         self.log.info('Node ID {node_id} set from {node_id_source}',
                       node_id=hlid(self._node_id),
