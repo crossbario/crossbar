@@ -2,8 +2,8 @@ name: crossbar
 # Fallback version
 version: '17.9.2'
 version-script: |
-    grep -E '^(__version__)' crossbar/__init__.py | \
-    cut -d ' ' -f3 | sed -e 's|["'\'']||g'
+    grep -E '^(__version__)' crossbar/_version.py | \
+    cut -d ' ' -f3 | sed -e 's|[u"'\'']||g'
 summary: Crossbar.io - Polyglot application router.
 description: |
   Crossbar.io is a networking platform for distributed and microservice
