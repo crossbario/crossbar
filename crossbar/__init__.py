@@ -45,6 +45,10 @@ __all__ = ('__version__', 'version', 'run')
 
 _SELECT_MAX_PERSONALITY_AS_DEFAULT = False
 
+_DEFINED_REACTORS = ['select', 'poll', 'epoll', 'kqueue', 'iocp']
+
+_DEFINED_PERSONALITIES = ['standalone', 'fabric', 'fabriccenter']
+
 
 def version():
     """
@@ -56,7 +60,7 @@ def version():
     return __version__
 
 
-def run(args=None, reactor=None):
+def run(args=None, reactor=None, personality=None):
     """
     Main entry point into Crossbar.io:
 
@@ -145,9 +149,15 @@ def run(args=None, reactor=None):
         load the optimal reactor for Crossbar.io to run on the host platform.
     :type reactor: :class:`twisted.internet.reactor`
     """
+    if reactor is not None and reactor not in _DEFINED_REACTORS:
+        raise Exception('illegal value "{}" for reactor'.format(reactor))
+
+    if personality is not None and personality not in _DEFINED_PERSONALITIES:
+        raise Exception('illegal value "{}" for personality'.format(personality))
+
     # use argument list from command line if none is given explicitly
     if args is None:
-        exename = sys.argv[0]
+        exename = os.path.basename(sys.argv[0])
         args = sys.argv[1:]
     else:
         exename = 'crossbar'
@@ -166,33 +176,38 @@ def run(args=None, reactor=None):
     # get installed personalities
     _personalities = personalities()
 
-    # choose node personality to run
-    if 'CROSSBAR_PERSONALITY' in os.environ:
-        name = os.environ['CROSSBAR_PERSONALITY']
-    else:
-        if _SELECT_MAX_PERSONALITY_AS_DEFAULT:
-            if 'fabriccenter' in _personalities:
-                name = 'fabriccenter'
-            elif 'fabric' in _personalities:
-                name = 'fabric'
-            elif 'standalone' in _personalities:
-                name = 'standalone'
-            else:
-                raise Exception('logic error')
+    # set personality
+    if not personality:
+
+        # choose node personality to run
+        if 'CROSSBAR_PERSONALITY' in os.environ:
+            personality = os.environ['CROSSBAR_PERSONALITY']
+            if personality not in _DEFINED_PERSONALITIES:
+                raise Exception('illegal value "{}" for personality (from CROSSBAR_PERSONALITY environment variable)'.format(personality))
         else:
-            name = 'standalone'
+            if _SELECT_MAX_PERSONALITY_AS_DEFAULT:
+                if 'fabriccenter' in _personalities:
+                    personality = 'fabriccenter'
+                elif 'fabric' in _personalities:
+                    personality = 'fabric'
+                elif 'standalone' in _personalities:
+                    personality = 'standalone'
+                else:
+                    raise Exception('logic error')
+            else:
+                personality = 'standalone'
+
+    if personality not in _personalities:
+        raise Exception('fatal: no personality "{}"'.format(personality))
 
     # get chosen personality class
-    if name not in _personalities:
-        raise Exception('fatal: no personality "{}"'.format(name))
-
-    personality = _personalities[name]
+    personality_klass = _personalities[personality]
 
     # do NOT move this import above *** (triggers reactor imports)
     from crossbar.node.main import main
 
     # and now actually enter here .. this never returns!
-    return main(exename, args, reactor, personality)
+    return main(exename, args, reactor, personality_klass)
 
 
 def personalities():
@@ -225,3 +240,7 @@ def personalities():
         personality_classes['fabriccenter'] = FabricCenterPersonality
 
     return personality_classes
+
+
+if __name__ == '__main__':
+    run()

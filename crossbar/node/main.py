@@ -899,6 +899,13 @@ def _run_command_keygen(options, reactor, personality):
     print('   public: {}'.format(pub))
 
 
+def _print_usage(prog, personality):
+    print(hl(personality.BANNER, color='yellow', bold=True))
+    print('Type "{} --help" to get help, or "{} <command> --help" to get help on a specific command.'.format(prog, prog))
+    print('Type "{} legal" to read legal notices, terms of use and license and privacy information.'.format(prog))
+    print('Type "{} version" to print detailed version information.'.format(prog))
+
+
 def main(prog, args, reactor, personality):
     """
     Entry point of Crossbar.io CLI.
@@ -914,15 +921,12 @@ def main(prog, args, reactor, personality):
         # if all args are options (start with "-"), then we don't have a command,
         # but we need one! hence, print a usage message
         if not [x for x in args if not x.startswith('-')]:
-            print(hl(personality.BANNER, color='yellow', bold=True))
-            print('Type "crossbar --help to get help, or "crossbar <command> --help" to get help on a specific command.')
-            print('Type "crossbar legal" to read legal notices, terms of use and license and privacy information.')
-            print('Type "crossbar version" to print detailed version information.')
+            _print_usage(prog, personality)
             return
 
     # create the top-level parser
     #
-    parser = argparse.ArgumentParser(prog=prog or 'crossbar', description=personality.DESC)
+    parser = argparse.ArgumentParser(prog=prog, description=personality.DESC)
 
     _add_debug_options(parser)
 
