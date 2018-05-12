@@ -1085,7 +1085,8 @@ def main(prog, args, reactor, personality):
         options.shutdownafter = float(options.shutdownafter)
 
     # colored logging does not work on Windows, so overwrite it!
-    #
+    # FIXME: however, printing the banner in color works at least now:
+    # So maybe we can get the actual log output also working in color.
     if sys.platform == 'win32':
         options.color = False
 
