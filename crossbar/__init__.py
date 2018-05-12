@@ -32,14 +32,7 @@
 
 from __future__ import absolute_import
 
-import sys
-import os
-
-import txaio
-from autobahn.twisted import install_reactor
 from crossbar._version import __version__
-
-txaio.use_twisted()
 
 __all__ = ('__version__', 'version', 'run')
 
@@ -149,6 +142,10 @@ def run(args=None, reactor=None, personality=None):
         load the optimal reactor for Crossbar.io to run on the host platform.
     :type reactor: :class:`twisted.internet.reactor`
     """
+    import sys
+    import os
+    from autobahn.twisted import install_reactor
+
     if reactor is not None and reactor not in _DEFINED_REACTORS:
         raise Exception('illegal value "{}" for reactor'.format(reactor))
 
