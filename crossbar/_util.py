@@ -37,10 +37,6 @@ import json
 import six
 import click
 
-import txaio
-
-log = txaio.make_logger()
-
 DEBUG_LIFECYCLE = False
 DEBUG_PROGRAMFLOW = False
 
@@ -142,14 +138,15 @@ def term_print(text):
     This currently only works on Unix like systems (tested only on Linux).
     When it cannot do so, it falls back to plain old print.
     """
-    text = '{:<44}'.format(text)
-    text = click.style(text, fg='blue', bold=True)
-    if DEBUG_LIFECYCLE and _TERMINAL:
-        with open('/dev/tty', 'w') as f:
-            f.write(text + '\n')
-            f.flush()
-    else:
-        log.debug(text)
+    if DEBUG_LIFECYCLE:
+        text = '{:<44}'.format(text)
+        text = click.style(text, fg='blue', bold=True)
+        if _TERMINAL:
+            with open('/dev/tty', 'w') as f:
+                f.write(text + '\n')
+                f.flush()
+        else:
+            print(text)
 
 
 def _add_debug_options(parser):

@@ -33,6 +33,7 @@ from __future__ import absolute_import
 import time
 
 import txaio
+txaio.use_twisted()
 
 import crossbar
 from crossbar.common import checkconfig
