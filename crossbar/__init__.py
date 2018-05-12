@@ -28,6 +28,8 @@
 #
 #####################################################################################
 
+"""Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."""
+
 from __future__ import absolute_import
 
 import sys
@@ -37,11 +39,15 @@ import txaio
 from autobahn.twisted import install_reactor
 from crossbar._version import __version__
 
-"""Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."""
-
 txaio.use_twisted()
 
 __all__ = ('__version__', 'version', 'run')
+
+_SELECT_MAX_PERSONALITY_AS_DEFAULT = False
+
+_DEFINED_REACTORS = ['select', 'poll', 'epoll', 'kqueue', 'iocp']
+
+_DEFINED_PERSONALITIES = ['standalone', 'fabric', 'fabriccenter']
 
 
 def version():
@@ -54,7 +60,7 @@ def version():
     return __version__
 
 
-def run(args=None, reactor=None):
+def run(args=None, reactor=None, personality=None):
     """
     Main entry point into Crossbar.io:
 
@@ -116,7 +122,7 @@ def run(args=None, reactor=None):
                                                   * **kqueue**
                                                   * **iocp**
 
-    ``--personality``   **CROSSBAR_PERSONALITY**  Node personality:
+    n.a.                **CROSSBAR_PERSONALITY**  Node personality:
 
                                                   * **standalone**
                                                   * **fabric**
@@ -143,9 +149,18 @@ def run(args=None, reactor=None):
         load the optimal reactor for Crossbar.io to run on the host platform.
     :type reactor: :class:`twisted.internet.reactor`
     """
+    if reactor is not None and reactor not in _DEFINED_REACTORS:
+        raise Exception('illegal value "{}" for reactor'.format(reactor))
+
+    if personality is not None and personality not in _DEFINED_PERSONALITIES:
+        raise Exception('illegal value "{}" for personality'.format(personality))
+
     # use argument list from command line if none is given explicitly
     if args is None:
+        exename = os.path.basename(sys.argv[0])
         args = sys.argv[1:]
+    else:
+        exename = 'crossbar'
 
     # IMPORTANT: keep the reactor install as early as possible to avoid importing
     # any Twisted module that comes with the side effect of installing a default
@@ -156,21 +171,52 @@ def run(args=None, reactor=None):
                                   verbose=False,
                                   require_optimal_reactor=False)
 
-    # Twisted reactor installed FROM HERE
+    # Twisted reactor installed FROM HERE ***
 
-    # Only _now_ import actual stuff, as this triggers lots of imports in turn,
-    # somewhere down the line Twisted _will_ likely import its one and only reactor,
-    # and if we haven't done before, Twisted will install whatever it deems right then.
+    # get installed personalities
+    _personalities = personalities()
+
+    # set personality
+    if not personality:
+
+        # choose node personality to run
+        if 'CROSSBAR_PERSONALITY' in os.environ:
+            personality = os.environ['CROSSBAR_PERSONALITY']
+            if personality not in _DEFINED_PERSONALITIES:
+                raise Exception('illegal value "{}" for personality (from CROSSBAR_PERSONALITY environment variable)'.format(personality))
+        else:
+            if _SELECT_MAX_PERSONALITY_AS_DEFAULT:
+                if 'fabriccenter' in _personalities:
+                    personality = 'fabriccenter'
+                elif 'fabric' in _personalities:
+                    personality = 'fabric'
+                elif 'standalone' in _personalities:
+                    personality = 'standalone'
+                else:
+                    raise Exception('logic error')
+            else:
+                personality = 'standalone'
+
+    if personality not in _personalities:
+        raise Exception('fatal: no personality "{}"'.format(personality))
+
+    # get chosen personality class
+    personality_klass = _personalities[personality]
+
+    # do NOT move this import above *** (triggers reactor imports)
     from crossbar.node.main import main
 
     # and now actually enter here .. this never returns!
-    return main('crossbar', args, reactor)
+    return main(exename, args, reactor, personality_klass)
 
 
 def personalities():
     """
     Return a map from personality names to actual available (=installed) Personality classes.
     """
+    #
+    # do NOT move the imports here to the module level! (triggers reactor imports)
+    #
     from crossbar.personality import Personality as StandalonePersonality
 
     personality_classes = {
@@ -178,15 +224,23 @@ def personalities():
     }
 
     try:
+        import crossbarfabric  # noqa
+    except ImportError:
+        pass
+    else:
         from crossbarfabric.personality import Personality as FabricPersonality
         personality_classes['fabric'] = FabricPersonality
-    except ImportError:
-        pass
 
     try:
-        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
-        personality_classes['fabriccenter'] = FabricCenterPersonality
+        import crossbarfabriccenter  # noqa
     except ImportError:
         pass
+    else:
+        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
+        personality_classes['fabriccenter'] = FabricCenterPersonality
 
     return personality_classes
+
+
+if __name__ == '__main__':
+    run()
