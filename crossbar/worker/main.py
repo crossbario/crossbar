@@ -43,9 +43,6 @@ from crossbar._util import hl, hltype, _add_debug_options
 __all__ = ('run',)
 
 
-_INSTALLED_PERSONALITIES = crossbar.personalities()
-
-
 def get_argument_parser(parser=None):
     if not parser:
         parser = argparse.ArgumentParser()
@@ -77,7 +74,7 @@ def get_argument_parser(parser=None):
     parser.add_argument('-p',
                         '--personality',
                         required=True,
-                        choices=sorted(_INSTALLED_PERSONALITIES.keys()),
+                        choices=['standalone', 'fabric', 'fabriccenter'],
                         help='Crossbar.io personality (required).')
 
     parser.add_argument('-k',
@@ -147,6 +144,10 @@ def run(options, reactor=None):
             coverage.process_startup()
             MEASURING_COVERAGE = True
 
+    # we use an Autobahn utility to import the "best" available Twisted reactor
+    from autobahn.twisted.choosereactor import install_reactor
+    reactor = install_reactor(options.reactor)
+
     # make sure logging to something else than stdio is setup _first_
     from crossbar._logging import make_JSON_observer, cb_logging_aware
     from txaio import make_logger, start_logging
@@ -179,13 +180,9 @@ def run(options, reactor=None):
     start_logging(None, options.loglevel)
 
     # now check if we can import the requested personality
-    Personality = _INSTALLED_PERSONALITIES.get(options.personality, None)
+    Personality = crossbar.personalities().get(options.personality, None)
     if not Personality:
-        raise Exception('logic error: personality "{}" not installed ({})'.format(options.personality, sorted(_INSTALLED_PERSONALITIES.keys())))
-
-    # we use an Autobahn utility to import the "best" available Twisted reactor
-    from autobahn.twisted.choosereactor import install_reactor
-    reactor = install_reactor(options.reactor)
+        raise Exception('logic error: personality "{}" not installed'.format(options.personality))
 
     # eg: crossbar.worker.container.ContainerController
     l = options.klass.split('.')
