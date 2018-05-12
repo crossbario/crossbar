@@ -44,14 +44,14 @@ import pkg_resources
 import txaio
 
 txaio.use_twisted()  # noqa
+
 from txaio import make_logger, start_logging, set_global_log_level, failure_format_traceback
 
 from twisted.python.reflect import qual
 from twisted.logger import globalLogPublisher
 from twisted.internet.defer import inlineCallbacks
 
-from crossbar._util import hl, hlid, hltype, term_print, _add_debug_options, _add_cbdir_config, _add_log_arguments, \
-    _add_personality_argument
+from crossbar._util import hl, hlid, hltype, term_print, _add_debug_options, _add_cbdir_config, _add_log_arguments
 from crossbar._logging import make_logfile_observer
 from crossbar._logging import make_stdout_observer
 from crossbar._logging import make_stderr_observer
@@ -60,7 +60,6 @@ from crossbar.common.key import _maybe_generate_key
 
 import crossbar
 
-from autobahn.twisted.choosereactor import install_reactor
 from autobahn.websocket.protocol import WebSocketProtocol
 from autobahn.websocket.utf8validator import Utf8Validator
 from autobahn.websocket.xormasker import XorMaskerNull
@@ -217,11 +216,10 @@ def _check_is_running(cbdir):
     return None
 
 
-def _run_command_legal(options, reactor=None, **kwargs):
+def _run_command_legal(options, reactor, personality):
     """
     Subcommand "crossbar legal".
     """
-    personality = crossbar.personalities()[options.personality]
     package, resource_name = personality.LEGAL
     filename = pkg_resources.resource_filename(package, resource_name)
     filepath = os.path.abspath(filename)
@@ -230,12 +228,10 @@ def _run_command_legal(options, reactor=None, **kwargs):
         print(legal)
 
 
-def _run_command_version(options, reactor=None, **kwargs):
+def _run_command_version(options, reactor, personality):
     """
     Subcommand "crossbar version".
     """
-    personality = crossbar.personalities()[options.personality]
-
     log = make_logger()
 
     # Python
@@ -373,9 +369,9 @@ def _run_command_version(options, reactor=None, **kwargs):
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
-    if options.personality in (u'fabric', u'fabriccenter'):
+    if personality in (u'fabric', u'fabriccenter'):
         log.info(" Crossbar.io Fabric : {ver}", ver=decorate(crossbarfabric_ver))
-    if options.personality == u'fabriccenter':
+    if personality == u'fabriccenter':
         log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabriccenter_ver))
         log.debug("   txaioetcd        : {ver}", ver=decorate(txaioetcd_ver))
     log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if py_is_frozen else 'no'))
@@ -385,12 +381,10 @@ def _run_command_version(options, reactor=None, **kwargs):
     log.info("")
 
 
-def _run_command_keys(options, reactor=None, **kwargs):
+def _run_command_keys(options, reactor, personality):
     """
     Subcommand "crossbar keys".
     """
-    # personality = crossbar.personalities()[options.personality]
-
     log = make_logger()
 
     from crossbar.common.key import _read_node_key
@@ -424,12 +418,10 @@ def _run_command_keys(options, reactor=None, **kwargs):
         log.info('')
 
 
-def _run_command_init(options, **kwargs):
+def _run_command_init(options, reactor, personality):
     """
     Subcommand "crossbar init".
     """
-    # personality = crossbar.personalities()[options.personality]
-
     log = make_logger()
 
     template = 'default'
@@ -464,12 +456,10 @@ def _run_command_init(options, **kwargs):
                  cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
 
 
-def _run_command_status(options, **kwargs):
+def _run_command_status(options, reactor, personality):
     """
     Subcommand "crossbar status".
     """
-    # personality = crossbar.personalities()[options.personality]
-
     log = make_logger()
 
     # https://docs.python.org/2/library/os.html#os.EX_UNAVAILABLE
@@ -504,12 +494,10 @@ def _run_command_status(options, **kwargs):
             sys.exit(0)
 
 
-def _run_command_stop(options, exit=True, **kwargs):
+def _run_command_stop(options, reactor, personality):
     """
     Subcommand "crossbar stop".
     """
-    # personality = crossbar.personalities()[options.personality]
-
     # check if there is a Crossbar.io instance currently running from
     # the Crossbar.io node directory at all
     #
@@ -640,7 +628,7 @@ def _start_logging(options, reactor):
     start_logging(None, loglevel)
 
 
-def _run_command_start(options, reactor):
+def _run_command_start(options, reactor, personality):
     """
     Subcommand "crossbar start".
     """
@@ -684,8 +672,6 @@ def _run_command_start(options, reactor):
 
     # represents the running Crossbar.io node
     #
-    personality = crossbar.personalities()[options.personality]
-
     node_options = personality.NodeOptions(debug_lifecycle=options.debug_lifecycle,
                                            debug_programflow=options.debug_programflow)
 
@@ -700,7 +686,7 @@ def _run_command_start(options, reactor):
         log.info(hl(line, color='yellow', bold=True))
     log.info('')
     log.info('Initializing {node_personality} node from node directory {cbdir} {node_class}',
-             node_personality=options.personality,
+             node_personality=personality,
              cbdir=hlid(options.cbdir),
              node_class=hltype(personality.Node))
 
@@ -832,12 +818,10 @@ def _run_command_start(options, reactor):
         sys.exit(1)
 
 
-def _run_command_check(options, **kwargs):
+def _run_command_check(options, reactor, personality):
     """
     Subcommand "crossbar check".
     """
-    personality = crossbar.personalities()[options.personality]
-
     configfile = os.path.join(options.cbdir, options.config)
 
     verbose = False
@@ -865,12 +849,10 @@ def _run_command_check(options, **kwargs):
         sys.exit(0)
 
 
-def _run_command_convert(options, **kwargs):
+def _run_command_convert(options, reactor, personality):
     """
     Subcommand "crossbar convert".
     """
-    personality = crossbar.personalities()[options.personality]
-
     configfile = os.path.join(options.cbdir, options.config)
 
     print("Converting local configuration file {}".format(configfile))
@@ -884,12 +866,10 @@ def _run_command_convert(options, **kwargs):
         sys.exit(0)
 
 
-def _run_command_upgrade(options, **kwargs):
+def _run_command_upgrade(options, reactor, personality):
     """
     Subcommand "crossbar upgrade".
     """
-    personality = crossbar.personalities()[options.personality]
-
     configfile = os.path.join(options.cbdir, options.config)
 
     print("Upgrading local configuration file {}".format(configfile))
@@ -903,7 +883,7 @@ def _run_command_upgrade(options, **kwargs):
         sys.exit(0)
 
 
-def _run_command_keygen(options, **kwargs):
+def _run_command_keygen(options, reactor, personality):
     """
     Subcommand "crossbar keygen".
     """
@@ -919,7 +899,7 @@ def _run_command_keygen(options, **kwargs):
     print('   public: {}'.format(pub))
 
 
-def main(prog, args, reactor):
+def main(prog, args, reactor, personality):
     """
     Entry point of Crossbar.io CLI.
     """
@@ -928,16 +908,13 @@ def main(prog, args, reactor):
 
     term_print('CROSSBAR:MAIN_ENTRY')
 
-    _DEFAULT_PERSONALITY_CLASS = crossbar.personalities()['standalone']
-    _DEFAULT_PERSONALITY_DESC = _DEFAULT_PERSONALITY_CLASS.DESC
-
     # print banner and usage notes when started with empty args
     #
     if args is not None and '--help' not in args:
         # if all args are options (start with "-"), then we don't have a command,
         # but we need one! hence, print a usage message
         if not [x for x in args if not x.startswith('-')]:
-            print(hl(_DEFAULT_PERSONALITY_CLASS.BANNER, color='yellow', bold=True))
+            print(hl(personality.BANNER, color='yellow', bold=True))
             print('Type "crossbar --help to get help, or "crossbar <command> --help" to get help on a specific command.')
             print('Type "crossbar legal" to read legal notices, terms of use and license and privacy information.')
             print('Type "crossbar version" to print detailed version information.')
@@ -945,10 +922,9 @@ def main(prog, args, reactor):
 
     # create the top-level parser
     #
-    parser = argparse.ArgumentParser(prog=prog or 'crossbar', description=_DEFAULT_PERSONALITY_DESC)
+    parser = argparse.ArgumentParser(prog=prog or 'crossbar', description=personality.DESC)
 
     _add_debug_options(parser)
-    _add_personality_argument(parser)
 
     # create subcommand parser
     #
@@ -964,8 +940,6 @@ def main(prog, args, reactor):
     parser_init = subparsers.add_parser('init',
                                         help='Initialize a new Crossbar.io node.')
 
-    _add_personality_argument(parser_init)
-
     parser_init.add_argument('--appdir',
                              type=six.text_type,
                              default=None,
@@ -978,7 +952,6 @@ def main(prog, args, reactor):
     parser_start = subparsers.add_parser('start',
                                          help='Start a Crossbar.io node.')
 
-    _add_personality_argument(parser_start)
     _add_log_arguments(parser_start)
     _add_cbdir_config(parser_start)
 
@@ -994,8 +967,6 @@ def main(prog, args, reactor):
     parser_stop = subparsers.add_parser('stop',
                                         help='Stop a Crossbar.io node.')
 
-    _add_personality_argument(parser_stop)
-
     parser_stop.add_argument('--cbdir',
                              type=six.text_type,
                              default=None,
@@ -1007,8 +978,6 @@ def main(prog, args, reactor):
     #
     parser_status = subparsers.add_parser('status',
                                           help='Checks whether a Crossbar.io node is running.')
-
-    _add_personality_argument(parser_status)
 
     parser_status.add_argument('--cbdir',
                                type=six.text_type,
@@ -1028,7 +997,6 @@ def main(prog, args, reactor):
     parser_check = subparsers.add_parser('check',
                                          help='Check a Crossbar.io node`s local configuration file.')
 
-    _add_personality_argument(parser_check)
     _add_cbdir_config(parser_check)
 
     parser_check.set_defaults(func=_run_command_check)
@@ -1038,7 +1006,6 @@ def main(prog, args, reactor):
     parser_convert = subparsers.add_parser('convert',
                                            help='Convert a Crossbar.io node`s local configuration file from JSON to YAML or vice versa.')
 
-    _add_personality_argument(parser_convert)
     _add_cbdir_config(parser_convert)
 
     parser_convert.set_defaults(func=_run_command_convert)
@@ -1048,7 +1015,6 @@ def main(prog, args, reactor):
     parser_upgrade = subparsers.add_parser('upgrade',
                                            help='Upgrade a Crossbar.io node`s local configuration file to current configuration file format.')
 
-    _add_personality_argument(parser_upgrade)
     _add_cbdir_config(parser_upgrade)
 
     parser_upgrade.set_defaults(func=_run_command_upgrade)
@@ -1060,15 +1026,12 @@ def main(prog, args, reactor):
             'keygen',
             help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
         )
-        _add_personality_argument(parser_keygen)
         parser_keygen.set_defaults(func=_run_command_keygen)
 
     # "keys" command
     #
     parser_keys = subparsers.add_parser('keys',
                                         help='Print Crossbar.io release and node key (public key part by default).')
-
-    _add_personality_argument(parser_keys)
 
     parser_keys.add_argument('--cbdir',
                              type=six.text_type,
@@ -1090,16 +1053,12 @@ def main(prog, args, reactor):
     parser_version = subparsers.add_parser('version',
                                            help='Print software versions.')
 
-    _add_personality_argument(parser_version)
-
     parser_version.set_defaults(func=_run_command_version)
 
     # "legal" command
     #
     parser_legal = subparsers.add_parser('legal',
                                          help='Print legal and licensing information.')
-
-    _add_personality_argument(parser_legal)
 
     parser_legal.set_defaults(func=_run_command_legal)
 
@@ -1116,35 +1075,15 @@ def main(prog, args, reactor):
     # parse cmd line args
     #
     options = parser.parse_args(args)
-    if args:
-        options.argv = [prog] + args
-    else:
-        options.argv = sys.argv
+    options.argv = [prog] + args
 
     if hasattr(options, 'shutdownafter') and options.shutdownafter:
         options.shutdownafter = float(options.shutdownafter)
-
-    # backward compat for personality name "community": renamed to "standalone"
-    #
-    if options.personality == 'community':
-        options.personality = 'standalone'
-        print('Personality name "community" deprecated: please use "standalone" (automatically selected now)')
 
     # colored logging does not work on Windows, so overwrite it!
     #
     if sys.platform == 'win32':
         options.color = False
-
-    # IMPORTANT: keep the reactor install as early as possible to
-    # avoid importing any Twisted module that comes with the side effect
-    # of installing a default reactor (which might not be what we want!).
-    if not reactor:
-        # we use an Autobahn utility to import the "best" available Twisted reactor
-        reactor = install_reactor(explicit_reactor=options.reactor,
-                                  verbose=False,
-                                  require_optimal_reactor=False)
-
-    # ################## Twisted reactor installed FROM HERE ##################
 
     # Crossbar.io node directory
     #
@@ -1207,7 +1146,7 @@ def main(prog, args, reactor):
     # run the subcommand selected
     #
     try:
-        options.func(options, reactor=reactor)
+        options.func(options, reactor=reactor, personality=personality)
     except SystemExit as e:
         # SystemExit(0) is okay! Anything other than that is bad and should be
         # re-raised.

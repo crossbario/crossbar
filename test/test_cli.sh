@@ -16,10 +16,10 @@
 #
 
 OLDCWD=$(pwd)
-PERSONALITY=standalone
-CB='crossbar --personality='$PERSONALITY
-APPDIR=/tmp/testnode
-CBDIR=$APPDIR/.crossbar
+PERSONALITY='standalone'
+CB='crossbar'
+APPDIR='/tmp/testnode'
+CBDIR=$APPDIR'/.crossbar'
 
 echo 'OLDCWD='$OLDCWD
 echo 'PERSONALITY='$PERSONALITY

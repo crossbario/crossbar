@@ -220,11 +220,13 @@ _HELP_PERSONALITIES = """Software personality to use:
 """
 
 
-def _add_personality_argument(parser):
+def _add_personality_argument(parser, default_personality=None):
     import crossbar
+
+    personalities = crossbar.personalities().keys()
 
     return parser.add_argument('--personality',
                                type=six.text_type,
-                               default='standalone',
-                               choices=sorted(crossbar.personalities().keys()) + ['community'],
+                               default=default_personality,
+                               choices=sorted(personalities + ['community']),
                                help=_HELP_PERSONALITIES)

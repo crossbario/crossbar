@@ -28,6 +28,8 @@
 #
 #####################################################################################
 
+"""Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."""
+
 from __future__ import absolute_import
 
 import sys
@@ -37,11 +39,11 @@ import txaio
 from autobahn.twisted import install_reactor
 from crossbar._version import __version__
 
-"""Crossbar.io multi-protocol (WAMP/WebSocket, REST/HTTP, MQTT) application router for microservices."""
-
 txaio.use_twisted()
 
 __all__ = ('__version__', 'version', 'run')
+
+_SELECT_MAX_PERSONALITY_AS_DEFAULT = False
 
 
 def version():
@@ -116,7 +118,7 @@ def run(args=None, reactor=None):
                                                   * **kqueue**
                                                   * **iocp**
 
-    ``--personality``   **CROSSBAR_PERSONALITY**  Node personality:
+    n.a.                **CROSSBAR_PERSONALITY**  Node personality:
 
                                                   * **standalone**
                                                   * **fabric**
@@ -145,7 +147,10 @@ def run(args=None, reactor=None):
     """
     # use argument list from command line if none is given explicitly
     if args is None:
+        exename = sys.argv[0]
         args = sys.argv[1:]
+    else:
+        exename = 'crossbar'
 
     # IMPORTANT: keep the reactor install as early as possible to avoid importing
     # any Twisted module that comes with the side effect of installing a default
@@ -156,21 +161,47 @@ def run(args=None, reactor=None):
                                   verbose=False,
                                   require_optimal_reactor=False)
 
-    # Twisted reactor installed FROM HERE
+    # Twisted reactor installed FROM HERE ***
 
-    # Only _now_ import actual stuff, as this triggers lots of imports in turn,
-    # somewhere down the line Twisted _will_ likely import its one and only reactor,
-    # and if we haven't done before, Twisted will install whatever it deems right then.
+    # get installed personalities
+    _personalities = personalities()
+
+    # choose node personality to run
+    if 'CROSSBAR_PERSONALITY' in os.environ:
+        name = os.environ['CROSSBAR_PERSONALITY']
+    else:
+        if _SELECT_MAX_PERSONALITY_AS_DEFAULT:
+            if 'fabriccenter' in _personalities:
+                name = 'fabriccenter'
+            elif 'fabric' in _personalities:
+                name = 'fabric'
+            elif 'standalone' in _personalities:
+                name = 'standalone'
+            else:
+                raise Exception('logic error')
+        else:
+            name = 'standalone'
+
+    # get chosen personality class
+    if name not in _personalities:
+        raise Exception('fatal: no personality "{}"'.format(name))
+
+    personality = _personalities[name]
+
+    # do NOT move this import above *** (triggers reactor imports)
     from crossbar.node.main import main
 
     # and now actually enter here .. this never returns!
-    return main('crossbar', args, reactor)
+    return main(exename, args, reactor, personality)
 
 
 def personalities():
     """
     Return a map from personality names to actual available (=installed) Personality classes.
     """
+    #
+    # do NOT move the imports here to the module level! (triggers reactor imports)
+    #
     from crossbar.personality import Personality as StandalonePersonality
 
     personality_classes = {
@@ -178,15 +209,19 @@ def personalities():
     }
 
     try:
+        import crossbarfabric  # noqa
+    except ImportError:
+        pass
+    else:
         from crossbarfabric.personality import Personality as FabricPersonality
         personality_classes['fabric'] = FabricPersonality
-    except ImportError:
-        pass
 
     try:
-        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
-        personality_classes['fabriccenter'] = FabricCenterPersonality
+        import crossbarfabriccenter  # noqa
     except ImportError:
         pass
+    else:
+        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
+        personality_classes['fabriccenter'] = FabricCenterPersonality
 
     return personality_classes
