@@ -36,14 +36,14 @@ import txaio
 
 import crossbar
 from crossbar.common import checkconfig
-from crossbar.node.worker import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
-
-from crossbar.worker import transport
-
 from crossbar.node import node
+from crossbar.node.worker import RouterWorkerProcess, ContainerWorkerProcess, WebSocketTesteeWorkerProcess
 from crossbar.worker.router import RouterController
+from crossbar.worker import transport
 from crossbar.worker.container import ContainerController
 from crossbar.worker.testee import WebSocketTesteeController
+from crossbar.webservice import base
+from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static
 
 
 def default_native_workers():
@@ -99,20 +99,19 @@ def default_native_workers():
     return factory
 
 
-_TITLE = "Crossbar.io Standalone"
+_TITLE = "Crossbar"
 
-# http://patorjk.com/software/taag/#p=display&h=1&f=Stick%20Letters&t=Crossbar.io
-_BANNER = r"""     __  __  __  __  __  __      __
-    /  `|__)/  \/__`/__`|__) /\ |__)
-    \__,|  \\__/.__/.__/|__)/~~\|  \
+_BANNER = r"""
+    :::::::::::::::::
+          :::::          _____                      __
+    :::::   :   :::::   / ___/____ ___   ___  ___  / /  ___ _ ____
+    :::::::   :::::::  / /__ / __// _ \ (_-< (_-< / _ \/ _ `// __/
+    :::::   :   :::::  \___//_/   \___//___//___//_.__/\_,_//_/
+          :::::
+    :::::::::::::::::   {title} v{version}
 
-    {} {}, https://crossbar.io
-    Copyright (c) 2013-{} Crossbar.io Technologies GmbH, open-source licensed under AGPL 3.0.
+    Copyright (c) 2013-{year} Crossbar.io Technologies GmbH, licensed under AGPL 3.0.
 """
-
-
-from crossbar.webservice import base
-from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static
 
 
 class Personality(object):
@@ -131,7 +130,7 @@ class Personality(object):
 
     DESC = crossbar.__doc__
 
-    BANNER = _BANNER.format(_TITLE, crossbar.__version__, time.strftime('%Y'))
+    BANNER = _BANNER.format(title=_TITLE, version=crossbar.__version__, year=time.strftime('%Y'))
 
     LEGAL = ('crossbar', 'LEGAL')
 
