@@ -1072,7 +1072,8 @@ def main(prog, args, reactor, personality):
     #
     parser_worker = subparsers.add_parser('_exec_worker', help='Program internal use.')
     parser_worker = worker_main.get_argument_parser(parser_worker)
-    parser_worker.set_defaults(func=worker_main.run)
+
+    parser_worker.set_defaults(func=worker_main._run_command_exec_worker)
 
     # #############################################################
 
