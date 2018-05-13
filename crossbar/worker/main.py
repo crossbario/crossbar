@@ -40,7 +40,7 @@ from twisted.internet.error import ReactorNotRunning
 import crossbar
 from crossbar._util import hl, hltype, _add_debug_options
 
-__all__ = ('run',)
+__all__ = ('_run_command_exec_worker',)
 
 
 def get_argument_parser(parser=None):
@@ -118,7 +118,7 @@ def get_argument_parser(parser=None):
     return parser
 
 
-def run(options, reactor=None):
+def _run_command_exec_worker(options, reactor=None, personality=None):
     """
     Entry point into (native) worker processes. This wires up stuff such that
     a worker instance is talking WAMP-over-stdio to the node controller.
@@ -353,4 +353,4 @@ if __name__ == '__main__':
     parser = get_argument_parser()
     args = parser.parse_args(_args)
 
-    run(args)
+    _run_command_exec_worker(args)
