@@ -102,12 +102,12 @@ def get_argument_parser(parser=None):
     parser.add_argument('--expose_controller',
                         type=bool,
                         default=False,
-                        help='Expose node controller session to all components (this feature requires Crossbar.io Fabric extension).')
+                        help='Expose node controller session to all components (this feature requires crossbarfx).')
 
     parser.add_argument('--expose_shared',
                         type=bool,
                         default=False,
-                        help='Expose a shared object to all components (this feature requires Crossbar.io Fabric extension).')
+                        help='Expose a shared object to all components (this feature requires crossbarfx).')
 
     parser.add_argument('--shutdown',
                         type=six.text_type,

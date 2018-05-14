@@ -322,19 +322,13 @@ def _run_command_version(options, reactor, personality):
     except ImportError:
         lmdb_ver = '-'
 
-    # crossbarfabric (only Crossbar.io FABRIC)
+    # crossbarfx
     try:
-        from crossbarfabric._version import __version__ as crossbarfabric_ver  # noqa
+        from crossbarfx._version import __version__ as crossbarfx_ver  # noqa
     except ImportError:
-        crossbarfabric_ver = '-'
+        crossbarfx_ver = '-'
 
-    # crossbarfabriccenter (only Crossbar.io FABRIC CENTER)
-    try:
-        from crossbarfabriccenter._version import __version__ as crossbarfabriccenter_ver  # noqa
-    except ImportError:
-        crossbarfabriccenter_ver = '-'
-
-    # txaio-etcd (only Crossbar.io FABRIC CENTER)
+    # txaio-etcd
     try:
         import txaioetcd  # noqa
         txaioetcd_ver = _get_version(txaioetcd)
@@ -369,11 +363,10 @@ def _run_command_version(options, reactor, personality):
     log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
     log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
     log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
-    if personality in (u'fabric', u'fabriccenter'):
-        log.info(" Crossbar.io Fabric : {ver}", ver=decorate(crossbarfabric_ver))
-    if personality == u'fabriccenter':
-        log.info(" Crossbar.io FC     : {ver}", ver=decorate(crossbarfabriccenter_ver))
-        log.debug("   txaioetcd        : {ver}", ver=decorate(txaioetcd_ver))
+    if personality in (u'edge', u'master'):
+        log.info(" Crossbar.io FX     : {ver}", ver=decorate(crossbarfx_ver))
+    if personality in (u'master'):
+        log.info("   txaioetcd        : {ver}", ver=decorate(txaioetcd_ver))
     log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if py_is_frozen else 'no'))
     log.info(" Operating system   : {ver}", ver=decorate(platform.platform()))
     log.info(" Host machine       : {ver}", ver=decorate(platform.machine()))

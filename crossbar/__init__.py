@@ -116,8 +116,8 @@ def run(args=None, reactor=None, personality=None):
     n.a.                **CROSSBAR_PERSONALITY**  Node personality:
 
                                                   * **standalone**
-                                                  * **fabric**
-                                                  * **fabricenter**
+                                                  * **edge**
+                                                  * **master**
 
     ``--cbdir``         **CROSSBAR_DIR**          Node directory (local directory)
     ``--config``        **CROSSBAR_CONFIG**       Node configuration (local filename)
