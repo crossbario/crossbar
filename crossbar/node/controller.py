@@ -51,7 +51,7 @@ from autobahn.wamp.types import PublishOptions
 from autobahn import wamp
 
 import crossbar
-from crossbar._util import term_print, hlid, hltype
+from crossbar._util import term_print, hlid, hltype, class_name
 from crossbar.common.checkconfig import NODE_SHUTDOWN_ON_WORKER_EXIT, NODE_SHUTDOWN_ON_WORKER_EXIT_WITH_ERROR, NODE_SHUTDOWN_ON_LAST_WORKER_EXIT
 from crossbar.common.twisted.processutil import WorkerProcessEndpoint
 from crossbar.node.native import create_native_worker_client_factory
@@ -443,7 +443,7 @@ class NodeController(NativeProcess):
         args.extend(["--node", str(self._node._node_id)])
         args.extend(["--worker", str(worker_id)])
         args.extend(["--realm", self._realm])
-        args.extend(["--personality", self._node.personality.NAME])
+        args.extend(["--personality", class_name(self._node.personality)])
         args.extend(["--klass", worker_class])
         args.extend(["--loglevel", get_global_log_level()])
         if self._node.options.debug_lifecycle:
