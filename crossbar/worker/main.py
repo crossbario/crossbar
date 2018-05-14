@@ -37,7 +37,6 @@ import six
 
 from twisted.internet.error import ReactorNotRunning
 
-import crossbar
 from crossbar._util import hl, hltype, _add_debug_options
 
 __all__ = ('_run_command_exec_worker',)
@@ -74,14 +73,14 @@ def get_argument_parser(parser=None):
     parser.add_argument('-p',
                         '--personality',
                         required=True,
-                        choices=['standalone', 'fabric', 'fabriccenter'],
-                        help='Crossbar.io personality (required).')
+                        type=six.text_type,
+                        help='Crossbar.io personality _class_ name, eg "crossbar.personality.Personality" (required).')
 
     parser.add_argument('-k',
                         '--klass',
                         required=True,
                         type=six.text_type,
-                        help='Crossbar.io worker class (required).')
+                        help='Crossbar.io worker class, eg "crossbar.worker.container.ContainerController" (required).')
 
     parser.add_argument('-n',
                         '--node',
@@ -103,12 +102,12 @@ def get_argument_parser(parser=None):
     parser.add_argument('--expose_controller',
                         type=bool,
                         default=False,
-                        help='Expose node controller session to all components (this feature requires Crossbar.io Fabric extension).')
+                        help='Expose node controller session to all components (this feature requires crossbarfx).')
 
     parser.add_argument('--expose_shared',
                         type=bool,
                         default=False,
-                        help='Expose a shared object to all components (this feature requires Crossbar.io Fabric extension).')
+                        help='Expose a shared object to all components (this feature requires crossbarfx).')
 
     parser.add_argument('--shutdown',
                         type=six.text_type,
@@ -179,12 +178,15 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     # actually begin logging
     start_logging(None, options.loglevel)
 
-    # now check if we can import the requested personality
-    Personality = crossbar.personalities().get(options.personality, None)
-    if not Personality:
-        raise Exception('logic error: personality "{}" not installed'.format(options.personality))
+    # get personality klass, eg "crossbar.personality.Personality"
+    l = options.personality.split('.')
+    personality_module, personality_klass = '.'.join(l[:-1]), l[-1]
 
-    # eg: crossbar.worker.container.ContainerController
+    # now load the personality module and class
+    _mod = importlib.import_module(personality_module)
+    Personality = getattr(_mod, personality_klass)
+
+    # get worker klass, eg "crossbar.worker.container.ContainerController"
     l = options.klass.split('.')
     worker_module, worker_klass = '.'.join(l[:-1]), l[-1]
 

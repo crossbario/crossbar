@@ -36,11 +36,9 @@ from crossbar._version import __version__
 
 __all__ = ('__version__', 'version', 'run')
 
-_SELECT_MAX_PERSONALITY_AS_DEFAULT = False
-
 _DEFINED_REACTORS = ['select', 'poll', 'epoll', 'kqueue', 'iocp']
 
-_DEFINED_PERSONALITIES = ['standalone', 'fabric', 'fabriccenter']
+_DEFINED_PERSONALITIES = ['standalone', 'edge', 'master']
 
 
 def version():
@@ -118,8 +116,8 @@ def run(args=None, reactor=None, personality=None):
     n.a.                **CROSSBAR_PERSONALITY**  Node personality:
 
                                                   * **standalone**
-                                                  * **fabric**
-                                                  * **fabricenter**
+                                                  * **edge**
+                                                  * **master**
 
     ``--cbdir``         **CROSSBAR_DIR**          Node directory (local directory)
     ``--config``        **CROSSBAR_CONFIG**       Node configuration (local filename)
@@ -182,17 +180,7 @@ def run(args=None, reactor=None, personality=None):
             if personality not in _DEFINED_PERSONALITIES:
                 raise Exception('illegal value "{}" for personality (from CROSSBAR_PERSONALITY environment variable)'.format(personality))
         else:
-            if _SELECT_MAX_PERSONALITY_AS_DEFAULT:
-                if 'fabriccenter' in _personalities:
-                    personality = 'fabriccenter'
-                elif 'fabric' in _personalities:
-                    personality = 'fabric'
-                elif 'standalone' in _personalities:
-                    personality = 'standalone'
-                else:
-                    raise Exception('logic error')
-            else:
-                personality = 'standalone'
+            personality = 'standalone'
 
     if personality not in _personalities:
         raise Exception('fatal: no personality "{}"'.format(personality))
@@ -214,27 +202,25 @@ def personalities():
     #
     # do NOT move the imports here to the module level! (triggers reactor imports)
     #
-    from crossbar.personality import Personality as StandalonePersonality
+    from crossbar import personality as standalone
 
     personality_classes = {
-        'standalone': StandalonePersonality,
+        'standalone': standalone.Personality
     }
 
     try:
-        import crossbarfabric  # noqa
+        from crossbarfx import edge  # noqa
     except ImportError:
         pass
     else:
-        from crossbarfabric.personality import Personality as FabricPersonality
-        personality_classes['fabric'] = FabricPersonality
+        personality_classes['edge'] = edge.Personality
 
     try:
-        import crossbarfabriccenter  # noqa
+        from crossbarfx import master  # noqa
     except ImportError:
         pass
     else:
-        from crossbarfabriccenter.personality import Personality as FabricCenterPersonality
-        personality_classes['fabriccenter'] = FabricCenterPersonality
+        personality_classes['master'] = master.Personality
 
     return personality_classes
 

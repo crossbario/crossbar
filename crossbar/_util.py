@@ -208,22 +208,3 @@ def _add_log_arguments(parser):
                         help="Whether or not to log to file")
 
     return parser
-
-
-_HELP_PERSONALITIES = """Software personality to use:
- "standalone" (Crossbar.io single node, AGPL),
- "fabric" (Crossbar.io mesh node, license required),
- "fabriccenter" (Crossbar.io mesh controller, license required)
-"""
-
-
-def _add_personality_argument(parser, default_personality=None):
-    import crossbar
-
-    personalities = crossbar.personalities().keys()
-
-    return parser.add_argument('--personality',
-                               type=six.text_type,
-                               default=default_personality,
-                               choices=sorted(personalities + ['community']),
-                               help=_HELP_PERSONALITIES)
