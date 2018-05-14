@@ -183,7 +183,7 @@ def run(args=None, reactor=None, personality=None):
             personality = 'standalone'
 
     if personality not in _personalities:
-        raise Exception('fatal: no personality "{}"'.format(personality))
+        raise Exception('fatal: no personality "{}" [{}]'.format(personality, sorted(_personalities.keys())))
 
     # get chosen personality class
     personality_klass = _personalities[personality]

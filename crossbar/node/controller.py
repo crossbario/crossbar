@@ -434,7 +434,7 @@ class NodeController(NativeProcess):
         if getattr(sys, 'frozen', False):
             # if we are inside a frozen crossbar executable, we need to invoke
             # the crossbar executable with a command ("_exec_worker")
-            args = [exe, "_exec_worker"]
+            args = [exe, self._node.personality.NAME, "_exec_worker"]
         else:
             # we are invoking via "-m" so that .pyc files, __pycache__
             # etc work properly. this works everywhere, but frozen executables
