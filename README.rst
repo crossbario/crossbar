@@ -19,8 +19,22 @@ Resources
 JSON Schema for Crossbar.io Configuration File Format
 -----------------------------------------------------
 
-If you're using VSCode or any editor supporting JSON schema's, insert a line at the top of
-your *config.json* that points to a copy of the schema definition file, for example;
+We now have a JSON Schema file available for **config.json**, if you're using VSCode you can make
+use of this by adding the following to your VSCode settings; (File -> Preferences -> Settings)
+
+.. code-block:: json
+
+    "json.schemas": [
+        {
+            "fileMatch": [
+                "/config.json",
+                "/.config.json"
+            ],
+            "url": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json"
+        }
+    ],      
+
+Alternatively, the generic approach is to insert a "$schema" line at the top of your file;
 
 .. code-block:: json
 
@@ -29,8 +43,8 @@ your *config.json* that points to a copy of the schema definition file, for exam
         "version": 2,
 
 This file is currently experimental, but it should give you contextual auto-completion on
-all Crossbar **config.json** syntax, use CTRL+Space in VSCode to specifically activate.
-A permanently hosted URL will appear shortly.
+all Crossbar **config.json** syntax, use CTRL+Space in VSCode to activate IntelliSense.
+
 
 .. |Version| image:: https://img.shields.io/pypi/v/crossbar.svg
    :target: https://pypi.python.org/pypi/crossbar
@@ -55,19 +69,3 @@ A permanently hosted URL will appear shortly.
 
 .. |Bounty 44253224| image:: https://api.bountysource.com/badge/issue?issue_id=44253224
    :target: https://www.bountysource.com/issues/44253224-kerberos-authentication
-
-crossbar.json
--------------   
-
-If you're using VSCode or any editor supporting JSON schema's, insert a line at the top of
-your *config.json* that points to a copy of the schema definition file, for example;
-
-.. code-block:: json
-
-    {
-        "$schema": "file:///home/user/Devel/crossbar/crossbar.json",
-        "version": 2,
-
-This file is currently experimental, but it should give you contextual auto-completion on 
-all Crossbar **config.json** syntax, use CTRL+Space in VSCode to specifically activate. 
-A permanently hosted URL will appear shortly.
