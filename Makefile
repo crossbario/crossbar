@@ -23,6 +23,7 @@ clean:
 	rm -f .coverage.*
 	rm -f .coverage
 	rm -rf ./htmlcov
+	-rm -rf ./_trial*
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
