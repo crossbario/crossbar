@@ -18,9 +18,9 @@ env:
     # https://docs.travis-ci.com/user/encryption-keys/
 
     # AWS_ACCESS_KEY_ID: travis encrypt --org -r crossbario/crossbar AWS_ACCESS_KEY_ID="AKI..."
-    - secure: "DjqDDfQYgP7K9jwn0oka0+UNYSsrqEuvMRBoBiOEuF2Qlp3oey0uUdM9yVSv+4e9SDUR1hkAp0UJZBOYgOHy9e4OJ6G/auib4mWC3JBn8HGkhSbOBojwe1w0EGZGvA3WUo/W21ldI4mYFlEK94Bd0TOY6+Lfb0ij3PVmDCHAoDk="
+    - secure: "FUww60tnJcDPgpZkPQG9YCtG9ugT0UeU94W+Kacsc2eB6JFew577+z56g96TsyB46CD1Ga/OYFxOKI6AIsnA5jH4IK61BJ7lee6Zlpt/OnURez/zI/+bwZllTh0EsvsgBkpr9+rj22dXTOSI87QC7W4KrA1hdknYWTlk41qdZ2o="
     # AWS_SECRET_ACCESS_KEY: travis encrypt --org -r crossbario/crossbar AWS_SECRET_ACCESS_KEY="IcP..."
-    - secure: "A0DxA65DwG8N6MgTqfHLOLAww1eF76xgTZDF4KmOJ1AUCNjAa2TGGT1uDqPUoz30xrLS0iIJ0bFLIx2cQlRlPB9lYwqcsYFLcswNPbUsbEBj3DiCioXx0lWWQQaFbUNQiXiINnMvu95lVWz0pnLLa0PTgua49Kvh9WzVoMoCu1M="
+    - secure: "DpPFKn8WZjHiRKMShdZ9cCYm1Wl0tFMEpr5xNFuFvHop9ROCEa5WcqUHbn8hXyubnW48nBSnuFHeWeoz4h6ws7yBiQaLtON4K5qxB1+U1HKTiig9Lt3vK/duR+MwRG5hEa8DvzdGg2YdvvdpzNO/BjUO8+pg/KbFAOfIPeBgFxs="
 
     # Company AWS S3 bucket where we upload artifacts
     - AWS_DEFAULT_REGION: "eu-west-1"
