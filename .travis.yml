@@ -18,15 +18,16 @@ env:
     # https://docs.travis-ci.com/user/encryption-keys/
 
     # AWS_ACCESS_KEY_ID: travis encrypt --org -r crossbario/crossbar AWS_ACCESS_KEY_ID="AKI..."
-    - secure: "FUww60tnJcDPgpZkPQG9YCtG9ugT0UeU94W+Kacsc2eB6JFew577+z56g96TsyB46CD1Ga/OYFxOKI6AIsnA5jH4IK61BJ7lee6Zlpt/OnURez/zI/+bwZllTh0EsvsgBkpr9+rj22dXTOSI87QC7W4KrA1hdknYWTlk41qdZ2o="
+    - secure: "FeIxDoLgSKFzQeJ9BlWNpIpTSUSDihj0KHEtHI1fY3Cat10yCuQ7bGix3TqIqRzaW/d+ZzTDsHnY6XQwmUsSXX9LdYPwzBuc3ue/EoJVyZtlCnzu/XjkmxdcqRNJ184QzMP5f+Gw1gW5SMEheYQArvD8q65lEZP7sJolcofxuD4="
     # AWS_SECRET_ACCESS_KEY: travis encrypt --org -r crossbario/crossbar AWS_SECRET_ACCESS_KEY="IcP..."
-    - secure: "DpPFKn8WZjHiRKMShdZ9cCYm1Wl0tFMEpr5xNFuFvHop9ROCEa5WcqUHbn8hXyubnW48nBSnuFHeWeoz4h6ws7yBiQaLtON4K5qxB1+U1HKTiig9Lt3vK/duR+MwRG5hEa8DvzdGg2YdvvdpzNO/BjUO8+pg/KbFAOfIPeBgFxs="
+    - secure: "NqEsqpbG4laqjgj3bZKSgs/OK4WEX4MpLjRxIygjoBGvnpPCnu/bRaqR0UBqlMb6tvB5OCMhxe+uNHpTgoJN+l+boS30Pzc9V+N/eUASCZdnoUJ9At35mhY+YMKzZ3qTRqe/nBy6gK52A0ZLuQJZqJMeDMPzW1anZT+p3JVLQGI="
 
     # Company AWS S3 bucket where we upload artifacts
     - AWS_DEFAULT_REGION: "eu-west-1"
     - AWS_S3_BUCKET_NAME: "crossbar.io"
 
 before_install:
+  - sh -c 'env | grep AWS'
   # set up awscli package
   - pip install awscli
   - export PATH=$PATH:$HOME/.local/bin
