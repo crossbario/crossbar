@@ -81,7 +81,7 @@ publish: clean
 	python setup.py sdist bdist_wheel
 	twine upload dist/*
 
-test: flake8
+test_trial: flake8
 	trial crossbar
 
 test_full:
@@ -102,8 +102,8 @@ gen_ssh_keys:
 test_coverage:
 	tox -e coverage .
 
-test_tox:
-	tox -e flake8,py36-unpinned-trial,py36-cli,py36-examples,coverage .
+test:
+	tox -e sphinx,flake8,py36-unpinned-trial,py36-cli,py36-examples,coverage .
 
 test_bandit:
 	tox -e bandit .
