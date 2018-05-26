@@ -19,11 +19,11 @@ env:
 
     # AWS_ACCESS_KEY_ID: travis encrypt --org -r crossbario/crossbar AWS_ACCESS_KEY_ID="AKI..."
     - secure: "DjqDDfQYgP7K9jwn0oka0+UNYSsrqEuvMRBoBiOEuF2Qlp3oey0uUdM9yVSv+4e9SDUR1hkAp0UJZBOYgOHy9e4OJ6G/auib4mWC3JBn8HGkhSbOBojwe1w0EGZGvA3WUo/W21ldI4mYFlEK94Bd0TOY6+Lfb0ij3PVmDCHAoDk="
-    # AWS_SECRET_ACCESS_KEY:   travis encrypt --org -r crossbario/crossbar AWS_SECRET_ACCESS_KEY="IcP..."
+    # AWS_SECRET_ACCESS_KEY: travis encrypt --org -r crossbario/crossbar AWS_SECRET_ACCESS_KEY="IcP..."
     - secure: "A0DxA65DwG8N6MgTqfHLOLAww1eF76xgTZDF4KmOJ1AUCNjAa2TGGT1uDqPUoz30xrLS0iIJ0bFLIx2cQlRlPB9lYwqcsYFLcswNPbUsbEBj3DiCioXx0lWWQQaFbUNQiXiINnMvu95lVWz0pnLLa0PTgua49Kvh9WzVoMoCu1M="
 
     # Company AWS S3 bucket where we upload artifacts
-    - AWS_DEFAULT_REGION: "eu-central-1"
+    - AWS_DEFAULT_REGION: "eu-west-1"
     - AWS_S3_BUCKET_NAME: "crossbar.io"
 
 before_install:
