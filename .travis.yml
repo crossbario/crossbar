@@ -17,10 +17,8 @@ env:
   global:
     # https://docs.travis-ci.com/user/encryption-keys/
 
-    # AWS_ACCESS_KEY_ID: travis encrypt --org -r crossbario/crossbar AWS_ACCESS_KEY_ID="AKI..."
-    - secure: "FeIxDoLgSKFzQeJ9BlWNpIpTSUSDihj0KHEtHI1fY3Cat10yCuQ7bGix3TqIqRzaW/d+ZzTDsHnY6XQwmUsSXX9LdYPwzBuc3ue/EoJVyZtlCnzu/XjkmxdcqRNJ184QzMP5f+Gw1gW5SMEheYQArvD8q65lEZP7sJolcofxuD4="
-    # AWS_SECRET_ACCESS_KEY: travis encrypt --org -r crossbario/crossbar AWS_SECRET_ACCESS_KEY="IcP..."
-    - secure: "NqEsqpbG4laqjgj3bZKSgs/OK4WEX4MpLjRxIygjoBGvnpPCnu/bRaqR0UBqlMb6tvB5OCMhxe+uNHpTgoJN+l+boS30Pzc9V+N/eUASCZdnoUJ9At35mhY+YMKzZ3qTRqe/nBy6gK52A0ZLuQJZqJMeDMPzW1anZT+p3JVLQGI="
+    - secure: "bhd4WT327gtt8Q73ZhKK08hfurSDo6zk8z1nmorQAGKC3EFtuCDeIz+zRp7011CvuIpFhWsuqqAxbpbNGEO6sp8nm/cdLRf/bCG3lKSndYAJew02OU7eAweJNaRfAROkxEnmRHdwaIZB5p62fARjfLj+/Bxr+cIj7GCSuY9XoqX/ozIhVFUl+ypQRrOGkfdsreCkivp3TglTB2wSp23/2o0E6iO4AjTvQHDEQhZ9VNqcMrk4wR0KQ5e0aPdEguRfZzpxUTluU6nTeDknGT/Va7SmLtdjFE/ViAi1XYyMvCMyhtAhhIgghK9OYnDJq422AtVHskTexPG5UjZnN24kl86g4KWweObqZoQQCfpttBh3u1hmw56/LFdqRZtu6ji9wxm0xlr7vCM6G1q742JJHyNiMZFdqybszD3BcLWUGWsnP9o3FhFsU34YrANtus1wCqolaETy20axs81xKSh1/PDHVXVRvndIYPnloJIcTeUiYGW1ysRltfKkXQiQ1Vi/2spAks2Pt7zXpuQv2aLG3Rdjwv8DLVpQZtSk2Q43pjSTlcxnH64Aml/n8XBwjMHsKw5jdM38Oi9lf69vKeDEiDvFdbCn2ZobC2audJ2LAVVm+A+NNYiGdgz1DP9hSCIS2d1EIn3uOC04WDVxG3+tq7RZbNSDjCe1vBQHobS+rDM="
+    - secure: "DgYuXkAQnk5UoqshMSTFwErpndRa95TgNyXoj+VmlUdGhuQ9Nqlmy6fRKciZPciY6UKpp83/32RTE/ESH9c48Rfk2JH8exRS3FQL5AwFRBWjdiv4JSYVmBsDe7sqdbZEu7ohhDtY6lBquNxszG0DgbwmctrNRM2QTxrDD5nfMfykcbRnk3z6SdF2J8tYjGXZL9WlrOM1Jg7utQzmKswvfKijoZQ6wd9R9KcAa3gO69qZ/wEELu+xF0iS3Y5Y9za7cd5bvj7ho0Zykx970pjQbqnQfD0OoT69JA2gXNFfC7ppj0y6cmjQEDTit9seF16RzS09U9BD9dAdNFg+hCGO2N3LDhnxv49qBijvRL5iUcM68CistIMsXluBjAFf7SPVCfJVpJWkwswInK19+Iv0UZUtBXGOWK4O0zi+9TGHhM5M2+tQylBM56AZ/Wg4vaQTijBaRgSMRmnTkCCGxPFX1VfUBkD9VlgYEinfkxD9N3hzi3wcSSrSOTwMtzromNn3JOCAUWZihduHDit1IHd0dquoF1K3F8bQAksZ/XH0MokryK04Ft5QCWbT6R9+3+wqRgqbWiz8hnMpqobarTH7cZZ0LseSyl5+rzYqk6kDb/cJFbNsNNBKynlh0F4couXGrmKeBm+1WPC0K0U+CN05LyemIa16SQWoqoqvDgbUSI4="
 
     # Company AWS S3 bucket where we upload artifacts
     - AWS_DEFAULT_REGION: "eu-west-1"
