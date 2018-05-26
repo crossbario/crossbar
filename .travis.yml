@@ -27,7 +27,9 @@ env:
     - AWS_S3_BUCKET_NAME: "crossbar.io"
 
 before_install:
-  - sh -c 'env | grep AWS'
+  # only show number of env vars .. should be 4!
+  - sh -c 'env | grep AWS | wc -l'
+
   # set up awscli package
   - pip install awscli
   - export PATH=$PATH:$HOME/.local/bin
