@@ -30,9 +30,19 @@ clean:
 	# Learn to love the shell! http://unix.stackexchange.com/a/115869/52500
 	find . \( -name "*__pycache__" -type d \) -prune -exec rm -rf {} +
 
-# build documentation
-docs:
-	sphinx-build -b html ./docs ./docs/_build
+
+# Targets for Sphinx-based documentation
+#
+docs_clean:
+	-rm -rf ./rtd/_build
+
+docs_builds:
+	sphinx-build -b html rtd rtd/_build
+
+# spellcheck the docs
+docs_spelling:
+	sphinx-build -b spelling -d rtd/_build/doctrees rtd rtd/_build/spelling
+
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!
 freeze: clean

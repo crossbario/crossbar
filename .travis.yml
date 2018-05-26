@@ -1,70 +1,152 @@
-language: python
-python:
-  - 3.6
 sudo: false
+dist: trusty
+
+language: python
+
+python:
+  - "3.6"
+
+addons:
+  apt:
+    update: true
+    packages:
+      # needed for pyenchant, needed for sphinx-spellcheck
+      - libenchant-dev
+
+env:
+  global:
+    # https://docs.travis-ci.com/user/encryption-keys/
+
+    # AWS_ACCESS_KEY_ID: travis encrypt --org -r crossbario/crossbar AWS_ACCESS_KEY_ID="AKI..."
+    - secure: "DjqDDfQYgP7K9jwn0oka0+UNYSsrqEuvMRBoBiOEuF2Qlp3oey0uUdM9yVSv+4e9SDUR1hkAp0UJZBOYgOHy9e4OJ6G/auib4mWC3JBn8HGkhSbOBojwe1w0EGZGvA3WUo/W21ldI4mYFlEK94Bd0TOY6+Lfb0ij3PVmDCHAoDk="
+    # AWS_SECRET_ACCESS_KEY:   travis encrypt --org -r crossbario/crossbar AWS_SECRET_ACCESS_KEY="IcP..."
+    - secure: "A0DxA65DwG8N6MgTqfHLOLAww1eF76xgTZDF4KmOJ1AUCNjAa2TGGT1uDqPUoz30xrLS0iIJ0bFLIx2cQlRlPB9lYwqcsYFLcswNPbUsbEBj3DiCioXx0lWWQQaFbUNQiXiINnMvu95lVWz0pnLLa0PTgua49Kvh9WzVoMoCu1M="
+
+    # Company AWS S3 bucket where we upload artifacts
+    - AWS_DEFAULT_REGION: "eu-central-1"
+    - AWS_S3_BUCKET_NAME: "crossbar.io"
+
+before_install:
+  # set up awscli package
+  - pip install awscli
+  - export PATH=$PATH:$HOME/.local/bin
+  - which aws
+  - aws --version
+  - aws s3 ls ${AWS_S3_BUCKET_NAME}
+
+  # build ID (eg, "20180513-28114a1")
+  - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
+
 install:
-  - pip install -U pip setuptools wheel
-  - pip install -U tox codecov
+  - pip install -U pip setuptools wheel tox codecov
+
 script:
   - tox -c tox.ini -e $TOX_ENV
-after_success:
-  - codecov
-notifications:
-   irc:
-      channels:
-         - "irc.freenode.org#autobahn"
-         - "irc.freenode.org#crossbar"
-      use_notice: true
-      skip_join: true
+
 cache:
   directories:
     - $HOME/.cache/pip
+
 matrix:
   fast_finish: true
 
   include:
     - python: 3.6
-      env: TOX_ENV=flake8
+      env: TOX_ENV=sphinx
 
-    - python: 3.6
-      env: TOX_ENV=bandit
+    # - python: 3.6
+    #   env: TOX_ENV=flake8
 
-    - python: 3.6
-      env: TOX_ENV=coverage
+    # - python: 3.6
+    #   env: TOX_ENV=bandit
 
-    - python: 3.6
-      env: TOX_ENV=py36-cli
-    - python: pypy3
-      env: TOX_ENV=pypy3-cli
+    # - python: 3.6
+    #   env: TOX_ENV=coverage
 
-    - python: 3.6
-      env: TOX_ENV=py36-examples
-    - python: pypy3
-      env: TOX_ENV=pypy3-examples
+    # - python: 3.6
+    #   env: TOX_ENV=py36-cli
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-cli
 
+    # - python: 3.6
+    #   env: TOX_ENV=py36-examples
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-examples
+
+    # - python: 3.6
+    #   env: TOX_ENV=py36-unpinned-trial
+    # - python: 3.6
+    #   env: TOX_ENV=py36-pinned-trial
+    # - python: 3.6
+    #   env: TOX_ENV=py36-abtrunk-trial
+
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-unpinned-trial
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-pinned-trial
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-abtrunk-trial
+
+    # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
+    - stage: deploy
+      python: "3.6"
+      on:
+        repo: crossbario/crossbar
+        branch: master
+        # tags: true
+      skip_cleanup: true
+      provider: script
+      script: pwd && ls -la && sh .travis-deploy.sh
+
+      # It is important to note that jobs do not share storage, as each job runs in a fresh VM or container.
+      # If your jobs need to share files (e.g., using build artifacts from the “Test” stage for deployment
+      # in the subsequent “Deploy” stage), you need to use an external storage mechanism such as
+      # S3 and a remote scp server.
+      #
+      # https://docs.travis-ci.com/user/build-stages/#Data-persistence-between-stages-and-jobs
+
+  # we allow failures when not using autobahn trunk, for cases
+  # where we depend on a new feature in autobahn here in crossbar
+  allow_failures:
     - python: 3.6
       env: TOX_ENV=py36-unpinned-trial
     - python: 3.6
       env: TOX_ENV=py36-pinned-trial
-    - python: 3.6
-      env: TOX_ENV=py36-abtrunk-trial
 
     - python: pypy3
       env: TOX_ENV=pypy3-unpinned-trial
     - python: pypy3
       env: TOX_ENV=pypy3-pinned-trial
-    - python: pypy3
-      env: TOX_ENV=pypy3-abtrunk-trial
 
-  # we allow failures when not using autobahn trunk, for cases
-  # where we depend on a new feature in autobahn here in crossbar
-  allow_failures:
-      - python: 3.6
-        env: TOX_ENV=py36-unpinned-trial
-      - python: 3.6
-        env: TOX_ENV=py36-pinned-trial
+after_success:
+  - codecov
 
-      - python: pypy3
-        env: TOX_ENV=pypy3-unpinned-trial
-      - python: pypy3
-        env: TOX_ENV=pypy3-pinned-trial
+# CI notifications
+notifications:
+  # IRC: chat messages on #crossbar-ci @ freenode
+  irc:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    channels:
+      - "irc.freenode.org#crossbar-ci"
+    use_notice: false
+    skip_join: false
+
+  # Gitter: activity feed on https://gitter.im/crossbario/ci
+  webhooks:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    urls:
+      # travis encrypt --org --repo crossbario/crossbar "https://webhooks.gitter.im/e/7ef..."
+      - secure: "Wgw066oYjEUmkD2z8uVUcz/yTF8Iz+vQX/XRPobN/Jq8Fxv4i9NYWrAbZ7iEDZxYWhZk95BtBbI0MkhHj49cr1ijxqkyikH6gucZRtQTyBEZHmbMwAHnZEND0PuzFFOZwTRftcqauc/UHOQN8W/BO5bd53tyS4eCGV5QE8FDhhM="
+
+  # Slack: post feed on https://crossbario.slack.com/ in channel #ci
+  slack:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    rooms:
+      # travis encrypt --org --repo crossbario/crossbar "crossbario:FYg..."
+      - secure: "lH4zZ30xaRyPlI9kixw8r8vnYTypbh4/ogN4xbK4c3UOZilEJqFZG08OpMZJUUfIBJpMQLgCevJmXEiYqDh9gr7crPiFV1yWU7+RXrLRRh/EQniv/zMF5JaNkRr6xcoifcvLg2jx043W+zUKAnJshV8Aikn06OZGPOa1tvFJmC0="
