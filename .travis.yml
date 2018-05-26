@@ -69,24 +69,6 @@ matrix:
     # - python: pypy3
     #   env: TOX_ENV=pypy3-abtrunk-trial
 
-    # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
-    - stage: deploy
-      python: "3.6"
-      on:
-        repo: crossbario/crossbar
-        branch: master
-        # tags: true
-      skip_cleanup: true
-      provider: script
-      script: pwd && ls -la && sh .travis-deploy.sh
-
-      # It is important to note that jobs do not share storage, as each job runs in a fresh VM or container.
-      # If your jobs need to share files (e.g., using build artifacts from the “Test” stage for deployment
-      # in the subsequent “Deploy” stage), you need to use an external storage mechanism such as
-      # S3 and a remote scp server.
-      #
-      # https://docs.travis-ci.com/user/build-stages/#Data-persistence-between-stages-and-jobs
-
   # we allow failures when not using autobahn trunk, for cases
   # where we depend on a new feature in autobahn here in crossbar
   allow_failures:
@@ -102,6 +84,15 @@ matrix:
 
 after_success:
   - codecov
+
+deploy:
+  on:
+    repo: crossbario/crossbar
+    branch: master
+    # tags: true
+  skip_cleanup: true
+  provider: script
+  script: pwd && ls -la && sh .travis-deploy.sh
 
 # CI notifications
 notifications:
