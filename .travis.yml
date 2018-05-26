@@ -14,15 +14,7 @@ addons:
       - libenchant-dev
 
 before_install:
-  # only show number of env vars .. should be 4!
-  - sh -c 'env | grep AWS | wc -l'
-
-  # set up awscli package
-  - pip install awscli
   - export PATH=$PATH:$HOME/.local/bin
-  - which aws
-  - aws --version
-  - aws s3 ls ${AWS_S3_BUCKET_NAME}
 
   # build ID (eg, "20180513-28114a1")
   - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
