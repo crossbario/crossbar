@@ -1,28 +1,41 @@
-language: python
-python:
-  - 3.6
 sudo: false
+dist: trusty
+
+language: python
+
+python:
+  - "3.6"
+
+addons:
+  apt:
+    update: true
+    packages:
+      # needed for pyenchant, needed for sphinx-spellcheck
+      - libenchant-dev
+
+before_install:
+  - export PATH=$PATH:$HOME/.local/bin
+
+  # build ID (eg, "20180513-28114a1")
+  - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
+
 install:
-  - pip install -U pip setuptools wheel
-  - pip install -U tox codecov
+  - pip install -U pip setuptools wheel tox codecov
+
 script:
   - tox -c tox.ini -e $TOX_ENV
-after_success:
-  - codecov
-notifications:
-   irc:
-      channels:
-         - "irc.freenode.org#autobahn"
-         - "irc.freenode.org#crossbar"
-      use_notice: true
-      skip_join: true
+
 cache:
   directories:
     - $HOME/.cache/pip
+
 matrix:
   fast_finish: true
 
   include:
+    - python: 3.6
+      env: TOX_ENV=sphinx
+
     - python: 3.6
       env: TOX_ENV=flake8
 
@@ -59,12 +72,54 @@ matrix:
   # we allow failures when not using autobahn trunk, for cases
   # where we depend on a new feature in autobahn here in crossbar
   allow_failures:
-      - python: 3.6
-        env: TOX_ENV=py36-unpinned-trial
-      - python: 3.6
-        env: TOX_ENV=py36-pinned-trial
+    - python: 3.6
+      env: TOX_ENV=py36-unpinned-trial
+    - python: 3.6
+      env: TOX_ENV=py36-pinned-trial
 
-      - python: pypy3
-        env: TOX_ENV=pypy3-unpinned-trial
-      - python: pypy3
-        env: TOX_ENV=pypy3-pinned-trial
+    - python: pypy3
+      env: TOX_ENV=pypy3-unpinned-trial
+    - python: pypy3
+      env: TOX_ENV=pypy3-pinned-trial
+
+after_success:
+  - codecov
+
+deploy:
+  on:
+    repo: crossbario/crossbar
+    branch: master
+    # tags: true
+  skip_cleanup: true
+  provider: script
+  script: pwd && ls -la && sh .travis-deploy.sh
+
+# CI notifications
+notifications:
+  # IRC: chat messages on #crossbar-ci @ freenode
+  irc:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    channels:
+      - "irc.freenode.org#crossbar-ci"
+    use_notice: false
+    skip_join: false
+
+  # Gitter: activity feed on https://gitter.im/crossbario/ci
+  webhooks:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    urls:
+      # travis encrypt --org --repo crossbario/crossbar "https://webhooks.gitter.im/e/7ef..."
+      - secure: "Wgw066oYjEUmkD2z8uVUcz/yTF8Iz+vQX/XRPobN/Jq8Fxv4i9NYWrAbZ7iEDZxYWhZk95BtBbI0MkhHj49cr1ijxqkyikH6gucZRtQTyBEZHmbMwAHnZEND0PuzFFOZwTRftcqauc/UHOQN8W/BO5bd53tyS4eCGV5QE8FDhhM="
+
+  # Slack: post feed on https://crossbario.slack.com/ in channel #ci
+  slack:
+    on_success: always  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: always    # options: [always|never|change] default: always
+    rooms:
+      # travis encrypt --org --repo crossbario/crossbar "crossbario:FYg..."
+      - secure: "lH4zZ30xaRyPlI9kixw8r8vnYTypbh4/ogN4xbK4c3UOZilEJqFZG08OpMZJUUfIBJpMQLgCevJmXEiYqDh9gr7crPiFV1yWU7+RXrLRRh/EQniv/zMF5JaNkRr6xcoifcvLg2jx043W+zUKAnJshV8Aikn06OZGPOa1tvFJmC0="
