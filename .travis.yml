@@ -34,40 +34,40 @@ matrix:
 
   include:
     - python: 3.6
-      env: TOX_ENV=sphinx
-
-    - python: 3.6
       env: TOX_ENV=flake8
 
-    - python: 3.6
-      env: TOX_ENV=bandit
+    # - python: 3.6
+    #   env: TOX_ENV=sphinx
 
-    - python: 3.6
-      env: TOX_ENV=coverage
+    # - python: 3.6
+    #   env: TOX_ENV=bandit
 
-    - python: 3.6
-      env: TOX_ENV=py36-cli
-    - python: pypy3
-      env: TOX_ENV=pypy3-cli
+    # - python: 3.6
+    #   env: TOX_ENV=coverage
 
-    - python: 3.6
-      env: TOX_ENV=py36-examples
-    - python: pypy3
-      env: TOX_ENV=pypy3-examples
+    # - python: 3.6
+    #   env: TOX_ENV=py36-cli
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-cli
 
-    - python: 3.6
-      env: TOX_ENV=py36-unpinned-trial
-    - python: 3.6
-      env: TOX_ENV=py36-pinned-trial
-    - python: 3.6
-      env: TOX_ENV=py36-abtrunk-trial
+    # - python: 3.6
+    #   env: TOX_ENV=py36-examples
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-examples
 
-    - python: pypy3
-      env: TOX_ENV=pypy3-unpinned-trial
-    - python: pypy3
-      env: TOX_ENV=pypy3-pinned-trial
-    - python: pypy3
-      env: TOX_ENV=pypy3-abtrunk-trial
+    # - python: 3.6
+    #   env: TOX_ENV=py36-unpinned-trial
+    # - python: 3.6
+    #   env: TOX_ENV=py36-pinned-trial
+    # - python: 3.6
+    #   env: TOX_ENV=py36-abtrunk-trial
+
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-unpinned-trial
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-pinned-trial
+    # - python: pypy3
+    #   env: TOX_ENV=pypy3-abtrunk-trial
 
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
     - stage: deploy
