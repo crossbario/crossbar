@@ -19,7 +19,8 @@ which aws
 aws --version
 aws s3 ls ${AWS_S3_BUCKET_NAME}
 
-# build and deploy latest docs
+# build and deploy latest docs: for now, this is hosted under
+# https://s3.eu-central-1.amazonaws.com/download.crossbario.com/docs/crossbar/index.html
 echo 'building and uploading docs ..'
 tox -c tox.ini -e sphinx
 #aws s3 cp --recursive --acl public-read ${HOME}/crossbar-docs s3://${AWS_S3_BUCKET_NAME}/docs
