@@ -5,6 +5,7 @@ toc: [Documentation, Programming Guide, ChangeLog]
 Crossbar.io master (unreleased)
 ===============================
 
+* bug: 1324 validate router IDs in config
 * ...
 
 Crossbar.io 18.3.1 (2018-03-05)

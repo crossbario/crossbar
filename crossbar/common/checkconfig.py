@@ -2642,6 +2642,9 @@ def check_router(personality, router, ignore=[]):
         if k not in ['id', 'type', 'options', 'manhole', 'realms', 'transports', 'components', 'connections'] + ignore:
             raise InvalidConfigException("encountered unknown attribute '{}' in router configuration".format(k))
 
+    if 'id' in router:
+        check_id(router['id'])
+
     # check stuff common to all native workers
     #
     if 'manhole' in router:
