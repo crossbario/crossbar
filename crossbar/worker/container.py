@@ -243,6 +243,47 @@ class ContainerController(WorkerController):
                     session.disconnect()
                 session._swallow_error = panic
 
+                #   This is for RAW sockets where the onClose handler is in protocol session
+                #   rather than the protocol itself.
+                #
+                def close_wrapper(original_handler, was_clean):
+                    """
+                    Handle component shutdown (onClose)
+                    """
+                    return_value = original_handler(was_clean)
+                    #
+                    #   Make sure we're still open for business ...
+                    #
+                    if component_id not in self.components:
+                        self.log.warn('Component already closed ({})'.format(component_id))
+                        return return_value
+                    #
+                    #   Report the exit type
+                    #
+                    if was_clean:
+                        self.log.info('Component shutdown Ok ({})'.format(component_id))
+                    else:
+                        self.log.error('Component shutdown Errored ({})'.format(omponent_id))
+                    #
+                    #   Tidy up .. self.components is cleaned up in "stop_component"
+                    #
+                    component = self.components[component_id]                    
+                    self._publish_component_stop(component)
+                    component._stopped.callback(component.marshal())
+                    #
+                    #   Report and exit ...
+                    #                    
+                    self.log.info('Container hosting ({}) components, exit mode is ({})'.format(
+                                  len(self.components),
+                                  self._exit_mode))
+                    if not self.components and self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
+                        self.log.info('Stopping Container')
+                        self.shutdown()
+                    return return_value
+                #
+                #   Assign onClose handler
+                #
+                session.onClose = partial(close_wrapper, session.onClose)
                 return session
 
             except Exception:
@@ -284,7 +325,7 @@ class ContainerController(WorkerController):
             component = ContainerComponent(component_id, config, proto, None)
             self.components[component_id] = component
 
-            # FIXME: this is a total hack.
+            #   Protocol Session based close_wrapper
             #
             def close_wrapper(orig, was_clean, code, reason):
                 """
@@ -322,33 +363,22 @@ class ContainerController(WorkerController):
 
                 return r
 
-            # FIXME: due to history, the following is currently the case:
-            # ITransportHandler.onClose is implemented directly on WampWebSocketClientProtocol,
-            # while with WampRawSocketClientProtocol, the ITransportHandler is implemented
-            # by the object living on proto._session
-            #
             if isinstance(proto, WampWebSocketClientProtocol):
                 proto.onClose = partial(close_wrapper, proto.onClose)
-
             elif isinstance(proto, WampRawSocketClientProtocol):
-                # FIXME: doesn't work without guard, since proto_.session is not yet there when
-                # proto comes into existance ..
-                if proto._session:
-                    proto._session.onClose = partial(close_wrapper, proto._session.onClose)
+                # FIXME: make this a debug
+                self.log.info('rawsocket: attaching onClose to protocol_session')
             else:
                 raise Exception(u'logic error')
-
+            #
             # publish event "on_component_start" to all but the caller
             #
             uri = self._uri_prefix + u'.on_component_started'
-
             component_started = {
                 u'id': component_id,
                 u'config': config
             }
-
             self.publish(uri, component_started, options=PublishOptions(exclude=details.caller))
-
             return component_started
 
         def on_connect_error(err):
@@ -463,7 +493,6 @@ class ContainerController(WorkerController):
                 u'authrole': details.caller_authrole if details else None,
             }
         }
-
         # the component.proto above normally already cleaned it up
         if component_id in self.components:
             del self.components[component_id]
