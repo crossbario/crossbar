@@ -267,7 +267,7 @@ class ContainerController(WorkerController):
                     #
                     #   Tidy up .. self.components is cleaned up in "stop_component"
                     #
-                    component = self.components[component_id]                    
+                    component = self.components[component_id]
                     self._publish_component_stop(component)
                     component._stopped.callback(component.marshal())
                     #
