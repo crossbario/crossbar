@@ -263,7 +263,7 @@ class ContainerController(WorkerController):
                     if was_clean:
                         self.log.info('Component shutdown Ok ({})'.format(component_id))
                     else:
-                        self.log.error('Component shutdown Errored ({})'.format(omponent_id))
+                        self.log.error('Component shutdown Errored ({})'.format(component_id))
                     #
                     #   Tidy up .. self.components is cleaned up in "stop_component"
                     #
@@ -272,7 +272,7 @@ class ContainerController(WorkerController):
                     component._stopped.callback(component.marshal())
                     #
                     #   Report and exit ...
-                    #                    
+                    #
                     self.log.info('Container hosting ({}) components, exit mode is ({})'.format(
                                   len(self.components),
                                   self._exit_mode))
