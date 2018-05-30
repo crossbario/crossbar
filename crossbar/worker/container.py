@@ -228,13 +228,63 @@ class ContainerController(WorkerController):
         if reload_modules:
             self._module_tracker.reload()
 
+        #   Generic onClose handler, attaches to the proto for Websockets and for
+        #   session.proto for Rawsockets ...
+        #
+        #   FIXME: basically "all" we're doing here (in both cases) is attaching an "on close" 
+        #   listener; the wrapper is a hack around the fact that there's no such thing as "an on-close listener" :/
+        #
+        def close_wrapper(original_handler, was_clean, code=0, reason=None):
+            """
+            Handle component shutdown (onClose)
+            """
+            return_value = original_handler(was_clean)
+            #
+            #   Make sure we're still open for business ...
+            #
+            if component_id not in self.components:
+                self.log.warn('Component already closed ({})'.format(component_id))
+                return return_value
+            #
+            #   Report the exit type
+            #
+            if was_clean:
+                self.log.info('Close connection to component ({component}) with # {code}',
+                              component=component_id,
+                              code=code)
+            else:
+                self.log.error('Lost connection to component ({component}) with # {code}',
+                               component=component_id,
+                               code=code)
+            #
+            #   Report an error reason if we have one ...
+            #
+            if reason:
+                self.log.warn('Container close reported: {reason}', reason=str(reason))
+            #
+            #   Publish a 'stop' event for the component, then signal the _stopped Deferred() so the
+            #   remaining parts of 'stop_component' will unblock and complete ...
+            #
+            self._publish_component_stop(self.components[component_id])
+            self.components[component_id]._stopped.callback({})
+            #
+            #   Report and exit ...
+            #
+            self.log.info('Container hosting ({count}) components, exit mode is ({code})',
+                          count=len(self.components),
+                          code=self._exit_mode)
+            if not self.components and self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
+                self.log.info('Stopping Container')
+                self.shutdown()
+            return return_value
+
         # WAMP application session factory
         #
         def create_session():
             try:
                 session = create_component(component_config)
-
                 # any exception spilling out from user code in onXXX handlers is fatal!
+
                 def panic(fail, msg):
                     self.log.error(
                         "Fatal error in component: {msg} - {log_failure.value}",
@@ -242,7 +292,7 @@ class ContainerController(WorkerController):
                     )
                     session.disconnect()
                 session._swallow_error = panic
-
+                session.onClose = partial(close_wrapper, session.onClose)
                 return session
 
             except Exception:
@@ -283,72 +333,20 @@ class ContainerController(WorkerController):
         def on_connect_success(proto):
             component = ContainerComponent(component_id, config, proto, None)
             self.components[component_id] = component
-
-            # FIXME: this is a total hack.
-            #
-            def close_wrapper(orig, was_clean, code, reason):
-                """
-                Wrap our protocol's onClose so we can tell when the component
-                exits.
-                """
-                r = orig(was_clean, code, reason)
-                if component.id not in self.components:
-                    self.log.warn("Component '{id}' closed, but not in set.",
-                                  id=component.id)
-                    return r
-
-                if was_clean:
-                    self.log.info("Closed connection to '{id}' with code '{code}'",
-                                  id=component.id, code=code)
-                else:
-                    self.log.error("Lost connection to component '{id}' with code '{code}'.",
-                                   id=component.id, code=code)
-
-                if reason:
-                    self.log.warn(str(reason))
-
-                del self.components[component.id]
-                self._publish_component_stop(component)
-                component._stopped.callback(component.marshal())
-
-                if not self.components:
-                    if self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
-                        self.log.info("Container is hosting no more components: stopping container in exit mode <{exit_mode}> ...", exit_mode=self._exit_mode)
-                        self.shutdown()
-                    else:
-                        self.log.info("Container is hosting no more components: continue running in exit mode <{exit_mode}>", exit_mode=self._exit_mode)
-                else:
-                    self.log.info("Container is still hosting {component_count} components: continue running in exit mode <{exit_mode}>", exit_mode=self._exit_mode, component_count=len(self.components))
-
-                return r
-
-            # FIXME: due to history, the following is currently the case:
-            # ITransportHandler.onClose is implemented directly on WampWebSocketClientProtocol,
-            # while with WampRawSocketClientProtocol, the ITransportHandler is implemented
-            # by the object living on proto._session
-            #
+            # for RawSockets the onClose handler is attached to session.proto (above)
             if isinstance(proto, WampWebSocketClientProtocol):
                 proto.onClose = partial(close_wrapper, proto.onClose)
-
-            elif isinstance(proto, WampRawSocketClientProtocol):
-                # FIXME: doesn't work without guard, since proto_.session is not yet there when
-                # proto comes into existance ..
-                if proto._session:
-                    proto._session.onClose = partial(close_wrapper, proto._session.onClose)
-            else:
+            elif not isinstance(proto, WampRawSocketClientProtocol):
                 raise Exception(u'logic error')
-
+            #
             # publish event "on_component_start" to all but the caller
             #
             uri = self._uri_prefix + u'.on_component_started'
-
             component_started = {
                 u'id': component_id,
                 u'config': config
             }
-
             self.publish(uri, component_started, options=PublishOptions(exclude=details.caller))
-
             return component_started
 
         def on_connect_error(err):
@@ -463,7 +461,6 @@ class ContainerController(WorkerController):
                 u'authrole': details.caller_authrole if details else None,
             }
         }
-
         # the component.proto above normally already cleaned it up
         if component_id in self.components:
             del self.components[component_id]

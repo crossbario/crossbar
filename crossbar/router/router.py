@@ -507,6 +507,7 @@ class RouterFactory(object):
             raise Exception('no router started for realm "{}"'.format(realm))
 
         router = self._routers[realm]
+        del self._routers[realm]
         detached_sessions = router.detach()
 
         return detached_sessions
