@@ -231,6 +231,9 @@ class ContainerController(WorkerController):
         #   Generic onClose handler, attaches to the proto for Websockets and for
         #   session.proto for Rawsockets ...
         #
+        #   FIXME: basically "all" we're doing here (in both cases) is attaching an "on close" 
+        #   listener; the wrapper is a hack around the fact that there's no such thing as "an on-close listener" :/
+        #
         def close_wrapper(original_handler, was_clean, code=0, reason=None):
             """
             Handle component shutdown (onClose)
@@ -246,14 +249,18 @@ class ContainerController(WorkerController):
             #   Report the exit type
             #
             if was_clean:
-                self.log.info('Close connection to component ({}) with # {}'.format(component_id, code))
+                self.log.info('Close connection to component ({component}) with # {code}',
+                              component=component_id,
+                              code=code)
             else:
-                self.log.error('Lost connection to component ({}) with # {}'.format(component_id, code))
+                self.log.error('Lost connection to component ({component}) with # {code}',
+                               component=component_id,
+                               code=code)
             #
             #   Report an error reason if we have one ...
             #
             if reason:
-                self.log.warn(str(reason))
+                self.log.warn('Container close reported: {reason}', reason=str(reason))
             #
             #   Publish a 'stop' event for the component, then signal the _stopped Deferred() so the
             #   remaining parts of 'stop_component' will unblock and complete ...
@@ -263,9 +270,9 @@ class ContainerController(WorkerController):
             #
             #   Report and exit ...
             #
-            self.log.info('Container hosting ({}) components, exit mode is ({})'.format(
-                          len(self.components),
-                          self._exit_mode))
+            self.log.info('Container hosting ({count}) components, exit mode is ({code})',
+                          count=len(self.components),
+                          code=self._exit_mode)
             if not self.components and self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
                 self.log.info('Stopping Container')
                 self.shutdown()
