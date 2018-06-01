@@ -78,6 +78,7 @@ matrix:
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
     - stage: deploy
       python: "3.6"
+      if: branch = master
       #on:
       #  repo: crossbario/crossbar
       #  branch: master
