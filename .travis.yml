@@ -29,6 +29,12 @@ cache:
   directories:
     - $HOME/.cache/pip
 
+# https://blog.travis-ci.com/2017-09-12-build-stages-order-and-conditions
+stages:
+  - test
+  - name: deploy
+    if: branch = master
+
 matrix:
   fast_finish: true
 
@@ -72,10 +78,10 @@ matrix:
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
     - stage: deploy
       python: "3.6"
-      on:
-        repo: crossbario/crossbar
-        branch: master
-        # tags: true
+      #on:
+      #  repo: crossbario/crossbar
+      #  branch: master
+      #  # tags: true
       skip_cleanup: true
       provider: script
       script: pwd && ls -la && sh .travis-deploy.sh
