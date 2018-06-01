@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import
 
-from functools import partial
 from datetime import datetime
 
 from twisted import internet
@@ -45,8 +44,7 @@ from autobahn import wamp
 
 from crossbar.worker import _appsession_loader
 from crossbar.worker.controller import WorkerController
-from crossbar.router.protocol import WampWebSocketClientFactory, \
-    WampRawSocketClientFactory, WampWebSocketClientProtocol, WampRawSocketClientProtocol
+from crossbar.router.protocol import WampWebSocketClientFactory, WampRawSocketClientFactory
 
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -285,7 +283,6 @@ class ContainerController(WorkerController):
                     exit_mode=self._exit_mode,
                     component_count=len(self.components),
                 )
-
 
         # WAMP application session factory
         #
