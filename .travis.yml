@@ -33,7 +33,7 @@ cache:
 stages:
   - test
   - name: deploy
-    if: branch = master
+    if: repo = crossbario/crossbar AND branch = master AND type != pull_request
 
 matrix:
   fast_finish: true
@@ -78,7 +78,7 @@ matrix:
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
     - stage: deploy
       python: "3.6"
-      if: branch = master
+      if: repo = crossbario/crossbar AND branch = master AND type != pull_request
       #on:
       #  repo: crossbario/crossbar
       #  branch: master
