@@ -681,16 +681,16 @@ class NativeProcess(ApplicationSession):
                     self.userKeys[username] = keys.Key.fromString(data=keyData).blob()
 
             def checkKey(self, credentials):
-                print('CHECK KEY     ', credentials)
-                if credentials.username in self.userKeys:
-                    keyBlob = self.userKeys[credentials.username]
-
+                username = credentials.username.decode('utf8')
+                if username in self.userKeys:
+                    keyBlob = self.userKeys[username]
                     return keyBlob == credentials.blob
 
         # setup user authentication
         #
         authorized_keys = {
-            'oberstet': 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCz7K1QwDhaq/Bi8o0uqiJQuVFCDQL5rbRvMClLHRx9KE3xP2Fh2eapzXuYGSgtG9Fyz1UQd+1oNM3wuNnT/DsBUBQrECP4bpFIHcJkMaFTARlCagkXosWsadzNnkW0osUCuHYMrzBJuXWF2GH+0OFCtVu+8E+4Mhvchu9xsHG8PM92SpI6aP0TtmT9D/0Bsm9JniRj8kndeS+iWG4s/pEGj7Rg7eGnbyQJt/9Jc1nWl6PngGbwp63dMVmh+8LP49PtfnxY8m9fdwpL4oW9U8beYqm8hyfBPN2yDXaehg6RILjIa7LU2/6bu96ZgnIz26zi/X9XlnJQt2aahWJs1+GR oberstet@thinkpad-t430s'
+            'oberstet': 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCz7K1QwDhaq/Bi8o0uqiJQuVFCDQL5rbRvMClLHRx9KE3xP2Fh2eapzXuYGSgtG9Fyz1UQd+1oNM3wuNnT/DsBUBQrECP4bpFIHcJkMaFTARlCagkXosWsadzNnkW0osUCuHYMrzBJuXWF2GH+0OFCtVu+8E+4Mhvchu9xsHG8PM92SpI6aP0TtmT9D/0Bsm9JniRj8kndeS+iWG4s/pEGj7Rg7eGnbyQJt/9Jc1nWl6PngGbwp63dMVmh+8LP49PtfnxY8m9fdwpL4oW9U8beYqm8hyfBPN2yDXaehg6RILjIa7LU2/6bu96ZgnIz26zi/X9XlnJQt2aahWJs1+GR oberstet@thinkpad-t430s',
+            'oddjobz': 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDxXnzAzvT0PoRISnDfAV1YOc3i2SpB8wqFNzs59yv/CEEdMDqObnV7/PuM4Pkco/srjrt2pZJZVEV1ToHEw2cXxpY62qDO7WE1NqUlqLYz4prvYwAT+iZIx9Aum9aZzkMIlTF5vXbqvFPqAfF+RfWAUdjbRKezLiwi71YjCsHscJ6OMHBQZEICgHmQx1f2iPAodbbvaNiFZkiWAlHI7JP0cO+nnv6cYlGvB/vCyrPWGnfs1TgUJLdFXGTd7awAIBhx8Pd8b5xe28wukeVINHi2mL6QWtX1xaPelB5EYr3LBZrfuyYIaIFCHqEopvP58ApXQ8PsQbOu4vg5y/KYoSc7 gareth@darkstar.iflexrts.uk'
         }
         checker = PublicKeyChecker(authorized_keys)
 
@@ -719,10 +719,10 @@ class NativeProcess(ApplicationSession):
         public_key = private_key.public()
 
         publicKeys = {
-            b'ssh-rsa': private_key
+            b'ssh-rsa': public_key
         }
         privateKeys = {
-            b'ssh-rsa': public_key
+            b'ssh-rsa': private_key
         }
         factory.publicKeys = publicKeys
         factory.privateKeys = privateKeys

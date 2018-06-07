@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import
 
-from functools import partial
 from datetime import datetime
 
 from twisted import internet
@@ -45,8 +44,7 @@ from autobahn import wamp
 
 from crossbar.worker import _appsession_loader
 from crossbar.worker.controller import WorkerController
-from crossbar.router.protocol import WampWebSocketClientFactory, \
-    WampRawSocketClientFactory, WampWebSocketClientProtocol, WampRawSocketClientProtocol
+from crossbar.router.protocol import WampWebSocketClientFactory, WampRawSocketClientFactory
 
 from crossbar.common.twisted.endpoint import create_connecting_endpoint_from_config
 
@@ -228,55 +226,63 @@ class ContainerController(WorkerController):
         if reload_modules:
             self._module_tracker.reload()
 
-        #   Generic onClose handler, attaches to the proto for Websockets and for
-        #   session.proto for Rawsockets ...
-        #
-        #   FIXME: basically "all" we're doing here (in both cases) is attaching an "on close" 
-        #   listener; the wrapper is a hack around the fact that there's no such thing as "an on-close listener" :/
-        #
-        def close_wrapper(original_handler, was_clean, code=0, reason=None):
+        # prepare some cleanup code this connection goes away
+        def _closed(session, was_clean):
             """
-            Handle component shutdown (onClose)
+            This is moderate hack around the fact that we don't have any way
+            to "listen" for a close event on websocket or rawsocket
+            objects. Also, the rawsocket implementation doesn't have
+            "a" function we can wrap anyway (they are asyncio vs
+            Twisted specific), so for both WebSocket and rawsocket
+            cases, we actually listen on the WAMP session for
+            transport close notifications.
+
+            Ideally we'd listen for "close" on the transport but this
+            works fine for cleaning up the components.
             """
-            return_value = original_handler(was_clean)
-            #
-            #   Make sure we're still open for business ...
-            #
             if component_id not in self.components:
-                self.log.warn('Component already closed ({})'.format(component_id))
-                return return_value
-            #
-            #   Report the exit type
-            #
+                self.log.warn(
+                    "Component '{id}' closed, but not in set.",
+                    id=component_id,
+                )
+                return
+
             if was_clean:
-                self.log.info('Close connection to component ({component}) with # {code}',
-                              component=component_id,
-                              code=code)
+                self.log.info(
+                    "Closed connection to '{id}'",
+                    id=component_id,
+                )
             else:
-                self.log.error('Lost connection to component ({component}) with # {code}',
-                               component=component_id,
-                               code=code)
-            #
-            #   Report an error reason if we have one ...
-            #
-            if reason:
-                self.log.warn('Container close reported: {reason}', reason=str(reason))
-            #
-            #   Publish a 'stop' event for the component, then signal the _stopped Deferred() so the
-            #   remaining parts of 'stop_component' will unblock and complete ...
-            #
-            self._publish_component_stop(self.components[component_id])
-            self.components[component_id]._stopped.callback({})
-            #
-            #   Report and exit ...
-            #
-            self.log.info('Container hosting ({count}) components, exit mode is ({code})',
-                          count=len(self.components),
-                          code=self._exit_mode)
-            if not self.components and self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
-                self.log.info('Stopping Container')
-                self.shutdown()
-            return return_value
+                self.log.error(
+                    "Lost connection to component '{id}' uncleanly",
+                    id=component_id,
+                )
+
+            component = self.components[component_id]
+            del self.components[component_id]
+            self._publish_component_stop(component)
+            component._stopped.callback(component.marshal())
+            del component
+
+            # figure out if we need to shut down the container itself or not
+            if not self.components:
+                if self._exit_mode == self.SHUTDOWN_ON_LAST_COMPONENT_STOPPED:
+                    self.log.info(
+                        "Container is hosting no more components: stopping container in exit mode <{exit_mode}> ...",
+                        exit_mode=self._exit_mode,
+                    )
+                    self.shutdown()
+                else:
+                    self.log.info(
+                        "Container is hosting no more components: continue running in exit mode <{exit_mode}>",
+                        exit_mode=self._exit_mode,
+                    )
+            else:
+                self.log.info(
+                    "Container is still hosting {component_count} components: continue running in exit mode <{exit_mode}>",
+                    exit_mode=self._exit_mode,
+                    component_count=len(self.components),
+                )
 
         # WAMP application session factory
         #
@@ -292,7 +298,18 @@ class ContainerController(WorkerController):
                     )
                     session.disconnect()
                 session._swallow_error = panic
+<<<<<<< HEAD
                 session.onClose = partial(close_wrapper, session.onClose)
+=======
+
+                # see note above, for _closed -- we should be
+                # listening for "the transport was closed", but
+                # "session disconnect" is close enough (since there
+                # are no "proper events" from websocket/rawsocket
+                # implementations).
+                session.on('disconnect', _closed)
+
+>>>>>>> upstream/master
                 return session
 
             except Exception:
@@ -333,12 +350,16 @@ class ContainerController(WorkerController):
         def on_connect_success(proto):
             component = ContainerComponent(component_id, config, proto, None)
             self.components[component_id] = component
+<<<<<<< HEAD
             # for RawSockets the onClose handler is attached to session.proto (above)
             if isinstance(proto, WampWebSocketClientProtocol):
                 proto.onClose = partial(close_wrapper, proto.onClose)
             elif not isinstance(proto, WampRawSocketClientProtocol):
                 raise Exception(u'logic error')
             #
+=======
+
+>>>>>>> upstream/master
             # publish event "on_component_start" to all but the caller
             #
             uri = self._uri_prefix + u'.on_component_started'
