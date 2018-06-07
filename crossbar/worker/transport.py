@@ -33,23 +33,23 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-from autobahn.wamp import ApplicationError
-import crossbar
+from txaio import make_logger
+
 import twisted
+from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
 
+from autobahn.wamp import ApplicationError
+
+import crossbar
 from crossbar._util import hltype
-
 from crossbar.common.twisted.web import Site
 from crossbar.common.twisted.endpoint import create_listening_port_from_config
-
 from crossbar.bridge.mqtt.wamp import WampMQTTServerFactory
 from crossbar.router.protocol import WampRawSocketServerFactory, WampWebSocketServerFactory
 from crossbar.router.unisocket import UniSocketServerFactory
 from crossbar.webservice.flashpolicy import FlashPolicyFactory
 
 from crossbar.worker.testee import WebSocketTesteeServerFactory, StreamTesteeServerFactory
-
-from txaio import make_logger
 
 # monkey patch the Twisted Web server identification
 twisted.web.server.version = "Crossbar/{}".format(crossbar.__version__)
@@ -195,6 +195,7 @@ class RouterTransport(object):
         """
         return self._port
 
+    @inlineCallbacks
     def start(self, start_children=False, ignore=[]):
         """
         Start this transport (starts listening on the respective network listening port).
@@ -205,14 +206,15 @@ class RouterTransport(object):
         if self._state != RouterTransport.STATE_CREATED:
             raise Exception('invalid state')
 
+        # note that we are starting ..
         self._state = RouterTransport.STATE_STARTING
 
         # create transport factory
-        self._transport_factory, self._root_webservice = self._create_factory(start_children, ignore)
+        self._transport_factory, self._root_webservice = yield self._create_factory(start_children, ignore)
 
         # create transport endpoint / listening port from transport factory
         #
-        d = create_listening_port_from_config(
+        port = yield create_listening_port_from_config(
             self._config['endpoint'],
             self._cbdir,
             self._transport_factory,
@@ -220,19 +222,19 @@ class RouterTransport(object):
             self.log,
         )
 
-        def _when_listening(port):
-            self._port = port
-            self._listening_since = datetime.utcnow()
-            self._state = RouterTransport.STATE_STARTED
-            return self
+        # when listening:
+        self._port = port
+        self._listening_since = datetime.utcnow()
 
-        d.addCallback(_when_listening)
+        # note that we started.
+        self._state = RouterTransport.STATE_STARTED
 
-        return d
+        returnValue(self)
 
     def _create_web_factory(self, create_paths=False, ignore=[]):
         raise NotImplemented()
 
+    @inlineCallbacks
     def _create_factory(self, create_paths=False, ignore=[]):
 
         # Twisted (listening endpoint) transport factory
@@ -284,14 +286,14 @@ class RouterTransport(object):
         #
         elif self._config['type'] == 'web':
             assert (self._templates)
-            transport_factory, root_webservice = self._create_web_factory(create_paths, ignore)
+            transport_factory, root_webservice = yield maybeDeferred(self._create_web_factory, create_paths, ignore)
 
         # Universal transport
         #
         elif self._config['type'] == 'universal':
             if 'web' in self._config:
                 assert (self._templates)
-                web_factory, root_webservice = self._create_web_factory(create_paths, ignore)
+                web_factory, root_webservice = yield maybeDeferred(self._create_web_factory, create_paths, ignore)
             else:
                 web_factory, root_webservice = None, None
 
@@ -335,7 +337,7 @@ class RouterTransport(object):
             # should not arrive here, since we did check_transport() in the beginning
             raise Exception("logic error")
 
-        return transport_factory, root_webservice
+        returnValue((transport_factory, root_webservice))
 
     def stop(self):
         """
@@ -373,6 +375,7 @@ class RouterWebTransport(RouterTransport):
     def __init__(self, worker, transport_id, config):
         RouterTransport.__init__(self, worker, transport_id, config)
 
+    @inlineCallbacks
     def _create_web_factory(self, create_paths=False, ignore=[]):
 
         # web transport options
@@ -386,7 +389,8 @@ class RouterWebTransport(RouterTransport):
         root_factory = self._worker.personality.WEB_SERVICE_FACTORIES[root_config['type']]
         if not root_factory:
             raise Exception('internal error: missing web service factory for type "{}"'.format(root_config['type']))
-        root_webservice = root_factory.create(self, '/', root_config)
+
+        root_webservice = yield maybeDeferred(root_factory.create, self, '/', root_config)
 
         # create the actual transport factory
         transport_factory = Site(
@@ -398,7 +402,7 @@ class RouterWebTransport(RouterTransport):
             hsts_max_age=int(options.get('hsts_max_age', 31536000))
         )
 
-        return transport_factory, root_webservice
+        returnValue((transport_factory, root_webservice))
 
 
 def create_router_transport(worker, transport_id, config):
