@@ -293,7 +293,7 @@ class RouterTransport(object):
         elif self._config['type'] == 'universal':
             if 'web' in self._config:
                 assert (self._templates)
-                web_factory, root_webservice = self._create_web_factory(create_paths, ignore)
+                web_factory, root_webservice = yield maybeDeferred(self._create_web_factory, create_paths, ignore)
             else:
                 web_factory, root_webservice = None, None
 
