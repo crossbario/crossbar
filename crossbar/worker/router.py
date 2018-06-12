@@ -511,6 +511,26 @@ class RouterController(WorkerController):
         return res
 
     @wamp.register(None)
+    def get_router_component(self, id, details=None):
+        """
+        Get details about a router component
+
+        :param id: The ID of the component to get
+        :type id: str
+
+        :param details: Call details.
+        :type details: autobahn.wamp.types.CallDetails
+
+        :returns: Details of component
+        :rtype: dict
+        """
+        self.log.debug("{name}.get_router_component({id})", name=self.__class__.__name__, id=id)
+        if id in self.components:
+            return self.components[id].marshal()
+        else:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No component {}".format(id))
+
+    @wamp.register(None)
     def start_router_component(self, id, config, details=None):
         """
         Start an app component in this router worker.
