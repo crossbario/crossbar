@@ -138,7 +138,7 @@ class PendingAuthScram(PendingAuth):
             def on_authenticate_error(err):
                 return self._marshal_dynamic_authenticator_error(err)
 
-            d.addCallbacks(on_authenticate_error, on_authenticate_ok)
+            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
 
             return d
 
