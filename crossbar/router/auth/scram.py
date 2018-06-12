@@ -115,7 +115,7 @@ class PendingAuthScram(PendingAuth):
 
         # use static principal database from configuration
         if self._config['type'] == 'static':
-            
+
             self._authprovider = u'static'
 
             if self._authid in self._config.get(u'principals', {}):
@@ -128,11 +128,11 @@ class PendingAuthScram(PendingAuth):
                 )
 
         elif self._config[u'type'] == u'dynamic':
-            
+
             error = self._init_dynamic_authenticator()
             if error:
                 return error
-            
+
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
             def on_authenticate_error(err):
