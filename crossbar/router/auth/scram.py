@@ -129,6 +129,10 @@ class PendingAuthScram(PendingAuth):
 
         elif self._config[u'type'] == u'dynamic':
             
+            error = self._init_dynamic_authenticator()
+            if error:
+                return error
+            
             d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
 
             def on_authenticate_error(err):
