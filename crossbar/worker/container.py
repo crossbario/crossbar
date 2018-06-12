@@ -289,8 +289,8 @@ class ContainerController(WorkerController):
         def create_session():
             try:
                 session = create_component(component_config)
-                # any exception spilling out from user code in onXXX handlers is fatal!
 
+                # any exception spilling out from user code in onXXX handlers is fatal!
                 def panic(fail, msg):
                     self.log.error(
                         "Fatal error in component: {msg} - {log_failure.value}",
@@ -298,9 +298,6 @@ class ContainerController(WorkerController):
                     )
                     session.disconnect()
                 session._swallow_error = panic
-<<<<<<< HEAD
-                session.onClose = partial(close_wrapper, session.onClose)
-=======
 
                 # see note above, for _closed -- we should be
                 # listening for "the transport was closed", but
@@ -309,7 +306,6 @@ class ContainerController(WorkerController):
                 # implementations).
                 session.on('disconnect', _closed)
 
->>>>>>> upstream/master
                 return session
 
             except Exception:
@@ -350,24 +346,18 @@ class ContainerController(WorkerController):
         def on_connect_success(proto):
             component = ContainerComponent(component_id, config, proto, None)
             self.components[component_id] = component
-<<<<<<< HEAD
-            # for RawSockets the onClose handler is attached to session.proto (above)
-            if isinstance(proto, WampWebSocketClientProtocol):
-                proto.onClose = partial(close_wrapper, proto.onClose)
-            elif not isinstance(proto, WampRawSocketClientProtocol):
-                raise Exception(u'logic error')
-            #
-=======
 
->>>>>>> upstream/master
             # publish event "on_component_start" to all but the caller
             #
             uri = self._uri_prefix + u'.on_component_started'
+
             component_started = {
                 u'id': component_id,
                 u'config': config
             }
+
             self.publish(uri, component_started, options=PublishOptions(exclude=details.caller))
+
             return component_started
 
         def on_connect_error(err):
@@ -482,6 +472,7 @@ class ContainerController(WorkerController):
                 u'authrole': details.caller_authrole if details else None,
             }
         }
+
         # the component.proto above normally already cleaned it up
         if component_id in self.components:
             del self.components[component_id]
