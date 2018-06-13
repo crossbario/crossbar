@@ -536,6 +536,8 @@ class NodeController(NativeProcess):
                 u'status': worker.status,
                 u'started': utcstr(worker.started),
                 u'who': worker.who,
+                u'pid': worker.pid,
+                u'startup_time': (worker.started - worker.created).total_seconds() if worker.started else None
             }
 
             # FIXME: make start of stats printer dependent on log level ..

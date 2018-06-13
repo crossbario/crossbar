@@ -681,10 +681,9 @@ class NativeProcess(ApplicationSession):
                     self.userKeys[username] = keys.Key.fromString(data=keyData).blob()
 
             def checkKey(self, credentials):
-                print('CHECK KEY     ', credentials)
-                if credentials.username in self.userKeys:
-                    keyBlob = self.userKeys[credentials.username]
-
+                username = credentials.username.decode('utf8')
+                if username in self.userKeys:
+                    keyBlob = self.userKeys[username]
                     return keyBlob == credentials.blob
 
         # setup user authentication
@@ -719,10 +718,10 @@ class NativeProcess(ApplicationSession):
         public_key = private_key.public()
 
         publicKeys = {
-            b'ssh-rsa': private_key
+            b'ssh-rsa': public_key
         }
         privateKeys = {
-            b'ssh-rsa': public_key
+            b'ssh-rsa': private_key
         }
         factory.publicKeys = publicKeys
         factory.privateKeys = privateKeys
