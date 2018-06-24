@@ -621,7 +621,12 @@ def check_transport_auth(personality, auth, ignore=[]):
         elif k in ignore:
             pass
         else:
-            raise InvalidConfigException("invalid authentication method key '{}' - must be one of {}".format(k, CHECKS.keys() + ignore))
+            raise InvalidConfigException(
+                "invalid authentication method key '{}' - must be one of {}".format(
+                    k,
+                    list(CHECKS.keys()) + ignore,
+                )
+            )
 
 
 def check_cookie_store_memory(store):
