@@ -597,7 +597,7 @@ def check_transport_auth_anonymous(config):
         raise InvalidConfigException('logic error')
 
 
-def check_transport_auth(personality, auth, ignore=[]):
+def check_transport_auth(personality, auth, ignore=[], checks=None):
     """
     Check a WAMP transport authentication configuration.
 
@@ -606,7 +606,7 @@ def check_transport_auth(personality, auth, ignore=[]):
     """
     if not isinstance(auth, Mapping):
         raise InvalidConfigException("invalid type {} for authentication configuration item (dict expected)".format(type(auth)))
-    CHECKS = {
+    CHECKS = checks or {
         'anonymous': check_transport_auth_anonymous,
         'ticket': check_transport_auth_ticket,
         'wampcra': check_transport_auth_wampcra,
