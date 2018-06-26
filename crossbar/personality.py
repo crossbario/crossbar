@@ -193,6 +193,8 @@ class Personality(object):
         'webhook': rest.RouterWebServiceWebhook,
     }
 
+    EXTRA_AUTH_METHODS = dict()
+
     Node = node.Node
     NodeOptions = node.NodeOptions
 

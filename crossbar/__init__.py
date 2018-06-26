@@ -148,7 +148,12 @@ def run(args=None, reactor=None, personality=None):
         raise Exception('illegal value "{}" for reactor'.format(reactor))
 
     if personality is not None and personality not in _DEFINED_PERSONALITIES:
-        raise Exception('illegal value "{}" for personality'.format(personality))
+        raise Exception(
+            'illegal value "{}" for personality. Valid: {}'.format(
+                personality,
+                ", ".join(_DEFINED_PERSONALITIES),
+            )
+        )
 
     # use argument list from command line if none is given explicitly
     if args is None:
@@ -178,7 +183,12 @@ def run(args=None, reactor=None, personality=None):
         if 'CROSSBAR_PERSONALITY' in os.environ:
             personality = os.environ['CROSSBAR_PERSONALITY']
             if personality not in _DEFINED_PERSONALITIES:
-                raise Exception('illegal value "{}" for personality (from CROSSBAR_PERSONALITY environment variable)'.format(personality))
+                raise Exception(
+                    'illegal value "{}" for personality (from CROSSBAR_PERSONALITY environment variable): {}'.format(
+                        personality,
+                        ", ".join(_DEFINED_PERSONALITIES),
+                    )
+                )
         else:
             personality = 'standalone'
 

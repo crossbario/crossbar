@@ -382,8 +382,8 @@ class RouterWebTransport(RouterTransport):
         options = self._config.get('options', {})
 
         # create root web service
-        if '/' in self._config.get('paths', []):
-            root_config = self._config['paths']['/']
+        if '/' in self._config.get('web', {}).get('paths', {}):
+            root_config = self._config['web']['paths']['/']
         else:
             root_config = {'type': 'path', 'paths': {}}
         root_factory = self._worker.personality.WEB_SERVICE_FACTORIES[root_config['type']]

@@ -605,6 +605,12 @@ class RouterSession(BaseSession):
     def onHello(self, realm, details):
 
         try:
+            # allow "Personality" classes to add authmethods
+            extra_auth_methods = dict()
+            if self._router_factory._worker:
+                personality = self._router_factory._worker.personality
+                extra_auth_methods = personality.EXTRA_AUTH_METHODS
+
             # default authentication method is "WAMP-Anonymous" if client doesn't specify otherwise
             authmethods = details.authmethods or [u'anonymous']
             authextra = details.authextra
@@ -662,7 +668,10 @@ class RouterSession(BaseSession):
                         # if no cookie tracking, generate a random value for authid
                         authid = util.generate_serial_number()
 
-                    PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
+                    try:
+                        PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
+                    except KeyError:
+                        PendingAuthKlass = extra_auth_methods[authmethod]
                     self._pending_auth = PendingAuthKlass(self, {u'type': u'static', u'authrole': u'anonymous', u'authid': authid})
                     return self._pending_auth.hello(realm, details)
 
@@ -671,7 +680,7 @@ class RouterSession(BaseSession):
                     for authmethod in authmethods:
 
                         # invalid authmethod
-                        if authmethod not in AUTHMETHODS:
+                        if authmethod not in AUTHMETHODS and authmethod not in extra_auth_methods:
                             self.log.debug("Unknown authmethod: {}".format(authmethod))
                             return types.Deny(message=u'invalid authmethod "{}"'.format(authmethod))
 
@@ -681,7 +690,7 @@ class RouterSession(BaseSession):
                             continue
 
                         # authmethod not available
-                        if authmethod not in AUTHMETHOD_MAP:
+                        if authmethod not in AUTHMETHOD_MAP and authmethod not in extra_auth_methods:
                             self.log.debug("client requested valid, but unavailable authentication method {authmethod}", authmethod=authmethod)
                             continue
 
@@ -690,9 +699,12 @@ class RouterSession(BaseSession):
                         pending_auth_methods = [
                             u'anonymous', u'ticket', u'wampcra', u'tls',
                             u'cryptosign', u'scram',
-                        ]
+                        ] + list(extra_auth_methods.keys())
                         if authmethod in pending_auth_methods:
-                            PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
+                            try:
+                                PendingAuthKlass = AUTHMETHOD_MAP[authmethod]
+                            except KeyError:
+                                PendingAuthKlass = extra_auth_methods[authmethod]
                             self._pending_auth = PendingAuthKlass(self, auth_config[authmethod])
                             return self._pending_auth.hello(realm, details)
 
