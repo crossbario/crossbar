@@ -31,7 +31,12 @@
 from __future__ import absolute_import, division, print_function
 
 import six
+
+import txaio
+txaio.use_twisted()
+
 from txaio import make_logger
+
 from pytrie import StringTrie
 
 from zope.interface import implementer

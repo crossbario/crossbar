@@ -31,6 +31,7 @@
 from __future__ import absolute_import
 
 import time
+from collections.abc import Mapping
 
 import txaio
 txaio.use_twisted()
@@ -45,6 +46,7 @@ from crossbar.worker.container import ContainerController
 from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.webservice import base
 from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static
+from crossbar.router.realmstore import MemoryRealmStore
 
 
 def default_native_workers():
@@ -98,6 +100,51 @@ def default_native_workers():
         }
     }
     return factory
+
+
+def create_realm_store(personality, config):
+    """
+    Factory for creating realm stores (which store call queues and event history).
+
+    .. code-block:: json
+
+        "store": {
+            "type": "memory",   // type of realm store: "memory"
+            "limit": 100,       // global default for limit on call queues / event history
+            "call-queue": [
+                {
+                    "uri": "com.example.compute",
+                    "match": "exact",
+                    "limit": 1000   // procedure specific call queue limit
+                }
+            ],
+            "event-history": [
+                {
+                    "uri": "com.example.oncounter",
+                    "match": "exact",
+                    "limit": 1000   // topic specific history limit
+                }
+            ]
+        }
+
+    :param config: Realm store configuration item.
+    :type config: dict
+    """
+    if not isinstance(config, Mapping):
+        raise Exception('invalid type {} for realm store configuration item'.format(type(config)))
+
+    if 'type' not in config:
+        raise Exception('missing store type in realm store configuration item')
+
+    store_type = config['type']
+
+    if store_type in personality.REALM_STORES:
+        store_class = personality.REALM_STORES[store_type]
+        store = store_class(config)
+    else:
+        raise Exception('invalid or unavailable store type {}'.format(store_type))
+
+    return store
 
 
 _TITLE = "Crossbar"
@@ -195,6 +242,10 @@ class Personality(object):
 
     EXTRA_AUTH_METHODS = dict()
 
+    REALM_STORES = {
+        'memory': MemoryRealmStore
+    }
+
     Node = node.Node
     NodeOptions = node.NodeOptions
 
@@ -203,6 +254,8 @@ class Personality(object):
     native_workers = default_native_workers()
 
     create_router_transport = transport.create_router_transport
+
+    create_realm_store = create_realm_store
 
     RouterWebTransport = transport.RouterWebTransport
 

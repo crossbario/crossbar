@@ -30,24 +30,13 @@
 
 from __future__ import absolute_import, division
 
-import os
-import platform
-
 from collections import deque
 
 from autobahn.util import utcnow
 
 from txaio import make_logger
 
-try:
-    if platform.python_implementation() == 'PyPy':
-        os.environ['LMDB_FORCE_CFFI'] = '1'
-    import lmdb
-    HAS_LMDB = True
-except ImportError:
-    HAS_LMDB = False
-
-__all__ = ('HAS_LMDB', 'MemoryRealmStore', 'LmdbRealmStore')
+__all__ = ('MemoryRealmStore',)
 
 
 class QueuedCall(object):
@@ -78,19 +67,21 @@ class MemoryCallQueue(object):
 
         See the example here:
 
-            - https://github.com/crossbario/crossbarexamples/tree/master/concurrency-control/queued
+        https://github.com/crossbario/crossbar-examples/tree/master/scaling-microservices/queued
 
-        config = {
-            'type': 'memory',
-            'limit': 1000,           <- global history limit (in case no procedure specific limit has been set)
-            'call-queue': [
-                {
-                    'uri': 'com.example.foobar',   <- procedure specific limit
-                    'match': 'exact',
-                    'limit': 10000
-                }
-            ]
-        }
+        .. code-block:: json
+
+            "store": {
+                "type": "memory",
+                "limit": 1000,      // global default for limit on call queues
+                "call-queue": [
+                    {
+                        "uri": "com.example.compute",
+                        "match": "exact",
+                        "limit": 10000  // procedure specific call queue limit
+                    }
+                ]
+            }
         """
         # whole store configuration
         self._config = config or {}
@@ -136,16 +127,16 @@ class MemoryEventStore(object):
 
         See the example here:
 
-            - https://github.com/crossbario/crossbarexamples/tree/master/event-history
+        https://github.com/crossbario/crossbar-examples/tree/master/event-history
 
-        config = {
-            'type': 'memory',
-            'limit': 1000,           <- global history limit (in case no topic specific limit has been set)
-            'event-history': [
+        "store": {
+            "type": "memory",
+            "limit": 100,       // global default for history limit
+            "event-history": [
                 {
-                    'uri': 'com.example.foobar',   <- topic specific limit
-                    'match': 'prefix',
-                    'limit': 10000
+                    "uri": "com.example.oncounter",
+                    "match": "exact",
+                    "limit": 1000       // topic specific history limit
                 }
             ]
         }
@@ -295,6 +286,8 @@ class MemoryRealmStore(object):
     Memory backed realm store.
     """
 
+    log = make_logger()
+
     event_store = None
     """
     Store for event history.
@@ -306,35 +299,11 @@ class MemoryRealmStore(object):
     """
 
     def __init__(self, config):
+        """
+
+        :param config: Realm store configuration item.
+        :type config: Mapping
+        """
         self.event_store = MemoryEventStore(config)
         self.call_store = MemoryCallQueue(config)
-
-
-class LmdbEventStore(object):
-    """
-    LMDB backed event store.
-    """
-
-    def __init__(self, env):
-        self._env = env
-        self._event_history = self._env.open_db('event-history')
-
-
-class LmdbRealmStore(object):
-    """
-    LMDB backed realm store.
-    """
-
-    event_store = None
-    """
-    Store for event history.
-    """
-
-    call_store = None
-    """
-    Store for call queueing.
-    """
-
-    def __init__(self, config):
-        self._env = lmdb.open(config['dbfile'], max_dbs=16, writemap=True)
-        self.event_store = LmdbEventStore(self._env)
+        self.log.info('Realm store initialized (type=memory)')

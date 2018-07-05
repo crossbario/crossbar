@@ -40,7 +40,6 @@ from autobahn.wamp import message
 from autobahn.wamp.exception import ProtocolError
 
 from crossbar.router import RouterOptions
-from crossbar.router.realmstore import HAS_LMDB, LmdbRealmStore, MemoryRealmStore
 from crossbar.router.broker import Broker
 from crossbar.router.dealer import Dealer
 from crossbar.router.role import RouterRole, \
@@ -466,19 +465,8 @@ class RouterFactory(object):
         # realm store as appropriate ..
         store = None
         if 'store' in realm.config:
-            store_config = realm.config['store']
-
-            if store_config['type'] == 'lmdb':
-                # if LMDB is available, and a realm store / database is configured,
-                # create an LMDB environment
-                if not HAS_LMDB:
-                    raise Exception("LDMB not available")
-                store = LmdbRealmStore(store_config)
-
-            elif store_config['type'] == 'memory':
-                store = MemoryRealmStore(store_config)
-            else:
-                raise Exception('logic error')
+            psn = self._worker.personality
+            store = psn.create_realm_store(psn, realm.config['store'])
 
         # now create a router for the realm
         #
