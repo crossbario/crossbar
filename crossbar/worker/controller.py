@@ -211,7 +211,7 @@ class WorkerController(NativeProcess):
         return [p.marshal() for p in PROFILERS.items()]
 
     @wamp.register(None)
-    def start_profiler(self, profiler=u'vmprof', runtime=10, async=True, details=None):
+    def start_profiler(self, profiler=u'vmprof', runtime=10, start_async=True, details=None):
         """
         Registered under: ``crossbar.worker.<worker_id>.start_profiler``
 
@@ -224,8 +224,8 @@ class WorkerController(NativeProcess):
         :param runtime: Profiling duration in seconds.
         :type runtime: float
 
-        :param async: Flag to turn on/off asynchronous mode.
-        :type async: bool
+        :param start_async: Flag to turn on/off asynchronous mode.
+        :type start_async: bool
 
         :param details: WAMP call details (auto-filled by WAMP).
         :type details: obj
@@ -248,7 +248,7 @@ class WorkerController(NativeProcess):
         on_profile_started = u'{}.on_profile_started'.format(self._uri_prefix)
         on_profile_finished = u'{}.on_profile_finished'.format(self._uri_prefix)
 
-        if async:
+        if start_async:
             publish_options = None
         else:
             publish_options = PublishOptions(exclude=details.caller)
@@ -258,7 +258,7 @@ class WorkerController(NativeProcess):
             u'who': details.caller,
             u'profiler': profiler,
             u'runtime': runtime,
-            u'async': async,
+            u'async': start_async,
         }
 
         self.publish(
@@ -304,7 +304,7 @@ class WorkerController(NativeProcess):
 
         profile_finished.addCallbacks(on_profile_success, on_profile_failed)
 
-        if async:
+        if start_async:
             # if running in async mode, immediately return the ID under
             # which the profile can be retrieved later (when it is finished)
             return profile_started
