@@ -205,8 +205,8 @@ class RouterWebServiceCgi(RouterWebService):
         personality = transport.worker.personality
         personality.WEB_SERVICE_CHECKERS['cgi'](personality, config)
 
-        cgi_processor = path['processor']
-        cgi_directory = os.path.abspath(os.path.join(transport.cbdir, path['directory']))
+        cgi_processor = config['processor']
+        cgi_directory = os.path.abspath(os.path.join(transport.cbdir, config['directory']))
         # http://stackoverflow.com/a/20433918/884770
         cgi_directory = cgi_directory.encode('ascii', 'ignore')
 
