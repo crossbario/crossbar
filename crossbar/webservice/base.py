@@ -155,11 +155,11 @@ class RouterWebServiceReverseWeb(RouterWebService):
 
         host = config['host']
         port = int(config.get('port', 80))
-        path = path.encode('utf-8')
+        base_path = config.get('path', '').encode('utf-8')
 
-        resource = ReverseProxyResource(host, port, path)
+        resource = ReverseProxyResource(host, port, base_path)
 
-        return RouterWebServiceReverseWeb(transport, path, config, resource)
+        return RouterWebServiceReverseWeb(transport, base_path, config, resource)
 
 
 class RedirectResource(Resource):
