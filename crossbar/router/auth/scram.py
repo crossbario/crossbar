@@ -94,31 +94,33 @@ class PendingAuthScram(PendingAuth):
         # XXX should we just "saslprep()" it here?
         self._authid = details.authid
 
+        if self._authid is None:
+            return types.Deny(message=u'cannot identify client: no authid requested')
+
+        def on_authenticate_ok(principal):
+            self._salt = binascii.a2b_hex(principal[u'salt'])  # error if no salt per-user
+            self._iterations = principal[u'iterations']
+            self._memory = principal[u'memory']
+            self._kdf = principal[u'kdf']
+            self._stored_key = binascii.a2b_hex(principal[u'stored-key'])
+            # do we actually need the server-key? can we compute it ourselves?
+            self._server_key = binascii.a2b_hex(principal[u'server-key'])
+            error = self._assign_principal(principal)
+            if error:
+                return error
+
+            # XXX TODO this needs to include (optional) channel-binding
+            extra = self._compute_challenge()
+            return types.Challenge(self._authmethod, extra)
+
         # use static principal database from configuration
         if self._config['type'] == 'static':
-            self._authprovider = u'static'
 
-            if self._authid is None:
-                return types.Deny(message=u'cannot identify client: no authid requested')
+            self._authprovider = u'static'
 
             if self._authid in self._config.get(u'principals', {}):
                 # we've already validated the configuration
-                principal = self._config[u'principals'][self._authid]
-                self._salt = binascii.a2b_hex(principal[u'salt'])  # error if no salt per-user
-                self._iterations = principal[u'iterations']
-                self._memory = principal[u'memory']
-                self._kdf = principal[u'kdf']
-                self._stored_key = binascii.a2b_hex(principal[u'stored-key'])
-                # do we actually need the server-key? can we compute it ourselves?
-                self._server_key = binascii.a2b_hex(principal[u'server-key'])
-                error = self._assign_principal(principal)
-                if error:
-                    return error
-
-                # XXX TODO this needs to include (optional) channel-binding
-                extra = self._compute_challenge()
-                return types.Challenge(self._authmethod, extra)
-
+                return on_authenticate_ok(self._config[u'principals'][self._authid])
             else:
                 self.log.debug("No pricipal found for {authid}", authid=details.authid)
                 return types.Deny(
@@ -126,7 +128,19 @@ class PendingAuthScram(PendingAuth):
                 )
 
         elif self._config[u'type'] == u'dynamic':
-            return types.Deny(message=u"dynamic SCRAM not implemented")
+
+            error = self._init_dynamic_authenticator()
+            if error:
+                return error
+
+            d = self._authenticator_session.call(self._authenticator, realm, details.authid, self._session_details)
+
+            def on_authenticate_error(err):
+                return self._marshal_dynamic_authenticator_error(err)
+
+            d.addCallbacks(on_authenticate_ok, on_authenticate_error)
+
+            return d
 
         else:
             # should not arrive here, as config errors should be caught earlier
