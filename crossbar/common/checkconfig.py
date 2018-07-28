@@ -527,36 +527,36 @@ def check_transport_auth_scram(config):
     """
     Check a WAMP-SCRAM configuration item.
     """
-    for k in [u'type', u'principals']:
-        if k not in config:
-            raise InvalidConfigException(
-                "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format(k)
-            )
-    if config[u'type'] != u'static':
+    if u'type' not in config:
         raise InvalidConfigException(
-            "Only static SCRAM configuration allowed currently"
+            "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format(u'type')
         )
-
-    # check map of principals
-    for authid, principal in config['principals'].items():
-        check_dict_args({
-            'kdf': (True, [six.text_type]),
-            'iterations': (True, [six.integer_types]),
-            'memory': (True, [six.integer_types]),
-            'salt': (True, [six.text_type]),
-            'stored-key': (True, [six.text_type]),
-            'server-key': (True, [six.text_type]),
-            'role': (False, [six.text_type]),
-        }, principal, "WAMP-SCRAM - principal '{}' configuration".format(authid))
-        available_kdfs = (u'argon2id-13', u'pbkdf2')
-        kdf = principal[u'kdf']
-        if kdf not in available_kdfs:
-            raise ValueError(
-                "WAMP-SCRAM illegal KDF '{}' not one of {}".format(
-                    kdf,
-                    ', '.join(available_kdfs),
-                )
+    if config[u'type'] == u'static':
+        if u'principals' not in config:
+            raise InvalidConfigException(
+                "missing mandatory attribute '{}' in WAMP-SCRAM configuration".format(u'principals')
             )
+
+        # check map of principals
+        for authid, principal in config['principals'].items():
+            check_dict_args({
+                'kdf': (True, [six.text_type]),
+                'iterations': (True, [six.integer_types]),
+                'memory': (True, [six.integer_types]),
+                'salt': (True, [six.text_type]),
+                'stored-key': (True, [six.text_type]),
+                'server-key': (True, [six.text_type]),
+                'role': (False, [six.text_type]),
+            }, principal, "WAMP-SCRAM - principal '{}' configuration".format(authid))
+            available_kdfs = (u'argon2id-13', u'pbkdf2')
+            kdf = principal[u'kdf']
+            if kdf not in available_kdfs:
+                raise ValueError(
+                    "WAMP-SCRAM illegal KDF '{}' not one of {}".format(
+                        kdf,
+                        ', '.join(available_kdfs),
+                    )
+                )
 
 
 def check_transport_auth_cookie(config):
