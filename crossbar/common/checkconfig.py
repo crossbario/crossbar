@@ -2984,7 +2984,7 @@ def check_guest(personality, guest):
             check_process_env(options['env'])
 
 
-def check_worker(personality, worker, ignore=[]):
+def check_worker(personality, worker):
     """
     Check a node worker configuration item.
 
@@ -3002,27 +3002,14 @@ def check_worker(personality, worker, ignore=[]):
 
     worker_type = worker['type']
 
-    valid_worker_types = ['router', 'container', 'guest', 'websocket-testee'] + ignore
+    valid_worker_types = personality.native_workers.keys()
+
     if worker_type not in valid_worker_types:
-        raise InvalidConfigException("invalid attribute value '{}' for attribute 'type' in worker item (valid items are: {})\n\n{}".format(worker_type, valid_worker_types))
+        raise InvalidConfigException('invalid worker type "{}" in worker configuration item (valid types are: {})'.format(worker_type, valid_worker_types))
 
-    if worker_type == 'router':
-        personality.check_router(personality, worker)
-
-    elif worker_type == 'container':
-        personality.check_container(personality, worker)
-
-    elif worker_type == 'guest':
-        personality.check_guest(personality, worker)
-
-    elif worker_type == 'websocket-testee':
-        personality.check_websocket_testee(personality, worker)
-
-    elif worker_type in ignore:
-        pass
-
-    else:
-        raise InvalidConfigException('logic error')
+    worker_plugin = personality.native_workers[worker_type]
+    check_worker = worker_plugin['checkconfig_item']
+    check_worker(personality, worker)
 
 
 def check_controller_options(personality, options, ignore=[]):
