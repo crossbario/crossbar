@@ -3002,16 +3002,18 @@ def check_worker(personality, worker):
 
     worker_type = worker['type']
 
-    valid_worker_types = personality.native_workers.keys()
+    valid_worker_types = ['guest'] + personality.native_workers.keys()
 
     if worker_type not in valid_worker_types:
         raise InvalidConfigException('invalid worker type "{}" in worker configuration item (valid types are: {})'.format(worker_type, valid_worker_types))
 
+    # handle all non-native worker types (currently only "guest")
     if worker_type == 'guest':
         personality.check_guest(personality, worker)
     else:
+        # all native worker types:
         # default: router, container, websocket-testee
-        # extended: proxy, hostmonitor, ..
+        # but also (crossbarfx): proxy, hostmonitor, xbr, ..
         worker_plugin = personality.native_workers[worker_type]
         check_worker = worker_plugin['checkconfig_item']
         check_worker(personality, worker)
