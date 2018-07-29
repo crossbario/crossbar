@@ -3002,7 +3002,7 @@ def check_worker(personality, worker):
 
     worker_type = worker['type']
 
-    valid_worker_types = ['guest'] + personality.native_workers.keys()
+    valid_worker_types = ['guest'] + list(personality.native_workers.keys())
 
     if worker_type not in valid_worker_types:
         raise InvalidConfigException('invalid worker type "{}" in worker configuration item (valid types are: {})'.format(worker_type, valid_worker_types))
