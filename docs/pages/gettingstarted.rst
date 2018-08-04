@@ -21,7 +21,9 @@ Crossbar.io is an open source networking platform for distributed and microservi
 
 What is WAMP?
 =============
-WAMP is a routed protocol, with all components connecting to a WAMP Router, where the WAMP Router performs message routing between the WAMP client.  WAMP provides two messaging patterns: Publish & Subscribe and Routed Remote Procedure Calls.
+WAMP is a routed protocol, with all components connecting to a WAMP Router, where the WAMP Router performs message routing between the WAMP client.  WAMP provides two messaging patterns: 
+  * Publish & Subscribe 
+  * Routed Remote Procedure Calls.
 
 WAMP is a `WebSocket <https://en.wikipedia.org/wiki/WebSocket/>`_ sub-protocol, which means that you can communicate with browser using it. Apart from that it can also run over any transport which is message-oriented, ordered, reliable, and bi-directional such as TCP, Unix domain socket etc.
 
@@ -49,7 +51,7 @@ The Autobahn project is maintained by the same company Crossbar.io where Crossba
 
 .. note:: A qualified WAMP client with basic profile should be able to do the following things  
 
- * Subscribe to a topic (eg: com.myapp.topic1)
+ * Subscribe to a topic (eg: com.myapp.hello)
 
  * Publish to a topic
 
@@ -70,7 +72,7 @@ Installation
 ============
 Firstly Docker needs to be installed in your OS. The official site of the Docker provides instruction on how to get Docker running in your respective operating system https://docs.docker.com/install/ .
 
-.. note:: All the example are tested on  Ubuntu 18.04 LTS using Docker
+.. note:: All the examples are tested on  Ubuntu 18.04 LTS using Docker
 
 For other methods of installation refer to - 
 :doc:`Installation Guide <installation>`
@@ -149,7 +151,6 @@ config.json
     .. literalinclude:: code/config.json
        :language: json
        :emphasize-lines: 9,39
-       :linenos:
 
 In the configuration you can see the line **"name": "realm1"** which configures the realm to be "realm1". An the port number is configured as 8080     **"port": 8080**. When connecting to this Crossbar router instance we need to use this particular realm and port number.
 
@@ -175,7 +176,7 @@ Publishing Client:
 ------------------
 
 The Docker image is started with client_publisher.py as its application along with it the URL and Realm  are given as parameter.
-Here in the URL the IP address points to the IP of the local machine, since we have mapped the port number 8080 of the  localmachine to the Docker instance it will connect to the Crossbar.io instance running inside Docker. ::
+Here in the URL the IP address points to the IP of the host machine, since we have mapped the port number 8080 of the  localmachine to the Docker instance it will connect to the Crossbar.io instance running inside Docker. ::
 
    $ docker run -it  crossbario/autobahn-python:cpy3   python client_publisher.py --url ws://192.168.0.15:8080/ws --realm realm1
 
@@ -185,11 +186,12 @@ client_publisher.py
 -------------------
 .. literalinclude:: code/client_publish.py
    :language: python 
+   :emphasize-lines: 22
     
 The Autobahn Python project supports two type of implemention twisted and asyncio. In this example we are showing twisted based example. 
 The  client_publisher.py publishes using this api as shown below. ::
 
- self.publish(u'com.myapp.topic1', "Hello World %d"%counter)
+ self.publish(u'com.myapp.hello', "Hello World %d"%counter)
 
 
 .. note:: The WAMP supports following data types in serializations integer, string, bool, list, dict https://wamp-proto.org/static/rfc/draft-oberstet-hybi-crossbar-wamp.html#serializations/
@@ -205,11 +207,12 @@ client_subscribe.py
 -------------------
 .. literalinclude:: code/client_subscribe.py
    :language: python 
+   :emphasize-lines: 22
 
-The subscriber client subsriber to the topic "com.myapp.topic1" and each time a event arrives the on_event method is called.
+The subscriber client subsriber to the topic "com.myapp.hello" and each time a event arrives the on_event method is called.
 ::
 
-  sub = yield self.subscribe(self.on_event, u'com.myapp.topic1')
+  sub = yield self.subscribe(self.on_event, u'com.myapp.hello')
 
 Autobahn from Browser:    
 ======================
@@ -225,20 +228,31 @@ The Javascript example code is available in the following folder
 
   cd crossbar-examples/getting-started/2.pubsub-js/
 
-.. note:: The Javascript example can be run directly from browser by clicking .html file
+.. note:: The Javascript examples can be run directly from browser by clicking .html file
 
 Backend/Publisher:
 ------------------
-To start the application, we will just open the "backend.html" file using the browser. It will automatically load the scripts and then get started.
+To start the application, just open the "backend.html" file using the browser. It will automatically load the scripts and then get started.
 Then it will start publishing the event the same way as the python client did. 
 
-
+backend.html
+------------
 .. literalinclude:: code/backend.html
    :language: html 
 
+If you see source code, the include of autobahn.min.js loads the Autobahn Javascript file to the browser, and the next line loads the backend.js which contains our publishing application.
 
+backend.js
+----------
 .. literalinclude:: code/backend.js
    :language: javascript
+   :emphasize-lines: 19
+
+The connection is made to the localhost at port 8080 with realm **realm1** . The below line does the publishing 
+
+::
+
+    session.publish('com.myapp.hello', ['Hello World '+counter]);
 
 Output:
 -------
@@ -250,13 +264,23 @@ Output:
 
 Frontend/Subscriber:
 --------------------
+The frontend uses the same autobahn.min.js that is used by the backend.
 
+frontend.html
+-------------
 .. literalinclude:: code/frontend.html
    :language: html 
 
-
+frontend.js
+-----------
 .. literalinclude:: code/frontend.js
    :language: javascript
+   :emphasize-lines: 28
+
+The below line subscribes to the topic **com.myapp.hello** and each time an event arrives the function *onevent1* is called.
+::
+
+  session.subscribe('com.myapp.hello', onevent1);
 
 
 Output:
@@ -296,6 +320,7 @@ client_rpc_caller.py
 --------------------
 .. literalinclude:: code/client_rpc_caller.py
    :language: python 
+   :emphasize-lines: 20
 
 Leaving the boiler place code, we can see that the application calls the remote function using the topic.
 ::
@@ -312,6 +337,7 @@ client_rpc_callee.py
 --------------------
 .. literalinclude:: code/client_rpc_callee.py
    :language: python 
+   :emphasize-lines: 24
 
 The time service is registered with utcnow as the function, when the caller calls, the result of utcnow is sent back.
 ::
@@ -329,6 +355,15 @@ Output:
 So far we covered the pubsub example using python and javascript and RPC using python. You can also try to run RPC using Javascript. 
 For other examples refer to https://github.com/crossbario/crossbar-examples
 
+Modifying Things
+================
+The containers as-is are there to demonstrate principles. To develop your own applications, you need to modify the code they run as well as the Crossbar.io config file. The application components are in the /app directory of `Autobahn Python Docker x86_64 <https://github.com/crossbario/autobahn-python/tree/master/docker/x86_64/app>`_ , `armhf  <https://github.com/crossbario/autobahn-python/tree/master/docker/armhf/app>`_, `aarch64  <https://github.com/crossbario/autobahn-python/tree/master/docker/aarch64/app>`_ . The Crossbar.io `configuration file is in the .crossbar subdirectory <https://github.com/crossbario/crossbar/blob/master/crossbar/node/templates/default/.crossbar/config.json>`_.
+
+
 Further Materials
 =================
+* Installation of Crossbar.io
+* Basic concept of WAMP and Crossbar.io
+* Creating Docker Images
+* Overview of WAMP Client libraries
 

@@ -23,3 +23,5 @@ Programmers
 More
 ----
 *   :doc:`Policy, License and more <pages/policy-licence-faq>`
+* FAQ
+* Contributing FAQ

@@ -5,10 +5,8 @@
 Concept and Features
 ====================
 
-.. toctree::
-   :maxdepth: 2
+ basic-concept
 
-  basic-concept
 ..   crossbar-features
 
 :doc:`Basic Concept <basic-concept>`
