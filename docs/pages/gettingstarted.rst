@@ -39,7 +39,7 @@ Crossbar.io is a WAMP router with advanced features implemented in python langua
 WAMP Clients
 ============
 
-The Official WAMP clients are developed under the `Autobahn project <https://crossbar.io/autobahn/>`_. The Autobahn project offers variety of WAMP clients in different languages 
+The **Official WAMP clients** are developed under the `Autobahn project <https://crossbar.io/autobahn/>`_. The Autobahn project offers variety of WAMP clients in different languages 
 
 * `Autobahn|Python <https://github.com/crossbario/autobahn-python/>`_
 * `Autobahn|JS <https://github.com/crossbario/autobahn-js/>`_
@@ -51,13 +51,13 @@ The Autobahn project is maintained by the same company Crossbar.io where Crossba
 
 .. note:: A qualified WAMP client with basic profile should be able to do the following things  
 
- * Subscribe to a topic (eg: com.myapp.hello)
+ * **Subscribe** to a topic (eg: com.myapp.hello)
 
- * Publish to a topic
+ * **Publish** to a topic
 
- * Registers a procedure (eg: com.timeservice.now)
+ * **Register** a procedure (eg: com.timeservice.now)
 
- * Call a procedure
+ * **Call** a procedure
  
 
 Prerequisite:
@@ -66,7 +66,7 @@ Further instruction requires some basic knowledge of Python, Javascript, Linux a
 
 Requirements:
 =============
-This guide will show you how to start the Crossbar.io router and some basic application components using Docker containers. Although Docker is not necessary to run Crossbar.io, or to develop WAMP applications, it is the quickest way to get the necessary components for developing WAMP applications using Crossbar.io up and running.
+This guide will show you how to start the Crossbar.io router and some basic application components using Docker containers. Although **Docker is not necessary to run Crossbar.io**, or to develop WAMP applications, it is the quickest way to get the necessary components for developing WAMP applications using Crossbar.io up and running.
 
 Installation
 ============
@@ -103,7 +103,7 @@ The Crossbar.io can be started in Docker using the below command
 
  sudo docker run -it -p 8080:8080 crossbario/crossbar
 
-The line 8080:8080 exposes and maps the port number of the Docker instance to the local machine. 
+The line **8080:8080** exposes and maps the port number of the Docker instance to the local machine. 
 
 
 Crossbar Console Output:
@@ -127,7 +127,7 @@ If the Crossbar.io runs as expected then congratulations for the first step of s
 Realm :
 =======
 Before jumping in to our "Hello World" application, Lets get to understand some basics about Crossbar.io and its configuration.
-To run a "Hello World" application we need to specify some basic information in the Crossbar configuration file. They are URL (IP address and port number ) and  realm.  A Realm is equivalent to namespace. a WAMP router needs to provide atleast one realm for applications to communicate. Crossbar.io has capability to provide more than one realm. 
+To run a "Hello World" application we need to specify some basic information in the Crossbar configuration file. They are URL (IP address and port number ) and  realm.  A Realm is equivalent to namespace. a WAMP router needs to provide atleast one realm for applications to communicate. Crossbar.io has the capability to provide more than one realm. 
 
 .. note:: Every WAMP session between Crossbar.io and a Client is always attached to a specific Realm. It is not possible for a client connected in a particular realm to see clients of other realm. 
 
@@ -136,7 +136,7 @@ To run a "Hello World" application we need to specify some basic information in 
 
 Crossbar configuration:
 =======================
-The Crossbar configuration file is defined using a JSON or a YAML formatted file. The configuration by default will be loaded from CBDIR/config.json  or CBDIR/config.yaml. We will be covering in detail about the configuration in the advanced topics. As of now we will see the basic usage here. Now lets have a look at the config.json of the Docker image that we are running. To view that need to find the container id and then copy the files to local folder as shown below.
+The Crossbar configuration file is defined using a JSON or a YAML formatted file. The configuration by default will be loaded from CBDIR/**config.json**  or CBDIR/**config.yaml**. We will be covering in detail about the configuration in the advanced topics. As of now we will see the basic usage here. Now lets have a look at the config.json of the Docker image that we are running. To view that need to find the container id and then copy the files to local folder as shown below.
 
 ::
 
@@ -170,7 +170,7 @@ Our Hello World application consist of three components,
 
 
 
-In this example we will be using the Crossbar.io running in the Docker instance. Both the Publisher and Subscriber client will connect to Crossbar.io using the realm and the port number as mentioned in the configuration file. Once connected the Publisher client will publish the string "Hello world" along with a count to the topic "my.com.hello". The Subscriber client will listen to the topic "my.com.hello" and exits after receiving 5 events. 
+In this example we will be using the Crossbar.io running in the Docker instance. Both the Publisher and Subscriber client will connect to Crossbar.io using the realm and the port number as mentioned in the configuration file. Once connected the Publisher client will publish the string "Hello world" along with a count to the topic **"my.com.hello"**. The Subscriber client will listen to the topic "my.com.hello" and exits after receiving 5 events. 
 
 Publishing Client:
 ------------------
@@ -217,7 +217,7 @@ The subscriber client subsriber to the topic "com.myapp.hello" and each time a e
 Autobahn from Browser:    
 ======================
 
-Now that we have tried a pure python communication, its time to gets internetized and try the next example using Browser with Autobahn Javascript example. For that firstly we need to ensure that the browser is capable of Websocket connection. This can be tested using the https://caniuse.com/#search=websocket . The example that we are going to see is the same as the previous example with only difference is that this one uses Autobahn Javascript instead of Autobahn Python.  
+Now that we have tried a pure python communication, its time to gets internetized and try the next example using Browser with **Autobahn Javascript** example. For that firstly we need to ensure that the browser is capable of Websocket connection. This can be tested using the https://caniuse.com/#search=websocket . The example that we are going to see is the same as the previous example with only difference is that this one uses Autobahn Javascript instead of Autobahn Python.  
 
 .. image:: assets/helloworld-browser.svg  
     :align: center
@@ -232,7 +232,7 @@ The Javascript example code is available in the following folder
 
 Backend/Publisher:
 ------------------
-To start the application, just open the "backend.html" file using the browser. It will automatically load the scripts and then get started.
+To start the application, just open the **"backend.html"** file using the browser. It will automatically load the scripts and then get started.
 Then it will start publishing the event the same way as the python client did. 
 
 backend.html
@@ -240,7 +240,7 @@ backend.html
 .. literalinclude:: code/backend.html
    :language: html 
 
-If you see source code, the include of autobahn.min.js loads the Autobahn Javascript file to the browser, and the next line loads the backend.js which contains our publishing application.
+If you see source code, the include of **autobahn.min.js** loads the Autobahn Javascript file to the browser, and the next line loads the **backend.js** which contains our publishing application.
 
 backend.js
 ----------
@@ -300,11 +300,11 @@ You can try the example on your own as described.
     :align: center
     :alt: alternate text
 
-Moving on we will cover the next important feature of the Crossbar i.e  Remote Procedude Calls. Here a WAMP client will register a subroutine or a function to a particular topic, to be called by some other client hence it is called Callee. The Caller client can use the topic and call the remote procedure. 
+Moving on we will cover the next important feature of the Crossbar i.e  Remote Procedude Calls. Here a WAMP client will register a subroutine or a function to a particular topic, to be called by some other client hence it is called **Callee**. The **Caller** client can use the topic and call the remote procedure. 
 
 RPC Example
 ===========
-The Callee client will implement the date procedure and register it to the topic "my.com.date", the Caller can call the date function to know the date of that particular client.
+The Callee client will implement the date procedure and register it to the topic **"my.com.date"**, the Caller can call the date function to know the date of that particular client.
 
 .. image:: assets/helloworldrpc.svg
     :align: center
@@ -325,7 +325,7 @@ client_rpc_caller.py
 Leaving the boiler place code, we can see that the application calls the remote function using the topic.
 ::
 
-  now = yield self.call(u'com.timeservice.now')
+  now = yield self.call(u'my.com.date')
     
 RPC Callee Client:
 ::
@@ -342,7 +342,7 @@ client_rpc_callee.py
 The time service is registered with utcnow as the function, when the caller calls, the result of utcnow is sent back.
 ::
 
-  yield self.register(utcnow, u'com.timeservice.now')
+  yield self.register(utcnow, u'my.com.date')
 
 Output: 
 ::
