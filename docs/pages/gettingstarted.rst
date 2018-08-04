@@ -17,11 +17,11 @@
 Getting started with Crossbar.io
 =================================
 
-Crossbar.io is an open source networking platform for distributed and microservice applications. It is a feature rich, scalable, robust and secure Implementation of  the open `Web Application Messaging Protocol (WAMP) <https://wamp-proto.org/>`_.
+**Crossbar.io** is an open source networking platform for distributed and microservice applications. It is a feature rich, scalable, robust and secure Implementation of  the open `Web Application Messaging Protocol (WAMP) <https://wamp-proto.org/>`_.
 
 What is WAMP?
 =============
-WAMP is a routed protocol, with all components connecting to a WAMP Router, where the WAMP Router performs message routing between the WAMP client.  WAMP provides two messaging patterns: 
+WAMP is a routed protocol, with all components connecting to a **WAMP Router**, where the WAMP Router performs message routing between the **WAMP client**.  WAMP provides two messaging patterns: 
   * Publish & Subscribe 
   * Routed Remote Procedure Calls.
 
@@ -144,7 +144,7 @@ The Crossbar configuration file is defined using a JSON or a YAML formatted file
   CONTAINER ID        IMAGE                 COMMAND                  CREATED             STATUS              PORTS                              NAMES
   7e2deaba1f61        crossbario/crossbar   "crossbar start --cb…"   9 hours ago         Up 9 hours          8000/tcp, 0.0.0.0:8080->8080/tcp   clever_meninsky
 
-  $docker cp  crossbario/crossbar:/node/.crossbar/config.json .
+  $docker cp  7e2deaba1f61:/node/.crossbar/config.json .
 
 config.json
 -----------
@@ -188,18 +188,18 @@ client_publisher.py
    :language: python 
    :emphasize-lines: 22
     
-The Autobahn Python project supports two type of implemention twisted and asyncio. In this example we are showing twisted based example. 
+The Autobahn Python project supports two type of implemention **twisted** and **asyncio**. In this example we are showing twisted based example. 
 The  client_publisher.py publishes using this api as shown below. ::
 
  self.publish(u'com.myapp.hello', "Hello World %d"%counter)
 
 
-.. note:: The WAMP supports following data types in serializations integer, string, bool, list, dict https://wamp-proto.org/static/rfc/draft-oberstet-hybi-crossbar-wamp.html#serializations/
+.. note:: The WAMP supports following data types in serialization **integer, string, bool, list, dict** https://wamp-proto.org/static/rfc/draft-oberstet-hybi-crossbar-wamp.html#serializations/
 
 
 Subscriber Client:
 ------------------
-The subscriber client takes the parameter the same way as publisher client. The application will connect and receive 5 events and then exit. ::
+The subscriber client takes the parameter the same way as publisher client. The application will connect and **receive 5 events** and then exit. ::
 
   docker run -it  crossbario/autobahn-python:cpy3    python client_subscribe.py --url "ws://192.168.0.15:8080/ws"  --realm realm1
 
@@ -339,7 +339,7 @@ client_rpc_callee.py
    :language: python 
    :emphasize-lines: 24
 
-The time service is registered with utcnow as the function, when the caller calls, the result of utcnow is sent back.
+The time service is registered with *utcnow* as the function, when the caller calls, the result of utcnow is sent back.
 ::
 
   yield self.register(utcnow, u'my.com.date')
