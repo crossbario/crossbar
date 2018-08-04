@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="59cm"
+   height="28cm"
+   viewBox="189 45 1172 554"
+   version="1.1"
+   id="svg4667"
+   sodipodi:docname="helloworld.svg"
+   inkscape:version="0.92.0 r15299">
+  <metadata
+     id="metadata4673">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs4671" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1366"
+     inkscape:window-height="705"
+     id="namedview4669"
+     showgrid="false"
+     inkscape:zoom="0.18201508"
+     inkscape:cx="889.61716"
+     inkscape:cy="659.45719"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg4667" />
+  <rect
+     style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000"
+     x="190.826"
+     y="46.3956"
+     width="1169.74"
+     height="551.154"
+     id="rect4611" />
+  <g
+     id="g4625">
+    <polyline
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="1163.23,342.926 879.414,169.886 "
+       id="polyline4619" />
+    <polygon
+       style="fill: #000000"
+       points="870.448,164.42 886.046,165.731 879.414,169.886 878.758,177.685 "
+       id="polygon4621" />
+    <polygon
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="870.448,164.42 886.046,165.731 879.414,169.886 878.758,177.685 "
+       id="polygon4623" />
+  </g>
+  <g
+     id="g4633"
+     transform="translate(-2.041812)">
+    <polyline
+       style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:4"
+       points="348.599,334.674 647.41,162.092 "
+       id="polyline4627" />
+    <polygon
+       style="fill:#000000"
+       points="348.129,326.862 348.599,334.674 355.131,338.985 339.507,339.925 "
+       id="polygon4629" />
+    <polygon
+       style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:4"
+       points="348.129,326.862 348.599,334.674 355.131,338.985 339.507,339.925 "
+       id="polygon4631" />
+  </g>
+  <g
+     id="g4641"
+     transform="translate(-1.4192872,9.2789243)">
+    <rect
+       style="fill:#ffff00"
+       x="660.30798"
+       y="277.25601"
+       width="190.55"
+       height="39.400002"
+       id="rect4635" />
+    <text
+       font-size="33.8667"
+       style="font-style:normal;font-weight:normal;font-size:33.86669922px;font-family:sans-serif;text-anchor:start;fill:#000000"
+       x="660.30798"
+       y="308.65601"
+       id="text4639">
+      <tspan
+         x="660.30798"
+         y="308.65601"
+         id="tspan4637">Crossbar.io</tspan>
+    </text>
+  </g>
+  <text
+     font-size="33.8667"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="1044.29"
+     y="532.102"
+     id="text4647">
+    <tspan
+       x="1044.29"
+       y="532.102"
+       id="tspan4643">Autobahn Python </tspan>
+    <tspan
+       x="1044.29"
+       y="574.435"
+       id="tspan4645">Publishing client</tspan>
+  </text>
+  <text
+     font-size="33.8667"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="210.33"
+     y="531.338"
+     id="text4653">
+    <tspan
+       x="210.33"
+       y="531.338"
+       id="tspan4649">Autobahn Python </tspan>
+    <tspan
+       x="210.33"
+       y="573.671"
+       id="tspan4651">Subscribing client</tspan>
+  </text>
+  <text
+     font-size="19.7556"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="993.392"
+     y="187.614"
+     id="text4659">
+    <tspan
+       x="993.392"
+       y="187.614"
+       id="tspan4655">Publish Hello World to </tspan>
+    <tspan
+       x="993.392"
+       y="212.308"
+       id="tspan4657"> topic &quot;my.com.hello&quot;</tspan>
+  </text>
+  <text
+     font-size="19.7556"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="278.582"
+     y="190.158"
+     id="text4665">
+    <tspan
+       x="278.582"
+       y="190.158"
+       id="tspan4661">   Subscribe and receive from </tspan>
+    <tspan
+       x="278.582"
+       y="214.853"
+       id="tspan4663">       topic &quot;my.com.hello&quot;</tspan>
+  </text>
+  <g
+     id="g4583"
+     transform="matrix(1.5153552,0,0,1.5210157,-42.813798,-380.405)"
+     style="fill-rule:evenodd;stroke-width:2.29159999">
+    <path
+       d="M 453.35,287.7 V 436.41 H 601.87 V 287.7 Z"
+       id="path4575"
+       inkscape:connector-curvature="0"
+       style="fill:#ffff00" />
+    <path
+       d="m 453.35,319.37 v 14.674 h 35.074 l 23.262,23.262 10.737,-10.737 -27.557,-27.557 -41.515,0.35789 z"
+       id="path4577"
+       inkscape:connector-curvature="0"
+       style="fill:#333333" />
+    <path
+       d="m 543.36,367.68 -10.558,10.737 26.484,26.663 h 42.59 v -14.852 h -35.967 l -22.547,-22.547 z"
+       id="path4579"
+       inkscape:connector-curvature="0"
+       style="fill:#333333" />
+    <path
+       d="m 560.37,319.01 -70.697,71.22 h -36.32 v 15.032 h 42.411 l 71.22,-71.22 h 34.895 v -15.031 h -41.515 z"
+       id="path4581"
+       inkscape:connector-curvature="0"
+       style="fill:#333333" />
+  </g>
+  <path
+     inkscape:connector-curvature="0"
+     style="fill:#0273a0;fill-rule:nonzero;stroke-width:1.01978922"
+     d="M 262.626,342.38739 V 499.41496 H 413.14297 V 342.38739 Z m 63.97571,15.09085 h 6.67457 v 30.73751 h -13.01557 z m 16.11881,0.27817 h 6.64122 l 6.37425,30.66792 h -13.01557 z m -51.6949,32.5462 h 93.24424 v 5.73728 h -4.53874 v 8.83195 h -10.71319 v -8.83195 h -62.64131 v 8.83195 h -10.51297 v -8.83195 h -4.83905 z m 25.16323,13.66551 h 17.08682 v 79.06958 h -32.97238 z m 26.53167,0 h 17.05379 l 15.9186,79.06958 h -32.97239 z"
+     id="path4500" />
+  <path
+     inkscape:connector-curvature="0"
+     style="fill:#0273a0;fill-rule:nonzero;stroke-width:1.01978922"
+     d="M 1085.2763,341.85324 V 498.8808 h 150.517 V 341.85324 Z m 63.9757,15.09085 h 6.6746 v 30.73751 h -13.0156 z m 16.1189,0.27817 h 6.6412 l 6.3742,30.66792 h -13.0155 z m -51.6949,32.5462 h 93.2442 v 5.73728 h -4.5387 v 8.83195 h -10.7132 v -8.83195 h -62.6413 v 8.83195 h -10.513 v -8.83195 h -4.8391 z m 25.1632,13.6655 h 17.0868 v 79.06958 h -32.9724 z m 26.5317,0 h 17.0537 l 15.9186,79.06958 h -32.9723 z"
+     id="path4500-0" />
+</svg>

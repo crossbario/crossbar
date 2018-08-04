@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="59cm"
+   height="45cm"
+   viewBox="189 -296 1172 895"
+   version="1.1"
+   id="svg5236"
+   sodipodi:docname="helloworldmix1.svg"
+   inkscape:version="0.92.0 r15299">
+  <metadata
+     id="metadata5242">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs5240" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1366"
+     inkscape:window-height="705"
+     id="namedview5238"
+     showgrid="false"
+     inkscape:zoom="0.31632407"
+     inkscape:cx="1114.9606"
+     inkscape:cy="850.3937"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg5236" />
+  <rect
+     style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000"
+     x="190.826"
+     y="-294.764"
+     width="1169.74"
+     height="892.314"
+     id="rect5148" />
+  <g
+     id="g5162">
+    <polyline
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="1163.23,342.926 887.098,174.571 "
+       id="polyline5156" />
+    <polygon
+       style="fill: #000000"
+       points="870.448,164.42 899.415,166.855 887.098,174.571 885.88,189.054 "
+       id="polygon5158" />
+    <polygon
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="870.448,164.42 899.415,166.855 887.098,174.571 885.88,189.054 "
+       id="polygon5160" />
+  </g>
+  <g
+     id="g5170">
+    <polyline
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="356.393,330.173 647.41,162.092 "
+       id="polyline5164" />
+    <polygon
+       style="fill: #000000"
+       points="339.507,339.925 355.519,315.664 356.393,330.173 368.523,338.179 "
+       id="polygon5166" />
+    <polygon
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="339.507,339.925 355.519,315.664 356.393,330.173 368.523,338.179 "
+       id="polygon5168" />
+  </g>
+  <g
+     id="g5178">
+    <rect
+       style="fill: #ffff00"
+       x="660.308"
+       y="277.256"
+       width="190.55"
+       height="39.4"
+       id="rect5172" />
+    <text
+       font-size="33.8667"
+       style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+       x="660.308"
+       y="308.656"
+       id="text5176">
+      <tspan
+         x="660.308"
+         y="308.656"
+         id="tspan5174">Crossbar.io</tspan>
+    </text>
+  </g>
+  <text
+     font-size="33.8667"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="1044.29"
+     y="532.102"
+     id="text5184">
+    <tspan
+       x="1044.29"
+       y="532.102"
+       id="tspan5180">Autobahn Python </tspan>
+    <tspan
+       x="1044.29"
+       y="574.435"
+       id="tspan5182">Publishing client</tspan>
+  </text>
+  <text
+     font-size="33.8667"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="210.33"
+     y="531.338"
+     id="text5190">
+    <tspan
+       x="210.33"
+       y="531.338"
+       id="tspan5186">Autobahn Python </tspan>
+    <tspan
+       x="210.33"
+       y="573.671"
+       id="tspan5188">Subscribing client</tspan>
+  </text>
+  <text
+     font-size="19.7556"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="993.392"
+     y="187.614"
+     id="text5196">
+    <tspan
+       x="993.392"
+       y="187.614"
+       id="tspan5192">Publish Hello World to </tspan>
+    <tspan
+       x="993.392"
+       y="212.308"
+       id="tspan5194"> topic &quot;my.com.hello&quot;</tspan>
+  </text>
+  <text
+     font-size="19.7556"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="278.582"
+     y="172.158"
+     id="text5202">
+    <tspan
+       x="278.582"
+       y="172.158"
+       id="tspan5198">   Subscribe and receive from </tspan>
+    <tspan
+       x="278.582"
+       y="196.853"
+       id="tspan5200">       topic &quot;my.com.hello&quot;</tspan>
+  </text>
+  <text
+     font-size="33.8667"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="220.676"
+     y="-234.618"
+     id="text5212">
+    <tspan
+       x="220.676"
+       y="-234.618"
+       id="tspan5208">Autobahn Javascript</tspan>
+    <tspan
+       x="220.676"
+       y="-192.285"
+       id="tspan5210">Subscribing client</tspan>
+  </text>
+  <text
+     font-size="33.8667"
+     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     x="990.575"
+     y="-221.532"
+     id="text5218">
+    <tspan
+       x="990.575"
+       y="-221.532"
+       id="tspan5214">Autobahn Javascript</tspan>
+    <tspan
+       x="990.575"
+       y="-179.199"
+       id="tspan5216">  Publishing client</tspan>
+  </text>
+  <g
+     id="g5226">
+    <polyline
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="358.511,-4.34867 647.41,162.092 "
+       id="polyline5220" />
+    <polygon
+       style="fill: #000000"
+       points="341.615,-14.0831 370.633,-12.3682 358.511,-4.34867 357.654,10.1605 "
+       id="polygon5222" />
+    <polygon
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="341.615,-14.0831 370.633,-12.3682 358.511,-4.34867 357.654,10.1605 "
+       id="polygon5224" />
+  </g>
+  <g
+     id="g5234">
+    <polyline
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="887.162,149.718 1161.95,-15.8794 "
+       id="polyline5228" />
+    <polygon
+       style="fill: #000000"
+       points="870.46,159.783 886.019,135.229 887.162,149.718 899.439,157.498 "
+       id="polygon5230" />
+    <polygon
+       style="fill: none; fill-opacity:0; stroke-width: 4; stroke: #000000"
+       points="870.46,159.783 886.019,135.229 887.162,149.718 899.439,157.498 "
+       id="polygon5232" />
+  </g>
+  <path
+     inkscape:connector-curvature="0"
+     style="fill:#0273a0;fill-rule:nonzero;stroke-width:1.02104604"
+     d="m 1087.7779,-173.31872 v 157.221096 h 150.7025 V -173.31872 Z m 64.0545,15.10945 h 6.6829 v 30.7754 h -13.0317 z m 16.1388,0.27851 h 6.6494 l 6.382,30.70573 h -13.0315 z m -51.7586,32.58632 h 93.3591 v 5.74435 h -4.5443 v 8.84284 h -10.7264 v -8.84284 h -62.7185 v 8.84284 h -10.5259 v -8.84284 h -4.8451 z m 25.1942,13.68234 h 17.1079 v 79.167036 h -33.0131 z m 26.5644,0 h 17.0747 l 15.9382,79.167036 h -33.0129 z"
+     id="path4500-0" />
+  <path
+     inkscape:connector-curvature="0"
+     style="fill:#0273a0;fill-rule:nonzero;stroke-width:1.02104604"
+     d="m 272.62911,-171.65515 v 157.221096 h 150.7025 V -171.65515 Z m 64.0545,15.10945 h 6.6829 v 30.7754 h -13.0317 z m 16.1388,0.27851 h 6.6494 l 6.382,30.70573 h -13.0315 z m -51.7586,32.58632 h 93.3591 v 5.74435 h -4.5443 v 8.84284 h -10.7264 v -8.84284 h -62.7185 v 8.84284 h -10.5259 v -8.84284 h -4.8451 z m 25.1942,13.68234 h 17.1079 v 79.167036 h -33.0131 z m 26.5644,0 h 17.0747 l 15.9382,79.167036 h -33.0129 z"
+     id="path4500-0-9" />
+  <path
+     inkscape:connector-curvature="0"
+     style="fill:#0273a0;fill-rule:nonzero;stroke-width:1.02104604"
+     d="m 251.00275,344.05118 v 157.2211 h 150.7025 v -157.2211 z m 64.0545,15.10945 h 6.6829 v 30.7754 h -13.0317 z m 16.1388,0.27851 h 6.64941 l 6.38199,30.70573 h -13.0315 z m -51.7586,32.58632 h 93.35911 v 5.74435 h -4.54431 v 8.84284 h -10.7264 v -8.84284 h -62.7185 v 8.84284 h -10.5259 v -8.84284 h -4.8451 z m 25.1942,13.68234 h 17.1079 v 79.16704 h -33.0131 z m 26.5644,0 h 17.0747 l 15.9382,79.16704 h -33.0129 z"
+     id="path4500-0-0" />
+  <path
+     inkscape:connector-curvature="0"
+     style="fill:#0273a0;fill-rule:nonzero;stroke-width:1.02104604"
+     d="m 1092.4926,337.2886 v 157.2211 h 150.7025 V 337.2886 Z m 64.0545,15.10945 h 6.6829 v 30.7754 h -13.0317 z m 16.1388,0.27851 h 6.6494 l 6.382,30.70573 h -13.0315 z m -51.7586,32.58632 h 93.3591 v 5.74435 h -4.5443 v 8.84284 h -10.7264 v -8.84284 h -62.7185 v 8.84284 h -10.5259 v -8.84284 h -4.8451 z m 25.1942,13.68234 h 17.1079 v 79.16704 h -33.0131 z m 26.5644,0 h 17.0747 l 15.9382,79.16704 h -33.0129 z"
+     id="path4500-0-2" />
+  <g
+     id="g4583"
+     transform="matrix(1.5172228,0,0,1.5228902,-44.953992,-398.20643)"
+     style="fill-rule:evenodd;stroke-width:2.29159999">
+    <path
+       d="M 453.35,287.7 V 436.41 H 601.87 V 287.7 Z"
+       id="path4575"
+       inkscape:connector-curvature="0"
+       style="fill:#ffff00" />
+    <path
+       d="m 453.35,319.37 v 14.674 h 35.074 l 23.262,23.262 10.737,-10.737 -27.557,-27.557 -41.515,0.35789 z"
+       id="path4577"
+       inkscape:connector-curvature="0"
+       style="fill:#333333" />
+    <path
+       d="m 543.36,367.68 -10.558,10.737 26.484,26.663 h 42.59 v -14.852 h -35.967 l -22.547,-22.547 z"
+       id="path4579"
+       inkscape:connector-curvature="0"
+       style="fill:#333333" />
+    <path
+       d="m 560.37,319.01 -70.697,71.22 h -36.32 v 15.032 h 42.411 l 71.22,-71.22 h 34.895 v -15.031 h -41.515 z"
+       id="path4581"
+       inkscape:connector-curvature="0"
+       style="fill:#333333" />
+  </g>
+</svg>
