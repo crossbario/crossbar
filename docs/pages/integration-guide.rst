@@ -3,6 +3,4 @@
 .. _integration-guide:
 
 Integration Guide 
-================
-
-
+=================
