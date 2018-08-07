@@ -148,4 +148,3 @@ html_static_path = ['_static']
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://docs.python.org/': None}
-extensions = ['sphinx_tabs.tabs']
