@@ -35,3 +35,4 @@ attrs>=17.2.0
 incremental>=17.5.0
 constantly>=15.1.0
 passlib>=1.7.1
+whichcraft>=0.4.1

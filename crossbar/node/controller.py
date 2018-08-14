@@ -35,7 +35,7 @@ import sys
 import signal
 import threading
 from datetime import datetime
-from shutil import which
+from whichcraft import which
 
 from twisted.python.reflect import qual
 from twisted.internet.error import ReactorNotRunning
