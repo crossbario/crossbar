@@ -31,7 +31,7 @@
 from __future__ import absolute_import
 
 import time
-from collections.abc import Mapping
+import six
 
 import txaio
 txaio.use_twisted()
@@ -47,6 +47,11 @@ from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.webservice import base
 from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static
 from crossbar.router.realmstore import MemoryRealmStore
+
+if six.PY3:
+    from collections.abc import Mapping
+else:
+    from collections import Mapping
 
 
 def default_native_workers():
