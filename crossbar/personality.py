@@ -31,7 +31,7 @@
 from __future__ import absolute_import
 
 import time
-from collections.abc import Mapping
+import six
 
 import txaio
 txaio.use_twisted()
@@ -47,6 +47,11 @@ from crossbar.worker.testee import WebSocketTesteeController
 from crossbar.webservice import base
 from crossbar.webservice import wsgi, rest, longpoll, websocket, misc, static
 from crossbar.router.realmstore import MemoryRealmStore
+
+if six.PY3:
+    from collections.abc import Mapping
+else:
+    from collections import Mapping
 
 
 def default_native_workers():
@@ -253,9 +258,9 @@ class Personality(object):
 
     native_workers = default_native_workers()
 
-    create_router_transport = transport.create_router_transport
+    create_router_transport = staticmethod(transport.create_router_transport)
 
-    create_realm_store = create_realm_store
+    create_realm_store = staticmethod(create_realm_store)
 
     RouterWebTransport = transport.RouterWebTransport
 
@@ -266,67 +271,67 @@ class Personality(object):
     #
 
     # config
-    check_config = checkconfig.check_config
+    check_config = staticmethod(checkconfig.check_config)
 
     # config files
-    upgrade_config_file = checkconfig.upgrade_config_file
-    convert_config_file = checkconfig.convert_config_file
-    check_config_file = checkconfig.check_config_file
+    upgrade_config_file = staticmethod(checkconfig.upgrade_config_file)
+    convert_config_file = staticmethod(checkconfig.convert_config_file)
+    check_config_file = staticmethod(checkconfig.check_config_file)
 
     # top level
-    check_controller = checkconfig.check_controller
-    check_controller_options = checkconfig.check_controller_options
-    check_worker = checkconfig.check_worker
+    check_controller = staticmethod(checkconfig.check_controller)
+    check_controller_options = staticmethod(checkconfig.check_controller_options)
+    check_worker = staticmethod(checkconfig.check_worker)
 
     # native workers
-    check_manhole = checkconfig.check_manhole
-    check_connection = checkconfig.check_connection
+    check_manhole = staticmethod(checkconfig.check_manhole)
+    check_connection = staticmethod(checkconfig.check_connection)
 
     # router worker
-    check_router = checkconfig.check_router
-    check_router_options = checkconfig.check_router_options
-    check_router_realm = checkconfig.check_router_realm
-    check_router_realm_role = checkconfig.check_router_realm_role
-    check_router_component = checkconfig.check_router_component
+    check_router = staticmethod(checkconfig.check_router)
+    check_router_options = staticmethod(checkconfig.check_router_options)
+    check_router_realm = staticmethod(checkconfig.check_router_realm)
+    check_router_realm_role = staticmethod(checkconfig.check_router_realm_role)
+    check_router_component = staticmethod(checkconfig.check_router_component)
 
     # container worker
-    check_container = checkconfig.check_container
-    check_container_options = checkconfig.check_container_options
-    check_container_component = checkconfig.check_container_component
+    check_container = staticmethod(checkconfig.check_container)
+    check_container_options = staticmethod(checkconfig.check_container_options)
+    check_container_component = staticmethod(checkconfig.check_container_component)
 
     # guest worker
-    check_guest = checkconfig.check_guest
+    check_guest = staticmethod(checkconfig.check_guest)
 
     # testee worker
-    check_websocket_testee = checkconfig.check_websocket_testee
-    check_websocket_testee_options = checkconfig.check_websocket_testee_options
+    check_websocket_testee = staticmethod(checkconfig.check_websocket_testee)
+    check_websocket_testee_options = staticmethod(checkconfig.check_websocket_testee_options)
 
     # listening transports
-    check_router_transport = checkconfig.check_router_transport
-    check_listening_endpoint = checkconfig.check_listening_endpoint
-    check_listening_transport_universal = checkconfig.check_listening_transport_universal
-    check_listening_transport_websocket = checkconfig.check_listening_transport_websocket
-    check_listening_transport_web = checkconfig.check_listening_transport_web
+    check_router_transport = staticmethod(checkconfig.check_router_transport)
+    check_listening_endpoint = staticmethod(checkconfig.check_listening_endpoint)
+    check_listening_transport_universal = staticmethod(checkconfig.check_listening_transport_universal)
+    check_listening_transport_websocket = staticmethod(checkconfig.check_listening_transport_websocket)
+    check_listening_transport_web = staticmethod(checkconfig.check_listening_transport_web)
 
     # web services
-    check_paths = checkconfig.check_paths
-    check_web_path_service = checkconfig.check_web_path_service
+    check_paths = staticmethod(checkconfig.check_paths)
+    check_web_path_service = staticmethod(checkconfig.check_web_path_service)
 
     # authentication
-    check_transport_auth = checkconfig.check_transport_auth
-    check_transport_cookie = checkconfig.check_transport_cookie
+    check_transport_auth = staticmethod(checkconfig.check_transport_auth)
+    check_transport_cookie = staticmethod(checkconfig.check_transport_cookie)
 
     # connecting transports
-    check_connecting_endpoint = checkconfig.check_connecting_endpoint
-    check_connecting_transport = checkconfig.check_connecting_transport
+    check_connecting_endpoint = staticmethod(checkconfig.check_connecting_endpoint)
+    check_connecting_transport = staticmethod(checkconfig.check_connecting_transport)
 
-    # check_listening_transport_websocket = checkconfig.check_listening_transport_websocket
-    check_listening_transport_rawsocket = checkconfig.check_listening_transport_rawsocket
-    # check_listening_transport_universal = checkconfig.check_listening_transport_universal
-    # check_listening_transport_web = checkconfig.check_listening_transport_web
-    check_listening_transport_mqtt = checkconfig.check_listening_transport_mqtt
-    check_listening_transport_flashpolicy = checkconfig.check_listening_transport_flashpolicy
-    check_listening_transport_websocket_testee = checkconfig.check_listening_transport_websocket_testee
-    check_listening_transport_stream_testee = checkconfig.check_listening_transport_stream_testee
+    # check_listening_transport_websocket = staticmethod(checkconfig.check_listening_transport_websocket)
+    check_listening_transport_rawsocket = staticmethod(checkconfig.check_listening_transport_rawsocket)
+    # check_listening_transport_universal = staticmethod(checkconfig.check_listening_transport_universal)
+    # check_listening_transport_web = staticmethod(checkconfig.check_listening_transport_web)
+    check_listening_transport_mqtt = staticmethod(checkconfig.check_listening_transport_mqtt)
+    check_listening_transport_flashpolicy = staticmethod(checkconfig.check_listening_transport_flashpolicy)
+    check_listening_transport_websocket_testee = staticmethod(checkconfig.check_listening_transport_websocket_testee)
+    check_listening_transport_stream_testee = staticmethod(checkconfig.check_listening_transport_stream_testee)
 
-    check_listening_endpoint_onion = checkconfig.check_listening_endpoint_onion
+    check_listening_endpoint_onion = staticmethod(checkconfig.check_listening_endpoint_onion)
