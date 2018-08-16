@@ -108,6 +108,9 @@ class PendingAuthScram(PendingAuth):
             error = self._assign_principal(principal)
             if error:
                 return error
+            
+            self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
+            self._session_details[u'authextra'] = details.authextra
 
             # XXX TODO this needs to include (optional) channel-binding
             extra = self._compute_challenge()
