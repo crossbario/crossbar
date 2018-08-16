@@ -173,7 +173,7 @@ class NodeController(NativeProcess):
             self.shutdown()
 
         signal.signal(signal.SIGINT, signal_handler)
-        self.log.info('Signal handler installed on process {pid} thread {tid}', pid=os.getpid(), tid=threading.get_ident())
+        self.log.info('Signal handler installed on process {pid} thread {tid}', pid=os.getpid(), tid=threading.current_thread().ident)
 
         self._started = utcnow()
 
