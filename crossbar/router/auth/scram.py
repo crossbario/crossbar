@@ -96,7 +96,6 @@ class PendingAuthScram(PendingAuth):
 
         if self._authid is None:
             return types.Deny(message=u'cannot identify client: no authid requested')
-            
         self._session_details[u'authmethod'] = self._authmethod  # from AUTHMETHOD, via base
         self._session_details[u'authextra'] = details.authextra
 
