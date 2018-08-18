@@ -1,0 +1,33 @@
+   2018-07-30T13:50:17+0000 [Controller      1] New node key pair generated!
+   2018-07-30T13:50:17+0000 [Controller      1] File permissions on node private key fixed!
+   2018-07-30T13:50:17+0000 [Controller      1]      __  __  __  __  __  __      __     __
+   2018-07-30T13:50:17+0000 [Controller      1]     /  `|__)/  \/__`/__`|__) /\ |__)  |/  \
+   2018-07-30T13:50:17+0000 [Controller      1]     \__,|  \\__/.__/.__/|__)/~~\|  \. |\__/
+   2018-07-30T13:50:17+0000 [Controller      1]                                         
+   2018-07-30T13:50:17+0000 [Controller      1] Version:     Crossbar.io COMMUNITY 18.3.1
+   2018-07-30T13:50:17+0000 [Controller      1] Public Key:  420cf7770c8396cd02484b8dc1ee15abeb180eac577bb1865f5743f5bbe6653a
+   2018-07-30T13:50:17+0000 [Controller      1] 
+   2018-07-30T13:50:17+0000 [Controller      1] Node starting with personality "community" [crossbar.controller.node.Node]
+   2018-07-30T13:50:17+0000 [Controller      1] Running from node directory "/node/.crossbar"
+   2018-07-30T13:50:17+0000 [Controller      1] Node configuration loaded from "/node/.crossbar/config.json"
+   2018-07-30T13:50:17+0000 [Controller      1] Controller process starting [CPython-EPollReactor] ..
+   2018-07-30T13:50:17+0000 [Controller      1] No extra node router roles
+   2018-07-30T13:50:17+0000 [Controller      1] RouterServiceSession ready [no on_ready configured]
+   2018-07-30T13:50:17+0000 [Controller      1] Registered 20 procedures
+   2018-07-30T13:50:17+0000 [Controller      1] Using default node shutdown triggers ['shutdown_on_worker_exit']
+   2018-07-30T13:50:17+0000 [Controller      1] Configuring node from local configuration ...
+   2018-07-30T13:50:17+0000 [Controller      1] Starting 1 workers ...
+   2018-07-30T13:50:17+0000 [Controller      1] Router worker "worker-001" starting ..
+   2018-07-30T13:50:18+0000 [Router         19] Started Router worker "worker-001" on node "None" [crossbar.worker.router.RouterWorkerSession / CPython-EPollReactor]
+   2018-07-30T13:50:18+0000 [Router         19] Registered 39 procedures
+   2018-07-30T13:50:18+0000 [Router         19] Router worker "worker-001" session ready
+   2018-07-30T13:50:18+0000 [Controller      1] Router worker "worker-001" process 19 started
+   2018-07-30T13:50:18+0000 [Router         19] RouterServiceSession ready [configured on_ready fired]
+   2018-07-30T13:50:18+0000 [Router         19] Realm 'realm1' started
+   2018-07-30T13:50:18+0000 [Controller      1] Router "worker-001": realm 'realm-001' (named 'realm1') started
+   2018-07-30T13:50:18+0000 [Router         19] role role-001 on realm realm-001 started
+   2018-07-30T13:50:18+0000 [Controller      1] Router "worker-001": role 'role-001' (named 'anonymous') started on realm 'realm-001'
+   2018-07-30T13:50:18+0000 [Router         19] UniSocketServerFactory starting on 8080
+   2018-07-30T13:50:18+0000 [Controller      1] Router "worker-001": transport 'transport-001' started
+   2018-07-30T13:50:18+0000 [Controller      1] Local node configuration applied successfully!
+
