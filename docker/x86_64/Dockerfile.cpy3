@@ -29,6 +29,7 @@ RUN    apk --update upgrade \
     && apk add --virtual .build-deps \
                build-base \
                libffi-dev \
+               libssl1.0 \
                openssl-dev \
                linux-headers \
     && pip install --no-cache-dir -U pip \
