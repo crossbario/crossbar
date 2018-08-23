@@ -3,7 +3,7 @@
 #
 # CHANGE FOR NEW RELEASES (these need to be proper Git tags in the respective repo):
 #
-export CROSSBAR_VERSION='18.4.1'
+export CROSSBAR_VERSION=$(grep -E '^(__version__)' ../crossbar/_version.py | cut -d ' ' -f3 | sed -e 's|[u"'\'']||g')
 #
 # END OF CONFIG
 #

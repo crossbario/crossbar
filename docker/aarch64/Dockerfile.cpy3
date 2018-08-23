@@ -1,4 +1,4 @@
-FROM aarch64/python:3.6
+FROM arm64v8/python:3.7-slim
 
 COPY .qemu/qemu-aarch64-static /usr/bin/qemu-aarch64-static
 
@@ -32,11 +32,10 @@ RUN    apt-get update \
                expat \
                build-essential \
                libssl-dev \
-
+               libffi-dev \
     # install Crossbar.io from PyPI
     && pip install --no-cache-dir -U pip \
     && pip install --no-cache-dir crossbar>=${CROSSBAR_VERSION} \
-
     # minimize image
     && apt-get remove -y build-essential \
     && rm -rf ~/.cache \
@@ -49,7 +48,7 @@ RUN crossbar version
 RUN adduser --system --group --uid 242 --home /node crossbar
 
 # initialize a Crossbar.io node
-COPY ./_node/ /node/
+COPY ./node/ /node/
 RUN chown -R crossbar:crossbar /node
 
 # make /node a volume to allow external configuration
