@@ -24,6 +24,7 @@ test: test_cpy3 test_pypy3
 prepare:
 	-rm -rf ./node
 	crossbar init --appdir ./node
+	mkdir node/web/js -p
 
 publish:
 	# amd64 / community / cpy3
@@ -65,7 +66,6 @@ qemu_deps:
 # we bake into the images
 #
 autobahn:
-	mkdir -p ./_node/web/js
 	cp ../../autobahn-js-built/autobahn.* ./node/web/js/
 	cp ../../autobahn-js-built/CHECKSUM.* ./node/web/js/
 	cp ../../autobahn-js-built/LICENSE ./node/web/js/
