@@ -66,7 +66,6 @@ qemu_deps:
 # we bake into the images
 #
 autobahn:
-	mkdir -p ./node/web/js
 	cp ../../autobahn-js-built/autobahn.* ./node/web/js/
 	cp ../../autobahn-js-built/CHECKSUM.* ./node/web/js/
 	cp ../../autobahn-js-built/LICENSE ./node/web/js/
