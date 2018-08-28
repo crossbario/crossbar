@@ -58,7 +58,15 @@ class InvocationRequest(object):
     Holding information for an individual invocation.
     """
 
-    __slots__ = ('id', 'registration', 'caller', 'call', 'callee', 'canceled')
+    __slots__ = (
+        'id',
+        'registration',
+        'caller',
+        'call',
+        'callee',
+        'canceled',
+        'error_msg',
+    )
 
     def __init__(self, id, registration, caller, call, callee):
         self.id = id
@@ -67,6 +75,7 @@ class InvocationRequest(object):
         self.call = call
         self.callee = callee
         self.canceled = False
+        self.error_msg = None
 
 
 class RegistrationExtra(object):
@@ -952,6 +961,9 @@ class Dealer(object):
         # type: (session.RouterSession, message.Cancel) -> None
         """
         Implements :func:`crossbar.router.interfaces.IDealer.processCancel`
+
+        A 'caller' has sent us a message wishing to cancel a still-
+        outstanding call. They can request 1 of 3 modes of cancellation.
         """
         if (session._session_id, cancel.request) in self._invocations_by_call:
             invocation_request = self._invocations_by_call[session._session_id, cancel.request]
@@ -968,10 +980,39 @@ class Dealer(object):
             if invocation_request.canceled:
                 return
 
-            invocation_request.canceled = True
+            def can_cancel(session):
+                return (
+                    'callee' in session._session_roles and
+                    session._session_roles['callee'] and
+                    session._session_roles['callee'].call_canceling
+                )
 
-            if 'callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].call_canceling:
-                interrupt = message.Interrupt(invocation_request.id, cancel.mode)
+            invocation_request.canceled = True
+            # "skip" or "kill" or "killnowait" (see WAMP section.14.3.4)
+            cancellation_mode = cancel.mode
+            print("CALLEE: {}".format(invocation_request.callee))
+            if not can_cancel(invocation_request.callee):
+                # callee can't deal with an "Interrupt"
+                cancellation_mode = message.Cancel.SKIP
+
+            # on the incoming Cancel, we send Interrupt to "callee"
+            # and Error to "caller", with a couple wrinkles based on
+            # the mode:
+            #     - if "skip": don't send Interrupt to 'callee'
+            #     - if "kill": don't send Error until incoming Error from 'callee'
+            #     - if "killnowait": send Interrupt + Error immediately
+            #
+            # Note that if we've sent nothing to the callee, we must
+            # simply ignore any "error" or "result" we get back from
+            # them. Similarly if we send Error immediately (where we
+            # must ignore Error if/when the callee sends it).
+            # (XXX need test for ^ case)
+
+            if cancellation_mode != message.Cancel.SKIP:
+                interrupt_mode = message.Interrupt.KILL
+                if cancellation_mode == message.Cancel.KILLNOWAIT:
+                    interrupt_mode = message.Interrupt.ABORT
+                interrupt = message.Interrupt(invocation_request.id, interrupt_mode)
 
                 if self._router.is_traced:
                     interrupt.correlation_id = invocation_request.call.correlation_id
@@ -981,6 +1022,20 @@ class Dealer(object):
 
                 self._router.send(invocation_request.callee, interrupt)
 
+                # we also need to send an "Error" over to the other
+                # side -- *when* we do that depends on the mode.
+                error_msg = message.Error(
+                    message.Call.MESSAGE_TYPE,
+                    cancel.request,
+                    ApplicationError.CANCELED,
+                )
+                if cancellation_mode == message.Cancel.KILL:  # not SKIP, not KILLNOWAIT
+                    # send the message only after we get Error back from callee
+                    invocation_request.error_msg = error_msg
+                else:
+                    # send the message immediately (have to make sure
+                    # we'll ignore any Error or Result from callee)
+                    self._router.send(session, error_msg)
             return
 
     def processYield(self, session, yield_):
@@ -1008,30 +1063,53 @@ class Dealer(object):
                 raise ProtocolError(
                     u"Dealer.onYield(): YIELD received for non-owned request ID {0}".format(yield_.request))
 
-            is_valid = True
-            if yield_.payload is None:
-                # validate normal args/kwargs payload
-                try:
-                    self._router.validate('call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
-                except Exception as e:
-                    is_valid = False
-                    reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
-                else:
-                    reply = message.Result(invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
-            else:
-                reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress,
-                                       enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
+            reply = None
 
-            # the call is done if it's a regular call (non-progressive) or if the payload was invalid
-            #
-            if not yield_.progress or not is_valid:
+            # we've maybe cancelled this invocation
+            if invocation_request.canceled:
+                # see if we're waiting to send the error back to the
+                # other side (do we want to do this ONLY on Error
+                # coming back? Logically, if we've sent a Cancel and
+                # the callee supports cancelling, they shouldn't send
+                # us a Yield -- but there's a race-condition here if
+                # we're sending the Cancel as they're sending the
+                # Yield)
+                if invocation_request.error_msg:
+                    reply = invocation_request.error_msg
+                    invocation_request.error_msg = None
+
+                # we're now done; we've gotten some response from the
+                # callee -- if the type was "skip", we'll never get an
+                # Error back (NB: if we hit the race condition above,
+                # we *will* get an Error back "soon" but NOT if the
+                # cancel mode was "skip")
                 call_complete = True
-            else:
-                call_complete = False
+
+            else:  # not canceled
+                is_valid = True
+                if yield_.payload is None:
+                    # validate normal args/kwargs payload
+                    try:
+                        self._router.validate('call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
+                    except Exception as e:
+                        is_valid = False
+                        reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+                    else:
+                        reply = message.Result(invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
+                else:
+                    reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress,
+                                           enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
+
+                # the call is done if it's a regular call (non-progressive) or if the payload was invalid
+                #
+                if not yield_.progress or not is_valid:
+                    call_complete = True
+                else:
+                    call_complete = False
 
             # the calling session might have been lost in the meantime ..
             #
-            if invocation_request.caller._transport:
+            if invocation_request.caller._transport and reply:
                 if self._router.is_traced:
                     reply.correlation_id = invocation_request.call.correlation_id
                     reply.correlation_uri = invocation_request.call.correlation_uri
@@ -1093,40 +1171,50 @@ class Dealer(object):
             if callee_extra:
                 callee_extra.concurrency_current -= 1
 
-            if error.payload is None:
-                # validate normal args/kwargs payload
-                try:
-                    self._router.validate('call_error', invocation_request.call.procedure, error.args, error.kwargs)
-                except Exception as e:
-                    reply = message.Error(message.Call.MESSAGE_TYPE,
-                                          invocation_request.call.request,
-                                          ApplicationError.INVALID_ARGUMENT,
-                                          [u"call error from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+            reply = None
+            # we've maybe cancelled this invocation
+            if invocation_request.canceled:
+                # see if we're waiting to send the error back to the
+                # other side (see note about race-condition in Yield)
+                if invocation_request.error_msg:
+                    reply = invocation_request.error_msg
+                    invocation_request.error_msg = None
+            else:
+                if error.payload is None:
+                    # validate normal args/kwargs payload
+                    try:
+                        self._router.validate('call_error', invocation_request.call.procedure, error.args, error.kwargs)
+                    except Exception as e:
+                        reply = message.Error(message.Call.MESSAGE_TYPE,
+                                              invocation_request.call.request,
+                                              ApplicationError.INVALID_ARGUMENT,
+                                              [u"call error from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+                    else:
+                        reply = message.Error(message.Call.MESSAGE_TYPE,
+                                              invocation_request.call.request,
+                                              error.error,
+                                              args=error.args,
+                                              kwargs=error.kwargs)
                 else:
                     reply = message.Error(message.Call.MESSAGE_TYPE,
                                           invocation_request.call.request,
                                           error.error,
-                                          args=error.args,
-                                          kwargs=error.kwargs)
-            else:
-                reply = message.Error(message.Call.MESSAGE_TYPE,
-                                      invocation_request.call.request,
-                                      error.error,
-                                      payload=error.payload,
-                                      enc_algo=error.enc_algo,
-                                      enc_key=error.enc_key,
-                                      enc_serializer=error.enc_serializer)
+                                          payload=error.payload,
+                                          enc_algo=error.enc_algo,
+                                          enc_key=error.enc_key,
+                                          enc_serializer=error.enc_serializer)
 
-            if self._router.is_traced:
-                reply.correlation_id = invocation_request.call.correlation_id
-                reply.correlation_uri = invocation_request.call.correlation_uri
-                reply.correlation_is_anchor = False
-                reply.correlation_is_last = True
+            if reply:
+                if self._router.is_traced:
+                    reply.correlation_id = invocation_request.call.correlation_id
+                    reply.correlation_uri = invocation_request.call.correlation_uri
+                    reply.correlation_is_anchor = False
+                    reply.correlation_is_last = True
 
-            # the calling session might have been lost in the meantime ..
-            #
-            if invocation_request.caller._transport:
-                self._router.send(invocation_request.caller, reply)
+                # the calling session might have been lost in the meantime ..
+                #
+                if invocation_request.caller._transport:
+                    self._router.send(invocation_request.caller, reply)
 
             # the call is done
             #
