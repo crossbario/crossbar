@@ -1016,9 +1016,7 @@ class Dealer(object):
             # (XXX need test for ^ case)
 
             if cancellation_mode != message.Cancel.SKIP:
-                interrupt_mode = message.Interrupt.KILL
-                if cancellation_mode == 'killnowait':  # message.Cancel.KILLNOWAIT:
-                    interrupt_mode = message.Interrupt.ABORT
+                interrupt_mode = cancellation_mode  # "kill" or "killnowait"
                 interrupt = message.Interrupt(invocation_request.id, interrupt_mode)
 
                 if self._router.is_traced:
