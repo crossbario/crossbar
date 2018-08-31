@@ -192,6 +192,8 @@ class Dealer(object):
 
             outstanding = self._caller_to_invocations.get(session, [])
             for invoke in outstanding:  # type: InvocationRequest
+                if invoke.canceled:
+                    continue
                 if invoke.callee is invoke.caller:  # if the calling itself - no need to notify
                     continue
                 callee = invoke.callee
@@ -211,7 +213,13 @@ class Dealer(object):
                     request=invoke.id,
                     session=session._session_id,
                 )
-                self._router.send(invoke.callee, message.Interrupt(invoke.id))
+                self._router.send(
+                    invoke.callee,
+                    message.Interrupt(
+                        request=invoke.id,
+                        mode=message.Cancel.KILLNOWAIT,
+                    )
+                )
 
         if session in self._session_to_registrations:
             # send out Errors for any in-flight calls we have
