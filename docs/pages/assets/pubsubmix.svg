@@ -12,8 +12,8 @@
    viewBox="189 -296 1172 895"
    version="1.1"
    id="svg5236"
-   sodipodi:docname="helloworldmix1.svg"
-   inkscape:version="0.92.0 r15299">
+   sodipodi:docname="pubsubmix.svg"
+   inkscape:version="0.91 r13725">
   <metadata
      id="metadata5242">
     <rdf:RDF>
@@ -36,15 +36,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1366"
-     inkscape:window-height="705"
+     inkscape:window-width="2560"
+     inkscape:window-height="1416"
      id="namedview5238"
      showgrid="false"
-     inkscape:zoom="0.31632407"
-     inkscape:cx="1114.9606"
-     inkscape:cy="850.3937"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:zoom="0.89469958"
+     inkscape:cx="856.59384"
+     inkscape:cy="684.91957"
+     inkscape:window-x="0"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg5236" />
   <rect
@@ -137,33 +137,33 @@
   </text>
   <text
      font-size="19.7556"
-     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
-     x="993.392"
+     style="font-style:normal;font-weight:normal;font-size:19.75559998px;font-family:sans-serif;text-anchor:start;fill:#000000"
+     x="993.39203"
      y="187.614"
      id="text5196">
     <tspan
-       x="993.392"
+       x="993.39203"
        y="187.614"
-       id="tspan5192">Publish Hello World to </tspan>
+       id="tspan5192">Publish Hello World to</tspan>
     <tspan
-       x="993.392"
+       x="993.39203"
        y="212.308"
-       id="tspan5194"> topic &quot;my.com.hello&quot;</tspan>
+       id="tspan5194">topic &quot;com.myapp.hello&quot;</tspan>
   </text>
   <text
      font-size="19.7556"
-     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     style="font-style:normal;font-weight:normal;font-size:19.75559998px;font-family:sans-serif;text-anchor:start;fill:#000000"
      x="278.582"
      y="172.158"
      id="text5202">
     <tspan
        x="278.582"
        y="172.158"
-       id="tspan5198">   Subscribe and receive from </tspan>
+       id="tspan5198">Subscribe and receive from</tspan>
     <tspan
        x="278.582"
        y="196.853"
-       id="tspan5200">       topic &quot;my.com.hello&quot;</tspan>
+       id="tspan5200">topic &quot;com.myapp.hello&quot;</tspan>
   </text>
   <text
      font-size="33.8667"

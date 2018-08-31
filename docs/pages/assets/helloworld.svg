@@ -13,7 +13,7 @@
    version="1.1"
    id="svg4667"
    sodipodi:docname="helloworld.svg"
-   inkscape:version="0.92.0 r15299">
+   inkscape:version="0.91 r13725">
   <metadata
      id="metadata4673">
     <rdf:RDF>
@@ -22,7 +22,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -37,15 +37,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1366"
-     inkscape:window-height="705"
+     inkscape:window-width="2560"
+     inkscape:window-height="1416"
      id="namedview4669"
      showgrid="false"
-     inkscape:zoom="0.18201508"
-     inkscape:cx="889.61716"
-     inkscape:cy="659.45719"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:zoom="1.0296328"
+     inkscape:cx="971.31991"
+     inkscape:cy="645.59132"
+     inkscape:window-x="0"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg4667" />
   <rect
@@ -140,33 +140,33 @@
   </text>
   <text
      font-size="19.7556"
-     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
-     x="993.392"
+     style="font-style:normal;font-weight:normal;font-size:19.75559998px;font-family:sans-serif;text-anchor:start;fill:#000000"
+     x="993.39203"
      y="187.614"
      id="text4659">
     <tspan
-       x="993.392"
+       x="993.39203"
        y="187.614"
-       id="tspan4655">Publish Hello World to </tspan>
+       id="tspan4655">Publish Hello World to</tspan>
     <tspan
-       x="993.392"
+       x="993.39203"
        y="212.308"
-       id="tspan4657"> topic &quot;my.com.hello&quot;</tspan>
+       id="tspan4657">topic &quot;com.myapp.hello&quot;</tspan>
   </text>
   <text
      font-size="19.7556"
-     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
+     style="font-style:normal;font-weight:normal;font-size:19.75559998px;font-family:sans-serif;text-anchor:start;fill:#000000"
      x="278.582"
      y="190.158"
      id="text4665">
     <tspan
        x="278.582"
        y="190.158"
-       id="tspan4661">   Subscribe and receive from </tspan>
+       id="tspan4661">Subscribe and receive from</tspan>
     <tspan
        x="278.582"
        y="214.853"
-       id="tspan4663">       topic &quot;my.com.hello&quot;</tspan>
+       id="tspan4663">topic &quot;com.myapp.hello&quot;</tspan>
   </text>
   <g
      id="g4583"
