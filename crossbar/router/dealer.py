@@ -990,7 +990,6 @@ class Dealer(object):
             invocation_request.canceled = True
             # "skip" or "kill" or "killnowait" (see WAMP section.14.3.4)
             cancellation_mode = cancel.mode
-            print("CALLEE: {}".format(invocation_request.callee))
             if not can_cancel(invocation_request.callee):
                 # callee can't deal with an "Interrupt"
                 cancellation_mode = message.Cancel.SKIP
