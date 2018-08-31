@@ -136,7 +136,7 @@ The Crossbar configuration file is defined using a JSON or a YAML formatted file
 
   .. literalinclude:: code/config.json
      :language: json
-     :emphasize-lines: 9,39
+     :emphasize-lines: 11,41
 
 In the configuration you can see the line **"name": "realm1"** which configures the realm to be "realm1". An the port number is configured as 8080     **"port": 8080**. When connecting to this Crossbar router instance we need to use this particular realm and port number.
 
