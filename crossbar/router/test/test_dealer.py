@@ -153,10 +153,10 @@ class TestDealer(unittest.TestCase):
         self.assertEqual([], outstanding.mock_calls)
 
     def test_call_cancel(self):
-        last_message = {'1': []}
+        messages = []
 
         def session_send(msg):
-            last_message['1'] = msg
+            messages.append(msg)
 
         session = mock.Mock()
         session._transport.send = session_send
@@ -178,7 +178,7 @@ class TestDealer(unittest.TestCase):
             1
         ))
 
-        registered_msg = last_message['1']
+        registered_msg = messages[-1]
         self.assertIsInstance(registered_msg, message.Registered)
 
         dealer.processCall(session, message.Call(
@@ -187,25 +187,22 @@ class TestDealer(unittest.TestCase):
             []
         ))
 
-        invocation_msg = last_message['1']
+        invocation_msg = messages[-1]
         self.assertIsInstance(invocation_msg, message.Invocation)
 
         dealer.processCancel(session, message.Cancel(
             2
         ))
 
-        # should receive an INTERRUPT from the dealer now
-        interrupt_msg = last_message['1']
+        # we should receive an INTERRUPT from the dealer now -- note
+        # that our session is both the caller and the callee in this
+        # test, so we'll get an INTERRUPT *and* an ERROR -- in that
+        # order.
+        interrupt_msg = messages[-2]
         self.assertIsInstance(interrupt_msg, message.Interrupt)
         self.assertEqual(interrupt_msg.request, invocation_msg.request)
 
-        dealer.processInvocationError(session, message.Error(
-            message.Invocation.MESSAGE_TYPE,
-            invocation_msg.request,
-            u'wamp.error.canceled'
-        ))
-
-        call_error_msg = last_message['1']
+        call_error_msg = messages[-1]
         self.assertIsInstance(call_error_msg, message.Error)
         self.assertEqual(message.Call.MESSAGE_TYPE, call_error_msg.request_type)
         self.assertEqual(u'wamp.error.canceled', call_error_msg.error)
@@ -270,7 +267,8 @@ class TestDealer(unittest.TestCase):
 
         # now, cancel the first session's call
         dealer.processCancel(session0, message.Cancel(
-            42
+            42,
+            "kill",
         ))
 
         # should receive an INTERRUPT from the dealer now (for the
