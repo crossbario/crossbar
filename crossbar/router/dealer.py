@@ -1009,7 +1009,7 @@ class Dealer(object):
 
             if cancellation_mode != message.Cancel.SKIP:
                 interrupt_mode = message.Interrupt.KILL
-                if cancellation_mode == message.Cancel.KILLNOWAIT:
+                if cancellation_mode == 'killnowait':  # message.Cancel.KILLNOWAIT:
                     interrupt_mode = message.Interrupt.ABORT
                 interrupt = message.Interrupt(invocation_request.id, interrupt_mode)
 
