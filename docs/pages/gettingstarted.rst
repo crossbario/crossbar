@@ -1,11 +1,5 @@
 :orphan:
 
-
-.. Crossbar.io documentation master file, created by
-   sphinx-quickstart on Sat May 26 17:39:53 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 .. To generate html using sphnix-build
    virtualenv -p python3 testenvpy
    source testenvpy/bin/activate
@@ -18,20 +12,23 @@
 Getting started with Crossbar.io
 ################################
 
-**Crossbar.io** is an open source networking platform for distributed and microservice applications. It is a feature rich, scalable, robust and secure Implementation of  the open `Web Application Messaging Protocol (WAMP) <https://wamp-proto.org/>`_.
+**Crossbar.io** is an open source networking platform for distributed and microservice applications. It is a feature rich, scalable, robust and secure
+implementation of  the open `Web Application Messaging Protocol (WAMP) <https://wamp-proto.org/>`_.
+
 
 What is WAMP?
 =============
 WAMP is a routed protocol, with all components connecting to a **WAMP Router**, where the WAMP Router performs message routing between the **WAMP client**.  WAMP provides two messaging patterns:
-  * Publish & Subscribe
-  * Routed Remote Procedure Calls.
 
-WAMP is a `WebSocket <https://en.wikipedia.org/wiki/WebSocket/>`_ sub-protocol, which means that you can communicate with browser using it. In addition to that it can also run over any transport which is **message-oriented, ordered, reliable, and bi-directional** such as TCP, Unix domain socket etc.
+  * Publish & Subscribe
+  * Routed Remote Procedure Calls
+
+WAMP is a `WebSocket <https://en.wikipedia.org/wiki/WebSocket/>`_ sub-protocol, which means that you can communicate with browser using it. In addition to that it can also run over any transport which is **message-oriented, ordered, reliable, and bi-directional** such as TCP, Unix domain socket, etc.
 
 
 Introduction
 ============
-Crossbar.io is a WAMP router with advanced features implemented in Python language. It is agnostic to the implementation of the client or its deployment. The below overview shows WAMP clients of different language can communicate with each other.
+Crossbar.io is a WAMP router with advanced features implemented in the Python language. It is agnostic to the implementation of the client or its deployment. The below overview shows WAMP clients in different languages communicating with each other.
 
 .. image:: assets/carousel_polyglot.svg
     :align: center
@@ -41,13 +38,14 @@ Crossbar.io is a WAMP router with advanced features implemented in Python langua
 WAMP Clients
 ============
 
-The **Official WAMP clients** are developed under the `Autobahn project <https://crossbar.io/autobahn/>`_. The Autobahn project offers variety of WAMP clients in different languages
+The team behind Crossbar.io also maintains a set of WAMP clients as part of the  `Autobahn project <https://crossbar.io/autobahn/>`_.
 
 * `Autobahn|Python <https://github.com/crossbario/autobahn-python/>`_
 * `Autobahn|JS <https://github.com/crossbario/autobahn-js/>`_
 * `Autobahn|Cpp <https://github.com/crossbario/autobahn-cpp/>`_
 * `Autobahn|Java <https://github.com/crossbario/autobahn-java/>`_
 
+Apart from that there are also numerous third-party implementations of `WAMP clients in different languages <https://wamp-proto.org/implementations/index.html/>`_.
 
 The Autobahn project is maintained by the same company Crossbar.io where Crossbar is developed. Apart from that there are also numerous third-party implementations of `WAMP clients in different languages <https://wamp-proto.org/implementations/index.html/>`_.
 
@@ -64,21 +62,22 @@ The Autobahn project is maintained by the same company Crossbar.io where Crossba
 
 Prerequisite
 ============
-Further instruction requires some basic knowledge of **Python, Javascript, Linux and Docker** commands.
+For following this guide some (very) basic knowledge of **Python, Javascript, Linux and Docker** commands is useful.
 
 
-Requirements
-============
-This guide will show you how to start the Crossbar.io router and some basic application components using Docker containers. Although **Docker is not necessary to run Crossbar.io**, or to develop WAMP applications, it is the quickest way to get the necessary components for developing WAMP applications using Crossbar.io up and running.
+What's in this guide
+====================
+This guide will show you how to start the Crossbar.io router and some basic application components using Docker containers. We will cover communication between both Python and JavaScript components to show you the basics of how Crossbar.io is used.
+Although **Docker is not necessary to run Crossbar.io**, or to develop WAMP applications, it is the quickest way to get the necessary components for developing WAMP applications using Crossbar.io up and running.
 
 
-Installation
-============
-Firstly Docker needs to be installed in your OS. The official site of the Docker provides instruction on how to get Docker running in your respective operating system at https://docs.docker.com/install/.
+Installing Docker
+=================
+Firstly Docker needs to be installed on your machine. The official Docker site provides instructions on how to get Docker running in your respective operating system at https://docs.docker.com/install/.
 
-.. note:: All the examples are tested on Ubuntu 18.04 LTS using Docker.
+.. note:: All the examples here have been tested on Ubuntu 18.04 LTS using Docker, with commands for \*nix shell, but work on other platforms with adaptation.
 
-For other methods of installation refer to -
+For other methods of installation refer to the
 :doc:`Installation Guide <installation>`.
 
 
@@ -94,34 +93,27 @@ Fetch the source code using git: ::
 All the python examples are available as part of https://hub.docker.com/r/crossbario/autobahn-python/ so we can start straightway the application from Docker.
 
 
-Starting Crossbar.io Router
-===========================
-To pull the latest Crossbar.io (Community) image from DockerHub:
-::
+Starting a Crossbar.io Router
+=============================
+The Crossbar.io instance can be started with Docker using the below command::
 
-  sudo docker pull crossbario/crossbar
+  docker run --rm --name=crossbar -it -p 8080:8080 crossbario/crossbar
 
-The Crossbar.io can be started in Docker using the below command
 
-::
+.. note:: The ``-p 8080:8080`` argument exposes and maps the port inside the container to the local machine.
 
-  sudo docker run --rm --name=crossbar -it -p 8080:8080 crossbario/crossbar
-
-The line **8080:8080** exposes and maps the port number of the Docker instance to the local machine.
-
-Crossbar Console Output
------------------------
-The above command when successful will throw an output as shown below.
+If all is good, you should see the output similar to the below:
 
 .. literalinclude:: code/output.txt
 
-Crossbar Browser Output
------------------------
+
+Viewing Crossbar Status in a Browser
+------------------------------------
 Open your favorite browser and navigate to the address http://localhost:8080/info. This should give the below output.
 
-    .. image:: assets/crossbar-works.png
-        :align: center
-        :alt: alternate text
+.. image:: assets/crossbar-works.png
+    :align: center
+    :alt: alternate text
 
 If the Crossbar.io runs as expected - Congratulations! The first step towards building your next IOT application is done successfully.
 
@@ -129,24 +121,22 @@ If the Crossbar.io runs as expected - Congratulations! The first step towards bu
 Realm
 =====
 Before jumping in to our "Hello World" application, Lets get to understand some basics about Crossbar.io and its configuration.
-To run a "Hello World" application we need to specify some basic information in the Crossbar configuration file. They are URL (IP address and port number ) and  realm.  A Realm is equivalent to namespace. a WAMP router needs to provide at least one realm for applications to communicate. A single Crossbar.io instance can serve more than one realm.
+To run a "Hello World" application we need to specify some basic information in the Crossbar configuration file. They are URL (IP address and port number ) and a realm. A Realm is equivalent to a namespace. a WAMP router needs to provide at least one realm for applications to communicate through. A single Crossbar.io instance can serve more than one realm.
 
 .. note:: Every WAMP session between Crossbar.io and a Client is always attached to a specific Realm. It is not possible for a client connected in a particular realm to see clients of other realm.
 
 
 Crossbar configuration
 ======================
-The Crossbar configuration file is defined using a JSON or a YAML formatted file. The configuration by default will be loaded from CBDIR/**config.json**  or CBDIR/**config.yaml**. We will be covering in detail about the configuration in the advanced topics. As of now we will see the basic usage here. Now lets have a look at the config.json of the Docker image that we are running. We will copy the files to a local folder as shown below.
-
-::
+The Crossbar configuration file is defined using a JSON or a YAML formatted file. The configuration by default will be loaded from CBDIR/**config.json**  or CBDIR/**config.yaml**. We will be covering in detail about the configuration in the advanced topics. As of now we will see the basic usage here. Now lets have a look at the config.json of the Docker image that we are running. We will copy the files to a local folder as shown below.  ::
 
   docker cp crossbar:/node/.crossbar/config.json .
 
-config.json
------------
-    .. literalinclude:: code/config.json
-       :language: json
-       :emphasize-lines: 9,39
+``config.json``:
+
+  .. literalinclude:: code/config.json
+     :language: json
+     :emphasize-lines: 9,39
 
 In the configuration you can see the line **"name": "realm1"** which configures the realm to be "realm1". An the port number is configured as 8080     **"port": 8080**. When connecting to this Crossbar router instance we need to use this particular realm and port number.
 
@@ -178,12 +168,12 @@ The Docker image is started with ``client_component_publish.py`` as its applicat
 
 Use the same realm value as in the crossbar router. Supplying a wrong realm will disconnect the client.
 
-``1.hello-world/client_component_publish.py``
+``1.hello-world/client_component_publish.py``:
 
     .. literalinclude:: code/client_component_publish.py
      :emphasize-lines: 20
 
-The Autobahn Python project supports two APIs namely Appsession (inheritance based) and Component. All the examples explained here are based on Component.In the *crossbar-examples/getting-started* repository, examples of both the type (Appsession and Component) are available, it can be identified with filename containing **component** or **appsession** in it. Apart from that the Autobahn Python support two asynchronous frameworks **twisted** and **asyncio**. The current example is twisted based.
+The Autobahn Python project supports two APIs: Appsession (inheritance based) and Component. All the examples displayed here are based on the Component API. In the *crossbar-examples/getting-started* repository, examples of both the type (Appsession and Component) are available, it can be identified with filename containing **component** or **appsession** in it. Apart from that the Autobahn Python support two asynchronous frameworks **twisted** and **asyncio**. The current example is twisted based.
 
 ``client_component_publish.py`` publishes using the below API: ::
 
@@ -199,7 +189,7 @@ The subscriber client takes the parameter the same way as publisher client. The 
 
   docker run -e CBURL="ws://crossbar:8080/ws" -e CBREALM="realm1" --link=crossbar --rm -it crossbario/autobahn-python:cpy3 python client_component_subscribe.py
 
-``1.hello-world/client_component_subscribe.py``
+``1.hello-world/client_component_subscribe.py``:
 
   .. literalinclude:: code/client_component_subscribe.py
      :language: python
@@ -211,7 +201,7 @@ The subscriber client subsribes to the topic "com.myapp.hello". Each time an eve
 Autobahn from Browser
 =====================
 
-Now that we have tried a pure Python communication, its time to gets internetized and try the next example using Browser with **Autobahn Javascript** example. For that firstly we need to ensure that the browser is capable of Websocket connection. This can be tested using the https://caniuse.com/#search=websocket . The example that we are going to see is the same as the previous example with only difference is that this one uses Autobahn Javascript instead of Autobahn Python.
+Now that we have tried a pure Python communication, its time to gets internetized and try the next example using Browser with **Autobahn Javascript** example. For that firstly we need to ensure that the browser is capable of Websocket connection. This can be tested using the https://caniuse.com/#search=websocket. The example that we are going to see is the same as the previous example with only difference that this one uses Autobahn Javascript instead of Autobahn Python.
 
 .. image:: assets/helloworld-browser.svg
     :align: center
@@ -226,14 +216,14 @@ Backend/Publisher
 To start the application, just open the ``backend.html`` file using the browser. It will automatically load the scripts and then get started.
 Then it will start publishing events the same way as the Python client did.
 
-``2.pubsub-js/backend.html``
+``2.pubsub-js/backend.html``:
 
   .. literalinclude:: code/backend.html
      :language: html
 
 As you can see in the source, inclusion of ``autobahn.min.js`` loads the Autobahn Javascript file to the browser, and the next line loads the ``backend.js`` which contains our publishing application.
 
-``2.pubsub-js/backend.js``
+``2.pubsub-js/backend.js``:
 
   .. literalinclude:: code/backend.js
      :language: javascript
@@ -249,17 +239,16 @@ The output:
     :align: center
     :alt: alternate text
 
-
 Frontend/Subscriber
 -------------------
 The frontend uses the same autobahn.min.js that is used by the backend.
 
-``2.pubsub-js/frontend.html``
+``2.pubsub-js/frontend.html``:
 
   .. literalinclude:: code/frontend.html
      :language: html
 
-``2.pubsub-js/frontend.js``
+``2.pubsub-js/frontend.js``:
 
   .. literalinclude:: code/frontend.js
      :language: javascript
@@ -287,6 +276,7 @@ Javascript simultaneously.
 Please try the above example on your own.
 
 Moving on we will cover the next important feature of the Crossbar - Remote Procedude Calls.
+
 
 RPC Example
 ===========
@@ -333,7 +323,6 @@ Leaving the boiler place code, we can see that the application calls the remote 
 
   res = yield session.call(u'com.myapp.date')
 
-
 And the output is: ::
 
   2018-08-31T05:40:20+0000 call result: 2018-08-31T05:40:20Z
@@ -355,4 +344,3 @@ Further Materials
 * Basic concept of WAMP and Crossbar.io
 * Creating Docker Images
 * Overview of WAMP Client libraries
-
