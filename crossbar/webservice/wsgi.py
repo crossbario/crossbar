@@ -49,6 +49,7 @@ class RouterWebServiceWsgi(RouterWebService):
     def create(transport, path, config):
         personality = transport.worker.personality
         personality.WEB_SERVICE_CHECKERS['wsgi'](personality, config)
+        reactor = transport.worker.components_shared['reactor']
 
         if 'module' not in config:
             raise ApplicationError(u'crossbar.error.invalid_configuration', 'missing WSGI app module')
@@ -73,12 +74,12 @@ class RouterWebServiceWsgi(RouterWebService):
         pool = ThreadPool(maxthreads=config.get('maxthreads', 20),
                           minthreads=config.get('minthreads', 0),
                           name='crossbar_wsgi_threadpool')
-        transport.reactor.addSystemEventTrigger('before', 'shutdown', pool.stop)
+        reactor.addSystemEventTrigger('before', 'shutdown', pool.stop)
         pool.start()
 
         # Create a Twisted Web WSGI resource from the user's WSGI application object
         try:
-            resource = WSGIResource(transport.reactor, pool, app)
+            resource = WSGIResource(reactor, pool, app)
             if path == '/':
                 resource = WSGIRootResource(resource, {})
         except Exception as e:
