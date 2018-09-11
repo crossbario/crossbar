@@ -35,7 +35,7 @@ RUN    apt-get update \
     && pip install --no-cache-dir -U pip \
     && pip install --no-cache-dir crossbar>=${CROSSBAR_VERSION} \
     # minimize image
-    && apt-get remove -y wget expat build-essential \
+    # && apt-get remove -y wget expat build-essential \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/*
 
