@@ -48,7 +48,7 @@ RUN crossbar version
 RUN adduser --system --group --uid 242 --home /node crossbar
 
 # initialize a Crossbar.io node
-COPY ./node/ /node/
+COPY ./.node/ /node/
 RUN chown -R crossbar:crossbar /node
 
 # make /node a volume to allow external configuration
