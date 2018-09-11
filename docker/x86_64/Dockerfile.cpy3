@@ -44,7 +44,7 @@ RUN    addgroup -S -g 242 crossbar \
     && adduser -S -u 242 -D -h /node -G crossbar -g "Crossbar.io Service" crossbar
 
 # initialize a Crossbar.io node
-COPY ./node/ /node/
+COPY ./.node/ /node/
 RUN chown -R crossbar:crossbar /node
 
 # make /node a volume to allow external configuration
