@@ -312,6 +312,7 @@ class RouterController(WorkerController):
             u'detached_sessions': sorted(detached_sessions)
         }
 
+        self.publish(u'{}.on_realm_stopped'.format(self._uri_prefix), realm_id)
         return realm_stopped
 
     @wamp.register(None)
