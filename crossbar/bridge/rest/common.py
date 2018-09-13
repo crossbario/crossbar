@@ -28,6 +28,7 @@
 #
 #####################################################################################
 
+import os
 import datetime
 import json
 import hmac
@@ -49,6 +50,10 @@ from twisted.web import server
 from twisted.web.resource import Resource
 from twisted.internet.defer import maybeDeferred
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hmac as hazmat_hmac
+
 from autobahn.websocket.utf8validator import Utf8Validator
 _validator = Utf8Validator()
 
@@ -60,6 +65,43 @@ class _InvalidUnicode(BaseException):
     """
     Invalid Unicode was found.
     """
+
+
+# used for constant-time compares
+_nonce = os.urandom(32)
+
+
+def _confirm_signature(secret_token, purported_sig, data):
+    h = hazmat_hmac.HMAC(secret_token, hashes.SHA1(), default_backend())
+    h.update(data)
+    our_sig = u"sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
+    return _constant_compare(our_sig, purported_sig)
+
+
+def _hmac_sha256(key, data):
+    h = hazmat_hmac.HMAC(key, hashes.SHA256(), default_backend())
+    h.update(data)
+    return h.finalize()
+
+
+def _constant_compare(a, b):
+    return _hmac_sha256(_nonce, a.encode('ascii')) == _hmac_sha256(_nonce, b.encode('ascii'))
+
+
+def _confirm_github_signature(request, secret_token, raw_body):
+    """
+    confirm that signature headers from GitHub are present and valid
+    """
+    # stuff just "won't work" unless we gives bytes objects to the
+    # underlying crypto primitives
+    if not isinstance(secret_token, bytes):
+        secret_token = secret_token.encode('ascii')
+    assert isinstance(raw_body, bytes)
+    # must have the header to continue
+    if not request.requestHeaders.getRawHeaders(u'X-Hub-Signature'):
+        return False
+    purported_signature = str(request.requestHeaders.getRawHeaders(u'X-Hub-Signature')[0]).lower()
+    return _confirm_signature(secret_token, purported_signature, raw_body)
 
 
 class _CommonResource(Resource):
@@ -308,6 +350,19 @@ class _CommonResource(Resource):
                 length=content_length,
                 accepted=self._post_body_limit
             )
+
+        #
+        # if we were given a GitHub token, check for a valid signature
+        # header
+        #
+
+        github_token = self._options.get("github_token", "")
+        if github_token:
+            if not _confirm_github_signature(request, github_token, body):
+                return self._deny_request(
+                    request, 400,
+                    log_cagegory="AR467",
+                )
 
         #
         # parse/check HTTP/POST|PUT query parameters

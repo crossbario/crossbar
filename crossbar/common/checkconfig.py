@@ -1535,6 +1535,7 @@ def check_web_path_service_webhook(personality, config):
         'topic': (False, [six.text_type]),
         'success_response': (False, [six.text_type]),
         'error_response': (False, [six.text_type]),
+        'github_token': (False, [six.text_type]),
     }, config['options'], "Web transport 'webhook' path service")
 
     if 'post_body_limit' in config['options']:
