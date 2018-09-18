@@ -88,7 +88,11 @@ class RouterWebServiceRestCaller(RouterWebService):
 
         # now create the caller Twisted Web resource
         #
-        resource = CallerResource(config.get('options', {}), caller_session)
+        resource = CallerResource(
+            config.get('options', {}),
+            caller_session,
+            auth_config=config.get('auth', {})
+        )
 
         return RouterWebServiceRestCaller(transport, path, config, resource)
 
