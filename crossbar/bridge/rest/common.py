@@ -71,17 +71,6 @@ class _InvalidUnicode(BaseException):
 _nonce = os.urandom(32)
 
 
-def _confirm_signature(secret_token, purported_sig, data):
-    """
-    :returns: True if `purported_sig` is a valid signature for the
-        given `data` using the provided `secret_token`.
-    """
-    h = hazmat_hmac.HMAC(secret_token, hashes.SHA1(), default_backend())
-    h.update(data)
-    our_sig = u"sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
-    return _constant_compare(our_sig, purported_sig)
-
-
 def _hmac_sha256(key, data):
     """
     :returns: the HMAC-SHA256 of 'data' using 'key'
@@ -112,7 +101,12 @@ def _confirm_github_signature(request, secret_token, raw_body):
     if not request.requestHeaders.getRawHeaders(u'X-Hub-Signature'):
         return False
     purported_signature = str(request.requestHeaders.getRawHeaders(u'X-Hub-Signature')[0]).lower()
-    return _confirm_signature(secret_token, purported_signature, raw_body)
+    # NOTE: never use SHA1 for new code ... but GitHub signatures are
+    # SHA1, so we have to here :(
+    h = hazmat_hmac.HMAC(secret_token, hashes.SHA1(), default_backend())
+    h.update(data)
+    our_sig = u"sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
+    return _constant_compare(our_sig, purported_sig)
 
 
 class _CommonResource(Resource):
