@@ -356,9 +356,9 @@ class _CommonResource(Resource):
         # header
         #
 
-        github_token = self._options.get("github_token", "")
-        if github_token:
-            if not _confirm_github_signature(request, github_token, body):
+        github_secret = self._options.get("github_secret", "")
+        if github_secret:
+            if not _confirm_github_signature(request, github_secret, body):
                 return self._deny_request(
                     request, 400,
                     log_cagegory="AR467",

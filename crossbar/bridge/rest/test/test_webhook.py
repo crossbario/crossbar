@@ -90,7 +90,7 @@ class WebhookTestCase(TestCase):
         resource = WebhookResource(
             options={
                 u"topic": u"com.test.webhook",
-                u"github_token": u"deadbeef",
+                u"github_secret": u"deadbeef",
             },
             session=session,
         )
@@ -117,7 +117,7 @@ class WebhookTestCase(TestCase):
         resource = WebhookResource(
             options={
                 u"topic": u"com.test.webhook",
-                u"github_token": "deadbeef",
+                u"github_secret": "deadbeef",
             },
             session=session,
         )
@@ -144,7 +144,7 @@ class WebhookTestCase(TestCase):
         resource = WebhookResource(
             options={
                 u"topic": u"com.test.webhook",
-                u"github_token": github_test_token,
+                u"github_secret": github_test_token,
             },
             session=session,
         )
