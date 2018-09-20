@@ -72,6 +72,10 @@ _nonce = os.urandom(32)
 
 
 def _confirm_signature(secret_token, purported_sig, data):
+    """
+    :returns: True if `purported_sig` is a valid signature for the
+        given `data` using the provided `secret_token`.
+    """
     h = hazmat_hmac.HMAC(secret_token, hashes.SHA1(), default_backend())
     h.update(data)
     our_sig = u"sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
@@ -79,12 +83,19 @@ def _confirm_signature(secret_token, purported_sig, data):
 
 
 def _hmac_sha256(key, data):
+    """
+    :returns: the HMAC-SHA256 of 'data' using 'key'
+    """
     h = hazmat_hmac.HMAC(key, hashes.SHA256(), default_backend())
     h.update(data)
     return h.finalize()
 
 
 def _constant_compare(a, b):
+    """
+    Compare the two byte-strings 'a' and 'b' using a constant-time
+    algorithm. The byte-strings should be the same length.
+    """
     return _hmac_sha256(_nonce, a.encode('ascii')) == _hmac_sha256(_nonce, b.encode('ascii'))
 
 
