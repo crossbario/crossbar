@@ -104,9 +104,9 @@ def _confirm_github_signature(request, secret_token, raw_body):
     # NOTE: never use SHA1 for new code ... but GitHub signatures are
     # SHA1, so we have to here :(
     h = hazmat_hmac.HMAC(secret_token, hashes.SHA1(), default_backend())  # nosec
-    h.update(data)
-    our_sig = u"sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
-    return _constant_compare(our_sig, purported_sig)
+    h.update(raw_body)
+    our_signature = u"sha1={}".format(binascii.b2a_hex(h.finalize()).decode('ascii'))
+    return _constant_compare(our_signature, purported_signature)
 
 
 class _CommonResource(Resource):
