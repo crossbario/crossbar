@@ -105,8 +105,9 @@ def _appsession_loader(config):
         # while the "component" callback is usually an
         # ApplicationSession class, it can be anything that takes a
         # "config" arg (must return an ApplicationSession instance)
-        def component(config):
-            session = ApplicationSession(config)
+        def component(cfg):
+            session = _AnonymousRoleSession(cfg)
+            session.role = config.get('role', 'anonymous')
             for name, fn in callbacks.items():
                 session.on(name, fn)
             return session
@@ -118,3 +119,11 @@ def _appsession_loader(config):
         )
 
     return component
+
+
+class _AnonymousRoleSession(ApplicationSession):
+
+    role = None
+
+    def onConnect(self):
+        self.join(self.config.realm, authrole=self.role)
