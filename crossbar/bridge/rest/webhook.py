@@ -33,6 +33,7 @@ from __future__ import absolute_import
 import json
 
 from autobahn.wamp.types import PublishOptions
+from autobahn.wamp.exception import ApplicationError
 
 from crossbar._compat import native_string
 from crossbar.bridge.rest.common import _CommonResource
@@ -71,14 +72,33 @@ class WebhookResource(_CommonResource):
 
         def _err(result):
             response_text = self._options.get("error_response", u"NOT OK").encode('utf8')
-            return self._fail_request(
-                request, 500, "Unable to send webhook from {ip} to {topic}",
-                topic=topic,
+            error_message = str(result.value)
+            authorization_problem = False
+            if isinstance(result.value, ApplicationError):
+                error_message = '{}: {}'.format(
+                    result.value.error,
+                    result.value.args[0],
+                )
+                if result.value.error == u"wamp.error.not_authorized":
+                    authorization_problem = True
+            self.log.error(
+                u"Unable to send webhook from {ip} to '{topic}' topic: {err}",
                 ip=request.getClientIP(),
                 body=response_text,
                 log_failure=result,
                 log_category="AR457",
+                topic=topic,
+                err=error_message,
             )
+            if authorization_problem:
+                self.log.error(
+                    u"Session realm={realm} role={role}",
+                    realm=self._session._realm,
+                    role=self._session._authrole,
+                )
+            request.setResponseCode(500)
+            request.write(response_text)
+            request.finish()
 
         d = self._session.publish(topic,
                                   json.loads(json.dumps(message)),

@@ -66,6 +66,7 @@ log_categories = {
     "AR464": "Request expired, too old timestamp.",
     "AR465": "Body length ({bodylen}) is different to Content-Length header ({conlen}).",
     "AR466": "Request denied based on IP address.",
+    "AR467": "GitHub signature missing or invalid.",
 
     # MQXXX - Adapter, MQTT Bridge
     "MQ100": "Got packet from '{client_id}': {packet!r}",
