@@ -215,6 +215,9 @@ class NodeController(NativeProcess):
         term_print('CROSSBAR:NODE_SHUTDOWN_REQUESTED')
 
         try:
+            # shutdown any specific to the node controller
+            yield self._shutdown(restart, mode)
+
             # node shutdown information
             shutdown_info = {
                 u'node_id': self._node._node_id,
@@ -251,6 +254,11 @@ class NodeController(NativeProcess):
 
         else:
             returnValue(shutdown_info)
+
+    # to be overridden in derived node classes to shutdown any
+    # specifics (eg clients like for etcd or docker)
+    def _shutdown(self, restart=False, mode=None):
+        pass
 
     @wamp.register(None)
     def get_workers(self, details=None):
