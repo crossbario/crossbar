@@ -84,6 +84,7 @@ option | description
 **`post_body_limit`** | An integer when present limits the length (in bytes) of a HTTP/POST body that will be accepted. If the request body exceed this limit, the request is rejected. If 0, accept unlimited length. (default: **0**)
 **`success_response`** | A string to send as the body in a successful reply (default is `OK`)
 **`error_response`** | A string to send as the body in an unsuccessful reply (default is `NOT OK`)
+**`github_secret`** | The same secret you told GitHub when creating the WebHook configuration. When specified, incoming WebHooks will be checked for valid GitHub signatures via the `X-Hub-Signature` header. A good way to make a secret is to hex-encode 32 random bytes (e.g. from `os.urandom`).
 
 
 ## With GitHub
