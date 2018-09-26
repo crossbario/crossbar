@@ -1,4 +1,3 @@
-idna<2.6,>=2.5
 click>=6.7
 setuptools>=36.0.1
 zope.interface>=4.4.2
