@@ -40,7 +40,7 @@ from twisted.web import http
 from twisted.web.static import File
 
 from crossbar.common.twisted.web import patchFileContentTypes
-from crossbar.webservice.base import RouterWebService, Resource404, set_cross_origin_headers
+from crossbar.webservice.base import RouterWebService, Resource404, ResourceFallback, set_cross_origin_headers
 
 DEFAULT_CACHE_TIMEOUT = 12 * 60 * 60
 
@@ -155,6 +155,10 @@ class RouterWebServiceStatic(RouterWebService):
 
         # render 404 page on any concrete path not found
         #
-        resource.childNotFound = Resource404(transport.templates, static_dir)
+        fallback = static_options.get('enable_fallback')
+        if fallback:
+            resource.childNotFound = ResourceFallback(path, config)
+        else:
+            resource.childNotFound = Resource404(transport.templates, static_dir)
 
         return RouterWebServiceStatic(transport, path, config, resource)

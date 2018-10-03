@@ -37,6 +37,7 @@ from twisted.web import server
 from twisted.web._responses import NOT_FOUND
 from twisted.web.resource import Resource
 from twisted.web.proxy import ReverseProxyResource
+from twisted.web.static import File
 
 from autobahn.wamp.exception import ApplicationError
 
@@ -54,6 +55,17 @@ def set_cross_origin_headers(request):
     headers = request.getHeader(b'access-control-request-headers')
     if headers is not None:
         request.setHeader(b'access-control-allow-headers', headers)
+
+
+class ResourceFallback(File):
+    """
+    Handle requests for non-existent URL's
+    """
+    def __init__(self, path, config, **kwargs):
+        File.__init__(self, path, **kwargs)
+        directory = config.get('directory', '')
+        file = config.get('options', {}).get('enable_fallback')
+        self.path = '{}/{}'.format(directory, file)
 
 
 class Resource404(Resource):
