@@ -36,8 +36,6 @@ import re
 import six
 import yaml
 
-from collections import OrderedDict, Hashable
-
 from pprint import pformat
 
 from pygments import highlight, lexers, formatters
@@ -54,9 +52,10 @@ from yaml import Loader, SafeLoader, Dumper, SafeDumper
 from yaml.constructor import ConstructorError
 
 if six.PY3:
-    from collections.abc import Mapping, Sequence
+    from collections import OrderedDict
+    from collections.abc import Mapping, Sequence, Hashable
 else:
-    from collections import Mapping, Sequence
+    from collections import Mapping, Sequence, OrderedDict, Hashable
 
 __all__ = ('check_config',
            'check_config_file',
@@ -124,16 +123,22 @@ Permissible node shutdown modes.
 """
 
 
-_WEB_PATH_PAT_STR = "^([a-z0-9A-Z_\-]+|/)$"
+_WEB_PATH_PAT_STR = r'^([a-z0-9A-Z_\-]+|/)$'
 _WEB_PATH_PATH = re.compile(_WEB_PATH_PAT_STR)
-_COOKIE_NAME_PAT_STR = "^[a-z][a-z0-9_]+$"
+
+_COOKIE_NAME_PAT_STR = r'^[a-z][a-z0-9_]+$'
 _COOKIE_NAME_PAT = re.compile(_COOKIE_NAME_PAT_STR)
-_ENV_VAR_PAT_STR = "^\$([a-zA-Z_][a-zA-Z0-9_]*)$"
+
+_ENV_VAR_PAT_STR = r'^\$([a-zA-Z_][a-zA-Z0-9_]*)$'
 _ENV_VAR_PAT = re.compile(_ENV_VAR_PAT_STR)
-_ENVPAT = re.compile(u"^\$\{(.+)\}$")
-_CONFIG_ITEM_ID_PAT_STR = "^[a-z][a-z0-9_]{2,11}$"
+
+_ENVPAT_STR = r'^\$\{(.+)\}$'
+_ENVPAT = re.compile(_ENVPAT_STR)
+
+_CONFIG_ITEM_ID_PAT_STR = r'^[a-z][a-z0-9_]{2,11}$'
 _CONFIG_ITEM_ID_PAT = re.compile(_CONFIG_ITEM_ID_PAT_STR)
-_REALM_NAME_PAT_STR = r"^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$"
+
+_REALM_NAME_PAT_STR = r'^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$'
 _REALM_NAME_PAT = re.compile(_REALM_NAME_PAT_STR)
 
 
