@@ -155,7 +155,7 @@ class RouterWebServiceStatic(RouterWebService):
 
         # render 404 page on any concrete path not found
         #
-        fallback = static_options.get('enable_fallback')
+        fallback = static_options.get('default_file')
         if fallback:
             resource.childNotFound = ResourceFallback(path, config)
         else:

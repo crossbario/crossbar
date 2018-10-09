@@ -1299,7 +1299,7 @@ def check_web_path_service_static(personality, config):
             'enable_directory_listing': (False, [bool]),
             'mime_types': (False, [Mapping]),
             'cache_timeout': (False, list(six.integer_types) + [type(None)]),
-            'enable_fallback': (False, [str])
+            'default_file': (False, [str]),
         }, config['options'], "'options' in Web transport 'static' path service")
 
 
