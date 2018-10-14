@@ -129,7 +129,7 @@ def create_native_worker_client_factory(router_session_factory, authrole, on_rea
     way that Twisted works when using STDIO transports.
 
     :param router_session_factory: Router session factory to attach to.
-    :type router_session_factory: obj
+    :type router_session_factory: :class:`crossbar.router.session.RouterSessionFactory`
     """
     factory = NativeWorkerClientFactory(router_session_factory, u'ws://localhost', authrole=authrole)
 

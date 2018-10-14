@@ -81,7 +81,7 @@ class Node(object):
         :param cbdir: The node directory to run from.
         :type cbdir: unicode
         :param reactor: Reactor to run on.
-        :type reactor: obj or None
+        :type reactor: :class:`twisted.internet.reactor` or None
         """
         self.personality = personality
         self.options = options or NodeOptions()
