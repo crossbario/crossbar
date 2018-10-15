@@ -168,10 +168,10 @@ class RouterController(WorkerController):
         Get realms currently running on this router worker.
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: List of realms currently running.
-        :rtype: list of str
+        :rtype: list[str]
         """
         self.log.debug("{name}.get_router_realms", name=self.__class__.__name__)
 
@@ -183,7 +183,7 @@ class RouterController(WorkerController):
         Return realm detail information.
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: realm information object
         :rtype: dict
@@ -208,7 +208,7 @@ class RouterController(WorkerController):
         :type realm_config: dict
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.info('Starting router realm {realm_id} {method}',
                       realm_id=hlid(realm_id), method=hltype(RouterController.start_router_realm))
@@ -291,7 +291,7 @@ class RouterController(WorkerController):
         :type id: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.info("{name}.stop_router_realm", name=self.__class__.__name__)
 
@@ -324,10 +324,10 @@ class RouterController(WorkerController):
         :type id: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: A list of roles.
-        :rtype: list of dicts
+        :rtype: list[dict]
         """
         self.log.debug("{name}.get_router_realm_roles({id})", name=self.__class__.__name__, id=id)
 
@@ -351,7 +351,7 @@ class RouterController(WorkerController):
         :type config: dict
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.info('Starting role "{role_id}" on realm "{realm_id}" {method}',
                       role_id=role_id, realm_id=realm_id, method=hltype(self.start_router_realm_role))
@@ -388,7 +388,7 @@ class RouterController(WorkerController):
         :type role_id: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.debug("{name}.stop_router_realm_role", name=self.__class__.__name__)
 
@@ -409,10 +409,10 @@ class RouterController(WorkerController):
         :type id: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: A list of uplinks.
-        :rtype: list of dicts
+        :rtype: list[dict]
         """
         self.log.debug("{name}.get_router_realm_uplinks", name=self.__class__.__name__)
 
@@ -428,16 +428,16 @@ class RouterController(WorkerController):
         Start an uplink on a realm running on this router worker.
 
         :param realm_id: The ID of the realm the uplink should be started on.
-        :type realm_id: unicode
+        :type realm_id: str
 
         :param uplink_id: The ID of the uplink to start.
-        :type uplink_id: unicode
+        :type uplink_id: str
 
         :param uplink_config: The uplink configuration.
         :type uplink_config: dict
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.debug("{name}.start_router_realm_uplink", name=self.__class__.__name__)
 
@@ -483,7 +483,7 @@ class RouterController(WorkerController):
         :type uplink_id: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.debug("{name}.stop_router_realm_uplink", name=self.__class__.__name__)
 
@@ -495,10 +495,10 @@ class RouterController(WorkerController):
         Get app components currently running in this router worker.
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: List of app components currently running.
-        :rtype: list of dict
+        :rtype: list[dict]
         """
         self.log.debug("{name}.get_router_components", name=self.__class__.__name__)
 
@@ -520,7 +520,7 @@ class RouterController(WorkerController):
         :type id: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: Details of component
         :rtype: dict
@@ -540,10 +540,10 @@ class RouterController(WorkerController):
         :type id: str
 
         :param config: The component configuration.
-        :type config: obj
+        :type config: dict
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.debug("{name}.start_router_component", name=self.__class__.__name__)
 
@@ -663,7 +663,7 @@ class RouterController(WorkerController):
         :type id: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.debug("{name}.stop_router_component({id})", name=self.__class__.__name__, id=id)
 
@@ -685,10 +685,10 @@ class RouterController(WorkerController):
         Get transports currently running in this router worker.
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: List of transports currently running.
-        :rtype: list of dict
+        :rtype: list[dict]
         """
         self.log.debug("{name}.get_router_transports", name=self.__class__.__name__)
 
@@ -717,7 +717,7 @@ class RouterController(WorkerController):
         :type create_paths: bool
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.info('Starting router transport "{transport_id}" {method}',
                       transport_id=transport_id, method=hltype(self.start_router_transport))
@@ -756,7 +756,7 @@ class RouterController(WorkerController):
         :type transport_id: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.debug("{name}.stop_router_transport", name=self.__class__.__name__)
 
@@ -798,7 +798,7 @@ class RouterController(WorkerController):
         :type config: dict
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         if type(config) != dict or 'type' not in config:
             raise ApplicationError(u'crossbar.invalid_argument', 'config parameter must be dict with type attribute')
@@ -869,7 +869,7 @@ class RouterController(WorkerController):
         :type path: str
 
         :param details: Call details.
-        :type details: autobahn.wamp.types.CallDetails
+        :type details: :class:`autobahn.wamp.types.CallDetails`
         """
         self.log.info("{name}.stop_web_transport_service(transport_id={transport_id}, path={path})",
                       name=self.__class__.__name__,
