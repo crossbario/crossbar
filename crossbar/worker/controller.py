@@ -108,7 +108,7 @@ class WorkerController(NativeProcess):
     @inlineCallbacks
     def onJoin(self, details, publish_ready=True):
         """
-        Called when worker process has joined the node's management realm.
+        Called when worker process has joined the node management realm.
         """
         yield NativeProcess.onJoin(self, details)
         # above upcall registers all our "@wamp.register(None)" methods
@@ -203,10 +203,10 @@ class WorkerController(NativeProcess):
         Returns available profilers.
 
         :param details: WAMP call details (auto-filled by WAMP).
-        :type details: obj
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: A list of profilers.
-        :rtype: list of unicode
+        :rtype: list[str]
         """
         return [p.marshal() for p in PROFILERS.items()]
 
@@ -228,7 +228,7 @@ class WorkerController(NativeProcess):
         :type start_async: bool
 
         :param details: WAMP call details (auto-filled by WAMP).
-        :type details: obj
+        :type details: :class:`autobahn.wamp.types.CallDetails`
 
         :returns: If running in synchronous mode, the profiling result. Else
             a profile ID is returned which later can be used to retrieve the profile.
@@ -338,7 +338,7 @@ class WorkerController(NativeProcess):
         ``crossbar.worker.<worker_id>.get_pythonpath``.
 
         :returns: The current module search paths.
-        :rtype: list of str
+        :rtype: list[str]
         """
         self.log.debug("{klass}.get_pythonpath", klass=self.__class__.__name__)
         return sys.path
@@ -353,7 +353,7 @@ class WorkerController(NativeProcess):
 
         :param paths: List of paths. Relative paths will be resolved relative
                       to the node directory.
-        :type paths: list of unicode
+        :type paths: list[str]
         :param prepend: If `True`, prepend the given paths to the current paths.
                         Otherwise append.
         :type prepend: bool

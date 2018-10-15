@@ -74,20 +74,10 @@ def check_executable(fn):
 
 
 class NodeController(NativeProcess):
-    """
-    Singleton node WAMP session hooked up to the node management router.
-
-    This class exposes the node management API.
-    """
 
     log = make_logger()
 
     def __init__(self, node):
-        """
-
-        :param node: The node singleton for this node controller session.
-        :type node: :class:`crossbar.node.node.Node`
-        """
         # base ctor
         NativeProcess.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
 

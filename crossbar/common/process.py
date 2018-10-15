@@ -267,7 +267,7 @@ class NativeProcess(ApplicationSession):
         """
 
         :returns: List of CPU IDs.
-        :rtype: list[Int]
+        :rtype: list[int]
         """
         if not _HAS_PSUTIL:
             emsg = "unable to get CPUs: required package 'psutil' is not installed"
@@ -282,7 +282,7 @@ class NativeProcess(ApplicationSession):
         Get CPU affinity of this process.
 
         :returns: List of CPU IDs the process affinity is set to.
-        :rtype: list of int
+        :rtype: list[int]
         """
         if not _HAS_PSUTIL:
             emsg = "unable to get CPU affinity: required package 'psutil' is not installed"
@@ -307,10 +307,10 @@ class NativeProcess(ApplicationSession):
         :param cpus: List of CPU IDs to set process affinity to. Each CPU ID must be
             from the list `[0 .. N_CPUs]`, where N_CPUs can be retrieved via
             ``crossbar.worker.<worker_id>.get_cpu_count``.
-        :type cpus: list of int
+        :type cpus: list[int]
 
         :returns: List of CPU IDs the process affinity is set to.
-        :rtype: list of int
+        :rtype: list[int]
         """
         if not _HAS_PSUTIL:
             emsg = "Unable to set CPU affinity: required package 'psutil' is not installed"
@@ -357,12 +357,14 @@ class NativeProcess(ApplicationSession):
 
         :param id: The ID for the started connection.
         :type id: unicode
+
         :param config: Connection configuration.
         :type config: dict
+
         :param details: Caller details.
         :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
-        :returns dict -- The connection.
+        :returns: The connection.
         """
         self.log.debug("start_connection: id={id}, config={config}", id=id, config=config)
 
@@ -417,10 +419,11 @@ class NativeProcess(ApplicationSession):
 
         :param id: The ID of the connection to stop.
         :type id: unicode
+
         :param details: Caller details.
         :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
-        :returns dict -- A dict with component start information.
+        :returns: A dict with component start information.
         """
         self.log.debug("stop_connection: id={id}", id=id)
 
@@ -450,7 +453,7 @@ class NativeProcess(ApplicationSession):
         :param details: Caller details.
         :type details: instance of :class:`autobahn.wamp.types.CallDetails`
 
-        :returns list -- List of connections.
+        :returns: List of connections.
         """
         self.log.debug("get_connections")
 
@@ -464,7 +467,7 @@ class NativeProcess(ApplicationSession):
         """
         Get process information (open files, sockets, ...).
 
-        :returns: dict -- Dictionary with process information.
+        :returns: Dictionary with process information.
         """
         self.log.debug("{cls}.get_process_info",
                        cls=self.__class__.__name__)
@@ -482,7 +485,7 @@ class NativeProcess(ApplicationSession):
         """
         Get process statistics (CPU, memory, I/O).
 
-        :returns: dict -- Dictionary with process statistics.
+        :returns: Dictionary with process statistics.
         """
         self.log.debug("{cls}.get_process_stats", cls=self.__class__.__name__)
 
@@ -819,7 +822,7 @@ class NativeProcess(ApplicationSession):
         """
         Get current manhole service information.
 
-        :returns: dict -- A dict with service information or `None` if the service is not running.
+        :returns: A dict with service information or `None` if the service is not running.
         """
         self.log.debug("{cls}.get_manhole", cls=self.__class__.__name__)
 
@@ -846,7 +849,7 @@ class NativeProcess(ApplicationSession):
         * ``crossbar.node.<node_id>.controller.utcnow`` for node controllers
 
         :returns: Current time (UTC) in UTC ISO 8601 format.
-        :rtype: unicode
+        :rtype: str
         """
         self.log.debug("{cls}.utcnow", cls=self.__class__.__name__)
 
@@ -865,7 +868,7 @@ class NativeProcess(ApplicationSession):
         * ``crossbar.node.<node_id>.controller.started`` for node controllers
 
         :returns: Start time (UTC) in UTC ISO 8601 format.
-        :rtype: unicode
+        :rtype: str
         """
         self.log.debug("{cls}.started", cls=self.__class__.__name__)
 
