@@ -77,7 +77,7 @@ class NodeController(NativeProcess):
     """
     Singleton node WAMP session hooked up to the node management router.
 
-    This class exposes the node's management API.
+    This class exposes the node management API.
     """
 
     log = make_logger()
@@ -267,7 +267,7 @@ class NodeController(NativeProcess):
         Returns the list of workers currently running on this node.
 
         :returns: List of worker processes.
-        :rtype: list of dicts
+        :rtype: list[dict]
         """
         return sorted(self._workers.keys())
 
@@ -334,8 +334,7 @@ class NodeController(NativeProcess):
         :param worker_id: ID of worker to stop.
         :type worker_id: str
 
-        :param kill: If `True`, kill the process. Otherwise, gracefully
-                     shut down the worker.
+        :param kill: If ``True``, kill the process. Otherwise, gracefully shut down the worker.
         :type kill: bool
 
         :returns: Stopping information from the worker.
