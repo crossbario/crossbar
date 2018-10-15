@@ -43,8 +43,6 @@ from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 from twisted.internet.error import ProcessExitedAlready
 from twisted.python.runtime import platform
 
-from txaio import make_logger, get_global_log_level
-
 from autobahn.util import utcnow, utcstr
 from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions
@@ -61,6 +59,9 @@ from crossbar.node.worker import GuestWorkerProcess
 from crossbar.common.process import NativeProcess
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
 
+import txaio
+from txaio import make_logger, get_global_log_level
+txaio.use_twisted()
 
 __all__ = ('NodeController', 'create_process_env')
 
@@ -76,7 +77,7 @@ class NodeController(NativeProcess):
     """
     Singleton node WAMP session hooked up to the node management router.
 
-    This class exposes the node's management API.
+    This class exposes the node management API.
     """
 
     log = make_logger()
@@ -85,7 +86,7 @@ class NodeController(NativeProcess):
         """
 
         :param node: The node singleton for this node controller session.
-        :type node: obj
+        :type node: :class:`crossbar.node.node.Node`
         """
         # base ctor
         NativeProcess.__init__(self, config=None, reactor=node._reactor, personality=node.personality)
@@ -266,7 +267,7 @@ class NodeController(NativeProcess):
         Returns the list of workers currently running on this node.
 
         :returns: List of worker processes.
-        :rtype: list of dicts
+        :rtype: list[dict]
         """
         return sorted(self._workers.keys())
 
@@ -333,8 +334,7 @@ class NodeController(NativeProcess):
         :param worker_id: ID of worker to stop.
         :type worker_id: str
 
-        :param kill: If `True`, kill the process. Otherwise, gracefully
-                     shut down the worker.
+        :param kill: If ``True``, kill the process. Otherwise, gracefully shut down the worker.
         :type kill: bool
 
         :returns: Stopping information from the worker.
@@ -780,9 +780,9 @@ class NodeController(NativeProcess):
         Start a new guest process on this node.
 
         :param config: The guest process configuration.
-        :type config: obj
+        :type config: dict
 
-        :returns: int -- The PID of the new process.
+        :returns: The PID of the new process.
         """
         # prohibit starting a worker twice
         #

@@ -195,8 +195,6 @@ class NativeProcess(ApplicationSession):
         super(ApplicationSession, self).__init__(config=config)
 
     def onConnect(self, do_join=True):
-        """
-        """
         if not hasattr(self, 'cbdir'):
             self.cbdir = self.config.extra.cbdir
 

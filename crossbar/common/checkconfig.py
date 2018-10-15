@@ -40,13 +40,13 @@ from pprint import pformat
 
 from pygments import highlight, lexers, formatters
 
-from autobahn.websocket.util import parse_url
+import txaio
+txaio.use_twisted()
 
+from autobahn.websocket.util import parse_url
 from autobahn.wamp.message import _URI_PAT_STRICT_NON_EMPTY
 from autobahn.wamp.message import _URI_PAT_STRICT_LAST_EMPTY
 from autobahn.wamp.uri import convert_starred_uri
-
-from txaio import make_logger
 
 from yaml import Loader, SafeLoader, Dumper, SafeDumper
 from yaml.constructor import ConstructorError
@@ -142,7 +142,7 @@ _REALM_NAME_PAT_STR = r'^[A-Za-z][A-Za-z0-9_\-@\.]{2,254}$'
 _REALM_NAME_PAT = re.compile(_REALM_NAME_PAT_STR)
 
 
-log = make_logger()
+log = txaio.make_logger()
 
 
 class InvalidConfigException(Exception):
