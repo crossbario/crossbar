@@ -317,7 +317,7 @@ class MemoryRealmStore(object):
     Store for call queueing.
     """
 
-    def __init__(self, config):
+    def __init__(self, personality, factory, config):
         """
 
         :param config: Realm store configuration item.
