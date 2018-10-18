@@ -89,7 +89,7 @@ class Broker(object):
     def __init__(self, router, reactor, options=None):
         """
 
-        :param router: The router this dealer is part of.
+        :param router: The router this broker is part of.
         :type router: Object that implements :class:`crossbar.router.interfaces.IRouter`.
 
         :param options: Router options.
@@ -447,7 +447,7 @@ class Broker(object):
                     # the event matches on)
                     #
                     if store_event:
-                        self._event_store.store_event(session._session_id, publication, publish.topic, publish.args, publish.kwargs)
+                        self._event_store.store_event(session, publication, publish)
 
                     # retain event on the topic
                     #
