@@ -33,8 +33,6 @@ from __future__ import absolute_import, division
 import time
 from collections import deque
 
-from autobahn.util import utcnow
-
 from txaio import make_logger
 
 __all__ = ('MemoryRealmStore',)
