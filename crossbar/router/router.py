@@ -418,6 +418,14 @@ class RouterFactory(object):
         from twisted.internet import reactor
         self._reactor = reactor
 
+    @property
+    def node_id(self):
+        return self._node_id
+
+    @property
+    def worker(self):
+        return self._worker
+
     def get(self, realm):
         """
         Implements :func:`autobahn.wamp.interfaces.IRouterFactory.get`
@@ -466,7 +474,7 @@ class RouterFactory(object):
         store = None
         if 'store' in realm.config:
             psn = self._worker.personality
-            store = psn.create_realm_store(psn, realm.config['store'])
+            store = psn.create_realm_store(psn, self, realm.config['store'])
 
         # now create a router for the realm
         #
