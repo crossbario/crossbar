@@ -487,7 +487,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
                         f.write(hs.private_key)
                     log.info("Wrote private key to '{fname}'", fname=private_key_fname)
 
-                addr = txtorcon.TorOnionAddress(hs.hostname, port)
+                addr = txtorcon.TorOnionAddress(hs, port)
                 log.info(
                     "Listening on Tor onion service {addr.onion_uri}:{addr.onion_port}"
                     " with local port {local_port}",
