@@ -232,7 +232,7 @@ class RouterTransport(object):
         returnValue(self)
 
     def _create_web_factory(self, create_paths=False, ignore=[]):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @inlineCallbacks
     def _create_factory(self, create_paths=False, ignore=[]):

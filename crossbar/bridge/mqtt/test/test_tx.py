@@ -383,9 +383,7 @@ class TwistedProtocolTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=False)).serialise() +
-            SubACK(1, [1]).serialise()
+            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=False)).serialise() + SubACK(1, [1]).serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -409,11 +407,9 @@ class TwistedProtocolTests(TestCase):
         h = BasicHandler()
         r, t, p, cp = make_test_items(h)
 
-        conn = Connect(client_id=u"test123",
-                       flags=ConnectFlags(clean_session=False))
+        conn = Connect(client_id=u"test123", flags=ConnectFlags(clean_session=False))
         pub = Publish(duplicate=False, qos_level=3, retain=False,
-                      topic_name=u"foo", packet_identifier=1,
-                      payload=b"bar")
+                      topic_name=u"foo", packet_identifier=1, payload=b"bar")
 
         with LogCapturer("trace") as logs:
             p._handle_events([conn, pub])
@@ -503,10 +499,7 @@ class SubscribeHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Subscribe(packet_identifier=1234,
-                      topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
+            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Subscribe(packet_identifier=1234, topic_requests=[SubscriptionTopicRequest(u"a", 0)]).serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -610,9 +603,7 @@ class UnsubscribeHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Unsubscribe(packet_identifier=1234, topics=[u"foo"]).serialise()
+            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Unsubscribe(packet_identifier=1234, topics=[u"foo"]).serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -733,11 +724,7 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Publish(duplicate=False, qos_level=0, retain=False,
-                    topic_name=u"foo", packet_identifier=None,
-                    payload=b"bar").serialise()
+            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=0, retain=False, topic_name=u"foo", packet_identifier=None, payload=b"bar").serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -820,11 +807,7 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Publish(duplicate=False, qos_level=1, retain=False,
-                    topic_name=u"foo", packet_identifier=1,
-                    payload=b"bar").serialise()
+            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=1, retain=False, topic_name=u"foo", packet_identifier=1, payload=b"bar").serialise()
         )
 
         with LogCapturer("trace") as logs:
@@ -923,11 +906,7 @@ class PublishHandlingTests(TestCase):
         r, t, p, cp = make_test_items(h)
 
         data = (
-            Connect(client_id=u"test123",
-                    flags=ConnectFlags(clean_session=True)).serialise() +
-            Publish(duplicate=False, qos_level=2, retain=False,
-                    topic_name=u"foo", packet_identifier=1,
-                    payload=b"bar").serialise()
+            Connect(client_id=u"test123", flags=ConnectFlags(clean_session=True)).serialise() + Publish(duplicate=False, qos_level=2, retain=False, topic_name=u"foo", packet_identifier=1, payload=b"bar").serialise()
         )
 
         with LogCapturer("trace") as logs:

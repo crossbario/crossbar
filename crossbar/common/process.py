@@ -402,7 +402,7 @@ class NativeProcess(ApplicationSession):
         try:
             yield connection.start()
             self.log.info("Connection {connection_type} started '{connection_id}'", connection_id=id, connection_type=config['type'])
-        except Exception as e:
+        except:
             del self._connections[id]
             raise
 
