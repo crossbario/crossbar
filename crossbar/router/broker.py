@@ -421,8 +421,7 @@ class Broker(object):
                     #
                     if authorization[u'disclose']:
                         disclose = True
-                    elif (publish.topic.startswith(u"wamp.") or
-                          publish.topic.startswith(u"crossbar.")):
+                    elif (publish.topic.startswith(u"wamp.") or publish.topic.startswith(u"crossbar.")):
                         disclose = True
                     else:
                         disclose = False

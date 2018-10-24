@@ -52,7 +52,7 @@ class FlashPolicyProtocol(Protocol):
        * `Flash policy files background <http://www.lightsphere.com/dev/articles/flash_socket_policy.html>`_
     """
 
-    REQUESTPAT = re.compile("^\s*<policy-file-request\s*/>")
+    REQUESTPAT = re.compile(r"^\s*<policy-file-request\s*/>")
     REQUESTMAXLEN = 200
     REQUESTTIMEOUT = 5
     POLICYFILE = """<?xml version="1.0"?><cross-domain-policy><allow-access-from domain="%s" to-ports="%s" /></cross-domain-policy>"""

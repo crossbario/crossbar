@@ -221,8 +221,7 @@ class MQTTParser(object):
                     return events
                 except bitstring.ReadError as e:
                     # whoops the parsing fell off the amount of data
-                    events.append(Failure("Corrupt data, fell off the end: " +
-                                          str(e)))
+                    events.append(Failure("Corrupt data, fell off the end: {}".format(e)))
                     self._state = PROTOCOL_VIOLATION
                     return events
 

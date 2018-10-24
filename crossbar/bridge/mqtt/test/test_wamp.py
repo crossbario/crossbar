@@ -284,9 +284,7 @@ class MQTTAdapterTests(TestCase):
 
         class TestProtocol(Protocol):
             data = b""
-            expected = (
-                ConnACK(session_present=False, return_code=0).serialise() +
-                PubACK(packet_identifier=1).serialise())
+            expected = (ConnACK(session_present=False, return_code=0).serialise() + PubACK(packet_identifier=1).serialise())
 
             def dataReceived(self_, data):
                 self_.data = self_.data + data
@@ -327,8 +325,7 @@ class MQTTAdapterTests(TestCase):
 
         # We get a CONNECT
         self.assertEqual(client_protocol.data,
-                         ConnACK(session_present=False, return_code=0).serialise() +
-                         PubACK(packet_identifier=1).serialise())
+                         ConnACK(session_present=False, return_code=0).serialise() + PubACK(packet_identifier=1).serialise())
         client_protocol.data = b""
 
         pump.flush()
@@ -457,10 +454,7 @@ class MQTTAdapterTests(TestCase):
 
         self.assertEqual(
             client_protocol.data,
-            (
-                ConnACK(session_present=False, return_code=0).serialise() +
-                SubACK(packet_identifier=1, return_codes=[0]).serialise()
-            ))
+            (ConnACK(session_present=False, return_code=0).serialise() + SubACK(packet_identifier=1, return_codes=[0]).serialise()))
         client_protocol.data = b""
 
         session.publish(u"com.test.wamp", u"bar")
@@ -497,8 +491,7 @@ class MQTTAdapterTests(TestCase):
         self.assertEqual(
             client_protocol.data,
             (
-                ConnACK(session_present=False, return_code=0).serialise() +
-                PubACK(packet_identifier=123).serialise()
+                ConnACK(session_present=False, return_code=0).serialise() + PubACK(packet_identifier=123).serialise()
             ))
         client_protocol.data = b""
 

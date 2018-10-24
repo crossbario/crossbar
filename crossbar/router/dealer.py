@@ -865,8 +865,7 @@ class Dealer(object):
         #
         if authorization[u'disclose']:
             disclose = True
-        elif (call.procedure.startswith(u"wamp.") or
-              call.procedure.startswith(u"crossbar.")):
+        elif (call.procedure.startswith(u"wamp.") or call.procedure.startswith(u"crossbar.")):
             disclose = True
         else:
             disclose = False
@@ -989,11 +988,7 @@ class Dealer(object):
                 return
 
             def can_cancel(session):
-                return (
-                    'callee' in session._session_roles and
-                    session._session_roles['callee'] and
-                    session._session_roles['callee'].call_canceling
-                )
+                return ('callee' in session._session_roles and session._session_roles['callee'] and session._session_roles['callee'].call_canceling)
 
             invocation_request.canceled = True
             # "skip" or "kill" or "killnowait" (see WAMP section.14.3.4)

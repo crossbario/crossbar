@@ -31,7 +31,7 @@
 from __future__ import absolute_import
 
 from crossbar.worker.types import RouterComponent, RouterRealm, RouterRealmRole, RouterRealmUplink
-from twisted.internet.defer import Deferred, DeferredList, maybeDeferred
+from twisted.internet.defer import Deferred, DeferredList, maybeDeferred, returnValue
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
@@ -784,6 +784,7 @@ class RouterController(WorkerController):
         return d
 
     @wamp.register(None)
+    @inlineCallbacks
     def start_web_transport_service(self, transport_id, path, config, details=None):
         """
         Start a service on a Web transport.
@@ -840,7 +841,8 @@ class RouterController(WorkerController):
         # now actually add the web service ..
         # note: currently this is NOT async, but direct/sync.
         webservice_factory = self.personality.WEB_SERVICE_FACTORIES[config['type']]
-        webservice = webservice_factory.create(transport, path, config)
+
+        webservice = yield maybeDeferred(webservice_factory.create, transport, path, config)
         transport.root[path] = webservice
 
         on_web_transport_service_started = {
@@ -855,7 +857,7 @@ class RouterController(WorkerController):
                      on_web_transport_service_started,
                      options=PublishOptions(exclude=caller))
 
-        return on_web_transport_service_started
+        returnValue(on_web_transport_service_started)
 
     @wamp.register(None)
     def stop_web_transport_service(self, transport_id, path, details=None):

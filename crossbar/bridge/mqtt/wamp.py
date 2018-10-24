@@ -212,8 +212,7 @@ class WampMQTTServerProtocol(Protocol):
             if -1 not in [x["response"] for x in self._inflight_subscriptions[mqtt_id].values()]:
                 self._subrequest_callbacks[mqtt_id].callback(None)
 
-        elif (isinstance(inc_msg, message.Error) and
-              inc_msg.request_type == message.Subscribe.MESSAGE_TYPE):
+        elif (isinstance(inc_msg, message.Error) and inc_msg.request_type == message.Subscribe.MESSAGE_TYPE):
             # Failed subscription :(
             mqtt_id = self._subrequest_to_mqtt_subrequest[inc_msg.request]
             self._inflight_subscriptions[mqtt_id][inc_msg.request]["response"] = 128

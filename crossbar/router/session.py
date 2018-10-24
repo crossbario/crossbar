@@ -206,9 +206,7 @@ class RouterApplicationSession(object):
                               message.Yield,
                               message.Register,
                               message.Unregister,
-                              message.Cancel)) or \
-            (isinstance(msg, message.Error) and
-             msg.request_type == message.Invocation.MESSAGE_TYPE):
+                              message.Cancel)) or (isinstance(msg, message.Error) and msg.request_type == message.Invocation.MESSAGE_TYPE):
 
             # deliver message to router
             #
