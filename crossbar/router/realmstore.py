@@ -179,6 +179,14 @@ class MemoryEventStore(object):
             # for in-memory history, we just use a double-ended queue
             self._event_history[subscription_id] = (sub.get('limit', self._limit), deque())
 
+    def store_session_joined(self, session, session_details):
+        self.log.info('{klass}.store_session_join(session={session}, session_details={session_details})',
+                      klass=self.__class__.__name__, session=session, session_details=session_details)
+
+    def store_session_left(self, session, session_details, close_details):
+        self.log.info('{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
+                      klass=self.__class__.__name__, session=session, session_details=session_details, close_details=close_details)
+
     def store_event(self, session, publication_id, publish):
         """
         Store event to event history.
@@ -208,7 +216,7 @@ class MemoryEventStore(object):
         self.log.debug("Event {publication_id} stored in {store_type}-store",
                        store_type=self.STORE_TYPE, publication_id=publication_id)
 
-    def store_event_history(self, publication_id, subscription_id):
+    def store_event_history(self, publication_id, subscription_id, receiver):
         """
         Store publication history for subscription.
 
