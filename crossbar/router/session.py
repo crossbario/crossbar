@@ -767,21 +767,22 @@ class RouterSession(BaseSession):
         # self._router._realm:           crossbar.worker.router.RouterRealm
         # self._router._realm.session:   crossbar.router.session.CrossbarRouterServiceSession
 
-        self._session_details = {
-            u'session': details.session,
-            u'authid': details.authid,
-            u'authrole': details.authrole,
-            u'authmethod': details.authmethod,
-            u'authextra': details.authextra,
-            u'authprovider': details.authprovider,
-            u'transport': self._transport._transport_info
-        }
-        self._router._session_joined(self, self._session_details)
+        self._session_details = details
+        self._router._session_joined(self, details)
 
         # dispatch session metaevent from WAMP AP
         #
         if self._service_session:
-            self._service_session.publish(u'wamp.session.on_join', self._session_details)
+            evt = {
+                u'session': details.session,
+                u'authid': details.authid,
+                u'authrole': details.authrole,
+                u'authmethod': details.authmethod,
+                u'authextra': details.authextra,
+                u'authprovider': details.authprovider,
+                u'transport': self._transport._transport_info
+            }
+            self._service_session.publish(u'wamp.session.on_join', evt)
 
     def onWelcome(self, msg):
         # this is a hook for authentication methods to deny the
@@ -802,7 +803,7 @@ class RouterSession(BaseSession):
             for msg in self._testaments[u"destroyed"]:
                 self._router.process(self, msg)
 
-            self._router._session_left(self, self._session_details)
+            self._router._session_left(self, self._session_details, details)
 
         # dispatch session metaevent from WAMP AP
         #

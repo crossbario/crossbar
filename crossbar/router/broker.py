@@ -487,11 +487,6 @@ class Broker(object):
                     #
                     for subscription in subscriptions:
 
-                        # persist event history, but check if it is persisted on the individual subscription!
-                        #
-                        if store_event and self._event_store in subscription.observers:
-                            self._event_store.store_event_history(publication, subscription.id)
-
                         # initial list of receivers are all subscribers on a subscription ..
                         #
                         receivers = subscription.observers
@@ -539,7 +534,10 @@ class Broker(object):
 
                         for subscription, receivers in subscription_to_receivers.items():
 
-                            self.log.debug('dispatching for subscription={subscription}', subscription=subscription)
+                            storing_event = store_event and self._event_store in subscription.observers
+
+                            self.log.debug('dispatching for subscription={subscription}, storing_event={storing_event}',
+                                           subscription=subscription, storing_event=storing_event)
 
                             # for pattern-based subscriptions, the EVENT must contain
                             # the actual topic being published to
@@ -627,16 +625,28 @@ class Broker(object):
                                 # we now actually do the deliveries, but now we know which
                                 # receiver is the last one
                                 if receivers or not self._router.is_traced:
+
                                     # NOT the last chunk (or we're not traced so don't care)
                                     for receiver in receivers_this_chunk:
+
+                                        # send out WAMP msg to peer
                                         self._router.send(receiver, msg)
+                                        if self._event_store or storing_event:
+                                            self._event_store.store_event_history(publication, subscription.id, receiver)
                                 else:
                                     # last chunk, so last receiver gets the different message
                                     for receiver in receivers_this_chunk[:-1]:
                                         self._router.send(receiver, msg)
+                                        if self._event_store or storing_event:
+                                            self._event_store.store_event_history(publication, subscription.id, receiver)
+
+                                    # FIXME: I don't get the following comment and code path. when, how? and what to
+                                    # do about event store? => storing_event
+                                    #
                                     # we might have zero valid receivers
                                     if receivers_this_chunk:
                                         self._router.send(receivers_this_chunk[-1], last_msg)
+                                        # FIXME: => storing_event
 
                                 if receivers:
                                     # still more to do ..

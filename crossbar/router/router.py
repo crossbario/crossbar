@@ -144,46 +144,52 @@ class Router(object):
 
         return {u'broker': self._broker._role_features, u'dealer': self._dealer._role_features}
 
-    def _session_joined(self, session, details):
+    def _session_joined(self, session, session_details):
         """
         Internal helper.
         """
         try:
-            self._authrole_to_sessions[details['authrole']].add(session)
+            self._authrole_to_sessions[session_details.authrole].add(session)
         except KeyError:
-            self._authrole_to_sessions[details['authrole']] = set([session])
+            self._authrole_to_sessions[session_details.authrole] = set([session])
 
         try:
-            self._authid_to_sessions[details['authid']].add(session)
+            self._authid_to_sessions[session_details.authid].add(session)
         except KeyError:
-            self._authid_to_sessions[details['authid']] = set([session])
+            self._authid_to_sessions[session_details.authid] = set([session])
+
+        if self._store:
+            self._store.event_store.store_session_joined(session, session_details)
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != u'crossbar':
             self.log.debug(
                 'session "{session_id}" joined realm "{realm}"',
-                session_id=details[u'session'],
+                session_id=session_details.session,
                 realm=self.realm,
             )
-            self.log.trace('{details}', details=details)
+            self.log.trace('{session_details}', details=session_details)
 
-    def _session_left(self, session, details):
+    def _session_left(self, session, session_details, close_details):
         """
         Internal helper.
         """
-        self._authid_to_sessions[details['authid']].discard(session)
-        if not self._authid_to_sessions[details['authid']]:
-            del self._authid_to_sessions[details['authid']]
-        self._authrole_to_sessions[details['authrole']].discard(session)
+        self._authid_to_sessions[session_details.authid].discard(session)
+        if not self._authid_to_sessions[session_details.authid]:
+            del self._authid_to_sessions[session_details.authid]
+        self._authrole_to_sessions[session_details.authrole].discard(session)
+
+        if self._store:
+            self._store.event_store.store_session_left(session, session_details, close_details)
 
         # log session details, but skip Crossbar.io internal sessions
         if self.realm != u'crossbar':
             self.log.debug(
                 'session "{session_id}" left realm "{realm}"',
-                session_id=details[u'session'],
+                session_id=session_details.session,
                 realm=self.realm,
             )
-            self.log.trace('{details}', details=details)
+            self.log.trace('{details}', details=session_details)
 
     def detach(self, session=None):
         detached_session_ids = []
