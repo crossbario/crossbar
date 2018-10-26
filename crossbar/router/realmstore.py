@@ -180,12 +180,12 @@ class MemoryEventStore(object):
             self._event_history[subscription_id] = (sub.get('limit', self._limit), deque())
 
     def store_session_joined(self, session, session_details):
-        self.log.info('{klass}.store_session_join(session={session}, session_details={session_details})',
-                      klass=self.__class__.__name__, session=session, session_details=session_details)
+        self.log.debug('{klass}.store_session_join(session={session}, session_details={session_details})',
+                       klass=self.__class__.__name__, session=session, session_details=session_details)
 
     def store_session_left(self, session, session_details, close_details):
-        self.log.info('{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
-                      klass=self.__class__.__name__, session=session, session_details=session_details, close_details=close_details)
+        self.log.debug('{klass}.store_session_left(session={session}, session_details={session_details}, close_details={close_details})',
+                       klass=self.__class__.__name__, session=session, session_details=session_details, close_details=close_details)
 
     def store_event(self, session, publication_id, publish):
         """
@@ -331,4 +331,3 @@ class MemoryRealmStore(object):
         """
         self.event_store = MemoryEventStore(config)
         self.call_store = MemoryCallQueue(config)
-        self.log.info('Realm store initialized (type=memory)')
