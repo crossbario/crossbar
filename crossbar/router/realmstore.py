@@ -227,8 +227,16 @@ class MemoryEventStore(object):
             was published to, because the event's topic matched the subscription.
         :type subscription_id: int
         """
-        assert(publication_id in self._event_store)
-        assert(subscription_id in self._event_history)
+        # assert(publication_id in self._event_store)
+        # assert(subscription_id in self._event_history)
+
+        if publication_id not in self._event_store:
+            self.log.warn('INTERNAL WARNING: event for publication {publication_id} not in event store', publication_id=publication_id)
+
+        if subscription_id not in self._event_history:
+            self.log.warn('INTERNAL WARNING: subscription {subscription_id} for publication {publication_id} not in event store',
+                          subscription_id=subscription_id, publication_id=publication_id)
+            return
 
         limit, history = self._event_history[subscription_id]
 

@@ -292,7 +292,6 @@ class Personality(object):
 
     # native workers
     check_manhole = checkconfig.check_manhole
-    check_connection = checkconfig.check_connection
 
     # router worker
     check_router = checkconfig.check_router

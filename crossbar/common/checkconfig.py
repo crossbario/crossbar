@@ -2563,57 +2563,6 @@ def check_router_components(personality, components):
         personality.check_router_component(personality, component)
 
 
-def check_connection(personality, connection, ignore=[]):
-    """
-    Check a connection item (such as a PostgreSQL or Oracle database connection pool).
-    """
-    if 'id' in connection:
-        check_id(connection['id'])
-
-    if 'type' not in connection:
-        raise InvalidConfigException("missing mandatory attribute 'type' in connection configuration")
-
-    valid_types = ['postgres']
-    if connection['type'] not in valid_types:
-        raise InvalidConfigException("invalid type '{}' for connection type - must be one of {}".format(connection['type'], valid_types))
-
-    if connection['type'] == 'postgres':
-        check_dict_args({
-            'id': (False, [six.text_type]),
-            'type': (True, [six.text_type]),
-            'host': (False, [six.text_type]),
-            'port': (False, six.integer_types),
-            'database': (True, [six.text_type]),
-            'user': (True, [six.text_type]),
-            'password': (False, [six.text_type]),
-            'options': (False, [Mapping]),
-        }, connection, "PostgreSQL connection configuration")
-
-        if 'port' in connection:
-            check_endpoint_port(connection['port'])
-
-        if 'options' in connection:
-            check_dict_args({
-                'min_connections': (False, six.integer_types),
-                'max_connections': (False, six.integer_types),
-            }, connection['options'], "PostgreSQL connection options")
-
-    else:
-        raise InvalidConfigException('logic error')
-
-
-def check_connections(personality, connections):
-    """
-    Connections can be present in controller, router and container processes.
-    """
-    if not isinstance(connections, Sequence):
-        raise InvalidConfigException("'connections' items must be lists ({} encountered)".format(type(connections)))
-
-    for i, connection in enumerate(connections):
-        log.debug("Checking connection item {item} ..", item=i)
-        personality.check_connection(personality, connection)
-
-
 def check_transports(personality, transports):
     """
     Transports can only be present in router workers.
@@ -2664,11 +2613,6 @@ def check_router(personality, router, ignore=[]):
     for i, transport in enumerate(transports):
         log.debug("Checking transport item {item} ..", item=i)
         personality.check_router_transport(personality, transport)
-
-    # connections
-    #
-    connections = router.get('connections', [])
-    check_connections(personality, connections)
 
     # components
     #
@@ -2885,11 +2829,6 @@ def check_container(personality, container, ignore=[]):
     if 'options' in container:
         personality.check_container_options(personality, container['options'])
 
-    # connections
-    #
-    connections = container.get('connections', [])
-    check_connections(personality, connections)
-
     # components
     #
     components = container.get('components', [])
@@ -3057,11 +2996,6 @@ def check_controller(personality, controller, ignore=[]):
 
     if 'manhole' in controller:
         personality.check_manhole(personality, controller['manhole'])
-
-    # connections
-    #
-    connections = controller.get('connections', [])
-    check_connections(personality, connections)
 
 
 def check_config(personality, config):
