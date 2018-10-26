@@ -115,7 +115,7 @@ class Node(object):
         # node private key autobahn.wamp.cryptosign.SigningKey
         self._node_key = None
 
-        # when running in managed mode, this will hold the uplink session to CFC
+        # when running in managed mode, this will hold the session to CFC
         self._manager = None
 
         # the node's management realm when running in managed mode (this comes from CFC!)
@@ -477,22 +477,6 @@ class Node(object):
                     logname=worker_logname,
                     role=role_id,
                     role_name=role['name'],
-                    realm=realm_id,
-                )
-
-            # start uplinks for realm
-            for uplink in realm.get('uplinks', []):
-                if 'id' in uplink:
-                    uplink_id = uplink.pop('id')
-                else:
-                    uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
-                    self._uplink_no += 1
-
-                yield self._controller.call(u'crossbar.worker.{}.start_router_realm_uplink'.format(worker_id), realm_id, uplink_id, uplink, options=CallOptions())
-                self.log.info(
-                    "{logname}: uplink '{uplink}' started on realm '{realm}'",
-                    logname=worker_logname,
-                    uplink=uplink_id,
                     realm=realm_id,
                 )
 

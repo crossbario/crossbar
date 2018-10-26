@@ -68,27 +68,6 @@ LATEST_CONFIG_VERSION = 2
 The current configuration file version.
 """
 
-NODE_RUN_STANDALONE = u'runmode_standalone'
-"""
-The Crossbar.io node runs in "standalone mode", thus started and configured
-from a local node configuration.
-"""
-
-NODE_RUN_MANAGED = u'runmode_managed'
-"""
-The Crossbar.io node runs in "managed mode", thus connecting to an uplink
-management application.
-"""
-
-NODE_RUN_MODES = (
-    NODE_RUN_STANDALONE,
-    NODE_RUN_MANAGED
-)
-"""
-Permissible node run modes.
-"""
-
-
 NODE_SHUTDOWN_ON_SHUTDOWN_REQUESTED = u'shutdown_on_shutdown_requested'
 """
 Shutdown the node when explicitly asked to (by calling the management
