@@ -519,8 +519,8 @@ class NodeController(NativeProcess):
         # ready handling
         #
         def on_ready_success(worker_id):
-            self.log.info('{worker_type} worker "{worker_id}" process {pid} started',
-                          worker_type=worker_logname, worker_id=worker.id, pid=worker.pid)
+            self.log.debug('{worker_type} worker "{worker_id}" process {pid} started',
+                           worker_type=worker_logname, worker_id=worker.id, pid=worker.pid)
 
             self._node._reactor.addSystemEventTrigger(
                 'before', 'shutdown',
@@ -646,8 +646,6 @@ class NodeController(NativeProcess):
 
         # only the following line will actually exec a new worker process - everything before is just setup
         # for this moment:
-        self.log.info('Starting new managed worker process for {worker_logname} worker "{worker_id}"',
-                      worker_id=worker_id, worker_logname=worker_logname)
         self.log.debug('Starting new managed worker process for {worker_logname} worker "{worker_id}" using {exe} with args {args}',
                        worker_id=worker_id, worker_logname=worker_logname, exe=exe, args=args)
         d = ep.connect(transport_factory)
@@ -671,7 +669,7 @@ class NodeController(NativeProcess):
         def on_connect_error(err):
 
             # not sure when this errback is triggered at all ..
-            self.log.error("Interal error: connection to forked native worker failed ({err})", err=err)
+            self.log.error("Internal error: connection to forked native worker failed ({err})", err=err)
 
             # in any case, forward the error ..
             worker.ready.errback(err)

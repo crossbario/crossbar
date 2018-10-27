@@ -41,7 +41,7 @@ from txaio import make_logger
 
 from autobahn.wamp.types import CallOptions, ComponentConfig
 
-from crossbar._util import hltype, hlid
+from crossbar._util import hltype, hlid, hluserid, hl
 
 from crossbar.router.router import RouterFactory
 from crossbar.router.session import RouterSessionFactory
@@ -146,6 +146,7 @@ class Node(object):
         self._role_no = 1
         self._connection_no = 1
         self._transport_no = 1
+        self._webservice_no = 1
         self._component_no = 1
 
     def load_keys(self, cbdir):
@@ -352,7 +353,8 @@ class Node(object):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
-        self.log.info('Configuring node from local configuration {method}',
+        self.log.info('{bootmsg} {method}',
+                      bootmsg=hl('Booting node from local configuration ..', color='green', bold=True),
                       method=hltype(Node.boot_from_config))
 
         # get controller configuration subpart
@@ -366,17 +368,18 @@ class Node(object):
         # startup all workers
         workers = config.get('workers', [])
         if len(workers):
-            self.log.info('Starting {nworkers} workers ...', nworkers=len(workers))
+            self.log.info(hl('Will start {} worker{} ..'.format(len(workers), 's' if len(workers) > 1 else ''), color='green', bold=True))
         else:
-            self.log.info('No workers configured!')
+            self.log.info(hl('No workers configured, nothing to do', color='green', bold=True))
 
         for worker in workers:
 
             # worker ID
             if 'id' in worker:
-                worker_id = worker.pop('id')
+                worker_id = worker['id']
             else:
-                worker_id = u'worker-{:03d}'.format(self._worker_no)
+                worker_id = u'worker{:03d}'.format(self._worker_no)
+                worker['id'] = worker_id
                 self._worker_no += 1
 
             # worker type: either a native worker ('router', 'container', ..), or a guest worker ('guest')
@@ -386,15 +389,27 @@ class Node(object):
             if worker_type in self._native_workers:
 
                 # set logname depending on native worker type
-                worker_logname = '{} "{}"'.format(self._native_workers[worker_type]['logname'], worker_id)
+                worker_logname = '{} {}'.format(self._native_workers[worker_type]['logname'], hlid(worker_id))
 
                 # any worker specific options
                 worker_options = worker.get('options', {})
 
-                # now actually start the (native) worker ..
+                # start the (native) worker
+                self.log.info(
+                    "Order node to start {worker_logname}",
+                    worker_logname=worker_logname,
+                )
                 yield self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=CallOptions())
+                self.log.info(
+                    "Ok, node has started {worker_logname}",
+                    worker_logname=worker_logname,
+                )
 
-                # setup native worker generic stuff
+                # now configure the worker
+                self.log.info(
+                    "Configuring {worker_logname} ..",
+                    worker_logname=worker_logname,
+                )
                 method_name = '_configure_native_worker_{}'.format(worker_type.replace('-', '_'))
                 try:
                     config_fn = getattr(self, method_name)
@@ -404,6 +419,10 @@ class Node(object):
                         "there is no method '{}' on {}".format(worker_type, method_name, type(self))
                     )
                 yield config_fn(worker_logname, worker_id, worker)
+                self.log.info(
+                    "Ok, {worker_logname} configured",
+                    worker_logname=worker_logname,
+                )
 
             # guest worker processes setup
             elif worker_type == u'guest':
@@ -417,7 +436,7 @@ class Node(object):
             else:
                 raise Exception('logic error: unexpected worker_type="{}"'.format(worker_type))
 
-        self.log.info('Local node configuration applied successfully!')
+        self.log.info(hl('Ok, local node configuration booted successfully!', color='green', bold=True))
 
     @inlineCallbacks
     def _configure_native_worker_common(self, worker_logname, worker_id, worker):
@@ -454,39 +473,57 @@ class Node(object):
 
             # start realm
             if 'id' in realm:
-                realm_id = realm.pop('id')
+                realm_id = realm['id']
             else:
-                realm_id = 'realm-{:03d}'.format(self._realm_no)
+                realm_id = 'realm{:03d}'.format(self._realm_no)
+                realm['id'] = realm_id
                 self._realm_no += 1
 
+            self.log.info(
+                "Order {worker_logname} to start Realm {realm_id}",
+                worker_logname=worker_logname,
+                realm_id=hlid(realm_id),
+            )
+
             yield self._controller.call(u'crossbar.worker.{}.start_router_realm'.format(worker_id), realm_id, realm, options=CallOptions())
-            self.log.info("{worker}: realm '{realm_id}' (named '{realm_name}') started",
-                          worker=worker_logname, realm_id=realm_id, realm_name=realm['name'])
+
+            self.log.info(
+                "Ok, {worker_logname} has started Realm {realm_id}",
+                worker_logname=worker_logname,
+                realm_id=hlid(realm_id),
+            )
 
             # add roles to realm
             for role in realm.get('roles', []):
                 if 'id' in role:
-                    role_id = role.pop('id')
+                    role_id = role['id']
                 else:
-                    role_id = 'role-{:03d}'.format(self._role_no)
+                    role_id = 'role{:03d}'.format(self._role_no)
+                    role['id'] = role_id
                     self._role_no += 1
 
-                yield self._controller.call(u'crossbar.worker.{}.start_router_realm_role'.format(worker_id), realm_id, role_id, role, options=CallOptions())
                 self.log.info(
-                    "{logname}: role '{role}' (named '{role_name}') started on realm '{realm}'",
-                    logname=worker_logname,
-                    role=role_id,
-                    role_name=role['name'],
-                    realm=realm_id,
+                    "Order Realm {realm_id} to start Role {role_id}",
+                    realm_id=hlid(realm_id),
+                    role_id=hlid(role_id),
+                )
+
+                yield self._controller.call(u'crossbar.worker.{}.start_router_realm_role'.format(worker_id), realm_id, role_id, role, options=CallOptions())
+
+                self.log.info(
+                    "Ok, Realm {realm_id} has started Role {role_id}",
+                    realm_id=hlid(realm_id),
+                    role_id=hlid(role_id),
                 )
 
         # start components to run embedded in the router
         for component in worker.get('components', []):
 
             if 'id' in component:
-                component_id = component.pop('id')
+                component_id = component['id']
             else:
-                component_id = 'component-{:03d}'.format(self._component_no)
+                component_id = 'component{:03d}'.format(self._component_no)
+                component['id'] = component_id
                 self._component_no += 1
 
             yield self._controller.call(u'crossbar.worker.{}.start_router_component'.format(worker_id), component_id, component, options=CallOptions())
@@ -500,12 +537,19 @@ class Node(object):
         for transport in worker.get('transports', []):
 
             if 'id' in transport:
-                transport_id = transport.pop('id')
+                transport_id = transport['id']
             else:
-                transport_id = 'transport-{:03d}'.format(self._transport_no)
+                transport_id = 'transport{:03d}'.format(self._transport_no)
+                transport['id'] = transport_id
                 self._transport_no += 1
 
             add_paths_on_transport_create = False
+
+            self.log.info(
+                "Order {worker_logname} to start Transport {transport_id}",
+                worker_logname=worker_logname,
+                transport_id=hlid(transport_id),
+            )
 
             yield self._controller.call(u'crossbar.worker.{}.start_router_transport'.format(worker_id),
                                         transport_id,
@@ -513,9 +557,9 @@ class Node(object):
                                         create_paths=add_paths_on_transport_create,
                                         options=CallOptions())
             self.log.info(
-                "{logname}: transport '{tid}' started",
-                logname=worker_logname,
-                tid=transport_id,
+                "Ok, {worker_logname} has started Transport {transport_id}",
+                worker_logname=worker_logname,
+                transport_id=hlid(transport_id),
             )
 
             if not add_paths_on_transport_create:
@@ -527,21 +571,36 @@ class Node(object):
                 else:
                     paths = None
 
+                # Web service paths
                 if paths:
                     for path in sorted(paths):
                         if path != '/':
-                            config = paths[path]
+                            webservice = paths[path]
+
+                            if 'id' in webservice:
+                                webservice_id = webservice['id']
+                            else:
+                                webservice_id = 'webservice{:03d}'.format(self._webservice_no)
+                                webservice['id'] = webservice_id
+                                self._webservice_no += 1
+
+                            self.log.info(
+                                "Order Transport {transport_id} to start Web Service {webservice_id}",
+                                transport_id=hlid(transport_id),
+                                webservice_id=hlid(webservice_id),
+                                path=hluserid(path),
+                            )
+
                             yield self._controller.call(u'crossbar.worker.{}.start_web_transport_service'.format(worker_id),
                                                         transport_id,
                                                         path,
-                                                        config,
+                                                        webservice,
                                                         options=CallOptions())
                             self.log.info(
-                                "{logname}: web service '{path_type}' started on path '{path}' on transport '{tid}'",
-                                logname=worker_logname,
-                                path_type=config['type'],
-                                path=path,
-                                tid=transport_id,
+                                "Ok, Transport {transport_id} has started Web Service {webservice_id}",
+                                transport_id=hlid(transport_id),
+                                webservice_id=hlid(webservice_id),
+                                path=hluserid(path),
                             )
 
     @inlineCallbacks
@@ -569,9 +628,10 @@ class Node(object):
         for component in worker.get('components', []):
 
             if 'id' in component:
-                component_id = component.pop('id')
+                component_id = component['id']
             else:
-                component_id = 'component-{:03d}'.format(self._component_no)
+                component_id = 'component{:03d}'.format(self._component_no)
+                component['id'] = component_id
                 self._component_no += 1
 
             yield self._controller.call(u'crossbar.worker.{}.start_component'.format(worker_id), component_id, component, options=CallOptions())
@@ -587,7 +647,9 @@ class Node(object):
 
         # start transport on websocket-testee
         transport = worker['transport']
-        transport_id = 'transport-{:03d}'.format(self._transport_no)
+
+        transport_id = 'transport{:03d}'.format(self._transport_no)
+        transport['id'] = transport_id
         self._transport_no = 1
 
         yield self._controller.call(u'crossbar.worker.{}.start_websocket_testee_transport'.format(worker_id), transport_id, transport, options=CallOptions())

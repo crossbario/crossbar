@@ -328,12 +328,12 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
             outfd = os.open(PROFILE_FILE, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
             vmprof.enable(outfd, period=0.01)
 
-            log.info(hl('Entering event reactor ...', color='cyan', bold=True))
+            log.info(hl('Entering event reactor ...', color='green', bold=True))
             reactor.run()
 
             vmprof.disable()
         else:
-            log.info(hl('Entering event reactor ...', color='cyan', bold=True))
+            log.info(hl('Entering event reactor ...', color='green', bold=True))
             reactor.run()
 
     except Exception as e:
