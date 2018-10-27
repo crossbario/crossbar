@@ -1188,6 +1188,7 @@ def check_websocket_compression(options):
 
 def check_web_path_service_websocket_reverseproxy(personality, config):
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'url': (False, [six.text_type]),
         'options': (False, [Mapping]),
@@ -1220,6 +1221,7 @@ def check_web_path_service_websocket(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'url': (False, [six.text_type]),
         'serializers': (False, [Sequence]),
@@ -1264,6 +1266,7 @@ def check_web_path_service_static(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'directory': (False, [six.text_type]),
         'package': (False, [six.text_type]),
@@ -1298,6 +1301,7 @@ def check_web_path_service_wsgi(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'module': (True, [six.text_type]),
         'object': (True, [six.text_type]),
@@ -1317,6 +1321,7 @@ def check_web_path_service_resource(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'classname': (True, [six.text_type]),
         'extra': (False, None)
@@ -1334,6 +1339,7 @@ def check_web_path_service_redirect(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'url': (True, [six.text_type])
     }, config, "Web transport 'redirect' path service")
@@ -1347,6 +1353,7 @@ def check_web_path_service_nodeinfo(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
     }, config, "Web transport 'nodeinfo' path service")
 
@@ -1362,6 +1369,7 @@ def check_web_path_service_reverseproxy(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'host': (True, [six.text_type]),
         'port': (False, [six.integer_types]),
@@ -1380,6 +1388,7 @@ def check_web_path_service_json(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'value': (True, None),
         'options': (False, [Mapping]),
@@ -1404,6 +1413,7 @@ def check_web_path_service_cgi(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'directory': (True, [six.text_type]),
         'processor': (True, [six.text_type]),
@@ -1421,6 +1431,7 @@ def check_web_path_service_longpoll(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'options': (False, [Mapping]),
     }, config, "Web transport 'longpoll' path service")
@@ -1473,6 +1484,7 @@ def check_web_path_service_publisher(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
         'role': (True, [six.text_type]),
@@ -1508,6 +1520,7 @@ def check_web_path_service_webhook(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
         'role': (True, [six.text_type]),
@@ -1538,6 +1551,7 @@ def check_web_path_service_caller(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
         'role': (False, [six.text_type]),
@@ -1585,6 +1599,7 @@ def check_web_path_service_path(personality, config):
     :type config: dict
     """
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'paths': (True, [Mapping]),
     }, config, "Web transport 'path' path service")
@@ -1619,6 +1634,7 @@ def check_web_path_service_upload(personality, config):
     """
 
     check_dict_args({
+        'id': (False, [six.text_type]),
         'type': (True, [six.text_type]),
         'realm': (True, [six.text_type]),
         'role': (True, [six.text_type]),
@@ -1672,6 +1688,9 @@ def check_web_path_service(personality, path, config, nested, ignore=[]):
     :param nested: Whether this is a nested path.
     :type nested: bool
     """
+    if 'id' in config:
+        check_id(config['id'])
+
     if 'type' not in config:
         raise InvalidConfigException('missing mandatory attribute "type" in Web service configuration item\n\n{}'.format(path, config))
 
