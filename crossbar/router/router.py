@@ -481,6 +481,8 @@ class RouterFactory(object):
         if 'store' in realm.config:
             psn = self._worker.personality
             store = psn.create_realm_store(psn, self, realm.config['store'])
+            self.log.info('Initialized realm store {rsk} for realm "{realm}"',
+                          rsk=store.__class__, realm=uri)
 
         # now create a router for the realm
         #

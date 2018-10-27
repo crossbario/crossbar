@@ -150,11 +150,11 @@ def create_realm_store(personality, factory, config):
 
     store_type = config['type']
 
-    if store_type in personality.REALM_STORES:
-        store_class = personality.REALM_STORES[store_type]
-        store = store_class(personality, factory, config)
-    else:
+    if store_type not in personality.REALM_STORES:
         raise Exception('invalid or unavailable store type {}'.format(store_type))
+
+    store_class = personality.REALM_STORES[store_type]
+    store = store_class(personality, factory, config)
 
     return store
 
@@ -292,7 +292,6 @@ class Personality(object):
 
     # native workers
     check_manhole = checkconfig.check_manhole
-    check_connection = checkconfig.check_connection
 
     # router worker
     check_router = checkconfig.check_router

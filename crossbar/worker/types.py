@@ -94,7 +94,6 @@ class RouterRealm(object):
         self.session = session
         self.created = datetime.utcnow()
         self.roles = {}
-        self.uplinks = {}
 
     def marshal(self):
         return {
@@ -122,23 +121,3 @@ class RouterRealmRole(object):
         """
         self.id = id
         self.config = config
-
-
-class RouterRealmUplink(object):
-
-    """
-    An uplink in a realm running in a router worker.
-    """
-
-    def __init__(self, id, config):
-        """
-        Ctor.
-
-        :param id: The uplink ID within the realm.
-        :type id: str
-        :param config: The uplink configuration.
-        :type config: dict
-        """
-        self.id = id
-        self.config = config
-        self.session = None

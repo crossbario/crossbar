@@ -115,7 +115,7 @@ class Node(object):
         # node private key autobahn.wamp.cryptosign.SigningKey
         self._node_key = None
 
-        # when running in managed mode, this will hold the uplink session to CFC
+        # when running in managed mode, this will hold the session to CFC
         self._manager = None
 
         # the node's management realm when running in managed mode (this comes from CFC!)
@@ -480,39 +480,6 @@ class Node(object):
                     realm=realm_id,
                 )
 
-            # start uplinks for realm
-            for uplink in realm.get('uplinks', []):
-                if 'id' in uplink:
-                    uplink_id = uplink.pop('id')
-                else:
-                    uplink_id = 'uplink-{:03d}'.format(self._uplink_no)
-                    self._uplink_no += 1
-
-                yield self._controller.call(u'crossbar.worker.{}.start_router_realm_uplink'.format(worker_id), realm_id, uplink_id, uplink, options=CallOptions())
-                self.log.info(
-                    "{logname}: uplink '{uplink}' started on realm '{realm}'",
-                    logname=worker_logname,
-                    uplink=uplink_id,
-                    realm=realm_id,
-                )
-
-        # start connections (such as PostgreSQL database connection pools)
-        # to run embedded in the router
-        for connection in worker.get('connections', []):
-
-            if 'id' in connection:
-                connection_id = connection.pop('id')
-            else:
-                connection_id = 'connection-{:03d}'.format(self._connection_no)
-                self._connection_no += 1
-
-            yield self._controller.call(u'crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=CallOptions())
-            self.log.info(
-                "{logname}: connection '{connection}' started",
-                logname=worker_logname,
-                connection=connection_id,
-            )
-
         # start components to run embedded in the router
         for component in worker.get('components', []):
 
@@ -597,24 +564,6 @@ class Node(object):
         topic = u'crossbar.worker.{}.container.on_component_stop'.format(worker_id)
         component_stop_sub = yield self._controller.subscribe(component_exited, topic)
 
-        # start connections (such as PostgreSQL database connection pools)
-        # to run embedded in the container
-        #
-        for connection in worker.get('connections', []):
-
-            if 'id' in connection:
-                connection_id = connection.pop('id')
-            else:
-                connection_id = 'connection-{:03d}'.format(self._connection_no)
-                self._connection_no += 1
-
-            yield self._controller.call(u'crossbar.worker.{}.start_connection'.format(worker_id), connection_id, connection, options=CallOptions())
-            self.log.info(
-                "{logname}: connection '{connection}' started",
-                logname=worker_logname,
-                connection=connection_id,
-            )
-
         # start components to run embedded in the container
         #
         for component in worker.get('components', []):
@@ -635,6 +584,7 @@ class Node(object):
     @inlineCallbacks
     def _configure_native_worker_websocket_testee(self, worker_logname, worker_id, worker):
         yield self._configure_native_worker_common(worker_logname, worker_id, worker)
+
         # start transport on websocket-testee
         transport = worker['transport']
         transport_id = 'transport-{:03d}'.format(self._transport_no)

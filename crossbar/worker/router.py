@@ -30,7 +30,7 @@
 
 from __future__ import absolute_import
 
-from crossbar.worker.types import RouterComponent, RouterRealm, RouterRealmRole, RouterRealmUplink
+from crossbar.worker.types import RouterComponent, RouterRealm, RouterRealmRole
 from twisted.internet.defer import Deferred, DeferredList, maybeDeferred, returnValue
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
@@ -42,7 +42,6 @@ from autobahn.wamp.types import PublishOptions, ComponentConfig
 
 from crossbar._util import class_name, hltype, hlid
 
-from crossbar.router import uplink
 from crossbar.router.session import RouterSessionFactory
 from crossbar.router.service import RouterServiceAgent
 from crossbar.router.router import RouterFactory
@@ -399,95 +398,6 @@ class RouterController(WorkerController):
             raise ApplicationError(u"crossbar.error.no_such_object", "No role with ID '{}' in realm with ID '{}'".format(role_id, id))
 
         del self.realms[id].roles[role_id]
-
-    @wamp.register(None)
-    def get_router_realm_uplinks(self, id, details=None):
-        """
-        Get uplinks currently running on a realm running on this router worker.
-
-        :param id: The ID of the router realm to list uplinks for.
-        :type id: str
-
-        :param details: Call details.
-        :type details: :class:`autobahn.wamp.types.CallDetails`
-
-        :returns: A list of uplinks.
-        :rtype: list[dict]
-        """
-        self.log.debug("{name}.get_router_realm_uplinks", name=self.__class__.__name__)
-
-        if id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(id))
-
-        return self.realms[id].uplinks.values()
-
-    @wamp.register(None)
-    @inlineCallbacks
-    def start_router_realm_uplink(self, realm_id, uplink_id, uplink_config, details=None):
-        """
-        Start an uplink on a realm running on this router worker.
-
-        :param realm_id: The ID of the realm the uplink should be started on.
-        :type realm_id: str
-
-        :param uplink_id: The ID of the uplink to start.
-        :type uplink_id: str
-
-        :param uplink_config: The uplink configuration.
-        :type uplink_config: dict
-
-        :param details: Call details.
-        :type details: :class:`autobahn.wamp.types.CallDetails`
-        """
-        self.log.debug("{name}.start_router_realm_uplink", name=self.__class__.__name__)
-
-        # check arguments
-        if realm_id not in self.realms:
-            raise ApplicationError(u"crossbar.error.no_such_object", "No realm with ID '{}'".format(realm_id))
-
-        if uplink_id in self.realms[realm_id].uplinks:
-            raise ApplicationError(u"crossbar.error.already_exists", "An uplink with ID '{}' already exists in realm with ID '{}'".format(uplink_id, realm_id))
-
-        # create a representation of the uplink
-        self.realms[realm_id].uplinks[uplink_id] = RouterRealmUplink(uplink_id, uplink_config)
-
-        # create the local session of the bridge
-        realm = self.realms[realm_id].config['name']
-        extra = {
-            'onready': Deferred(),
-            'uplink': uplink_config
-        }
-        uplink_session = uplink.LocalSession(ComponentConfig(realm, extra))
-        self._router_session_factory.add(uplink_session, authrole=u'trusted')
-
-        # wait until the uplink is ready
-        try:
-            uplink_session = yield extra['onready']
-        except Exception:
-            self.log.failure(None)
-            raise
-
-        self.realms[realm_id].uplinks[uplink_id].session = uplink_session
-
-        self.log.info("Realm is connected to Crossbar.io uplink router")
-
-    @wamp.register(None)
-    def stop_router_realm_uplink(self, id, uplink_id, details=None):
-        """
-        Stop an uplink currently running on a realm running on this router worker.
-
-        :param id: The ID of the realm to stop an uplink on.
-        :type id: str
-
-        :param uplink_id: The ID of the uplink within the realm to stop.
-        :type uplink_id: str
-
-        :param details: Call details.
-        :type details: :class:`autobahn.wamp.types.CallDetails`
-        """
-        self.log.debug("{name}.stop_router_realm_uplink", name=self.__class__.__name__)
-
-        raise NotImplementedError()
 
     @wamp.register(None)
     def get_router_components(self, details=None):
