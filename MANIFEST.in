@@ -3,6 +3,7 @@ include LICENSE
 include LICENSE-FOR-API
 include requirements.txt
 include requirements-min.txt
+include requirements-latest.txt
 include requirements-pinned.txt
 include requirements-dev.txt
 include crossbar/LEGAL
