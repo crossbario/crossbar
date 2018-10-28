@@ -39,7 +39,6 @@ node_modules
 *.ropeproject
 docs/_build
 .coverage.*
-requirements-latest.txt
 vers/
 .DS_Store
 _build
