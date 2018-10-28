@@ -113,9 +113,9 @@ class Router(object):
             u'trusted': RouterTrustedRole(self, u'trusted')
         }
 
-        self._is_traced = self._factory._worker and \
-            hasattr(self._factory._worker, '_maybe_trace_rx_msg') and \
-            hasattr(self._factory._worker, '_maybe_trace_tx_msg')
+        # FIXME: this was previsouly just checking for existence of
+        # self._factory._worker._maybe_trace_tx_msg / _maybe_trace_rx_msg
+        self._is_traced = False
 
     @property
     def is_traced(self):

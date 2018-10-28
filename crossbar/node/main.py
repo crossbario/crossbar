@@ -789,7 +789,7 @@ def _run_command_start(options, reactor, personality):
 
     # now enter event loop ..
     #
-    log.info(hl('Entering event reactor ...', color='cyan', bold=True))
+    log.info(hl('Entering event reactor ...', color='green', bold=True))
     term_print('CROSSBAR:REACTOR_ENTERED')
     reactor.run()
 

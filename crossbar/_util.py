@@ -111,8 +111,9 @@ def _qn(obj):
     return qn
 
 
-def hltype(obj):
-    if DEBUG_PROGRAMFLOW:
+def hltype(obj, render=DEBUG_PROGRAMFLOW):
+
+    if render:
         qn = _qn(obj).split('.')
         text = hl(qn[0], color='yellow', bold=True) + hl('.' + '.'.join(qn[1:]), color='white', bold=True)
         return '<' + text + '>'
@@ -121,7 +122,16 @@ def hltype(obj):
 
 
 def hlid(oid):
-    return hl('"{}"'.format(oid), color='magenta', bold=True)
+    return hl('{}'.format(oid), color='blue', bold=True)
+
+
+def hluserid(oid):
+    """
+    Returns highlighted text.
+    """
+    if not isinstance(oid, six.text_type):
+        oid = '{}'.format(oid)
+    return hl('"{}"'.format(oid), color='yellow', bold=True)
 
 
 def hlfixme(msg, obj):

@@ -557,7 +557,8 @@ class Broker(object):
                                                     topic=topic,
                                                     enc_algo=publish.enc_algo,
                                                     enc_key=publish.enc_key,
-                                                    enc_serializer=publish.enc_serializer)
+                                                    enc_serializer=publish.enc_serializer,
+                                                    forward_for=publish.forward_for)
                             else:
                                 msg = message.Event(subscription.id,
                                                     publication,
@@ -566,7 +567,8 @@ class Broker(object):
                                                     publisher=publisher,
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
-                                                    topic=topic)
+                                                    topic=topic,
+                                                    forward_for=publish.forward_for)
 
                             # if the publish message had a correlation ID, this will also be the
                             # correlation ID of the event message sent out
