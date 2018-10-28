@@ -899,7 +899,8 @@ class Dealer(object):
                                             procedure=procedure,
                                             enc_algo=call.enc_algo,
                                             enc_key=call.enc_key,
-                                            enc_serializer=call.enc_serializer)
+                                            enc_serializer=call.enc_serializer,
+                                            forward_for=call.forward_for)
         else:
             invocation = message.Invocation(invocation_request_id,
                                             registration.id,
@@ -910,7 +911,8 @@ class Dealer(object):
                                             caller=caller,
                                             caller_authid=caller_authid,
                                             caller_authrole=caller_authrole,
-                                            procedure=procedure)
+                                            procedure=procedure,
+                                            forward_for=call.forward_for)
 
         invocation.correlation_id = call.correlation_id
         invocation.correlation_uri = call.procedure
@@ -1012,7 +1014,7 @@ class Dealer(object):
 
             if cancellation_mode != message.Cancel.SKIP:
                 interrupt_mode = cancellation_mode  # "kill" or "killnowait"
-                interrupt = message.Interrupt(invocation_request.id, interrupt_mode)
+                interrupt = message.Interrupt(invocation_request.id, interrupt_mode, forward_for=cancel.forward_for)
 
                 if self._router.is_traced:
                     interrupt.correlation_id = invocation_request.call.correlation_id
@@ -1093,12 +1095,25 @@ class Dealer(object):
                         self._router.validate('call_result', invocation_request.call.procedure, yield_.args, yield_.kwargs)
                     except Exception as e:
                         is_valid = False
-                        reply = message.Error(message.Call.MESSAGE_TYPE, invocation_request.call.request, ApplicationError.INVALID_ARGUMENT, [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+                        reply = message.Error(message.Call.MESSAGE_TYPE,
+                                              invocation_request.call.request,
+                                              ApplicationError.INVALID_ARGUMENT,
+                                              [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)],
+                                              forward_for=yield_.forward_for)
                     else:
-                        reply = message.Result(invocation_request.call.request, args=yield_.args, kwargs=yield_.kwargs, progress=yield_.progress)
+                        reply = message.Result(invocation_request.call.request,
+                                               args=yield_.args,
+                                               kwargs=yield_.kwargs,
+                                               progress=yield_.progress,
+                                               forward_for=yield_.forward_for)
                 else:
-                    reply = message.Result(invocation_request.call.request, payload=yield_.payload, progress=yield_.progress,
-                                           enc_algo=yield_.enc_algo, enc_key=yield_.enc_key, enc_serializer=yield_.enc_serializer)
+                    reply = message.Result(invocation_request.call.request,
+                                           payload=yield_.payload,
+                                           progress=yield_.progress,
+                                           enc_algo=yield_.enc_algo,
+                                           enc_key=yield_.enc_key,
+                                           enc_serializer=yield_.enc_serializer,
+                                           forward_for=yield_.forward_for)
 
                 # the call is done if it's a regular call (non-progressive) or if the payload was invalid
                 #
@@ -1188,13 +1203,15 @@ class Dealer(object):
                         reply = message.Error(message.Call.MESSAGE_TYPE,
                                               invocation_request.call.request,
                                               ApplicationError.INVALID_ARGUMENT,
-                                              [u"call error from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)])
+                                              [u"call error from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)],
+                                              forward_for=error.forward_for)
                     else:
                         reply = message.Error(message.Call.MESSAGE_TYPE,
                                               invocation_request.call.request,
                                               error.error,
                                               args=error.args,
-                                              kwargs=error.kwargs)
+                                              kwargs=error.kwargs,
+                                              forward_for=error.forward_for)
                 else:
                     reply = message.Error(message.Call.MESSAGE_TYPE,
                                           invocation_request.call.request,
@@ -1202,7 +1219,8 @@ class Dealer(object):
                                           payload=error.payload,
                                           enc_algo=error.enc_algo,
                                           enc_key=error.enc_key,
-                                          enc_serializer=error.enc_serializer)
+                                          enc_serializer=error.enc_serializer,
+                                          forward_for=error.forward_for)
 
             if reply:
                 if self._router.is_traced:
