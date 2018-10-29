@@ -78,17 +78,20 @@ class RouterRealm(object):
     A realm running in a router worker.
     """
 
-    def __init__(self, id, config, session=None):
+    def __init__(self, controller, id, config, session=None):
         """
         Ctor.
 
         :param id: The realm ID within the router.
         :type id: str
+
         :param config: The realm configuration.
         :type config: dict
+
         :param session: The realm service session.
-        :type session: instance of CrossbarRouterServiceSession
+        :type session: :class:`crossbar.router.service.RouterServiceAgent`
         """
+        self.controller = controller
         self.id = id
         self.config = config
         self.session = session
