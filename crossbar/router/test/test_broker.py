@@ -66,7 +66,7 @@ class TestBrokerPublish(unittest.TestCase):
         self.router_factory = RouterFactory(None, None)
 
         # start a realm
-        self.realm = RouterRealm(None, {u'name': u'realm1'})
+        self.realm = RouterRealm(None, None, {u'name': u'realm1'})
         self.router_factory.start_realm(self.realm)
 
         # allow everything

@@ -68,7 +68,7 @@ def add_realm_to_router(router_factory, session_factory, realm_name=u'default',
     opts.update({u'name': realm_name})
 
     # start a realm
-    realm = RouterRealm(None, opts)
+    realm = RouterRealm(None, None, opts)
     router = router_factory.start_realm(realm)
 
     extra = {}

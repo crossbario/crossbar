@@ -245,7 +245,7 @@ class RouterController(WorkerController):
             bridge_meta_api_prefix = None
 
         # track realm
-        rlm = self.router_realm_class(realm_id, realm_config)
+        rlm = self.router_realm_class(self, realm_id, realm_config)
         self.realms[realm_id] = rlm
         self.realm_to_id[realm] = realm_id
 

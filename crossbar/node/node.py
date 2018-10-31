@@ -291,13 +291,16 @@ class Node(object):
         else:
             setproctitle.setproctitle(controller_options.get('title', 'crossbar-controller'))
 
+        # add the node controller singleton component
+        self._controller = self.NODE_CONTROLLER(self)
+
         # local node management router
         self._router_factory = RouterFactory(self._node_id, None)
         self._router_session_factory = RouterSessionFactory(self._router_factory)
         rlm_config = {
             'name': self._realm
         }
-        rlm = RouterRealm(None, rlm_config)
+        rlm = RouterRealm(self._controller, None, rlm_config)
         router = self._router_factory.start_realm(rlm)
 
         # setup global static roles
@@ -308,9 +311,6 @@ class Node(object):
         rlm.session = (self.ROUTER_SERVICE)(cfg, router)
         self._router_session_factory.add(rlm.session, authrole=u'trusted')
         self.log.debug('Router service session attached [{router_service}]', router_service=qual(self.ROUTER_SERVICE))
-
-        # add the node controller singleton component
-        self._controller = self.NODE_CONTROLLER(self)
 
         self._router_session_factory.add(self._controller, authrole=u'trusted')
         self.log.debug('Node controller attached [{node_controller}]', node_controller=qual(self.NODE_CONTROLLER))
