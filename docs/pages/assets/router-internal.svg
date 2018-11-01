@@ -7,6 +7,7 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="353.96127mm"
@@ -27,7 +28,7 @@
      inkscape:pageshadow="2"
      inkscape:zoom="0.49497475"
      inkscape:cx="221.78807"
-     inkscape:cy="186.12701"
+     inkscape:cy="347.75142"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -71,7 +72,7 @@
        width="115.35515"
        height="131.87874"
        x="47.185474"
-       y="44.787632"
+       y="42.649475"
        inkscape:export-xdpi="25"
        inkscape:export-ydpi="25" />
     <rect
@@ -247,17 +248,17 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.84646726px;line-height:2.40404224px;font-family:Candara;-inkscape-font-specification:Candara;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.09616169"
-       x="241.55743"
-       y="35.880081"
+       x="148.94801"
+       y="34.787868"
        id="text5055-3-8-9-19-1-8"
        inkscape:export-xdpi="25"
        inkscape:export-ydpi="25"
        transform="scale(1.0216392,0.97881914)"><tspan
          sodipodi:role="line"
-         x="241.55743"
-         y="35.880081"
+         x="148.94801"
+         y="34.787868"
          style="font-size:8.2057972px;stroke-width:0.09616169"
-         id="tspan7208-1-2">WAMP Clients</tspan></text>
+         id="tspan7208-1-2">WAMP Clients connecting to realms</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.84646726px;line-height:2.40404224px;font-family:Candara;-inkscape-font-specification:Candara;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.09616169"
@@ -291,5 +292,15 @@
        style="fill:#0273a0;fill-rule:nonzero;stroke-width:0.28934333"
        d="m 248.56684,187.02935 v 40.56291 h 46.90709 v -40.56291 z m 19.93736,3.89822 h 2.0801 v 7.94004 h -4.0562 z m 5.0233,0.0719 h 2.06967 l 1.98644,7.92206 h -4.05614 z m -16.11019,8.40725 h 29.05861 v 1.48204 h -1.41444 v 2.28144 h -3.33866 v -2.28144 H 262.2013 v 2.28144 h -3.27626 v -2.28144 h -1.50807 z m 7.84186,3.53003 h 5.32494 v 20.42502 h -10.27553 z m 8.26833,0 h 5.31461 l 4.96087,20.42502 H 273.5275 Z"
        id="path4500-0-9-6-1" />
+    <image
+       y="42.774513"
+       x="62.921383"
+       id="image5324"
+       xlink:href="data:image/png;base64,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 "
+       preserveAspectRatio="none"
+       height="21.178102"
+       width="22.10457"
+       inkscape:export-xdpi="25"
+       inkscape:export-ydpi="25" />
   </g>
 </svg>
