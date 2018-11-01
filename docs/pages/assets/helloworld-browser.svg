@@ -118,7 +118,7 @@
     <tspan
        x="935.666"
        y="568.872"
-       id="tspan36"> topic &quot;my.com.hello&quot;</tspan>
+       id="tspan36"> topic &quot;com.myapp.hello&quot;</tspan>
   </text>
   <text
      font-size="19.7556"
@@ -133,7 +133,7 @@
     <tspan
        x="220.856"
        y="571.417"
-       id="tspan42">       topic &quot;my.com.hello&quot;</tspan>
+       id="tspan42">       topic &quot;com.myapp.hello&quot;</tspan>
   </text>
   <text
      font-size="33.8667"
