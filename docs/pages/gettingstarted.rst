@@ -380,16 +380,16 @@ RPC Date Callee
 We will be using Autobahn JavaScript based RPC Callee client. You can run this script in browser or as nodejs application,we will cover both the methods.The  example code is available in the ``crossbar-examples/getting-started/3.rpc/`` folder. 
 
 
-Browser example
-^^^^^^^^^^^^^^^
+Browser 
+^^^^^^^
 
 To start the application, just open the ``rpc_callee.html`` file using the browser. The output gets printed in the JavaScript console. In order to view the console,right-click in the workspace of the browser and select Inspect and you can find the console tab.
 
 
 The script will register a procedure named **com.myapp.date**.
 
-NodeJS example
-^^^^^^^^^^^^^^
+NodeJS 
+^^^^^^
 
 ::
 
