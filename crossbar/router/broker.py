@@ -167,7 +167,7 @@ class Broker(object):
                    self._router._realm.session and \
                    not subscription.uri.startswith(u'wamp.'):
 
-                    def _publish():
+                    def _publish(subscription):
                         service_session = self._router._realm.session
                         options = types.PublishOptions(
                             correlation_id=None,
@@ -190,7 +190,7 @@ class Broker(object):
                                 options=options,
                             )
                     # we postpone actual sending of meta events until we return to this client session
-                    self._reactor.callLater(0, _publish)
+                    self._reactor.callLater(0, _publish, subscription)
 
             del self._session_to_subscriptions[session]
 
