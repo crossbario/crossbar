@@ -11,18 +11,22 @@ Introduction
 
 Administrators
 --------------
-*   :doc:`Concept & Features <pages/concept-features>`
-*   :doc:`Installation Guide <pages/installation>`
-*   :doc:`Administration Guide <pages/administration-guide>`
+*   :doc:`Concept & Features <pages/about/Basic-Concepts>`
+*   :doc:`Installation Guide <pages/installation/installation>`
+*   :doc:`Administration Guide <pages/administration/Administration>`
 
 Programmers
 -----------
-*   :doc:`Developer Guide <pages/developer-guide>`
+*   :doc:`Developer Guide <pages/programming-guide/Programming-Guide>`
 *   :doc:`Integration Guide  <pages/integration-guide>`
 *   :doc:`Tutorials & Recipe <pages/tutorials-recipe>`
 
 More
 ----
-*   :doc:`Policy, License and more <pages/policy-licence-faq>`
-* FAQ
-* Contributing FAQ
+* :doc:`Compatibility Policy  <pages/about/Compatibility-Policy>`
+* :doc:`Crossbar Code License  <pages/about/Crossbar-License>`
+* :doc:`Documentation License  <pages/about/Documentation-License>`
+* `Contributing to the Project** <https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md>`__
+* :doc:`Contributing FAQ  <pages/about/Contributing-FAQ>`
+* :doc:`FAQ  <pages/about/FAQ>`
+
