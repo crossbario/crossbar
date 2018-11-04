@@ -10,7 +10,7 @@ specific actions based on its identity.
 
 See also:
 
--  `Authorization <Authorization>`__
+-  :doc:`Authorization <Authorization>`
 
 Introduction
 ------------
@@ -25,13 +25,13 @@ authorization may base the authorization on more factors.)
 
 Crossbar.io provides a range of authentication methods.
 
-1. `WAMP-Anonymous <Anonymous%20Authentication>`__
-2. `WAMP-Ticket <Ticket%20Authentication>`__
-3. `WAMP-CRA <Challenge-Response%20Authentication>`__
-4. `WAMP-Cryptosign <Cryptosign%20Authentication>`__
-5. `WAMP-Cookie <Cookie%20Authentication>`__
-6. `WAMP-TLS <TLS%20Client%20Certificate%20Authentication>`__
-7. `WAMP-SCRAM <SCRAM%20Authentication>`__ **experimental**
+1. :doc:`WAMP-Anonymous <Anonymous-Authentication>`
+2. :doc:`WAMP-Ticket <Ticket-Authentication>`
+3. :doc:`WAMP-CRA <Challenge-Response-Authentication>`
+4. :doc:`WAMP-Cryptosign <Cryptosign-Authentication>`
+5. :doc:`WAMP-Cookie <Cookie-Authentication>`
+6. :doc:`WAMP-TLS <TLS-Client-Certificate-Authentication>`
+7. :doc:`WAMP-SCRAM <SCRAM-Authentication>` **experimental**
 
 These can be classed according to whether:
 
@@ -48,19 +48,19 @@ Session vs Transport Level
 **WAMP session level authentications** use WAMP messages at the WAMP
 session opening handshake, and can be used over any transport.
 
--  `WAMP-Anonymous <Anonymous%20Authentication>`__
--  `WAMP-Ticket <Ticket%20Authentication>`__
--  `WAMP-CRA <Challenge-Response%20Authentication>`__
--  `WAMP-Cryptosign <Cryptosign%20Authentication>`__
--  `WAMP-SCRAM <SCRAM%20Authentication>`__ **experimental**
+-  :doc:`WAMP-Anonymous <Anonymous-Authentication>`
+-  :doc:`WAMP-Ticket <Ticket-Authentication>`
+-  :doc:`WAMP-CRA <Challenge-Response-Authentication>`
+-  :doc:`WAMP-Cryptosign <Cryptosign-Authentication>`
+-  :doc:`WAMP-SCRAM <SCRAM-Authentication>` **experimental**
 
 **WAMP transport level authentications** use the underlying transport
 for the WAMP session, and the result of the authentication is then
 passed on to the WAMP session level (i.e. the resulting ``authid`` and
 ``authrole`` are passed there).
 
--  `WAMP-Cookie <Cookie%20Authentication>`__
--  `WAMP-TLS <TLS%20Client%20Certificate%20Authentication>`__
+-  :doc:`WAMP-Cookie <Cookie-Authentication>`
+-  :doc:`WAMP-TLS <TLS-Client-Certificate-Authentication>`
 
 Shared Secret vs. Public Key
 ----------------------------
@@ -68,10 +68,10 @@ Shared Secret vs. Public Key
 **Shared secret authentication** is based on the client and the router
 (or the authentication component) having access to a common secret.
 
--  `WAMP-Ticket <Ticket%20Authentication>`__
--  `WAMP-CRA <Challenge-Response%20Authentication>`__
--  `WAMP-Cookie <Cookie%20Authentication>`__
--  `WAMP-SCRAM <SCRAM%20Authentication>`__ **experimental**
+-  :doc:`WAMP-Ticket <Ticket-Authentication>`
+-  :doc:`WAMP-CRA <Challenge-Response-Authentication>`
+-  :doc:`WAMP-Cookie <Cookie-Authentication>`
+-  :doc:`WAMP-SCRAM <SCRAM-Authentication>` **experimental**
 
 **Public Key based authentication** relies on asymetric key pairs, i.e.
 the router (or authentication componenet) only has knowledge of the
@@ -79,8 +79,8 @@ client's public key (and vice versa). This has the advantage that a
 compromised store of keys does not enable impersonation of the other
 participant(s).
 
--  `WAMP-Cryptosign <Cryptosign%20Authentication>`__
--  `WAMP-TLS <TLS%20Client%20Certificate%20Authentication>`__
+-  :doc:`WAMP-Cryptosign <Cryptosign-Authentication>`
+-  :doc:`WAMP-TLS <TLS-Client-Certificate-Authentication>`
 
 Static, Dynamic and Database Authentication
 -------------------------------------------
@@ -90,8 +90,8 @@ It is possible to configure an authentication methods
 -  **statically** - the credentials stored in the Crossbar.io
    configuration, or
 -  **dynamically** - an authorizer component is specified which is
-   called and returns an authentication or denial (`read
-   more <Dynamic%20Authenticators>`__).
+   called and returns an authentication or denial (:doc:`read
+   more <Dynamic-Authenticators>`).
 
 The latter allows full flexibility, e.g. integration with external
 authorization mechanisms, storing larger sets of authentication data in

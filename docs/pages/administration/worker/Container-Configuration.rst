@@ -53,8 +53,8 @@ The worker itself has the options
 3. ``components``: a list Python components to run in the container
    (*required*)
 
-``options`` are those `shared by Native
-Workers <Native%20Worker%20Options>`__ as well as:
+``options`` are those :doc:`shared by Native
+Workers <Native-Worker-Options>` as well as:
 
 1. ``shutdown``: ``shutdown-manual`` (the default) or
    ``shutdown-on-last-worker-exit``
@@ -98,7 +98,7 @@ Configuration
 +-----------------------+---------------------------------------------------------------------+
 | **``type``**          | Must be ``"container"``.                                            |
 +-----------------------+---------------------------------------------------------------------+
-| **``options``**       | Please see `Native Worker Options <Native%20Worker%20Options>`__.   |
+| **``options``**       | Please see :doc:`Native Worker Options <Native-Worker-Options>` .   |
 +-----------------------+---------------------------------------------------------------------+
 | **``components``**    | A list of components. Please see below.                             |
 +-----------------------+---------------------------------------------------------------------+

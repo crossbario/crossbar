@@ -59,11 +59,11 @@ Configuration
 +-----------------------+---------------------------------------------------------------------+
 | **``type``**          | Must be ``"router"``.                                               |
 +-----------------------+---------------------------------------------------------------------+
-| **``options``**       | Please see `Native Worker Options <Native%20Worker%20Options>`__.   |
+| **``options``**       | Please see :doc:`Native Worker Options <Native-Worker-Options>` .   |
 +-----------------------+---------------------------------------------------------------------+
-| **``realms``**        | Please see `Router Realms <Router%20Realms>`__.                     |
+| **``realms``**        | Please see :doc:`Router Realms <../router/Router-Realms>` .         |
 +-----------------------+---------------------------------------------------------------------+
-| **``transports``**    | Please see `Router Transports <Router%20Transports>`__.             |
+| **``transports``**    | Please see :doc:`Router Transports <../router/Router-Transports>` . |
 +-----------------------+---------------------------------------------------------------------+
 | **``components``**    | A list of components. Please see below.                             |
 +-----------------------+---------------------------------------------------------------------+

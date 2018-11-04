@@ -47,5 +47,5 @@ with ``--logtofile``, but not ``--logformat`` (it is always in
 Adding logging to your components
 ---------------------------------
 
-If you want to integrate with Crossbar.io's logging system, see `Logging
-in Crossbar.io <Logging%20in%20Crossbario>`__.
+If you want to integrate with Crossbar.io's logging system, see :doc:`Logging
+in Crossbar.io <Logging-in-Crossbar.io>` .

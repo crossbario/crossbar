@@ -1,5 +1,3 @@
-title: Cookie Authentication toc: [Documentation, Administration,
-Authentication, Cookie Authentication]
 
 Cookie Authentication
 =====================

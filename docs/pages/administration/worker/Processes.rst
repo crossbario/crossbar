@@ -6,18 +6,18 @@ Processes
 Crossbar.io has a multi-process architecture. There is one node
 controller process per node
 
--  `**Controller** Configuration <Controller%20Configuration>`__
+-  :doc:`**Controller** Configuration <Controller-Configuration>`
 
 and multiple worker processes of these types
 
--  `**Router** Configuration <Router%20Configuration>`__
--  `**Container** Configuration <Container%20Configuration>`__
--  `**Guest** Configuration <Guest%20Configuration>`__
+-  :doc:`**Router** Configuration <Router-Configuration>`
+-  :doc:`**Container** Configuration <Container-Configuration>`
+-  :doc:`**Guest** Configuration <Guest-Configuration>`
 
 Processes can be further configured with
 
--  `Process Environments <Process%20Environments>`__
--  `Native Worker Options <Native%20Worker%20Options>`__
+-  :doc:`Process Environments <Process-Environments>`
+-  :doc:`Native Worker Options <Native-Worker-Options>`
 
 Configuration
 -------------
@@ -49,9 +49,9 @@ Configuration <Controller%20Configuration>`__.
 
 There are valid values for the ``type`` of worker:
 
--  ``"router"`` - see `Router Configuration <Router%20Configuration>`__
--  ``"container"`` - see `Container
-   Configuration <Container%20Configuration>`__
--  ``"guest"`` - see `Guest Configuration <Guest%20Configuration>`__
+-  ``"router"`` - see :doc:`Router Configuration <Router-Configuration>`
+-  ``"container"`` - see :doc:`Container
+   Configuration <Container-Configuration>`
+-  ``"guest"`` - see :doc:`Guest Configuration <Guest-Configuration>`
 
 --------------

@@ -13,7 +13,7 @@ specific actions based on its identity.
 
 See also:
 
--  `Authentication <Authentication>`__
+-  :doc:`Authentication <Authentication>`
 
 Introduction
 ------------

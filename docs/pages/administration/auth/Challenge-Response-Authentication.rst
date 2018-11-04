@@ -1,5 +1,3 @@
-title: Challenge Response Authentication toc: [Documentation,
-Administration, Authentication, Challenge Response Authentication]
 
 Challenge-Response Authentication
 =================================

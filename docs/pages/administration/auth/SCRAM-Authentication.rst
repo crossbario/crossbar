@@ -1,5 +1,3 @@
-title: SCRAM Authentication toc: [Documentation, Administration,
-Authentication, SCRAM Authentication]
 
 SCRAM Authentication
 ====================

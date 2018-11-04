@@ -1,5 +1,3 @@
-title: Cryptosign Authentication toc: [Documentation, Administration,
-Authentication, Cryptosign Authentication]
 
 Cryptosign Authentication
 =========================

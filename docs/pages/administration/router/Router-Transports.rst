@@ -5,27 +5,27 @@ Router Transports
 
 Transports are necessary for allowing incoming connections to *Routers*.
 This applies to WAMP connections as well as for other services that
-*Routers* provide, such as `Web Services <Web%20Services>`__.
+*Routers* provide, such as :doc:`Web Services <Web-Services>`.
 
 Crossbar.io provides the following transports for WAMP
 
--  `WebSocket Transport <WebSocket%20Transport>`__
--  `RawSocket Transport <RawSocket%20Transport>`__
+-  :doc:`WebSocket Transport <transport/WebSocket-Transport>`
+-  :doc:`RawSocket Transport <transport/RawSocket-Transport>`
 
 as well as
 
--  `Web Transport and Services <Web%20Transport%20and%20Services>`__
+-  :doc:`Web Transport and Services <transport/Web-Transport-and-Services>`
 
 which include WebSocket as one suboption.
 
-All of above is running over `Transport
-Endpoints <Transport%20Endpoints>`__, so you need that as well to get a
+All of above is running over :doc:`Transport
+Endpoints <transport/Transport-Endpoints>`, so you need that as well to get a
 fully working transport.
 
-    For completeness, there is also the `Flash Policy auxiliary
-    transport <Flash%20Policy%20Transport>`__, and special transports
-    for `TCP Benchmarks <Stream%20Testee>`__ and `WebSocket
-    Testing <WebSocket%20Compliance%20Testing>`__.
+    For completeness, there is also the  :doc:`Flash Policy auxiliary
+    transport <transport/Flash-Policy-Transport>`, and special transports
+    for  :doc:`TCP Benchmarks <../production/Stream-Testee>` and  :doc:`WebSocket
+    Testing <../production/WebSocket-Compliance-Testing>`.
 
 Background
 ----------
