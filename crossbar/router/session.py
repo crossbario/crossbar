@@ -624,7 +624,7 @@ class RouterSession(BaseSession):
                     # revoke authentication and invalidate cookie (will be revalidated if following auth is successful)
                     self._transport._authmethod = None
                     self._transport._authrealm = None
-                    self._transport._authid = None                    
+                    self._transport._authid = None
                     if hasattr(self._transport, '_cbtid'):
                         self._transport.factory._cookiestore.setAuth(self._transport._cbtid, None, None, None, None, None)
 
