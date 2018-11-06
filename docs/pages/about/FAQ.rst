@@ -5,8 +5,7 @@ FAQ
 Frequently asked questions with Crossbar.io, Autobahn and WAMP.
 
 -  `The WAMP ecosystem <#the-wamp-ecosystem>`__
--  `What is the relationship between WAMP, Autobahn and
-   Crossbar.io? <#what-is-the-relationship-between-wamp,-autobahn-and-crossbar.io?>`__
+-  `What is the relationship between WAMP, Autobahn and Crossbar.io? <#what-is-the-relationship-between-wamp,-autobahn-and-crossbar.io?>`__
 -  `What is WAMP? <#what-is-wamp?>`__
 -  `What is Autobahn? <#what-is-autobahn?>`__
 -  `What is Crossbar.io? <#what-is-crossbar.io?>`__
@@ -164,6 +163,5 @@ How complex this is depends on the specifics of the use case, e.g. the
 protocol.
 
 We do provide components for communicating with other applications over
-HTTP/POST requests- see `the documentation <HTTP-Bridge>`__, as well as
-integration for MQTT clients via a `full MQTT
-broker <>`__\ http://crossbar.io/docs/MQTT-Broker/.
+HTTP/POST requests- see :doc:`the documentation <../administration/http-bridge/HTTP-Bridge>` , as well as
+integration for MQTT clients via a :doc:`full MQTT broker <../administration/mqtt-broker/MQTT-Broker>` .
