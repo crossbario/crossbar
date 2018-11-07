@@ -1,5 +1,6 @@
-title: Reverse WebSocket Proxy Service toc: [Documentation,
-Administration, Web Services, Reverse WebSocket Proxy Service]
+:orphan:
+
+
 
 Reverse WebSocket Proxy Service
 ===============================
@@ -7,9 +8,7 @@ Reverse WebSocket Proxy Service
 Configuration
 -------------
 
-To configure a Reverse WebSocket Proxy Service, attach a dictionary
-element to a path in your `Web
-transport <Web%20Transport%20and%20Services>`__:
+To configure a Reverse WebSocket Proxy Service, attach a dictionary element to a path in your :doc:`Web transport <../router/transport/Web-Transport-and-Services>` :
 
 +-------------------+-----------------------------------------------------------------------------------+
 | option            | description                                                                       |
@@ -56,5 +55,3 @@ the path ``/proxy1``:
           }
        }
     }
-
---------------

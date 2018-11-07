@@ -148,7 +148,7 @@ Firstly Docker needs to be installed on your machine. The official Docker site p
 .. note:: All the examples here have been tested on Ubuntu 18.04 LTS using Docker, with commands for \*nix shell, but work on other platforms with adaptation.
 
 For other methods of installation refer to the
-:doc:`Installation Guide <installation>`.
+:doc:`Installation Guide <installation/installation>`.
 
 
 Example Code

@@ -1,5 +1,4 @@
-title: HTTP Bridge Webhook toc: [Documentation, Administration, HTTP
-Bridge, HTTP Bridge Webhook]
+:orphan:
 
 HTTP Bridge Webhook
 ===================
@@ -82,303 +81,37 @@ here is part of a Crossbar configuration:
 
 The service dictionary has the following parameters:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | MUST |
-| type | be   |
-| ``** | ``"w |
-|      | ebho |
-|      | ok"` |
-|      | `    |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| real | real |
-| m``* | m    |
-| *    | to   |
-|      | whic |
-|      | h    |
-|      | the  |
-|      | forw |
-|      | ardi |
-|      | ng   |
-|      | sess |
-|      | ion  |
-|      | is   |
-|      | atta |
-|      | ched |
-|      | that |
-|      | will |
-|      | inje |
-|      | ct   |
-|      | the  |
-|      | subm |
-|      | itte |
-|      | d    |
-|      | even |
-|      | ts,  |
-|      | e.g. |
-|      | ``"r |
-|      | ealm |
-|      | 1"`` |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| role | fixe |
-| ``** | d    |
-|      | (aut |
-|      | hent |
-|      | icat |
-|      | ion) |
-|      | role |
-|      | the  |
-|      | forw |
-|      | ardi |
-|      | ng   |
-|      | sess |
-|      | ion  |
-|      | is   |
-|      | auth |
-|      | enti |
-|      | cate |
-|      | d    |
-|      | as   |
-|      | when |
-|      | atta |
-|      | chin |
-|      | g    |
-|      | to   |
-|      | the  |
-|      | rout |
-|      | er-r |
-|      | ealm |
-|      | ,    |
-|      | e.g. |
-|      | ``"r |
-|      | ole1 |
-|      | "``  |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | A    |
-| opti | dict |
-| ons` | iona |
-| `**  | ry   |
-|      | of   |
-|      | opti |
-|      | ons  |
-|      | (req |
-|      | uire |
-|      | d,   |
-|      | see  |
-|      | belo |
-|      | w).  |
-+------+------+
++---------+----------------------------------------------------------------------------------------------------------------------------------------+
+| option  | description                                                                                                                            |
++=========+========================================================================================================================================+
+| type    | MUST be "webhook" (required)                                                                                                           |
++---------+----------------------------------------------------------------------------------------------------------------------------------------+
+| realm   | The realm to which the forwarding session is attached that will inject the submitted events, e.g. "realm1"(required)                   |
++---------+----------------------------------------------------------------------------------------------------------------------------------------+
+| role    | The fixed (authentication) role the forwarding session is authenticated as when attaching to the router-realm, e.g. "role1" (required) |
++---------+----------------------------------------------------------------------------------------------------------------------------------------+
+| options | A dictionary of options (required, see below).                                                                                         |
++---------+----------------------------------------------------------------------------------------------------------------------------------------+
+
 
 The ``options`` dictionary has the following configuration parameters:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | The  |
-| topi | topi |
-| c``* | c    |
-| *    | to   |
-|      | whic |
-|      | h    |
-|      | the  |
-|      | forw |
-|      | arde |
-|      | d    |
-|      | even |
-|      | ts   |
-|      | will |
-|      | be   |
-|      | sent |
-|      | .    |
-+------+------+
-| **`` | An   |
-| post | inte |
-| _bod | ger  |
-| y_li | when |
-| mit` | pres |
-| `**  | ent  |
-|      | limi |
-|      | ts   |
-|      | the  |
-|      | leng |
-|      | th   |
-|      | (in  |
-|      | byte |
-|      | s)   |
-|      | of a |
-|      | HTTP |
-|      | /POS |
-|      | T    |
-|      | body |
-|      | that |
-|      | will |
-|      | be   |
-|      | acce |
-|      | pted |
-|      | .    |
-|      | If   |
-|      | the  |
-|      | requ |
-|      | est  |
-|      | body |
-|      | exce |
-|      | ed   |
-|      | this |
-|      | limi |
-|      | t,   |
-|      | the  |
-|      | requ |
-|      | est  |
-|      | is   |
-|      | reje |
-|      | cted |
-|      | .    |
-|      | If   |
-|      | 0,   |
-|      | acce |
-|      | pt   |
-|      | unli |
-|      | mite |
-|      | d    |
-|      | leng |
-|      | th.  |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **0* |
-|      | *)   |
-+------+------+
-| **`` | A    |
-| succ | stri |
-| ess_ | ng   |
-| resp | to   |
-| onse | send |
-| ``** | as   |
-|      | the  |
-|      | body |
-|      | in a |
-|      | succ |
-|      | essf |
-|      | ul   |
-|      | repl |
-|      | y    |
-|      | (def |
-|      | ault |
-|      | is   |
-|      | ``OK |
-|      | ``)  |
-+------+------+
-| **`` | A    |
-| erro | stri |
-| r_re | ng   |
-| spon | to   |
-| se`` | send |
-| **   | as   |
-|      | the  |
-|      | body |
-|      | in   |
-|      | an   |
-|      | unsu |
-|      | cces |
-|      | sful |
-|      | repl |
-|      | y    |
-|      | (def |
-|      | ault |
-|      | is   |
-|      | ``NO |
-|      | T OK |
-|      | ``)  |
-+------+------+
-| **`` | The  |
-| gith | same |
-| ub_s | secr |
-| ecre | et   |
-| t``* | you  |
-| *    | told |
-|      | GitH |
-|      | ub   |
-|      | when |
-|      | crea |
-|      | ting |
-|      | the  |
-|      | WebH |
-|      | ook  |
-|      | conf |
-|      | igur |
-|      | atio |
-|      | n.   |
-|      | When |
-|      | spec |
-|      | ifie |
-|      | d,   |
-|      | inco |
-|      | ming |
-|      | WebH |
-|      | ooks |
-|      | will |
-|      | be   |
-|      | chec |
-|      | ked  |
-|      | for  |
-|      | vali |
-|      | d    |
-|      | GitH |
-|      | ub   |
-|      | sign |
-|      | atur |
-|      | es   |
-|      | via  |
-|      | the  |
-|      | ``X- |
-|      | Hub- |
-|      | Sign |
-|      | atur |
-|      | e``  |
-|      | head |
-|      | er.  |
-|      | A    |
-|      | good |
-|      | way  |
-|      | to   |
-|      | make |
-|      | a    |
-|      | secr |
-|      | et   |
-|      | is   |
-|      | to   |
-|      | hex- |
-|      | enco |
-|      | de   |
-|      | 32   |
-|      | rand |
-|      | om   |
-|      | byte |
-|      | s    |
-|      | (e.g |
-|      | .    |
-|      | from |
-|      | ``os |
-|      | .ura |
-|      | ndom |
-|      | ``). |
-+------+------+
+
++-------------------+----------------------------------------------------------------------------------------------------------------+
+| option            | description                                                                                                    |
++===================+================================================================================================================+
+| topic             | The topic to which the forwarded events will be sent.                                                          |
++-------------------+----------------------------------------------------------------------------------------------------------------+
+| post_body_limit   | An integer when present limits the length (in bytes) of a HTTP/POST body that will be accepted.                |
+|                   | If the request body exceed this limit, the request is rejected. If 0, accept unlimited length. (default: 0)    |
++-------------------+----------------------------------------------------------------------------------------------------------------+
+| success_response  | A string to send as the body in a successful reply (default is OK)                                             |
++-------------------+----------------------------------------------------------------------------------------------------------------+
+| error_response    | A string to send as the body in an unsuccessful reply (default is NOT OK)                                      |
++-------------------+----------------------------------------------------------------------------------------------------------------+
+| github_secret     | The same secret you told GitHub when creating the WebHook configuration.                                       | 
+|                   | A string to send as the body in an unsuccessful reply (default is NOT OK)                                      |
++-------------------+----------------------------------------------------------------------------------------------------------------+
 
 With GitHub
 -----------

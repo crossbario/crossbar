@@ -1,3 +1,5 @@
+:orphan:
+
 title: Starting and Stopping Crossbar.io toc: [Documentation,
 Programming Guide, Starting and Stopping Crossbario]
 

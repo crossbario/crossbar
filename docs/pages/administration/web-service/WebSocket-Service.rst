@@ -1,3 +1,5 @@
+:orphan:
+
 title: WebSocket Service toc: [Documentation, Administration, Web
 Services, WebSocket Service]
 
@@ -28,136 +30,23 @@ Configuration
 To configure a WebSocket Service, attach a dictionary element to a path
 in your `Web transport <Web%20Transport%20and%20Services>`__:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | Must |
-| type | be   |
-| ``** | ``"w |
-|      | ebso |
-|      | cket |
-|      | "``. |
-+------+------+
-| **`` | The  |
-| url` | WebS |
-| `**  | ocke |
-|      | t    |
-|      | serv |
-|      | er   |
-|      | URL  |
-|      | to   |
-|      | use. |
-+------+------+
-| **`` | List |
-| seri | of   |
-| aliz | WAMP |
-| ers` | seri |
-| `**  | aliz |
-|      | ers  |
-|      | to   |
-|      | anno |
-|      | unce |
-|      | /spe |
-|      | ak,  |
-|      | must |
-|      | be   |
-|      | from |
-|      | ``"j |
-|      | son" |
-|      | ``   |
-|      | and  |
-|      | ``"m |
-|      | sgpa |
-|      | ck"` |
-|      | `    |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **al |
-|      | l    |
-|      | avai |
-|      | labl |
-|      | e**) |
-+------+------+
-| **`` | See  |
-| opti | `Web |
-| ons` | Sock |
-| `**  | et   |
-|      | Opti |
-|      | ons  |
-|      | <Web |
-|      | Sock |
-|      | et%2 |
-|      | 0Opt |
-|      | ions |
-|      | >`__ |
-|      | .    |
-+------+------+
-| **`` | Auth |
-| auth | enti |
-| ``** | cati |
-|      | on   |
-|      | to   |
-|      | be   |
-|      | used |
-|      | -    |
-|      | see  |
-|      | `Aut |
-|      | hent |
-|      | icat |
-|      | ion  |
-|      | <Aut |
-|      | hent |
-|      | icat |
-|      | ion> |
-|      | `__. |
-+------+------+
-| **`` | Conf |
-| cook | igur |
-| ie`` | e    |
-| **   | cook |
-|      | ie   |
-|      | trac |
-|      | king |
-|      | on   |
-|      | this |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | -    |
-|      | see  |
-|      | `Coo |
-|      | kie  |
-|      | Trac |
-|      | king |
-|      |  <Co |
-|      | okie |
-|      | -Tra |
-|      | ckin |
-|      | g>`_ |
-|      | _.   |
-+------+------+
-| **`` | Enab |
-| debu | le   |
-| g``* | tran |
-| *    | spor |
-|      | t    |
-|      | leve |
-|      | l    |
-|      | debu |
-|      | g    |
-|      | outp |
-|      | ut.  |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | fals |
-|      | e``* |
-|      | *)   |
-+------+------+
++-------------+----------------------------------------------------------------------------------------------------------------+
+| option      | description                                                                                                    |
++=============+================================================================================================================+
+| type        | Must be "websocket".                                                                                           |
++-------------+----------------------------------------------------------------------------------------------------------------+
+| url         | The WebSocket server URL to use.                                                                               |
++-------------+----------------------------------------------------------------------------------------------------------------+
+| serializers | List of WAMP serializers to announce/speak, must be from "json" and "msgpack" (default: all available)         |
++-------------+----------------------------------------------------------------------------------------------------------------+
+| options     | See :doc:`WebSocket Options<../router/transport/WebSocket-Options>` .                                          |
++-------------+----------------------------------------------------------------------------------------------------------------+
+| auth        | Authentication to be used - see  :doc:`Authentication<../auth/Authentication>`.                                |
++-------------+----------------------------------------------------------------------------------------------------------------+
+| cookie      | Configure cookie tracking on this transport - see :doc:`Cookie Tracking<../router/transport/Cookie-Tracking>`  |
++-------------+----------------------------------------------------------------------------------------------------------------+
+| debug       | Enable transport level debug output. (default: false)                                                          |
++-------------+----------------------------------------------------------------------------------------------------------------+
 
 Example
 -------
@@ -218,4 +107,3 @@ runs on the path **/ws**, the correct URL is **ws://localhost:8080/ws**.
 A standalone WebSocket transport's URL would have used
 **ws://localhost:8080**.
 
---------------

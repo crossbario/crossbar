@@ -1,3 +1,5 @@
+:orphan:
+
 
 AngularJS Application Components
 ================================

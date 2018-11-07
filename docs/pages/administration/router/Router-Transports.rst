@@ -5,7 +5,7 @@ Router Transports
 
 Transports are necessary for allowing incoming connections to *Routers*.
 This applies to WAMP connections as well as for other services that
-*Routers* provide, such as :doc:`Web Services <Web-Services>`.
+*Routers* provide, such as :doc:`Web Services <../web-service/Web-Services>` .
 
 Crossbar.io provides the following transports for WAMP
 
@@ -48,5 +48,3 @@ transports:
 -  [WAMP-over-WebSocket Transport]
 -  [WAMP-over-RawSocket Transport]
 -  [WAMP-over-Longpoll Transport]
-
---------------

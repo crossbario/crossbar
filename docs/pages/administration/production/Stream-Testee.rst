@@ -1,3 +1,5 @@
+:orphan:
+
 title: Stream Testee toc: [Documentation, Administration, Going to
 Production, Stream Testee]
 
@@ -37,113 +39,19 @@ Now you can connect e.g. via telnet to the host on port 9000.
 Configuration
 -------------
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | ID   |
-| id`` | of   |
-| **   | the  |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | with |
-|      | in   |
-|      | the  |
-|      | runn |
-|      | ing  |
-|      | node |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | tran |
-|      | spor |
-|      | t<N> |
-|      | ``** |
-|      | wher |
-|      | e    |
-|      | ``N` |
-|      | `    |
-|      | is   |
-|      | numb |
-|      | ered |
-|      | auto |
-|      | mati |
-|      | call |
-|      | y    |
-|      | star |
-|      | ting |
-|      | from |
-|      | ``1` |
-|      | `)   |
-+------+------+
-| **`` | Type |
-| type | of   |
-| ``** | tran |
-|      | spor |
-|      | t    |
-|      | -    |
-|      | must |
-|      | be   |
-|      | ``"s |
-|      | trea |
-|      | m.te |
-|      | stee |
-|      | "``. |
-+------+------+
-| **`` | List |
-| endp | enin |
-| oint | g    |
-| ``** | endp |
-|      | oint |
-|      | for  |
-|      | tran |
-|      | spor |
-|      | t.   |
-|      | See  |
-|      | `Tra |
-|      | nspo |
-|      | rt   |
-|      | Endp |
-|      | oint |
-|      | s <T |
-|      | rans |
-|      | port |
-|      | %20E |
-|      | ndpo |
-|      | ints |
-|      | >`__ |
-|      | for  |
-|      | conf |
-|      | igur |
-|      | atio |
-|      | n    |
-+------+------+
-| **`` | Turn |
-| debu | on   |
-| g``* | debu |
-| *    | g    |
-|      | logg |
-|      | ing  |
-|      | for  |
-|      | this |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | inst |
-|      | ance |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | fals |
-|      | e``* |
-|      | *).  |
-+------+------+
 
---------------
++----------+--------------------------------------------------------------------------------------------------------------------------------------+
+| option   | description                                                                                                                          |
++==========+======================================================================================================================================+
+| id       | ID of the transport within the running node (default: transport<N> where N is numbered automatically starting from 1)                |
++----------+--------------------------------------------------------------------------------------------------------------------------------------+
+| type     | Type of transport - must be "stream.testee".                                                                                         |
++----------+--------------------------------------------------------------------------------------------------------------------------------------+
+| endpoint | Listening endpoint for transport. See :doc:`Transport Endpoints<../router/transport/Transport-Endpoints>` for configuration          |
++----------+--------------------------------------------------------------------------------------------------------------------------------------+
+| debug    | Turn on debug logging for this transport instance (default: false).                                                                  |
++----------+--------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Results
 -------

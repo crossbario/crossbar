@@ -1,3 +1,5 @@
+:orphan:
+
 title: Scaling Crossbar.io toc: [Documentation, Administration, Going to
 Production, Scaling Crossbar.io]
 

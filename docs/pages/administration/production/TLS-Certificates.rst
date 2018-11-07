@@ -1,3 +1,5 @@
+:orphan:
+
 title: TLS Certificates toc: [Documentation, Administration, Going to
 Production, TLS Certificates]
 
@@ -488,5 +490,3 @@ fit your system .. this works for Ubuntu):
         Verify return code: 0 (ok)
     ---
     ^C
-
---------------

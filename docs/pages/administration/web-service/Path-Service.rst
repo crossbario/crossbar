@@ -1,3 +1,5 @@
+:orphan:
+
 title: Path Service toc: [Documentation, Administration, Web Services,
 Path Service]
 
@@ -12,58 +14,15 @@ Configuration
 To configure a Path Service, attach a dictionary element to a path in
 your `Web transport <Web%20Transport%20and%20Services>`__:
 
-+------+------+
-| attr | desc |
-| ibut | ript |
-| e    | ion  |
-+======+======+
-| **`` | must |
-| type | be   |
-| ``** | ``"p |
-|      | ath" |
-|      | ``   |
-+------+------+
-| **`` | A    |
-| path | dict |
-| s``* | iona |
-| *    | ry   |
-|      | for  |
-|      | conf |
-|      | igur |
-|      | ing  |
-|      | serv |
-|      | ices |
-|      | on   |
-|      | subp |
-|      | aths |
-|      | with |
-|      | keys |
-|      | matc |
-|      | hing |
-|      | the  |
-|      | regu |
-|      | lar  |
-|      | expr |
-|      | essi |
-|      | on   |
-|      | ``^( |
-|      | [a-z |
-|      | 0-9A |
-|      | -Z_\ |
-|      | -]+| |
-|      | /)$` |
-|      | `,   |
-|      | and  |
-|      | with |
-|      | ``/` |
-|      | `    |
-|      | in   |
-|      | the  |
-|      | set  |
-|      | of   |
-|      | keys |
-|      | .    |
-+------+------+
+
++-----------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
+| attribute | description                                                                                                                                         |
++===========+=====================================================================================================================================================+
+| type      | must be "path"                                                                                                                                      |
++-----------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
+| paths     | A dictionary for configuring services on subpaths with keys matching the regular expression `^([a-z0-9A-Z_-]+/)$, and with/` in the set of keys.    |
++-----------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Example
 -------
@@ -109,4 +68,3 @@ which serves as a kind of folder:
        ]
     }
 
---------------

@@ -1,5 +1,4 @@
-title: HTTP Bridge Callee toc: [Documentation, Administration, HTTP
-Bridge, HTTP Bridge Callee]
+:orphan:
 
 HTTP Bridge Callee
 ==================
@@ -72,274 +71,36 @@ of a Crossbar configuration:
 
 The callee is configured through the ``extra`` dictionary:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | The  |
-| proc | WAMP |
-| edur | proc |
-| e``* | edur |
-| *    | e    |
-|      | name |
-|      | to   |
-|      | regi |
-|      | ster |
-|      | the  |
-|      | call |
-|      | ee   |
-|      | as.  |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| base | base |
-| url` | URL  |
-| `**  | that |
-|      | the  |
-|      | call |
-|      | ee   |
-|      | will |
-|      | use. |
-|      | All  |
-|      | call |
-|      | s    |
-|      | will |
-|      | work |
-|      | down |
-|      | ward |
-|      | from |
-|      | this |
-|      | URL. |
-|      | If   |
-|      | you  |
-|      | wish |
-|      | to   |
-|      | call |
-|      | any  |
-|      | URL, |
-|      | set  |
-|      | it   |
-|      | as   |
-|      | an   |
-|      | empt |
-|      | y    |
-|      | stri |
-|      | ng   |
-|      | ``"" |
-|      | ``.  |
-|      | This |
-|      | URL  |
-|      | must |
-|      | cont |
-|      | ain  |
-|      | the  |
-|      | prot |
-|      | ocol |
-|      | (e.g |
-|      | .    |
-|      | ``"h |
-|      | ttps |
-|      | ://" |
-|      | ``)  |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
++-----------+--------------------------------------------------------------------------------------------+
+| option    | description                                                                                |
++===========+============================================================================================+
+| procedure | The WAMP procedure name to register the callee as. (required)                              |
++-----------+--------------------------------------------------------------------------------------------+
+| baseurl   |  The base URL that the callee will use. All calls will work downward from this URL.        |
+|           |  If you wish to call any URL, set it as an empty string "".                                |
+|           |  This URL must contain the protocol (e.g. "https://") (required)                           |                                                           
++-----------+--------------------------------------------------------------------------------------------+
 
-When making calls to the registered WAMP procedure, you can use the
-following keyword arguments:
+When making calls to the registered WAMP procedure, you can use the following keyword arguments:
 
-+------+------+
-| argu | desc |
-| ment | ript |
-|      | ion  |
-+======+======+
-| **`` | The  |
-| meth | HTTP |
-| od`` | meth |
-| **   | od.  |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| url` | url  |
-| `**  | whic |
-|      | h    |
-|      | will |
-|      | be   |
-|      | appe |
-|      | nded |
-|      | to   |
-|      | the  |
-|      | conf |
-|      | igur |
-|      | d    |
-|      | base |
-|      | URL. |
-|      | For  |
-|      | exam |
-|      | ple, |
-|      | if   |
-|      | the  |
-|      | base |
-|      | URL  |
-|      | was  |
-|      | ``"h |
-|      | ttp: |
-|      | //ex |
-|      | ampl |
-|      | e.co |
-|      | m"`` |
-|      | ,    |
-|      | prov |
-|      | idin |
-|      | g    |
-|      | ``"t |
-|      | est" |
-|      | ``   |
-|      | as   |
-|      | this |
-|      | argu |
-|      | ment |
-|      | woul |
-|      | d    |
-|      | send |
-|      | the  |
-|      | requ |
-|      | est  |
-|      | to   |
-|      | ``ht |
-|      | tp:/ |
-|      | /exa |
-|      | mple |
-|      | .com |
-|      | /tes |
-|      | t``. |
-|      | (opt |
-|      | iona |
-|      | l,   |
-|      | uses |
-|      | the  |
-|      | conf |
-|      | igur |
-|      | ed   |
-|      | base |
-|      | URL  |
-|      | if   |
-|      | not  |
-|      | prov |
-|      | ided |
-|      | )    |
-+------+------+
-| **`` | The  |
-| body | body |
-| ``** | of   |
-|      | the  |
-|      | requ |
-|      | est  |
-|      | as a |
-|      | stri |
-|      | ng.  |
-|      | (opt |
-|      | iona |
-|      | l,   |
-|      | empt |
-|      | y    |
-|      | if   |
-|      | not  |
-|      | prov |
-|      | ided |
-|      | )    |
-+------+------+
-| **`` | A    |
-| head | dict |
-| ers` | iona |
-| `**  | ry,  |
-|      | cont |
-|      | aini |
-|      | ng   |
-|      | the  |
-|      | head |
-|      | er   |
-|      | name |
-|      | s    |
-|      | as   |
-|      | the  |
-|      | key, |
-|      | and  |
-|      | a    |
-|      | *lis |
-|      | t*   |
-|      | of   |
-|      | head |
-|      | er   |
-|      | valu |
-|      | es   |
-|      | as   |
-|      | the  |
-|      | valu |
-|      | e.   |
-|      | For  |
-|      | exam |
-|      | ple, |
-|      | to   |
-|      | send |
-|      | a    |
-|      | ``Co |
-|      | nten |
-|      | t-Ty |
-|      | pe`` |
-|      | of   |
-|      | ``ap |
-|      | plic |
-|      | atio |
-|      | n/js |
-|      | on`` |
-|      | ,    |
-|      | you  |
-|      | woul |
-|      | d    |
-|      | use  |
-|      | ``{" |
-|      | Cont |
-|      | ent- |
-|      | Type |
-|      | ": [ |
-|      | "app |
-|      | lica |
-|      | tion |
-|      | /jso |
-|      | n"]} |
-|      | ``   |
-|      | as   |
-|      | the  |
-|      | argu |
-|      | ment |
-|      | .    |
-|      | (opt |
-|      | iona |
-|      | l)   |
-+------+------+
-| **`` | Requ |
-| para | est  |
-| ms`` | para |
-| **   | mete |
-|      | rs   |
-|      | to   |
-|      | send |
-|      | ,    |
-|      | as a |
-|      | dict |
-|      | iona |
-|      | ry.  |
-|      | (opt |
-|      | iona |
-|      | l)   |
-+------+------+
+
++----------+---------------------------------------------------------------------------------------------------------------------------------------------+
+| argument | description                                                                                                                                 |
++==========+=============================================================================================================================================+
+| method   | The HTTP method. (required)                                                                                                                 |
++----------+---------------------------------------------------------------------------------------------------------------------------------------------+
+| url      | The url which will be appended to the configurd base URL. For example, if the base URL was                                                  |
+|          | "http://example.com", providing "test" as this argument would send the request to                                                           |
+|          | http://example.com/test. (optional, uses the configured base URL if not provided)                                                           |
++----------+---------------------------------------------------------------------------------------------------------------------------------------------+
+| body     | The body of the request as a string. (optional, empty if not provided)                                                                      |
++----------+---------------------------------------------------------------------------------------------------------------------------------------------+
+| headers  | A dictionary, containing the header names as the key, and a list of header values as the value.                                             |
+|          | For example, to send a Content-Type of application/json, you would use {"Content-Type": ["application/json"]} as the argument. (optional)   |
++----------+---------------------------------------------------------------------------------------------------------------------------------------------+
+| params   | Request parameters to send, as a dictionary. (optional)                                                                                     |
++----------+---------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Examples
 --------

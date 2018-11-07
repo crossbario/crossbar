@@ -1,3 +1,5 @@
+:orphan:
+
 title: WebSocket Compression toc: [Documentation, Administration, Router
 Transports, WebSocket Transport, WebSocket Compression]
 

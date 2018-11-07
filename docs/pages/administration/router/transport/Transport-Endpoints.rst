@@ -64,110 +64,26 @@ network interfaces):
 TCP listening *Endpoints* can be configured using the following
 parameters:
 
-+--------+---------+
-| Option | Descrip |
-|        | tion    |
-+========+=========+
-| **``ty | must be |
-| pe``** | ``"tcp" |
-|        | ``      |
-|        | (*requi |
-|        | red*)   |
-+--------+---------+
-| **``po | the TCP |
-| rt``** | port to |
-|        | listen  |
-|        | on      |
-|        | (*requi |
-|        | red*)   |
-+--------+---------+
-| **``ve | the IP  |
-| rsion` | protoco |
-| `**    | l       |
-|        | version |
-|        | to      |
-|        | speak - |
-|        | either  |
-|        | ``4``   |
-|        | or      |
-|        | ``6``   |
-|        | (defaul |
-|        | t:      |
-|        | **4**)  |
-+--------+---------+
-| **``in | optiona |
-| terfac | l       |
-| e``**  | interfa |
-|        | ce      |
-|        | to      |
-|        | listen  |
-|        | on,     |
-|        | e.g.    |
-|        | ``127.0 |
-|        | .0.1``  |
-|        | to only |
-|        | listen  |
-|        | on IPv4 |
-|        | loopbac |
-|        | k       |
-|        | or      |
-|        | ``::1`` |
-|        | to only |
-|        | listen  |
-|        | on IPv6 |
-|        | loopbac |
-|        | k.      |
-+--------+---------+
-| **``ba | optiona |
-| cklog` | l       |
-| `**    | accept  |
-|        | queue   |
-|        | depth   |
-|        | of      |
-|        | listeni |
-|        | ng      |
-|        | endpoin |
-|        | ts      |
-|        | (defaul |
-|        | t:      |
-|        | **50**) |
-+--------+---------+
-| **``sh | flag    |
-| ared`` | which   |
-| **     | control |
-|        | s       |
-|        | sharing |
-|        | the     |
-|        | socket  |
-|        | between |
-|        | multipl |
-|        | e       |
-|        | workers |
-|        | - this  |
-|        | current |
-|        | ly      |
-|        | only    |
-|        | works   |
-|        | on      |
-|        | Linux   |
-|        | >= 3.9  |
-|        | (defaul |
-|        | t:      |
-|        | **false |
-|        | **)     |
-+--------+---------+
-| **``tl | optiona |
-| s``**  | l       |
-|        | endpoin |
-|        | t       |
-|        | TLS     |
-|        | configu |
-|        | ration  |
-|        | (see    |
-|        | below)  |
-+--------+---------+
++-----------+------------------------------------------------------------------------------------------------------------------------------+
+| Option    | Description                                                                                                                  |
++===========+==============================================================================================================================+
+| type      | must be "tcp" (required)                                                                                                     |
++-----------+------------------------------------------------------------------------------------------------------------------------------+
+| host      | the host IP or hostname to connect to (required)                                                                             |
++-----------+------------------------------------------------------------------------------------------------------------------------------+
+| port      | the TCP port to listen on (required)                                                                                         |
++-----------+------------------------------------------------------------------------------------------------------------------------------+
+| version   | the IP protocol version to speak - either 4 or 6 (default: 4)                                                                |
++-----------+------------------------------------------------------------------------------------------------------------------------------+
+| interface | optional interface to listen on, e.g. 127.0.0.1 to only listen on IPv4 loopback or ::1 to only listen on IPv6 loopback.      |
++-----------+------------------------------------------------------------------------------------------------------------------------------+
+| backlog   | optional accept queue depth of listening endpoints (default: 50)                                                             |
++-----------+------------------------------------------------------------------------------------------------------------------------------+
+| shared    | flag which controls sharing the socket between multiple workers - this currently only works on Linux >= 3.9 (default: false) |
++-----------+------------------------------------------------------------------------------------------------------------------------------+
+| tls       | optional endpoint TLS configuration (see below)                                                                              |
++-----------+------------------------------------------------------------------------------------------------------------------------------+
 
---------------
 
 TLS Listening Endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~

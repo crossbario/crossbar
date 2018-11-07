@@ -1,3 +1,5 @@
+:orphan:
+
 title: Examples toc: [Documentation, Examples]
 
 Examples

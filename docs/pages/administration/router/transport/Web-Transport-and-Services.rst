@@ -26,154 +26,22 @@ Configuration
 -------------
 
 A Web transport is configured as a dictionary element in the list of
-``transports`` of a router (see: `Router
-Configuration <Router-Configuration>`__). The Web transport dictionary
+``transports`` of a router (see: :doc:`Router Configuration <../../worker/Router-Configuration>` ). The Web transport dictionary
 has the following configuration parameters:
 
-+------+------+
-| attr | desc |
-| ibut | ript |
-| e    | ion  |
-+======+======+
-| **`` | The  |
-| id`` | (opt |
-| **   | iona |
-|      | l)   |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | ID - |
-|      | this |
-|      | must |
-|      | be   |
-|      | uniq |
-|      | ue   |
-|      | with |
-|      | in   |
-|      | the  |
-|      | rout |
-|      | er   |
-|      | this |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | runs |
-|      | in   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **"t |
-|      | rans |
-|      | port |
-|      | N"** |
-|      | -    |
-|      | wher |
-|      | e    |
-|      | N is |
-|      | numb |
-|      | ered |
-|      | star |
-|      | ting |
-|      | with |
-|      | 1)   |
-+------+------+
-| **`` | Must |
-| type | be   |
-| ``** | ``"w |
-|      | eb"` |
-|      | `    |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| endp | endp |
-| oint | oint |
-| ``** | to   |
-|      | list |
-|      | en   |
-|      | on   |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-|      | .    |
-|      | See  |
-|      | `Tra |
-|      | nspo |
-|      | rt   |
-|      | Endp |
-|      | oint |
-|      | s <T |
-|      | rans |
-|      | port |
-|      | %20E |
-|      | ndpo |
-|      | ints |
-|      | >`__ |
-+------+------+
-| **`` | A    |
-| path | dict |
-| s``* | iona |
-| *    | ry   |
-|      | for  |
-|      | conf |
-|      | igur |
-|      | ing  |
-|      | serv |
-|      | ices |
-|      | on   |
-|      | subp |
-|      | aths |
-|      | (*re |
-|      | quir |
-|      | ed*  |
-|      | -    |
-|      | see  |
-|      | belo |
-|      | w    |
-|      | and  |
-|      | `Web |
-|      | Serv |
-|      | ices |
-|      |  <We |
-|      | b%20 |
-|      | Serv |
-|      | ices |
-|      | >`__ |
-|      | or   |
-|      | `HTT |
-|      | P    |
-|      | Brid |
-|      | ge < |
-|      | HTTP |
-|      | %20B |
-|      | ridg |
-|      | e>`_ |
-|      | _).  |
-+------+------+
-| **`` | Is   |
-| opti | an   |
-| ons` | opti |
-| `**  | onal |
-|      | dict |
-|      | iona |
-|      | ry   |
-|      | for  |
-|      | addi |
-|      | tion |
-|      | al   |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | wide |
-|      | conf |
-|      | igur |
-|      | atio |
-|      | n    |
-|      | (see |
-|      | belo |
-|      | w).  |
-+------+------+
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| attribute | description                                                                                                                                                                                |
++===========+============================================================================================================================================================================================+
+| id        | The (optional) transport ID - this must be unique within the router this transport runs in (default: "transportN" - where N is numbered starting with 1)                                   |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| type      | Must be "web" (required)                                                                                                                                                                   |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| endpoint  | The endpoint to listen on (required). See :doc:`Transport Endpoints<Transport-Endpoints>`                                                                                                  |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| paths     | A dictionary for configuring services on subpaths (required - see below and :doc:`Web Services<../../web-service/Web-Services>` or :doc:`HTTP Bridge<../../http-bridge/HTTP-Bridge>` ).    |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| options   | Is an optional dictionary for additional transport wide configuration (see below).                                                                                                         |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 For Web transport ``paths`` the following two requirements must be
 fullfilled:
@@ -190,138 +58,19 @@ complete list of available Web services can be found here:
 
 The Web transport ``options`` can have the following attributes:
 
-+------+------+
-| attr | desc |
-| ibut | ript |
-| e    | ion  |
-+======+======+
-| **`` | set  |
-| acce | to   |
-| ss_l | ``tr |
-| og`` | ue`` |
-| **   | to   |
-|      | enab |
-|      | le   |
-|      | Web  |
-|      | acce |
-|      | ss   |
-|      | logg |
-|      | ing  |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **fa |
-|      | lse* |
-|      | *)   |
-+------+------+
-| **`` | set  |
-| disp | to   |
-| lay_ | ``tr |
-| trac | ue`` |
-| ebac | to   |
-| ks`` | enab |
-| **   | le   |
-|      | rend |
-|      | erin |
-|      | g    |
-|      | of   |
-|      | Pyth |
-|      | on   |
-|      | trac |
-|      | ebac |
-|      | ks   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **fa |
-|      | lse* |
-|      | *)   |
-+------+------+
-| **`` | set  |
-| hsts | to   |
-| ``** | ``tr |
-|      | ue`` |
-|      | to   |
-|      | enab |
-|      | le   |
-|      | `HTT |
-|      | P    |
-|      | Stri |
-|      | ct   |
-|      | Tran |
-|      | spor |
-|      | t    |
-|      | Secu |
-|      | rity |
-|      | (HST |
-|      | S) < |
-|      | http |
-|      | ://e |
-|      | n.wi |
-|      | kipe |
-|      | dia. |
-|      | org/ |
-|      | wiki |
-|      | /HTT |
-|      | P_St |
-|      | rict |
-|      | _Tra |
-|      | nspo |
-|      | rt_S |
-|      | ecur |
-|      | ity> |
-|      | `__  |
-|      | (onl |
-|      | y    |
-|      | appl |
-|      | icab |
-|      | le   |
-|      | when |
-|      | usin |
-|      | g    |
-|      | a    |
-|      | TLS  |
-|      | endp |
-|      | oint |
-|      | )    |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **fa |
-|      | lse* |
-|      | *)   |
-+------+------+
-| **`` | for  |
-| hsts | HSTS |
-| _max | ,    |
-| _age | use  |
-| ``** | this |
-|      | maxi |
-|      | mum  |
-|      | age  |
-|      | (onl |
-|      | y    |
-|      | appl |
-|      | icab |
-|      | le   |
-|      | when |
-|      | usin |
-|      | g    |
-|      | a    |
-|      | TLS  |
-|      | endp |
-|      | oint |
-|      | ).   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **31 |
-|      | 5360 |
-|      | 00** |
-|      | )    |
-+------+------+
-
---------------
++---------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| attribute           | description                                                                                                                                                                                  |
++=====================+==============================================================================================================================================================================================+
+| access_log          | set to true to enable Web access logging (default: false)                                                                                                                                    |
++---------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| display_tracebacks  | set to true to enable rendering of Python tracebacks (default: false)                                                                                                                        |
++---------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| hsts                | set to true to enable  `HTTP Strict Transport Security (HSTS) <https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security>`__ (only applicable when using a TLS endpoint) (default: false) |
++---------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| hsts_max_age        | for HSTS, use this maximum age (only applicable when using a TLS endpoint). (default: 31536000)                                                                                              |
++---------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| options             | Is an optional dictionary for additional transport wide configuration (see below).                                                                                                           |
++---------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Example
 -------
@@ -383,4 +132,3 @@ Here is an example that combines three services:
        }
     }
 
---------------

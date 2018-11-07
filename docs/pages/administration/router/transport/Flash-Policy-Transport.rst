@@ -1,3 +1,5 @@
+:orphan:
+
 title: Flash Policy Transport toc: [Documentation, Administration,
 Router Transports, Flash Policy Transport]
 
@@ -76,187 +78,23 @@ is that you now include the Flash implementation *before* AutobahnJS:
     <!-- AutobahnJS -->
     <script src="autobahn.min.js"></script>
 
---------------
 
 Configuration
 -------------
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | ID   |
-| id`` | of   |
-| **   | the  |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | with |
-|      | in   |
-|      | the  |
-|      | runn |
-|      | ing  |
-|      | node |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | tran |
-|      | spor |
-|      | t<N> |
-|      | ``** |
-|      | wher |
-|      | e    |
-|      | ``N` |
-|      | `    |
-|      | is   |
-|      | numb |
-|      | ered |
-|      | auto |
-|      | mati |
-|      | call |
-|      | y    |
-|      | star |
-|      | ting |
-|      | from |
-|      | ``1` |
-|      | `)   |
-+------+------+
-| **`` | Type |
-| type | of   |
-| ``** | tran |
-|      | spor |
-|      | t    |
-|      | -    |
-|      | must |
-|      | be   |
-|      | ``"f |
-|      | lash |
-|      | "``. |
-+------+------+
-| **`` | List |
-| endp | enin |
-| oint | g    |
-| ``** | endp |
-|      | oint |
-|      | for  |
-|      | tran |
-|      | spor |
-|      | t.   |
-|      | See  |
-|      | `Tra |
-|      | nspo |
-|      | rt   |
-|      | Endp |
-|      | oint |
-|      | s <T |
-|      | rans |
-|      | port |
-|      | %20E |
-|      | ndpo |
-|      | ints |
-|      | >`__ |
-|      | for  |
-|      | conf |
-|      | igur |
-|      | atio |
-|      | n    |
-+------+------+
-| **`` | Doma |
-| allo | in   |
-| wed_ | (a   |
-| doma | stri |
-| in`` | ng)  |
-| **   | clie |
-|      | nts  |
-|      | shou |
-|      | ld   |
-|      | be   |
-|      | allo |
-|      | wed  |
-|      | to   |
-|      | conn |
-|      | ect  |
-|      | to   |
-|      | or   |
-|      | ``nu |
-|      | ll`` |
-|      | to   |
-|      | allo |
-|      | w    |
-|      | any  |
-|      | doma |
-|      | in   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | null |
-|      | ``** |
-|      | )    |
-+------+------+
-| **`` | List |
-| allo | of   |
-| wed_ | port |
-| port | s    |
-| s``* | (a   |
-| *    | list |
-|      | of   |
-|      | inte |
-|      | gers |
-|      | from |
-|      | ``[1 |
-|      | , 65 |
-|      | 535] |
-|      | ``)  |
-|      | clie |
-|      | nts  |
-|      | shou |
-|      | ld   |
-|      | be   |
-|      | allo |
-|      | wed  |
-|      | to   |
-|      | conn |
-|      | ect  |
-|      | to   |
-|      | or   |
-|      | ``nu |
-|      | ll`` |
-|      | to   |
-|      | allo |
-|      | w    |
-|      | any  |
-|      | port |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | null |
-|      | ``** |
-|      | )    |
-+------+------+
-| **`` | Turn |
-| debu | on   |
-| g``* | debu |
-| *    | g    |
-|      | logg |
-|      | ing  |
-|      | for  |
-|      | this |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | inst |
-|      | ance |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | fals |
-|      | e``* |
-|      | *).  |
-+------+------+
 
---------------
++-----------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| option          | description                                                                                                                          |
++=================+======================================================================================================================================+
+| id              | ID of the transport within the running node (default: transport<N> where N is numbered automatically starting from 1)                |
++-----------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| type            | Type of transport - must be "flash".                                                                                                 |
++-----------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| endpoint        | Listening endpoint for transport. See :doc:`Transport Endpoints<Transport-Endpoints>` for configuration                              |
++-----------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| allowed_domain  | Domain (a string) clients should be allowed to connect to or null to allow any domain (default: null)                                |
++-----------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| allowed_ports   | List of ports (a list of integers from [1, 65535]) clients should be allowed to connect to or null to allow any port (default: null) |
++-----------------+--------------------------------------------------------------------------------------------------------------------------------------+
+| debug           | Turn on debug logging for this transport instance (default: false).                                                                  |
++-----------------+--------------------------------------------------------------------------------------------------------------------------------------+

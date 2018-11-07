@@ -1,3 +1,5 @@
+:orphan:
+
 title: Web Redirection Service toc: [Documentation, Administration, Web
 Services, Web Redirection Service]
 
@@ -10,40 +12,14 @@ Configuration
 To configure a Web Redirection Service, attach a dictionary element to a
 path in your `Web transport <Web%20Transport%20and%20Services>`__:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | must |
-| type | be   |
-| ``** | ``"r |
-|      | edir |
-|      | ect" |
-|      | ``   |
-+------+------+
-| **`` | the  |
-| url` | HTTP |
-| `**  | (S)  |
-|      | URL  |
-|      | wher |
-|      | e    |
-|      | to   |
-|      | redi |
-|      | rect |
-|      | to,  |
-|      | e.g. |
-|      | ``"h |
-|      | ttp: |
-|      | //so |
-|      | meho |
-|      | st:8 |
-|      | 080/ |
-|      | some |
-|      | thin |
-|      | g"`` |
-|      | .    |
-+------+------+
++--------+------------------------------------------------------------------------------+
+| option | description                                                                  |
++========+==============================================================================+
+| type   | must be "redirect"                                                           |
++--------+------------------------------------------------------------------------------+
+| url    | the HTTP(S) URL where to redirect to, e.g. "http://somehost:8080/something". |
++--------+------------------------------------------------------------------------------+
+
 
 Example
 -------
@@ -103,4 +79,3 @@ You can also redirect *subpaths* on a **Web Transport**:
        }
     }
 
---------------

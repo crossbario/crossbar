@@ -1,3 +1,5 @@
+:orphan:
+
 title: Node Info Service toc: [Documentation, Administration, Web
 Services, Node Info Service]
 
@@ -79,4 +81,3 @@ When you open http://localhost:8080/info in your browser, you should get
 a HTML node information page rendered with data like the node public key
 and software release string.
 
---------------

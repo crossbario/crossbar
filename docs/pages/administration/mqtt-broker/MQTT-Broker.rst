@@ -106,196 +106,32 @@ transport configuration item like below:
         ]
     }
 
-+------+------+
-| para | desc |
-| mete | ript |
-| r    | ion  |
-+======+======+
-| **`` | The  |
-| id`` | (opt |
-| **   | iona |
-|      | l)   |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | ID - |
-|      | this |
-|      | must |
-|      | be   |
-|      | uniq |
-|      | ue   |
-|      | with |
-|      | in   |
-|      | the  |
-|      | rout |
-|      | er   |
-|      | this |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | runs |
-|      | in   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | "tra |
-|      | nspo |
-|      | rtN" |
-|      | ``** |
-|      | wher |
-|      | e    |
-|      | **N* |
-|      | *    |
-|      | is   |
-|      | numb |
-|      | ered |
-|      | star |
-|      | ting |
-|      | with |
-|      | **1* |
-|      | *)   |
-+------+------+
-| **`` | Type |
-| type | of   |
-| ``** | tran |
-|      | spor |
-|      | t    |
-|      | -    |
-|      | must |
-|      | be   |
-|      | ``"m |
-|      | qtt" |
-|      | ``.  |
-+------+------+
-| **`` | A    |
-| endp | netw |
-| oint | ork  |
-| ``** | conn |
-|      | ecti |
-|      | on   |
-|      | for  |
-|      | data |
-|      | tran |
-|      | smis |
-|      | sion |
-|      | -    |
-|      | see  |
-|      | conn |
-|      | ecti |
-|      | ng   |
-|      | `Tra |
-|      | nspo |
-|      | rt   |
-|      | Endp |
-|      | oint |
-|      | s <T |
-|      | rans |
-|      | port |
-|      | %20E |
-|      | ndpo |
-|      | ints |
-|      | >`__ |
-|      | (**r |
-|      | equi |
-|      | red* |
-|      | *)   |
-+------+------+
-| **`` | see  |
-| opti | belo |
-| ons` | w    |
-| `**  | (**r |
-|      | equi |
-|      | red* |
-|      | *)   |
-+------+------+
+
+
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| parameter | description                                                                                                                                            |
++===========+========================================================================================================================================================+
+| id        | The (optional) transport ID - this must be unique within the router this transport runs in (default: "transportN" where N is numbered starting with 1) |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| type      | Type of transport - must be "mqtt".                                                                                                                    |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| endpoint  | A network connection for data transmission - see connecting Transport Endpoints (required)                                                             |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| options   | see below (required)                                                                                                                                   |
++-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Two options can be set here:
 
-+------+------+
-| para | desc |
-| mete | ript |
-| r    | ion  |
-+======+======+
-| **`` | The  |
-| real | rout |
-| m``* | ing  |
-| *    | real |
-|      | m    |
-|      | the  |
-|      | MQTT |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | will |
-|      | be   |
-|      | conn |
-|      | ecte |
-|      | d    |
-|      | to.  |
-|      | (**r |
-|      | equi |
-|      | red* |
-|      | *)   |
-+------+------+
-| **`` | The  |
-| role | auth |
-| ``** | enti |
-|      | cati |
-|      | on   |
-|      | role |
-|      | that |
-|      | MQTT |
-|      | clie |
-|      | nts  |
-|      | conn |
-|      | ecti |
-|      | ng   |
-|      | to   |
-|      | the  |
-|      | MQTT |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | will |
-|      | be   |
-|      | auth |
-|      | enti |
-|      | cate |
-|      | d    |
-|      | as   |
-|      | (opt |
-|      | iona |
-|      | l)   |
-+------+------+
-| **`` | The  |
-| payl | payl |
-| oad_ | oad  |
-| mapp | mapp |
-| ing` | ing  |
-| `**  | conf |
-|      | igur |
-|      | atio |
-|      | n.   |
-|      | This |
-|      | is a |
-|      | requ |
-|      | ired |
-|      | dict |
-|      | iona |
-|      | ry   |
-|      | mapp |
-|      | ing  |
-|      | WAMP |
-|      | URI  |
-|      | pref |
-|      | ixes |
-|      | to a |
-|      | payl |
-|      | oad  |
-|      | form |
-|      | at.  |
-+------+------+
++------------------+-----------------------------------------------------------------------------------------------------------------+
+| parameter        | description                                                                                                     |
++==================+=================================================================================================================+
+| realm            | The routing realm the MQTT transport will be connected to. (required)                                           |
++------------------+-----------------------------------------------------------------------------------------------------------------+
+| role             | The authentication role that MQTT clients connecting to the MQTT transport will be authenticated as (optional)  |
++------------------+-----------------------------------------------------------------------------------------------------------------+
+| payload_mapping  | The payload mapping configuration. This is a required dictionary mapping WAMP URI prefixes to a payload format. |
++------------------+-----------------------------------------------------------------------------------------------------------------+
 
 Payload formats come in the flavors down below (see the examples for
 details).

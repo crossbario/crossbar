@@ -1,5 +1,4 @@
-title: Long-poll Service toc: [Documentation, Administration, Web
-Services, Long-Poll Service]
+:orphan:
 
 Long-poll Service
 =================
@@ -32,238 +31,26 @@ in your `Web transport <Web%20Transport%20and%20Services>`__:
 
 The ``options`` dictionary has the following configuration parameters:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | An   |
-| requ | inte |
-| est_ | ger  |
-| time | whic |
-| out` | h    |
-| `**  | dete |
-|      | rmin |
-|      | es   |
-|      | the  |
-|      | time |
-|      | out  |
-|      | in   |
-|      | seco |
-|      | nds  |
-|      | for  |
-|      | Long |
-|      | -pol |
-|      | l    |
-|      | requ |
-|      | ests |
-|      | .    |
-|      | If   |
-|      | ``0` |
-|      | `,   |
-|      | do   |
-|      | not  |
-|      | time |
-|      | out. |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | 10`` |
-|      | **). |
-|      | Afte |
-|      | r    |
-|      | this |
-|      | peri |
-|      | od,  |
-|      | the  |
-|      | requ |
-|      | est  |
-|      | is   |
-|      | retu |
-|      | rned |
-|      | even |
-|      | if   |
-|      | ther |
-|      | e    |
-|      | is   |
-|      | no   |
-|      | data |
-|      | to   |
-|      | tran |
-|      | smit |
-|      | .    |
-|      | Note |
-|      | that |
-|      | clie |
-|      | nts  |
-|      | may  |
-|      | have |
-|      | thei |
-|      | r    |
-|      | own  |
-|      | time |
-|      | outs |
-|      | ,    |
-|      | and  |
-|      | that |
-|      | this |
-|      | shou |
-|      | ld   |
-|      | be   |
-|      | set  |
-|      | to a |
-|      | valu |
-|      | e    |
-|      | grea |
-|      | ter  |
-|      | than |
-|      | the  |
-|      | ``re |
-|      | ques |
-|      | t_ti |
-|      | meou |
-|      | t``. |
-+------+------+
-| **`` | An   |
-| sess | inte |
-| ion_ | ger  |
-| time | whic |
-| out` | h    |
-| `**  | dete |
-|      | rmin |
-|      | es   |
-|      | the  |
-|      | time |
-|      | out  |
-|      | on   |
-|      | inac |
-|      | tivi |
-|      | ty   |
-|      | of   |
-|      | sess |
-|      | ions |
-|      | .    |
-|      | If   |
-|      | ``0` |
-|      | `,   |
-|      | do   |
-|      | not  |
-|      | time |
-|      | out. |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | 30`` |
-|      | **)  |
-+------+------+
-| **`` | Limi |
-| queu | t    |
-| e_li | the  |
-| mit_ | numb |
-| byte | er   |
-| s``* | of   |
-| *    | tota |
-|      | l    |
-|      | queu |
-|      | ed   |
-|      | byte |
-|      | s.   |
-|      | If   |
-|      | 0,   |
-|      | don' |
-|      | t    |
-|      | enfo |
-|      | rce  |
-|      | a    |
-|      | limi |
-|      | t.   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | 1310 |
-|      | 72`` |
-|      | **)  |
-+------+------+
-| **`` | Limi |
-| queu | t    |
-| e_li | the  |
-| mit_ | numb |
-| mess | er   |
-| ages | of   |
-| ``** | queu |
-|      | ed   |
-|      | mess |
-|      | ages |
-|      | .    |
-|      | If   |
-|      | 0,   |
-|      | don' |
-|      | t    |
-|      | enfo |
-|      | rce  |
-|      | a    |
-|      | limi |
-|      | t.   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | 100` |
-|      | `**) |
-+------+------+
-| **`` | A    |
-| debu | bool |
-| g``* | ean  |
-| *    | that |
-|      | acti |
-|      | vate |
-|      | s    |
-|      | debu |
-|      | g    |
-|      | outp |
-|      | ut   |
-|      | for  |
-|      | this |
-|      | serv |
-|      | ice. |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | fals |
-|      | e``* |
-|      | *).  |
-+------+------+
-| **`` | If   |
-| debu | give |
-| g_tr | n    |
-| ansp | (e.g |
-| ort_ | .    |
-| id`` | ``"k |
-| **   | jmd3 |
-|      | sBLO |
-|      | Unb3 |
-|      | Fyr" |
-|      | ``), |
-|      | use  |
-|      | this |
-|      | fixe |
-|      | d    |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | ID.  |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | null |
-|      | ``** |
-|      | ).   |
-+------+------+
++------------------------+--------------------------------------------------------------------------------------------------------+
+| option                 | description                                                                                            |
++========================+========================================================================================================+
+| request_timeout        | An integer which determines the timeout in seconds for Long-poll requests.                             |
+|                        | If 0, do not timeout. (default: 10).                                                                   |
+|                        | After this period, the request is returned even if there is no data to transmit.                       |
+|                        | Note that clients may have their own timeouts,                                                         |
+|                        | and that this should be set to a value greater than the request_timeout.                               |
++------------------------+--------------------------------------------------------------------------------------------------------+
+| session_timeout        | An integer which determines the timeout on inactivity of sessions. If 0, do not timeout. (default: 30) |
++------------------------+--------------------------------------------------------------------------------------------------------+
+| queue_limit_bytes      | Limit the number of total queued bytes. If 0, don't enforce a limit. (default: 131072)                 |
++------------------------+--------------------------------------------------------------------------------------------------------+
+| queue_limit_messages   | Limit the number of queued messages. If 0, don't enforce a limit. (default: 100)                       |
++------------------------+--------------------------------------------------------------------------------------------------------+
+| debug                  | A boolean that activates debug output for this service. (default: false).                              |
++------------------------+--------------------------------------------------------------------------------------------------------+
+| debug_transport_id     | If given (e.g. "kjmd3sBLOUnb3Fyr"), use this fixed transport ID. (default: null).                      |
++------------------------+--------------------------------------------------------------------------------------------------------+
+
 
 **Example**
 

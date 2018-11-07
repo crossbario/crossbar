@@ -1,3 +1,5 @@
+:orphan:
+
 
 Process Environments
 ====================
@@ -29,91 +31,17 @@ Here is an example Guest process:
 The ``options.env`` dictionary has the following configuration
 parameters:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | If   |
-| inhe | ``Tr |
-| rit` | ue`` |
-| `**  | ,    |
-|      | inhe |
-|      | rit  |
-|      | the  |
-|      | comp |
-|      | lete |
-|      | cont |
-|      | roll |
-|      | er   |
-|      | envi |
-|      | rome |
-|      | nt.  |
-|      | If   |
-|      | ``Fa |
-|      | lse` |
-|      | `,   |
-|      | don' |
-|      | t    |
-|      | inhe |
-|      | rit  |
-|      | anyt |
-|      | hing |
-|      | .    |
-|      | If a |
-|      | list |
-|      | ,    |
-|      | only |
-|      | inhe |
-|      | rit  |
-|      | the  |
-|      | list |
-|      | of   |
-|      | envi |
-|      | rome |
-|      | nt   |
-|      | vari |
-|      | able |
-|      | s    |
-|      | give |
-|      | n    |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **Tr |
-|      | ue** |
-|      | )    |
-+------+------+
-| **`` | A    |
-| vars | dict |
-| ``** | iona |
-|      | ry   |
-|      | of   |
-|      | envi |
-|      | ronm |
-|      | ent  |
-|      | vari |
-|      | able |
-|      | s    |
-|      | to   |
-|      | set  |
-|      | in   |
-|      | the  |
-|      | work |
-|      | er,  |
-|      | e.g. |
-|      | ``{" |
-|      | FOOB |
-|      | AR": |
-|      |  "bi |
-|      | g"}` |
-|      | `    |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **{} |
-|      | **)  |
-+------+------+
++--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| option       | description                                                                                                                                                           |
++==============+=======================================================================================================================================================================+
+| inherit      | If True, inherit the complete controller enviroment. If False, don't inherit anything. If a list, only inherit the list of enviroment variables given (default: True) |
++--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| vars         | A dictionary of environment variables to set in the worker, e.g. {"FOOBAR": "big"} (default: {})                                                                      |
++--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| options.env  | allows you to control the environment that the process will run under.                                                                                                |
++--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+
 
 ``options.env`` allows you to control the environment that the process
 will run under.

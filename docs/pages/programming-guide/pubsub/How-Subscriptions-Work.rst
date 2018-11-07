@@ -1,3 +1,5 @@
+:orphan:
+
 
 How Subscriptions Work
 ======================

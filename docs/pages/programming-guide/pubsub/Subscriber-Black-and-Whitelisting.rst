@@ -1,3 +1,5 @@
+:orphan:
+
 
 Subscriber Black- and Whitelisting
 ==================================
@@ -84,5 +86,3 @@ allow the retrieval of this information from the router.
 Further, Crossbar.io has `Publisher
 Identification <Publisher%20Identification>`__ and `Caller
 Identification <Caller%20Identification>`__.
-
---------------

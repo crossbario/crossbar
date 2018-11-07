@@ -1,3 +1,4 @@
+:orphan:
 
 Ticket Authentication
 =====================
@@ -42,36 +43,14 @@ The required ``principals`` dictionary maps the ``authid`` provided by
 the client to the secret being shared (``ticket``) and the ``authrole``
 which is assigned to the client after successful authentication.
 
-+------+------+
-| para | desc |
-| mete | ript |
-| r    | ion  |
-+======+======+
-| **`` | ``"s |
-| type | tati |
-| ``** | c"`` |
-+------+------+
-| **`` | A    |
-| prin | dict |
-| cipa | iona |
-| ls`` | ry   |
-| **   | of   |
-|      | name |
-|      | s    |
-|      | mapp |
-|      | ing  |
-|      | to   |
-|      | valu |
-|      | es   |
-|      | bein |
-|      | g    |
-|      | dict |
-|      | iona |
-|      | ries |
-|      | as   |
-|      | belo |
-|      | w.   |
-+------+------+
++--------------+----------------------------------------------------------------------+
+| parameter    | description                                                          |
++==============+======================================================================+
+| type         | "static"                                                             |
++--------------+----------------------------------------------------------------------+
+| principals   | A dictionary of names mapping to values being dictionaries as below. |
++--------------+----------------------------------------------------------------------+
+
 
 Each principal has this associated dictionary:
 

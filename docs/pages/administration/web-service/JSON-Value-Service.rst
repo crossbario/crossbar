@@ -1,3 +1,5 @@
+:orphan:
+
 title: JSON Value Service toc: [Documentation, Administration, Web
 Services, JSON Value Service]
 
@@ -30,74 +32,15 @@ in your `Web transport <Web%20Transport%20and%20Services>`__:
 
 where ``options`` is a dictionary:
 
-+------+------+
-| attr | desc |
-| ibut | ript |
-| e    | ion  |
-+======+======+
-| **`` | a    |
-| pret | bool |
-| tify | ean  |
-| ``** | that |
-|      | cont |
-|      | rols |
-|      | when |
-|      | to   |
-|      | pret |
-|      | tify |
-|      | the  |
-|      | rend |
-|      | ered |
-|      | JSON |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | ``tr |
-|      | ue`` |
-|      | )    |
-+------+------+
-| **`` | a    |
-| allo | bool |
-| w_cr | ean, |
-| oss_ | allo |
-| orig | w    |
-| in`` | cros |
-| **   | s-or |
-|      | igin |
-|      | requ |
-|      | ests |
-|      | (COR |
-|      | S)   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | ``fa |
-|      | lse` |
-|      | `)   |
-+------+------+
-| **`` | a    |
-| disc | bool |
-| oura | ean, |
-| ge_c | set  |
-| achi | head |
-| ng`` | ers  |
-| **   | to   |
-|      | disc |
-|      | oura |
-|      | ge   |
-|      | cach |
-|      | ing  |
-|      | of   |
-|      | the  |
-|      | resp |
-|      | onse |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | ``fa |
-|      | lse` |
-|      | `)   |
-+------+------+
++----------------------+-------------------------------------------------------------------------------+
+| attribute            | description                                                                   |
++======================+===============================================================================+
+| prettify             | a boolean that controls when to prettify the rendered JSON (default: true)    |
++----------------------+-------------------------------------------------------------------------------+
+| allow_cross_origin   | a boolean, allow cross-origin requests (CORS) (default: false)                |
++----------------------+-------------------------------------------------------------------------------+
+| discourage_caching   | a boolean, set headers to discourage caching of the response (default: false) |
++----------------------+-------------------------------------------------------------------------------+
 
 Example
 -------
@@ -162,4 +105,3 @@ You can now retrieve above JSON e.g. by issueing an
 JavaScript and use the custom parameter values to control some aspect in
 your application frontend.
 
---------------

@@ -38,35 +38,13 @@ The available parameters in the ``controller`` dictionary are:
 
 The available ``options`` are:
 
-+------------------+-----------------+
-| option           | description     |
-+==================+=================+
-| **``title``**    | The controller  |
-|                  | process title   |
-|                  | (default:       |
-|                  | **``"crossbar-c |
-|                  | ontroller"``**) |
-+------------------+-----------------+
-| **``shutdown``** | Controls how    |
-|                  | and when        |
-|                  | crossbar shuts  |
-|                  | down. Permitted |
-|                  | values are:     |
-|                  | ``shutdown_on_s |
-|                  | hutdown_request |
-|                  | ed``            |
-|                  | (default for    |
-|                  | "managed"       |
-|                  | mode),          |
-|                  | ``shutdown_on_w |
-|                  | orker_exit``    |
-|                  | (default),      |
-|                  | ``shutdown_on_w |
-|                  | orker_exit_with |
-|                  | _error``,       |
-|                  | ``shutdown_on_l |
-|                  | ast_worker_exit |
-|                  | ``.             |
-+------------------+-----------------+
-
---------------
++----------+------------------------------------------------------------------+
+| option   | description                                                      |
++==========+==================================================================+
+| title    | The controller process title (default: "crossbar-controller")    |
++----------+------------------------------------------------------------------+
+| shutdown | Controls how and when crossbar shuts down.                       |
+|          | Permitted values are: shutdown_on_shutdown_requested             |
+|          | (default for "managed" mode), shutdown_on_worker_exit (default), |
+|          | shutdown_on_worker_exit_with_error, shutdown_on_last_worker_exit.|
++----------+------------------------------------------------------------------+

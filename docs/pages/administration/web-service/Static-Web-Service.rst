@@ -1,3 +1,5 @@
+:orphan:
+
 title: Static Web Service toc: [Documentation, Administration, Web
 Services, Static Web Service]
 
@@ -31,208 +33,37 @@ The Web content served can come from two sources:
 To configure a Static Web Service, attach a dictionary element to a path
 in your `Web transport <Web%20Transport%20and%20Services>`__:
 
-+------+------+
-| attr | desc |
-| ibut | ript |
-| e    | ion  |
-+======+======+
-| **`` | must |
-| type | be   |
-| ``** | ``"s |
-|      | tati |
-|      | c"`` |
-+------+------+
-| **`` | abso |
-| dire | lute |
-| ctor | or   |
-| y``* | node |
-| *    | rela |
-|      | tive |
-|      | dire |
-|      | ctor |
-|      | y    |
-|      | to   |
-|      | serv |
-|      | e    |
-|      | file |
-|      | s    |
-|      | from |
-|      | or   |
-|      | ``nu |
-|      | ll`` |
-|      | when |
-|      | serv |
-|      | ing  |
-|      | a    |
-|      | Pyth |
-|      | on   |
-|      | reso |
-|      | urce |
-|      | (see |
-|      | next |
-|      | )    |
-+------+------+
-| **`` | when |
-| pack | serv |
-| age` | ing  |
-| `**  | a    |
-|      | Pyth |
-|      | on   |
-|      | reso |
-|      | urce |
-|      | ,    |
-|      | the  |
-|      | Pyth |
-|      | on   |
-|      | pack |
-|      | age  |
-|      | name |
-|      | the  |
-|      | reso |
-|      | urce |
-|      | come |
-|      | s    |
-|      | from |
-+------+------+
-| **`` | the  |
-| reso | reso |
-| urce | urce |
-| ``** | name |
-|      | as   |
-|      | expo |
-|      | rted |
-|      | by   |
-|      | the  |
-|      | refe |
-|      | renc |
-|      | ed   |
-|      | Pyth |
-|      | on   |
-|      | pack |
-|      | age  |
-|      | -    |
-|      | the  |
-|      | impo |
-|      | rted |
-|      | reso |
-|      | urce |
-|      | is   |
-|      | then |
-|      | used |
-|      | as a |
-|      | file |
-|      | sour |
-|      | ce   |
-+------+------+
-| **`` | dict |
-| opti | iona |
-| ons` | ry   |
-| `**  | with |
-|      | opti |
-|      | ons  |
-|      | (see |
-|      | belo |
-|      | w)   |
-+------+------+
+
++-----------+----------------------------------------------------------------------------------------------------------------------+
+| attribute | description                                                                                                          |
++===========+======================================================================================================================+
+| type      | must be "static"                                                                                                     |
++-----------+----------------------------------------------------------------------------------------------------------------------+
+| directory | absolute or node relative directory to serve files from or null when serving a Python resource (see next)            |
++-----------+----------------------------------------------------------------------------------------------------------------------+
+| package   | when serving a Python resource, the Python package name the resource comes from                                      |
++-----------+----------------------------------------------------------------------------------------------------------------------+
+| resource  | the resource name as exported by the referenced Python package - the imported resource is then used as a file source |
++-----------+----------------------------------------------------------------------------------------------------------------------+
+| options   | dictionary with options (see below)                                                                                  |
++-----------+----------------------------------------------------------------------------------------------------------------------+
+
 
     either the ``directory`` attribute must be present or both the
     ``package`` and ``resource`` attributes, not both, and not none.
 
 with ``options``:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | set  |
-| enab | to   |
-| le_d | ``tr |
-| irec | ue`` |
-| tory | to   |
-| _lis | enab |
-| ting | le   |
-| ``** | rend |
-|      | erin |
-|      | g    |
-|      | of   |
-|      | dire |
-|      | ctor |
-|      | y    |
-|      | list |
-|      | ings |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **fa |
-|      | lse* |
-|      | *).  |
-|      | If a |
-|      | file |
-|      | ``in |
-|      | dex. |
-|      | html |
-|      | ``   |
-|      | is   |
-|      | pres |
-|      | ent  |
-|      | in   |
-|      | the  |
-|      | dire |
-|      | ctor |
-|      | y,   |
-|      | this |
-|      | will |
-|      | rend |
-|      | er   |
-|      | inst |
-|      | ead  |
-|      | of   |
-|      | the  |
-|      | list |
-|      | ing. |
-+------+------+
-| **`` | a    |
-| mime | dict |
-| _typ | iona |
-| es`` | ry   |
-| **   | of   |
-|      | (add |
-|      | itio |
-|      | nal) |
-|      | MIME |
-|      | type |
-|      | s    |
-|      | to   |
-|      | set, |
-|      | e.g. |
-|      | ``{" |
-|      | .jgz |
-|      | ": " |
-|      | text |
-|      | /jav |
-|      | ascr |
-|      | ipt" |
-|      | , ". |
-|      | svg" |
-|      | : "i |
-|      | mage |
-|      | /svg |
-|      | +xml |
-|      | "}`` |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **{} |
-|      | **)  |
-+------+------+
-| **`` | int  |
-| cach |      |
-| e_ti |      |
-| meou |      |
-| t``* |      |
-| *    |      |
-+------+------+
++----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| option                     | description                                                                                                                                                       |
++============================+===================================================================================================================================================================+
+| enable_directory_listing   | set to true to enable rendering of directory listings (default: false). If a file index.htmlis present in the directory, this will render instead of the listing. |
++----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| mime_types                 | a dictionary of (additional) MIME types to set, e.g. {".jgz": "text/javascript", ".svg": "image/svg+xml"} (default: {})                                           |
++----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| cache_timeout              | int                                                                                                                                                               |
++----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Example - Serving from Directories
 ----------------------------------
@@ -403,4 +234,3 @@ Point your browser to ``http://localhost:8080``. You should see an
 Note that you can also put (another) **Static Web Service** on a
 **subpath** serving assets from a Python package resource.
 
---------------

@@ -17,110 +17,27 @@ Quick Reference
 Here is a quick reference of all commands available in the Crossbar.io
 CLI:
 
-+------+------+
-| Comm | Desc |
-| and  | ript |
-|      | ion  |
-+======+======+
-| ``cr | Get  |
-| ossb | help |
-| ar - |      |
-| -hel |      |
-| p``  |      |
-+------+------+
-| ``cr | Get  |
-| ossb | help |
-| ar < | on   |
-| comm | ``co |
-| and> | mman |
-|  --h | d``  |
-| elp` | (see |
-| `    | belo |
-|      | w)   |
-+------+------+
-| ``cr | Prin |
-| ossb | t    |
-| ar v | Cros |
-| ersi | sbar |
-| on`` | .io  |
-|      | vers |
-|      | ion  |
-+------+------+
-| ``cr | Init |
-| ossb | iali |
-| ar i | zes  |
-| nit` | a    |
-| `    | new  |
-|      | Cros |
-|      | sbar |
-|      | .io  |
-|      | node |
-|      | from |
-|      | an   |
-|      | appl |
-|      | icat |
-|      | ion  |
-|      | temp |
-|      | late |
-+------+------+
-| ``cr | Star |
-| ossb | ts   |
-| ar s | a    |
-| tart | Cros |
-| ``   | sbar |
-|      | .io  |
-|      | node |
-+------+------+
-| ``cr | Stop |
-| ossb | s    |
-| ar s | a    |
-| top` | Cros |
-| `    | sbar |
-|      | .io  |
-|      | node |
-+------+------+
-| ``cr | Rest |
-| ossb | arts |
-| ar r | a    |
-| esta | Cros |
-| rt`` | sbar |
-|      | .io  |
-|      | node |
-+------+------+
-| ``cr | Chec |
-| ossb | k    |
-| ar s | if a |
-| tatu | Cros |
-| s``  | sbar |
-|      | .io  |
-|      | node |
-|      | is   |
-|      | runn |
-|      | ing  |
-+------+------+
-| ``cr | Conv |
-| ossb | erts |
-| ar c | a    |
-| onve | Cros |
-| rt`` | sbar |
-|      | .io  |
-|      | node |
-|      | conf |
-|      | igur |
-|      | atio |
-|      | n    |
-|      | file |
-|      | from |
-|      | JSON |
-|      | to   |
-|      | YAML |
-|      | and  |
-|      | vice |
-|      | -ver |
-|      | sa   |
-+------+------+
-
---------------
++-------------------+-------------------------------------------------------------+
+| Command           | Description                                                 |
++===================+=============================================================+ 
+| crossbar --help   | Get help                                                    |
++-------------------+-------------------------------------------------------------+
+| crossbar   --help | Get help on command                                         |
++-------------------+-------------------------------------------------------------+
+| crossbar version  | Print Crossbar.io version                                   |
++-------------------+-------------------------------------------------------------+
+| crossbar init     | Initialize a new Crossbar.io node from application template |
++-------------------+-------------------------------------------------------------+
+| crossbar start    | Starts a Crossbar.io node                                   |
++-------------------+-------------------------------------------------------------+
+| crossbar stop     | Stop a Crossbar.io node                                     |
++-------------------+-------------------------------------------------------------+
+| crossbar restart  | Restart a Crossbar.io node                                  |
++-------------------+-------------------------------------------------------------+
+| crossbar status   | Check if a Crossbar.io node is running                      |
++-------------------+-------------------------------------------------------------+
+| crossbar convert  | Convert a Crossbar.io node from JSON to YAML or vice-versa  |
++-------------------+-------------------------------------------------------------+
 
 Getting Help
 ------------
@@ -281,4 +198,3 @@ To **stop** your Crossbar.io node, just hit CTRL-C:
     2015-08-30T19:27:11+0200 [Controller   9187] Main loop terminated.
     (python279_1)oberstet@thinkpad-t430s:~/mynode1$
 
---------------

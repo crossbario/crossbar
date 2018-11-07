@@ -1,3 +1,5 @@
+:orphan:
+
 title: Application Scenarios toc: [Documentation, Application Scenarios]
 
 Application Scenarios

@@ -33,172 +33,27 @@ Here's an example configuration:
 
 The common parameters for components are:
 
-+------+------+
-| para | desc |
-| mete | ript |
-| r    | ion  |
-+======+======+
-| **`` | The  |
-| id`` | (opt |
-| **   | iona |
-|      | l)   |
-|      | comp |
-|      | onen |
-|      | t    |
-|      | ID - |
-|      | this |
-|      | must |
-|      | be   |
-|      | uniq |
-|      | ue   |
-|      | with |
-|      | in   |
-|      | the  |
-|      | rout |
-|      | er   |
-|      | this |
-|      | comp |
-|      | onen |
-|      | ts   |
-|      | runs |
-|      | in   |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **"c |
-|      | ompo |
-|      | nent |
-|      | N"** |
-|      | wher |
-|      | e    |
-|      | N is |
-|      | numb |
-|      | ered |
-|      | star |
-|      | ting |
-|      | with |
-|      | 1)   |
-+------+------+
-| **`` | The  |
-| type | type |
-| ``** | of   |
-|      | comp |
-|      | onen |
-|      | t,   |
-|      | must |
-|      | be   |
-|      | ``"c |
-|      | lass |
-|      | "``  |
-|      | (**r |
-|      | equi |
-|      | red* |
-|      | *)   |
-+------+------+
-| **`` | The  |
-| real | real |
-| m``* | m    |
-| *    | on   |
-|      | the  |
-|      | rout |
-|      | er   |
-|      | to   |
-|      | atta |
-|      | ch   |
-|      | this |
-|      | comp |
-|      | onen |
-|      | t    |
-|      | to,  |
-|      | e.g. |
-|      | "rea |
-|      | lm1" |
-|      | (**r |
-|      | equi |
-|      | red* |
-|      | *)   |
-+------+------+
-| **`` | The  |
-| role | (opt |
-| ``** | iona |
-|      | l)   |
-|      | role |
-|      | for  |
-|      | whic |
-|      | h    |
-|      | the  |
-|      | comp |
-|      | onen |
-|      | t    |
-|      | is   |
-|      | auth |
-|      | enti |
-|      | cate |
-|      | d,   |
-|      | e.g. |
-|      | "rol |
-|      | e1", |
-|      | if   |
-|      | none |
-|      | give |
-|      | auth |
-|      | enti |
-|      | cati |
-|      | on   |
-|      | is   |
-|      | as   |
-|      | "ano |
-|      | nymo |
-|      | us"  |
-+------+------+
-| **`` | Opti |
-| extr | onal |
-| a``* | data |
-| *    | prov |
-|      | ided |
-|      | to   |
-|      | the  |
-|      | clas |
-|      | s    |
-|      | when |
-|      | inst |
-|      | anti |
-|      | atin |
-|      | g.   |
-+------+------+
++-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| parameter | description                                                                                                                                             |
++===========+=========================================================================================================================================================+
+| id        | The (optional) component ID - this must be unique within the router this components runs in (default: "componentN" where N is numbered starting with 1) |
++-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| type      | The type of component, must be "class" (required)                                                                                                       |
++-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| realm     | The realm on the router to attach this component to, e.g. "realm1" (required)                                                                           |
++-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| role      | The (optional) role for which the component is authenticated, e.g. "role1", if none give authentication is as "anonymous"                               |
++-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| extra     | Optional data provided to the class when instantiating.                                                                                                 |
++-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-For components of ``type == "class"``, the following parameters must be
-provided:
 
-+------+------+
-| para | desc |
-| mete | ript |
-| r    | ion  |
-+======+======+
-| **`` | The  |
-| clas | (ful |
-| snam | ly   |
-| e``* | qual |
-| *    | ifie |
-|      | d)   |
-|      | clas |
-|      | s    |
-|      | name |
-|      | of a |
-|      | clas |
-|      | s    |
-|      | that |
-|      | deri |
-|      | ves  |
-|      | from |
-|      | ``Ap |
-|      | plic |
-|      | atio |
-|      | nSes |
-|      | sion |
-|      | ``   |
-|      | (**r |
-|      | equi |
-|      | red* |
-|      | *)   |
-+------+------+
+For components of ``type == "class"``, the following parameters must be provided:
+
+
++-----------+-----------------------------------------------------------------------------------------------------+
+| parameter | description                                                                                         |
++===========+=====================================================================================================+
+| classname | The (fully qualified) class name of a class that derives from ``ApplicationSession`` (**required**) |
++-----------+-----------------------------------------------------------------------------------------------------+
+

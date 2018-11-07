@@ -1,5 +1,4 @@
-title: HTTP Bridge Subscriber toc: [Documentation, Administration, HTTP
-Bridge, HTTP Bridge Subscriber]
+:orphan:
 
 HTTP Bridge Subscriber
 ======================
@@ -84,173 +83,20 @@ part of a Crossbar configuration:
 
 The subscriber is configured through the ``extra`` dictionary:
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | A    |
-| subs | list |
-| crip | of   |
-| tion | dict |
-| s``* | iona |
-| *    | ries |
-|      | whic |
-|      | h    |
-|      | each |
-|      | MUST |
-|      | cont |
-|      | ain  |
-|      | ``"u |
-|      | rl"` |
-|      | `    |
-|      | and  |
-|      | ``"t |
-|      | opic |
-|      | "``  |
-|      | keys |
-|      | .    |
-|      | The  |
-|      | ``"u |
-|      | rl"` |
-|      | `    |
-|      | key  |
-|      | is a |
-|      | full |
-|      | URL  |
-|      | with |
-|      | ``ht |
-|      | tp`` |
-|      | or   |
-|      | ``ht |
-|      | tps` |
-|      | `    |
-|      | (for |
-|      | exam |
-|      | ple, |
-|      | ``"h |
-|      | ttps |
-|      | ://e |
-|      | xamp |
-|      | le.o |
-|      | rg/e |
-|      | ndpo |
-|      | int" |
-|      | ``), |
-|      | and  |
-|      | the  |
-|      | topi |
-|      | c    |
-|      | is   |
-|      | the  |
-|      | exac |
-|      | t    |
-|      | topi |
-|      | c    |
-|      | whic |
-|      | h    |
-|      | even |
-|      | ts   |
-|      | will |
-|      | be   |
-|      | forw |
-|      | arde |
-|      | d    |
-|      | from |
-|      | .    |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| meth | HTTP |
-| od`` | meth |
-| **   | od   |
-|      | whic |
-|      | h    |
-|      | the  |
-|      | forw |
-|      | ardi |
-|      | ng   |
-|      | requ |
-|      | ests |
-|      | will |
-|      | be   |
-|      | made |
-|      | with |
-|      | .    |
-|      | (opt |
-|      | iona |
-|      | l,   |
-|      | ``"P |
-|      | OST" |
-|      | ``   |
-|      | by   |
-|      | defa |
-|      | ult) |
-+------+------+
-| **`` | The  |
-| expe | HTTP |
-| cted | stat |
-| code | us   |
-| ``** | code |
-|      | whic |
-|      | h    |
-|      | is   |
-|      | expe |
-|      | cted |
-|      | from |
-|      | the  |
-|      | requ |
-|      | ests |
-|      | .    |
-|      | If   |
-|      | none |
-|      | is   |
-|      | give |
-|      | n,   |
-|      | the  |
-|      | stat |
-|      | us   |
-|      | code |
-|      | is   |
-|      | not  |
-|      | chec |
-|      | ked. |
-|      | (opt |
-|      | iona |
-|      | l)   |
-+------+------+
-| **`` | If   |
-| debu | ``tr |
-| g``* | ue`` |
-| *    | ,    |
-|      | then |
-|      | the  |
-|      | resp |
-|      | onse |
-|      | body |
-|      | will |
-|      | be   |
-|      | prin |
-|      | ted  |
-|      | to   |
-|      | Cros |
-|      | sbar |
-|      | 's   |
-|      | debu |
-|      | g    |
-|      | log. |
-|      | (opt |
-|      | iona |
-|      | l,   |
-|      | ``fa |
-|      | lse` |
-|      | `    |
-|      | by   |
-|      | defa |
-|      | ult) |
-+------+------+
++---------------+------------------------------------------------------------------------------------------------------------------------+
+| option        | description                                                                                                            |
++===============+========================================================================================================================+
+| subscriptions | A list of dictionaries which each MUST contain "url" and "topic" keys.                                                 |
+|               | The "url" key is a full URL with http or https (for example, "https://example.org/endpoint"),                          |
+|               | and the topic is the exact topic which events will be forwarded from. (required)                                       |
++---------------+------------------------------------------------------------------------------------------------------------------------+
+| method        | The HTTP method which the forwarding requests will be made with. (optional, "POST" by default)                         |
++---------------+------------------------------------------------------------------------------------------------------------------------+
+| expectedcode  | The HTTP status code which is expected from the requests. If none is given, the status code is not checked. (optional) |
++---------------+------------------------------------------------------------------------------------------------------------------------+
+| debug         | If true, then the response body will be printed to Crossbar's debug log. (optional, false by default)                  |
++---------------+------------------------------------------------------------------------------------------------------------------------+
+
 
 Handling Forwarded Events
 -------------------------

@@ -1,3 +1,5 @@
+:orphan:
+
 title: WebSocket Compliance Testing toc: [Documentation, Administration,
 Going to Production, WebSocket Compliance Testing]
 
@@ -98,138 +100,18 @@ the green "Pass" links to view the case detail reports.
 Configuration
 -------------
 
-+------+------+
-| opti | desc |
-| on   | ript |
-|      | ion  |
-+======+======+
-| **`` | ID   |
-| id`` | of   |
-| **   | the  |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | with |
-|      | in   |
-|      | the  |
-|      | runn |
-|      | ing  |
-|      | node |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | tran |
-|      | spor |
-|      | t<N> |
-|      | ``** |
-|      | wher |
-|      | e    |
-|      | ``N` |
-|      | `    |
-|      | is   |
-|      | numb |
-|      | ered |
-|      | auto |
-|      | mati |
-|      | call |
-|      | y    |
-|      | star |
-|      | ting |
-|      | from |
-|      | ``1` |
-|      | `)   |
-+------+------+
-| **`` | Type |
-| type | of   |
-| ``** | tran |
-|      | spor |
-|      | t    |
-|      | -    |
-|      | must |
-|      | be   |
-|      | ``"w |
-|      | ebso |
-|      | cket |
-|      | .tes |
-|      | tee" |
-|      | ``.  |
-+------+------+
-| **`` | List |
-| endp | enin |
-| oint | g    |
-| ``** | endp |
-|      | oint |
-|      | for  |
-|      | tran |
-|      | spor |
-|      | t.   |
-|      | See  |
-|      | `Tra |
-|      | nspo |
-|      | rt   |
-|      | Endp |
-|      | oint |
-|      | s <T |
-|      | rans |
-|      | port |
-|      | %20E |
-|      | ndpo |
-|      | ints |
-|      | >`__ |
-|      | for  |
-|      | conf |
-|      | igur |
-|      | atio |
-|      | n    |
-+------+------+
-| **`` | Turn |
-| debu | on   |
-| g``* | debu |
-| *    | g    |
-|      | logg |
-|      | ing  |
-|      | for  |
-|      | this |
-|      | tran |
-|      | spor |
-|      | t    |
-|      | inst |
-|      | ance |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | **`` |
-|      | fals |
-|      | e``* |
-|      | *).  |
-+------+------+
-| **`` | The  |
-| url` | WebS |
-| `**  | ocke |
-|      | t    |
-|      | serv |
-|      | er   |
-|      | URL  |
-|      | to   |
-|      | use  |
-|      | (def |
-|      | ault |
-|      | :    |
-|      | ``nu |
-|      | ll`` |
-|      | )    |
-+------+------+
-| **`` | See  |
-| opti | `Web |
-| ons` | Sock |
-| `**  | et   |
-|      | Opti |
-|      | ons  |
-|      | <Web |
-|      | Sock |
-|      | et-O |
-|      | ptio |
-|      | ns>` |
-|      | __   |
-+------+------+
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+| option   | description                                                                                                                 |
++==========+=============================================================================================================================+
+| id       | ID of the transport within the running node (default: transport<N> where N is numbered automatically starting from 1)       |
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+| type     | Type of transport - must be "websocket.testee".                                                                             |
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+| endpoint | Listening endpoint for transport. See :doc:`Transport Endpoints<../router/transport/Transport-Endpoints>` for configuration |
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+| debug    | Turn on debug logging for this transport instance (default: false).                                                         |
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+| url      | The WebSocket server URL to use (default: null)                                                                             |
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+| options  | See :doc:`WebSocket Options<../router/transport/WebSocket-Options>`                                                         |
++----------+-----------------------------------------------------------------------------------------------------------------------------+

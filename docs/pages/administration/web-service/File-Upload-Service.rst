@@ -1,3 +1,5 @@
+:orphan:
+
 title: File Upload Service toc: [Documentation, Administration, Web
 Services, File Upload Service]
 
@@ -28,234 +30,28 @@ Configuration
 To configure a File Upload Service, attach a dictionary element to a
 path in your `Web transport <Web%20Transport%20and%20Services>`__:
 
-+------+------+
-| attr | desc |
-| ibut | ript |
-| e    | ion  |
-+======+======+
-| **`` | MUST |
-| type | be   |
-| ``** | ``"u |
-|      | ploa |
-|      | d"`` |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| real | real |
-| m``* | m    |
-| *    | to   |
-|      | whic |
-|      | h    |
-|      | the  |
-|      | serv |
-|      | ice  |
-|      | sess |
-|      | ion  |
-|      | asso |
-|      | ciat |
-|      | ed   |
-|      | with |
-|      | the  |
-|      | reso |
-|      | urce |
-|      | will |
-|      | atta |
-|      | ch   |
-|      | to.  |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| role | role |
-| ``** | unde |
-|      | r    |
-|      | whic |
-|      | h    |
-|      | the  |
-|      | serv |
-|      | ice  |
-|      | sess |
-|      | ion  |
-|      | asso |
-|      | ciat |
-|      | ed   |
-|      | with |
-|      | the  |
-|      | reso |
-|      | urce |
-|      | will |
-|      | atta |
-|      | ch   |
-|      | unde |
-|      | r.   |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| dire | fold |
-| ctor | er   |
-| y``* | for  |
-| *    | comp |
-|      | lete |
-|      | ly   |
-|      | uplo |
-|      | aded |
-|      | file |
-|      | s    |
-|      | rela |
-|      | tive |
-|      | to   |
-|      | the  |
-|      | .cro |
-|      | ssba |
-|      | r    |
-|      | fold |
-|      | er   |
-|      | in   |
-|      | your |
-|      | cros |
-|      | sbar |
-|      | node |
-|      | .    |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | A    |
-| temp | fold |
-| _dir | er   |
-| ecto | to   |
-| ry`` | hold |
-| **   | inco |
-|      | mple |
-|      | te   |
-|      | uplo |
-|      | ads. |
-|      | Each |
-|      | inco |
-|      | mple |
-|      | te   |
-|      | uplo |
-|      | ad   |
-|      | will |
-|      | be a |
-|      | subf |
-|      | olde |
-|      | r    |
-|      | cont |
-|      | aini |
-|      | ng   |
-|      | the  |
-|      | uplo |
-|      | aded |
-|      | file |
-|      | chun |
-|      | ks.  |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | Cont |
-| form | ains |
-| _fie | the  |
-| lds` | form |
-| `**  | fiel |
-|      | d    |
-|      | mapp |
-|      | ing  |
-|      | betw |
-|      | een  |
-|      | clie |
-|      | nt   |
-|      | POST |
-|      | requ |
-|      | est  |
-|      | and  |
-|      | back |
-|      | end  |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | A    |
-| opti | JSON |
-| ons. | Arra |
-| file | y    |
-| _typ | of   |
-| es`` | perm |
-| **   | itte |
-|      | d    |
-|      | file |
-|      | exte |
-|      | nsio |
-|      | n    |
-|      | stri |
-|      | ngs  |
-|      | incl |
-|      | udin |
-|      | g    |
-|      | the  |
-|      | dots |
-|      | .    |
-+------+------+
-| **`` | The  |
-| opti | file |
-| ons. | acce |
-| file | ss   |
-| _per | perm |
-| miss | issi |
-| ions | ons  |
-| ``** | to   |
-|      | use  |
-|      | for  |
-|      | the  |
-|      | comp |
-|      | lete |
-|      | ly   |
-|      | uplo |
-|      | aded |
-|      | file |
-|      | s.   |
-|      | (chm |
-|      | od   |
-|      | octa |
-|      | l    |
-|      | code |
-|      | )    |
-+------+------+
-| **`` | The  |
-| opti | maxi |
-| ons. | mall |
-| max_ | y    |
-| file | allo |
-| _siz | wed  |
-| e``* | file |
-| *    | size |
-|      | in   |
-|      | byte |
-|      | s    |
-|      | to   |
-|      | uplo |
-|      | ad.  |
-|      | Refe |
-|      | rs   |
-|      | to   |
-|      | the  |
-|      | file |
-|      | not  |
-|      | to   |
-|      | the  |
-|      | chun |
-|      | ks   |
-|      | of   |
-|      | the  |
-|      | file |
-|      | .    |
-+------+------+
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| attribute                 | description                                                                                                                     |
++===========================+=================================================================================================================================+
+| type                      | MUST be "upload" (required)                                                                                                     |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| realm                     | The realm to which the service session associated with the resource will attach to. (required)                                  |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| role                      | The role under which the service session associated with the resource will attach under. (required)                             |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| directory                 | The folder for completely uploaded files relative to the .crossbar folder in your crossbar node. (required)                     |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| temp_directory            | A folder to hold incomplete uploads. Each incomplete upload will be a subfolder containing the uploaded file chunks. (required) |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| form_fields               | Contains the form field mapping between client POST request and backend (required)                                              |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| options.file_types        | A JSON Array of permitted file extension strings including the dots.                                                            |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| options.file_permissions  | The file access permissions to use for the completely uploaded files. (chmod octal code)                                        |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+| options.max_file_size     | The maximally allowed file size in bytes to upload. Refers to the file not to the chunks of the file.                           |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
+
 
 The ``form_fields`` dictionary contains the form field names that the
 client uses to upload files. It has the following configuration
@@ -277,390 +73,32 @@ parameters:
        "finish_extra": "finish_extra"
     }
 
-+------+------+
-| attr | desc |
-| ibut | ript |
-| e    | ion  |
-+======+======+
-| **`` | The  |
-| file | name |
-| _nam | of   |
-| e``* | the  |
-| *    | form |
-|      | fiel |
-|      | d    |
-|      | cont |
-|      | aini |
-|      | ng   |
-|      | the  |
-|      | file |
-|      | name |
-|      | .    |
-|      | (The |
-|      | file |
-|      | name |
-|      | is   |
-|      | not  |
-|      | used |
-|      | for  |
-|      | anyt |
-|      | hing |
-|      | in   |
-|      | the  |
-|      | back |
-|      | end) |
-|      | .    |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| mime | name |
-| _typ | of   |
-| e``* | the  |
-| *    | form |
-|      | fiel |
-|      | d    |
-|      | to   |
-|      | hold |
-|      | the  |
-|      | MIME |
-|      | type |
-|      | of   |
-|      | the  |
-|      | uplo |
-|      | aded |
-|      | file |
-|      | .    |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| tota | name |
-| l_si | of   |
-| ze`` | the  |
-| **   | form |
-|      | fiel |
-|      | d    |
-|      | to   |
-|      | hold |
-|      | the  |
-|      | inte |
-|      | ger  |
-|      | repr |
-|      | esen |
-|      | ting |
-|      | the  |
-|      | size |
-|      | of   |
-|      | the  |
-|      | file |
-|      | in   |
-|      | byte |
-|      | s.   |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| chun | name |
-| k_nu | of   |
-| mber | the  |
-| ``** | form |
-|      | fiel |
-|      | d    |
-|      | to   |
-|      | hold |
-|      | the  |
-|      | chun |
-|      | k    |
-|      | numb |
-|      | er   |
-|      | of   |
-|      | the  |
-|      | curr |
-|      | ent  |
-|      | file |
-|      | chun |
-|      | k.   |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| chun | name |
-| k_si | of   |
-| ze`` | the  |
-| **   | form |
-|      | fiel |
-|      | d    |
-|      | hold |
-|      | ing  |
-|      | the  |
-|      | chun |
-|      | k    |
-|      | size |
-|      | .    |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| tota | name |
-| l_ch | of   |
-| unks | the  |
-| ``** | form |
-|      | fiel |
-|      | d    |
-|      | hold |
-|      | ing  |
-|      | the  |
-|      | tota |
-|      | l    |
-|      | numb |
-|      | er   |
-|      | of   |
-|      | chun |
-|      | ks   |
-|      | for  |
-|      | the  |
-|      | file |
-|      | to   |
-|      | be   |
-|      | tran |
-|      | sfer |
-|      | ed.  |
-|      | Need |
-|      | s    |
-|      | to   |
-|      | be   |
-|      | POST |
-|      | ed   |
-|      | with |
-|      | ever |
-|      | y    |
-|      | chun |
-|      | k.   |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | The  |
-| cont | name |
-| ent` | of   |
-| `**  | the  |
-|      | form |
-|      | fiel |
-|      | d    |
-|      | cont |
-|      | aini |
-|      | ng   |
-|      | the  |
-|      | file |
-|      | cont |
-|      | ent. |
-|      | (*re |
-|      | quir |
-|      | ed*) |
-+------+------+
-| **`` | Opti |
-| on_p | onal |
-| rogr | name |
-| ess` | of   |
-| `**  | the  |
-|      | form |
-|      | fiel |
-|      | d    |
-|      | cont |
-|      | aini |
-|      | ng   |
-|      | the  |
-|      | URI  |
-|      | to   |
-|      | publ |
-|      | ish  |
-|      | uplo |
-|      | ad   |
-|      | rela |
-|      | ted  |
-|      | even |
-|      | ts   |
-|      | to.  |
-|      | If   |
-|      | an   |
-|      | URI  |
-|      | is   |
-|      | prov |
-|      | ided |
-|      | ,    |
-|      | prog |
-|      | ress |
-|      | even |
-|      | ts   |
-|      | will |
-|      | be   |
-|      | publ |
-|      | ishe |
-|      | d    |
-|      | as a |
-|      | file |
-|      | is   |
-|      | bein |
-|      | g    |
-|      | uplo |
-|      | aded |
-|      | .    |
-+------+------+
-| **`` | Opti |
-| sess | onal |
-| ion` | name |
-| `**  | of   |
-|      | the  |
-|      | form |
-|      | fiel |
-|      | d    |
-|      | cont |
-|      | aini |
-|      | ng   |
-|      | the  |
-|      | WAMP |
-|      | sess |
-|      | ion  |
-|      | ID   |
-|      | of   |
-|      | the  |
-|      | sess |
-|      | ion  |
-|      | to   |
-|      | whic |
-|      | h    |
-|      | publ |
-|      | ihed |
-|      | prog |
-|      | ress |
-|      | even |
-|      | t    |
-|      | shou |
-|      | ld   |
-|      | be   |
-|      | rest |
-|      | rict |
-|      | ed.  |
-|      | If   |
-|      | no   |
-|      | sess |
-|      | ion  |
-|      | ID   |
-|      | is   |
-|      | prov |
-|      | ided |
-|      | ,    |
-|      | prog |
-|      | ress |
-|      | even |
-|      | ts   |
-|      | can  |
-|      | be   |
-|      | rece |
-|      | ived |
-|      | by   |
-|      | any  |
-|      | (aut |
-|      | hori |
-|      | zed) |
-|      | sess |
-|      | ion. |
-+------+------+
-| **`` | The  |
-| chun | opti |
-| k_ex | onal |
-| tra` | name |
-| `**  | of   |
-|      | the  |
-|      | form |
-|      | fiel |
-|      | d    |
-|      | to   |
-|      | hold |
-|      | a    |
-|      | seri |
-|      | aliz |
-|      | ed   |
-|      | JSON |
-|      | obje |
-|      | ct   |
-|      | with |
-|      | cust |
-|      | om   |
-|      | info |
-|      | rmat |
-|      | ion  |
-|      | that |
-|      | will |
-|      | be   |
-|      | sent |
-|      | on   |
-|      | ever |
-|      | y    |
-|      | chun |
-|      | k    |
-|      | uplo |
-|      | ad   |
-|      | comp |
-|      | leti |
-|      | on   |
-|      | to   |
-|      | any  |
-|      | list |
-|      | enin |
-|      | g    |
-|      | clie |
-|      | nt.  |
-+------+------+
-| **`` | The  |
-| fini | opti |
-| sh_e | onal |
-| xtra | name |
-| ``** | of   |
-|      | the  |
-|      | form |
-|      | fiel |
-|      | d    |
-|      | to   |
-|      | hold |
-|      | a    |
-|      | seri |
-|      | aliz |
-|      | ed   |
-|      | JSON |
-|      | obje |
-|      | ct   |
-|      | with |
-|      | cust |
-|      | om   |
-|      | info |
-|      | rmat |
-|      | ion  |
-|      | that |
-|      | will |
-|      | be   |
-|      | sent |
-|      | on   |
-|      | file |
-|      | uplo |
-|      | ad   |
-|      | comp |
-|      | leti |
-|      | on   |
-|      | to   |
-|      | any  |
-|      | list |
-|      | enin |
-|      | g    |
-|      | clie |
-|      | nt.  |
-+------+------+
+
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| attribute     | description                                                                                                                                                                                                                     |
++===============+=================================================================================================================================================================================================================================+
+| file_name     | The name of the form field containing the file name. (The file name is not used for anything in the backend). (required)                                                                                                        |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| mime_type     | The name of the form field to hold the MIME type of the uploaded file. (required)                                                                                                                                               |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| total_size    | The name of the form field to hold the integer representing the size of the file in bytes. (required)                                                                                                                           |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| chunk_number  | The name of the form field to hold the chunk number of the current file chunk. (required)                                                                                                                                       |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| chunk_size    | The name of the form field holding the chunk size. (required)                                                                                                                                                                   |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| total_chunks  | The name of the form field holding the total number of chunks for the file to be transfered. Needs to be POSTed with every chunk. (required)                                                                                    |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| content       | The name of the form field containing the file content. (required)                                                                                                                                                              |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| on_progress   | Optional name of the form field containing the URI to publish upload related events to. If an URI is provided, progress events will be published as a file is being uploaded.                                                   |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| session       | Optional name of the form field containing the WAMP session ID of the session to which publihed progress event should be restricted. If no session ID is provided, progress events can be received by any (authorized) session. |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| chunk_extra   | The optional name of the form field to hold a serialized JSON object with custom information that will be sent on every chunk upload completion to any listening client.                                                        |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| finish_extra  | The optional name of the form field to hold a serialized JSON object with custom information that will be sent on file upload completion to any listening client.                                                               |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 In the example above the file name is passsed to the backend in a POST
 multipart formdata field with name="myFilename")
@@ -785,4 +223,3 @@ The example uses this configuration:
        }]
     }
 
---------------

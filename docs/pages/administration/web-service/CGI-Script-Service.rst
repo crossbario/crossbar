@@ -1,5 +1,6 @@
-title: CGI Script Service toc: [Documentation, Administration, Web
-Services, CGI Script Service]
+:orphan:
+
+
 
 CGI Script Service
 ==================
@@ -11,75 +12,18 @@ run as part of a Crossbar.io node.
 Configuration
 -------------
 
-To configure a CGI Script Service, attach a dictionary element to a path
-in your `Web transport <Web%20Transport%20and%20Services>`__:
+To configure a CGI Script Service, attach a dictionary element to a path in your :doc:`Web transport Services <../router/transport/Web-Transport-and-Services>` :
 
-+------+------+
-| attr | desc |
-| ibut | ript |
-| e    | ion  |
-+======+======+
-| **`` | Must |
-| type | be   |
-| ``** | ``"c |
-|      | gi"` |
-|      | `.   |
-+------+------+
-| **`` | The  |
-| dire | CGI  |
-| ctor | base |
-| y``* | dire |
-| *    | ctor |
-|      | y    |
-|      | cont |
-|      | aini |
-|      | ng   |
-|      | your |
-|      | scri |
-|      | pts. |
-|      | The  |
-|      | path |
-|      | can  |
-|      | be   |
-|      | abso |
-|      | lute |
-|      | or   |
-|      | rela |
-|      | tive |
-|      | to   |
-|      | the  |
-|      | Cros |
-|      | sbar |
-|      | .io  |
-|      | node |
-|      | dire |
-|      | ctor |
-|      | y    |
-+------+------+
-| **`` | The  |
-| proc | CGI  |
-| esso | scri |
-| r``* | pt   |
-| *    | proc |
-|      | esso |
-|      | r    |
-|      | to   |
-|      | use. |
-|      | This |
-|      | MUST |
-|      | be a |
-|      | full |
-|      | y    |
-|      | qual |
-|      | ifie |
-|      | d    |
-|      | path |
-|      | to   |
-|      | an   |
-|      | exec |
-|      | utab |
-|      | le.  |
-+------+------+
++-----------+------------------------------------------------------------------------------------------------------------------------+
+| attribute | description                                                                                                            |
++===========+========================================================================================================================+
+| type      | Must be "cgi".                                                                                                         |
++-----------+------------------------------------------------------------------------------------------------------------------------+
+| directory | The CGI base directory containing your scripts. The path can be absolute or relative to the Crossbar.io node directory |
++-----------+------------------------------------------------------------------------------------------------------------------------+
+| processor | The CGI script processor to use. This MUST be a fully qualified path to an executable.                                 |
++-----------+------------------------------------------------------------------------------------------------------------------------+
+
 
 Example
 -------
@@ -160,4 +104,3 @@ Then start Crossbar.io
 and open the page ``http://localhost:8080/myscripts/foo`` in your
 browser. You should see a hello from the Python CGI script.
 
---------------

@@ -1,3 +1,5 @@
+:orphan:
+
 title: WSGI Host Service toc: [Documentation, Administration, Web
 Services, WSGI Host Service]
 
@@ -116,4 +118,3 @@ your node configuration:
        ]
     }
 
---------------

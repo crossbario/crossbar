@@ -1,3 +1,5 @@
+:orphan:
+
 
 Publisher Exclusion
 ===================
@@ -56,5 +58,3 @@ received event and discard events which are based on local publications.
 Exlcuding the publisher from receiving an event as a default avoids
 this, and the possibility to override this allows use cases where only
 external triggering is preferable.
-
---------------

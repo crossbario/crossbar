@@ -72,86 +72,22 @@ present must be a list of dictionaries. No other attributes other than
 
 The ``"workers"`` attribute must be a list of workers
 
-+------+------+
-| para | desc |
-| mete | ript |
-| r    | ion  |
-+======+======+
-| **`` | Must |
-| type | be   |
-| ``** | one  |
-|      | of   |
-|      | **`` |
-|      | "rou |
-|      | ter" |
-|      | ``** |
-|      | ,    |
-|      | **`` |
-|      | "gue |
-|      | st"` |
-|      | `**  |
-|      | or   |
-|      | **`` |
-|      | "con |
-|      | tain |
-|      | er"` |
-|      | `**. |
-+------+------+
-| type | Plea |
-| spec | se   |
-| ific | see  |
-|      | `Rou |
-|      | ter  |
-|      | Conf |
-|      | igur |
-|      | atio |
-|      | n <R |
-|      | oute |
-|      | r%20 |
-|      | Conf |
-|      | igur |
-|      | atio |
-|      | n>`_ |
-|      | _,   |
-|      | `Gue |
-|      | st   |
-|      | Conf |
-|      | igur |
-|      | atio |
-|      | n <G |
-|      | uest |
-|      | %20C |
-|      | onfi |
-|      | gura |
-|      | tion |
-|      | >`__ |
-|      | and  |
-|      | `Con |
-|      | tain |
-|      | er   |
-|      | Conf |
-|      | igur |
-|      | atio |
-|      | n <C |
-|      | onta |
-|      | iner |
-|      | %20C |
-|      | onfi |
-|      | gura |
-|      | tion |
-|      | >`__ |
-|      | .    |
-+------+------+
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| parameter     | description                                                                                                                                                                                       |
++===============+===================================================================================================================================================================================================+
+| type          | Must be one of "router", "guest" or "container".                                                                                                                                                  |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| type specific | Please see  :doc:`Router Configuration <worker/Router-Configuration>`, :doc:`Guest Configuration<worker/Guest-Configuration>` and :doc:`Container Configuration<worker/Container-Configuration>`. |
++---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 The contents of the ``controller`` and ``workers`` section is described
 in the following pages:
 
--  [[Controller Configuration]]
--  [[Router Configuration]]
--  [[Container Configuration]]
--  [[Guest Configuration]]
+-  :doc:`Controller Configuration <worker/Controller-Configuration>`
+-  :doc:`Router Configuration <worker/Router-Configuration>`
+-  :doc:`Container Configuration <worker/Container-Configuration>`
+-  :doc:`Guest Configuration <worker/Guest-Configuration>`
 
---------------
 
 Checking a Configuration
 ------------------------
@@ -176,4 +112,3 @@ issues. E.g. if you configure 2 router transports listening on the
 *same* TCP port, this will not work, but the check won't raise an error.
 You will only get error feedback upon starting the node.
 
---------------
