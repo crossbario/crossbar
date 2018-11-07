@@ -13,7 +13,7 @@
    version="1.1"
    id="svg4667"
    sodipodi:docname="helloworld.svg"
-   inkscape:version="0.91 r13725">
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
   <metadata
      id="metadata4673">
     <rdf:RDF>
@@ -37,15 +37,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="2560"
-     inkscape:window-height="1416"
+     inkscape:window-width="1920"
+     inkscape:window-height="1015"
      id="namedview4669"
      showgrid="false"
-     inkscape:zoom="1.0296328"
-     inkscape:cx="971.31991"
-     inkscape:cy="645.59132"
+     inkscape:zoom="0.2574082"
+     inkscape:cx="2104.6127"
+     inkscape:cy="797.05922"
      inkscape:window-x="0"
-     inkscape:window-y="24"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg4667" />
   <rect
@@ -124,21 +124,6 @@
        id="tspan4645">Publishing client</tspan>
   </text>
   <text
-     font-size="33.8667"
-     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
-     x="210.33"
-     y="531.338"
-     id="text4653">
-    <tspan
-       x="210.33"
-       y="531.338"
-       id="tspan4649">Autobahn Python </tspan>
-    <tspan
-       x="210.33"
-       y="573.671"
-       id="tspan4651">Subscribing client</tspan>
-  </text>
-  <text
      font-size="19.7556"
      style="font-style:normal;font-weight:normal;font-size:19.75559998px;font-family:sans-serif;text-anchor:start;fill:#000000"
      x="993.39203"
@@ -203,4 +188,20 @@
      style="fill:#0273a0;fill-rule:nonzero;stroke-width:1.01978922"
      d="M 1085.2763,341.85324 V 498.8808 h 150.517 V 341.85324 Z m 63.9757,15.09085 h 6.6746 v 30.73751 h -13.0156 z m 16.1189,0.27817 h 6.6412 l 6.3742,30.66792 h -13.0155 z m -51.6949,32.5462 h 93.2442 v 5.73728 h -4.5387 v 8.83195 h -10.7132 v -8.83195 h -62.6413 v 8.83195 h -10.513 v -8.83195 h -4.8391 z m 25.1632,13.6655 h 17.0868 v 79.06958 h -32.9724 z m 26.5317,0 h 17.0537 l 15.9186,79.06958 h -32.9723 z"
      id="path4500-0" />
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-weight:normal;font-size:21.02316475px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.52557909"
+     x="204.14229"
+     y="539.27655"
+     id="text242"><tspan
+       sodipodi:role="line"
+       id="tspan240"
+       x="204.14229"
+       y="539.27655"
+       style="font-size:33.86131668px;stroke-width:0.52557909">Autobahn Javascript</tspan><tspan
+       sodipodi:role="line"
+       x="204.14229"
+       y="581.60321"
+       style="font-size:33.86131668px;stroke-width:0.52557909"
+       id="tspan244">Subscribing client</tspan></text>
 </svg>
