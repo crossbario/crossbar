@@ -527,9 +527,6 @@ class TestBrokerPublish(unittest.TestCase):
             _authrole = 'trusted'
             _session_id = 0
 
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
             def send(self, *args, **argv):
                 self._private.append(args[0])
 
@@ -594,8 +591,7 @@ class TestBrokerPublish(unittest.TestCase):
                     test.assertEqual(len(unsubscribes), 0, 'incorrect response sequence for on_unsubscribe')
                     test.assertEqual(len(deletes), 0, 'incorrect response sequence for on_delete')
 
-                reactor.callLater(1, all_done)
-                time.sleep(1)
+                reactor.callLater(0, all_done)
 
         session = TestSession(types.ComponentConfig(u'realm1'))
         self.session_factory.add(session, authrole=u'trusted')
