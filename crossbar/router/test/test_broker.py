@@ -620,9 +620,6 @@ class TestBrokerPublish(unittest.TestCase):
             _authrole = 'trusted'
             _session_id = 0
 
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
             def send(self, *args, **argv):
                 self._private.append(args[0])
 
@@ -693,12 +690,7 @@ class TestBrokerPublish(unittest.TestCase):
                     test.assertEqual(len(unsubscribes), 0, 'incorrect response sequence for on_unsubscribe')
                     test.assertEqual(len(deletes), 0, 'incorrect response sequence for on_delete')
 
-                # So we need to give the reactor change to process anything submitted with 'callLater'
-                # (unsubscribe does this ...)
-                reactor.callLater(1, all_done)
-                # then we need to "not" exit until 'all_done' has had chance to run .. a call that does
-                # async sleep for 1 second, then call sync 'all_done' would be ideal .. anyone?"
-                time.sleep(1)
+                reactor.callLater(0, all_done)
 
         session = TestSession(types.ComponentConfig(u'realm1'))
         self.session_factory.add(session, authrole=u'trusted')
