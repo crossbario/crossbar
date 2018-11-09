@@ -34,6 +34,7 @@ from twisted.trial import unittest
 
 import txaio
 import mock
+import time
 
 from autobahn.wamp import types
 from autobahn.wamp import message
@@ -510,6 +511,197 @@ class TestBrokerPublish(unittest.TestCase):
             self.assertFalse(events[1].correlation_is_last)
             self.assertFalse(events[2].correlation_is_last)
             self.assertTrue(events[3].correlation_is_last)
+
+    def test_subscribe_unsubscribe(self):
+        """
+        Make sure the wamp.* event sequence delivered as part of a subscribe/unsubscribe sequence
+        is correct and contains the correct session id and subscription id values.
+        """
+        router = self.router
+        test = self
+
+        class Session(mock.MagicMock):
+
+            _private = []
+            _events = []
+            _authrole = 'trusted'
+            _session_id = 0
+
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+            def send(self, *args, **argv):
+                self._private.append(args[0])
+
+            def publish(self, *args, **argv):
+                self._events.append([args, argv])
+
+        class TestSession(ApplicationSession):
+
+            def __init__(self, *args, **kw):
+                super().__init__(*args, **kw)
+                self._service_session = Session()
+                self._router = router
+
+            def onJoin(self, details):
+                self._service_session._session_id = details.session
+                router.attach(self._service_session)
+
+                router._broker._router._realm.session = self._service_session
+                subscription = message.Subscribe(self._service_session._session_id, u'com.example.test1')
+                router._broker.processSubscribe(self._service_session, subscription)
+                subscription = message.Subscribe(self._service_session._session_id, u'com.example.test2')
+                router._broker.processSubscribe(self._service_session, subscription)
+                subscription = message.Subscribe(self._service_session._session_id, u'com.example.test3')
+                router._broker.processSubscribe(self._service_session, subscription)
+
+                subscriptions = []
+                for obj in list(self._service_session._private):
+                    subscription = message.Unsubscribe(self._service_session._session_id, subscription=obj.subscription)
+                    router._broker.processUnsubscribe(self._service_session, subscription)
+                    subscriptions.append(obj.subscription)
+
+                def all_done():
+
+                    created = list(subscriptions)
+                    subscribes = list(subscriptions)
+                    unsubscribes = list(subscriptions)
+                    deletes = list(subscriptions)
+
+                    for args, argv in self._service_session._events:
+                        if args[0] == 'wamp.subscription.on_create':
+                            test.assertEqual(args[1], self._service_session._session_id, 'on_create: session id is incorrect!')
+                            test.assertTrue(args[2]['id'] in created, 'on_create: subscription id is incorrect!')
+                            created.remove(args[2]['id'])
+
+                        if args[0] == 'wamp.subscription.on_subscribe':
+                            test.assertEqual(args[1], self._service_session._session_id, 'on_subscribe: session id is incorrect!')
+                            test.assertTrue(args[2] in subscribes, 'on_subscribe: subscription id is incorrect!')
+                            subscribes.remove(args[2])
+
+                        if args[0] == 'wamp.subscription.on_unsubscribe':
+                            test.assertEqual(args[1], self._service_session._session_id, 'on_unsubscribe: session id is incorrect!')
+                            test.assertTrue(args[2] in unsubscribes, 'on_unsubscribe: subscription id is incorrect!')
+                            unsubscribes.remove(args[2])
+
+                        if args[0] == 'wamp.subscription.on_delete':
+                            test.assertEqual(args[1], self._service_session._session_id, 'on_delete: session id is incorrect!')
+                            test.assertTrue(args[2] in deletes, 'on_delete: subscription id is incorrect!')
+                            deletes.remove(args[2])
+
+                    test.assertEqual(len(created), 0, 'incorrect response sequence for on_create')
+                    test.assertEqual(len(subscribes), 0, 'incorrect response sequence for on_subscribe')
+                    test.assertEqual(len(unsubscribes), 0, 'incorrect response sequence for on_unsubscribe')
+                    test.assertEqual(len(deletes), 0, 'incorrect response sequence for on_delete')
+
+                reactor.callLater(1, all_done)
+                time.sleep(1)
+
+        session = TestSession(types.ComponentConfig(u'realm1'))
+        self.session_factory.add(session, authrole=u'trusted')
+
+    def test_subscribe_detach(self):
+        """
+        Make sure the wamp.* event sequence delivered as part of a subscribe/detach sequence
+        is correct and contains the correct session id and subscription id values.
+        """
+        router = self.router
+        test = self
+
+        class Session(mock.MagicMock):
+            """
+            Mock the session object, this is key to capturing all the replies and publications.
+            We get all replies in _private and publications in events, so we can issue the 
+            request we need to test, then check at the end _events contains the list of 
+            pub's we are expecting.
+            """
+            _private = []
+            _events = []
+            _authrole = 'trusted'
+            _session_id = 0
+
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+            def send(self, *args, **argv):
+                self._private.append(args[0])
+
+            def publish(self, *args, **argv):
+                self._events.append([args, argv])
+
+        class TestSession(ApplicationSession):
+
+            def __init__(self, *args, **kw):
+                super().__init__(*args, **kw)
+                self._service_session = Session()
+                self._router = router
+
+            def onJoin(self, details):
+                self._service_session._session_id = details.session
+                router.attach(self._service_session)
+
+                router._broker._router._realm.session = self._service_session
+                subscription = message.Subscribe(self._service_session._session_id, u'com.example.test1')
+                router._broker.processSubscribe(self._service_session, subscription)
+                subscription = message.Subscribe(self._service_session._session_id, u'com.example.test2')
+                router._broker.processSubscribe(self._service_session, subscription)
+                subscription = message.Subscribe(self._service_session._session_id, u'com.example.test3')
+                router._broker.processSubscribe(self._service_session, subscription)
+
+                subscriptions = []
+                for obj in list(self._service_session._private):
+                    subscriptions.append(obj.subscription)
+
+                router.detach(self._service_session)
+
+                def all_done():
+
+                    #
+                    #   These lists are initialised with the subscription id's we've generated
+                    #   with out subscribe sequence, the following routines should decrement each
+                    #   list to exactly zero.
+                    #
+                    created = list(subscriptions)
+                    subscribes = list(subscriptions)
+                    unsubscribes = list(subscriptions)
+                    deletes = list(subscriptions)
+
+                    for args, argv in self._service_session._events:
+
+                        if args[0] == 'wamp.subscription.on_create':
+                            test.assertEqual(args[1], self._service_session._session_id, 'on_create: session id is incorrect!')
+                            test.assertTrue(args[2]['id'] in created, 'on_create: subscription id is incorrect!')
+                            created.remove(args[2]['id'])
+
+                        if args[0] == 'wamp.subscription.on_subscribe':
+                            test.assertEqual(args[1], self._service_session._session_id, 'on_subscribe: session id is incorrect!')
+                            test.assertTrue(args[2] in subscribes, 'on_subscribe: subscription id is incorrect!')
+                            subscribes.remove(args[2])
+
+                        if args[0] == 'wamp.subscription.on_unsubscribe':
+                            test.assertEqual(args[1], self._service_session._session_id, 'on_unsubscribe: session id is incorrect!')
+                            test.assertTrue(args[2] in unsubscribes, 'on_unsubscribe: subscription id is incorrect!')
+                            unsubscribes.remove(args[2])
+
+                        if args[0] == 'wamp.subscription.on_delete':
+                            test.assertEqual(args[1], self._service_session._session_id, 'on_delete: session id is incorrect!')
+                            test.assertTrue(args[2] in deletes, 'on_delete: subscription id is incorrect!')
+                            deletes.remove(args[2])
+
+                    test.assertEqual(len(created), 0, 'incorrect response sequence for on_create')
+                    test.assertEqual(len(subscribes), 0, 'incorrect response sequence for on_subscribe')
+                    test.assertEqual(len(unsubscribes), 0, 'incorrect response sequence for on_unsubscribe')
+                    test.assertEqual(len(deletes), 0, 'incorrect response sequence for on_delete')
+
+                # So we need to give the reactor change to process anything submitted with 'callLater'
+                # (unsubscribe does this ...)
+                reactor.callLater(1, all_done)
+                # then we need to "not" exit until 'all_done' has had chance to run .. a call that does
+                # async sleep for 1 second, then call sync 'all_done' would be ideal .. anyone?"
+                time.sleep(1)
+
+        session = TestSession(types.ComponentConfig(u'realm1'))
+        self.session_factory.add(session, authrole=u'trusted')
 
 
 class TestRouterSession(unittest.TestCase):
