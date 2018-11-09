@@ -611,8 +611,8 @@ class TestBrokerPublish(unittest.TestCase):
         class Session(mock.MagicMock):
             """
             Mock the session object, this is key to capturing all the replies and publications.
-            We get all replies in _private and publications in events, so we can issue the 
-            request we need to test, then check at the end _events contains the list of 
+            We get all replies in _private and publications in events, so we can issue the
+            request we need to test, then check at the end _events contains the list of
             pub's we are expecting.
             """
             _private = []
