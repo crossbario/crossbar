@@ -34,7 +34,6 @@ from twisted.trial import unittest
 
 import txaio
 import mock
-import time
 
 from autobahn.wamp import types
 from autobahn.wamp import message
