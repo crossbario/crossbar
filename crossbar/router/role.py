@@ -382,8 +382,8 @@ class RouterRoleDynamicAuth(RouterRole):
 
         :return: bool -- Flag indicating whether session is authorized or not.
         """
-        details = getattr(session, '_session_details', None)
-        if details is None:
+        session_details = getattr(session, '_session_details', None)
+        if session_details is None:
             # this happens for "embedded" sessions -- perhaps we
             # should have a better way to detect this -- also
             # session._transport should be a RouterApplicationSession
