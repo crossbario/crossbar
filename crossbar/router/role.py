@@ -400,12 +400,12 @@ class RouterRoleDynamicAuth(RouterRole):
             }
         else:
             details = {
-                u'session': details.session,
-                u'authid': details.authid,
-                u'authrole': details.authrole,
-                u'authmethod': details.authmethod,
-                u'authprovider': details.authprovider,
-                u'authextra': details.authextra
+                u'session': session_details.session,
+                u'authid': session_details.authid,
+                u'authrole': session_details.authrole,
+                u'authmethod': session_details.authmethod,
+                u'authprovider': session_details.authprovider,
+                u'authextra': session_details.authextra
                 u'transport': session._transport._transport_info
             }
 
