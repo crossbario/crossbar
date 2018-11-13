@@ -405,7 +405,7 @@ class RouterRoleDynamicAuth(RouterRole):
                 u'authrole': session_details.authrole,
                 u'authmethod': session_details.authmethod,
                 u'authprovider': session_details.authprovider,
-                u'authextra': session_details.authextra
+                u'authextra': session_details.authextra,
                 u'transport': session._transport._transport_info
             }
 
