@@ -409,7 +409,6 @@ class RouterRoleDynamicAuth(RouterRole):
                 u'transport': session._transport._transport_info
             }
 
-
         self.log.debug(
             "CrossbarRouterRoleDynamicAuth.authorize {uri} {action} {details}",
             uri=uri, action=action, details=details)
