@@ -620,7 +620,7 @@ class RouterSession(BaseSession):
                 if u'cookie' in authmethods:
                     realm = self._transport._authrealm
                     authextra = self._transport._authextra
-                elif self._authprovider == u'cookie':
+                elif self._transport._authprovider == u'cookie':
                     # revoke authentication and invalidate cookie (will be revalidated if following auth is successful)
                     self._transport._authmethod = None
                     self._transport._authrealm = None
