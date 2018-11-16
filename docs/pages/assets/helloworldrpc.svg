@@ -13,7 +13,7 @@
    version="1.1"
    id="svg66"
    sodipodi:docname="helloworldrpc.svg"
-   inkscape:version="0.92.0 r15299">
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
   <metadata
      id="metadata72">
     <rdf:RDF>
@@ -36,15 +36,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1366"
-     inkscape:window-height="705"
+     inkscape:window-width="1920"
+     inkscape:window-height="1015"
      id="namedview68"
      showgrid="false"
      inkscape:zoom="0.36403016"
      inkscape:cx="1111.0461"
      inkscape:cy="649.34769"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg66" />
   <rect
@@ -124,33 +124,18 @@
   </g>
   <text
      font-size="33.8667"
-     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
-     x="68.0041"
-     y="522.242"
-     id="text46">
-    <tspan
-       x="68.0041"
-       y="522.242"
-       id="tspan42">Autobahn Python </tspan>
-    <tspan
-       x="68.0041"
-       y="564.576"
-       id="tspan44">Callee: RPC Date()</tspan>
-  </text>
-  <text
-     font-size="33.8667"
-     style="fill: #000000;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal"
-     x="901.962"
-     y="523.006"
+     style="font-style:normal;font-weight:normal;font-size:33.86669922px;font-family:sans-serif;text-anchor:start;fill:#000000"
+     x="901.96198"
+     y="523.00598"
      id="text52">
     <tspan
-       x="901.962"
-       y="523.006"
-       id="tspan48">Autobahn Python </tspan>
+       x="901.96198"
+       y="523.00598"
+       id="tspan48">Autobahn Python</tspan>
     <tspan
-       x="901.962"
-       y="565.34"
-       id="tspan50">Caller RPC Date()</tspan>
+       x="901.96198"
+       y="565.34003"
+       id="tspan50">Caller: RPC Date()</tspan>
   </text>
   <text
      font-size="19.7556"
@@ -165,7 +150,7 @@
     <tspan
        x="836.066"
        y="208.212"
-       id="tspan56">the topic  &quot;my.com.date&quot;</tspan>
+       id="tspan56">the topic  &quot;com.myapp.date&quot;</tspan>
   </text>
   <text
      font-size="19.7556"
@@ -176,7 +161,7 @@
     <tspan
        x="58.2565"
        y="151.063"
-       id="tspan60">1. Register Date() on topic &quot;my.com.date&quot;</tspan>
+       id="tspan60">1. Register Date() on topic &quot;com.myapp.date&quot;</tspan>
     <tspan
        x="58.2565"
        y="175.757"
@@ -217,4 +202,20 @@
      style="fill:#0273a0;fill-rule:nonzero;stroke-width:1.01978922"
      d="M 950.62373,334.5729 V 491.60047 H 1101.1407 V 334.5729 Z m 63.97567,15.09085 h 6.6746 v 30.73751 h -13.0156 z m 16.1189,0.27817 h 6.6412 l 6.3742,30.66792 h -13.0155 z m -51.69495,32.5462 h 93.24425 v 5.73728 h -4.5387 v 8.83195 h -10.7132 v -8.83195 h -62.64135 v 8.83195 h -10.51297 v -8.83195 h -4.83905 z m 25.16325,13.66551 h 17.0868 v 79.06958 h -32.97238 z m 26.5317,0 h 17.0537 l 15.9186,79.06958 h -32.9723 z"
      id="path4500-8" />
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-weight:normal;font-size:21.02316475px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.52557909"
+     x="75.343765"
+     y="525.86578"
+     id="text181"><tspan
+       sodipodi:role="line"
+       id="tspan179"
+       x="75.343765"
+       y="525.86578"
+       style="font-size:33.86131287px;stroke-width:0.52557909">Autobahn Javascript</tspan><tspan
+       sodipodi:role="line"
+       x="75.343765"
+       y="568.19244"
+       style="font-size:33.86131287px;stroke-width:0.52557909"
+       id="tspan183">Callee: RPC Date()</tspan></text>
 </svg>

@@ -1,7 +1,7 @@
 argh==0.26.2
 asn1crypto==0.24.0
 attrs==18.2.0
-autobahn==18.10.1
+autobahn==18.11.1
 Automat==0.7.0
 bitstring==3.1.5
 cbor==1.0.0
@@ -19,13 +19,13 @@ idna==2.5
 incremental==17.5.0
 Jinja2==2.10
 lmdb==0.94
-MarkupSafe==1.0
+MarkupSafe==1.1.0
 mistune==0.8.4
 netaddr==0.7.19
 passlib==1.7.1
 pathtools==0.1.2
 priority==1.3.0
-psutil==5.4.7
+psutil==5.4.8
 py-ubjson==0.12.0
 pyasn1==0.4.4
 pyasn1-modules==0.2.2
@@ -41,7 +41,7 @@ requests==2.20.0
 sdnotify==0.3.2
 service-identity==17.0.0
 setproctitle==1.1.10
-setuptools==40.4.3
+setuptools==40.5.0
 six==1.11.0
 sortedcontainers==2.0.5
 treq==18.6.0
@@ -49,6 +49,6 @@ Twisted==18.9.0
 txaio==18.8.1
 txtorcon==18.3.0
 u-msgpack-python==2.5.0
-urllib3==1.24
+urllib3==1.24.1
 watchdog==0.9.0
-zope.interface==4.5.0
+zope.interface==4.6.0
