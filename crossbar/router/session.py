@@ -628,7 +628,7 @@ class RouterSession(BaseSession):
                     if hasattr(self._transport, '_cbtid'):
                         self._transport.factory._cookiestore.setAuth(self._transport._cbtid, None, None, None, None, None)
                 else:
-                    pass # TLS authentication is not revoked here
+                    pass  # TLS authentication is not revoked here
 
             # perform authentication
             if self._transport._authid is not None and (self._transport._authmethod == u'trusted' or self._transport._authprovider in authmethods):
