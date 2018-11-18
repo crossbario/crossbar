@@ -1,7 +1,5 @@
 :orphan:
 
-title: WebSocket Compliance Testing toc: [Documentation, Administration,
-Going to Production, WebSocket Compliance Testing]
 
 WebSocket Compliance Testing
 ============================

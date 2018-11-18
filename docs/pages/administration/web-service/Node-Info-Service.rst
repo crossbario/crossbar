@@ -1,13 +1,10 @@
 :orphan:
 
-title: Node Info Service toc: [Documentation, Administration, Web
-Services, Node Info Service]
-
 Node Info Service
 =================
 
-The **Node Info Service** is configured on a subpath of a `Web
-transport <Web%20Transport%20and%20Services>`__ and allows you to expose
+The **Node Info Service** is configured on a subpath of a :doc:`Web
+transport <../router/transport/Web-Transport-and-Services>` and allows you to expose
 a HTML information page about the node.
 
 The page is rendered dynamically by Crossbar.io and includes information
@@ -38,7 +35,7 @@ Configuration
 -------------
 
 To configure a node info service, attach a dictionary element to a path
-in your `Web transport <Web%20Transport%20and%20Services>`__:
+in your :doc:`Web transport <../router/transport/Web-Transport-and-Services>`:
 
 +----------------+--------------------------+
 | attribute      | description              |

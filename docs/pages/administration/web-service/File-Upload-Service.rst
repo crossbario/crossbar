@@ -1,7 +1,5 @@
 :orphan:
 
-title: File Upload Service toc: [Documentation, Administration, Web
-Services, File Upload Service]
 
 File Upload Service
 ===================
@@ -28,7 +26,7 @@ Configuration
 -------------
 
 To configure a File Upload Service, attach a dictionary element to a
-path in your `Web transport <Web%20Transport%20and%20Services>`__:
+path in your :doc:`Web transport <../router/transport/Web-Transport-and-Services>` :
 
 +---------------------------+---------------------------------------------------------------------------------------------------------------------------------+
 | attribute                 | description                                                                                                                     |

@@ -1,7 +1,5 @@
 :orphan:
 
-title: Network Tuning toc: [Documentation, Administration, Going to
-Production, Network Tuning]
 
 Network Tuning
 ==============

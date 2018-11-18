@@ -135,5 +135,4 @@ Configuring the Crossbar logger
 
 For more information on configuring the Crossbar.io logging output (for
 example, to turn on debug, change the output format, or write to a
-file), see `Configuring Crossbar.io's
-Logging <Configuring%20Crossbario%20Logging>`__.
+file), see :doc:`Configuring Crossbar.io's Logging <Configuring-Crossbario-Logging>` .

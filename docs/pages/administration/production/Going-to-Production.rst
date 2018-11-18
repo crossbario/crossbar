@@ -6,17 +6,16 @@ Going to Production
 This section covers security issues and fine-tuning of advanced options.
 Tips for a performant and secure production configuration.
 
--  `Running on privileged ports <Running%20on%20Privileged%20Ports>`__
--  `Secure WebSocket and HTTPS <Secure%20WebSocket%20and%20HTTPS>`__
--  `TLS Certificates <TLS%20Certificates>`__
--  `Automatic startup and
-   restart <Automatic%20Startup%20and%20Restart>`__
--  `Network Tuning <Network%20Tuning>`__
--  `Reverse Proxies <Reverse%20Proxies>`__
--  `SSL/TLS Interception Proxies <SSL-TLS-Interception-Proxies>`__
+-  :doc:`Running on privileged ports <Running-on-privileged-ports>`
+-  :doc:`Secure WebSocket and HTTPS <Secure-WebSocket-and-HTTPS>`
+-  :doc:`TLS Certificates <TLS-Certificates>`
+-  :doc:`Automatic startup and restart <Automatic-Startup-and-Restart>`
+-  :doc:`Network Tuning <Network-Tuning>`
+-  :doc:`Reverse Proxies <Reverse-Proxies>`
+-  :doc:`SSL/TLS Interception Proxies <SSL-TLS-Interception-Proxies>`
 
 Testing your instance & browser support.
 
--  `Browser Support <Browser%20Support>`__
--  `WebSocket Compliance Testing <WebSocket%20Compliance%20Testing>`__
--  `Stream Testee <Stream%20Testee>`__
+-  :doc:`Browser Support <Browser-Support>`
+-  :doc:`WebSocket Compliance Testing <WebSocket-Compliance-Testing>`
+-  :doc:`Stream Testee <Stream-Testee>`

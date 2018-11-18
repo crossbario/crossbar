@@ -6,11 +6,11 @@ Basic Subscriptions
 
 As a default, subscriptions use exact matching, i.e. a subscriber for
 topic ``com.myapp.topic1`` will receive events for publications to topic
-``com.myapp.topic1`` only. (There are also `pattern-based
-subscriptions <Pattern%20Based%20Subscriptions>`__ which can be selected
+``com.myapp.topic1`` only. (There are also :doc:`pattern-based
+subscriptions <Pattern-Based-Subscriptions>` which can be selected
 via an option when subscribing.)
 
-    Note: There are some `specific rules <URI%20Format>`__ regarding the
+    Note: There are some :doc:`specific rules <../general/URI-Format>` regarding the
     formatting of URIs used to identify topics.
 
 WAMP mandates a single subscription per session for each URI. If a

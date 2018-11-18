@@ -1,7 +1,5 @@
 :orphan:
 
-title: WSGI Host Service toc: [Documentation, Administration, Web
-Services, WSGI Host Service]
 
 WSGI Host Service
 =================
@@ -19,14 +17,14 @@ The WSGI Web application runs on a pool of worker threads, unmodified
 and as all WSGI applications in a synchronous, blocking mode. The WSGI
 application cannot directly interact with the WAMP router, due to the
 difference in synchronous versus asynchronous operation. However, full
-bidirectional WAMP integration can be achieved using the `HTTP
-Bridge <HTTP%20Bridge>`__.
+bidirectional WAMP integration can be achieved using the :doc:`HTTP
+Bridge <../http-bridge/HTTP-Bridge>`.
 
 Configuration
 -------------
 
 To configure a WSGI Web service, attach a dictionary element to a path
-in your `Web transport <Web%20Transport%20and%20Services>`__:
+in your :doc:`Web transport <../router/transport/Web-Transport-and-Services>`: :
 
 +------------------+---------------------------------------+
 | attribute        | description                           |
@@ -41,9 +39,8 @@ in your `Web transport <Web%20Transport%20and%20Services>`__:
 Example
 -------
 
-**See
-`here <https://github.com/crossbario/crossbar-examples/tree/master/wsgi>`__
-for a complete example.**
+See `here <https://github.com/crossbario/crossbar-examples/tree/master/wsgi>`_ 
+for a complete example.
 
 Here is a minimal example using Flask. The overall files involved are:
 

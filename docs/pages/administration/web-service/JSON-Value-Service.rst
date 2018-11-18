@@ -1,15 +1,10 @@
 :orphan:
 
-title: JSON Value Service toc: [Documentation, Administration, Web
-Services, JSON Value Service]
-
 JSON Value Service
 ==================
 
-The **JSON Value Service** is configured on a subpath of a `Web
-transport <Web%20Transport%20and%20Services>`__ and allows you to expose
-a custom JSON value from your node configuration dynamically over
-HTTP(S).
+The **JSON Value Service** is configured on a subpath of a  :doc:`Web transport <../router/transport/Web-Transport-and-Services>` and allows you to expose
+a custom JSON value from your node configuration dynamically over HTTP(S).
 
 This can be useful to have custom parameters accessible from JavaScript
 running in browsers or other Web clients.
@@ -18,7 +13,7 @@ Configuration
 -------------
 
 To configure a JSON Value ervice, attach a dictionary element to a path
-in your `Web transport <Web%20Transport%20and%20Services>`__:
+in your  :doc:`Web transport <../router/transport/Web-Transport-and-Services>`:
 
 +-------------------+---------------------------------------+
 | attribute         | description                           |

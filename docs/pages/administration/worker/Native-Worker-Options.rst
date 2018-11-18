@@ -34,5 +34,4 @@ Platform values which are handled are ``bsd`` (with possible prefixes),
 ``select``, ``poll``, ``epoll``, ``kqueue``, and ``iocp``.
 
 Additionally, the **process environment** for the worker can be
-determined using the option ``env`` - for more information see [[Process
-Environments]].
+determined using the option ``env`` - for more information see :doc:`Process Environments <Process-Environments>`

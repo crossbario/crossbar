@@ -1,7 +1,5 @@
 :orphan:
 
-title: Path Service toc: [Documentation, Administration, Web Services,
-Path Service]
 
 Path Service
 ============
@@ -12,7 +10,7 @@ Configuration
 -------------
 
 To configure a Path Service, attach a dictionary element to a path in
-your `Web transport <Web%20Transport%20and%20Services>`__:
+your :doc:`Web transport <../router/transport/Web-Transport-and-Services>` :
 
 
 +-----------+-----------------------------------------------------------------------------------------------------------------------------------------------------+

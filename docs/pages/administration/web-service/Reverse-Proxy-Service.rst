@@ -8,7 +8,7 @@ Configuration
 -------------
 
 To configure a Web Reverse Proxy Service, attach a dictionary element to
-a path in your `Web transport <Web%20Transport%20and%20Services>`__:
+a path in your  :doc:`Web transport <../router/transport/Web-Transport-and-Services>` :
 
 +--------+-------------------------------------------------------------------------+
 | option | description                                                             |
