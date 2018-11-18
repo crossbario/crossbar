@@ -135,5 +135,5 @@ restarted itself. Restarting a realm is a quick and cheap operation.
 
 *Read more:*
 
--  [[Router Configuration]]
--  [[Authorization]]
+-   :doc:`Router Configuration <../worker/Router-Configuration>` 
+-   :doc:`Authorization <../auth/Authorization>` 

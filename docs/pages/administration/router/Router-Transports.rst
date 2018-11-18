@@ -45,6 +45,6 @@ component point of view.
 The `WAMP spec <http://wamp-proto.org/spec/>`__ currently defines these
 transports:
 
--  [WAMP-over-WebSocket Transport]
--  [WAMP-over-RawSocket Transport]
--  [WAMP-over-Longpoll Transport]
+-  :doc:`WAMP over WebSocket Transport <transport/WebSocket-Transport>`
+-  :doc:`WAMP over RawSocket Transport <transport/RawSocket-Transport>`
+-  :doc:`WAMP over Longpoll            <../web-service/Long-Poll-Service>`

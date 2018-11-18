@@ -57,5 +57,4 @@ We provide a `full working
 example <https://github.com/crossbario/crossbarexamples/tree/master/authentication/tls/dynamic>`__
 for this.
 
-For more on dynamic authenticators read `this documentation
-page <Dynamic%20Authenticators>`__.
+For more on dynamic authenticators read :doc:`this documentation page <Dynamic-Authenticators>`.

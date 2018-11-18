@@ -45,7 +45,7 @@ Authorization* and to handle special requirements and scenarios using
 *Dynamic Authorization*.
 
     Note: WAMP uses URIs to identify topics and registrations, with some
-    `specific rules regarding formatting <URI%20Format>`__.
+    :doc:`specific rules regarding formatting <../../programming-guide/general/URI-Format>` .
 
 Authorization Procedure
 -----------------------

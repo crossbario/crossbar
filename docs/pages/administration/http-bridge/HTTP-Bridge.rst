@@ -6,11 +6,11 @@ HTTP Bridge
 Quick Links
 -----------
 
--  `HTTP Bridge Webhook <HTTP%20Bridge%20Webhook>`__
--  `HTTP Bridge Publisher <HTTP%20Bridge%20Publisher>`__
--  `HTTP Bridge Subscriber <HTTP%20Bridge%20Subscriber>`__
--  `HTTP Bridge Caller <HTTP%20Bridge%20Caller>`__
--  `HTTP Bridge Callee <HTTP%20Bridge%20Callee>`__
+-  :doc:`HTTP Bridge Webhook <HTTP-Bridge-Webhook>`
+-  :doc:`HTTP Bridge Publisher <HTTP-Bridge-Publisher>`
+-  :doc:`HTTP Bridge Subscriber <HTTP-Bridge-Subscriber>`
+-  :doc:`HTTP Bridge Caller <HTTP-Bridge-Caller>`
+-  :doc:`HTTP Bridge Callee <HTTP-Bridge-Callee>`
 
 Background
 ----------
@@ -27,17 +27,17 @@ This is where the *HTTP bridge services* of Crossbar can help. They
 provide WAMP components which provide interoperability with existing
 code by using HTTP.
 
--  The `HTTP Bridge Webhook <HTTP%20Bridge%20Webhook>`__ is a service
+-  The :doc:`HTTP Bridge Webhook <HTTP-Bridge-Webhook>` is a service
    that parses incoming WebHook requests (e.g. from GitLab or GitHub)
    and pushes all the arguments to a configured topic
--  The `HTTP Publisher <HTTP%20Bridge%20Publisher>`__ is a service that
+-  The :doc:`HTTP Bridge Publisher <HTTP-Bridge-Publisher>` is a service that
    allows clients to submit PubSub events via HTTP/POST requests.
    Crossbar will receive the event data via the request and forward the
    event via standard WAMP to any connected subscribers in real-time.
--  The `HTTP Caller <HTTP%20Bridge%20Caller>`__ is a service that allows
+-  The :doc:`HTTP Bridge Caller <HTTP-Bridge-Caller>` is a service that allows
    clients to perform WAMP calls via HTTP/POST requests. Crossbar will
    forward the call to the performing server and return the result.
--  The `HTTP Subscriber <HTTP%20Bridge%20Subscriber>`__ is a service
+-  The :doc:`HTTP Bridge Subscriber <HTTP-Bridge-Subscriber>` is a service
    that forwards WAMP PubSub events to HTTP endpoints.
--  The `HTTP Callee <HTTP%20Bridge%20Callee>`__ is a service that
+-  The :doc:`HTTP Bridge Callee <HTTP-Bridge-Callee>` is a service that
    translates WAMP procedure calls to HTTP requests.

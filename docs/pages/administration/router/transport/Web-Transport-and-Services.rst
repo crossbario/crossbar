@@ -3,9 +3,7 @@
 Web Transport and Services
 ==========================
 
-Quick Links: **`Web Services <Web%20Services>`__** - **`HTTP
-Bridge <HTTP%20Bridge>`__** - **`Transport
-Endpoints <Transport%20Endpoints>`__**
+Quick Links: :doc:`Web Services <../../web-service/Web-Services>` -  :doc:`HTTP Bridge <../../http-bridge/HTTP-Bridge>` - :doc:`Transport Endpoints <Transport-Endpoints>`
 
 Crossbar.io includes a full-featured WAMP router to wire up your
 application components. But if you serve HTML5 Web clients from
@@ -53,8 +51,8 @@ fullfilled:
 The value mapped to in the ``paths`` dictionary is a Web Service. The
 complete list of available Web services can be found here:
 
--  `Web Services <Web%20Services>`__
--  `HTTP Bridge <HTTP%20Bridge>`__
+-  :doc:`Web Services <../../web-service/Web-Services>` 
+-  :doc:`HTTP Bridge <../../http-bridge/HTTP-Bridge>`
 
 The Web transport ``options`` can have the following attributes:
 

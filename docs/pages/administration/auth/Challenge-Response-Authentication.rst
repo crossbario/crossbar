@@ -343,8 +343,7 @@ Examples
 -  `Dynamic/Custom Challenge-Response
    Authentication <https://github.com/crossbario/crossbarexamples/tree/master/authentication/wampcra/dynamic>`__
 
-For more on dynamic authenticators read `this documentation
-page <Dynamic%20Authenticators>`__.
+For more on dynamic authenticators read :doc:`this documentation page <Dynamic-Authenticators>`
 
 Configuration
 -------------

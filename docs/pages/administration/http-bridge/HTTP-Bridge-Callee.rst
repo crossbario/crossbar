@@ -27,8 +27,7 @@ This example is configured to register a WAMP procedure named
 procedure's complete keyword arguments are detailed further down, but if
 we use a kwargs of ``{"url": "get", "method": "GET"}``, Crossbar will
 send a HTTP GET request to ``httpbin.org/get`` and respond with the
-result. You can test this using the `HTTP
-Caller <HTTP%20Bridge%20Caller>`__ configured in the example:
+result. You can test this using the :doc:`HTTP Caller <HTTP-Bridge-Caller>` configured in the example:
 
 ``shell curl -H "Content-Type: application/json" \     -d '{"procedure": "com.myapp.rest", "kwargs": {"url": "get", "method": "GET"}}' \     http://127.0.0.1:8080/call``
 

@@ -1,8 +1,5 @@
 :orphan:
 
-title: WebSocket Options toc: [Documentation, Administration, Router
-Transports, WebSocket Transport, WebSocket Options]
-
 WebSocket Options
 =================
 
@@ -11,7 +8,7 @@ implementation that exposes various options and tunables you might be
 interested in, especially if you take your server to production.
 
     For options related to WebSocket compression, please see
-    `here <WebSocket%20Compression>`__.
+    :doc:`here <WebSocket-Compression>`.
 
 To set options on a WebSocket transport, add an ``options`` dictionary
 to the transport configuration part. Here is an example:

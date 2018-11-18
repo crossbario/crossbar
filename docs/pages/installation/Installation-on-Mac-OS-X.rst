@@ -15,13 +15,10 @@ Please start from either `Setting up CPython <#setting-up-cpython>`__ or
 
 Other options to get Crossbar.io running on OS X:
 
--  using **Docker**: see `Docker on Mac OS
-   X <https://docs.docker.com/engine/installation/mac/>`__ and then
+-  using **Docker**: see `Docker on Mac OSX <https://docs.docker.com/engine/installation/mac/>`__ and then
    follow `Installation on Docker <Installation%20on%20Docker>`__
--  using **`VirtualBox <https://www.virtualbox.org/>`__**: setup an
-   Ubuntu Linux VM and then follow `Installation on Ubuntu and
-   Debian <Installation%20on%20Ubuntu%20and%20Debian>`__
-
+-  using `VirtualBox <https://www.virtualbox.org/>`__ : setup an
+   Ubuntu Linux VM and then follow :doc:`Debian and Ubuntu Installation  <Installation-on-Linux>`.
 Setting up CPython
 ------------------
 

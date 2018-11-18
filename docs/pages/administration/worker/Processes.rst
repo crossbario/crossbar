@@ -6,13 +6,13 @@ Processes
 Crossbar.io has a multi-process architecture. There is one node
 controller process per node
 
--  :doc:`**Controller** Configuration <Controller-Configuration>`
+-  :doc:`Controller Configuration <Controller-Configuration>`
 
 and multiple worker processes of these types
 
--  :doc:`**Router** Configuration <Router-Configuration>`
--  :doc:`**Container** Configuration <Container-Configuration>`
--  :doc:`**Guest** Configuration <Guest-Configuration>`
+-  :doc:`Router Configuration <Router-Configuration>`
+-  :doc:`Container Configuration <Container-Configuration>`
+-  :doc:`Guest Configuration <Guest-Configuration>`
 
 Processes can be further configured with
 

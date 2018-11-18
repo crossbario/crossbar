@@ -39,15 +39,15 @@ Worker*, process of ``type == "router"``:
 
 For the available ``options`` with *Routers*, please see
 
--  [[Native Worker Options]]
--  [[Process Environments]]
+-  :doc:`Native Worker Options <Native-Worker-Options>`
+-  :doc:`Process Environments <Process-Environments>` 
 
 For configuration of ``realms``, ``transports`` and ``components``, have
 a look here
 
--  [[Router Realms]]
--  [[Router Transports]]
--  [[Router Components]]
+-  :doc:`Router Realms <../router/Router-Realms>`
+-  :doc:`Router Transports <../router/Router-Transports>` 
+-  :doc:`Router Components <../router/Router-Components>` 
 
 Configuration
 -------------

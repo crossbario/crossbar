@@ -451,7 +451,7 @@ The containers as-is are there to demonstrate the principles. To develop your ow
 
 Further Materials
 =================
-* Installation of Crossbar.io
-* Basic concept of WAMP and Crossbar.io
-* Creating Docker Images
+* :doc:`Installation of Crossbar.io  <installation/installation>`.
+* :doc:`Basic concept of WAMP and Crossbar.io  <about/Basic-Concepts>`.
+* Creating Docker Images 
 * Overview of WAMP Client libraries
