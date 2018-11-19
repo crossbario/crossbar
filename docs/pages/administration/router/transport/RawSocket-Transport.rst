@@ -72,8 +72,7 @@ for RawSocket listening transports are:
 
 Connecting Transports
 ~~~~~~~~~~~~~~~~~~~~~
-Connecting transports are used with
-:doc:`containers </../worker/Container-Configuration>` to allow hosted components to
+Connecting transports are used with :doc:`containers <../../worker/Container-Configuration>` to allow hosted components to
 connect to their upstream router. The available parameters for RawSocket
 connecting transports are:
 

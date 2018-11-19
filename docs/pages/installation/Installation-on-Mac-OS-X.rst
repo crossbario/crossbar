@@ -19,6 +19,7 @@ Other options to get Crossbar.io running on OS X:
    follow `Installation on Docker <Installation%20on%20Docker>`__
 -  using `VirtualBox <https://www.virtualbox.org/>`__ : setup an
    Ubuntu Linux VM and then follow :doc:`Debian and Ubuntu Installation  <Installation-on-Linux>`.
+
 Setting up CPython
 ------------------
 

@@ -184,7 +184,7 @@ transport**, like for example:
 Passthrough Payload Format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`Complete Example <https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/passthrough>`_
+`Complete Example <https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/passthrough>`__
 
 Crossbar.io can be configured to forward MQTT without touching in
 **passthrough mode**, which can be set on WAMP URI prefixes:
@@ -208,7 +208,7 @@ the (arbitrary binary) MQTT payload at all.
 Native Payload Format
 ~~~~~~~~~~~~~~~~~~~~~
 
-`Complete Example <https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/native>`_
+`Complete Example <https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/native>`__
 
 Crossbar.io can be configured to transform MQTT payload using a
 specified serializer in **native mode**, which can be set on WAMP URI
@@ -234,7 +234,7 @@ configured serializer such as JSON, CBOR, MessagePack or UBJSON.
 Dynamic Payload Format
 ~~~~~~~~~~~~~~~~~~~~~~
 
-`Complete Example <https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/dynamic>`_
+`Complete Example <https://github.com/crossbario/crossbar-examples/tree/master/mqtt/basic/dynamic>`__
 
 Crossbar.io can be configured to transform MQTT payload by calling user
 supplied payload codec procedures in **dynamic mode**, which can be set

@@ -107,14 +107,12 @@ pool of worker threads. Ther three main functions to use are:
 
 1. `runQuery  <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runQuery>`__:
    Use this to run a single SQL query and get the result.
+
 2.  `runOperation  <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runOperation>`__:
-   Use this to run a single SQL statement that does not return anything
-   (such as an ``INSERT``, ``DELETE`` or ``UPDATE``).
+Use this to run a single SQL statement that does not return anything  (such as an ``INSERT``, ``DELETE`` or ``UPDATE`` ).
+
 3.  `runInteraction  <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runInteraction>`__:
-   Use this to run a series of SQL statements in one SQL transaction.
-   Any modifications done from within the interaction will be part of
-   the (single) transaction, and either be committed or rolled back
-   completely.
+Use this to run a series of SQL statements in one SQL transaction.  Any modifications done from within the interaction will be part of  the (single) transaction, and either be committed or rolled back   completely.
 
 A adbapi based database component
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
