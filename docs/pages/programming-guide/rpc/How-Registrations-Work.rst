@@ -9,8 +9,7 @@ client can register a procedure for remote calling (become a callee).
 The procedure is registered for being called using a call URI (e.g.
 "com.myapp.myprocedure1").
 
-    Note: There are some `specific rules regarding URI
-    formatting <URI%20Format>`__.
+    Note: There are some :doc:`specific rules regarding URI formatting <../general/URI-Format>` .
 
 The registration is with the WAMP router, and calls for the procedure
 are also made to the router. The router then forwards a call to a
@@ -34,7 +33,7 @@ that a registration for "com.myapp.create" would lead to calls for both
 "com.myapp.create.user" and "com.myapp.create.device" to be accepted and
 invoked on the callee. For more on this see
 
--  `Pattern-Based Registrations <Pattern%20Based%20Registrations>`__.
+-  :doc:`Pattern-Based Registrations <Pattern-Based-Registrations>` .
 
 As a default, a procedure can only be registered by a single callee. All
 further registration attempts return an error. The routed nature of RPCs
@@ -43,16 +42,15 @@ registrations may be allowed, and the procedure is then invoked on the
 last callee to register which is currently still connected. For more on
 this see
 
--  `Shared Registrations <Shared%20Registrations>`__.
+-  :doc:`Shared Registrations <Shared-Registrations>` .
 
 Clients can be notfied of events regarding the lifecycle of
 registrations, and query for information about existing registrations
 using the
 
--  `Registration Meta-Events and
-   Procedures <Registration%20Meta%20Events%20and%20Procedures>`__
+-  :doc:`Registration Meta-Events and  Procedures <Registration-Meta-Events-and-Procedures>` 
 
 A registered procedure can return a single result (the default) or a set
 of results over time, see
 
--  `Progressive Call Results <Progressive%20Call%20Results>`__
+-  :doc:`Progressive Call Results <Progressive-Call-Results>` 

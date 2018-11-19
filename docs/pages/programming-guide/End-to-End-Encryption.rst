@@ -1,7 +1,5 @@
 :orphan:
 
-title: End to end Encryption toc: [Documentation, Programming Guide, End
-to End Encryption]
 
 End-to-end Encryption
 =====================
@@ -230,7 +228,7 @@ ed25519-sha512-salsa20-poly1305
 
 payload\_transparency payload\_encryption\_cryptobox
 
-http://ed25519.cr.yp.to/
-http://cr.yp.to/highspeed/naclcrypto-20090310.pdf
-http://cr.yp.to/highspeed/coolnacl-20120725.pdf
-https://cryptojedi.org/papers/naclhw-20150616.pdf
+- http://ed25519.cr.yp.to/
+- http://cr.yp.to/highspeed/naclcrypto-20090310.pdf
+- http://cr.yp.to/highspeed/coolnacl-20120725.pdf
+- https://cryptojedi.org/papers/naclhw-20150616.pdf

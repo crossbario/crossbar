@@ -1,7 +1,5 @@
 :orphan:
 
-title: Application Scenarios toc: [Documentation, Application Scenarios]
-
 Application Scenarios
 =====================
 
@@ -31,7 +29,7 @@ can mix and match application components as needed.
 
 *More information:*
 
--  [[Getting Started]] with Crossbar.io in different languages.
+-  :doc:`Getting Started <../gettingstarted>` with Crossbar.io in different languages.
 
 --------------
 
@@ -74,11 +72,10 @@ functions that can be freely moved between the browser or NodeJS!
 
 *More information:*
 
--  `Getting started with NodeJS <Getting%20started%20with%20NodeJS>`__
+-  `Getting started with NodeJS <Getting-started-with-NodeJS>`__
 -  `AutobahnJS <https://github.com/crossbario/autobahn-js>`__
 
---------------
-
+ 
 Adding Chat to Web applications
 -------------------------------
 
@@ -100,8 +97,7 @@ big deal.
 -  `Crossbar.io Chat Demo Source
    Code <https://github.com/crossbario/crossbarexamples/tree/master/demos/chat>`__
 
---------------
-
+ 
 Adding real-time to Web applications
 ------------------------------------
 
@@ -109,7 +105,7 @@ Another scenario is when you have an existing, classical Web application
 to which you just want to *add* some real-time features without
 rewriting the app.
 
-Crossbar.io features `*HTTP REST* bridge <HTTP%20Bridge>`__ which allows
+Crossbar.io features :doc:`HTTP REST bridge <../administration/http-bridge/HTTP-Bridge>` which allows
 interaction between WAMP application components and REST services.
 
 As an example, the *HTTP Publisher* service of Crossbar.io **can be used
@@ -135,7 +131,7 @@ Which means it'll work from e.g.
 
 *More information:*
 
--  `*HTTP REST* bridge <HTTP%20Bridge>`__
+-  :doc:`HTTP REST bridge <../administration/http-bridge/HTTP-Bridge>`
 
 --------------
 
@@ -157,7 +153,7 @@ redirections.
 
 *More information:*
 
--  `Crossbar.io Web services <Web%20Services>`__
+-  :doc:`Crossbar.io Web services <../administration/web-service/Web-Services>`
 
 --------------
 
