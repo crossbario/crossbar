@@ -617,9 +617,18 @@ class RouterSession(BaseSession):
 
             # if the client had a reassigned realm during authentication, restore it from the cookie
             if hasattr(self._transport, '_authrealm') and self._transport._authrealm:
-                assert u'cookie' in authmethods
-                realm = self._transport._authrealm
-                authextra = self._transport._authextra
+                if u'cookie' in authmethods:
+                    realm = self._transport._authrealm
+                    authextra = self._transport._authextra
+                elif self._transport._authprovider == u'cookie':
+                    # revoke authentication and invalidate cookie (will be revalidated if following auth is successful)
+                    self._transport._authmethod = None
+                    self._transport._authrealm = None
+                    self._transport._authid = None
+                    if hasattr(self._transport, '_cbtid'):
+                        self._transport.factory._cookiestore.setAuth(self._transport._cbtid, None, None, None, None, None)
+                else:
+                    pass  # TLS authentication is not revoked here
 
             # perform authentication
             if self._transport._authid is not None and (self._transport._authmethod == u'trusted' or self._transport._authprovider in authmethods):
