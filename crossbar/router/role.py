@@ -387,7 +387,7 @@ class RouterRoleDynamicAuth(RouterRole):
             # this happens for "embedded" sessions -- perhaps we
             # should have a better way to detect this -- also
             # session._transport should be a RouterApplicationSession
-            session_details = {
+            details = {
                 u'session': session._session_id,
                 u'authid': session._authid,
                 u'authrole': session._authrole,
@@ -398,12 +398,22 @@ class RouterRoleDynamicAuth(RouterRole):
                     u'type': u'stdio',  # or maybe "embedded"?
                 }
             }
+        else:
+            details = {
+                u'session': session_details.session,
+                u'authid': session_details.authid,
+                u'authrole': session_details.authrole,
+                u'authmethod': session_details.authmethod,
+                u'authprovider': session_details.authprovider,
+                u'authextra': session_details.authextra,
+                u'transport': session._transport._transport_info
+            }
 
         self.log.debug(
             "CrossbarRouterRoleDynamicAuth.authorize {uri} {action} {details}",
-            uri=uri, action=action, details=session_details)
+            uri=uri, action=action, details=details)
 
-        d = self._session.call(self._authorizer, session_details, uri, action, options)
+        d = self._session.call(self._authorizer, details, uri, action, options)
 
         # we could do backwards-compatibility for clients that didn't
         # yet add the 5th "options" argument to their authorizers like
