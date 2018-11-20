@@ -112,8 +112,7 @@ We provide a `full working
 example <https://github.com/crossbario/crossbarexamples/tree/master/authentication/ticket/dynamic>`__
 for WAMP-Ticket authentication with dynamic authentication.
 
-For more on dynamic authenticators read `this documentation
-page <Dynamic%20Authenticators>`__.
+For more on dynamic authenticators read :doc:`this documentation page <Dynamic-Authenticators>`
 
 TOTP authentication
 -------------------

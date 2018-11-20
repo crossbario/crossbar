@@ -15,7 +15,7 @@ Configuration File Location
 ---------------------------
 
 The local configuration of a Crossbar.io node is defined in a
-**`JSON <http://www.json.org/>`__ file ``.crossbar/config.json``**
+`JSON <http://www.json.org/>`__  file ``.crossbar/config.json``
 within the node directory.
 
     The default path of the configuration file can be overridden using

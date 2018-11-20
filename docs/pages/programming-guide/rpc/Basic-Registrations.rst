@@ -7,17 +7,17 @@ Basic Registrations
 As a default, registrations use exact matching, i.e. a callee which
 registers a procedure URI ``com.myapp.procedure1`` will receive calls
 for ``com.myapp.procedure1`` only. There are, however, also
-`pattern-based registrations <Pattern%20Based%20Registrations>`__ which
+:doc:`pattern-based registrations <Pattern-Based-Registrations>`  which
 can be selected via an option when registering.
 
-    Note: There are some `specific rules regarding URI
-    formatting <URI%20Format>`__.
+    Note: There are some :doc:`specific rules regarding URI
+    formatting <../general/URI-Format>` .
 
 Further, as a default only a single registration for a URI is allowed,
 i.e. once one component has registered a procedure for an URI
 ``com.myapp.topic1``, all further attempts to register a procedure for
-this URI will be rejected. There are, however, `shared
-registrations <Shared%20Registrations>`__ which can be seleted via an
+this URI will be rejected. There are, however, :doc:`shared
+registrations <Shared-Registrations>`  which can be seleted via an
 option when registering.
 
 Here's an example for a simple registration in JavaScript using

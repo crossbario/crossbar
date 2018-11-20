@@ -10,7 +10,7 @@ dependencies manually.
 
 There are two possibilities to install Crossbar.io:
 
--  [Installation using the PyPi] (Python Package Index) - quick install
+-  [Installation using the PyPi] (Python Package Index) - quick install 
    of the latest release version
 -  `Installation from Source <#installation-from-source>`__ - building
    everything (but Python) from sources

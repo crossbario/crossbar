@@ -3,9 +3,8 @@
 Transport Endpoints
 ===================
 
-Quick Links: **`WebSocket Transport <WebSocket%20Transport>`__** -
-**`RawSocket Transport <RawSocket%20Transport>`__** - **`Web
-Transport <Web%20Transport%20and%20Services>`__**
+Quick Links: :doc:`WebSocket Transport <WebSocket-Transport>` -
+:doc:`RawSocket Transport <RawSocket-Transport>` - :doc:`Web Transport <Web-Transport-and-Services>`
 
 An Endpoint describes the network connection over which data is
 transmitted. Endpoints are used as part of Transport definitions.
@@ -17,9 +16,8 @@ flavors: **listening endpoint** and **connecting endpoint**:
 
 -  `TCP Listening Endpoints <#tcp-listening-endpoints>`__
 -  `TLS Listening Endpoints <#tls-listening-endpoints>`__
--  `Unix Domain Listening
-   Endpoints <#unix-domain-listening-endpoints>`__
--  [Universal Listening Endpoints(#universal-listening-endpoints)
+-  `Unix Domain Listening Endpoints <#unix-domain-listening-endpoints>`__
+-  `Universal Listening Endpoints <#universal-listening-endpoints>`__
 -  `Tor Onion Service Endpoints <#tor-onion-service-endpoints>`__
 
 **Connecting Endpoints**:

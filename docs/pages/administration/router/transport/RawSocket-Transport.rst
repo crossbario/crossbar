@@ -3,7 +3,7 @@
 RawSocket Transport
 ===================
 
-Quick Links: **`Transport Endpoints <Transport%20Endpoints>`__**
+Quick Links: :doc:`Transport Endpoints <Transport-Endpoints>` 
 
 The **RawSocket Transport** implements WAMP-over-RawSocket and supports
 TCP/TLS as well as Unix domain socket, each combined with JSON and
@@ -40,15 +40,15 @@ Configuration
 Crossbar.io supports both **listening** as well as **connecting**
 WAMP-over-RawSocket transports.
 
-Listening transports are used with `routers <Router%20Configuration>`__
+Listening transports are used with :doc:`routers <../../worker/Router-Configuration>`
 to allow WAMP clients connect to Crossbar.io, whereas connecting
-transports are used with `containers <Container%20Configuration>`__ to
+transports are used with :doc:`containers <../../worker/Container-Configuration>` to
 allow hosted components to connect to their upstream router.
 
 Listening Transports
 ~~~~~~~~~~~~~~~~~~~~
 
-Listening transports are used with `routers <Router%20Configuration>`__
+Listening transports are used with :doc:`routers <../../worker/Router-Configuration>`
 to allow WAMP clients connect to Crossbar.io. The available parameters
 for RawSocket listening transports are:
 
@@ -72,9 +72,7 @@ for RawSocket listening transports are:
 
 Connecting Transports
 ~~~~~~~~~~~~~~~~~~~~~
-
-Connecting transports are used with
-`containers <Container%20Configuration>`__ to allow hosted components to
+Connecting transports are used with :doc:`containers <../../worker/Container-Configuration>` to allow hosted components to
 connect to their upstream router. The available parameters for RawSocket
 connecting transports are:
 

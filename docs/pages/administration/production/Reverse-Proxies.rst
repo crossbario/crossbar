@@ -1,7 +1,5 @@
 :orphan:
 
-title: Reverse Proxies toc: [Documentation, Administration, Going to
-Production, Reverse Proxies]
 
 Reverse Proxies
 ===============

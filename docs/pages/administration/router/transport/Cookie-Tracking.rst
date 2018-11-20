@@ -1,7 +1,5 @@
 :orphan:
 
-title: Cookie Tracking toc: [Documentation, Administration, Router
-Transports, WebSocket Transport, Cookie Tracking]
 
 Cookie Tracking
 ===============
@@ -9,9 +7,8 @@ Cookie Tracking
 Cookie tracking identifies and tracks WAMP-over-WebSocket client
 connections using HTTP cookies.
 
-Cookie tracking can be enabled on `WebSocket- <WebSocket-Transport>`__
-and `Web-Transport <Web-Transport-and-Services>`__. It is not available
-on other transport types such as `RawSocket <RawSocket-Transport>`__.
+Cookie tracking can be enabled on :doc:`WebSocket-Transport <WebSocket-Transport>` and :doc:`Web-Transport Services <Web-Transport-and-Services>` . It is not available
+on other transport types such as :doc:`RawSocket <RawSocket-Transport>`.
 
     While enabling cookie tracking is a prerequisite for cookie-based
     WAMP authentication, it can be used without authentication.
@@ -28,8 +25,7 @@ have two types of store:
     In the future, we'll have an LMDB backed cookie store as well.
 
 The stored information for a cookie includes the cookie ID as well as
-authentication information (see `Cookie
-Authentication <Cookie-Authentication>`__).
+authentication information (see :doc:`Cookie Authentication <../../auth/Cookie-Authentication>`).
 
 With a memory-backed cookie store, cookies are stored in in-memory
 objects, and, obviously, those cookies will be gone after stopping
@@ -64,7 +60,7 @@ comes from the respective authentication method used.
 Cookie Tracking with Authentication
 -----------------------------------
 
-Please see `Cookie Authentication <Cookie-Authentication>`__.
+Please see :doc:`Cookie Authentication <../../auth/Cookie-Authentication>`.
 
 Configuration
 -------------

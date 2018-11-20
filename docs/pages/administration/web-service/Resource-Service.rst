@@ -9,7 +9,7 @@ Configuration
 -------------
 
 To configure a Resource Service, attach a dictionary element to a path
-in your `Web transport <Web%20Transport%20and%20Services>`__:
+in your  :doc:`Web transport <../router/transport/Web-Transport-and-Services>`:
 
 +-----------+-------------------------------------------------------------------------------+
 | attribute | description                                                                   |

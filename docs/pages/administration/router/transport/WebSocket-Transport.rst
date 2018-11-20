@@ -3,10 +3,8 @@
 WebSocket Transport
 ===================
 
-Quick Links: **`WebSocket Options <WebSocket%20Options>`__** -
-**`WebSocket Compression <WebSocket%20Compression>`__** - **`Cookie
-Tracking <Cookie%20Tracking>`__** - **`Transport
-Endpoints <Transport%20Endpoints>`__**
+Quick Links: :doc:`WebSocket Options <WebSocket-Options>` - :doc:`WebSocket Compression <WebSocket-Compression>` - :doc:`Cookie
+Tracking <Cookie-Tracking>` - :doc:`Transport Endpoints <Transport-Endpoints>`
 
 The **WebSocket Transport** is the default and most common way for
 running WAMP. In particular, WAMP-over-WebSocket is the protocol used to
@@ -28,12 +26,10 @@ as well as **connecting transports**
 -  `Connecting WebSocket Transport
    Example <#example---connecting-transport>`__
 
-    The difference between the WebSocket Transport here, and the
-    `WebSocket Service <WebSocket%20Service>`__, which is a feature of
-    the `Web Transport <Web%20Transport%20and%20Services>`__ is that the
-    transport here is **only** able to serve WAMP-over-WebSocket and
-    nothing else, whereas the Web Transport allows to combine multiple
-    Web services all running on one port.
+The difference between the WebSocket Transport here, and the :doc:`WebSocket Service <../../web-service/WebSocket-Service>` , which is a feature of
+the :doc:`Web Transport <Web-Transport-and-Services>` is that the transport here is **only** able to serve WAMP-over-WebSocket and
+nothing else, whereas the Web Transport allows to combine multiple
+Web services all running on one port.
 
 Configuration
 -------------
@@ -41,13 +37,13 @@ Configuration
 Crossbar.io supports both **listening** as well as **connecting**
 WAMP-over-WebSocket transports.
 
-Listening transports are used with `routers <Router%20Configuration>` to allow WAMP clients connect to Crossbar.io, whereas connecting
-transports are used with `containers <Container%20Configuration>` to allow hosted components to connect to their upstream router.
+Listening transports are used with :doc:`routers <../../worker/Router-Configuration>` to allow WAMP clients connect to Crossbar.io, whereas connecting
+transports are used with :doc:`containers <../../worker/Container-Configuration>` to allow hosted components to connect to their upstream router.
 
 Listening Transports
 ~~~~~~~~~~~~~~~~~~~~
 
-Listening transports are used with `routers <Router%20Configuration>`__
+Listening transports are used with  :doc:`routers <../../worker/Router-Configuration>`
 to allow WAMP clients connect to Crossbar.io. The available parameters
 for WebSocket listening transports are:
 
@@ -83,7 +79,7 @@ Connecting Transports
 ~~~~~~~~~~~~~~~~~~~~~
 
 Connecting transports are used with
-`containers <Container%20Configuration>`__ to allow hosted components to
+:doc:`containers <../../worker/Container-Configuration>` to allow hosted components to
 connect to their upstream router. The available parameters for WebSocket
 connecting transports are:
 

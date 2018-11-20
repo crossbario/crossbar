@@ -79,10 +79,9 @@ Whitelisting**, can be communicated to application components via
 application-level messages. Components should be able to retrieve their
 WAMP Session ID - e.g. in Autobahn\|JS, it's stored in ``session.id``.
 
-Additionally, Crossbar.io has `Subscription Meta-Events and
-Procedures <Subscription%20Meta%20Events%20and%20Procedures>`__ which
+Additionally, Crossbar.io has :doc:`Subscription Meta-Events and
+Procedures <Subscription-Meta-Events-and-Procedures>` which
 allow the retrieval of this information from the router.
 
-Further, Crossbar.io has `Publisher
-Identification <Publisher%20Identification>`__ and `Caller
-Identification <Caller%20Identification>`__.
+Further, Crossbar.io has :doc:`Publisher Identification <Publisher-Identification>` and :doc:`Caller
+Identification <../rpc/Caller-Identification>`.

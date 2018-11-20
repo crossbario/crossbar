@@ -29,8 +29,7 @@ Here is part of a node configuration that enables cookie-tracking on a
 WebSocket transport, as well as enabling cookie-based authentication
 plus WAMP-CRA.
 
-You can find a *complete example
-`here <https://github.com/crossbario/crossbarexamples/tree/master/authentication/cookie>`__*.
+You can find a complete example `here <https://github.com/crossbario/crossbarexamples/tree/master/authentication/cookie>`_.
 
 .. code:: json
 

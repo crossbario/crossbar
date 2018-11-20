@@ -1,8 +1,5 @@
 :orphan:
 
-title: Secure WebSocket and HTTPS toc: [Documentation, Administration,
-Going to Production, Secure WebSocket and HTTPS]
-
 Secure WebSocket and HTTPS
 ==========================
 
@@ -211,7 +208,7 @@ TLS Certificates
 ----------------
 
 We provide help for creation and handling of TLS certificates on the
-`TLS Certificates page <TLS%20Certificates>`__.
+:doc:`TLS Certificates page <TLS-Certificates>`.
 
 Examples
 --------

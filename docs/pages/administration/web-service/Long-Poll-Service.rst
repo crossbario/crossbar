@@ -19,7 +19,7 @@ Configuration
 -------------
 
 To configure a Long-poll Service, attach a dictionary element to a path
-in your `Web transport <Web%20Transport%20and%20Services>`__:
+in your :doc:`Web transport <../router/transport/Web-Transport-and-Services>` :
 
 +-------------------+--------------------------------------------------+
 | option            | description                                      |
@@ -89,8 +89,7 @@ Test using curl
 For developers that want to add WAMP-over-Longpoll support to their WAMP
 client library, we have an
 `example <https://github.com/crossbario/crossbarexamples/tree/master/longpoll_curl>`__
-which demonstrates the transport using plain
-**`curl <https://curl.haxx.se/>`__** only.
+which demonstrates the transport using plain  `curl <https://curl.haxx.se/>`__  only.
 
     This example can be useful during development and debugging. It is
     **not** intended for end-users.

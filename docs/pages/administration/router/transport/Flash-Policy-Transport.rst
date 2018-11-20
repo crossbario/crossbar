@@ -1,12 +1,10 @@
 :orphan:
 
-title: Flash Policy Transport toc: [Documentation, Administration,
-Router Transports, Flash Policy Transport]
 
 Flash Policy Transport
 ======================
 
-Quick Links: **`Transport Endpoints <Transport%20Endpoints>`__**
+Quick Links: :doc:`Transport Endpoints <Transport-Endpoints>` 
 
 Old Web browsers like IE8 and IE9 do no support WebSocket natively.
 *One* option to work around is using

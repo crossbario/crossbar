@@ -1,7 +1,6 @@
 :orphan:
 
-title: JavaScript Frameworks and Libraries toc: [Documentation,
-Programming Guide, JavaScript Frameworks and Libraries]
+
 
 We believe that browser frontends will increase in importance. Browsers
 are the most widely spread runtime ever, and they are gaining new
@@ -33,8 +32,7 @@ Angular
 
 -  The `AngularJS website <https://angularjs.org/>`__ offers a lot of
    information, including tutorials.
--  There's an [[introduction to combining Crossbar and AngularJS \|
-   AngularJS-Application-Components]] in this wiki
+-  There's an :doc:`introduction to combining Crossbar and AngularJS  in this wiki<framework/AngularJS-Application-Components>`
 
 Ember
 ~~~~~

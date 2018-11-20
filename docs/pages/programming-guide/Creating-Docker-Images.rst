@@ -1,13 +1,11 @@
 :orphan:
 
-title: Creating Docker Images toc: [Documentation, Programming Guide,
-Creating Docker Images]
 
 Creating Docker Images
 ======================
 
 The Docker containers we recommend using for getting started (see
-`Getting Started </docs/Getting-Started>`__) as a default gets its
+:doc:`Getting Started <../gettingstarted>` ) as a default gets its
 configuration, app code to run and instructions what to run from the
 respective repository in the starter repository.
 

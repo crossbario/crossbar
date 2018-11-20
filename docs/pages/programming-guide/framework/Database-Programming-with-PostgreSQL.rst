@@ -14,9 +14,9 @@ this is what we recommend:
 +---------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------+
 | Python / Networking Framework               | `Twisted <http://www.twistedmatrix.com/>`__                                                                               | `asyncio <https://docs.python.org/3/library/asyncio.html>`__                                                    |
 +=============================================+===========================================================================================================================+=================================================================================================================+
-| **`CPython <https://www.python.org/>`__**   | `psycopg2 <https://pypi.python.org/pypi/psycopg2>`__ + `txpostgres <https://pypi.python.org/pypi/txpostgres>`__           | `psycopg2 <https://pypi.python.org/pypi/psycopg2>`__ + `aiopg <https://pypi.python.org/pypi/aiopg>`__           |
+|   `CPython <https://www.python.org/>`__     | `psycopg2 <https://pypi.python.org/pypi/psycopg2>`__ + `txpostgres <https://pypi.python.org/pypi/txpostgres>`__           | `psycopg2 <https://pypi.python.org/pypi/psycopg2>`__ + `aiopg <https://pypi.python.org/pypi/aiopg>`__           |
 +---------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------+
-| **`PyPy <http://pypy.org/>`__**             | `psycopg2cffi <https://pypi.python.org/pypi/psycopg2cffi>`__ + `txpostgres <https://pypi.python.org/pypi/txpostgres>`__   | `psycopg2cffi <https://pypi.python.org/pypi/psycopg2cffi>`__ + `aiopg <https://pypi.python.org/pypi/aiopg>`__   |
+|   `PyPy <http://pypy.org/>`__               | `psycopg2cffi <https://pypi.python.org/pypi/psycopg2cffi>`__ + `txpostgres <https://pypi.python.org/pypi/txpostgres>`__   | `psycopg2cffi <https://pypi.python.org/pypi/psycopg2cffi>`__ + `aiopg <https://pypi.python.org/pypi/aiopg>`__   |
 +---------------------------------------------+---------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------+
 
 Above libraries provide a classic cursor and SQL based API to the
@@ -36,7 +36,7 @@ To access PostgreSQL from Python, you will need a **database driver**.
 There are multiple drivers (e.g. see
 `here <https://wiki.python.org/moin/PostgreSQL>`__ and
 `here <https://wiki.postgresql.org/wiki/Python>`__), however, the most
-commonly used is **`Psycopg <http://initd.org/psycopg/>`__**.
+commonly used is `Psycopg <http://initd.org/psycopg/>`__.
 
 **Psycopg** can be used to access PostgreSQL from WAMP application
 components written in Python, and running under Twisted or asyncio.
@@ -98,24 +98,21 @@ stuff that can go wield.
 Twisted adbapi
 ~~~~~~~~~~~~~~
 
--  `Twisted RDBMS
-   support <http://twistedmatrix.com/documents/current/core/howto/rdbms.html>`__
--  ```twisted.enterprise.adbapi.ConnectionPool`` <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html>`__
+-  `Twisted RDBMS support <http://twistedmatrix.com/documents/current/core/howto/rdbms.html>`__
+-  `twisted.enterprise.adbapi.ConnectionPool <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html>`__
 
 You'll be interacting with the database via a database connection from
 the database connection pool created by Twisted, and run on a background
 pool of worker threads. Ther three main functions to use are:
 
-1. ```runQuery`` <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runQuery>`__:
+1. `runQuery  <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runQuery>`__:
    Use this to run a single SQL query and get the result.
-2. ```runOperation`` <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runOperation>`__:
-   Use this to run a single SQL statement that does not return anything
-   (such as an ``INSERT``, ``DELETE`` or ``UPDATE``).
-3. ```runInteraction`` <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runInteraction>`__:
-   Use this to run a series of SQL statements in one SQL transaction.
-   Any modifications done from within the interaction will be part of
-   the (single) transaction, and either be committed or rolled back
-   completely.
+
+2.  `runOperation  <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runOperation>`__:
+Use this to run a single SQL statement that does not return anything  (such as an ``INSERT``, ``DELETE`` or ``UPDATE`` ).
+
+3.  `runInteraction  <https://twistedmatrix.com/documents/current/api/twisted.enterprise.adbapi.ConnectionPool.html#runInteraction>`__:
+Use this to run a series of SQL statements in one SQL transaction.  Any modifications done from within the interaction will be part of  the (single) transaction, and either be committed or rolled back   completely.
 
 A adbapi based database component
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

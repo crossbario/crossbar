@@ -168,5 +168,5 @@ Examples <https://github.com/crossbario/crossbarexamples/tree/master/metaapi>`__
 Event History
 -------------
 
-For the possibility to retrieve past events for a topic see the `Event
-History doc page <Event%20History>`__.
+For the possibility to retrieve past events for a topic see the :doc:`Event
+History doc page <Event-History>`.

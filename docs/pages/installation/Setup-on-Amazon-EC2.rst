@@ -10,8 +10,7 @@ Crossbar.io running on `Ubuntu Server 14.04
 LTS <https://insights.ubuntu.com/2014/04/17/whats-new-in-ubuntu-server-14-04-lts/>`__.
 
 If you want to install Crossbar.io from scratch, or run it on a
-different OS, see the `instructions for
-installation </docs/Installation>`__.
+different OS, see the :doc:`Installation of Crossbar.io  <installation>`. 
 
 Create an Instance
 ------------------

@@ -8,12 +8,11 @@ library you're using. The `Autobahn </autobahn>`__ family of WAMP client
 libraries is provided by us, whereas you can find more WAMP client
 libraries `here <http://wamp.ws/implementations/#libraries>`__.
 
-We also operate a public `Crossbar.io Demo Instance <Demo%20Instance>`__
+We also operate a public :doc:`Crossbar.io Demo Instance <../installation/Demo-Instance>`
 and offer a range of materials for `IoT devices, components and
 applications <http://crossbario.com/iotcookbook>`__.
 
-    For administrators, we provide a `Administration
-    Manual <Administration>`__ that provides documentation about
+    For administrators, we provide a :doc:`Administration Manual <../administration/Administration>` that provides documentation about
     administration aspects related to Crossbar.io.
 
 The following introduces different areas of WAMP application programming

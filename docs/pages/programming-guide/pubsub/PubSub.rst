@@ -1,19 +1,16 @@
 :orphan:
 
-title: Publish & Subscribe toc: [Documentation, Programming Guide,
-PubSub]
-
 Overview
 ========
 
 See the following pages
 
--  [[How Subscriptions Work]]
--  [[Basic Subscriptions]]
--  [[Pattern Based Subscriptions]]
--  [[Publisher Identification]]
--  [[Publisher Exclusion]]
--  [[Subscriber Black and Whitelisting]]
--  [[Event History]]
--  [[Retained Events]]
--  [[Subscription Meta Events and Procedures]]
+-  :doc:`How Subscriptions Work<How-Subscriptions-Work>`
+-  :doc:`Basic Subscriptions<Basic-Subscriptions>`
+-  :doc:`Pattern Based Subscriptions<Pattern-Based-Subscriptions>`
+-  :doc:`Publisher Identification<Publisher-Identification>`
+-  :doc:`Publisher Exclusion<Publisher-Exclusion>`
+-  :doc:`Subscriber Black and Whitelisting<Subscriber-Black-and-Whitelisting>`
+-  :doc:`Event History<Event-History>`
+-  :doc:`Retained Events<Retained-Events>`
+-  :doc:`Subscription Meta Events and Procedures<Subscription-Meta-Events-and-Procedures>`

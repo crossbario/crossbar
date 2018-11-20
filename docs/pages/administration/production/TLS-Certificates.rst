@@ -1,7 +1,5 @@
 :orphan:
 
-title: TLS Certificates toc: [Documentation, Administration, Going to
-Production, TLS Certificates]
 
 TLS Certificates
 ================
@@ -9,8 +7,8 @@ TLS Certificates
 This page provides some information about how to create and use TLS
 certificates for secure connections with Crossbar.io.
 
-For configuring TLS in Crossbar.io in principle, see `Secure WebSocket
-and HTTPS <Secure%20WebSocket%20and%20HTTPS>`__.
+For configuring TLS in Crossbar.io in principle, see :doc:`Secure WebSocket
+and HTTPS <Secure-WebSocket-and-HTTPS>`.
 
 Using Self-signed Certificates
 ------------------------------
