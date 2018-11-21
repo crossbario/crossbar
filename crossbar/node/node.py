@@ -68,6 +68,10 @@ class Node(object):
 
     ROUTER_SERVICE = RouterServiceAgent
 
+    CONFIG_SOURCE_DEFAULT = 1
+    CONFIG_SOURCE_LOCALFILE = 2
+    CONFIG_SOURCE_XBRNETWORK = 3
+
     # A Crossbar.io node is the running a controller process and one or multiple
     # worker processes.
     # A single Crossbar.io node runs exactly one instance of this class, hence
@@ -112,7 +116,7 @@ class Node(object):
         # config of this node.
         self._config = None
 
-        # node private key autobahn.wamp.cryptosign.SigningKey
+        # node private key :class:`autobahn.wamp.cryptosign.SigningKey`
         self._node_key = None
 
         # when running in managed mode, this will hold the session to CFC
@@ -149,15 +153,37 @@ class Node(object):
         self._webservice_no = 1
         self._component_no = 1
 
+    @property
+    def key(self):
+        """
+        Returns the node (private signing) key pair.
+
+        :return: The node key.
+        :rtype: :class:`autobahn.wamp.cryptosign.SigningKey`
+        """
+        return self._node_key
+
     def load_keys(self, cbdir):
         """
+        Load node public-private key pair from key files, possibly generating a new key pair if
+        none exists.
+
+        This is the _first_ function being called after the Node has been instantiated.
+
+        IMPORTANT: this function is run _before_ start of Twisted reactor!
         """
         self._node_key = _maybe_generate_key(cbdir)
 
     def load_config(self, configfile=None):
         """
-        Check and load the node configuration (usually, from ".crossbar/config.json")
-        or load built-in empty config.
+        Check and load the node configuration from:
+
+        * from ``.crossbar/config.json`` or
+        * from built-in (empty) default configuration
+
+        This is the _second_ function being called after the Node has been instantiated.
+
+        IMPORTANT: this function is run _before_ start of Twisted reactor!
         """
         if configfile:
             configpath = os.path.abspath(os.path.join(self._cbdir, configfile))
@@ -172,6 +198,7 @@ class Node(object):
 
             self.log.info('Node configuration loaded from {configpath}',
                           configpath=hlid(configpath))
+            return Node.CONFIG_SOURCE_LOCALFILE
         else:
             self._config = {
                 u'version': 2,
@@ -180,6 +207,7 @@ class Node(object):
             }
             self.personality.check_config(self.personality, self._config)
             self.log.info('Node configuration loaded from built-in config.')
+            return Node.CONFIG_SOURCE_DEFAULT
 
     def _add_global_roles(self):
         self.log.info('No extra node router roles')
@@ -252,6 +280,11 @@ class Node(object):
         """
         Starts this node. This will start a node controller and then spawn new worker
         processes as needed.
+
+        The node keys (``load_keys``) and configuration (``load_config``) has to be loaded
+        before starting the node.
+
+        This is the _third_ function being called after the Node has been instantiated.
         """
         self.log.info('Starting {personality} node {method}',
                       personality=self.personality.NAME,
