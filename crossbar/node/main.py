@@ -690,7 +690,7 @@ def _run_command_start(options, reactor, personality):
     # check and load the node configuration
     #
     try:
-        node.load_config(options.config)
+        config_source = node.load_config(options.config)
     except InvalidConfigException as e:
         log.failure()
         log.error("Invalid node configuration")
@@ -698,6 +698,8 @@ def _run_command_start(options, reactor, personality):
         sys.exit(1)
     except:
         raise
+    else:
+        log.info('Configuration source {config_source}', config_source=config_source)
 
     # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
     # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
