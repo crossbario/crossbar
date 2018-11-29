@@ -252,6 +252,9 @@ class RouterController(WorkerController):
         # create a new router for the realm
         router = self._router_factory.start_realm(rlm)
 
+        if router._store and hasattr(router._store, 'start'):
+            yield router._store.start()
+
         # add a router/realm service session
         extra = {
             # the RouterServiceAgent will fire this when it is ready
