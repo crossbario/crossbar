@@ -193,6 +193,11 @@ Fetch the source code using git: ::
 
 ..  All the python examples are available as part of https://hub.docker.com/r/crossbario/autobahn-python/ so we can start straightway the application from Docker.
 
+All the examples used here are started from getting-started folder, so before running any command navigate to the folder if you have not::
+
+  cd crossbar-examples/getting-started
+
+
 
 Starting a Crossbar.io Router
 =============================
@@ -244,9 +249,12 @@ The configuration entries are explained below in **Line no - Description** forma
 * 10    - defines the realm name as **realm1**
 * 11-30 - a single **roles** dictionary entry
 * 19-22 - permits to perform publish, subscribe, call and register operation in this realm
+
+.. note:: The above permission setting should only be used for  development purpose and not for production
+
 * 35-63 - **transport** dictionary entry. 
-* 37    - defines the type **universal**. It is a special type where it allows  websocket, rawsocket and web server to use the same port. The Crossbar.io identifies the packet using its header.
-* 38-41 - it uses **tcp** and port number **8080** as its transport endpoint
+* 36-38 - defines the type **web**. It is a type of transport where it allows websocket, web services to use the same port. The Crossbar.io identifies the packet using its header.
+* 38-41 - it uses **tcp** and port number **8080** as its :doc:`transport endpoint <administration/router/transport/Transport-Endpoints>`
 * 49-61 - defines the web transport entry. each entry in the **path** defines a route to  HTML page.
 * 59    - This entry creates the nodeinfo page *http://localhost:8080/info* which was verified earlier.
 
@@ -254,8 +262,9 @@ The configuration entries are explained below in **Line no - Description** forma
 In the configuration you can see the line **"name": "realm1"** which configures the realm to be "realm1". An the port number is configured as 8080     **"port": 8080**. When connecting to this Crossbar router instance we need to use this particular realm and port number.
 
 .. note:: The config file used in the example is also available
-  `here <https://github.com/crossbario/crossbar/blob/master/crossbar/node/templates/default/.crossbar/config.json>`_.
+  `here <https://raw.githubusercontent.com/crossbario/crossbar-examples/master/getting-started/.crossbar/config.json>`_.
 
+For more detail about the configuration and features have a look at :doc:`Administrative manual <administration/Administration>`
 
 Hello World
 ===========
