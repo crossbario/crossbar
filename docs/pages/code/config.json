@@ -1,8 +1,6 @@
 {
-    "$schema": "https://raw.githubusercontent.com/crossbario/crossbar/master/crossbar.json",
     "version": 2,
-    "controller": {
-    },
+    "controller": {},
     "workers": [
         {
             "type": "router",
@@ -35,30 +33,24 @@
             ],
             "transports": [
                 {
-                    "type": "universal",
+                    "type": "web",
                     "endpoint": {
                         "type": "tcp",
                         "port": 8080
                     },
-                    "rawsocket": {
-                    },
-                    "websocket": {
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": "../web",
+                            "options": {
+                                "enable_directory_listing": true
+                            }
+                        },
+                     "info": {
+                                "type": "nodeinfo"
+                        },
                         "ws": {
                             "type": "websocket"
-                        }
-                    },
-                    "web": {
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": "../web",
-                                "options": {
-                                    "enable_directory_listing": true
-                                }
-                            },
-                            "info": {
-                                "type": "nodeinfo"
-                            }
                         }
                     }
                 }
