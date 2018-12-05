@@ -5,7 +5,7 @@ autobahn==18.11.2
 Automat==0.7.0
 bitstring==3.1.5
 cbor==1.0.0
-certifi==2018.10.15
+certifi==2018.11.29
 cffi==1.11.5
 chardet==3.0.4
 Click==7.0
@@ -39,7 +39,7 @@ PyTrie==0.3.1
 PyYAML==3.13
 requests==2.20.1
 sdnotify==0.3.2
-service-identity==17.0.0
+service-identity==18.1.0
 setproctitle==1.1.10
 setuptools==40.6.2
 six==1.11.0
