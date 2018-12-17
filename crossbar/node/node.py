@@ -172,9 +172,10 @@ class Node(object):
 
         IMPORTANT: this function is run _before_ start of Twisted reactor!
         """
-        self._node_key = _maybe_generate_key(cbdir)
+        was_new, self._node_key = _maybe_generate_key(cbdir)
+        return was_new
 
-    def load_config(self, configfile=None):
+    def load_config(self, configfile=None, default=None):
         """
         Check and load the node configuration from:
 
@@ -200,13 +201,22 @@ class Node(object):
                           configpath=hlid(configpath))
             return Node.CONFIG_SOURCE_LOCALFILE
         else:
-            self._config = {
-                u'version': 2,
-                u'controller': {},
-                u'workers': []
-            }
+            if default:
+                self._config = default
+            else:
+                self._config = {
+                    u'version': 2,
+                    u'controller': {},
+                    u'workers': []
+                }
+
             self.personality.check_config(self.personality, self._config)
-            self.log.info('Node configuration loaded from built-in config.')
+
+            if default:
+                self.log.info('Node configuration loaded from {configsource}.', configsource=hlid('built-in config'))
+            else:
+                self.log.info('Node configuration loaded from {configsource}.', configsource=hlid('empty (!) config'))
+
             return Node.CONFIG_SOURCE_DEFAULT
 
     def _add_global_roles(self):

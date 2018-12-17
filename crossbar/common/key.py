@@ -198,6 +198,7 @@ def _write_node_key(filepath, tags, msg):
 
 def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
 
+    was_new = True
     privkey_path = os.path.join(cbdir, privfile)
     pubkey_path = os.path.join(cbdir, pubfile)
 
@@ -247,8 +248,10 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
             msg = u'Crossbar.io node public key\n\n'
             _write_node_key(pubkey_path, pub_tags, msg)
 
-        log.debug("Node key files exist and are valid")
-        log.debug("Node public key: {hex}", hex=pubkey_hex)
+        log.info('Node key files exist and are valid. Node public key is {pubkey}',
+                 pubkey=hlid('0x' + pubkey_hex))
+
+        was_new = False
 
     else:
         # node private key does not yet exist: generate one
@@ -273,7 +276,7 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
         msg = u'Crossbar.io node private key - KEEP THIS SAFE!\n\n'
         _write_node_key(privkey_path, tags, msg)
 
-        log.info("New node key pair generated!")
+        log.info('New node key pair generated! Public key is {pubkey}', pubkey=hlid('0x' + pubkey_hex))
 
     # fix file permissions on node public/private key files
     # note: we use decimals instead of octals as octal literals have changed between Py2/3
@@ -290,4 +293,4 @@ def _maybe_generate_key(cbdir, privfile=u'key.priv', pubfile=u'key.pub'):
         'Node key loaded from {priv_path}',
         priv_path=hlid(privkey_path),
     )
-    return cryptosign.SigningKey(privkey)
+    return was_new, cryptosign.SigningKey(privkey)
