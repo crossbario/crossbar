@@ -1,6 +1,6 @@
 name: crossbar
 # Fallback version
-version: '17.9.2'
+version: 'latest'
 version-script: |
     grep -E '^(__version__)' crossbar/_version.py | \
     cut -d ' ' -f3 | sed -e 's|[u"'\'']||g'
@@ -25,7 +25,7 @@ apps:
 parts:
   crossbar:
     plugin: python
-    source: https://github.com/crossbario/crossbar.git
+    source: .
     python-packages:
       - cffi>=1.1.0
     build-packages:
@@ -33,3 +33,10 @@ parts:
       - libffi-dev
       - libssl-dev
       - make
+
+slots:
+  crossbar:
+    interface: content
+    content: executables
+    read:
+      - $SNAP
