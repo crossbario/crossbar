@@ -39,4 +39,4 @@ slots:
     interface: content
     content: executables
     read:
-      - $SNAP
+      - $SNAP/lib/python3.5/site-packages
