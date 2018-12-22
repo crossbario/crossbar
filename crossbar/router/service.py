@@ -238,7 +238,17 @@ class RouterServiceAgent(ApplicationSession):
         if session_id in self._router._session_id_to_session:
             session = self._router._session_id_to_session[session_id]
             if not is_restricted_session(session):
-                return session._session_details
+                details = session._session_details
+                return {
+                    u'session': details.session,
+                    u'authid': details.authid,
+                    u'authrole': details.authrole,
+                    u'authmethod': details.authmethod,
+                    u'authprovider': details.authprovider,
+                    u'authextra': details.authextra,
+                    u'transport': None if session._transport is None else session._transport._transport_info
+                }
+
         raise ApplicationError(
             ApplicationError.NO_SUCH_SESSION,
             u'no session with ID {} exists on this router'.format(session_id),
