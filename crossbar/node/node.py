@@ -479,6 +479,8 @@ class Node(object):
             else:
                 raise Exception('logic error: unexpected worker_type="{}"'.format(worker_type))
 
+        if self._reactor:
+            self._reactor.fireSystemEvent('crossbar-ready')
         self.log.info(hl('Ok, local node configuration booted successfully!', color='green', bold=True))
 
     @inlineCallbacks
