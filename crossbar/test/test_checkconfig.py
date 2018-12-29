@@ -31,11 +31,7 @@
 from __future__ import absolute_import, division, print_function
 
 import json
-import six
-if six.PY3:
-    from collections.abc import Sequence
-else:
-    from collections import Sequence
+from collections.abc import Sequence
 
 import crossbar
 from crossbar.test import TestCase

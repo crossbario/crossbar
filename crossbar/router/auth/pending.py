@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import six
-
 from autobahn.wamp import types
 from autobahn.wamp.exception import ApplicationError
 
@@ -97,7 +95,7 @@ class PendingAuth:
         self._authenticator_session = None
 
     def _assign_principal(self, principal):
-        if type(principal) == six.text_type:
+        if type(principal) == str:
             # FIXME: more strict authrole checking
             pass
         elif type(principal) == dict:
@@ -110,7 +108,7 @@ class PendingAuth:
 
         # backwards compatibility: dynamic authenticator
         # was expected to return a role directly
-        if type(principal) == six.text_type:
+        if type(principal) == str:
             principal = {
                 u'role': principal
             }

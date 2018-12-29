@@ -30,19 +30,12 @@
 
 from __future__ import absolute_import, division, print_function
 
-import six
-
 
 def native_string(string):
     """
     Make C{string} be the type of C{str}, decoding with ASCII if required.
     """
-    if six.PY3:
-        if isinstance(string, six.binary_type):
-            return string.decode('ascii')
-        else:
-            raise ValueError("This is already a native string.")
+    if isinstance(string, bytes):
+        return string.decode('ascii')
     else:
-        if isinstance(string, six.text_type):
-            raise ValueError("This can't be used to go from unicode to str")
-    return string
+        raise ValueError("This is already a native string.")

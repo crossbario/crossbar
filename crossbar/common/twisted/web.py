@@ -94,28 +94,3 @@ class Site(server.Site):
         if hsts:
             hsts_max_age = hsts_max_age or 31536000
             self.requestFactory = createHSTSRequestFactory(self.requestFactory, hsts_max_age)
-
-
-def patchFileContentTypes(root):
-    """
-    For reasons beyond my understanding, on Python 2.7.7, the MIME type map in
-    `twisted.web.static.File.contentTypes` ends up having values (not all) that
-    are of type unicode. This breaks stuff further down the line, since twisted
-    will bail out "data must not be unicode" when the HTTP header with the
-    respective content type is written.
-
-    We work around by patching the map.
-
-    See also: https://twistedmatrix.com/trac/ticket/7461
-
-    Update: the origin is http://bugs.python.org/issue21652
-
-    It is specific to CPython 2.7.7 on Windows. It is fixed in 2.7.8.
-    """
-    import six
-    if six.PY2:
-        c = 0
-        for k, v in root.contentTypes.items():
-            if isinstance(v, six.text_type):
-                root.contentTypes[k] = root.contentTypes[k].encode('ascii')
-                c += 1

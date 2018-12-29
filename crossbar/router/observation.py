@@ -29,7 +29,6 @@
 #####################################################################################
 
 from __future__ import absolute_import
-import six
 
 from pytrie import StringTrie
 from crossbar.router.wildcard import WildcardMatcher, WildcardTrieMatcher
@@ -221,7 +220,7 @@ class UriObservationMap(object):
             ``observation`` is an instance of one of ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation``.
         :rtype: tuple
         """
-        if not isinstance(uri, six.text_type):
+        if not isinstance(uri, str):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
         is_first_observer = False
@@ -295,7 +294,7 @@ class UriObservationMap(object):
         :rtype: obj or None
         """
 
-        if not isinstance(uri, six.text_type):
+        if not isinstance(uri, str):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
         if match == u"exact":
@@ -324,7 +323,7 @@ class UriObservationMap(object):
         """
         observations = []
 
-        if not isinstance(uri, six.text_type):
+        if not isinstance(uri, str):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
         if uri in self._observations_exact:
@@ -350,7 +349,7 @@ class UriObservationMap(object):
             ``ExactUriObservation``, ``PrefixUriObservation`` or ``WildcardUriObservation`` or ``None``.
         :rtype: obj or None
         """
-        if not isinstance(uri, six.text_type):
+        if not isinstance(uri, str):
             raise Exception("'uri' should be unicode, not {}".format(type(uri).__name__))
 
         # a exact matching observation is always "best", if any

@@ -33,8 +33,6 @@ from __future__ import absolute_import
 import os
 import tempfile
 
-import six
-
 from twisted.internet.defer import Deferred
 from twisted.internet.threads import deferToThread
 
@@ -106,7 +104,7 @@ if _HAS_VMPROF:
         def _walk_tree(self, parent, node, level, callback):
             callback(parent, node, level)
             level += 1
-            for c in six.itervalues(node.children):
+            for c in node.children.values():
                 self._walk_tree(node, c, level, callback)
 
         def start(self, runtime=10):

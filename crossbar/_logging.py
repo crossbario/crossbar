@@ -33,7 +33,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 import re
-import six
 import json
 from io import StringIO
 
@@ -274,12 +273,7 @@ def make_JSON_observer(outFile):
             # This is a traceback. Print it.
             traceback = event["log_failure"].getTraceback()
 
-            if not six.PY3:
-                traceback = traceback.decode('utf-8')
-                linesep = os.linesep.decode('utf-8')
-            else:
-                linesep = os.linesep
-
+            linesep = os.linesep
             eventText = eventText + linesep + traceback
 
         done_json["text"] = escape_formatting(eventText)
@@ -301,7 +295,7 @@ def make_JSON_observer(outFile):
                 "level": "error",
                 "namespace": "crossbar._logging"})
 
-        if not isinstance(text, six.text_type):
+        if not isinstance(text, str):
             text = text.decode('utf8')
 
         print(text, end=record_separator, file=outFile)
@@ -353,7 +347,7 @@ def color_json(json_str):
     Given an already formatted JSON string, return a colored variant which will
     produce colored output on terminals.
     """
-    assert(type(json_str) == six.text_type)
+    assert(type(json_str) == str)
     return highlight(json_str, lexers.JsonLexer(), formatters.TerminalFormatter())
 
 

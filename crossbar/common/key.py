@@ -37,7 +37,6 @@ import socket
 import subprocess
 from collections import OrderedDict
 
-import six
 import pkg_resources
 import pyqrcode
 
@@ -160,14 +159,7 @@ def _machine_id():
         # Get the serial number of the platform
         import plistlib
         plist_data = subprocess.check_output(["ioreg", "-rd1", "-c", "IOPlatformExpertDevice", "-a"])
-
-        if six.PY2:
-            # Only API on 2.7
-            return plistlib.readPlistFromString(plist_data)[0]["IOPlatformSerialNumber"]  # noqa
-        else:
-            # New, non-deprecated 3.4+ API
-            return plistlib.loads(plist_data)[0]["IOPlatformSerialNumber"]
-
+        return plistlib.loads(plist_data)[0]["IOPlatformSerialNumber"]
     else:
         # Something else, just get a hostname
         return socket.gethostname()

@@ -34,8 +34,6 @@ import json
 import os
 import sys
 
-from six import PY3
-
 from twisted.internet.selectreactor import SelectReactor
 from twisted.internet.task import LoopingCall
 
@@ -510,10 +508,7 @@ class MySession(ApplicationSession):
         self.log.info("Loaded the component")
 """
 
-        if PY3:
-            expected_stdout = ["Loaded the component", "\u2603", "Caught error:"]
-        else:
-            expected_stdout = ["Loaded the component", "\\u2603", "Caught error:"]
+        expected_stdout = ["Loaded the component", "\u2603", "Caught error:"]
         expected_stderr = []
 
         def _check(lc, reactor):
@@ -802,12 +797,7 @@ class MySession(ApplicationSession):
         def _check(_1, _2):
             pass
         expected_stdout = []
-        expected_stderr = ["Component instantiation failed"]
-        if PY3:
-            expected_stderr.append("division by zero")
-        else:
-            expected_stderr.append("integer division")
-            expected_stderr.append("by zero")
+        expected_stderr = ["Component instantiation failed", "division by zero"]
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)
@@ -901,12 +891,7 @@ class MySession(ApplicationSession):
         def _check(_1, _2):
             pass
         expected_stdout = []
-        expected_stderr = ["Fatal error in component", "While firing onJoin"]
-        if PY3:
-            expected_stderr.append("division by zero")
-        else:
-            expected_stderr.append("integer division")
-            expected_stderr.append("by zero")
+        expected_stderr = ["Fatal error in component", "While firing onJoin", "division by zero"]
 
         self._start_run(config, myapp, expected_stdout, expected_stderr,
                         _check)

@@ -33,8 +33,6 @@ from __future__ import absolute_import
 import os
 import binascii
 
-import six
-
 import nacl
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
@@ -204,7 +202,7 @@ class PendingAuthCryptosign(PendingAuth):
         as a challenge previously, XORed with the 32 bytes transport channel ID (if available).
         """
         try:
-            if type(signed_message) != six.text_type:
+            if type(signed_message) != str:
                 return types.Deny(message=u'invalid type {} for signed message'.format(type(signed_message)))
 
             try:

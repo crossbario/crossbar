@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import json
-import six
 
 from collections import deque
 
@@ -180,7 +179,7 @@ class WampLongPollResourceSessionReceive(Resource):
             else:
                 # in unbatched mode, only write 1 pending message
                 msg = self._queue.popleft()
-                if type(msg) == six.binary_type:
+                if type(msg) == bytes:
                     self._request.write(msg)
                 else:
                     self.log.error(
@@ -205,7 +204,7 @@ class WampLongPollResourceSessionReceive(Resource):
 
         self._parent._parent._set_standard_headers(request)
         mime_type = self._parent._serializer.MIME_TYPE
-        if type(mime_type) == six.text_type:
+        if type(mime_type) == str:
             mime_type = mime_type.encode('utf8')
         request.setHeader(b'content-type', mime_type)
 

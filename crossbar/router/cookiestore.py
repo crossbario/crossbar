@@ -32,7 +32,7 @@ import os
 import json
 import datetime
 
-from six.moves import http_cookies
+from http import cookies as http_cookies
 
 from autobahn import util
 

@@ -38,7 +38,6 @@ import os
 import platform
 import signal
 import sys
-import six
 import pkg_resources
 
 import txaio
@@ -956,7 +955,7 @@ def main(prog, args, reactor, personality):
                                         help='Initialize a new Crossbar.io node.')
 
     parser_init.add_argument('--appdir',
-                             type=six.text_type,
+                             type=str,
                              default=None,
                              help="Application base directory where to create app and node from template.")
 
@@ -983,7 +982,7 @@ def main(prog, args, reactor, personality):
                                         help='Stop a Crossbar.io node.')
 
     parser_stop.add_argument('--cbdir',
-                             type=six.text_type,
+                             type=str,
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
@@ -995,12 +994,12 @@ def main(prog, args, reactor, personality):
                                           help='Checks whether a Crossbar.io node is running.')
 
     parser_status.add_argument('--cbdir',
-                               type=six.text_type,
+                               type=str,
                                default=None,
                                help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser_status.add_argument('--assert',
-                               type=six.text_type,
+                               type=str,
                                default=None,
                                choices=['running', 'stopped'],
                                help=("If given, assert the node is in this state, otherwise exit with error."))
@@ -1049,7 +1048,7 @@ def main(prog, args, reactor, personality):
                                         help='Print Crossbar.io release and node key (public key part by default).')
 
     parser_keys.add_argument('--cbdir',
-                             type=six.text_type,
+                             type=str,
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 

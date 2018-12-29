@@ -39,7 +39,6 @@ from autobahn.wamp import ApplicationError
 from twisted.web import http
 from twisted.web.static import File
 
-from crossbar.common.twisted.web import patchFileContentTypes
 from crossbar.webservice.base import RouterWebService, Resource404, ResourceFallback, set_cross_origin_headers
 
 DEFAULT_CACHE_TIMEOUT = 12 * 60 * 60
@@ -151,7 +150,6 @@ class RouterWebServiceStatic(RouterWebService):
         resource.contentTypes.update(EXTRA_MIME_TYPES)
         if 'mime_types' in static_options:
             resource.contentTypes.update(static_options['mime_types'])
-        patchFileContentTypes(resource)
 
         # render 404 page on any concrete path not found
         #

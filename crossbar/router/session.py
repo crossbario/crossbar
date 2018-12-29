@@ -31,7 +31,6 @@
 from __future__ import absolute_import, division
 
 import binascii
-import six
 
 import txaio
 
@@ -85,8 +84,8 @@ class RouterApplicationSession(object):
         :type authrole: str
         """
 
-        assert(authid is None or isinstance(authid, six.text_type))
-        assert(authrole is None or isinstance(authrole, six.text_type))
+        assert(authid is None or isinstance(authid, str))
+        assert(authrole is None or isinstance(authrole, str))
 
         # remember router we are wrapping the app session for
         #

@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import six
-
 from pytrie import StringTrie
 
 from autobahn.wamp.uri import convert_starred_uri, Pattern
@@ -72,7 +70,7 @@ class RouterPermissions(object):
 
         :param uri: The URI to match.
         """
-        assert(uri is None or type(uri) == six.text_type)
+        assert(uri is None or type(uri) == str)
         assert(match is None or match in [u'exact', u'prefix', u'wildcard'])
         assert(type(call) == bool)
         assert(type(register) == bool)
