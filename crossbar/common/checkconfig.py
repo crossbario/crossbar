@@ -423,8 +423,8 @@ def check_transport_auth_wampcra(config):
                 'secret': (True, [str]),
                 'role': (False, [str]),
                 'salt': (False, [str]),
-                'iterations': (False, int),
-                'keylen': (False, int)
+                'iterations': (False, [int]),
+                'keylen': (False, [int])
             }, user, "WAMP-CRA - user '{}' configuration".format(authid))
 
             # allow to set value from environment variable
@@ -630,8 +630,8 @@ def check_transport_cookie(personality, cookie, ignore=[]):
     """
     check_dict_args({
         'name': (False, [str]),
-        'length': (False, int),
-        'max_age': (False, int),
+        'length': (False, [int]),
+        'max_age': (False, [int]),
         'store': (False, [Mapping])
     }, cookie, "WebSocket cookie configuration")
 
@@ -895,7 +895,7 @@ def check_listening_endpoint_onion(personality, endpoint):
     check_dict_args(
         {
             u"type": (True, [str]),
-            u"port": (True, int),
+            u"port": (True, [int]),
             u"private_key_file": (True, [str]),
             u"tor_control_endpoint": (True, [Mapping])
         },
@@ -1273,7 +1273,7 @@ def check_web_path_service_static(personality, config):
         check_dict_args({
             'enable_directory_listing': (False, [bool]),
             'mime_types': (False, [Mapping]),
-            'cache_timeout': (False, list(int) + [type(None)]),
+            'cache_timeout': (False, [int, type(None)]),
             'default_file': (False, [str]),
         }, config['options'], "'options' in Web transport 'static' path service")
 
@@ -1293,8 +1293,8 @@ def check_web_path_service_wsgi(personality, config):
         'type': (True, [str]),
         'module': (True, [str]),
         'object': (True, [str]),
-        'minthreads': (False, int),
-        'maxthreads': (False, int),
+        'minthreads': (False, [int]),
+        'maxthreads': (False, [int]),
     }, config, "Web transport 'wsgi' path service")
 
 
@@ -1428,10 +1428,10 @@ def check_web_path_service_longpoll(personality, config):
         check_dict_args({
             'debug': (False, [bool]),
             'debug_transport_id': (False, [str]),
-            'request_timeout': (False, int),
-            'session_timeout': (False, int),
-            'queue_limit_bytes': (False, int),
-            'queue_limit_messages': (False, int),
+            'request_timeout': (False, [int]),
+            'session_timeout': (False, [int]),
+            'queue_limit_bytes': (False, [int]),
+            'queue_limit_messages': (False, [int]),
         }, config['options'], "Web transport 'longpoll' path service")
 
 
@@ -1486,8 +1486,8 @@ def check_web_path_service_publisher(personality, config):
             'secret': (False, [str]),
             'require_tls': (False, [bool]),
             'require_ip': (False, [Sequence]),
-            'post_body_limit': (False, int),
-            'timestamp_delta_limit': (False, int),
+            'post_body_limit': (False, [int]),
+            'timestamp_delta_limit': (False, [int]),
         }, config['options'], "Web transport 'publisher' path service")
 
         if 'post_body_limit' in config['options']:
@@ -1517,7 +1517,7 @@ def check_web_path_service_webhook(personality, config):
 
     check_dict_args({
         'debug': (False, [bool]),
-        'post_body_limit': (False, int),
+        'post_body_limit': (False, [int]),
         'topic': (False, [str]),
         'success_response': (False, [str]),
         'error_response': (False, [str]),
@@ -1565,8 +1565,8 @@ def check_web_path_service_caller(personality, config):
             'secret': (False, [str]),
             'require_tls': (False, [bool]),
             'require_ip': (False, [Sequence]),
-            'post_body_limit': (False, int),
-            'timestamp_delta_limit': (False, int),
+            'post_body_limit': (False, [int]),
+            'timestamp_delta_limit': (False, [int]),
         }, config['options'], "Web transport 'caller' path service")
 
         if 'post_body_limit' in config['options']:
@@ -1651,7 +1651,7 @@ def check_web_path_service_upload(personality, config):
 
     if 'options' in config:
         check_dict_args({
-            'max_file_size': (False, int),
+            'max_file_size': (False, [int]),
             'file_types': (False, [Sequence]),
             'file_permissions': (False, [str])
         }, config['options'], "Web transport 'upload' path service")
