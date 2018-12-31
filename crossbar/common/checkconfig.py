@@ -677,7 +677,7 @@ def check_endpoint_backlog(backlog):
     :param backlog: The backlog parameter for listening endpoints to check.
     :type backlog: int
     """
-    if type(backlog) not in int:
+    if type(backlog) != int:
         raise InvalidConfigException("'backlog' attribute in endpoint must be int ({} encountered)".format(type(backlog)))
     if backlog < 1 or backlog > 65535:
         raise InvalidConfigException("invalid value {} for 'backlog' attribute in endpoint (must be from [1, 65535])".format(backlog))
@@ -690,7 +690,7 @@ def check_endpoint_port(port, message="listening/connection endpoint"):
     :param port: The port to check.
     :type port: int
     """
-    if type(port) not in int:
+    if type(port) != int:
         raise InvalidConfigException("'port' attribute in {} must be integer ({} encountered)".format(message, type(port)))
     if port < 1 or port > 65535:
         raise InvalidConfigException("invalid value {} for 'port' attribute in {}".format(port, message))
@@ -703,7 +703,7 @@ def check_endpoint_ip_version(version):
     :param version: The version to check.
     :type version: int
     """
-    if type(version) not in int:
+    if type(version) != int:
         raise InvalidConfigException("'version' attribute in endpoint must be integer ({} encountered)".format(type(version)))
     if version not in [4, 6]:
         raise InvalidConfigException("invalid value {} for 'version' attribute in endpoint".format(version))
@@ -716,7 +716,7 @@ def check_endpoint_timeout(timeout):
     :param timeout: The timeout (seconds) to check.
     :type timeout: int
     """
-    if type(timeout) not in int:
+    if type(timeout) != int:
         raise InvalidConfigException("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
     if timeout < 0 or timeout > 600:
         raise InvalidConfigException("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
@@ -729,7 +729,7 @@ def check_transport_max_message_size(max_message_size):
     :param max_message_size: The maxmimum message size parameter to check.
     :type max_message_size: int
     """
-    if type(max_message_size) not in int:
+    if type(max_message_size) != int:
         raise InvalidConfigException("'max_message_size' attribute in transport must be int ({} encountered)".format(type(max_message_size)))
     if max_message_size < 1 or max_message_size > 64 * 1024 * 1024:
         raise InvalidConfigException("invalid value {} for 'max_message_size' attribute in transport (must be from [1, 64MB])".format(max_message_size))
@@ -1442,7 +1442,7 @@ def check_web_path_service_rest_post_body_limit(limit):
     :param port: The limit to check.
     :type port: int
     """
-    if type(limit) not in int:
+    if type(limit) != int:
         raise InvalidConfigException("'post_body_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
     if limit < 0 or limit > 2 ** 20:
         raise InvalidConfigException("invalid value {} for 'post_body_limit' attribute in publisher/caller configuration".format(limit))
@@ -1455,7 +1455,7 @@ def check_web_path_service_rest_timestamp_delta_limit(limit):
     :param port: The limit to check.
     :type port: int
     """
-    if type(limit) not in int:
+    if type(limit) != int:
         raise InvalidConfigException("'timestamp_delta_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
     if limit < 0 or limit > 86400:
         raise InvalidConfigException("invalid value {} for 'timestamp_delta_limit' attribute in publisher/caller configuration".format(limit))
@@ -1604,7 +1604,7 @@ def check_web_path_service_max_file_size(limit):
     :param limit: The limit to check.
     :type limit: int
     """
-    if type(limit) not in int:
+    if type(limit) != int:
         raise InvalidConfigException("'max_file_size' attribute must be integer ({} encountered)".format(type(limit)))
     if limit < 0:
         raise InvalidConfigException("invalid value {} for 'max_file_size' attribute - must be non-negative".format(limit))
@@ -1764,7 +1764,7 @@ def check_listening_transport_web(personality, transport, with_endpoint=True, ig
 
         if 'hsts_max_age' in options:
             hsts_max_age = options['hsts_max_age']
-            if type(hsts_max_age) not in int:
+            if type(hsts_max_age) != int:
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
             if hsts_max_age < 0:
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
@@ -1773,7 +1773,7 @@ def check_listening_transport_web(personality, transport, with_endpoint=True, ig
             timeout = options['client_timeout']
             if timeout is None:
                 pass
-            elif type(timeout) not in int:
+            elif type(timeout) != int:
                 raise InvalidConfigException(
                     "'client_time' attribute in 'options' in Web transport must be integer ({} encountered)".format(
                         type(timeout)
@@ -2776,7 +2776,7 @@ def check_native_worker_options(personality, options, ignore=[]):
         if not isinstance(cpu_affinity, Sequence):
             raise InvalidConfigException("'cpu_affinity' in 'options' in worker configuration must be lists ({} encountered)".format(type(cpu_affinity)))
         for a in cpu_affinity:
-            if type(a) not in int:
+            if type(a) != int:
                 raise InvalidConfigException("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
 
     if 'env' in options:
