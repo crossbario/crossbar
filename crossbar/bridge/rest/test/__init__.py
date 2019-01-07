@@ -78,17 +78,12 @@ class MockPublisherSession(object):
         setattr(self, "publish", _publish)
 
 
-def _utcnow():
-    now = datetime.utcnow()
-    return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
-
 def makeSignedArguments(params, signKey, signSecret, body):
 
-    params[b'timestamp'] = [bytes(_utcnow(), 'latin-1')]
+    params[b'timestamp'] = [util.utcnow().encode()]
     params[b'seq'] = [b"1"]
-    params[b'key'] = [bytes(signKey, 'latin-1')]
-    params[b'nonce'] = [bytes(str(random.randint(0, 9007199254740992)), 'latin-1')]
+    params[b'key'] = [signKey.encode()]
+    params[b'nonce'] = [str(random.randint(0, 9007199254740992)).encode()]
 
     # HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
 
