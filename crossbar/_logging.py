@@ -273,8 +273,7 @@ def make_JSON_observer(outFile):
             # This is a traceback. Print it.
             traceback = event["log_failure"].getTraceback()
 
-            linesep = os.linesep
-            eventText = eventText + linesep + traceback
+            eventText = eventText + os.linesep + traceback
 
         done_json["text"] = escape_formatting(eventText)
 
