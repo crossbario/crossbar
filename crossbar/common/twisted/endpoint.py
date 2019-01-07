@@ -292,7 +292,7 @@ def _create_tls_client_context(config, cbdir, log):
         for cert_fname in [os.path.abspath(os.path.join(cbdir, x)) for x in (config['ca_certificates'])]:
             cert = crypto.load_certificate(
                 crypto.FILETYPE_PEM,
-                str(open(cert_fname, 'r').read())
+                open(cert_fname, 'rb').read()
             )
             log.info("TLS client trust root CA certificate loaded from '{fname}'", fname=cert_fname)
             ca_certs.append(cert)
