@@ -35,8 +35,6 @@ import hashlib
 import random
 import base64
 
-from datetime import datetime
-
 from collections import namedtuple
 
 from ._request import request
