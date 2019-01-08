@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import, division
 
-import six
 import os
 from os import environ
 from os.path import join, abspath, isabs, exists
@@ -94,7 +93,7 @@ def extract_peer_certificate(transport):
         # Extract x509 name components from an OpenSSL X509Name object.
         # pkey = cert.get_pubkey()
         def maybe_bytes(value):
-            if type(value) == six.binary_type:
+            if isinstance(value, bytes):
                 return value.decode('utf8')
             else:
                 return value
@@ -293,7 +292,7 @@ def _create_tls_client_context(config, cbdir, log):
         for cert_fname in [os.path.abspath(os.path.join(cbdir, x)) for x in (config['ca_certificates'])]:
             cert = crypto.load_certificate(
                 crypto.FILETYPE_PEM,
-                six.u(open(cert_fname, 'r').read())
+                open(cert_fname, 'rb').read()
             )
             log.info("TLS client trust root CA certificate loaded from '{fname}'", fname=cert_fname)
             ca_certs.append(cert)
@@ -363,7 +362,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
         version = int(config.get('version', 4))
 
         # the listening port
-        if type(config['port']) is six.text_type:
+        if isinstance(config['port'], str):
             # read port from environment variable ..
             try:
                 port = int(environ[config['port'][1:]])

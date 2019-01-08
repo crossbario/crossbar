@@ -32,7 +32,6 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import treq
-import six
 
 from twisted.internet import reactor, defer
 from twisted.internet.selectreactor import SelectReactor
@@ -313,7 +312,7 @@ class WebTests(TestCase):
         os.makedirs(self.cbdir)
         config_extras = DottableDict({"worker": u"worker1",
                                       "cbdir": self.cbdir.decode('utf8')
-                                      if not isinstance(self.cbdir, six.text_type)
+                                      if not isinstance(self.cbdir, str)
                                       else self.cbdir})
         self.config = ComponentConfig(u"realm1", extra=config_extras)
 

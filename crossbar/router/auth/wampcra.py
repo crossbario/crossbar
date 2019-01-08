@@ -31,7 +31,6 @@
 from __future__ import absolute_import
 
 import json
-import six
 
 from autobahn import util
 from autobahn.wamp import auth
@@ -72,7 +71,7 @@ class PendingAuthWampCra(PendingAuth):
 
         # Sometimes, if it doesn't have to be Unicode, PyPy won't make it
         # Unicode. Make it Unicode, even if it's just ASCII.
-        if not isinstance(challenge, six.text_type):
+        if not isinstance(challenge, str):
             challenge = challenge.decode('utf8')
 
         secret = user['secret'].encode('utf8')

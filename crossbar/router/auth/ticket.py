@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import six
-
 from autobahn.wamp import types
 
 from txaio import make_logger
@@ -135,7 +133,7 @@ class PendingAuthTicket(PendingAuth):
             def on_authenticate_ok(principal):
                 # backwards compatibility: dynamic ticket authenticator
                 # was expected to return a role directly
-                if type(principal) == six.text_type:
+                if isinstance(principal, str):
                     principal = {u'role': principal}
 
                 error = self._assign_principal(principal)

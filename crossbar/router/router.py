@@ -30,7 +30,6 @@
 
 from __future__ import absolute_import, division, print_function
 
-import six
 import txaio
 import uuid
 
@@ -122,7 +121,7 @@ class Router(object):
         return self._is_traced
 
     def new_correlation_id(self):
-        return six.text_type(uuid.uuid4())
+        return str(uuid.uuid4())
 
     def attach(self, session):
         """
@@ -348,7 +347,7 @@ class Router(object):
 
         Implements :func:`autobahn.wamp.interfaces.IRouter.authorize`
         """
-        assert(type(uri) == six.text_type)
+        assert(type(uri) == str)
         assert(action in [u'call', u'register', u'publish', u'subscribe'])
 
         # the role under which the session that wishes to perform the given action on
@@ -505,7 +504,7 @@ class RouterFactory(object):
         self.log.debug('CrossbarRouterFactory.stop_realm(realm="{realm}")',
                        realm=realm)
 
-        assert(type(realm) == six.text_type)
+        assert(type(realm) == str)
 
         if realm not in self._routers:
             raise Exception('no router started for realm "{}"'.format(realm))
@@ -520,7 +519,7 @@ class RouterFactory(object):
         self.log.debug('CrossbarRouterFactory.add_role(realm="{realm}", config={config})',
                        realm=realm, config=config)
 
-        assert(type(realm) == six.text_type)
+        assert(type(realm) == str)
         assert(realm in self._routers)
 
         router = self._routers[realm]
@@ -548,8 +547,8 @@ class RouterFactory(object):
         self.log.debug('CrossbarRouterFactory.drop_role(realm="{realm}", role={role})',
                        realm=realm, role=role)
 
-        assert(type(realm) == six.text_type)
-        assert(type(role) == six.text_type)
+        assert(type(realm) == str)
+        assert(type(role) == str)
 
         if realm not in self._routers:
             raise Exception('no router started for realm "{}"'.format(realm))

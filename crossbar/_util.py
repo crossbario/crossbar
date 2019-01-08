@@ -34,7 +34,6 @@ import sys
 import inspect
 import json
 
-import six
 import click
 
 DEBUG_LIFECYCLE = False
@@ -98,7 +97,7 @@ def hl(text, bold=False, color='yellow'):
     """
     Returns highlighted text.
     """
-    if not isinstance(text, six.text_type):
+    if not isinstance(text, str):
         text = '{}'.format(text)
     return click.style(text, fg=color, bold=bold)
 
@@ -129,7 +128,7 @@ def hluserid(oid):
     """
     Returns highlighted text.
     """
-    if not isinstance(oid, six.text_type):
+    if not isinstance(oid, str):
         oid = '{}'.format(oid)
     return hl('"{}"'.format(oid), color='yellow', bold=True)
 
@@ -173,12 +172,12 @@ def _add_debug_options(parser):
 
 def _add_cbdir_config(parser):
     parser.add_argument('--cbdir',
-                        type=six.text_type,
+                        type=str,
                         default=None,
                         help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
 
     parser.add_argument('--config',
-                        type=six.text_type,
+                        type=str,
                         default=None,
                         help="Crossbar.io configuration file (overrides default CBDIR/config.json)")
 
@@ -203,13 +202,13 @@ def _add_log_arguments(parser):
     parser.add_argument('--loglevel', **log_level_args)
 
     parser.add_argument('--logformat',
-                        type=six.text_type,
+                        type=str,
                         default='standard',
                         choices=['syslogd', 'standard', 'none'],
                         help=("The format of the logs -- suitable for syslogd, not colored, or colored."))
 
     parser.add_argument('--logdir',
-                        type=six.text_type,
+                        type=str,
                         default=None,
                         help="Crossbar.io log directory (default: <Crossbar Node Directory>/)")
 

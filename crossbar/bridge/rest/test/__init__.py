@@ -35,10 +35,6 @@ import hashlib
 import random
 import base64
 
-from six import b as network_string
-
-from datetime import datetime
-
 from collections import namedtuple
 
 from ._request import request
@@ -80,17 +76,12 @@ class MockPublisherSession(object):
         setattr(self, "publish", _publish)
 
 
-def _utcnow():
-    now = datetime.utcnow()
-    return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
-
 def makeSignedArguments(params, signKey, signSecret, body):
 
-    params[b'timestamp'] = [network_string(_utcnow())]
+    params[b'timestamp'] = [util.utcnow().encode()]
     params[b'seq'] = [b"1"]
-    params[b'key'] = [network_string(signKey)]
-    params[b'nonce'] = [network_string(str(random.randint(0, 9007199254740992)))]
+    params[b'key'] = [signKey.encode()]
+    params[b'nonce'] = [str(random.randint(0, 9007199254740992)).encode()]
 
     # HMAC[SHA256]_{secret} (key | timestamp | seq | nonce | body) => signature
 

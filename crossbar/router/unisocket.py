@@ -30,8 +30,7 @@
 
 from __future__ import absolute_import
 
-import six
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 import txaio
 txaio.use_twisted()  # noqa
@@ -111,10 +110,7 @@ class UniSocketServerProtocol(Protocol):
 
                 # support IRIs: "All non-ASCII code points in the IRI should next be encoded as UTF-8,
                 # and the resulting bytes percent-encoded, to produce a valid URI."
-                if six.PY3:
-                    request_uri = urlparse.unquote(request_uri.decode('ascii'))
-                else:
-                    request_uri = urlparse.unquote(request_uri).decode('utf8')
+                request_uri = urlparse.unquote(request_uri.decode('ascii'))
 
                 # the first component for the URI requested, eg for "/ws/foo/bar", it'll be "ws", and "/"
                 # will map to ""

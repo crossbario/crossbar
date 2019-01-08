@@ -30,7 +30,7 @@
 
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.web.http_headers import Headers

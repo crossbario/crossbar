@@ -32,8 +32,6 @@ from __future__ import absolute_import
 
 import unittest
 
-import six
-
 from autobahn.wamp.message import Subscribe
 
 from crossbar.router.observation import ExactUriObservation, \
@@ -51,7 +49,7 @@ class TestObservation(unittest.TestCase):
         Create an exact-matching observation.
         """
         obs1 = ExactUriObservation(u"com.example.uri1")
-        self.assertTrue(isinstance(obs1.id, six.integer_types))
+        self.assertTrue(isinstance(obs1.id, (int, )))
         self.assertEqual(obs1.uri, u"com.example.uri1")
         self.assertEqual(obs1.match, u"exact")
         self.assertEqual(obs1.observers, set())
@@ -61,7 +59,7 @@ class TestObservation(unittest.TestCase):
         Create a prefix-matching observation.
         """
         obs1 = PrefixUriObservation(u"com.example.uri1")
-        self.assertTrue(isinstance(obs1.id, six.integer_types))
+        self.assertTrue(isinstance(obs1.id, (int, )))
         self.assertEqual(obs1.uri, u"com.example.uri1")
         self.assertEqual(obs1.match, u"prefix")
         self.assertEqual(obs1.observers, set())
@@ -71,7 +69,7 @@ class TestObservation(unittest.TestCase):
         Create a wildcard-matching observation.
         """
         obs1 = WildcardUriObservation(u"com.example..create")
-        self.assertTrue(isinstance(obs1.id, six.integer_types))
+        self.assertTrue(isinstance(obs1.id, (int, )))
         self.assertEqual(obs1.uri, u"com.example..create")
         self.assertEqual(obs1.match, u"wildcard")
         self.assertEqual(obs1.observers, set())

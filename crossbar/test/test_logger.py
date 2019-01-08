@@ -32,7 +32,7 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
-from six import StringIO as NativeStringIO, PY3
+from io import StringIO as NativeStringIO
 
 from io import StringIO
 
@@ -341,10 +341,7 @@ class JSONObserverTests(TestCase):
         log = make_logger(observer=observer)
 
         try:
-            if PY3:
-                raise Exception(u"\u2603")
-            else:
-                raise Exception(u"\u2603".encode('utf-8'))
+            raise Exception(u"\u2603")
         except:
             log.failure("Oh no")
 

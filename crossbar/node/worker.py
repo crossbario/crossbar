@@ -31,7 +31,6 @@
 from __future__ import absolute_import, print_function
 
 import os
-import six
 import json
 
 from collections import deque
@@ -188,7 +187,7 @@ class WorkerProcess(object):
             self._log_entries.append(repr(data))
             return
 
-        if type(data) != six.text_type:
+        if not isinstance(data, str):
             data = data.decode('utf8')
 
         if self._log_rich is None:

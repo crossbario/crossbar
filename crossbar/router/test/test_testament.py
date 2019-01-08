@@ -30,8 +30,6 @@
 
 from __future__ import absolute_import
 
-import six
-
 from twisted.trial import unittest
 from twisted.internet.defer import inlineCallbacks
 
@@ -77,7 +75,7 @@ class TestamentTests(unittest.TestCase):
         pump.flush()
 
         # Make sure it returns a publication ID
-        self.assertIsInstance(self.successResultOf(d), six.integer_types)
+        self.assertIsInstance(self.successResultOf(d), (int, ))
 
         # No testament sent yet
         pump.flush()
@@ -122,7 +120,7 @@ class TestamentTests(unittest.TestCase):
         pump.flush()
 
         # Make sure it returns an integer (the testament event publication ID)
-        self.assertIsInstance(self.successResultOf(d), six.integer_types)
+        self.assertIsInstance(self.successResultOf(d), (int, ))
 
         # No testament sent yet
         pump.flush()
@@ -205,13 +203,13 @@ class TestamentTests(unittest.TestCase):
         d = session.call(u"wamp.session.add_testament", u"com.test.dc",
                          [u'destroyed'], {}, scope=u"destroyed")
         pump.flush()
-        self.assertIsInstance(self.successResultOf(d), six.integer_types)
+        self.assertIsInstance(self.successResultOf(d), (int, ))
 
         # Add a detatched testament
         d = session.call(u"wamp.session.add_testament", u"com.test.dc",
                          [u'detatched'], {}, scope=u"detatched")
         pump.flush()
-        self.assertIsInstance(self.successResultOf(d), six.integer_types)
+        self.assertIsInstance(self.successResultOf(d), (int, ))
 
         # No testament sent yet
         pump.flush()

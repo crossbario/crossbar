@@ -33,8 +33,6 @@ from __future__ import absolute_import, print_function
 import argparse
 import importlib
 
-import six
-
 from twisted.internet.error import ReactorNotRunning
 
 from crossbar._util import hl, hltype, _add_debug_options
@@ -60,42 +58,42 @@ def get_argument_parser(parser=None):
 
     parser.add_argument('-c',
                         '--cbdir',
-                        type=six.text_type,
+                        type=str,
                         required=True,
                         help="Crossbar.io node directory (required).")
 
     parser.add_argument('-r',
                         '--realm',
-                        type=six.text_type,
+                        type=str,
                         required=True,
                         help='Crossbar.io node (management) realm (required).')
 
     parser.add_argument('-p',
                         '--personality',
                         required=True,
-                        type=six.text_type,
+                        type=str,
                         help='Crossbar.io personality _class_ name, eg "crossbar.personality.Personality" (required).')
 
     parser.add_argument('-k',
                         '--klass',
                         required=True,
-                        type=six.text_type,
+                        type=str,
                         help='Crossbar.io worker class, eg "crossbar.worker.container.ContainerController" (required).')
 
     parser.add_argument('-n',
                         '--node',
                         required=True,
-                        type=six.text_type,
+                        type=str,
                         help='Crossbar.io node ID (required).')
 
     parser.add_argument('-w',
                         '--worker',
-                        type=six.text_type,
+                        type=str,
                         required=True,
                         help='Crossbar.io worker ID (required).')
 
     parser.add_argument('--title',
-                        type=six.text_type,
+                        type=str,
                         default=None,
                         help='Worker process title to set (optional).')
 
@@ -110,7 +108,7 @@ def get_argument_parser(parser=None):
                         help='Expose a shared object to all components (this feature requires crossbarfx).')
 
     parser.add_argument('--shutdown',
-                        type=six.text_type,
+                        type=str,
                         default=None,
                         help='Shutdown method')
 
