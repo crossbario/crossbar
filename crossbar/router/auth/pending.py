@@ -95,10 +95,10 @@ class PendingAuth:
         self._authenticator_session = None
 
     def _assign_principal(self, principal):
-        if type(principal) == str:
+        if isinstance(principal, str):
             # FIXME: more strict authrole checking
             pass
-        elif type(principal) == dict:
+        elif isinstance(principal, dict):
             # FIXME: check principal
             pass
         else:
@@ -108,7 +108,7 @@ class PendingAuth:
 
         # backwards compatibility: dynamic authenticator
         # was expected to return a role directly
-        if type(principal) == str:
+        if isinstance(principal, str):
             principal = {
                 u'role': principal
             }

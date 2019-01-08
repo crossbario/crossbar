@@ -93,7 +93,7 @@ def extract_peer_certificate(transport):
         # Extract x509 name components from an OpenSSL X509Name object.
         # pkey = cert.get_pubkey()
         def maybe_bytes(value):
-            if type(value) == bytes:
+            if isinstance(value, bytes):
                 return value.decode('utf8')
             else:
                 return value
@@ -362,7 +362,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
         version = int(config.get('version', 4))
 
         # the listening port
-        if type(config['port']) is str:
+        if isinstance(config['port'], str):
             # read port from environment variable ..
             try:
                 port = int(environ[config['port'][1:]])

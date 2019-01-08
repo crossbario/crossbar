@@ -187,7 +187,7 @@ class WorkerProcess(object):
             self._log_entries.append(repr(data))
             return
 
-        if type(data) != str:
+        if not isinstance(data, str):
             data = data.decode('utf8')
 
         if self._log_rich is None:

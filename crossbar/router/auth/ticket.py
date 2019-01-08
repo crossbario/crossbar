@@ -133,7 +133,7 @@ class PendingAuthTicket(PendingAuth):
             def on_authenticate_ok(principal):
                 # backwards compatibility: dynamic ticket authenticator
                 # was expected to return a role directly
-                if type(principal) == str:
+                if isinstance(principal, str):
                     principal = {u'role': principal}
 
                 error = self._assign_principal(principal)

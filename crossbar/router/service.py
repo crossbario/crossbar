@@ -194,7 +194,7 @@ class RouterServiceAgent(ApplicationSession):
         :returns: List of WAMP session IDs (order undefined).
         :rtype: list
         """
-        assert(filter_authroles is None or type(filter_authroles) == list)
+        assert(filter_authroles is None or isinstance(filter_authroles, list))
 
         session_ids = []
         for session in self._router._session_id_to_session.values():
@@ -214,7 +214,7 @@ class RouterServiceAgent(ApplicationSession):
         :returns: Count of joined sessions.
         :rtype: int
         """
-        assert(filter_authroles is None or type(filter_authroles) == list)
+        assert(filter_authroles is None or isinstance(filter_authroles, list))
 
         session_count = 0
         for session in self._router._session_id_to_session.values():

@@ -714,7 +714,7 @@ class RouterController(WorkerController):
         :param details: Call details.
         :type details: :class:`autobahn.wamp.types.CallDetails`
         """
-        if type(config) != dict or 'type' not in config:
+        if not isinstance(config, dict) or 'type' not in config:
             raise ApplicationError(u'crossbar.invalid_argument', 'config parameter must be dict with type attribute')
 
         self.log.info('Starting "{service_type}" Web service on path "{path}" of transport "{transport_id}" {method}',

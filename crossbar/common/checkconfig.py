@@ -251,7 +251,7 @@ def _readenv(var, msg):
 
 def maybe_from_env(config_item, value):
     log.debug("checkconfig: maybe_from_env('{value}')", value=value)
-    if type(value) == str:
+    if isinstance(value, str):
         match = _ENVPAT.match(value)
         if match and match.groups():
             var = match.groups()[0]
@@ -281,7 +281,7 @@ def get_config_value(config, item, default=None):
     if item in config:
         # for string valued items, check if the value actually point to
         # an enviroment variable (e.g. "$PGPASSWORD")
-        if type(config[item]) == str:
+        if isinstance(config[item], str):
             match = _ENV_VAR_PAT.match(config[item])
             if match and match.groups():
                 envvar = match.groups()[0]
@@ -484,7 +484,7 @@ def check_transport_auth_cryptosign(config):
                 'realm': (False, [str]),
             }, principal, "WAMP-Cryptosign - principal '{}' configuration".format(authid))
             for pubkey in principal['authorized_keys']:
-                if type(pubkey) != str:
+                if not isinstance(pubkey, str):
                     raise InvalidConfigException("invalid type {} for pubkey in authorized_keys of principal".format(type(pubkey)))
 
     elif config['type'] == 'dynamic':
@@ -677,7 +677,7 @@ def check_endpoint_backlog(backlog):
     :param backlog: The backlog parameter for listening endpoints to check.
     :type backlog: int
     """
-    if type(backlog) != int:
+    if not isinstance(backlog, int):
         raise InvalidConfigException("'backlog' attribute in endpoint must be int ({} encountered)".format(type(backlog)))
     if backlog < 1 or backlog > 65535:
         raise InvalidConfigException("invalid value {} for 'backlog' attribute in endpoint (must be from [1, 65535])".format(backlog))
@@ -690,7 +690,7 @@ def check_endpoint_port(port, message="listening/connection endpoint"):
     :param port: The port to check.
     :type port: int
     """
-    if type(port) != int:
+    if not isinstance(port, int):
         raise InvalidConfigException("'port' attribute in {} must be integer ({} encountered)".format(message, type(port)))
     if port < 1 or port > 65535:
         raise InvalidConfigException("invalid value {} for 'port' attribute in {}".format(port, message))
@@ -703,7 +703,7 @@ def check_endpoint_ip_version(version):
     :param version: The version to check.
     :type version: int
     """
-    if type(version) != int:
+    if not isinstance(version, int):
         raise InvalidConfigException("'version' attribute in endpoint must be integer ({} encountered)".format(type(version)))
     if version not in [4, 6]:
         raise InvalidConfigException("invalid value {} for 'version' attribute in endpoint".format(version))
@@ -716,7 +716,7 @@ def check_endpoint_timeout(timeout):
     :param timeout: The timeout (seconds) to check.
     :type timeout: int
     """
-    if type(timeout) != int:
+    if not isinstance(timeout, int):
         raise InvalidConfigException("'timeout' attribute in endpoint must be integer ({} encountered)".format(type(timeout)))
     if timeout < 0 or timeout > 600:
         raise InvalidConfigException("invalid value {} for 'timeout' attribute in endpoint".format(timeout))
@@ -729,7 +729,7 @@ def check_transport_max_message_size(max_message_size):
     :param max_message_size: The maxmimum message size parameter to check.
     :type max_message_size: int
     """
-    if type(max_message_size) != int:
+    if not isinstance(max_message_size, int):
         raise InvalidConfigException("'max_message_size' attribute in transport must be int ({} encountered)".format(type(max_message_size)))
     if max_message_size < 1 or max_message_size > 64 * 1024 * 1024:
         raise InvalidConfigException("invalid value {} for 'max_message_size' attribute in transport (must be from [1, 64MB])".format(max_message_size))
@@ -800,7 +800,7 @@ def check_listening_endpoint_tcp(endpoint):
     if 'port' not in endpoint:
         raise InvalidConfigException("missing mandatory attribute 'port' in listening endpoint item\n\n{}".format(pformat(endpoint)))
 
-    if type(endpoint['port']) == str:
+    if isinstance(endpoint['port'], str):
         port = _readenv(endpoint['port'], "listening endpoint configuration")
         try:
             port = int(port)
@@ -1442,7 +1442,7 @@ def check_web_path_service_rest_post_body_limit(limit):
     :param port: The limit to check.
     :type port: int
     """
-    if type(limit) != int:
+    if not isinstance(limit, int):
         raise InvalidConfigException("'post_body_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
     if limit < 0 or limit > 2 ** 20:
         raise InvalidConfigException("invalid value {} for 'post_body_limit' attribute in publisher/caller configuration".format(limit))
@@ -1455,7 +1455,7 @@ def check_web_path_service_rest_timestamp_delta_limit(limit):
     :param port: The limit to check.
     :type port: int
     """
-    if type(limit) != int:
+    if not isinstance(limit, int):
         raise InvalidConfigException("'timestamp_delta_limit' attribute in publisher/caller configuration must be integer ({} encountered)".format(type(limit)))
     if limit < 0 or limit > 86400:
         raise InvalidConfigException("invalid value {} for 'timestamp_delta_limit' attribute in publisher/caller configuration".format(limit))
@@ -1604,7 +1604,7 @@ def check_web_path_service_max_file_size(limit):
     :param limit: The limit to check.
     :type limit: int
     """
-    if type(limit) != int:
+    if not isinstance(limit, int):
         raise InvalidConfigException("'max_file_size' attribute must be integer ({} encountered)".format(type(limit)))
     if limit < 0:
         raise InvalidConfigException("invalid value {} for 'max_file_size' attribute - must be non-negative".format(limit))
@@ -1764,7 +1764,7 @@ def check_listening_transport_web(personality, transport, with_endpoint=True, ig
 
         if 'hsts_max_age' in options:
             hsts_max_age = options['hsts_max_age']
-            if type(hsts_max_age) != int:
+            if not isinstance(hsts_max_age, int):
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be integer ({} encountered)".format(type(hsts_max_age)))
             if hsts_max_age < 0:
                 raise InvalidConfigException("'hsts_max_age' attribute in 'options' in Web transport must be non-negative ({} encountered)".format(hsts_max_age))
@@ -1773,7 +1773,7 @@ def check_listening_transport_web(personality, transport, with_endpoint=True, ig
             timeout = options['client_timeout']
             if timeout is None:
                 pass
-            elif type(timeout) != int:
+            elif not isinstance(timeout, int):
                 raise InvalidConfigException(
                     "'client_time' attribute in 'options' in Web transport must be integer ({} encountered)".format(
                         type(timeout)
@@ -1820,7 +1820,7 @@ def check_listening_transport_mqtt(personality, transport, with_endpoint=True):
 
     if 'payload_mapping' in options:
         for k, v in options['payload_mapping'].items():
-            if type(k) != str:
+            if not isinstance(k, str):
                 raise InvalidConfigException('invalid MQTT payload mapping key {}'.format(type(k)))
             if not isinstance(v, Mapping):
                 raise InvalidConfigException('invalid MQTT payload mapping value {}'.format(type(v)))
@@ -1836,10 +1836,10 @@ def check_listening_transport_mqtt(personality, transport, with_endpoint=True):
                     raise InvalidConfigException('invalid serializer "{}" in MQTT payload mapping'.format(serializer))
             elif v['type'] == u'dynamic':
                 encoder = v.get(u'encoder', None)
-                if type(encoder) != str:
+                if not isinstance(encoder, str):
                     raise InvalidConfigException('invalid encoder "{}" in MQTT payload mapping'.format(encoder))
                 decoder = v.get(u'decoder', None)
-                if type(decoder) != str:
+                if not isinstance(decoder, str):
                     raise InvalidConfigException('invalid decoder "{}" in MQTT payload mapping'.format(decoder))
             else:
                 raise Exception('logic error')
@@ -2471,11 +2471,11 @@ def check_router_realm(personality, realm, ignore=[]):
             )
 
     if 'enable_meta_api' in options:
-        if type(options['enable_meta_api']) != bool:
+        if not isinstance(options['enable_meta_api'], bool):
             raise InvalidConfigException("Invalid type {} for enable_meta_api in realm options".format(type(options['enable_meta_api'])))
 
     if 'bridge_meta_api' in options:
-        if type(options['bridge_meta_api']) != bool:
+        if not isinstance(options['bridge_meta_api'], bool):
             raise InvalidConfigException("Invalid type {} for bridge_meta_api in realm options".format(type(options['bridge_meta_api'])))
 
 
@@ -2776,7 +2776,7 @@ def check_native_worker_options(personality, options, ignore=[]):
         if not isinstance(cpu_affinity, Sequence):
             raise InvalidConfigException("'cpu_affinity' in 'options' in worker configuration must be lists ({} encountered)".format(type(cpu_affinity)))
         for a in cpu_affinity:
-            if type(a) != int:
+            if not isinstance(a, int):
                 raise InvalidConfigException("CPU affinities in 'cpu_affinity' in 'options' in worker configuration must be integers ({} encountered)".format(type(a)))
 
     if 'env' in options:
@@ -3135,7 +3135,7 @@ def _fill_config_from_env(config, keys=None):
 
     for k in keys:
         if k in config:
-            if type(config[k]) is str:
+            if isinstance(config[k], str):
                 match = _ENV_VAR_PAT.match(config[k])
                 if match and match.groups():
                     envvar = match.groups()[0]

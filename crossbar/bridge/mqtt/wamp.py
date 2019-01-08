@@ -63,7 +63,7 @@ def _mqtt_topicfilter_to_wamp(topic):
     Convert a MQTT topic as used in MQTT Subscribe (and hence ptoentially containing
     special characters "+" and "#") to a WAMP URI and a match policy.
     """
-    if type(topic) != str:
+    if not isinstance(topic, str):
         raise TypeError('invalid type "{}" for MQTT topic filter'.format(type(topic)))
 
     if u'+' in topic:
@@ -117,7 +117,7 @@ def _mqtt_topicname_to_wamp(topic):
     """
     Convert a MQTT topic as used in MQTT Publish to a WAMP URI.
     """
-    if type(topic) != str:
+    if not isinstance(topic, str):
         raise TypeError('invalid type "{}" for MQTT topic name'.format(type(topic)))
 
     if u'#' in topic or u'+' in topic:
@@ -654,7 +654,7 @@ class WampMQTTServerFactory(Factory):
         else:
             raise Exception('"{}" serializer for encoded MQTT payload not implemented'.format(serializer))
 
-        if type(obj) != dict:
+        if not isinstance(obj, dict):
             raise Exception('invalid type {} for "{}" encoded MQTT payload'.format(type(obj), serializer))
 
         for opt in [u'args',

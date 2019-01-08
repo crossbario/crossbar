@@ -202,7 +202,7 @@ class PendingAuthCryptosign(PendingAuth):
         as a challenge previously, XORed with the 32 bytes transport channel ID (if available).
         """
         try:
-            if type(signed_message) != str:
+            if not isinstance(signed_message, str):
                 return types.Deny(message=u'invalid type {} for signed message'.format(type(signed_message)))
 
             try:
