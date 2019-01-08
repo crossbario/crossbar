@@ -253,6 +253,9 @@ setproctitle==1.1.10 \
 setuptools==40.6.2 \
     --hash=sha256:88ee6bcd5decec9bd902252e02e641851d785c6e5e75677d2744a9d13fed0b0a \
     --hash=sha256:86bb4d8e1b0fabad1f4642b64c335b673e53e7a381de03c9a89fe678152c4c64
+six==1.11.0 \
+    --hash=sha256:832dc0e10feb1aa2c68dcc57dbb658f1c7e65b9b61af69048abc87a2db00a0eb \
+    --hash=sha256:70e8a77beed4562e7f14fe23a786b54f6296e34344c23bc42f07b15018ff98e9
 sortedcontainers==2.1.0 \
     --hash=sha256:d9e96492dd51fae31e60837736b38fe42a187b5404c16606ff7ee7cd582d4c60 \
     --hash=sha256:974e9a32f56b17c1bac2aebd9dcf197f3eb9cd30553c5852a3187ad162e1a03a
