@@ -39,6 +39,15 @@ Then install the prerequisites:
     sudo apt-get -y install build-essential libssl-dev libffi-dev \
        libreadline-dev libbz2-dev libsqlite3-dev libncurses5-dev
 
+Snap
+~~~~
+To install crossbar from snap use below command
+::
+
+    $snap install crossbar
+
+.. note:: Snaps are strictly confined to their environment, so is it not possible to access arbitrary binaries on your system. Because of it some functionalities of Crossbar may not work.
+
 CentOS 7
 ~~~~~~~~
 

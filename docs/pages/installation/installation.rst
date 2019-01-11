@@ -27,7 +27,7 @@ Other Platforms
 We provide installation instructions for setting up Crossbar.io on your
 own systems for different operating systems or environments.
 
-*  :doc:`Installation-on-Linux <Installation-on-Linux>`  
+*  :doc:`Installation on Linux <Installation-on-Linux>`  
 *  :doc:`Installation on Mac OS X <Installation-on-Mac-OS-X>`
 *  :doc:`Installation on Windows <Installation-on-Windows>`
 
