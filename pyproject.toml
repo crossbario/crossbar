@@ -1,0 +1,4 @@
+[tool.towncrier]
+    package = "crossbar"
+    package_dir = "."
+    filename = "NEWS.rst"
