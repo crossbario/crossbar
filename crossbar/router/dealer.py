@@ -343,66 +343,62 @@ class Dealer(object):
                 self._router.send(session, reply)
                 return
 
-        # get existing registration for procedure / matching strategy - if any
-        #
-        registration = self._registration_map.get_observation(register.procedure, register.match)
-
-        # XXX actually, shouldn't we do *all* processing only after
-        # authorization? otherwise we're leaking the fact that a
-        # procedure exists here at all...
-
-        # if force_reregister was enabled, we only do any actual
-        # kicking of existing registrations *after* authorization
-        if registration and not register.force_reregister:
-            # there is an existing registration, and that has an
-            # invocation strategy that only allows a single callee
-            # on a the given registration
-            #
-            if registration.extra.invoke == message.Register.INVOKE_SINGLE:
-                reply = message.Error(
-                    message.Register.MESSAGE_TYPE,
-                    register.request,
-                    ApplicationError.PROCEDURE_ALREADY_EXISTS,
-                    [u"register for already registered procedure '{0}'".format(register.procedure)]
-                )
-                reply.correlation_id = register.correlation_id
-                reply.correlation_uri = register.procedure
-                reply.correlation_is_anchor = False
-                reply.correlation_is_last = True
-                self._router.send(session, reply)
-                return
-
-            # there is an existing registration, and that has an
-            # invokation strategy different from the one requested
-            # by the new callee
-            #
-            if registration.extra.invoke != register.invoke:
-                reply = message.Error(
-                    message.Register.MESSAGE_TYPE,
-                    register.request,
-                    ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT,
-                    [
-                        u"register for already registered procedure '{0}' "
-                        u"with conflicting invocation policy (has {1} and "
-                        u"{2} was requested)".format(
-                            register.procedure,
-                            registration.extra.invoke,
-                            register.invoke
-                        )
-                    ]
-                )
-                reply.correlation_id = register.correlation_id
-                reply.correlation_uri = register.procedure
-                reply.correlation_is_anchor = False
-                reply.correlation_is_last = True
-                self._router.send(session, reply)
-                return
-
         # authorize REGISTER action
         #
         d = self._router.authorize(session, register.procedure, u'register', options=register.marshal_options())
 
         def on_authorize_success(authorization):
+            # get existing registration for procedure / matching strategy - if any
+            #
+            registration = self._registration_map.get_observation(register.procedure, register.match)
+
+            # if force_reregister was enabled, we only do any actual
+            # kicking of existing registrations *after* authorization
+            if registration and not register.force_reregister:
+                # there is an existing registration, and that has an
+                # invocation strategy that only allows a single callee
+                # on a the given registration
+                #
+                if registration.extra.invoke == message.Register.INVOKE_SINGLE:
+                    reply = message.Error(
+                        message.Register.MESSAGE_TYPE,
+                        register.request,
+                        ApplicationError.PROCEDURE_ALREADY_EXISTS,
+                        [u"register for already registered procedure '{0}'".format(register.procedure)]
+                    )
+                    reply.correlation_id = register.correlation_id
+                    reply.correlation_uri = register.procedure
+                    reply.correlation_is_anchor = False
+                    reply.correlation_is_last = True
+                    self._router.send(session, reply)
+                    return
+
+                # there is an existing registration, and that has an
+                # invokation strategy different from the one requested
+                # by the new callee
+                #
+                if registration.extra.invoke != register.invoke:
+                    reply = message.Error(
+                        message.Register.MESSAGE_TYPE,
+                        register.request,
+                        ApplicationError.PROCEDURE_EXISTS_INVOCATION_POLICY_CONFLICT,
+                        [
+                            u"register for already registered procedure '{0}' "
+                            u"with conflicting invocation policy (has {1} and "
+                            u"{2} was requested)".format(
+                                register.procedure,
+                                registration.extra.invoke,
+                                register.invoke
+                            )
+                        ]
+                    )
+                    reply.correlation_id = register.correlation_id
+                    reply.correlation_uri = register.procedure
+                    reply.correlation_is_anchor = False
+                    reply.correlation_is_last = True
+                    self._router.send(session, reply)
+                    return
+
             if not authorization[u'allow']:
                 # error reply since session is not authorized to register
                 #
@@ -681,57 +677,20 @@ class Dealer(object):
             self._router.send(session, reply)
             return
 
-        # get registrations active on the procedure called
+        # authorize CALL action
         #
-        registration = self._registration_map.best_matching_observation(call.procedure)
+        d = self._router.authorize(session, call.procedure, u'call', options=call.marshal_options())
 
-        if registration:
-
-            # validate payload (skip in "payload_transparency" mode)
+        def on_authorize_success(authorization):
+            # the call to authorize the action _itself_ succeeded. now go on depending on whether
+            # the action was actually authorized or not ..
             #
-            if call.payload is None:
-                try:
-                    self._router.validate(u'call', call.procedure, call.args, call.kwargs)
-                except Exception as e:
-                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
-                    reply.correlation_id = call.correlation_id
-                    reply.correlation_uri = call.procedure
-                    reply.correlation_is_anchor = False
-                    reply.correlation_is_last = True
-                    self._router.send(session, reply)
-                    return
-
-            # authorize CALL action
-            #
-            d = self._router.authorize(session, call.procedure, u'call', options=call.marshal_options())
-
-            def on_authorize_success(authorization):
-                # the call to authorize the action _itself_ succeeded. now go on depending on whether
-                # the action was actually authorized or not ..
-                #
-                if not authorization[u'allow']:
-                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to call procedure '{0}'".format(call.procedure)])
-                    reply.correlation_id = call.correlation_id
-                    reply.correlation_uri = call.procedure
-                    reply.correlation_is_anchor = False
-                    reply.correlation_is_last = True
-                    self._router.send(session, reply)
-
-                else:
-                    self._call(session, call, registration, authorization)
-
-            def on_authorize_error(err):
-                """
-                the call to authorize the action _itself_ failed (note this is
-                different from the call to authorize succeed, but the
-                authorization being denied)
-                """
-                self.log.failure("Authorization of 'call' for '{uri}' failed", uri=call.procedure, failure=err)
+            if not authorization[u'allow']:
                 reply = message.Error(
                     message.Call.MESSAGE_TYPE,
                     call.request,
-                    ApplicationError.AUTHORIZATION_FAILED,
-                    [u"failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)]
+                    ApplicationError.NOT_AUTHORIZED,
+                    [u"session is not authorized to call procedure '{0}'".format(call.procedure)]
                 )
                 reply.correlation_id = call.correlation_id
                 reply.correlation_uri = call.procedure
@@ -739,15 +698,55 @@ class Dealer(object):
                 reply.correlation_is_last = True
                 self._router.send(session, reply)
 
-            txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
+            else:
+                # get registrations active on the procedure called
+                #
+                registration = self._registration_map.best_matching_observation(call.procedure)
 
-        else:
-            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, [u"no callee registered for procedure <{0}>".format(call.procedure)])
+                if registration:
+
+                    # validate payload (skip in "payload_transparency" mode)
+                    #
+                    if call.payload is None:
+                        try:
+                            self._router.validate(u'call', call.procedure, call.args, call.kwargs)
+                        except Exception as e:
+                            reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.INVALID_ARGUMENT, [u"call of procedure '{0}' with invalid application payload: {1}".format(call.procedure, e)])
+                            reply.correlation_id = call.correlation_id
+                            reply.correlation_uri = call.procedure
+                            reply.correlation_is_anchor = False
+                            reply.correlation_is_last = True
+                            self._router.send(session, reply)
+                            return
+                    self._call(session, call, registration, authorization)
+                else:
+                    reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, [u"no callee registered for procedure <{0}>".format(call.procedure)])
+                    reply.correlation_id = call.correlation_id
+                    reply.correlation_uri = call.procedure
+                    reply.correlation_is_anchor = False
+                    reply.correlation_is_last = True
+                    self._router.send(session, reply)
+
+        def on_authorize_error(err):
+            """
+            the call to authorize the action _itself_ failed (note this is
+            different from the call to authorize succeed, but the
+            authorization being denied)
+            """
+            self.log.failure("Authorization of 'call' for '{uri}' failed", uri=call.procedure, failure=err)
+            reply = message.Error(
+                message.Call.MESSAGE_TYPE,
+                call.request,
+                ApplicationError.AUTHORIZATION_FAILED,
+                [u"failed to authorize session for calling procedure '{0}': {1}".format(call.procedure, err.value)]
+            )
             reply.correlation_id = call.correlation_id
             reply.correlation_uri = call.procedure
             reply.correlation_is_anchor = False
             reply.correlation_is_last = True
             self._router.send(session, reply)
+
+        txaio.add_callbacks(d, on_authorize_success, on_authorize_error)
 
     def _call(self, session, call, registration, authorization, is_queued_call=False):
         # will hold the callee (the concrete endpoint) that we will forward the call to ..
