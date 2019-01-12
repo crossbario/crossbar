@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import
 
+import sys
 import os
 import gc
 
@@ -254,6 +255,12 @@ class NativeProcess(ApplicationSession):
         """
         if not _HAS_PSUTIL:
             emsg = "Unable to set CPU affinity: required package 'psutil' is not installed"
+            self.log.warn(emsg)
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+
+        if sys.platform.startswith('darwin'):
+            # https://superuser.com/questions/149312/how-to-set-processor-affinity-on-os-x
+            emsg = "Unable to set CPU affinity: OSX lacks process CPU affinity"
             self.log.warn(emsg)
             raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
 
