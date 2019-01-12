@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+import json
+
 from twisted.internet.defer import inlineCallbacks
 
 from crossbar.test import TestCase
@@ -103,9 +105,14 @@ class WebhookTestCase(TestCase):
 
         self.assertEqual(len(session._published_messages), 0)
         self.assertEqual(request.code, 400)
+        received_json = json.loads(request.get_written_data().decode('utf8'))
         self.assertEqual(
-            request.get_written_data(),
-            b'{"error":"Malformed request to the REST bridge.","args":[],"kwargs":{}}',
+            received_json,
+            {
+                "error": "Malformed request to the REST bridge.",
+                "args": [],
+                "kwargs": {}
+            }
         )
 
     @inlineCallbacks
@@ -130,9 +137,14 @@ class WebhookTestCase(TestCase):
 
         self.assertEqual(len(session._published_messages), 0)
         self.assertEqual(request.code, 400)
+        received_json = json.loads(request.get_written_data().decode('utf8'))
         self.assertEqual(
-            request.get_written_data(),
-            b'{"error":"Malformed request to the REST bridge.","args":[],"kwargs":{}}',
+            received_json,
+            {
+                "error": "Malformed request to the REST bridge.",
+                "args": [],
+                "kwargs": {},
+            }
         )
 
     @inlineCallbacks
