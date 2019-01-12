@@ -291,7 +291,7 @@ class RouterSession(BaseSession):
         self._router_factory = router_factory
         self._router = None
         self._realm = None
-        self._testaments = {u"destroyed": [], u"detatched": []}
+        self._testaments = {u"destroyed": [], u"detached": []}
 
         self._goodbye_sent = False
         self._transport_is_closing = False
@@ -805,7 +805,7 @@ class RouterSession(BaseSession):
         # because they hit a syntax error)
         if self._router is not None:
             # todo: move me into detatch when session resumption happens
-            for msg in self._testaments[u"detatched"]:
+            for msg in self._testaments[u"detached"]:
                 self._router.process(self, msg)
 
             for msg in self._testaments[u"destroyed"]:
