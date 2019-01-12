@@ -95,7 +95,7 @@ class PendingAuthCryptosign(PendingAuth):
 
     def hello(self, realm, details):
         # the channel binding requested by the client authenticating
-        channel_binding = details.authextra.get(u'channel_binding', None)
+        channel_binding = details.authextra.get(u'channel_binding', None) if details.authextra else None
         if channel_binding is not None and channel_binding not in [u'tls-unique']:
             return types.Deny(message=u'invalid channel binding type "{}" requested'.format(channel_binding))
         else:
