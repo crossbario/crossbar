@@ -19,8 +19,10 @@ before_install:
   - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
 
   # https://docs.travis-ci.com/user/multi-os/#example-multi-os-build-matrix
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python  ; fi
+  # Error: python 3.6.5_1 is already installed
+  # To upgrade to 3.7.2, run `brew upgrade python`
+  #- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
+  #- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python  ; fi
 
 install:
   - pip install -U pip setuptools wheel tox codecov
