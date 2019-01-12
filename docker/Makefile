@@ -66,9 +66,10 @@ qemu_deps:
 # we bake into the images
 #
 autobahn:
-	cp ../../autobahn-js-built/autobahn.* ./node/web/js/
-	cp ../../autobahn-js-built/CHECKSUM.* ./node/web/js/
-	cp ../../autobahn-js-built/LICENSE ./node/web/js/
+	mkdir -p ./.node/web/js/
+	cp ../../autobahn-js-browser/autobahn.* ./.node/web/js/
+	cp ../../autobahn-js-browser/CHECKSUM.* ./.node/web/js/
+	cp ../../autobahn-js-browser/LICENSE ./.node/web/js/
 
 #
 # List all images

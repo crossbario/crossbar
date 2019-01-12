@@ -1,5 +1,18 @@
 # Crossbar.io for Docker
 
+## tldr;
+
+```
+make clean
+make qemu_deps
+make autobahn
+source versions.sh
+make build
+make publish
+```
+
+## Intro
+
 Crossbar.io for Docker is available from the official Dockerhub repository for currently 3 CPU architectures:
 
 * [amd64](https://hub.docker.com/r/crossbario/crossbar/tags/)
