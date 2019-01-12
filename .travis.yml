@@ -75,6 +75,11 @@ matrix:
       python: pypy3
       env: TOX_ENV=pypy3-cli
 
+    # osx/cli
+    - os: osx
+      language: generic
+      env: TOX_ENV=py36-cli
+
     # linux/examples
     - os: linux
       dist: trusty
@@ -85,6 +90,11 @@ matrix:
       dist: trusty
       python: pypy3
       env: TOX_ENV=pypy3-examples
+
+    # osx/examples
+    - os: osx
+      language: generic
+      env: TOX_ENV=py36-examples
 
     # linux/trial/python3
     - os: linux
