@@ -178,7 +178,15 @@ if _HAS_PSUTIL:
             """
             self._pid = pid
             self._p = psutil.Process(pid)
-            self._cpus = sorted(self._p.cpu_affinity())
+            if hasattr(self._p, 'cpu_affinity'):
+                self._cpus = sorted(self._p.cpu_affinity())
+            else:
+                # osx lacks CPU process affinity altogether, and
+                # only has thread affinity (since osx 10.5)
+                # => if you can't make it, fake it;)
+                # https://superuser.com/questions/149312/how-to-set-processor-affinity-on-os-x
+                import multiprocessing
+                self._cpus = list(range(multiprocessing.cpu_count()))
 
         @property
         def cpus(self):
