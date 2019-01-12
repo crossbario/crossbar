@@ -1,5 +1,4 @@
 sudo: false
-dist: trusty
 
 language: python
 
@@ -18,6 +17,10 @@ before_install:
 
   # build ID (eg, "20180513-28114a1")
   - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
+
+  # https://docs.travis-ci.com/user/multi-os/#example-multi-os-build-matrix
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python  ; fi
 
 install:
   - pip install -U pip setuptools wheel tox codecov
@@ -39,41 +42,93 @@ matrix:
   fast_finish: true
 
   include:
-    - python: 3.6
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=flake8
 
-    - python: 3.6
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=sphinx
 
-    - python: 3.6
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=bandit
 
-    - python: 3.6
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=coverage
 
-    - python: 3.6
+    # linux/cli
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=py36-cli
-    - python: pypy3
+
+    - os: linux
+      dist: trusty
+      python: pypy3
       env: TOX_ENV=pypy3-cli
 
-    - python: 3.6
+    # linux/examples
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=py36-examples
-    - python: pypy3
+
+    - os: linux
+      dist: trusty
+      python: pypy3
       env: TOX_ENV=pypy3-examples
 
-    - python: 3.6
+    # linux/trial/python3
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=py36-unpinned-trial
-    - python: 3.6
+
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=py36-pinned-trial
-    - python: 3.6
+
+    - os: linux
+      dist: trusty
+      python: 3.6
       env: TOX_ENV=py36-abtrunk-trial
 
-    - python: pypy3
+    # linux/trial/pypy3
+    - os: linux
+      dist: trusty
+      python: pypy3
       env: TOX_ENV=pypy3-unpinned-trial
-    - python: pypy3
+
+    - os: linux
+      dist: trusty
+      python: pypy3
       env: TOX_ENV=pypy3-pinned-trial
-    - python: pypy3
+
+    - os: linux
+      dist: trusty
+      python: pypy3
       env: TOX_ENV=pypy3-abtrunk-trial
+
+    # osx/trial/python3
+    # https://docs.travis-ci.com/user/multi-os/#Python-example-(unsupported-languages)
+    - os: osx
+      language: generic
+      env: TOX_ENV=py36-unpinned-trial
+
+    - os: osx
+      language: generic
+      env: TOX_ENV=py36-pinned-trial
+
+    - os: osx
+      language: generic
+      env: TOX_ENV=py36-abtrunk-trial
 
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
     - stage: deploy
@@ -97,15 +152,11 @@ matrix:
   # we allow failures when not using autobahn trunk, for cases
   # where we depend on a new feature in autobahn here in crossbar
   allow_failures:
-    - python: 3.6
-      env: TOX_ENV=py36-unpinned-trial
-    - python: 3.6
-      env: TOX_ENV=py36-pinned-trial
-
-    - python: pypy3
-      env: TOX_ENV=pypy3-unpinned-trial
-    - python: pypy3
-      env: TOX_ENV=pypy3-pinned-trial
+    - env: TOX_ENV=py36-unpinned-trial
+    - env: TOX_ENV=py36-pinned-trial
+    - env: TOX_ENV=pypy3-unpinned-trial
+    - env: TOX_ENV=pypy3-pinned-trial
+    - os: osx
 
 after_success:
   - codecov
