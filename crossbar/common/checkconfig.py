@@ -887,7 +887,7 @@ def check_listening_endpoint_onion(personality, endpoint):
     :type endpoint: dict
     """
     for k in endpoint:
-        if k not in ['type', 'port', 'private_key_file', 'tor_control_endpoint']:
+        if k not in ['type', 'port', 'private_key_file', 'tor_control_endpoint', 'version']:
             raise InvalidConfigException(
                 "encountered unknown attribute '{}' in onion endpoint".format(k)
             )
@@ -896,12 +896,20 @@ def check_listening_endpoint_onion(personality, endpoint):
         {
             u"type": (True, [str]),
             u"port": (True, [int]),
+            u"version": (False, [int]),
             u"private_key_file": (True, [str]),
             u"tor_control_endpoint": (True, [Mapping])
         },
         endpoint,
         "onion endpoint config",
     )
+
+    if "version" in endpoint:
+        if endpoint["version"] not in (2, 3):
+            raise InvalidConfigException(
+                "Onion endpoint version must be 2 or 3"
+            )
+
     check_endpoint_port(endpoint[u"port"])
     personality.check_connecting_endpoint(personality, endpoint[u"tor_control_endpoint"])
 
