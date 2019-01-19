@@ -13,7 +13,7 @@ constantly==15.1.0
 cryptography==2.4.2
 h2==3.0.1
 hpack==3.0.0
-hyperframe==5.1.0
+hyperframe==5.2.0
 hyperlink==18.0.0
 idna==2.5
 incremental==17.5.0
@@ -47,7 +47,7 @@ sortedcontainers==2.1.0
 treq==18.6.0
 Twisted==18.9.0
 txaio==18.8.1
-txtorcon==18.3.0
+txtorcon==19.0.0
 u-msgpack-python==2.5.0
 urllib3==1.24.1
 watchdog==0.9.0
