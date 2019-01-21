@@ -498,18 +498,42 @@ class RouterController(WorkerController):
 
         # create component config
         #
-        realm = config['realm']
-        extra = config.get('extra', None)
+        realm = config.get('realm', None)
+        assert type(realm) == str
+
+        extra = config.get('extra', {})
+        assert type(extra) == dict
+
+        # forward crossbar node base directory
+        extra['cbdir'] = self.config.extra.cbdir
+
+        # allow access to controller session
+        controller = self if self.config.extra.expose_controller else None
+
+        # expose an object shared between components
+        shared = self.components_shared if self.config.extra.expose_shared else None
+
+        # this is the component configuration provided to the components ApplicationSession
         component_config = ComponentConfig(realm=realm,
                                            extra=extra,
                                            keyring=None,
-                                           controller=self if self.config.extra.expose_controller else None,
-                                           shared=self.components_shared if self.config.extra.expose_shared else None)
-        create_component = _appsession_loader(config)
+                                           controller=controller,
+                                           shared=shared)
+
+        # define component ctor function
+        try:
+            create_component = _appsession_loader(config)
+        except ApplicationError as e:
+            # for convenience, also log failed component loading
+            self.log.error(u'component loading failed', log_failure=Failure())
+            if u'No module named' in str(e):
+                self.log.error(u'  Python module search paths:')
+                for path in e.kwargs['pythonpath']:
+                    self.log.error(u'    {path}', path=path)
+            raise
 
         # .. and create and add an WAMP application session to
         # run the component next to the router
-        #
         try:
             session = create_component(component_config)
 

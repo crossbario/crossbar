@@ -202,14 +202,28 @@ class ContainerController(WorkerController):
         # WAMP application component factory
         #
         realm = config.get(u'realm', None)
-        extra = config.get(u'extra', None)
+        assert type(realm) == str
+
+        extra = config.get(u'extra', {})
+        assert type(extra) == dict
+
+        # forward crossbar node base directory
+        extra['cbdir'] = self.config.extra.cbdir
+
+        # allow access to controller session
         controller = self if self.config.extra.expose_controller else None
+
+        # expose an object shared between components
         shared = self.components_shared if self.config.extra.expose_shared else None
+
+        # this is the component configuration provided to the components ApplicationSession
         component_config = ComponentConfig(realm=realm,
                                            extra=extra,
                                            keyring=None,
                                            controller=controller,
                                            shared=shared)
+
+        # define component ctor function
         try:
             create_component = _appsession_loader(config)
         except ApplicationError as e:
