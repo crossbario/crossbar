@@ -697,7 +697,7 @@ class RouterController(WorkerController):
         """
         self.log.debug("{name}.stop_router_transport", name=self.__class__.__name__)
 
-        if transport_id not in self.transports or self.transports[transport_id].state() != self.personality.RouterTransport.STATE_STARTED:
+        if transport_id not in self.transports or self.transports[transport_id].state != self.personality.RouterTransport.STATE_STARTED:
             emsg = "Cannot stop transport: no transport with ID '{}' or transport is already stopping".format(transport_id)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
