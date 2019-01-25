@@ -42,3 +42,4 @@ docs/_build
 vers/
 .DS_Store
 _build
+pip-wheel-metadata

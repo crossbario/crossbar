@@ -3,6 +3,10 @@
 Contributing to the project - FAQ
 =================================
 
+Please check out our guide `contributing to the project <https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md>`__.
+
+-------
+
 -  `What is a CAA? <#what-is-a-caa?>`__
 -  `Why a CAA? <#why-a-caa?>`__
 -  `Can I contribute code where I do not own

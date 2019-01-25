@@ -24,6 +24,8 @@ clean:
 	rm -f .coverage
 	rm -rf ./htmlcov
 	-rm -rf ./_trial*
+	-rm -rf ./pip-wheel-metadata
+	-rm -rf ./docs/_build
 	find . -name "*.db" -exec rm -f {} \;
 	find . -name "*.pyc" -exec rm -f {} \;
 	find . -name "*.log" -exec rm -f {} \;
@@ -33,15 +35,28 @@ clean:
 
 # Targets for Sphinx-based documentation
 #
-docs_clean:
-	-rm -rf ./rtd/_build
 
-docs_builds:
-	sphinx-build -b html rtd rtd/_build
+#docs:
+#	sphinx-build -b html docs docs/_build
 
 # spellcheck the docs
+#docs_spelling:
+#	sphinx-build -b spelling -d docs/_build/doctrees docs docs/_build/spelling
+
+docs:
+	cd docs && sphinx-build -b html . _build
+
+docs_check:
+	cd docs && sphinx-build -nWT -b dummy . _build
+
 docs_spelling:
-	sphinx-build -b spelling -d rtd/_build/doctrees rtd rtd/_build/spelling
+	cd docs && sphinx-build -nWT -b spelling -d ./_build/doctrees . ./_build/spelling
+
+docs_run: docs
+	twistd --nodaemon web --path=docs/_build --listen=tcp:8090
+
+docs_clean:
+	-rm -rf ./docs/_build
 
 
 # call this in a fresh virtualenv to update our frozen requirements.txt!

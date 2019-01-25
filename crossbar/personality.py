@@ -63,8 +63,8 @@ def default_native_workers():
 
         'logname': 'Router',
         'topics': {
-            'starting': u'crossbar.node.on_router_starting',
-            'started': u'crossbar.node.on_router_started',
+            'starting': u'crossbar.on_router_starting',
+            'started': u'crossbar.on_router_started',
         }
     }
     factory['container'] = {
@@ -79,8 +79,8 @@ def default_native_workers():
 
         'logname': 'Container',
         'topics': {
-            'starting': u'crossbar.node.on_container_starting',
-            'started': u'crossbar.node.on_container_started',
+            'starting': u'crossbar.on_container_starting',
+            'started': u'crossbar.on_container_started',
         }
     }
     factory['websocket-testee'] = {
@@ -95,8 +95,8 @@ def default_native_workers():
 
         'logname': 'WebSocketTestee',
         'topics': {
-            'starting': u'crossbar.node.on_websocket_testee_starting',
-            'started': u'crossbar.node.on_websocket_testee_started',
+            'starting': u'crossbar.on_websocket_testee_starting',
+            'started': u'crossbar.on_websocket_testee_started',
         }
     }
     return factory

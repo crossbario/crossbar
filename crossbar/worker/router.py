@@ -402,6 +402,13 @@ class RouterController(WorkerController):
 
         del self.realms[id].roles[role_id]
 
+        topic = u'{}.on_router_realm_role_stopped'.format(self._uri_prefix)
+        event = {
+            u'id': role_id
+        }
+        caller = details.caller if details else None
+        self.publish(topic, event, options=PublishOptions(exclude=caller))
+
     @wamp.register(None)
     def get_router_components(self, details=None):
         """
@@ -499,10 +506,10 @@ class RouterController(WorkerController):
         # create component config
         #
         realm = config.get('realm', None)
-        assert type(realm) == str
+        assert isinstance(realm, str)
 
         extra = config.get('extra', {})
-        assert type(extra) == dict
+        assert isinstance(extra, dict)
 
         # forward crossbar node base directory
         extra['cbdir'] = self.config.extra.cbdir
@@ -668,17 +675,30 @@ class RouterController(WorkerController):
         # create a transport and parse the transport configuration
         router_transport = self.personality.create_router_transport(self, transport_id, config)
 
+        caller = details.caller if details else None
+        event = {
+            u'id': transport_id
+        }
+        topic = u'{}.on_router_transport_starting'.format(self._uri_prefix)
+        self.publish(topic, event, options=PublishOptions(exclude=caller))
+
         # start listening ..
         d = router_transport.start(create_paths)
 
         def ok(_):
             self.transports[transport_id] = router_transport
             self.log.debug('Router transport "{transport_id}" started and listening', transport_id=transport_id)
-            return
+
+            topic = u'{}.on_router_transport_started'.format(self._uri_prefix)
+            self.publish(topic, event, options=PublishOptions(exclude=caller))
 
         def fail(err):
             _emsg = "Cannot listen on transport endpoint: {log_failure}"
             self.log.error(_emsg, log_failure=err)
+
+            topic = u'{}.on_router_transport_stopped'.format(self._uri_prefix)
+            self.publish(topic, event, options=PublishOptions(exclude=caller))
+
             raise ApplicationError(u"crossbar.error.cannot_listen", _emsg)
 
         d.addCallbacks(ok, fail)
@@ -697,7 +717,7 @@ class RouterController(WorkerController):
         """
         self.log.debug("{name}.stop_router_transport", name=self.__class__.__name__)
 
-        if transport_id not in self.transports or self.transports[transport_id].state() != self.personality.RouterTransport.STATE_STARTED:
+        if transport_id not in self.transports or self.transports[transport_id].state != self.personality.RouterTransport.STATE_STARTED:
             emsg = "Cannot stop transport: no transport with ID '{}' or transport is already stopping".format(transport_id)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
@@ -706,14 +726,24 @@ class RouterController(WorkerController):
 
         self.log.debug("Stopping transport with ID '{transport_id}'", transport_id=transport_id)
 
+        caller = details.caller if details else None
+        event = {
+            u'id': transport_id
+        }
+        topic = u'{}.on_router_transport_stopping'.format(self._uri_prefix)
+        self.publish(topic, event, options=PublishOptions(exclude=caller))
+
         # stop listening ..
         d = router_transport.stop()
 
         def ok(_):
             del self.transports[transport_id]
 
+            topic = u'{}.on_router_transport_stopped'.format(self._uri_prefix)
+            self.publish(topic, event, options=PublishOptions(exclude=caller))
+
         def fail(err):
-            emsg = "Cannot listen on transport endpoint: {log_failure}"
+            emsg = "Cannot stop listening on transport endpoint: {log_failure}"
             self.log.error(emsg, log_failure=err)
             raise ApplicationError(u"crossbar.error.cannot_stop", emsg)
 
