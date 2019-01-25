@@ -32,7 +32,7 @@ RUN    apt-get update \
                libssl-dev \
                libffi-dev \
     # install Crossbar.io from PyPI
-    && pip install --no-cache-dir -U pip \
+    && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir crossbar>=${CROSSBAR_VERSION} \
     # minimize image
     # && apt-get remove -y build-essential \
