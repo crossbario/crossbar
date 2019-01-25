@@ -3,8 +3,11 @@
 # AWS_ACCESS_KEY_ID         : must be set in Travis CI build context
 # AWS_SECRET_ACCESS_KEY     : must be set in Travis CI build context
 
-export AWS_S3_BUCKET_NAME=download.crossbario.com
-export AWS_DEFAULT_REGION=eu-central-1
+#export AWS_S3_BUCKET_NAME=download.crossbario.com
+#export AWS_DEFAULT_REGION=eu-central-1
+
+export AWS_S3_BUCKET_NAME=crossbar.io
+export AWS_DEFAULT_REGION=eu-west-1
 
 set -ev
 
@@ -47,4 +50,5 @@ aws s3 ls ${AWS_S3_BUCKET_NAME}
 echo 'building and uploading docs ..'
 tox -c tox.ini -e sphinx
 #aws s3 cp --recursive --acl public-read ${HOME}/crossbar-docs s3://${AWS_S3_BUCKET_NAME}/docs
-aws s3 cp --recursive --acl public-read ${HOME}/crossbar-docs s3://${AWS_S3_BUCKET_NAME}/docs/crossbar
+#aws s3 cp --recursive --acl public-read ${HOME}/crossbar-docs s3://${AWS_S3_BUCKET_NAME}/docs/crossbar
+aws s3 cp --recursive --acl public-read ${HOME}/crossbar-docs s3://${AWS_S3_BUCKET_NAME}/docs-new

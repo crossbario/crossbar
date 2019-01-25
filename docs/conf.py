@@ -1,20 +1,4 @@
 # -*- coding: utf-8 -*-
-#
-# Configuration file for the Sphinx documentation builder.
-#
-# This file does only contain a selection of the most common options. For a
-# full list see the documentation:
-# http://www.sphinx-doc.org/en/stable/config
-
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
 
 import sys
 import os
@@ -35,16 +19,9 @@ RTD_BUILD = os.environ.get('READTHEDOCS', None) == 'True'
 
 from crossbar import __version__
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('./_extensions'))
-#sys.path.insert(0, os.path.abspath('..'))
-
-
 # -- Project information -----------------------------------------------------
 
-project = 'Crossbar.io'
+project = 'Crossbar.io Application Router'
 this_year = u'{0}'.format(time.strftime('%Y'))
 copyright_since = u'2013'
 if this_year != copyright_since:
@@ -52,33 +29,32 @@ if this_year != copyright_since:
 else:
     copyright = u'{0}, Crossbar.io Technologies GmbH'.format(copyright_since)
 
-
 author = 'Crossbar.io Technologies GmbH'
 version = release = __version__
 
 
 # -- General configuration ---------------------------------------------------
 
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
-
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
 extensions = [
     'sphinxcontrib.spelling',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
+
+    # Usage: .. thumbnail:: picture.png
+    'sphinxcontrib.images',
 ]
+
+# https://pythonhosted.org/sphinxcontrib-images/#how-to-configure
+images_config = {
+    'override_image_directive': False
+}
 
 # extensions not available on RTD
 if spelling is not None:
     extensions.append('sphinxcontrib.spelling')
-
-spelling_lang = 'en_US'
-spelling_show_suggestions = False
-spelling_word_list_filename = 'spelling_wordlist.txt'
+    spelling_lang = 'en_US'
+    spelling_show_suggestions = False
+    spelling_word_list_filename = 'spelling_wordlist.txt'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -106,30 +82,55 @@ exclude_patterns = ['_build', '_work', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 #pygments_style = 'sphinx'
-pygments_style = 'pastie'
+#pygments_style = 'monokai'
+#pygments_style = 'native'
+#pygments_style = 'pastie'
+#pygments_style = 'friendly'
+pygments_style = 'sphinx'
 
 
 # -- Options for HTML output -------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
+# the following trickery is to make it build both locally and on RTD
 #
-if sphinx_rtd_theme:
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+# see: https://blog.deimos.fr/2014/10/02/sphinxdoc-and-readthedocs-theme-tricks-2/
+#
+if RTD_BUILD:
+    html_context = {
+        'css_files': [
+            'https://media.readthedocs.org/css/sphinx_rtd_theme.css',
+            'https://media.readthedocs.org/css/readthedocs-doc-embed.css',
+            '_static/custom.css'
+        ]
+    }
 else:
-    html_theme = "default"
+    if sphinx_rtd_theme:
+        html_theme = 'sphinx_rtd_theme'
+        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
+        # add custom CSS on top of Sphinx RTD standard CSS
+        def setup(app):
+            app.add_stylesheet('css/custom.css')
+    else:
+        html_theme = 'default'
+
+html_logo = '_static/img/crossbar.svg'
+full_logo = True
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'collapse_navigation': False,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_favicon = '_static/favicon.ico'
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -146,5 +147,21 @@ html_static_path = ['_static']
 
 # -- Options for intersphinx extension ---------------------------------------
 
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {
+    'https://docs.python.org/': None,
+    'py2': ('https://docs.python.org/2', None),
+    'py3': ('https://docs.python.org/3', None),
+    'six': ('https://pythonhosted.org/six/', None),
+}
+
+rst_epilog = """
+"""
+
+rst_prolog = """
+"""
+
+# http://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method
+autoclass_content = 'both'
+
+# http://www.sphinx-doc.org/en/stable/ext/autodoc.html#confval-autodoc_member_order
+autodoc_member_order = 'bysource'

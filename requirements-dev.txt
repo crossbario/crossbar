@@ -6,10 +6,14 @@ wheel
 hashin
 coverage
 bandit
+towncrier
 
 # docs
-flask
-pygments
-jinja2_highlight
-mistune
-towncrier
+pyenchant>=2.0.0
+pygments>=2.2.0
+scour>=0.37
+sphinx>=1.8.1
+sphinx-rtd-theme>=0.4.2
+sphinxcontrib-images>=0.8.0
+sphinxcontrib-spelling>=4.2.0
+sphinxcontrib-websupport>=1.1.0
