@@ -21,17 +21,15 @@
     max-width: 600px;
 }
 
-
 .rst-content .note .admonition-title {
     background-color: #333333;
-    color:#FFF000;
+    color: #FFF000;
 }
 
 .rst-content table.docutils thead {
     background-color: #333333;
-    color:#FFF000;
+    color: #FFF000;
 }
-
 
 .rst-content .note {
     background-color: #E3E3E3;
