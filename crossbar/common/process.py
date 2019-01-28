@@ -134,6 +134,10 @@ class NativeProcess(ApplicationSession):
             from crossbar.personality import Personality
             self.personality = Personality
 
+        self._node_id = config.extra.node if config and config.extra else None
+        self._worker_id = config.extra.worker if config and config.extra else None
+        self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
+
         # base ctor
         super(ApplicationSession, self).__init__(config=config)
 

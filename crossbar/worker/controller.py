@@ -73,10 +73,6 @@ class WorkerController(NativeProcess):
         """
         Called when the worker has connected to the node's management router.
         """
-        self._node_id = self.config.extra.node
-        self._worker_id = self.config.extra.worker
-        self._uri_prefix = u'crossbar.worker.{}'.format(self._worker_id)
-
         NativeProcess.onConnect(self, False)
 
         self._module_tracker = TrackingModuleReloader(snapshot=False)
