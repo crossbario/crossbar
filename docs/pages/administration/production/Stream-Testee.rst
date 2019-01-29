@@ -68,7 +68,7 @@ Netperf
 -------
 
 The following is a dump of performance results using
-`netperf <http://linux.die.net/man/1/netperf>`__.
+`netperf <https://linux.die.net/man/1/netperf>`__.
 `Here <https://gist.github.com/cgbystrom/985475>`__ are some numbers to
 compare the results with.
 
@@ -276,7 +276,7 @@ Accept Rate
 
 These tests were performed on a notebook running Windows 7.
 
--  http://stackoverflow.com/a/1824817/884770
+-  https://stackoverflow.com/a/1824817/884770
 -  http://www.lenholgate.com/blog/2005/11/windows-tcpip-server-performance.html
 
 ::
@@ -298,6 +298,6 @@ Resources
 ---------
 
 -  `Why is TCP accept performance so bad under
-   Xen? <http://serverfault.com/questions/272483/why-is-tcp-accept-performance-so-bad-under-xen>`__
+   Xen? <https://serverfault.com/questions/272483/why-is-tcp-accept-performance-so-bad-under-xen>`__
 -  `Why virtualization reduces network
    performance <https://news.ycombinator.com/item?id=2574702>`__

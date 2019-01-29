@@ -18,7 +18,7 @@ Try it
 ------
 
 Clone the `Crossbar.io examples
-repository <https://github.com/crossbario/crossbarexamples>`__, and go
+repository <https://github.com/crossbario/crossbar-examples>`__, and go
 to the ``rest/publisher`` subdirectory.
 
 Now start Crossbar:
@@ -31,7 +31,7 @@ and open http://localhost:8080 in your browser. Open the JavaScript
 console to see events received.
 
 To submit events via HTTP/POST, you can use
-`curl <http://curl.haxx.se/>`__:
+`curl <https://curl.haxx.se/>`__:
 
 .. code:: console
 

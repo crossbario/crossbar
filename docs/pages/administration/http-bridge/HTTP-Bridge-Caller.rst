@@ -17,7 +17,7 @@ Try it
 ------
 
 Clone the `Crossbar.io examples
-repository <https://github.com/crossbario/crossbarexamples>`__, and go
+repository <https://github.com/crossbario/crossbar-examples>`__, and go
 to the ``rest/caller`` subdirectory.
 
 Now start Crossbar:
@@ -29,7 +29,7 @@ Now start Crossbar:
 This will register a simple procedure that takes two integers, adds them
 together, and returns the result.
 
-To test this out, you can use `curl <http://curl.haxx.se/>`__:
+To test this out, you can use `curl <https://curl.haxx.se/>`__:
 
 .. code:: console
 

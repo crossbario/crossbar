@@ -30,8 +30,8 @@ fully working transport.
 Background
 ----------
 
-`WAMP <http://wamp.ws/>`__ runs over any transport with the following
-characteristics (see the `spec <http://wamp-proto.org/spec/>`__):
+`WAMP <https://wamp-proto.org/>`__ runs over any transport with the following
+characteristics (see the `spec <http://wamp-proto.org/spec.html>`__):
 
 1. message-based
 2. reliable
@@ -42,7 +42,7 @@ Over which WAMP transport an application component is connected to a
 router does not matter. It's completely transparent from the application
 component point of view.
 
-The `WAMP spec <http://wamp-proto.org/spec/>`__ currently defines these
+The `WAMP spec <http://wamp-proto.org/spec.html>`__ currently defines these
 transports:
 
 -  :doc:`WAMP over WebSocket Transport <transport/WebSocket-Transport>`

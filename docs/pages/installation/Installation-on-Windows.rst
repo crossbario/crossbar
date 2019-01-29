@@ -32,7 +32,7 @@ the Microsoft Visual C++ compiler for Python 2.7.
    ('Control Panel' - 'System' - 'Change Settings' - 'Advanced' -
    'Environment Variables' - 'Path' is part of the system variables)
 3. Download and install
-   `PyWin32 <http://sourceforge.net/projects/pywin32/files/pywin32/>`__
+   `PyWin32 <https://sourceforge.net/projects/pywin32/files/pywin32/>`__
    - 32-bit version for Python 2.7 - 'win32'
 4. If you're on any Python version previous to 2.7.9, you need to
    install ``pip``. Download the ```get-pip``
@@ -51,7 +51,7 @@ Now you can install Crossbar.io by opening a command shell and doing
     pip install crossbar
 
 This installs Crossbar.io from the `Python Package
-Index <https://pypi.python.org/pypi>`__.
+Index <https://pypi.org/>`__.
 
 To verify that the installation was successful, in the shell do
 

@@ -78,7 +78,7 @@ Here you need to set the environment variable ``MYTICKET`` before
 starting Crossbar.io.
 
 We provide a `full working
-example <https://github.com/crossbario/crossbarexamples/tree/master/authentication/ticket/static>`__
+example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/ticket/static>`__
 for WAMP-Ticket authentication with static configuration.
 
 Dynamic
@@ -109,7 +109,7 @@ data, which also includes information about the transport.
 +-------------------------+----------------------------------------+
 
 We provide a `full working
-example <https://github.com/crossbario/crossbarexamples/tree/master/authentication/ticket/dynamic>`__
+example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/ticket/dynamic>`__
 for WAMP-Ticket authentication with dynamic authentication.
 
 For more on dynamic authenticators read :doc:`this documentation page <Dynamic-Authenticators>`
@@ -134,5 +134,5 @@ generated instead of stored tickets, WAMP-Ticket can be used to
 implement this.
 
 We provide a `full working
-example <https://github.com/crossbario/crossbarexamples/tree/master/authentication/ticket/totp>`__
+example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/ticket/totp>`__
 for this.

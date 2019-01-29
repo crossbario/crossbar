@@ -115,6 +115,6 @@ Example
 -------
 
 We provide a `full working
-example <https://github.com/crossbario/crossbarexamples/tree/master/authentication/advanced>`__
+example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/advanced>`__
 for the above. (This uses ticket authentication, but the principles
 apply to other authentication types.)

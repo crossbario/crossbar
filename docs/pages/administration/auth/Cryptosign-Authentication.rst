@@ -29,4 +29,4 @@ libraries <https://nacl.cr.yp.to/>`__.
     some features may be missing or not be stable yet.
 
 We provide examples of using Cryptosign for `static
-configuration <https://github.com/crossbario/crossbarexamples/tree/master/authentication/cryptosign/>`__.
+configuration <https://github.com/crossbario/crossbar-examples/tree/master/authentication/cryptosign/>`__.

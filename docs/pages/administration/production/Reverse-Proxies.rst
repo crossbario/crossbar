@@ -5,7 +5,7 @@ Reverse Proxies
 ===============
 
 Running Crossbar.io behind `reverse
-proxies <http://en.wikipedia.org/wiki/Reverse_proxy>`__.
+proxies <https://en.wikipedia.org/wiki/Reverse_proxy>`__.
 
 HAProxy
 -------

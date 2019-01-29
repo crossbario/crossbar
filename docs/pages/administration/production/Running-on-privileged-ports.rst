@@ -20,7 +20,7 @@ Linux
 -----
 
 Here we describe one way that works using `Linux
-Capabilities <http://linux.die.net/man/7/capabilities>`__ on kernels >=
+Capabilities <https://linux.die.net/man/7/capabilities>`__ on kernels >=
 2.6.24.
 
 Install ``libcap2``:

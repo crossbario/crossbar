@@ -130,12 +130,12 @@ daemontools
 The following describes how to monitor and restart Crossbar.io
 automatically using `Daemontools <http://cr.yp.to/daemontools.html>`__.
 **Daemontools** is a simple, effective, highly secure tool create by
-`Dan Bernstein <http://en.wikipedia.org/wiki/Daniel_J._Bernstein>`__
+`Dan Bernstein <https://en.wikipedia.org/wiki/Daniel_J._Bernstein>`__
 (aka "djb").
 
     Note: There is also `runit <http://smarden.org/runit/>`__, which is
     a Daemontools clone that some people
-    `prefer <http://www.sanityinc.com/articles/init-scripts-considered-harmful/>`__.
+    `prefer <https://www.sanityinc.com/articles/init-scripts-considered-harmful/>`__.
 
 Installation
 ~~~~~~~~~~~~

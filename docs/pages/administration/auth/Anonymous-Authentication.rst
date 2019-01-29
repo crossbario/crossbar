@@ -48,7 +48,7 @@ role.
 
 For a full working example of Anonymous Authentication using static
 configuration, see
-`Crossbarexamples <https://github.com/crossbario/crossbarexamples/tree/master/authentication/anonymous/static>`__.
+`Crossbarexamples <https://github.com/crossbario/crossbar-examples/tree/master/authentication/anonymous/static>`__.
 
 Dynamic authentication
 ----------------------
@@ -71,7 +71,7 @@ Authentication.
 
 For a full working example of Anonymous Authentication using a dynamic
 authenticator, see
-`Crossbarexamples <https://github.com/crossbario/crossbarexamples/tree/master/authentication/anonymous/dynamic>`__.
+`Crossbarexamples <https://github.com/crossbario/crossbar-examples/tree/master/authentication/anonymous/dynamic>`__.
 
 For more on dynamic authenticators read `this documentation
 page <Dynamic%20Authenticators>`__.

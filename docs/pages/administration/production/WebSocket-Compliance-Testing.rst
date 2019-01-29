@@ -9,7 +9,7 @@ Crossbar.io has best-in-class compliance to the WebSocket protocol
 
     Compliance is testified via the
     `**Autobahn**\ Testsuite <http://autobahn.ws/testsuite/>`__, the
-    `industry standard <http://autobahn.ws/testsuite/#users>`__
+    `industry standard <https://github.com/crossbario/autobahn-testsuite>`__
     WebSocket compliance testsuite which includes more than 500
     automated test cases. Crossbar.io passed *all* tests - 100% strict.
     No matter what WebSocket server you use, we encourage you to run the
