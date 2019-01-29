@@ -17,7 +17,7 @@ WAMP
 ----
 
 Crossbar.io uses the open `Web Application Messaging Protocol
-(WAMP) <http://wamp-proto.org>`__. It accepts connections from WAMP
+(WAMP) <https://wamp-proto.org>`__. It accepts connections from WAMP
 clients and routes calls and events between them. As such it is the core
 of a connectivity fabric for components in distributed applications /
 between microservices.
@@ -148,7 +148,7 @@ The basic structure is:
     }
 
 The controller part is there for the connection to the upcoming
-`Crossbar.io DeveOps Center <http://crossbario.com>`__ and is irrelevant
+`Crossbar.io DeveOps Center <https://crossbario.com>`__ and is irrelevant
 for running a single Crossbar.io instance configured via the
 configuration file.
 

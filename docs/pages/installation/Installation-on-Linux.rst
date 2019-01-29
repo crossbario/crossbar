@@ -14,8 +14,8 @@ superuser rights, can install to any location (such as your home
 directory) and does not depend on system Python packages.
 
     Note: This recipe was tested on a completely fresh install of
-    `Ubuntu <http://www.ubuntu.com/>`__ `14.04 LTS 64-bit
-    Server <http://www.ubuntu.com/download/server>`__ running as a
+    `Ubuntu <https://www.ubuntu.com/>`__ `14.04 LTS 64-bit
+    Server <https://www.ubuntu.com/download/server>`__ running as a
     `Oracle VirtualBox <https://www.virtualbox.org/>`__ virtual machine.
 
 Prepare
@@ -99,7 +99,7 @@ and install it to your home directory:
 
 ()
 
-Install `Pip <https://pypi.python.org/pypi/pip>`__ and make sure it is
+Install `Pip <https://pypi.org/project/pip>`__ and make sure it is
 the latest version:
 
 ::
@@ -108,7 +108,7 @@ the latest version:
     ~/python2713/bin/python -m pip install -U pip
 
 Install Crossbar and its dependencies from
-`PyPI <https://pypi.python.org/pypi/crossbar>`__:
+`PyPI <https://pypi.org/project/crossbar>`__:
 
 ::
 
@@ -149,7 +149,7 @@ directory:
     wget https://bitbucket.org/pypy/pypy/downloads/pypy-5.1.1-linux64.tar.bz2
     tar xvjf pypy-5.1.1-linux64.tar.bz2
 
-Install `Pip <https://pypi.python.org/pypi/pip>`__ and make sure it is
+Install `Pip <https://pypi.org/project/pip/>`__ and make sure it is
 the latest version:
 
 ::
@@ -158,7 +158,7 @@ the latest version:
     ~/pypy-5.1.1-linux64/bin/pypy -m pip install -U pip
 
 Now, to install Crossbar from
-`PyPI <https://pypi.python.org/pypi/crossbar>`__:
+`PyPI <https://pypi.org/project/crossbar>`__:
 
 ::
 
@@ -209,7 +209,7 @@ Cloning the repo
     Note: The Amazon EC2 or Microsoft Azure images we provide already
     have the git repository cloned.\*
 
-You need to have `git <http://git-scm.com/>`__ installed.
+You need to have `git <https://git-scm.com/>`__ installed.
 
 Then clone the repository into a directory ``crossbar`` in your current
 directory. If you're not registered on GitHub you can clone the

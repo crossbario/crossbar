@@ -154,9 +154,9 @@ Example
 -------
 
 We have a `complete
-example <https://github.com/crossbario/crossbarexamples/tree/master/fileupload>`__
+example <https://github.com/crossbario/crossbar-examples/tree/master/fileupload>`__
 in the `Crossbar.io examples
-repository <https://github.com/crossbario/crossbarexamples>`__
+repository <https://github.com/crossbario/crossbar-examples>`__
 repository.
 
 Clone the repo, change to the example folder ``fileupload`` and start

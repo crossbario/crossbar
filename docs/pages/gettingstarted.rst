@@ -23,7 +23,7 @@ WAMP is a routed protocol, with all components connecting to a **WAMP Router**, 
   * Publish & Subscribe
   * Routed Remote Procedure Calls
 
-WAMP is a `WebSocket <https://en.wikipedia.org/wiki/WebSocket/>`_ sub-protocol, which means that you can communicate with browser using it. In addition to that it can also run over any transport which is **message-oriented, ordered, reliable, and bi-directional** such as TCP, Unix domain socket, etc.
+WAMP is a `WebSocket <https://en.wikipedia.org/wiki/WebSocket>`_ sub-protocol, which means that you can communicate with browser using it. In addition to that it can also run over any transport which is **message-oriented, ordered, reliable, and bi-directional** such as TCP, Unix domain socket, etc.
 
 
 Introduction
@@ -45,7 +45,7 @@ The team behind Crossbar.io also maintains a set of WAMP clients as part of the 
 * `Autobahn|Cpp <https://github.com/crossbario/autobahn-cpp/>`_
 * `Autobahn|Java <https://github.com/crossbario/autobahn-java/>`_
 
-Apart from that there are also numerous third-party implementations of `WAMP clients in different languages <https://wamp-proto.org/implementations/index.html/>`_.
+Apart from that there are also numerous third-party implementations of `WAMP clients in different languages <https://wamp-proto.org/implementations.html/>`_.
 
 
 .. note:: A qualified WAMP client with basic profile should be able to do the following things

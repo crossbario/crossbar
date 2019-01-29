@@ -34,7 +34,7 @@ TLS and using a certificate with the given fingerprint
 assigned the ``authrole`` "backend".
 
 We provide a `full working
-example <https://github.com/crossbario/crossbarexamples/tree/master/authentication/tls/static>`__
+example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/tls/static>`__
 for this.
 
 Dynamic
@@ -54,7 +54,7 @@ authentication attempt.
     }
 
 We provide a `full working
-example <https://github.com/crossbario/crossbarexamples/tree/master/authentication/tls/dynamic>`__
+example <https://github.com/crossbario/crossbar-examples/tree/master/authentication/tls/dynamic>`__
 for this.
 
 For more on dynamic authenticators read :doc:`this documentation page <Dynamic-Authenticators>`.

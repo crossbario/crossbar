@@ -134,7 +134,7 @@ Diffie-Hellman
 ~~~~~~~~~~~~~~
 
 To use
-`Diffie-Hellman <http://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange>`__
+`Diffie-Hellman <https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange>`__
 based key exchange, you need to generate a parameter file:
 
 ::
@@ -143,7 +143,7 @@ based key exchange, you need to generate a parameter file:
 
 The use of Diffie-Hellman key exchange is desirable, since this provides
 `Perfect Forward Secrecy
-(PFS) <http://en.wikipedia.org/wiki/Forward_secrecy>`__. Without a DH
+(PFS) <https://en.wikipedia.org/wiki/Forward_secrecy>`__. Without a DH
 parameter file, no Diffie-Hellman based ciphers will be used, even if
 configured to do so.
 
@@ -170,10 +170,10 @@ Crossbar.io uses the ``prime256v1`` curve by default.
 
 ``prime256v1``\ (X9.62/SECG) is an elliptic curve over a 256 bit prime
 field. This is elliptic curve "NIST P-256" from
-`here <http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf>`__.
+`here <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf>`__.
 
 This seems to be the most `widely used
-curve <http://crypto.stackexchange.com/questions/11310/with-openssl-and-ecdhe-how-to-show-the-actual-curve-being-used>`__
+curve <https://crypto.stackexchange.com/questions/11310/with-openssl-and-ecdhe-how-to-show-the-actual-curve-being-used>`__
 and researchers
 `think <https://twitter.com/hyperelliptic/status/394258454342148096>`__
 it is "ok" (other than wrt timing attacks etc that might lurk inside
@@ -214,20 +214,20 @@ Examples
 --------
 
 -  `Sample
-   configuration <https://github.com/crossbario/crossbarexamples/tree/master/encryption/tls>`__
+   configuration <https://github.com/crossbario/crossbar-examples/tree/master/encryption/tls>`__
 -  `Python example for using TLS with
-   Crossbar.io <https://github.com/crossbario/crossbarexamples/tree/master/wss/python>`__
+   Crossbar.io <https://github.com/crossbario/crossbar-examples/tree/master/wss/python>`__
 -  `TLS Client Cert Authentication
-   examples <https://github.com/crossbario/crossbarexamples/tree/master/authentication/tls>`__
+   examples <https://github.com/crossbario/crossbar-examples/tree/master/authentication/tls>`__
 -  `Crossbar.io demo instance production
-   configuration <https://github.com/crossbario/crossbarexamples/blob/master/demos/_demo_launcher/.crossbar/config.json>`__
+   configuration <https://github.com/crossbario/crossbar-examples/blob/master/demos/_demo_launcher/.crossbar/config.json>`__
    - an example of recommended strongly secure settings
 
 Resources
 ---------
 
--  `OpenSSL man page <http://linux.die.net/man/1/dhparam>`__
+-  `OpenSSL man page <https://linux.die.net/man/1/dhparam>`__
 -  `OpenSSL API
-   documentation <http://linux.die.net/man/3/ssl_ctx_set_tmp_dh>`__
+   documentation <https://linux.die.net/man/3/ssl_ctx_set_tmp_dh>`__
 -  `The Most Common OpenSSL
    Commands <https://www.sslshopper.com/article-most-common-openssl-commands.html>`__

@@ -34,7 +34,7 @@ The WAMP ecosystem
 What is the relationship between WAMP, Autobahn and Crossbar.io?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`WAMP <http://wamp.ws>`__ is an open source protocol which provides RPC
+`WAMP <https://wamp-proto.org>`__ is an open source protocol which provides RPC
 and PubSub messaging patterns.
 
 The `Autobahn project <http://autobahn.ws/>`__ provides WAMP

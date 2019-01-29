@@ -65,7 +65,7 @@ Examples
 --------
 
 There is an example in the
-`Crossbarexamples <https://github.com/crossbario/crossbarexamples/tree/master/encryption/cryptobox>`__
+`Crossbarexamples <https://github.com/crossbario/crossbar-examples/tree/master/encryption/cryptobox>`__
 which will track the progress on Cryptobox. Until we have a final
 version, this example will provide more up-to-date information than this
 documentation page.

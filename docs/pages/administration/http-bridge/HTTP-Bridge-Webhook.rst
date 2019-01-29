@@ -23,7 +23,7 @@ Try it
 ------
 
 Clone the `Crossbar.io examples
-repository <https://github.com/crossbario/crossbarexamples>`__, and go
+repository <https://github.com/crossbario/crossbar-examples>`__, and go
 to the ``rest/webhooks`` subdirectory.
 
 Now start Crossbar:

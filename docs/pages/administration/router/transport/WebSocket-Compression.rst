@@ -7,7 +7,7 @@ WebSocket Compression
 WebSocket already has hugely lower overhead than HTTP, Comet or REST
 based solutions.
 
-On the other hand, `WAMP <http://wamp.ws/>`__, the application protocol
+On the other hand, `WAMP <http://wamp-proto.org/>`__, the application protocol
 used by Crossbar.io uses JSON or MsgPack for serialization, and that
 still has significant potential for compression (in particular JSON).
 
@@ -18,7 +18,7 @@ there is an upcoming compression extension for WebSocket.
 WebSocket compression compresses the payload of WebSocket messages which
 can lead to a further reduction of wire level payload by a factor of
 2-15x. Here is a good `overview
-article <http://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/>`__.
+article <https://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/>`__.
 
 WebSocket compression (**permessage-deflate**) is fully supported by
 Crossbar.io.

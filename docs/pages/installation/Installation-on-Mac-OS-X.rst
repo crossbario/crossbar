@@ -56,7 +56,7 @@ Setting up PyPy
 ---------------
 
 Install Homebrew using the instructions on the `Homebrew
-site <http://brew.sh/>`__.
+site <https://brew.sh/>`__.
 
     *Why Homebrew?* Homebrew is OS X's "missing package manager" and can
     make updating PyPy in the future much easier. It also makes sure you

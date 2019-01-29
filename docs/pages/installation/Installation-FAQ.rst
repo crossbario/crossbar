@@ -25,12 +25,12 @@ performance*.
 Different from CPython, PyPy is not an interpreter, but compiling Python
 bytecode to native machine code - transparently and on the fly. It is a
 `JIT
-compiler <http://en.wikipedia.org/wiki/Just-in-time_compilation>`__.
+compiler <https://en.wikipedia.org/wiki/Just-in-time_compilation>`__.
 
 Also, PyPy
-`has <http://morepypy.blogspot.de/2013/10/incremental-garbage-collector-in-pypy.html>`__
+`has <https://morepypy.blogspot.de/2013/10/incremental-garbage-collector-in-pypy.html>`__
 a powerful and *incremental garbage collector*. A `garbage
-collector <http://en.wikipedia.org/wiki/Garbage_collection_%28computer_science%29>`__
+collector <https://en.wikipedia.org/wiki/Garbage_collection_%28computer_science%29>`__
 is responsible for managing memory in a dynamic language such as Python.
 
 Should I run on CPython or PyPy?

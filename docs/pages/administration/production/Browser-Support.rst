@@ -5,7 +5,7 @@ Browser Support
 
 **The final RFC spec**
 
-WebSocket, as an `IETF standard <http://tools.ietf.org/html/rfc6455>`__,
+WebSocket, as an `IETF standard <https://tools.ietf.org/html/rfc6455>`__,
 and with a W3C browser API, is fully supported by all modern browsers:
 
 -  Chrome 16 + (incl. Chrome for Android)

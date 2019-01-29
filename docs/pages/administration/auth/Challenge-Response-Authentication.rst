@@ -8,17 +8,17 @@ Introduction
 
 Crossbar.io supports authenticating WAMP sessions using different
 mechanisms. One of those is WAMP-Challenge-Response-Authentication (`see
-the WAMP spec <http://wamp-proto.org/spec/>`__), or WAMP-CRA in short.
+the WAMP spec <https://wamp-proto.org/spec.html>`__), or WAMP-CRA in short.
 
 WAMP-CRA is a `challenge-response
-authentication <http://en.wikipedia.org/wiki/Challenge%E2%80%93response_authentication>`__
+authentication <https://en.wikipedia.org/wiki/Challenge%E2%80%93response_authentication>`__
 mechanism using a secret shared between the client and server side:
 
 -  The secret never travels the wire, hence WAMP-CRA can be used via
    non-TLS connections. Also, WAMP-CRA is protected from replay attacks.
 -  WAMP-CRA also supports the use of `salted
-   passwords <http://en.wikipedia.org/wiki/Salt_%28cryptography%29>`__,
-   using the `PBKDF2 <http://en.wikipedia.org/wiki/PBKDF2>`__ key
+   passwords <https://en.wikipedia.org/wiki/Salt_(cryptography)>`__,
+   using the `PBKDF2 <https://en.wikipedia.org/wiki/PBKDF2>`__ key
    derivation algorithm.
 -  The actual pre-sharing of the secret is outside the scope of the
    WAMP-CRA authentication mechanism.
@@ -110,7 +110,7 @@ With *static credentials*, you configure users and secrets in the
 Crossbar.io node configuration.
 
 You can find a complete example
-`here <https://github.com/crossbario/crossbarexamples/tree/master/authentication/wampcra/static>`__.
+`here <https://github.com/crossbario/crossbar-examples/tree/master/authentication/wampcra/static>`__.
 
 E.g. here is part of a Crossbar.io node configuration:
 
@@ -214,7 +214,7 @@ procedure in the Crossbar.io node configuration. The procedure will then
 be called by Crossbar.io during authentication of (other) users.
 
 You can find complete examples for different languages
-`here <https://github.com/crossbario/crossbarexamples/tree/master/authentication/wampcra/dynamic>`__.
+`here <https://github.com/crossbario/crossbar-examples/tree/master/authentication/wampcra/dynamic>`__.
 
 Here is part of a Crossbar.io node configuration:
 
@@ -339,9 +339,9 @@ Examples
 --------
 
 -  `Static Challenge-Response
-   Authentication <https://github.com/crossbario/crossbarexamples/tree/master/authentication/wampcra/static>`__
+   Authentication <https://github.com/crossbario/crossbar-examples/tree/master/authentication/wampcra/static>`__
 -  `Dynamic/Custom Challenge-Response
-   Authentication <https://github.com/crossbario/crossbarexamples/tree/master/authentication/wampcra/dynamic>`__
+   Authentication <https://github.com/crossbario/crossbar-examples/tree/master/authentication/wampcra/dynamic>`__
 
 For more on dynamic authenticators read :doc:`this documentation page <Dynamic-Authenticators>`
 

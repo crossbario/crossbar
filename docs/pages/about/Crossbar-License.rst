@@ -15,7 +15,7 @@ of the license in the repository
 and references to this license at the top of each source code file.
 
 All rights to the Crossbar.io source code remain exclusively with
-`Crossbar.io Technologies GmbH <http://crossbario.com/>`__. All
+`Crossbar.io Technologies GmbH <https://crossbario.com/>`__. All
 `external
 contributors <https://github.com/crossbario/crossbar/blob/master/legal/contributors.md>`__
 need to sign a **contributor assignment agreement (CAA)** when
@@ -23,9 +23,9 @@ need to sign a **contributor assignment agreement (CAA)** when
 project <https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md>`__.
 
 The Crossbar.io `application
-templates <https://github.com/crossbario/crossbar/tree/master/crossbar/templates>`__
+templates <https://github.com/crossbario/crossbar/tree/master/crossbar/node/templates>`__
 and instances of code generated from these templates are licensed under
-the `BSD 2-clause <http://opensource.org/licenses/BSD-2-Clause>`__
+the `BSD 2-clause <https://opensource.org/licenses/BSD-2-Clause>`__
 license.
 
 WAMP clients as separate works
