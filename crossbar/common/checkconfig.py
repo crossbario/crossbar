@@ -2200,7 +2200,7 @@ def check_connecting_transport_rawsocket(personality, transport):
     :type transport: dict
     """
     for k in transport:
-        if k not in ['id', 'type', 'endpoint', 'serializer', 'debug']:
+        if k not in ['id', 'type', 'endpoint', 'serializer', 'url', 'debug']:
             raise InvalidConfigException("encountered unknown attribute '{}' in RawSocket transport configuration".format(k))
 
     if 'id' in transport:
@@ -2220,6 +2220,16 @@ def check_connecting_transport_rawsocket(personality, transport):
 
     if serializer not in ['json', 'msgpack', 'cbor', 'ubjson']:
         raise InvalidConfigException("invalid value {} for 'serializer' in RawSocket transport configuration - must be one of ['json', 'msgpack', 'cbor', 'ubjson']".format(serializer))
+
+    url = transport.get('url', None)
+    if url:
+        if not isinstance(url, str):
+            raise InvalidConfigException("'url' in RawSocket transport configuration must be str ({} encountered)".format(type(url)))
+        try:
+            from autobahn.rawsocket.util import parse_url as parse_rawsocket_url
+            parse_rawsocket_url(url)
+        except InvalidConfigException as e:
+            raise InvalidConfigException("invalid 'url' in RawSocket transport configuration : {}".format(e))
 
     if 'debug' in transport:
         debug = transport['debug']

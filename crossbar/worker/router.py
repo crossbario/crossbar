@@ -853,7 +853,7 @@ class RouterController(WorkerController):
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
-        if path not in transport:
+        if path not in transport.root:
             emsg = "Cannot stop service on Web transport {}: no service running on path '{}'".format(transport_id, path)
             self.log.error(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
@@ -864,9 +864,9 @@ class RouterController(WorkerController):
                      path,
                      options=PublishOptions(exclude=caller))
 
-        # now actually remove the web service ..
-        # Note: currently this is NOT async, but direct/sync.
-        transport.remove_web_service(path)
+        # now actually remove the web service. note: currently this is NOT async, but direct/sync.
+        # FIXME: check that the underlying Twisted Web resource doesn't need any stopping too!
+        del transport.root[path]
 
         on_web_transport_service_stopped = {
             u'transport_id': transport_id,
@@ -878,3 +878,5 @@ class RouterController(WorkerController):
                      path,
                      on_web_transport_service_stopped,
                      options=PublishOptions(exclude=caller))
+
+        return on_web_transport_service_stopped

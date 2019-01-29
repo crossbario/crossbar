@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import, division
 
+import os
 import binascii
 
 import txaio
@@ -378,7 +379,11 @@ class RouterSession(BaseSession):
                 self._authrole = authrole
                 self._authmethod = authmethod
                 self._authprovider = authprovider
-                self._authextra = authextra
+                self._authextra = authextra or {}
+
+                self._authextra[u'x_cb_node_id'] = self._router_factory._node_id
+                self._authextra[u'x_cb_peer'] = str(self._transport.peer)
+                self._authextra[u'x_cb_pid'] = os.getpid()
 
                 roles = self._router.attach(self)
 
@@ -389,7 +394,7 @@ class RouterSession(BaseSession):
                                       authrole=authrole,
                                       authmethod=authmethod,
                                       authprovider=authprovider,
-                                      authextra=authextra,
+                                      authextra=self._authextra,
                                       custom=custom)
                 self._transport.send(msg)
 
