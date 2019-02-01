@@ -539,10 +539,7 @@ def _run_command_stop(options, reactor, personality):
                     print("Process {} terminated.".format(pid))
             else:
                 print("Process {} has excited gracefully.".format(pid))
-        if exit:
-            sys.exit(0)
-        else:
-            return pid_data
+        sys.exit(0)
     else:
         print("No Crossbar.io is currently running from node directory {}.".format(options.cbdir))
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
