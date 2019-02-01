@@ -398,32 +398,31 @@ def _run_command_keys(options, reactor, personality):
     from crossbar.common.key import _read_node_key
     from crossbar.common.key import _read_release_key
 
-    if options.generate:
-        # Generate a new node key pair (2 files), load and check
-        _maybe_generate_key(options.cbdir)
+    # Generate a new node key pair (2 files), load and check
+    _maybe_generate_key(options.cbdir)
+
+    # Print keys
+
+    # Release (public) key
+    release_pubkey = _read_release_key()
+
+    # Node key
+    node_key = _read_node_key(options.cbdir, private=options.private)
+
+    if options.private:
+        key_title = 'Crossbar.io Node PRIVATE Key'
     else:
-        # Print keys
+        key_title = 'Crossbar.io Node PUBLIC Key'
 
-        # Release (public) key
-        release_pubkey = _read_release_key()
-
-        # Node key
-        node_key = _read_node_key(options.cbdir, private=options.private)
-
-        if options.private:
-            key_title = 'Crossbar.io Node PRIVATE Key'
-        else:
-            key_title = 'Crossbar.io Node PUBLIC Key'
-
-        log.info('')
-        log.info('{key_title}', key_title=hl('Crossbar Software Release Key', color='yellow', bold=True))
-        log.info('base64: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
-        log.info(release_pubkey[u'qrcode'].strip())
-        log.info('')
-        log.info('{key_title}', key_title=hl(key_title, color='yellow', bold=True))
-        log.info('hex: {node_key}', node_key=node_key[u'hex'])
-        log.info(node_key[u'qrcode'].strip())
-        log.info('')
+    log.info('')
+    log.info('{key_title}', key_title=hl('Crossbar Software Release Key', color='yellow', bold=True))
+    log.info('base64: {release_pubkey}', release_pubkey=release_pubkey[u'base64'])
+    log.info(release_pubkey[u'qrcode'].strip())
+    log.info('')
+    log.info('{key_title}', key_title=hl(key_title, color='yellow', bold=True))
+    log.info('hex: {node_key}', node_key=node_key[u'hex'])
+    log.info(node_key[u'qrcode'].strip())
+    log.info('')
 
 
 def _run_command_init(options, reactor, personality):
@@ -451,9 +450,12 @@ def _run_command_init(options, reactor, personality):
                      options=options)
 
     options.appdir = os.path.abspath(options.appdir)
+    cbdir = os.path.join(options.appdir, '.crossbar')
 
     log.info("Initializing node in directory '{options.appdir}'", options=options)
     get_started_hint = templates.init(options.appdir, template)
+
+    _maybe_generate_key(cbdir)
 
     log.info("Application template initialized")
 
@@ -461,7 +463,7 @@ def _run_command_init(options, reactor, personality):
         log.info("\n{hint}\n", hint=get_started_hint)
     else:
         log.info("\nTo start your node, run 'crossbar start --cbdir {cbdir}'\n",
-                 cbdir=os.path.abspath(os.path.join(options.appdir, '.crossbar')))
+                 cbdir=os.path.abspath(cbdir))
 
 
 def _run_command_status(options, reactor, personality):
@@ -539,10 +541,7 @@ def _run_command_stop(options, reactor, personality):
                     print("Process {} terminated.".format(pid))
             else:
                 print("Process {} has excited gracefully.".format(pid))
-        if exit:
-            sys.exit(0)
-        else:
-            return pid_data
+        sys.exit(0)
     else:
         print("No Crossbar.io is currently running from node directory {}.".format(options.cbdir))
         sys.exit(getattr(os, 'EX_UNAVAILABLE', 1))
@@ -1035,12 +1034,11 @@ def main(prog, args, reactor, personality):
 
     # "keygen" command
     #
-    if False:
-        parser_keygen = subparsers.add_parser(
-            'keygen',
-            help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
-        )
-        parser_keygen.set_defaults(func=_run_command_keygen)
+    parser_keygen = subparsers.add_parser(
+        'keygen',
+        help='Generate public/private keypairs for use with autobahn.wamp.cryptobox.KeyRing'
+    )
+    parser_keygen.set_defaults(func=_run_command_keygen)
 
     # "keys" command
     #
@@ -1051,10 +1049,6 @@ def main(prog, args, reactor, personality):
                              type=str,
                              default=None,
                              help="Crossbar.io node directory (overrides ${CROSSBAR_DIR} and the default ./.crossbar)")
-
-    parser_keys.add_argument('--generate',
-                             action='store_true',
-                             help='Generate a new node key pair if none exists, or loads/checks existing.')
 
     parser_keys.add_argument('--private',
                              action='store_true',
