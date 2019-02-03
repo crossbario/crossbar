@@ -227,56 +227,122 @@ def _run_command_legal(options, reactor, personality):
         print(legal)
 
 
-def _run_command_version(options, reactor, personality):
-    """
-    Subcommand "crossbar version".
-    """
-    log = make_logger()
+class Versions(object):
+    def __init__(self):
+        self.executable = ''
+        self.platform = ''
+        self.machine = ''
+        self.py_ver = ''
+        self.py_ver_string = ''
+        self.py_ver_detail = ''
+        self.py_is_frozen = ''
+        self.tx_ver = ''
+        self.tx_loc = ''
+        self.txaio_ver = ''
+        self.ab_ver = ''
+        self.ab_loc = ''
+        self.utf8_ver = ''
+        self.utf8_loc = ''
+        self.xor_ver = ''
+        self.xor_loc = ''
+        self.json_ver = ''
+        self.msgpack_ver = ''
+        self.cbor_ver = ''
+        self.ubjson_ver = ''
+        self.lmdb_ver = ''
+        self.crossbar_ver = ''
+        self.crossbarfx_ver = ''
+        self.txaioetcd_ver = ''
+        self.xbr_ver = ''
+        self.zlmdb_ver = ''
+        self.release_pubkey = ''
+        self.supported_serializers = ''
+
+    def marshal(self):
+        obj = {}
+        obj['executable'] = self.executable
+        obj['platform'] = self.platform
+        obj['machine'] = self.machine
+        obj['py_ver'] = self.py_ver
+        obj['py_ver_string'] = self.py_ver_string
+        obj['py_ver_detail'] = self.py_ver_detail
+        obj['py_is_frozen'] = self.py_is_frozen
+        obj['tx_ver'] = self.tx_ver
+        obj['tx_loc'] = self.tx_loc
+        obj['txaio_ver'] = self.txaio_ver
+        obj['ab_ver'] = self.ab_ver
+        obj['ab_loc'] = self.ab_loc
+        obj['utf8_ver'] = self.utf8_ver
+        obj['utf8_loc'] = self.utf8_loc
+        obj['xor_ver'] = self.xor_ver
+        obj['xor_loc'] = self.xor_loc
+        obj['json_ver'] = self.json_ver
+        obj['msgpack_ver'] = self.msgpack_ver
+        obj['cbor_ver'] = self.cbor_ver
+        obj['ubjson_ver'] = self.ubjson_ver
+        obj['lmdb_ver'] = self.lmdb_ver
+        obj['crossbar_ver'] = self.crossbar_ver
+        obj['crossbarfx_ver'] = self.crossbarfx_ver
+        obj['txaioetcd_ver'] = self.txaioetcd_ver
+        obj['xbr_ver'] = self.xbr_ver
+        obj['zlmdb_ver'] = self.zlmdb_ver
+        obj['release_pubkey'] = self.release_pubkey
+        obj['supported_serializers'] = self.supported_serializers
+        return obj
+
+
+def _get_versions(reactor):
+    v = Versions()
+
+    v.executable = os.path.realpath(sys.executable)
+
+    v.platform = platform.platform()
+    v.machine = platform.machine()
 
     # Python
-    py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
-    py_ver_string = "[%s]" % sys.version.replace('\n', ' ')
+    v.py_ver = '.'.join([str(x) for x in list(sys.version_info[:3])])
+    v.py_ver_string = "%s" % sys.version.replace('\n', ' ')
 
     if 'pypy_version_info' in sys.__dict__:
-        py_ver_detail = "{}-{}".format(platform.python_implementation(), '.'.join(str(x) for x in sys.pypy_version_info[:3]))
+        v.py_ver_detail = "{}-{}".format(platform.python_implementation(), '.'.join(str(x) for x in sys.pypy_version_info[:3]))
     else:
-        py_ver_detail = platform.python_implementation()
+        v.py_ver_detail = platform.python_implementation()
 
     # Pyinstaller (frozen EXE)
-    py_is_frozen = getattr(sys, 'frozen', False)
+    v.py_is_frozen = getattr(sys, 'frozen', False)
 
     # Twisted / Reactor
-    tx_ver = "%s-%s" % (_get_version('twisted'), reactor.__class__.__name__)
-    tx_loc = "[%s]" % qual(reactor.__class__)
+    v.tx_ver = "%s-%s" % (_get_version('twisted'), reactor.__class__.__name__)
+    v.tx_loc = "%s" % qual(reactor.__class__)
 
     # txaio
-    txaio_ver = _get_version('txaio')
+    v.txaio_ver = _get_version('txaio')
 
     # Autobahn
-    ab_ver = _get_version('autobahn')
-    ab_loc = "[%s]" % qual(WebSocketProtocol)
+    v.ab_ver = _get_version('autobahn')
+    v.ab_loc = "%s" % qual(WebSocketProtocol)
 
     # UTF8 Validator
     s = qual(Utf8Validator)
     if 'wsaccel' in s:
-        utf8_ver = 'wsaccel-%s' % _get_version('wsaccel')
+        v.utf8_ver = 'wsaccel-%s' % _get_version('wsaccel')
     elif s.startswith('autobahn'):
-        utf8_ver = 'autobahn'
+        v.utf8_ver = 'autobahn'
     else:
         # could not detect UTF8 validator type/version
-        utf8_ver = '?'
-    utf8_loc = "[%s]" % qual(Utf8Validator)
+        v.utf8_ver = '?'
+    v.utf8_loc = "%s" % qual(Utf8Validator)
 
     # XOR Masker
     s = qual(XorMaskerNull)
     if 'wsaccel' in s:
-        xor_ver = 'wsaccel-%s' % _get_version('wsaccel')
+        v.xor_ver = 'wsaccel-%s' % _get_version('wsaccel')
     elif s.startswith('autobahn'):
-        xor_ver = 'autobahn'
+        v.xor_ver = 'autobahn'
     else:
         # could not detect XOR masker type/version
-        xor_ver = '?'
-    xor_loc = "[%s]" % qual(XorMaskerNull)
+        v.xor_ver = '?'
+    v.xor_loc = "%s" % qual(XorMaskerNull)
 
     # JSON Serializer
     supported_serializers = ['JSON']
@@ -285,72 +351,90 @@ def _run_command_version(options, reactor, personality):
 
     # If it's just 'json' then it's the stdlib one...
     if json_ver == 'json':
-        json_ver = 'stdlib'
+        v.json_ver = 'stdlib'
     else:
-        json_ver = (json_ver + "-%s") % _get_version(json_ver)
+        v.json_ver = (json_ver + "-%s") % _get_version(json_ver)
 
     # MsgPack Serializer
     try:
         import umsgpack  # noqa
-        msgpack_ver = 'u-msgpack-python-%s' % _get_version(umsgpack)
+        v.msgpack_ver = '%s' % _get_version(umsgpack)
         supported_serializers.append('MessagePack')
     except ImportError:
-        msgpack_ver = '-'
+        pass
 
     # CBOR Serializer
     try:
         import cbor  # noqa
-        cbor_ver = 'cbor-%s' % _get_version(cbor)
+        v.cbor_ver = '%s' % _get_version(cbor)
         supported_serializers.append('CBOR')
     except ImportError:
-        cbor_ver = '-'
+        pass
 
     # UBJSON Serializer
     try:
         import ubjson  # noqa
-        ubjson_ver = 'ubjson-%s' % _get_version(ubjson)
+        v.ubjson_ver = '%s' % _get_version(ubjson)
         supported_serializers.append('UBJSON')
     except ImportError:
-        ubjson_ver = '-'
+        pass
+
+    v.supported_serializers = supported_serializers
 
     # LMDB
     try:
         import lmdb  # noqa
         lmdb_lib_ver = '.'.join([str(x) for x in lmdb.version()])
-        lmdb_ver = '{}/lmdb-{}'.format(_get_version(lmdb), lmdb_lib_ver)
+        v.lmdb_ver = '{}/lmdb-{}'.format(_get_version(lmdb), lmdb_lib_ver)
     except ImportError:
-        lmdb_ver = '-'
+        pass
+
+    # crossbar
+    v.crossbar_ver = crossbar.__version__
 
     # crossbarfx
     try:
-        from crossbarfx._version import __version__ as crossbarfx_ver  # noqa
+        import crossbarfx  # noqa
+        v.crossbarfx_ver = _get_version(crossbarfx)
     except ImportError:
-        crossbarfx_ver = '-'
+        pass
 
     # txaio-etcd
     try:
         import txaioetcd  # noqa
-        txaioetcd_ver = _get_version(txaioetcd)
+        v.txaioetcd_ver = _get_version(txaioetcd)
     except ImportError:
-        txaioetcd_ver = '-'
+        pass
 
     # xbr
     try:
         import xbr  # noqa
-        xbr_ver = _get_version(xbr)
+        v.xbr_ver = _get_version(xbr)
     except ImportError:
-        xbr_ver = '-'
+        pass
 
     # zlmdb
     try:
         import zlmdb  # noqa
-        zlmdb_ver = _get_version(zlmdb)
+        v.zlmdb_ver = _get_version(zlmdb)
     except ImportError:
-        zlmdb_ver = '-'
+        pass
 
     # Release Public Key
     from crossbar.common.key import _read_release_key
     release_pubkey = _read_release_key()
+    v.release_pubkey = release_pubkey[u'base64']
+
+    return v
+
+
+def _run_command_version(options, reactor, personality):
+    """
+    Subcommand "crossbar version".
+    """
+    log = make_logger()
+
+    v = _get_versions(reactor)
 
     def decorate(text, fg='white', bg=None, bold=True):
         return click.style(text, fg=fg, bg=bg, bold=bold)
@@ -359,33 +443,33 @@ def _run_command_version(options, reactor, personality):
     for line in personality.BANNER.splitlines():
         log.info(hl(line, color='yellow', bold=True))
     log.info("")
-    log.info(" Crossbar.io        : {ver}", ver=decorate(crossbar.__version__))
-    log.info("   txaio            : {ver}", ver=decorate(txaio_ver))
-    log.info("   Autobahn         : {ver}", ver=decorate(ab_ver))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(ab_loc))
-    log.debug("     UTF8 Validator : {ver}", ver=decorate(utf8_ver))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(utf8_loc))
-    log.debug("     XOR Masker     : {ver}", ver=decorate(xor_ver))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(xor_loc))
-    log.debug("     JSON Codec     : {ver}", ver=decorate(json_ver))
-    log.debug("     MsgPack Codec  : {ver}", ver=decorate(msgpack_ver))
-    log.debug("     CBOR Codec     : {ver}", ver=decorate(cbor_ver))
-    log.debug("     UBJSON Codec   : {ver}", ver=decorate(ubjson_ver))
-    log.info("   Twisted          : {ver}", ver=decorate(tx_ver))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(tx_loc))
-    log.info("   LMDB             : {ver}", ver=decorate(lmdb_ver))
-    log.info("   Python           : {ver}/{impl}", ver=decorate(py_ver), impl=decorate(py_ver_detail))
-    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(py_ver_string))
+    log.info(" Crossbar.io        : {ver}", ver=decorate(v.crossbar_ver))
+    log.info("   txaio            : {ver}", ver=decorate(v.txaio_ver))
+    log.info("   Autobahn         : {ver}", ver=decorate(v.ab_ver))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.ab_loc))
+    log.debug("     UTF8 Validator : {ver}", ver=decorate(v.utf8_ver))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.utf8_loc))
+    log.debug("     XOR Masker     : {ver}", ver=decorate(v.xor_ver))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.xor_loc))
+    log.debug("     JSON Codec     : {ver}", ver=decorate(v.json_ver))
+    log.debug("     MsgPack Codec  : {ver}", ver=decorate(v.msgpack_ver))
+    log.debug("     CBOR Codec     : {ver}", ver=decorate(v.cbor_ver))
+    log.debug("     UBJSON Codec   : {ver}", ver=decorate(v.ubjson_ver))
+    log.info("   Twisted          : {ver}", ver=decorate(v.tx_ver))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.tx_loc))
+    log.info("   LMDB             : {ver}", ver=decorate(v.lmdb_ver))
+    log.info("   Python           : {ver}/{impl}", ver=decorate(v.py_ver), impl=decorate(v.py_ver_detail))
+    log.trace("{pad}{debuginfo}", pad=pad, debuginfo=decorate(v.py_ver_string))
     if personality.NAME in (u'edge', u'master'):
-        log.info(" Crossbar.io FX     : {ver}", ver=decorate(crossbarfx_ver))
+        log.info(" Crossbar.io FX     : {ver}", ver=decorate(v.crossbarfx_ver))
         if personality.NAME in (u'master'):
-            log.info("   txaio-etcd       : {ver}", ver=decorate(txaioetcd_ver))
-        log.info("   XBR              : {ver}", ver=decorate(xbr_ver))
-        log.info("   zLMDB            : {ver}", ver=decorate(zlmdb_ver))
-    log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if py_is_frozen else 'no'))
-    log.info(" Operating system   : {ver}", ver=decorate(platform.platform()))
-    log.info(" Host machine       : {ver}", ver=decorate(platform.machine()))
-    log.info(" Release key        : {release_pubkey}", release_pubkey=decorate(release_pubkey[u'base64']))
+            log.info("   txaio-etcd       : {ver}", ver=decorate(v.txaioetcd_ver))
+        log.info("   XBR              : {ver}", ver=decorate(v.xbr_ver))
+        log.info("   zLMDB            : {ver}", ver=decorate(v.zlmdb_ver))
+    log.info(" Frozen executable  : {py_is_frozen}", py_is_frozen=decorate('yes' if v.py_is_frozen else 'no'))
+    log.info(" Operating system   : {ver}", ver=decorate(v.platform))
+    log.info(" Host machine       : {ver}", ver=decorate(v.machine))
+    log.info(" Release key        : {release_pubkey}", release_pubkey=decorate(v.release_pubkey))
     log.info("")
 
 
