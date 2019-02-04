@@ -646,6 +646,30 @@ class RouterController(WorkerController):
         return res
 
     @wamp.register(None)
+    def get_router_transport(self, transport_id, details=None):
+        """
+        Get transports currently running in this router worker.
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :returns: List of transports currently running.
+        :rtype: list[dict]
+        """
+        self.log.debug("{name}.get_router_transport", name=self.__class__.__name__)
+
+        if transport_id in self.transports:
+            transport = self.transports[transport_id]
+            obj = {
+                u'id': transport.id,
+                u'created': utcstr(transport.created),
+                u'config': transport.config,
+            }
+            return obj
+        else:
+            raise ApplicationError(u"crossbar.error.no_such_object", "No transport {}".format(transport_id))
+
+    @wamp.register(None)
     def start_router_transport(self, transport_id, config, create_paths=False, details=None):
         """
         Start a transport on this router worker.
@@ -880,3 +904,29 @@ class RouterController(WorkerController):
                      options=PublishOptions(exclude=caller))
 
         return on_web_transport_service_stopped
+
+    @wamp.register(None)
+    def get_web_transport_service(self, transport_id, path, details=None):
+        self.log.info("{name}.get_web_transport_service(transport_id={transport_id}, path={path})",
+                      name=self.__class__.__name__,
+                      transport_id=transport_id,
+                      path=path)
+
+        transport = self.transports.get(transport_id, None)
+        if not transport or \
+           not isinstance(transport, self.personality.RouterWebTransport) or \
+           transport.state != self.personality.RouterTransport.STATE_STARTED:
+            emsg = "Cannot stop service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.not_running', emsg)
+
+        if path not in transport.root:
+            emsg = "Web transport {}: no service running on path '{}'".format(transport_id, path)
+            self.log.error(emsg)
+            raise ApplicationError(u'crossbar.error.not_running', emsg)
+
+        obj = {
+            'path': transport.path,
+            'config': transport.config,
+        }
+        return obj

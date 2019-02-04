@@ -42,7 +42,6 @@ from twisted.web.static import File
 from autobahn.wamp.exception import ApplicationError
 
 import crossbar
-from crossbar._compat import native_string
 
 
 def set_cross_origin_headers(request):
@@ -76,7 +75,7 @@ class Resource404(Resource):
     def __init__(self, templates, directory):
         Resource.__init__(self)
         self._page = templates.get_template('cb_web_404.html')
-        self._directory = native_string(directory)
+        self._directory = directory
         self._pid = u'{}'.format(os.getpid())
 
     def render_HEAD(self, request):
