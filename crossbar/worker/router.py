@@ -916,13 +916,13 @@ class RouterController(WorkerController):
         if not transport or \
            not isinstance(transport, self.personality.RouterWebTransport) or \
            transport.state != self.personality.RouterTransport.STATE_STARTED:
-            emsg = "Cannot stop service on Web transport: no transport with ID '{}' or transport is not a Web transport".format(transport_id)
-            self.log.error(emsg)
+            emsg = "No transport with ID '{}' or transport is not a Web transport".format(transport_id)
+            self.log.debug(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
         if path not in transport.root:
             emsg = "Web transport {}: no service running on path '{}'".format(transport_id, path)
-            self.log.error(emsg)
+            self.log.debug(emsg)
             raise ApplicationError(u'crossbar.error.not_running', emsg)
 
         obj = {
