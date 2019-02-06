@@ -62,6 +62,7 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import PublishOptions, RegisterOptions
 from autobahn import wamp
 
+import txaio
 from txaio import make_logger
 
 from twisted.cred import portal
@@ -119,6 +120,22 @@ class NativeProcess(ApplicationSession):
     A native Crossbar.io process (currently: controller, router or container).
     """
     log = make_logger()
+
+    def onUserError(self, fail, msg):
+        """
+        Implements :func:`autobahn.wamp.interfaces.ISession.onUserError`
+        """
+        if isinstance(fail.value, ApplicationError):
+            self.log.debug('{klass}.onUserError(): "{msg}"',
+                           klass=self.__class__.__name__,
+                           msg=fail.value.error_message())
+        else:
+            self.log.error(
+                '{klass}.onUserError(): "{msg}"\n{traceback}',
+                klass=self.__class__.__name__,
+                msg=msg,
+                traceback=txaio.failure_format_traceback(fail),
+            )
 
     def __init__(self, config=None, reactor=None, personality=None):
         # Twisted reactor
