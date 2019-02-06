@@ -348,6 +348,19 @@ class Dealer(object):
         d = self._router.authorize(session, register.procedure, u'register', options=register.marshal_options())
 
         def on_authorize_success(authorization):
+            # check the authorization before ANYTHING else, otherwise
+            # we may leak information about already-registered URIs
+            # etc.
+            if not authorization[u'allow']:
+                # error reply since session is not authorized to register
+                #
+                reply = message.Error(
+                    message.Register.MESSAGE_TYPE,
+                    register.request,
+                    ApplicationError.NOT_AUTHORIZED,
+                    [u"session is not authorized to register procedure '{0}'".format(register.procedure)],
+                )
+
             # get existing registration for procedure / matching strategy - if any
             #
             registration = self._registration_map.get_observation(register.procedure, register.match)
@@ -399,12 +412,9 @@ class Dealer(object):
                     self._router.send(session, reply)
                     return
 
-            if not authorization[u'allow']:
-                # error reply since session is not authorized to register
-                #
-                reply = message.Error(message.Register.MESSAGE_TYPE, register.request, ApplicationError.NOT_AUTHORIZED, [u"session is not authorized to register procedure '{0}'".format(register.procedure)])
-
-            else:
+            # this check is a little redundant, because theoretically
+            # we already returned (above) if this was False, but for safety...
+            if authorization[u'allow']:
                 registration = self._registration_map.get_observation(register.procedure, register.match)
                 if register.force_reregister and registration:
                     for obs in registration.observers:
