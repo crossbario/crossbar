@@ -363,6 +363,11 @@ class Router(object):
             # here), but the role might have been dynamically removed - and anyway, safety first!
             d = txaio.create_future_success(False)
 
+        # XXX would be nicer for dynamic-authorizer authors if we
+        # sanity-checked the return-value ('authorization') here
+        # (i.e. is it a dict? does it have 'allow' in it? does it have
+        # disallowed keys in it?)
+
         def got_authorization(authorization):
             # backward compatibility
             if isinstance(authorization, bool):

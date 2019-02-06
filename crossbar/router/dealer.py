@@ -872,7 +872,7 @@ class Dealer(object):
 
         # caller disclosure
         #
-        if authorization[u'disclose']:
+        if authorization.get(u'disclose', False):
             disclose = True
         elif (call.procedure.startswith(u"wamp.") or call.procedure.startswith(u"crossbar.")):
             disclose = True
