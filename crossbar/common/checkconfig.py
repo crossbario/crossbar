@@ -1203,7 +1203,7 @@ def check_web_path_service_websocket_reverseproxy(personality, config):
     if 'options' in config:
         check_websocket_options(config['options'])
 
-    check_connecting_transport_websocket(config['backend'])
+    check_connecting_transport_websocket(personality, config['backend'])
 
 
 def check_web_path_service_websocket(personality, config):
