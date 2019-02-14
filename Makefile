@@ -136,6 +136,9 @@ test_mqtt:
 #	trial crossbar.adapter.mqtt.test.test_wamp
 	trial crossbar.adapter.mqtt.test.test_wamp.MQTTAdapterTests.test_basic_publish
 
+test_testament:
+	trial crossbar.router.test.test_testament
+
 test_reactors:
 	clear
 	-crossbar version --loglevel=debug
