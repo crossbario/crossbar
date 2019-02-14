@@ -1,12 +1,12 @@
 argh==0.26.2
 asn1crypto==0.24.0
 attrs==18.2.0
-autobahn==19.1.1
+autobahn==19.2.1
 Automat==0.7.0
 bitstring==3.1.5
 cbor==1.0.0
 certifi==2018.11.29
-cffi==1.11.5
+cffi==1.12.0
 chardet==3.0.4
 Click==7.0
 constantly==15.1.0
@@ -41,7 +41,7 @@ requests==2.21.0
 sdnotify==0.3.2
 service-identity==18.1.0
 setproctitle==1.1.10
-setuptools==40.7.3
+setuptools==40.8.0
 six==1.12.0
 sortedcontainers==2.1.0
 treq==18.6.0

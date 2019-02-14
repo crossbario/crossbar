@@ -1,9 +1,9 @@
-sudo: false
-
+# py3.7/travis:
+# https://github.com/travis-ci/travis-ci/issues/9815#issue-336465122
+# https://github.com/travis-ci/travis-ci/issues/9069#issuecomment-425720905
 language: python
-
-python:
-  - "3.6"
+dist: xenial
+sudo: true
 
 addons:
   apt:
@@ -19,7 +19,7 @@ before_install:
   - export CROSSBAR_BUILD_ID="$(date --utc "+%Y%m%d")-$(git rev-parse --short ${TRAVIS_COMMIT})"
 
   # https://docs.travis-ci.com/user/multi-os/#example-multi-os-build-matrix
-  # Error: python 3.6.5_1 is already installed
+  # Error: python 3.7.5_1 is already installed
   # To upgrade to 3.7.2, run `brew upgrade python`
   #- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
   #- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python  ; fi
@@ -29,6 +29,7 @@ install:
 
 script:
   - tox -c tox.ini -e $TOX_ENV
+  - pip install --force-reinstall -U "pip<19"
 
 cache:
   directories:
@@ -44,107 +45,79 @@ matrix:
   fast_finish: true
 
   include:
-    - os: linux
-      dist: trusty
-      python: 3.6
+    - python: "3.7"
       env: TOX_ENV=flake8
 
-    - os: linux
-      dist: trusty
-      python: 3.6
+    - python: "3.7"
       env: TOX_ENV=sphinx
 
-    - os: linux
-      dist: trusty
-      python: 3.6
+    - python: "3.7"
       env: TOX_ENV=bandit
 
-    - os: linux
-      dist: trusty
-      python: 3.6
+    - python: "3.7"
       env: TOX_ENV=coverage
 
     # linux/cli
-    - os: linux
-      dist: trusty
-      python: 3.6
-      env: TOX_ENV=py36-cli
+    - python: "3.7"
+      env: TOX_ENV=py37-cli
 
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: "pypy3.5"
       env: TOX_ENV=pypy3-cli
 
     # osx/cli
     - os: osx
       language: generic
-      env: TOX_ENV=py36-cli
+      env: TOX_ENV=py37-cli
 
     # linux/examples
-    - os: linux
-      dist: trusty
-      python: 3.6
-      env: TOX_ENV=py36-examples
+    - python: "3.7"
+      env: TOX_ENV=py37-examples
 
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: "pypy3.5"
       env: TOX_ENV=pypy3-examples
 
     # osx/examples
     - os: osx
       language: generic
-      env: TOX_ENV=py36-examples
+      env: TOX_ENV=py37-examples
 
     # linux/trial/python3
-    - os: linux
-      dist: trusty
-      python: 3.6
-      env: TOX_ENV=py36-unpinned-trial
+    - python: "3.7"
+      env: TOX_ENV=py37-unpinned-trial
 
-    - os: linux
-      dist: trusty
-      python: 3.6
-      env: TOX_ENV=py36-pinned-trial
+    - python: "3.7"
+      env: TOX_ENV=py37-pinned-trial
 
-    - os: linux
-      dist: trusty
-      python: 3.6
-      env: TOX_ENV=py36-abtrunk-trial
+    - python: "3.7"
+      env: TOX_ENV=py37-abtrunk-trial
 
     # linux/trial/pypy3
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: "pypy3.5"
       env: TOX_ENV=pypy3-unpinned-trial
 
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: "pypy3.5"
       env: TOX_ENV=pypy3-pinned-trial
 
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: "pypy3.5"
       env: TOX_ENV=pypy3-abtrunk-trial
 
     # osx/trial/python3
     # https://docs.travis-ci.com/user/multi-os/#Python-example-(unsupported-languages)
     - os: osx
       language: generic
-      env: TOX_ENV=py36-unpinned-trial
+      env: TOX_ENV=py37-unpinned-trial
 
     - os: osx
       language: generic
-      env: TOX_ENV=py36-pinned-trial
+      env: TOX_ENV=py37-pinned-trial
 
     - os: osx
       language: generic
-      env: TOX_ENV=py36-abtrunk-trial
+      env: TOX_ENV=py37-abtrunk-trial
 
     # https://docs.travis-ci.com/user/build-stages/matrix-expansion/
     - stage: deploy
-      python: "3.6"
+      python: "3.7"
       if: repo = crossbario/crossbar AND branch = master AND type != pull_request
       #on:
       #  repo: crossbario/crossbar
@@ -164,8 +137,8 @@ matrix:
   # we allow failures when not using autobahn trunk, for cases
   # where we depend on a new feature in autobahn here in crossbar
   allow_failures:
-    - env: TOX_ENV=py36-unpinned-trial
-    - env: TOX_ENV=py36-pinned-trial
+    - env: TOX_ENV=py37-unpinned-trial
+    - env: TOX_ENV=py37-pinned-trial
     - env: TOX_ENV=pypy3-unpinned-trial
     - env: TOX_ENV=pypy3-pinned-trial
     - os: osx
