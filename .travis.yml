@@ -46,35 +46,23 @@ matrix:
   fast_finish: true
 
   include:
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=flake8
 
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=sphinx
 
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=bandit
 
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=coverage
 
     # linux/cli
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=py37-cli
 
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: pypy3
       env: TOX_ENV=pypy3-cli
 
     # osx/cli
@@ -83,14 +71,10 @@ matrix:
       env: TOX_ENV=py37-cli
 
     # linux/examples
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=py37-examples
 
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: pypy3
       env: TOX_ENV=pypy3-examples
 
     # osx/examples
@@ -99,35 +83,23 @@ matrix:
       env: TOX_ENV=py37-examples
 
     # linux/trial/python3
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=py37-unpinned-trial
 
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=py37-pinned-trial
 
-    - os: linux
-      dist: trusty
-      python: 3.7
+    - python: 3.7
       env: TOX_ENV=py37-abtrunk-trial
 
     # linux/trial/pypy3
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: pypy3
       env: TOX_ENV=pypy3-unpinned-trial
 
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: pypy3
       env: TOX_ENV=pypy3-pinned-trial
 
-    - os: linux
-      dist: trusty
-      python: pypy3
+    - python: pypy3
       env: TOX_ENV=pypy3-abtrunk-trial
 
     # osx/trial/python3
