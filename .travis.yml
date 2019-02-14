@@ -2,9 +2,8 @@
 # https://github.com/travis-ci/travis-ci/issues/9815#issue-336465122
 # https://github.com/travis-ci/travis-ci/issues/9069#issuecomment-425720905
 language: python
-sudo: required
 dist: xenial
-python: "3.7"
+sudo: true
 
 addons:
   apt:
@@ -46,20 +45,20 @@ matrix:
   fast_finish: true
 
   include:
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=flake8
 
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=sphinx
 
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=bandit
 
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=coverage
 
     # linux/cli
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=py37-cli
 
     - python: pypy3
@@ -71,7 +70,7 @@ matrix:
       env: TOX_ENV=py37-cli
 
     # linux/examples
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=py37-examples
 
     - python: pypy3
@@ -83,23 +82,23 @@ matrix:
       env: TOX_ENV=py37-examples
 
     # linux/trial/python3
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=py37-unpinned-trial
 
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=py37-pinned-trial
 
-    - python: 3.7
+    - python: "3.7"
       env: TOX_ENV=py37-abtrunk-trial
 
     # linux/trial/pypy3
-    - python: pypy3
+    - python: "pypy3.5"
       env: TOX_ENV=pypy3-unpinned-trial
 
-    - python: pypy3
+    - python: "pypy3.5"
       env: TOX_ENV=pypy3-pinned-trial
 
-    - python: pypy3
+    - python: "pypy3.5"
       env: TOX_ENV=pypy3-abtrunk-trial
 
     # osx/trial/python3
