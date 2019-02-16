@@ -180,13 +180,20 @@ class NodeController(NativeProcess):
         :returns: Information on the Crossbar.io node.
         :rtype: dict
         """
+        workers_by_type = {}
+        for worker in self._workers.values():
+            if worker.TYPE not in workers_by_type:
+                workers_by_type[worker.TYPE] = 0
+            workers_by_type[worker.TYPE] += 1
+
         return {
-            u'title': u'{} {}'.format(self.personality.TITLE, crossbar.__version__),
-            u'started': self._started,
-            u'controller_pid': self._pid,
-            u'running_workers': len(self._workers),
-            u'directory': self.cbdir,
-            u'pubkey': self._node._node_key.public_key(),
+            'title': u'{} {}'.format(self.personality.TITLE, crossbar.__version__),
+            'started': self._started,
+            'controller_pid': self._pid,
+            'running_workers': len(self._workers),
+            'workers_by_type': workers_by_type,
+            'directory': self.cbdir,
+            'pubkey': self._node._node_key.public_key(),
         }
 
     @wamp.register(None)
@@ -252,14 +259,22 @@ class NodeController(NativeProcess):
         pass
 
     @wamp.register(None)
-    def get_workers(self, details=None):
+    def get_workers(self, filter_types=[], details=None):
         """
         Returns the list of workers currently running on this node.
 
+        :param filter_types:
         :returns: List of worker processes.
         :rtype: list[dict]
         """
-        return sorted(self._workers.keys())
+        assert filter_types is None or (type(filter_types) == list and type(ft) == str for ft in filter_types)
+
+        if filter_types:
+            ft = set(filter_types)
+            worker_ids = [worker_id for worker_id in self._workers if self._workers[worker_id].TYPE in ft]
+        else:
+            worker_ids = self._workers.keys()
+        return sorted(worker_ids)
 
     @wamp.register(None)
     def get_worker(self, worker_id, include_stats=False, details=None):

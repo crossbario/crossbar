@@ -565,9 +565,3 @@ class RouterFactory(object):
 
         role = router._roles[role]
         router.drop_role(role)
-
-    def auto_start_realm(self, realm):
-        raise Exception("realm auto-activation (realm '{}') not yet implemented".format(realm))
-
-    def auto_add_role(self, realm, role):
-        raise Exception("role auto-activation (role '{}') not yet implemented".format(role))

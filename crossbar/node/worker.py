@@ -211,10 +211,9 @@ class WorkerProcess(object):
                 try:
                     event = json.loads(log)
                 except ValueError:
-                    # If invalid JSON is written out, just output the raw text.
-                    # We tried!
-                    event = {"level": u"warn",
-                             "text": u"INVALID JSON: {}".format(escape_formatting(log))}
+                    # If invalid JSON is written out, just output the raw text at level "info". We tried!
+                    # however, this means no colored logging and such goodies!
+                    event = {"level": "info", "text": "{}".format(escape_formatting(log))}
                 event_text = event.pop("text")
                 event_namespace = event.pop("namespace", None)
                 level = event.pop("level")

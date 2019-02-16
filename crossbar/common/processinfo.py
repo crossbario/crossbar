@@ -30,6 +30,8 @@
 
 from __future__ import absolute_import
 
+import os
+import time
 import sys
 import socket
 
@@ -176,8 +178,8 @@ if _HAS_PSUTIL:
                 the given PID, otherwise track the current process.
             :type pid: int
             """
-            self._pid = pid
-            self._p = psutil.Process(pid)
+            self._pid = pid or os.getpid()
+            self._p = psutil.Process(self._pid)
             if hasattr(self._p, 'cpu_affinity'):
                 self._cpus = sorted(self._p.cpu_affinity())
             else:
@@ -198,6 +200,8 @@ if _HAS_PSUTIL:
             """
             res = {}
             res[u'ts'] = utcnow()
+            res[u'time'] = time.time_ns()
+            res[u'pid'] = self._pid
 
             s = self._p.num_ctx_switches()
 

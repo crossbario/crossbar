@@ -110,7 +110,8 @@ def _qn(obj):
     return qn
 
 
-def hltype(obj, render=DEBUG_PROGRAMFLOW):
+# def hltype(obj, render=DEBUG_PROGRAMFLOW):
+def hltype(obj, render=True):
 
     if render:
         qn = _qn(obj).split('.')

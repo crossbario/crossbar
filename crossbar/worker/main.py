@@ -193,9 +193,10 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     klass = getattr(_mod, worker_klass)
 
     log.info(
-        'Starting worker "{worker_id}" for node "{node_id}" with personality "{personality}" {worker_class}',
+        'Starting worker "{worker_id}" for node "{node_id}" on realm "{realm}" with personality "{personality}" {worker_class}',
         worker_id=options.worker,
         node_id=options.node,
+        realm=options.realm,
         personality=Personality.NAME,
         worker_class=hltype(klass),
     )

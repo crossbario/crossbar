@@ -69,8 +69,15 @@ class Node(object):
     ROUTER_SERVICE = RouterServiceAgent
 
     CONFIG_SOURCE_DEFAULT = 1
-    CONFIG_SOURCE_LOCALFILE = 2
-    CONFIG_SOURCE_XBRNETWORK = 3
+    CONFIG_SOURCE_EMPTY = 2
+    CONFIG_SOURCE_LOCALFILE = 3
+    CONFIG_SOURCE_XBRNETWORK = 4
+    CONFIG_SOURCE_TO_STR = {
+        1: 'default',
+        2: 'empty',
+        3: 'localfile',
+        4: 'xbrnetwork',
+    }
 
     # A Crossbar.io node is the running a controller process and one or multiple
     # worker processes.
@@ -154,6 +161,10 @@ class Node(object):
         self._component_no = 1
 
     @property
+    def realm(self):
+        return self._realm
+
+    @property
     def key(self):
         """
         Returns the node (private signing) key pair.
@@ -187,37 +198,29 @@ class Node(object):
         IMPORTANT: this function is run _before_ start of Twisted reactor!
         """
         if configfile:
-            configpath = os.path.abspath(os.path.join(self._cbdir, configfile))
-
-            self.log.debug('Loading node configuration from "{configpath}" ..',
-                           configpath=configpath)
+            config_path = os.path.abspath(os.path.join(self._cbdir, configfile))
 
             # the following will read the config, check the config and replace
             # environment variable references in configuration values ("${MYVAR}") and
             # finally return the parsed configuration object
-            self._config = self.personality.check_config_file(self.personality, configpath)
-
-            self.log.info('Node configuration loaded from {configpath}',
-                          configpath=hlid(configpath))
-            return Node.CONFIG_SOURCE_LOCALFILE
+            self._config = self.personality.check_config_file(self.personality, config_path)
+            config_source = Node.CONFIG_SOURCE_LOCALFILE
         else:
+            config_path = None
             if default:
                 self._config = default
+                config_source = Node.CONFIG_SOURCE_DEFAULT
             else:
                 self._config = {
                     u'version': 2,
                     u'controller': {},
                     u'workers': []
                 }
+                config_source = Node.CONFIG_SOURCE_EMPTY
 
             self.personality.check_config(self.personality, self._config)
 
-            if default:
-                self.log.info('Node configuration loaded from {configsource}.', configsource=hlid('built-in config'))
-            else:
-                self.log.info('Node configuration loaded from {configsource}.', configsource=hlid('empty (!) config'))
-
-            return Node.CONFIG_SOURCE_DEFAULT
+        return config_source, config_path
 
     def _add_global_roles(self):
         self.log.info('No extra node router roles')

@@ -73,6 +73,7 @@ from crossbar.common.processinfo import _HAS_PSUTIL
 if _HAS_PSUTIL:
     import psutil
     from crossbar.common.processinfo import ProcessInfo
+    from crossbar.common.monitor import ProcessMonitor
 
 if _HAS_MANHOLE:
     class ManholeService(object):
@@ -120,6 +121,8 @@ class NativeProcess(ApplicationSession):
     A native Crossbar.io process (currently: controller, router or container).
     """
     log = make_logger()
+
+    WORKER_TYPE = u'native'
 
     def onUserError(self, fail, msg):
         """
@@ -174,10 +177,12 @@ class NativeProcess(ApplicationSession):
 
         if _HAS_PSUTIL:
             self._pinfo = ProcessInfo()
+            self._pmonitor = ProcessMonitor(self.WORKER_TYPE, {})
             self._pinfo_monitor = None
             self._pinfo_monitor_seq = 0
         else:
             self._pinfo = None
+            self._pmonitor = None
             self._pinfo_monitor = None
             self._pinfo_monitor_seq = None
             self.log.info("Process utilities not available")
@@ -347,6 +352,16 @@ class NativeProcess(ApplicationSession):
 
         if self._pinfo:
             return self._pinfo.get_stats()
+        else:
+            emsg = "Could not retrieve process statistics: required packages not installed"
+            raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
+
+    @wamp.register(None)
+    def get_process_monitor(self, details=None):
+        self.log.debug("{cls}.get_process_monitor", cls=self.__class__.__name__)
+
+        if self._pmonitor:
+            return self._pmonitor.poll()
         else:
             emsg = "Could not retrieve process statistics: required packages not installed"
             raise ApplicationError(u"crossbar.error.feature_unavailable", emsg)
