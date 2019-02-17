@@ -42,7 +42,7 @@ from txaio import make_logger
 from crossbar.common.checkconfig import check_dict_args
 
 
-__all__ = ('ProcessMonitor', )
+__all__ = ('ProcessMonitor', 'SystemMonitor')
 
 
 class Monitor(object):
@@ -236,6 +236,104 @@ class ProcessMonitor(Monitor):
             return current
 
         new_value = yield deferToThread(_poll, _current, self._last_value)
+
+        self._last_poll = now
+        self._last_value = new_value
+
+        returnValue(new_value)
+
+
+class SystemMonitor(Monitor):
+    """
+    System monitoring via psutils.
+    """
+
+    ID = u'system'
+
+    @inlineCallbacks
+    def poll(self, verbose=False):
+        """
+        Measure current stats value and return new stats.
+
+        :returns: A deferred that resolves with a dict containing new process statistics.
+        :rtype: :class:`twisted.internet.defer.Deferred`
+        """
+        self._tick += 1
+
+        now = time.time_ns()
+        if self._last_poll:
+            self._last_period = now - self._last_poll
+
+        if verbose:
+            _current = {
+                'tick': self._tick,
+
+                # the UTC timestamp when measurement was taken
+                'timestamp': now,
+
+                # the effective last period in ns
+                'last_period': self._last_period,
+
+                # duration in seconds the retrieval of sensor values took
+                'elapsed': self._elapsed,
+            }
+        else:
+            _current = {}
+
+        # uptime, as all durations, is in ns
+        _current['uptime'] = int(now - psutil.boot_time() * 10**9)
+
+        def _poll(current, last_value):
+
+            # normalize with effective period
+            diff = 1.
+            if self._last_period:
+                diff = self._last_period / 10**9
+
+            # int values: bytes_sent, bytes_recv, packets_sent, packets_recv, errin, errout, dropin, dropout
+            current['network'] = dict(psutil.net_io_counters()._asdict())
+
+            # int values: read_count, write_count, read_bytes, write_bytes, read_time, write_time, read_merged_count, write_merged_count, busy_time
+            current['disk'] = dict(psutil.disk_io_counters()._asdict())
+
+            if last_value:
+                for k in ['network', 'disk']:
+                    d = current[k]
+                    for k2 in list(d.keys()):
+                        value = float(d[k2] - last_value[k][k2]) / diff
+                        d['{}_per_sec'.format(k2)] = int(value)
+
+            # float values: user, nice, system, idle, iowait, irq, softirq, streal, guest, guest_nice
+            current['cpu'] = dict(psutil.cpu_times_percent(interval=None)._asdict())
+
+            current['cpu']['freq'] = round(psutil.cpu_freq().current)
+            s = psutil.cpu_stats()
+            current['cpu']['ctx_switches'] = s.ctx_switches
+            current['cpu']['interrupts'] = s.interrupts
+            current['cpu']['soft_interrupts'] = s.soft_interrupts
+
+            # int values: total, available, used, free, active, inactive, buffers, cached, shared, slab
+            # float values: percent
+            current['memory'] = dict(psutil.virtual_memory()._asdict())
+
+            # Network connections
+            res = {}
+            conns = psutil.net_connections(kind='all')
+            for c in conns:
+                if c.family not in res:
+                    res[c.family] = 0
+                res[c.family] += 1
+            res2 = {}
+            for f, cnt in res.items():
+                res2[f.name] = cnt
+            current['network']['connection'] = res2
+
+            return current
+
+        new_value = yield deferToThread(_poll, _current, self._last_value)
+
+        self._elapsed = time.time_ns() - now
+        new_value['elapsed'] = self._elapsed
 
         self._last_poll = now
         self._last_value = new_value

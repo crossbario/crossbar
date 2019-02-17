@@ -57,6 +57,7 @@ from crossbar.node.guest import create_guest_worker_client_factory
 from crossbar.node.worker import NativeWorkerProcess
 from crossbar.node.worker import GuestWorkerProcess
 from crossbar.common.process import NativeProcess
+from crossbar.common.monitor import SystemMonitor
 from crossbar.common.fswatcher import HAS_FS_WATCHER, FilesystemWatcher
 
 import txaio
@@ -76,6 +77,8 @@ def check_executable(fn):
 class NodeController(NativeProcess):
 
     log = make_logger()
+
+    WORKER_TYPE = u'controller'
 
     def __init__(self, node):
         # base ctor
@@ -104,6 +107,9 @@ class NodeController(NativeProcess):
         # under error or unnormal conditions. this flag controls the final exit
         # code returned by crossbar: 0 in case of "clean shutdown", and 1 otherwise
         self._shutdown_was_clean = None
+
+        # node-wide system monitor running here in the node controller
+        self._smonitor = SystemMonitor()
 
     def onConnect(self):
 
@@ -177,6 +183,9 @@ class NodeController(NativeProcess):
         """
         Return basic information about this node.
 
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
         :returns: Information on the Crossbar.io node.
         :rtype: dict
         """
@@ -195,6 +204,20 @@ class NodeController(NativeProcess):
             'directory': self.cbdir,
             'pubkey': self._node._node_key.public_key(),
         }
+
+    @wamp.register(None)
+    def get_system_stats(self, details=None):
+        """
+        Return system statistics on this node.
+
+        :param details: Call details.
+        :type details: :class:`autobahn.wamp.types.CallDetails`
+
+        :return: Current system statistics for this node.
+        :rtype: dict
+        """
+        self.log.debug("{cls}.get_stats", cls=self.__class__.__name__)
+        return self._smonitor.poll()
 
     @wamp.register(None)
     @inlineCallbacks
@@ -322,6 +345,10 @@ class NodeController(NativeProcess):
                       worker_type=worker_type,
                       worker_id=hlid(worker_id),
                       worker_klass=hltype(NodeController.start_worker))
+
+        if type(worker_id) != str or worker_id in [u'controller', u'']:
+            raise Exception('invalid worker ID "{}"'.format(worker_id))
+
         if worker_type == u'guest':
             return self._start_guest_worker(worker_id, worker_options, details=details)
 
