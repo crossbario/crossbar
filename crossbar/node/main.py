@@ -775,8 +775,8 @@ def _run_command_start(options, reactor, personality):
     for line in personality.BANNER.splitlines():
         log.info(hl(line, color='yellow', bold=True))
     log.info('')
-    log.info('Initializing {node_personality} node from node directory {cbdir} {node_class}',
-             node_personality=personality,
+    log.info('Initializing {node_class} as node [realm={realm}, cbdir={cbdir}]',
+             realm=hlid(node.realm),
              cbdir=hlid(options.cbdir),
              node_class=hltype(personality.Node))
 
@@ -787,7 +787,7 @@ def _run_command_start(options, reactor, personality):
     # check and load the node configuration
     #
     try:
-        config_source = node.load_config(options.config)
+        config_source, config_path = node.load_config(options.config)
     except InvalidConfigException as e:
         log.failure()
         log.error("Invalid node configuration")
@@ -796,7 +796,9 @@ def _run_command_start(options, reactor, personality):
     except:
         raise
     else:
-        log.info('Configuration source {config_source}', config_source=config_source)
+        config_source = node.CONFIG_SOURCE_TO_STR[config_source]
+        log.info('Node configuration loaded [config_source={config_source}, config_path={config_path}]',
+                 config_source=hl(config_source, bold=True, color='green'), config_path=hlid(config_path))
 
     # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
     # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
