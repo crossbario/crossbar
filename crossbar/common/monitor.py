@@ -306,7 +306,8 @@ class SystemMonitor(Monitor):
             # float values: user, nice, system, idle, iowait, irq, softirq, streal, guest, guest_nice
             current['cpu'] = dict(psutil.cpu_times_percent(interval=None)._asdict())
 
-            current['cpu']['freq'] = round(psutil.cpu_freq().current)
+            cpu_freq = psutil.cpu_freq()
+            current['cpu']['freq'] = round(cpu_freq.current) if cpu_freq else None
             s = psutil.cpu_stats()
             current['cpu']['ctx_switches'] = s.ctx_switches
             current['cpu']['interrupts'] = s.interrupts
