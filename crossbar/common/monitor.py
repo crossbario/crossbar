@@ -225,7 +225,7 @@ class ProcessMonitor(Monitor):
                 current['write_ios'] = iocounters.write_count
                 current['read_bytes'] = iocounters.read_bytes
                 current['write_bytes'] = iocounters.write_bytes
-            else
+            else:
                 current['read_ios'] = None
                 current['write_ios'] = None
                 current['read_bytes'] = None
