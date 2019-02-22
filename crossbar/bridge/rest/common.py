@@ -34,6 +34,7 @@ import json
 import hmac
 import hashlib
 import base64
+import binascii
 
 from autobahn.wamp.exception import ApplicationError
 
@@ -389,7 +390,7 @@ class _CommonResource(Resource):
                     return self._deny_request(
                         request, 400,
                         log_category="AR464")
-            except ValueError as e:
+            except ValueError:
                 return self._deny_request(
                     request, 400,
                     reason=u"invalid timestamp '{0}' (must be UTC/ISO-8601, e.g. '2011-10-14T16:59:51.123Z')".format(native_string(timestamp_str)),
