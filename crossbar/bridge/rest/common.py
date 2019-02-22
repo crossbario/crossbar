@@ -37,18 +37,16 @@ import base64
 import binascii
 
 from autobahn.wamp.exception import ApplicationError
-from autobahn.wamp import types
+
 from txaio import make_logger
 
 from crossbar._util import dump_json
 from crossbar._compat import native_string
 from crossbar._log_categories import log_categories
-from crossbar.router.auth import PendingAuthTicket
 from ipaddress import ip_address, ip_network
 
 from twisted.web import server
 from twisted.web.resource import Resource
-from twisted.internet.defer import maybeDeferred
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -116,7 +114,7 @@ class _CommonResource(Resource):
     isLeaf = True
     decode_as_json = True
 
-    def __init__(self, options, session, auth_config=None):
+    def __init__(self, options, session):
         """
         Ctor.
 
@@ -146,9 +144,6 @@ class _CommonResource(Resource):
             self._require_ip = [ip_network(net) for net in options['require_ip']]
 
         self._require_tls = options.get('require_tls', None)
-
-        self._auth_config = auth_config or {}
-        self._pending_auth = None
 
     def _deny_request(self, request, code, **kwargs):
         """
@@ -504,134 +499,45 @@ class _CommonResource(Resource):
                 return self._deny_request(request, 400,
                                           reason=u"request denied because not using TLS")
 
-        # authenticate request
-        #
+        # FIXME: authorize request
+        authorized = True
 
-        # TODO: also support HTTP Basic AUTH for ticket
+        if not authorized:
+            return self._deny_request(request, 401, reason=u"not authorized")
 
-        def on_auth_ok(value):
-            if value is True:
-                # treat like original behavior and just accept the request_id
-                pass
-            elif isinstance(value, types.Accept):
-                self._session._authid = value.authid
-                self._session._authrole = value.authrole
-                # realm?
-            else:
-                # FIXME: not returning deny request... probably not ideal
-                request.write(self._deny_request(request, 401, reason=u"not authorized", log_category="AR401"))
-                request.finish()
-                return
+        _validator.reset()
+        validation_result = _validator.validate(body)
 
-            _validator.reset()
-            validation_result = _validator.validate(body)
+        # validate() returns a 4-tuple, of which item 0 is whether it
+        # is valid
+        if not validation_result[0]:
+            return self._deny_request(
+                request, 400,
+                log_category="AR451")
 
-            # validate() returns a 4-tuple, of which item 0 is whether it
-            # is valid
-            if not validation_result[0]:
-                request.write(self._deny_request(
+        event = body.decode('utf8')
+
+        if self.decode_as_json:
+            try:
+                event = json.loads(event)
+            except Exception as e:
+                return self._deny_request(
                     request, 400,
-                    log_category="AR451"))
-                request.finish()
-                return
+                    exc=e, log_category="AR453")
 
-            event = body.decode('utf8')
+            if not isinstance(event, dict):
+                return self._deny_request(
+                    request, 400,
+                    log_category="AR454")
 
-            if self.decode_as_json:
-                try:
-                    event = json.loads(event)
-                except Exception as e:
-                    request.write(self._deny_request(
-                        request, 400,
-                        exc=e, log_category="AR453"))
-                    request.finish()
-                    return
+        d = self._process(request, event)
 
-                if not isinstance(event, dict):
-                    request.write(self._deny_request(
-                        request, 400,
-                        log_category="AR454"))
-                    request.finish()
-                    return
-
-            d = maybeDeferred(self._process, request, event)
-
-            def finish(value):
-                if isinstance(value, bytes):
-                    request.write(value)
-                request.finish()
-
-            d.addCallback(finish)
-
-        def on_auth_error(err):
-            # XXX: is it ideal to write to the request?
-            request.write(self._deny_request(request, 401, reason=u"not authorized", log_category="AR401"))
-
-            request.finish()
-            return
-
-        authmethod = None
-        authid = None
-        signature = None
-
-        authorization_header = headers.getRawHeaders(b"authorization", [])
-        if len(authorization_header) == 1:
-            # HTTP Basic Authorization will be processed as ticket authentication
-            authorization = authorization_header[0]
-            auth_scheme, auth_details = authorization.split(b" ", 1)
-
-            if auth_scheme.lower() == b"basic":
-                try:
-                    credentials = binascii.a2b_base64(auth_details + b'===')
-                    credentials = credentials.split(b":", 1)
-                    if len(credentials) == 2:
-                        authmethod = "ticket"
-                        authid = credentials[0].decode("utf-8")
-                        signature = credentials[1].decode("utf-8")
-                    else:
-                        return self._deny_request(request, 401, reason=u"not authorized", log_category="AR401")
-                except binascii.Error:
-                    # authentication failed
-                    return self._deny_request(request, 401, reason=u"not authorized", log_category="AR401")
-        elif 'authmethod' in args and args['authmethod'].decode("utf-8") == 'ticket':
-            if "ticket" not in args or "authid" not in args:
-                # AR401 - fail if the ticket or authid are not in the args
-                on_auth_ok(False)
-            else:
-                authmethod = "ticket"
-                authid = args['authid'].decode("utf-8")
-                signature = args['ticket'].decode("utf-8")
-
-        if authmethod and authid and signature:
-
-            hdetails = types.HelloDetails(
-                authid=authid,
-                authmethods=[authmethod]
-            )
-
-            # wire up some variables for the authenticators to work, this is hackish
-
-            # a custom header based authentication scheme can be implemented
-            # without adding alternate authenticators by forwarding all headers.
-            self._session._transport._transport_info = {
-                "http_headers_received": {
-                    native_string(x).lower(): native_string(y[0]) for x, y in request.requestHeaders.getAllRawHeaders()
-                }
-            }
-
-            self._session._pending_session_id = None
-            self._session._router_factory = self._session._transport._routerFactory
-
-            if authmethod == "ticket":
-                self._pending_auth = PendingAuthTicket(self._session, self._auth_config['ticket'])
-                self._pending_auth.hello(self._session._realm, hdetails)
-
-            auth_d = maybeDeferred(self._pending_auth.authenticate, signature)
-            auth_d.addCallbacks(on_auth_ok, on_auth_error)
-
+        if isinstance(d, bytes):
+            # If it's bytes, return it directly
+            return d
         else:
-            # don't return the value or it will be written to the request
-            on_auth_ok(True)
+            # If it's a Deferred, let it run.
+            d.addCallback(lambda _: request.finish())
 
         return server.NOT_DONE_YET
 

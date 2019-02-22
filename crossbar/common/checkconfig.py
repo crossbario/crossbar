@@ -1550,21 +1550,9 @@ def check_web_path_service_caller(personality, config):
         'id': (False, [str]),
         'type': (True, [str]),
         'realm': (True, [str]),
-        'role': (False, [str]),
-        'auth': (False, [Mapping]),
+        'role': (True, [str]),
         'options': (False, [Mapping]),
     }, config, "Web transport 'caller' path service")
-
-    if 'auth' in config:
-        personality.check_transport_auth(personality, config['auth'])
-
-    # TODO: check auth and role are not defined at the same time
-
-    if 'auth' not in config and 'role' not in config:
-        raise Exception('Must specify auth or role.')
-
-    if 'auth' in config and 'role' in config:
-        raise Exception('Cannot specify both auth and role.')
 
     if 'options' in config:
         check_dict_args({
