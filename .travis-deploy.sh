@@ -45,6 +45,15 @@ which aws
 aws --version
 aws s3 ls ${AWS_S3_BUCKET_NAME}
 
+# build python source dist and wheels
+echo 'building package ..'
+python setup.py sdist bdist_wheel --universal
+ls -la ./dist
+
+# upload to S3: https://s3.eu-central-1.amazonaws.com/crossbarbuilder/wheels/
+echo 'uploading package ..'
+aws s3 cp --recursive ./dist s3://crossbarbuilder/wheels
+
 # build and deploy latest docs: for now, this is hosted under
 # https://s3.eu-central-1.amazonaws.com/download.crossbario.com/docs/crossbar/index.html
 echo 'building and uploading docs ..'

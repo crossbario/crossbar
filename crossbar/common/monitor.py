@@ -241,7 +241,7 @@ class ProcessMonitor(Monitor):
                 'read_ios', 'write_ios', 'read_bytes', 'write_bytes', 'cpu_user',
                 'cpu_system', 'num_ctx_switches_voluntary', 'num_ctx_switches_involuntary'
             ]:
-                if last_value:
+                if last_value and last_value[key] is not None:
                     value = float(current[key] - last_value[key]) / diff
                     current['{}_per_sec'.format(key)] = int(value)
 
