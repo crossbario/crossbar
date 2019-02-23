@@ -60,8 +60,7 @@ class RouterWebServiceRestPublisher(RouterWebService):
 
         # now create the publisher Twisted Web resource
         #
-        resource = PublisherResource(config.get('options', {}), publisher_session,
-                                     auth_config=config.get('auth', {}))
+        resource = PublisherResource(config.get('options', {}), publisher_session)
 
         return RouterWebServiceRestPublisher(transport, path, config, resource)
 
