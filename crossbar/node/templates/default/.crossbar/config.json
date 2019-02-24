@@ -59,17 +59,6 @@
                                 "enable_directory_listing": true
                             }
                         },
-                        "autobahn": {
-                            "type": "archive",
-                            "archive": "autobahn.zip",
-                            "origin": "https://github.com/crossbario/autobahn-js-browser/archive/master.zip",
-                            "download": true,
-                            "cache": true,
-                            "mime_types": {
-                                ".min.js": "text/javascript",
-                                ".jgz": "text/javascript"
-                            }
-                        },
                         "ws": {
                             "type": "websocket",
                             "serializers": [
