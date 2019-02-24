@@ -35,30 +35,72 @@
             ],
             "transports": [
                 {
-                    "type": "universal",
+                    "type": "rawsocket",
                     "endpoint": {
                         "type": "tcp",
-                        "port": 8080
+                        "port": 8081,
+                        "backlog": 1024
                     },
-                    "rawsocket": {
+                    "max_message_size": 1048576,
+                    "serializers": ["cbor", "msgpack", "json"]
+                },
+                {
+                    "type": "web",
+                    "endpoint": {
+                        "type": "tcp",
+                        "port": 8080,
+                        "backlog": 1024
                     },
-                    "websocket": {
-                        "ws": {
-                            "type": "websocket"
-                        }
-                    },
-                    "web": {
-                        "paths": {
-                            "/": {
-                                "type": "static",
-                                "directory": "../web",
-                                "options": {
-                                    "enable_directory_listing": true
-                                }
-                            },
-                            "info": {
-                                "type": "nodeinfo"
+                    "paths": {
+                        "/": {
+                            "type": "static",
+                            "directory": "../web",
+                            "options": {
+                                "enable_directory_listing": true
                             }
+                        },
+                        "autobahn": {
+                            "type": "archive",
+                            "archive": "autobahn.zip",
+                            "origin": "https://github.com/crossbario/autobahn-js-browser/archive/master.zip",
+                            "download": true,
+                            "cache": true,
+                            "mime_types": {
+                                ".min.js": "text/javascript",
+                                ".jgz": "text/javascript"
+                            }
+                        },
+                        "ws": {
+                            "type": "websocket",
+                            "serializers": [
+                                "cbor", "msgpack", "json"
+                            ],
+                            "options": {
+                                "allowed_origins": ["*"],
+                                "allow_null_origin": true,
+                                "enable_webstatus": false,
+                                "max_frame_size": 1048576,
+                                "max_message_size": 1048576,
+                                "auto_fragment_size": 65536,
+                                "fail_by_drop": true,
+                                "open_handshake_timeout": 2500,
+                                "close_handshake_timeout": 1000,
+                                "auto_ping_interval": 10000,
+                                "auto_ping_timeout": 5000,
+                                "auto_ping_size": 4,
+                                "compression": {
+                                    "deflate": {
+                                        "request_no_context_takeover": false,
+                                        "request_max_window_bits": 13,
+                                        "no_context_takeover": false,
+                                        "max_window_bits": 13,
+                                        "memory_level": 5
+                                    }
+                                }
+                            }
+                        },
+                        "info": {
+                            "type": "nodeinfo"
                         }
                     }
                 }
