@@ -514,33 +514,29 @@ def _run_command_init(options, reactor, personality):
     """
     log = make_logger()
 
-    template = 'default'
-    templates = Templates()
-    assert(template in templates)
-
     if options.appdir is None:
         options.appdir = '.'
-    else:
-        if os.path.exists(options.appdir):
-            raise Exception("app directory '{}' already exists".format(options.appdir))
 
+    options.appdir = os.path.abspath(options.appdir)
+    cbdir = os.path.join(options.appdir, '.crossbar')
+
+    if os.path.exists(options.appdir):
+        log.warn("Application directory '{appdir}' already exists!", appdir=options.appdir)
+    else:
         try:
             os.mkdir(options.appdir)
         except Exception as e:
             raise Exception("could not create application directory '{}' ({})".format(options.appdir, e))
         else:
-            log.info("Crossbar.io application directory '{options.appdir}' created",
-                     options=options)
+            log.info("Crossbar.io application directory '{appdir}' created", appdir=options.appdir)
 
-    options.appdir = os.path.abspath(options.appdir)
-    cbdir = os.path.join(options.appdir, '.crossbar')
+    log.info("Initializing application directory '{options.appdir}' ..", options=options)
 
-    log.info("Initializing node in directory '{options.appdir}'", options=options)
-    get_started_hint = templates.init(options.appdir, template)
+    get_started_hint = Templates.init(options.appdir, template='default')
 
     _maybe_generate_key(cbdir)
 
-    log.info("Application template initialized")
+    log.info("Application directory initialized")
 
     if get_started_hint:
         log.info("\n{hint}\n", hint=get_started_hint)
