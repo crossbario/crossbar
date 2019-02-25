@@ -503,7 +503,9 @@ class NodeController(NativeProcess):
             args.extend(['--title', options['title']])
 
         # forward explicit reactor selection
-        #
+        # TODO: would make more sense to start whatever we are currently running
+        #  on but there seems to be no way to get the current reactor's shortName
+        #  in twisted
         reactor = os.environ.get('CROSSBAR_REACTOR', None)
         if reactor:
             args.extend(['--reactor', reactor])
