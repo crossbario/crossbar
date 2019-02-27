@@ -502,11 +502,18 @@ class NodeController(NativeProcess):
         if options.get('title', None):
             args.extend(['--title', options['title']])
 
-        # forward explicit reactor selection
-        # TODO: would make more sense to start whatever we are currently running
-        #  on but there seems to be no way to get the current reactor's shortName
-        #  in twisted
-        reactor = os.environ.get('CROSSBAR_REACTOR', None)
+        # forward current reactor selection
+        # TODO: not a twisted expert... is it really so hard to get the current reactor's shortName?
+        #
+        def get_current_reactor_shortname():
+            from twisted.application.reactors import getReactorTypes
+            from twisted.internet import reactor    # the current reactor, alternative self._node._reactor
+
+            modules_2_short_names = {r.moduleName: r.shortName for r in getReactorTypes()}
+
+            return modules_2_short_names.get(reactor.__module__)
+
+        reactor = get_current_reactor_shortname()
         if reactor:
             args.extend(['--reactor', reactor])
 
