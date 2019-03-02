@@ -34,4 +34,5 @@ git+https://github.com/crossbario/txaio.git@master#egg=txaio
 txtorcon>=0.19.3
 u-msgpack-python>=2.4.1
 watchdog>=0.8.3
+git+https://github.com/crossbario/zlmdb.git@master#egg=zlmdb
 zope.interface>=4.4.2

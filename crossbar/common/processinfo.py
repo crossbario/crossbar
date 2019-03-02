@@ -31,7 +31,7 @@
 from __future__ import absolute_import
 
 import os
-import time
+from zlmdb import time_ns
 import sys
 import socket
 
@@ -200,7 +200,7 @@ if _HAS_PSUTIL:
             """
             res = {}
             res[u'ts'] = utcnow()
-            res[u'time'] = time.time_ns()
+            res[u'time'] = time_ns()
             res[u'pid'] = self._pid
 
             s = self._p.num_ctx_switches()
