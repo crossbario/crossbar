@@ -30,24 +30,12 @@
 
 from __future__ import absolute_import, division
 
-import time
+from zlmdb import time_ns
 from collections import deque
 
 from txaio import make_logger
 
 __all__ = ('MemoryRealmStore',)
-
-try:
-    # python 3.7
-    _time_ns = time.time_ns
-    _perf_counter_ns = time.perf_counter_ns
-except AttributeError:
-    # python 3
-    def _time_ns():
-        return int(time.time() * 1000000000.)
-
-    def _perf_counter_ns():
-        return int(time.perf_counter() * 1000000000.)
 
 
 class QueuedCall(object):
@@ -202,7 +190,7 @@ class MemoryEventStore(object):
         """
         assert(publication_id not in self._event_store)
         evt = {
-            'time_ns': _time_ns(),
+            'time_ns': time_ns(),
             'realm': session._realm,
             'session_id': session._session_id,
             'authid': session._authid,

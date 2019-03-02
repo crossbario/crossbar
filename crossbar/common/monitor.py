@@ -28,7 +28,6 @@
 #
 #####################################################################################
 
-import time
 import datetime
 import psutil
 
@@ -38,6 +37,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from autobahn.util import utcstr
 
 from txaio import make_logger
+from zlmdb import time_ns
 
 from crossbar.common.checkconfig import check_dict_args
 
@@ -106,7 +106,7 @@ class Monitor(object):
         """
         self._tick += 1
 
-        now = time.time_ns()
+        now = time_ns()
         if self._last_poll:
             self._last_period = now - self._last_poll
 
@@ -168,7 +168,7 @@ class ProcessMonitor(Monitor):
         """
         self._tick += 1
 
-        now = time.time_ns()
+        now = time_ns()
         if self._last_poll:
             self._last_period = now - self._last_poll
 
@@ -272,7 +272,7 @@ class SystemMonitor(Monitor):
         """
         self._tick += 1
 
-        now = time.time_ns()
+        now = time_ns()
         if self._last_poll:
             self._last_period = now - self._last_poll
 
@@ -345,7 +345,7 @@ class SystemMonitor(Monitor):
 
         new_value = yield deferToThread(_poll, _current, self._last_value)
 
-        self._elapsed = time.time_ns() - now
+        self._elapsed = time_ns() - now
         new_value['elapsed'] = self._elapsed
 
         self._last_poll = now

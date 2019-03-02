@@ -34,4 +34,5 @@ txaio>=18.8.1
 txtorcon>=0.19.3
 u-msgpack-python>=2.4.1
 watchdog>=0.8.3
+zlmdb>=19.2.2
 zope.interface>=4.4.2
