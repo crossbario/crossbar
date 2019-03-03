@@ -6,7 +6,7 @@ Progressive Call Results
 
     **Progressive Call Results** is a feature from the WAMP Advanced
     Profile. The specification can be found
-    `here <https://wamp-proto.org/_static/gen/wamp_latest.html#progressive-call-results>`__.
+    `here <https://wamp-proto.org/_static/gen/wamp_latest.html>`__.
 
 As a default, a call returns a single result. For some calls it may be
 desirable to have a series of call results, e.g. a longer user list may

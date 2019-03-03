@@ -5,8 +5,8 @@ working with Crossbar.io.
 
 WAMP Programming
 ================
--  `WAMP Programming in  Python <http://autobahn.ws/python/wamp/programming.html>`__ 
--  `WAMP Programming in  JavaScript <http://autobahn.ws/js/programming.html>`__ 
+-  `WAMP Programming in  Python <https://github.com/crossbario/autobahn-python/blob/master/docs/wamp/programming.rst>`__ 
+-  `WAMP Programming in  JavaScript <https://github.com/crossbario/autobahn-js/blob/master/doc/programming.md>`__ 
 
 Writing Application Components
 ==============================

@@ -24,7 +24,7 @@ Writing Components that use Logger
 ----------------------------------
 
 A component that uses Logger is the
-`hello <https://github.com/crossbario/crossbarexamples/blob/master/hello/python/hello.py>`__
+`hello <https://github.com/crossbario/crossbar-examples/blob/master/hello/python/hello.py>`__
 example application.
 
 To set your application up for logging, import ``Logger`` from

@@ -6,7 +6,7 @@ Subscriber Black- and Whitelisting
 
     **Subscriber Black-/Whitelisting** is a feature from the WAMP
     Advanced Profile. The specification can be found
-    `here <https://github.com/tavendo/WAMP/blob/master/spec/advanced/subscriber-blackwhite-listing.md>`__.
+    `here <https://wamp-proto.org/_static/gen/wamp_latest.html>`__.
 
 There is a `complete white- and black- listing
 example <https://github.com/crossbario/crossbar-examples/tree/master/exclude_subscribers>`__

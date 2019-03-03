@@ -16,11 +16,8 @@ HTTP (8000) and HTTPS (8443).
 Pre-requisites
 --------------
 
--  An `account <https://www.openshift.com/app/account/new>`__ on
-   OpenShift.
--  OpenShift's `client
-   tool <https://developers.openshift.com/en/getting-started-overview.html>`__
-   (``rhc``) properly configured.
+-  An `account <https://www.openshift.com/>`__ on  OpenShift.
+-  OpenShift's `client tool <https://developers.openshift.com/en/getting-started-overview.html>`__   (``rhc``) properly configured.
 
 Crossbar.io on OpenShift
 ------------------------

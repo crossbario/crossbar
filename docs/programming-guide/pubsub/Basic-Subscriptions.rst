@@ -23,7 +23,7 @@ requests it has issued.
 WAMP client libraries may allow multiple independent registrations from
 within the code which can be managed separately, but this is above the
 WAMP protocol level. For an example of this, see the `Autobahn\|JS
-documentation <http://autobahn.ws/js/reference.html>`__.
+documentation <https://github.com/crossbario/autobahn-js/blob/master/doc/reference.md>`__.
 
 Here's an example for a simple subscription in JavaScript using
 Autobahn\|JS:
