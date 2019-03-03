@@ -148,7 +148,7 @@ Firstly Docker needs to be installed on your machine. The official Docker site p
 .. note:: All the examples here have been tested on Ubuntu 18.04 LTS using Docker, with commands for \*nix shell, but work on other platforms with adaptation.
 
 For other methods of installation refer to the
-:doc:`Installation Guide <installation/installation>`.
+:doc:`Installation Guide <installation/Installation>`.
 
 
 Example Code
@@ -460,7 +460,7 @@ The containers as-is are there to demonstrate the principles. To develop your ow
 
 Further Materials
 =================
-* :doc:`Installation of Crossbar.io  <installation/installation>`.
-* :doc:`Basic concept of WAMP and Crossbar.io  <about/Basic-Concepts>`.
+* :doc:`Installation of Crossbar.io  <installation/Installation>`.
+* :doc:`Basic concept of WAMP and Crossbar.io  <Basic-Concepts>`.
 * Creating Docker Images 
 * Overview of WAMP Client libraries

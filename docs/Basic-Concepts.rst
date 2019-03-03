@@ -361,5 +361,5 @@ This creates two transport:
 Installation
 ------------
 
-We recommend getting started using Docker (see :doc:`Getting Started <../gettingstarted>`  ), but Crossbar.io runs across a wide 
-range of devices, some of which we provide  :doc:`installation instructions <../installation/installation>` for.
+We recommend getting started using Docker (see :doc:`Getting Started <../Getting-Started>`  ), but Crossbar.io runs across a wide 
+range of devices, some of which we provide  :doc:`installation instructions <../installation/Installation>` for.

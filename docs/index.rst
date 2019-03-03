@@ -18,21 +18,21 @@ If you are new to Crossbar.io development in general you should start here at :r
     :maxdepth: 2
     :caption: Contents:
 
-    gettingstarted
+    Getting-Started
 
-    about/Basic-Concepts
-    installation/installation
+    Basic-Concepts
+    installation/Installation
     administration/Administration
 
     programming-guide/Programming-Guide
     integration-guide
     tutorials-recipe
 
-    about/Compatibility-Policy
-    about/Crossbar-License
-    about/Documentation-License
-    about/Contributing-FAQ
-    about/FAQ
+    Compatibility-Policy
+    Crossbar-License
+    Documentation-License
+    Contributing-FAQ
+    FAQ
 
 Please see :ref:`site_contents` for a full site-map.
 

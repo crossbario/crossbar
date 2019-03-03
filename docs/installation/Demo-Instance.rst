@@ -58,4 +58,4 @@ So use common sense regarding the amount of usage. A rule of thumb: When
 you start thinking about whether this is still sensible usage it
 probably isn't! By this time you're obviously past initial exploration,
 and it's not hard to set up your own instance :doc:`locally or in the
-cloud <installation>`.
+cloud <Installation>`.

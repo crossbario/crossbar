@@ -29,7 +29,7 @@ can mix and match application components as needed.
 
 *More information:*
 
--  :doc:`Getting Started <../gettingstarted>` with Crossbar.io in different languages.
+-  :doc:`Getting Started <../Getting-Started>` with Crossbar.io in different languages.
 
 --------------
 

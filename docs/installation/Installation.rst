@@ -18,7 +18,7 @@ We provide official Docker images for Crossbar.io in different flavors.
 This is both a quick way getting started with Crossbar.io and a good
 approach going to production:
 
-*  :doc:`Getting Started <../gettingstarted>`  
+*  :doc:`Getting Started <../Getting-Started>`  
 
 
 Other Platforms

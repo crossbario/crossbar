@@ -5,7 +5,7 @@ Creating Docker Images
 ======================
 
 The Docker containers we recommend using for getting started (see
-:doc:`Getting Started <../gettingstarted>` ) as a default gets its
+:doc:`Getting Started <../Getting-Started>` ) as a default gets its
 configuration, app code to run and instructions what to run from the
 respective repository in the starter repository.
 

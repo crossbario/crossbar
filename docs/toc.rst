@@ -9,12 +9,12 @@ Site Contents
 .. toctree::
     :maxdepth: 1
 
-    about/Basic-Concepts 
-    about/Compatibility-Policy 
-    about/Contributing-FAQ 
-    about/Crossbar-License 
-    about/Documentation-License 
-    about/FAQ 
+    Basic-Concepts 
+    Compatibility-Policy 
+    Contributing-FAQ 
+    Crossbar-License 
+    Documentation-License 
+    FAQ 
     administration/Administration 
     administration/auth/Anonymous-Authentication 
     administration/auth/Authentication 
@@ -87,13 +87,13 @@ Site Contents
     concept-features 
     crossbar-features 
     developer-guide 
-    gettingstarted 
+    Getting-Started
     installation/Demo-Instance 
     installation/Installation-FAQ 
     installation/Installation-on-Linux 
     installation/Installation-on-Mac-OS-X 
     installation/Installation-on-Windows 
-    installation/installation 
+    installation/Installation 
     installation/Setup-on-Amazon-EC2 
     installation/Setup-on-Heroku 
     installation/Setup-on-OpenShift 
