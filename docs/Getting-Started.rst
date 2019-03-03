@@ -148,7 +148,7 @@ Firstly Docker needs to be installed on your machine. The official Docker site p
 .. note:: All the examples here have been tested on Ubuntu 18.04 LTS using Docker, with commands for \*nix shell, but work on other platforms with adaptation.
 
 For other methods of installation refer to the
-:doc:`Installation Guide <installation/Installation>`.
+:doc:`Installation Guide <Installation>`.
 
 
 Example Code
@@ -254,7 +254,7 @@ The configuration entries are explained below in **Line no - Description** forma
 
 * 35-63 - **transport** dictionary entry. 
 * 36-38 - defines the type **web**. It is a type of transport where it allows websocket, web services to use the same port. The Crossbar.io identifies the packet using its header.
-* 38-41 - it uses **tcp** and port number **8080** as its :doc:`transport endpoint <administration/router/transport/Transport-Endpoints>`
+* 38-41 - it uses **tcp** and port number **8080** as its :doc:`transport endpoint <Transport-Endpoints>`
 * 49-61 - defines the web transport entry. each entry in the **path** defines a route to  HTML page.
 * 59    - This entry creates the nodeinfo page *http://localhost:8080/info* which was verified earlier.
 
@@ -264,7 +264,7 @@ In the configuration you can see the line **"name": "realm1"** which configures 
 .. note:: The config file used in the example is also available
   `here <https://raw.githubusercontent.com/crossbario/crossbar-examples/master/getting-started/.crossbar/config.json>`_.
 
-For more detail about the configuration and features have a look at :doc:`Administrative manual <administration/Administration>`
+For more detail about the configuration and features have a look at :doc:`Administrative manual <Administration>`
 
 Hello World
 ===========
@@ -460,7 +460,7 @@ The containers as-is are there to demonstrate the principles. To develop your ow
 
 Further Materials
 =================
-* :doc:`Installation of Crossbar.io  <installation/Installation>`.
+* :doc:`Installation of Crossbar.io  <Installation>`.
 * :doc:`Basic concept of WAMP and Crossbar.io  <Basic-Concepts>`.
 * Creating Docker Images 
 * Overview of WAMP Client libraries

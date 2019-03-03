@@ -21,10 +21,10 @@ If you are new to Crossbar.io development in general you should start here at :r
     Getting-Started
 
     Basic-Concepts
-    installation/Installation
-    administration/Administration
+    Installation
+    Administration
 
-    programming-guide/Programming-Guide
+    Programming-Guide
     integration-guide
     tutorials-recipe
 

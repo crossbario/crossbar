@@ -164,5 +164,5 @@ How complex this is depends on the specifics of the use case, e.g. the
 protocol.
 
 We do provide components for communicating with other applications over
-HTTP/POST requests- see :doc:`the documentation <../administration/http-bridge/HTTP-Bridge>` , as well as
-integration for MQTT clients via a :doc:`full MQTT broker <../administration/mqtt-broker/MQTT-Broker>` .
+HTTP/POST requests- see :doc:`the documentation <HTTP-Bridge>` , as well as
+integration for MQTT clients via a :doc:`full MQTT broker <MQTT-Broker>` .
