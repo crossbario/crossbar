@@ -241,7 +241,7 @@ class Router(object):
             if self._is_traced:
                 self._factory._worker._maybe_trace_tx_msg(session, msg)
         else:
-            self.log.warn('skip sending msg - transport already closed')
+            self.log.debug('skip sending msg - transport already closed')
 
     def process(self, session, msg):
         """

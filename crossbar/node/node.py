@@ -34,7 +34,7 @@ import os
 import socket
 
 import twisted
-from twisted.internet.defer import inlineCallbacks, Deferred, returnValue
+from twisted.internet.defer import inlineCallbacks, Deferred, returnValue, gatherResults
 from twisted.python.reflect import qual
 
 from txaio import make_logger
@@ -418,6 +418,7 @@ class Node(object):
         else:
             self.log.info(hl('No workers configured, nothing to do', color='green', bold=True))
 
+        dl = []
         for worker in workers:
 
             # worker ID
@@ -445,30 +446,37 @@ class Node(object):
                     "Order node to start {worker_logname}",
                     worker_logname=worker_logname,
                 )
-                yield self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=CallOptions())
-                self.log.info(
-                    "Ok, node has started {worker_logname}",
-                    worker_logname=worker_logname,
-                )
 
-                # now configure the worker
-                self.log.info(
-                    "Configuring {worker_logname} ..",
-                    worker_logname=worker_logname,
-                )
-                method_name = '_configure_native_worker_{}'.format(worker_type.replace('-', '_'))
-                try:
-                    config_fn = getattr(self, method_name)
-                except AttributeError:
-                    raise ValueError(
-                        "A native worker of type '{}' is configured but "
-                        "there is no method '{}' on {}".format(worker_type, method_name, type(self))
+                d = self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker_options, options=CallOptions())
+
+                @inlineCallbacks
+                def configure_worker(res, worker_logname, worker_type, worker_id, worker):
+                    self.log.info(
+                        "Ok, node has started {worker_logname}",
+                        worker_logname=worker_logname,
                     )
-                yield config_fn(worker_logname, worker_id, worker)
-                self.log.info(
-                    "Ok, {worker_logname} configured",
-                    worker_logname=worker_logname,
-                )
+
+                    # now configure the worker
+                    self.log.info(
+                        "Configuring {worker_logname} ..",
+                        worker_logname=worker_logname,
+                    )
+                    method_name = '_configure_native_worker_{}'.format(worker_type.replace('-', '_'))
+                    try:
+                        config_fn = getattr(self, method_name)
+                    except AttributeError:
+                        raise ValueError(
+                            "A native worker of type '{}' is configured but "
+                            "there is no method '{}' on {}".format(worker_type, method_name, type(self))
+                        )
+                    yield config_fn(worker_logname, worker_id, worker)
+                    self.log.info(
+                        "Ok, {worker_logname} configured",
+                        worker_logname=worker_logname,
+                    )
+
+                d.addCallback(configure_worker, worker_logname, worker_type, worker_id, worker)
+                dl.append(d)
 
             # guest worker processes setup
             elif worker_type == u'guest':
@@ -477,10 +485,13 @@ class Node(object):
 
                 # FIXME: start_worker() takes the whole configuration item for guest workers, whereas native workers
                 # only take the options (which is part of the whole config item for the worker)
-                yield self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker, options=CallOptions())
+                d = self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker, options=CallOptions())
+                dl.append(d)
 
             else:
                 raise Exception('logic error: unexpected worker_type="{}"'.format(worker_type))
+
+        yield gatherResults(dl)
 
         self.log.info(hl('Ok, local node configuration booted successfully!', color='green', bold=True))
 
