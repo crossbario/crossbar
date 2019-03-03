@@ -53,7 +53,7 @@ Dojo
 Backbone
 ~~~~~~~~
 
-`Backbone.js <http://documentcloud.github.io/backbone/>`__
+`Backbone.js <https://backbonejs.org/>`__
 
 Polymer
 ~~~~~~~

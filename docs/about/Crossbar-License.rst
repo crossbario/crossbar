@@ -16,14 +16,11 @@ and references to this license at the top of each source code file.
 
 All rights to the Crossbar.io source code remain exclusively with
 `Crossbar.io Technologies GmbH <https://crossbario.com/>`__. All
-`external
-contributors <https://github.com/crossbario/crossbar/blob/master/legal/contributors.md>`__
+`external contributors <https://github.com/crossbario/crossbar/blob/master/legal/contributors_tavendo.md>`__
 need to sign a **contributor assignment agreement (CAA)** when
-`contributing to the
-project <https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md>`__.
+`contributing to the project <https://github.com/crossbario/crossbar/blob/master/CONTRIBUTING.md>`__.
 
-The Crossbar.io `application
-templates <https://github.com/crossbario/crossbar/tree/master/crossbar/node/templates>`__
+The Crossbar.io `application templates <https://github.com/crossbario/crossbar/tree/master/crossbar/node/templates>`__
 and instances of code generated from these templates are licensed under
 the `BSD 2-clause <https://opensource.org/licenses/BSD-2-Clause>`__
 license.
@@ -41,7 +38,7 @@ further assurance, you can email us at contact@crossbario.com for a
 signed letter asserting the above promise.
 
 We release all our client libraries (those provided by the `Autobahn
-project <http://autobahn.ws/>`__ under non-copyleft licenses, which
+project <https://crossbar.io/autobahn/>`__ under non-copyleft licenses, which
 allow their use for closed-source & commercial software. For other
 client libraries see their respective licenses (these appear to be
 universally non-copyleft as well).

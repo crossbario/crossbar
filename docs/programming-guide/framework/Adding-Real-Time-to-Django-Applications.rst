@@ -94,7 +94,7 @@ requests
 
     pip install requests
 
-and `psutil <http://pythonhosted.org/psutil/>`__
+and `psutil <https://pypi.org/project/psutil/>`__
 
 "psutil" is the Python lib which will enable us to retrieve all the
 values for the RAM, the disk and the CPU. It uses C extensions, so

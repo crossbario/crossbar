@@ -45,7 +45,7 @@ In the above example, the identity for publishers which have the role
 URIs or URI patterns works just like for other permissions.
 
 We provide a `full working
-example <https://github.com/crossbario/crossbarexamples/tree/master/disclose>`__.
+example <https://github.com/crossbario/crossbar-examples/tree/master/disclose>`__.
 
 From a Dynamic Authorizer
 -------------------------

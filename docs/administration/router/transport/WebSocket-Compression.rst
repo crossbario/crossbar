@@ -7,12 +7,13 @@ WebSocket Compression
 WebSocket already has hugely lower overhead than HTTP, Comet or REST
 based solutions.
 
-On the other hand, `WAMP <http://wamp-proto.org/>`__, the application protocol
+On the other hand, `WAMP <https://wamp-proto.org/>`__, the application protocol
 used by Crossbar.io uses JSON or MsgPack for serialization, and that
 still has significant potential for compression (in particular JSON).
 
 The WebSocket protocol allows for extensions, and with
-`permessage-deflate <https://tools.ietf.org/html/draft-ietf-hybi-permessage-compression>`__,
+`permessage-deflate <https://tools.ietf.org/html/draft-ietf-hybi-permessage-compression-28>`__,
+
 there is an upcoming compression extension for WebSocket.
 
 WebSocket compression compresses the payload of WebSocket messages which
@@ -125,6 +126,6 @@ For production, you might want to limit this. Here is what we recommend:
     usefulness of compression altogether.
 
 Above parameter suggestions are based on `expert
-advice <http://www.ietf.org/mail-archive/web/hybi/current/msg10222.html>`__.
+advice <https://mailarchive.ietf.org/arch/msg/hybi/F9t4uPufVEy8KBLuL36cZjCmM_Y>`__.
 You can use `this tool <https://github.com/zaphoyd/ws-pmce-stats>`__ to
 test parameter sets yourself.

@@ -110,4 +110,4 @@ readability.
 
 For an example showing shared registrations in action, see the
 `Crossbar.io
-Examples <https://github.com/crossbario/crossbarexamples/tree/master/sharedregs>`__.
+Examples <https://github.com/crossbario/crossbar-examples/tree/master/sharedregs>`__.

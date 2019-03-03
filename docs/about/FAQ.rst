@@ -37,7 +37,7 @@ What is the relationship between WAMP, Autobahn and Crossbar.io?
 `WAMP <https://wamp-proto.org>`__ is an open source protocol which provides RPC
 and PubSub messaging patterns.
 
-The `Autobahn project <http://autobahn.ws/>`__ provides WAMP
+The `Autobahn project <https://crossbar.io/autobahn/>`__ provides WAMP
 implementations in multiple languages.
 
 **Crossbar.io** builds on Autobahn\|Python, one of the Autobahn
@@ -61,7 +61,7 @@ WAMP has WebSocket as a preferred transport.
 What is Autobahn?
 ~~~~~~~~~~~~~~~~~
 
-The `Autobahn project <http://autobahn.ws/>`__ provides open-source
+The `Autobahn project <https://crossbar.io/autobahn/>`__ provides open-source
 WebSocket and WAMP implementations for several programming languages.
 WAMP implementations are for client roles implementations.
 

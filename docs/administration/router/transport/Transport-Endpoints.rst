@@ -334,7 +334,7 @@ repository <https://github.com/crossbario/autobahn-python/blob/master/examples/r
 Tor Services
 ------------
 
-The `Tor Project <https://torproject.org>`__ runs an Internet overlay
+The `Tor Project <https://www.torproject.org>`__ runs an Internet overlay
 network that provides location anonymity. This can be used for "normal"
 client-type TCP connections as well as for servers to provide listening
 services on the network (known as "Onion services").

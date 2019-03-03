@@ -61,7 +61,7 @@ This brings two problems with it:
    their explicit, written consent to the change. This makes license
    changes pretty much impossible. If you're interested, the case of
    re-licensing VLC from the GPL to the LGPL is a good `case
-   study <http://lwn.net/Articles/525718/>`__.
+   study <https://lwn.net/Articles/525718/>`__.
 
 The license agreement also gives us the right to license the code
 commercially. This dual-licensing model was e.g. used by MySQL.

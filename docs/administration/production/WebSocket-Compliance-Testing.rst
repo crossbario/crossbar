@@ -8,7 +8,7 @@ Crossbar.io has best-in-class compliance to the WebSocket protocol
 (RFC6455).
 
     Compliance is testified via the
-    `**Autobahn**\ Testsuite <http://autobahn.ws/testsuite/>`__, the
+    `**Autobahn**\ Testsuite <https://crossbar.io/autobahn/>`__, the
     `industry standard <https://github.com/crossbario/autobahn-testsuite>`__
     WebSocket compliance testsuite which includes more than 500
     automated test cases. Crossbar.io passed *all* tests - 100% strict.

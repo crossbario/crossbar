@@ -36,7 +36,7 @@ and open http://localhost:8080 in your browser. Open the JavaScript
 console to see events received.
 
 To submit an example webhook via HTTP/POST, you can use
-`curl <http://curl.haxx.se/>`__:
+`curl <https://curl.haxx.se/>`__:
 
 .. code:: console
 

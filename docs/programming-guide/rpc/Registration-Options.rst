@@ -6,7 +6,7 @@ Registration Options
 
 There are a number of options you can set when making a new
 registration; for all of the options below you make a
-`RegistrationOptions <http://autobahn.readthedocs.io/en/latest/reference/autobahn.wamp.html#autobahn.wamp.types.RegisterOptions>`__
+`RegistrationOptions <https://autobahn.readthedocs.io/en/latest/reference/autobahn.wamp.html#autobahn.wamp.types.RegisterOptions>`__
 instance.
 
 match

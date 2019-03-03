@@ -21,9 +21,9 @@ file. It is a *pseudo* transport, since in itself, it does not provide a
 WAMP transport, but its only purpose is to serve the Flash policy.
 
     The `Crossbar.io examples
-    repository <https://github.com/crossbario/crossbarexamples>`__
+    repository <https://github.com/crossbario/crossbar-examples>`__
     contains a `working
-    example <https://github.com/crossbario/crossbarexamples/tree/master/flash>`__
+    example <https://github.com/crossbario/crossbar-examples/tree/master/flash>`__
     for this.
 
 Configuration

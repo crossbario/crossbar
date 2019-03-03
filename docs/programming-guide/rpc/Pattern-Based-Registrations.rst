@@ -209,4 +209,4 @@ Working Example
 ---------------
 
 For a full working example in JavaScript, see `Crossbar
-Examples <https://github.com/crossbario/crossbarexamples/tree/master/patternregs>`__.
+Examples <https://github.com/crossbario/crossbar-examples/tree/master/patternregs>`__.

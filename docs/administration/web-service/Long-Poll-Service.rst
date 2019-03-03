@@ -88,7 +88,7 @@ Test using curl
 
 For developers that want to add WAMP-over-Longpoll support to their WAMP
 client library, we have an
-`example <https://github.com/crossbario/crossbarexamples/tree/master/longpoll_curl>`__
+`example <https://github.com/crossbario/crossbar-examples/tree/master/longpoll_curl>`__
 which demonstrates the transport using plain  `curl <https://curl.haxx.se/>`__  only.
 
     This example can be useful during development and debugging. It is
@@ -100,7 +100,7 @@ Use with AutobahnJS
 `AutobahnJS <https://github.com/crossbario/autobahn-js>`__ fully
 supports WAMP-over-Longpoll and you can find a complete working example
 in the Crossbar.io examples
-`here <https://github.com/crossbario/crossbarexamples/tree/master/longpoll>`__.
+`here <https://github.com/crossbario/crossbar-examples/tree/master/longpoll>`__.
 
 Use with AutobahnPostgres
 -------------------------

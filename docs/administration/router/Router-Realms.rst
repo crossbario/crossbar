@@ -25,7 +25,7 @@ the *same realm* as Client 1, will receive this event.
 The realm for the session is selected as part of session establishment.
 
 For example, when creating a new connection to a WAMP router using
-`Autobahn\|JS <http://autobahn.ws/js>`__, the realm the session (running
+`Autobahn\|JS <https://crossbar.io/autobahn/>`__, the realm the session (running
 over the connection) should attach to is specified like this:
 
 .. code:: javascript

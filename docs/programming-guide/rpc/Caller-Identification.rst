@@ -45,7 +45,7 @@ role ``anonymous`` is diclosed to all callees. Limiting this to specific
 URIs or URI patterns works just like for other permissions.
 
 We provide a `full working
-example <https://github.com/crossbario/crossbarexamples/tree/master/disclose>`__.
+example <https://github.com/crossbario/crossbar-examples/tree/master/disclose>`__.
 
 From a Dynamic Authorizer
 -------------------------

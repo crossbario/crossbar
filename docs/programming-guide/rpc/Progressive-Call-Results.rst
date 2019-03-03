@@ -6,7 +6,7 @@ Progressive Call Results
 
     **Progressive Call Results** is a feature from the WAMP Advanced
     Profile. The specification can be found
-    `here <https://github.com/tavendo/WAMP/blob/master/spec/advanced/progressive-call-results.md>`__.
+    `here <https://wamp-proto.org/_static/gen/wamp_latest.html#progressive-call-results>`__.
 
 As a default, a call returns a single result. For some calls it may be
 desirable to have a series of call results, e.g. a longer user list may
@@ -108,4 +108,4 @@ The equivalent Python procedure would be:
             yield self.register(longop, 'com.myapp.longop', RegisterOptions(details_arg='details'))
 
 You can also take a look at a full `working
-example <https://github.com/crossbario/autobahn-python/tree/master/examples/twisted/wamp/basic/rpc/progress>`__.
+example <https://github.com/crossbario/autobahn-python/tree/master/examples/twisted/wamp/rpc/progress>`__.
