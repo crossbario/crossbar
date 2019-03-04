@@ -399,12 +399,14 @@ class Node(object):
         """
         Startup elements in the node as specified in the provided node configuration.
         """
-        self.log.info('{bootmsg} {method}',
-                      bootmsg=hl('Booting node from local configuration ..', color='green', bold=True),
-                      method=hltype(Node.boot_from_config))
-
         # get controller configuration subpart
         controller = config.get('controller', {})
+        parallel_worker_start = controller.get('options', {}).get('enable_parallel_worker_start', False)
+
+        self.log.info('{bootmsg} {method}',
+                      bootmsg=hl('Booting node from local configuration [parallel_worker_start={}] ..'.format(parallel_worker_start),
+                                 color='green', bold=True),
+                      method=hltype(Node.boot_from_config))
 
         # start Manhole in node controller
         if 'manhole' in controller:
@@ -476,7 +478,6 @@ class Node(object):
                     )
 
                 d.addCallback(configure_worker, worker_logname, worker_type, worker_id, worker)
-                dl.append(d)
 
             # guest worker processes setup
             elif worker_type == u'guest':
@@ -486,10 +487,14 @@ class Node(object):
                 # FIXME: start_worker() takes the whole configuration item for guest workers, whereas native workers
                 # only take the options (which is part of the whole config item for the worker)
                 d = self._controller.call(u'crossbar.start_worker', worker_id, worker_type, worker, options=CallOptions())
-                dl.append(d)
 
             else:
                 raise Exception('logic error: unexpected worker_type="{}"'.format(worker_type))
+
+            if parallel_worker_start:
+                dl.append(d)
+            else:
+                yield d
 
         yield gatherResults(dl)
 
