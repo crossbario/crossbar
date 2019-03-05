@@ -40,8 +40,9 @@ import signal
 import sys
 import pkg_resources
 
-import txaio
+import vmprof
 
+import txaio
 txaio.use_twisted()  # noqa
 
 from txaio import make_logger, start_logging, set_global_log_level, failure_format_traceback
@@ -759,7 +760,8 @@ def _run_command_start(options, reactor, personality):
     # represents the running Crossbar.io node
     #
     node_options = personality.NodeOptions(debug_lifecycle=options.debug_lifecycle,
-                                           debug_programflow=options.debug_programflow)
+                                           debug_programflow=options.debug_programflow,
+                                           enable_vmprof=options.vmprof)
 
     node = personality.Node(personality,
                             options.cbdir,
@@ -796,6 +798,14 @@ def _run_command_start(options, reactor, personality):
         log.info('Node configuration loaded [config_source={config_source}, config_path={config_path}]',
                  config_source=hl(config_source, bold=True, color='green'), config_path=hlid(config_path))
 
+    # if vmprof global profiling is enabled via command line option, this will carry
+    # the file where vmprof writes its profile data
+    _vm_prof = {
+        # need to put this into a dict, since FDs are ints, and python closures can't
+        # write to this otherwise
+        'outfd': None
+    }
+
     # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
     # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
     # 'before', 'during', and 'after' (in that order, of course). These events will be fired
@@ -807,11 +817,18 @@ def _run_command_start(options, reactor, personality):
     def after_reactor_started():
         term_print('CROSSBAR:REACTOR_STARTED')
 
-    reactor.addSystemEventTrigger('before', 'startup', before_reactor_started)
-    reactor.addSystemEventTrigger('after', 'startup', after_reactor_started)
+        if options.vmprof:
+            outfn = os.path.join(options.cbdir, '.vmprof-controller-{}.dat'.format(os.getpid()))
+            _vm_prof['outfd'] = os.open(outfn, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+            vmprof.enable(_vm_prof['outfd'], period=0.01)
+            term_print('CROSSBAR:VMPROF_ENABLED:{}'.format(outfn))
 
     def before_reactor_stopped():
         term_print('CROSSBAR:REACTOR_STOPPING')
+
+        if options.vmprof and _vm_prof['outfd']:
+            vmprof.disable()
+            term_print('CROSSBAR:VMPROF_DISABLED')
 
     def after_reactor_stopped():
         # FIXME: we are indeed reaching this line, however,
@@ -825,6 +842,8 @@ def _run_command_start(options, reactor, personality):
         # https://unix.stackexchange.com/a/91716/52500
         term_print('CROSSBAR:REACTOR_STOPPED')
 
+    reactor.addSystemEventTrigger('before', 'startup', before_reactor_started)
+    reactor.addSystemEventTrigger('after', 'startup', after_reactor_started)
     reactor.addSystemEventTrigger('before', 'shutdown', before_reactor_stopped)
     reactor.addSystemEventTrigger('after', 'shutdown', after_reactor_stopped)
 
@@ -1053,6 +1072,10 @@ def main(prog, args, reactor, personality):
                               type=int,
                               default=None,
                               help='Automatically shutdown node after this many seconds.')
+
+    parser_start.add_argument('--vmprof',
+                              action='store_true',
+                              help='Profile node controller and native worker using vmprof.')
 
     parser_start.set_defaults(func=_run_command_start)
 

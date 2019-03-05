@@ -54,10 +54,11 @@ from crossbar.node.controller import NodeController
 
 class NodeOptions(object):
 
-    def __init__(self, debug_lifecycle=False, debug_programflow=False):
+    def __init__(self, debug_lifecycle=False, debug_programflow=False, enable_vmprof=False):
 
         self.debug_lifecycle = debug_lifecycle
         self.debug_programflow = debug_programflow
+        self.enable_vmprof = enable_vmprof
 
 
 class Node(object):

@@ -33,9 +33,11 @@ from __future__ import absolute_import, print_function
 import argparse
 import importlib
 
+import vmprof
+
 from twisted.internet.error import ReactorNotRunning
 
-from crossbar._util import hl, hltype, _add_debug_options
+from crossbar._util import hl, hltype, _add_debug_options, term_print
 
 __all__ = ('_run_command_exec_worker',)
 
@@ -111,6 +113,10 @@ def get_argument_parser(parser=None):
                         type=str,
                         default=None,
                         help='Shutdown method')
+
+    parser.add_argument('--vmprof',
+                        action='store_true',
+                        help='Profile node controller and native worker using vmprof.')
 
     return parser
 
@@ -287,6 +293,55 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
                 except ReactorNotRunning:
                     pass
 
+    # if vmprof global profiling is enabled via command line option, this will carry
+    # the file where vmprof writes its profile data
+    _vm_prof = {
+        # need to put this into a dict, since FDs are ints, and python closures can't
+        # write to this otherwise
+        'outfd': None
+    }
+
+    # https://twistedmatrix.com/documents/current/api/twisted.internet.interfaces.IReactorCore.html
+    # Each "system event" in Twisted, such as 'startup', 'shutdown', and 'persist', has 3 phases:
+    # 'before', 'during', and 'after' (in that order, of course). These events will be fired
+    # internally by the Reactor.
+
+    def before_reactor_started():
+        term_print('CROSSBAR[{}]:REACTOR_STARTING'.format(options.worker))
+
+    def after_reactor_started():
+        term_print('CROSSBAR[{}]:REACTOR_STARTED'.format(options.worker))
+
+        if options.vmprof:
+            outfn = os.path.join(options.cbdir, '.vmprof-worker-{}-{}.dat'.format(options.worker, os.getpid()))
+            _vm_prof['outfd'] = os.open(outfn, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+            vmprof.enable(_vm_prof['outfd'], period=0.01)
+            term_print('CROSSBAR[{}]:VMPROF_ENABLED:{}'.format(options.worker, outfn))
+
+    def before_reactor_stopped():
+        term_print('CROSSBAR[{}]:REACTOR_STOPPING'.format(options.worker))
+
+        if options.vmprof and _vm_prof['outfd']:
+            vmprof.disable()
+            term_print('CROSSBAR[{}]:VMPROF_DISABLED'.format(options.worker))
+
+    def after_reactor_stopped():
+        # FIXME: we are indeed reaching this line, however,
+        # the log output does not work (it also doesnt work using
+        # plain old print). Dunno why.
+
+        # my theory about this issue is: by the time this line
+        # is reached, Twisted has already closed the stdout/stderr
+        # pipes. hence we do an evil trick: we directly write to
+        # the process' controlling terminal
+        # https://unix.stackexchange.com/a/91716/52500
+        term_print('CROSSBAR[{}]:REACTOR_STOPPED'.format(options.worker))
+
+    reactor.addSystemEventTrigger('before', 'startup', before_reactor_started)
+    reactor.addSystemEventTrigger('after', 'startup', after_reactor_started)
+    reactor.addSystemEventTrigger('before', 'shutdown', before_reactor_stopped)
+    reactor.addSystemEventTrigger('after', 'shutdown', after_reactor_stopped)
+
     try:
         # define a WAMP application session factory
         #
@@ -316,24 +371,8 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
 
         # now start reactor loop
         #
-        if False:
-            log.info("vmprof enabled.")
-
-            import os
-            import vmprof
-
-            PROFILE_FILE = 'vmprof_{}.dat'.format(os.getpid())
-
-            outfd = os.open(PROFILE_FILE, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
-            vmprof.enable(outfd, period=0.01)
-
-            log.info(hl('Entering event reactor ...', color='green', bold=True))
-            reactor.run()
-
-            vmprof.disable()
-        else:
-            log.info(hl('Entering event reactor ...', color='green', bold=True))
-            reactor.run()
+        log.info(hl('Entering event reactor ...', color='green', bold=True))
+        reactor.run()
 
     except Exception as e:
         log.info("Unhandled exception: {e}", e=e)
