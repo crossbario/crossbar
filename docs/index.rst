@@ -12,6 +12,7 @@ If you are new to Crossbar.io development in general you should start here at :r
     Crossbar.io<https://crossbar.io>
     Crossbario.com<https://crossbario.com>
     WAMP<https://wamp-proto.org/>
+    Crossbario Docs <self>
    
 
 .. toctree::

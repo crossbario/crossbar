@@ -72,6 +72,4 @@ Authentication.
 For a full working example of Anonymous Authentication using a dynamic
 authenticator, see
 `Crossbarexamples <https://github.com/crossbario/crossbar-examples/tree/master/authentication/anonymous/dynamic>`__.
-
-For more on dynamic authenticators read `this documentation
-page <Dynamic%20Authenticators>`__.
+For more on dynamic authenticators read :doc:`this documentation page <Dynamic-Authenticators>`
