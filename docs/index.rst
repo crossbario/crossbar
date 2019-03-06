@@ -12,27 +12,28 @@ If you are new to Crossbar.io development in general you should start here at :r
     Crossbar.io<https://crossbar.io>
     Crossbario.com<https://crossbario.com>
     WAMP<https://wamp-proto.org/>
+    Crossbario Docs <self>
    
 
 .. toctree::
     :maxdepth: 2
     :caption: Contents:
 
-    pages/gettingstarted
+    Getting-Started
 
-    pages/about/Basic-Concepts
-    pages/installation/installation
-    pages/administration/Administration
+    Basic-Concepts
+    Installation
+    Administration
 
-    pages/programming-guide/Programming-Guide
-    pages/integration-guide
-    pages/tutorials-recipe
+    Programming-Guide
+    integration-guide
+    tutorials-recipe
 
-    pages/about/Compatibility-Policy
-    pages/about/Crossbar-License
-    pages/about/Documentation-License
-    pages/about/Contributing-FAQ
-    pages/about/FAQ
+    Compatibility-Policy
+    Crossbar-License
+    Documentation-License
+    Contributing-FAQ
+    FAQ
 
 Please see :ref:`site_contents` for a full site-map.
 
