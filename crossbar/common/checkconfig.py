@@ -2968,7 +2968,7 @@ def check_controller_options(personality, options, ignore=[]):
         raise InvalidConfigException("'options' in controller configuration must be a dictionary ({} encountered)\n\n{}".format(type(options)))
 
     for k in options:
-        if k not in ['title', 'shutdown'] + ignore:
+        if k not in ['title', 'shutdown', 'enable_parallel_worker_start'] + ignore:
             raise InvalidConfigException("encountered unknown attribute '{}' in 'options' in controller configuration".format(k))
 
     if 'title' in options:
@@ -2982,6 +2982,13 @@ def check_controller_options(personality, options, ignore=[]):
         for shutdown_mode in options['shutdown']:
             if shutdown_mode not in NODE_SHUTDOWN_MODES:
                 raise InvalidConfigException("invalid value '{}' for shutdown mode in controller options (permissible values: {})".format(shutdown_mode, ', '.join("'{}'".format(x) for x in NODE_SHUTDOWN_MODES)))
+
+    if 'enable_parallel_worker_start' in options:
+        enable_parallel_worker_start = options['enable_parallel_worker_start']
+        if type(enable_parallel_worker_start) != bool:
+            raise InvalidConfigException(
+                "'enable_parallel_worker_start' in 'options' in controller configuration must be a bool ({} encountered)".format(
+                    type(enable_parallel_worker_start)))
 
 
 def check_controller(personality, controller, ignore=[]):

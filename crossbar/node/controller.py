@@ -490,6 +490,8 @@ class NodeController(NativeProcess):
             args.append("--debug-lifecycle")
         if self._node.options.debug_programflow:
             args.append("--debug-programflow")
+        if self._node.options.enable_vmprof:
+            args.append("--vmprof")
         if "shutdown" in options:
             args.extend(["--shutdown", options["shutdown"]])
 
