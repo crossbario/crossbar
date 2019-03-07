@@ -12,6 +12,9 @@ addons:
       # needed for pyenchant, needed for sphinx-spellcheck
       - libenchant-dev
 
+      # needed for vmprof
+      - libunwind-dev
+
 before_install:
   - export PATH=$PATH:$HOME/.local/bin
 
