@@ -30,6 +30,7 @@
 
 from __future__ import absolute_import, division
 
+import os
 import sys
 import inspect
 import json
@@ -54,15 +55,12 @@ def set_flags_from_args(_args):
 # FS path to controlling terminal
 _TERMINAL = None
 
-# *BSD and MacOSX
-if 'bsd' in sys.platform or sys.platform.startswith('darwin'):
-    _TERMINAL = '/dev/tty'
+# Linux, *BSD and MacOSX
+if sys.platform.startswith('linux') or 'bsd' in sys.platform or sys.platform.startswith('darwin'):
+    _TERMINAL = '/dev/tty' if os.path.exists('/dev/tty') else None
 # Windows
 elif sys.platform in ['win32']:
     pass
-# Linux
-elif sys.platform.startswith('linux'):
-    _TERMINAL = '/dev/tty'
 # Other OS
 else:
     pass
