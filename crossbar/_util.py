@@ -58,6 +58,13 @@ _TERMINAL = None
 # Linux, *BSD and MacOSX
 if sys.platform.startswith('linux') or 'bsd' in sys.platform or sys.platform.startswith('darwin'):
     _TERMINAL = '/dev/tty' if os.path.exists('/dev/tty') else None
+    try:
+        with open('/dev/tty', 'w') as f:
+            f.write('\n')
+            f.flush()
+    except:
+        # under systemd: OSError: [Errno 6] No such device or address: '/dev/tty'
+        _TERMINAL = None
 # Windows
 elif sys.platform in ['win32']:
     pass
