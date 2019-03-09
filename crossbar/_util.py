@@ -65,6 +65,16 @@ elif sys.platform in ['win32']:
 else:
     pass
 
+# still, we might not be able to use TTY, so duck test it:
+if _TERMINAL:
+    try:
+        with open('/dev/tty', 'w') as f:
+            f.write('\n')
+            f.flush()
+    except:
+        # under systemd: OSError: [Errno 6] No such device or address: '/dev/tty'
+        _TERMINAL = None
+
 
 def class_name(obj):
     """
