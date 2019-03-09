@@ -58,6 +58,15 @@ _TERMINAL = None
 # Linux, *BSD and MacOSX
 if sys.platform.startswith('linux') or 'bsd' in sys.platform or sys.platform.startswith('darwin'):
     _TERMINAL = '/dev/tty' if os.path.exists('/dev/tty') else None
+# Windows
+elif sys.platform in ['win32']:
+    pass
+# Other OS
+else:
+    pass
+
+# still, we might not be able to use TTY, so duck test it:
+if _TERMINAL:
     try:
         with open('/dev/tty', 'w') as f:
             f.write('\n')
@@ -65,12 +74,6 @@ if sys.platform.startswith('linux') or 'bsd' in sys.platform or sys.platform.sta
     except:
         # under systemd: OSError: [Errno 6] No such device or address: '/dev/tty'
         _TERMINAL = None
-# Windows
-elif sys.platform in ['win32']:
-    pass
-# Other OS
-else:
-    pass
 
 
 def class_name(obj):
