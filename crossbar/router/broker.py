@@ -426,10 +426,23 @@ class Broker(object):
                     else:
                         disclose = False
 
+                    forward_for = None
                     if disclose:
-                        publisher = session._session_id
-                        publisher_authid = session._authid
-                        publisher_authrole = session._authrole
+                        if publish.forward_for:
+                            publisher = publish.forward_for[0]['session']
+                            publisher_authid = publish.forward_for[0]['authid']
+                            publisher_authrole = publish.forward_for[0]['authrole']
+                            forward_for = publish.forward_for + [
+                                {
+                                    'session': session._session_id,
+                                    'authid': session._authid,
+                                    'authrole': session._authrole,
+                                }
+                            ]
+                        else:
+                            publisher = session._session_id
+                            publisher_authid = session._authid
+                            publisher_authrole = session._authrole
                     else:
                         publisher = None
                         publisher_authid = None
@@ -558,7 +571,7 @@ class Broker(object):
                                                     enc_algo=publish.enc_algo,
                                                     enc_key=publish.enc_key,
                                                     enc_serializer=publish.enc_serializer,
-                                                    forward_for=publish.forward_for)
+                                                    forward_for=forward_for)
                             else:
                                 msg = message.Event(subscription.id,
                                                     publication,
@@ -568,7 +581,7 @@ class Broker(object):
                                                     publisher_authid=publisher_authid,
                                                     publisher_authrole=publisher_authrole,
                                                     topic=topic,
-                                                    forward_for=publish.forward_for)
+                                                    forward_for=forward_for)
 
                             # if the publish message had a correlation ID, this will also be the
                             # correlation ID of the event message sent out
