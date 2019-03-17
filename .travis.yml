@@ -12,6 +12,10 @@ addons:
       # needed for pyenchant, needed for sphinx-spellcheck
       - libenchant-dev
 
+      # needed for compression
+      - libbz2-dev
+      - libsnappy-dev
+
       # needed for vmprof
       - libunwind-dev
 
