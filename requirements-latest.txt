@@ -1,5 +1,5 @@
 attrs>=17.2.0
-git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn
+git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[all]
 bitstring>=3.1.5
 cbor>=1.0.0
 click>=6.7
