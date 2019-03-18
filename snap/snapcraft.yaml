@@ -24,11 +24,16 @@ parts:
   crossbar:
     plugin: python
     source: .
+    stage-packages:
+      - libsnappy1v5
     build-packages:
       - gcc
       - libffi-dev
       - libssl-dev
       - make
+      - libbz2-dev
+      - libsnappy-dev
+      - libunwind-dev
     override-prime: |
       snapcraftctl prime
       echo "Compiling pyc files..."
