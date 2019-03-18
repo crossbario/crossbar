@@ -426,7 +426,7 @@ def create_listening_endpoint_from_config(config, cbdir, reactor, log):
 
         # the path
         #
-        path = FilePath(join(cbdir, config['path']))
+        path = FilePath(join(cbdir, os.path.expandvars(config['path'])))
 
         # if there is already something there, delete it.
         #
