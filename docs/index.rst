@@ -14,7 +14,6 @@ If you are new to Crossbar.io development in general you should start here at :r
     WAMP<https://wamp-proto.org/>
     Crossbario Docs <self>
    
-
 .. toctree::
     :maxdepth: 2
     :caption: Contents:
@@ -34,6 +33,12 @@ If you are new to Crossbar.io development in general you should start here at :r
     Documentation-License
     Contributing-FAQ
     FAQ
+
+.. toctree::
+    :caption: IMPRESSUM:
+
+    Crossbar.io/impressum<https://crossbar.io/impressum>
+
 
 Please see :ref:`site_contents` for a full site-map.
 
