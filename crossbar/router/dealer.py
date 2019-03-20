@@ -64,16 +64,18 @@ class InvocationRequest(object):
         'caller',
         'call',
         'callee',
+        'forward_for',
         'canceled',
         'error_msg',
     )
 
-    def __init__(self, id, registration, caller, call, callee):
+    def __init__(self, id, registration, caller, call, callee, forward_for):
         self.id = id
         self.registration = registration
         self.caller = caller
         self.call = call
         self.callee = callee
+        self.forward_for = forward_for
         self.canceled = False
         self.error_msg = None
 
@@ -728,6 +730,9 @@ class Dealer(object):
                             reply.correlation_is_last = True
                             self._router.send(session, reply)
                             return
+
+                    # now actually perform the invocation of the callee ..
+                    #
                     self._call(session, call, registration, authorization)
                 else:
                     reply = message.Error(message.Call.MESSAGE_TYPE, call.request, ApplicationError.NO_SUCH_PROCEDURE, [u"no callee registered for procedure <{0}>".format(call.procedure)])
@@ -879,10 +884,23 @@ class Dealer(object):
         else:
             disclose = False
 
+        forward_for = None
         if disclose:
-            caller = session._session_id
-            caller_authid = session._authid
-            caller_authrole = session._authrole
+            if call.forward_for:
+                caller = call.forward_for[0]['session']
+                caller_authid = call.forward_for[0]['authid']
+                caller_authrole = call.forward_for[0]['authrole']
+                forward_for = call.forward_for + [
+                    {
+                        'session': session._session_id,
+                        'authid': session._authid,
+                        'authrole': session._authrole,
+                    }
+                ]
+            else:
+                caller = session._session_id
+                caller_authid = session._authid
+                caller_authrole = session._authrole
         else:
             caller = None
             caller_authid = None
@@ -909,7 +927,7 @@ class Dealer(object):
                                             enc_algo=call.enc_algo,
                                             enc_key=call.enc_key,
                                             enc_serializer=call.enc_serializer,
-                                            forward_for=call.forward_for)
+                                            forward_for=forward_for)
         else:
             invocation = message.Invocation(invocation_request_id,
                                             registration.id,
@@ -921,23 +939,23 @@ class Dealer(object):
                                             caller_authid=caller_authid,
                                             caller_authrole=caller_authrole,
                                             procedure=procedure,
-                                            forward_for=call.forward_for)
+                                            forward_for=forward_for)
 
         invocation.correlation_id = call.correlation_id
         invocation.correlation_uri = call.procedure
         invocation.correlation_is_anchor = False
         invocation.correlation_is_last = False
 
-        self._add_invoke_request(invocation_request_id, registration, session, call, callee)
+        self._add_invoke_request(invocation_request_id, registration, session, call, callee, forward_for)
         self._router.send(callee, invocation)
         return True
 
-    def _add_invoke_request(self, invocation_request_id, registration, session, call, callee):
+    def _add_invoke_request(self, invocation_request_id, registration, session, call, callee, forward_for):
         """
         Internal helper.  Adds an InvocationRequest to both the
         _callee_to_invocations and _invocations maps.
         """
-        invoke_request = InvocationRequest(invocation_request_id, registration, session, call, callee)
+        invoke_request = InvocationRequest(invocation_request_id, registration, session, call, callee, forward_for)
         self._invocations[invocation_request_id] = invoke_request
         self._invocations_by_call[session._session_id, call.request] = invoke_request
         invokes = self._callee_to_invocations.get(callee, [])
@@ -1076,6 +1094,31 @@ class Dealer(object):
 
             reply = None
 
+            forward_for = None
+
+            # FIXME
+            disclose = True
+            if disclose:
+                if invocation_request.forward_for:
+                    callee = invocation_request.forward_for[0]['session']
+                    callee_authid = invocation_request.forward_for[0]['authid']
+                    callee_authrole = invocation_request.forward_for[0]['authrole']
+                    forward_for = invocation_request.forward_for + [
+                        {
+                            'session': session._session_id,
+                            'authid': session._authid,
+                            'authrole': session._authrole,
+                        }
+                    ]
+                else:
+                    callee = session._session_id
+                    callee_authid = session._authid
+                    callee_authrole = session._authrole
+            else:
+                callee = None
+                callee_authid = None
+                callee_authrole = None
+
             # we've maybe cancelled this invocation
             if invocation_request.canceled:
                 # see if we're waiting to send the error back to the
@@ -1108,13 +1151,19 @@ class Dealer(object):
                                               invocation_request.call.request,
                                               ApplicationError.INVALID_ARGUMENT,
                                               [u"call result from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)],
-                                              forward_for=yield_.forward_for)
+                                              callee=callee,
+                                              callee_authid=callee_authid,
+                                              callee_authrole=callee_authrole,
+                                              forward_for=forward_for)
                     else:
                         reply = message.Result(invocation_request.call.request,
                                                args=yield_.args,
                                                kwargs=yield_.kwargs,
                                                progress=yield_.progress,
-                                               forward_for=yield_.forward_for)
+                                               callee=callee,
+                                               callee_authid=callee_authid,
+                                               callee_authrole=callee_authrole,
+                                               forward_for=forward_for)
                 else:
                     reply = message.Result(invocation_request.call.request,
                                            payload=yield_.payload,
@@ -1122,7 +1171,10 @@ class Dealer(object):
                                            enc_algo=yield_.enc_algo,
                                            enc_key=yield_.enc_key,
                                            enc_serializer=yield_.enc_serializer,
-                                           forward_for=yield_.forward_for)
+                                           callee=callee,
+                                           callee_authid=callee_authid,
+                                           callee_authrole=callee_authrole,
+                                           forward_for=forward_for)
 
                 # the call is done if it's a regular call (non-progressive) or if the payload was invalid
                 #
@@ -1196,6 +1248,32 @@ class Dealer(object):
                 callee_extra.concurrency_current -= 1
 
             reply = None
+
+            forward_for = None
+
+            # FIXME
+            disclose = True
+            if disclose:
+                if invocation_request.forward_for:
+                    callee = invocation_request.forward_for[0]['session']
+                    callee_authid = invocation_request.forward_for[0]['authid']
+                    callee_authrole = invocation_request.forward_for[0]['authrole']
+                    forward_for = invocation_request.forward_for + [
+                        {
+                            'session': session._session_id,
+                            'authid': session._authid,
+                            'authrole': session._authrole,
+                        }
+                    ]
+                else:
+                    callee = session._session_id
+                    callee_authid = session._authid
+                    callee_authrole = session._authrole
+            else:
+                callee = None
+                callee_authid = None
+                callee_authrole = None
+
             # we've maybe cancelled this invocation
             if invocation_request.canceled:
                 # see if we're waiting to send the error back to the
@@ -1213,14 +1291,20 @@ class Dealer(object):
                                               invocation_request.call.request,
                                               ApplicationError.INVALID_ARGUMENT,
                                               [u"call error from procedure '{0}' with invalid application payload: {1}".format(invocation_request.call.procedure, e)],
-                                              forward_for=error.forward_for)
+                                              callee=callee,
+                                              callee_authid=callee_authid,
+                                              callee_authrole=callee_authrole,
+                                              forward_for=forward_for)
                     else:
                         reply = message.Error(message.Call.MESSAGE_TYPE,
                                               invocation_request.call.request,
                                               error.error,
                                               args=error.args,
                                               kwargs=error.kwargs,
-                                              forward_for=error.forward_for)
+                                              callee=callee,
+                                              callee_authid=callee_authid,
+                                              callee_authrole=callee_authrole,
+                                              forward_for=forward_for)
                 else:
                     reply = message.Error(message.Call.MESSAGE_TYPE,
                                           invocation_request.call.request,
@@ -1229,7 +1313,10 @@ class Dealer(object):
                                           enc_algo=error.enc_algo,
                                           enc_key=error.enc_key,
                                           enc_serializer=error.enc_serializer,
-                                          forward_for=error.forward_for)
+                                          callee=callee,
+                                          callee_authid=callee_authid,
+                                          callee_authrole=callee_authrole,
+                                          forward_for=forward_for)
 
             if reply:
                 if self._router.is_traced:
