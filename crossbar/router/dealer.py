@@ -1252,7 +1252,7 @@ class Dealer(object):
             forward_for = None
 
             # FIXME
-            disclose = True
+            disclose = False
             if disclose:
                 if invocation_request.forward_for:
                     callee = invocation_request.forward_for[0]['session']
