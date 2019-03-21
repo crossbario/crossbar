@@ -818,7 +818,9 @@ class Broker(object):
                             )
 
                         if not was_already_subscribed:
-                            options.correlation_is_last = True
+                            if options:
+                                options.correlation_is_last = True
+
                             service_session.publish(
                                 u'wamp.subscription.on_subscribe',
                                 session._session_id,
